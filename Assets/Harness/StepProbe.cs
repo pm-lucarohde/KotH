@@ -1,5 +1,4 @@
 #if UNITY_EDITOR
-using KotH.Client.Player;
 using KotH.Shared.Player;
 using UnityEngine;
 
@@ -122,12 +121,8 @@ public sealed class StepProbe : MonoBehaviour
 
     void Start()
     {
-        motor = FindFirstObjectByType<PlayerMotor>();
-        controller = motor.GetComponent<CharacterController>();
-
-        PlayerInputReader reader = motor.GetComponent<PlayerInputReader>();
-        if (reader != null)
-            reader.enabled = false;
+        if (!ProbeSubject.TryBind(out motor, out controller))
+            return;
 
         Debug.Log("[probe] stepOffset " + controller.stepOffset +
                   ", height " + controller.height +
