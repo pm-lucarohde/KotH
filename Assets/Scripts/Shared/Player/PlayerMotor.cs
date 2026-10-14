@@ -27,6 +27,15 @@ namespace KotH.Shared.Player
         [SerializeField] float jumpHeight = 1.5f;
         [SerializeField] float doubleJumpHeight = 1f;
 
+        [Tooltip("Sprunghöhe bei ganz kurzem Antippen")]
+        [SerializeField] float minJumpHeight = 1f;
+
+        [Tooltip("Haltedauer, bis zu der nur die Mindesthöhe kommt")]
+        [SerializeField] float minJumpHold = 0.032f;
+
+        [Tooltip("Haltedauer für die volle Sprunghöhe")]
+        [SerializeField] float fullJumpHold = 0.2f;
+
         // Opens on the ground jump. A double tap only counts inside this time.
         [SerializeField] float doubleJumpWindow = 1f;
 
@@ -111,6 +120,9 @@ namespace KotH.Shared.Player
         float timeSinceGroundJump;
         bool hasPendingAirPress;  // first air tap waiting for its partner
         float timeSinceAirPress;
+        bool jumpCutPending;      // ground jump running, not trimmed yet
+        float jumpHeldTime;       // how long the key stayed down since take-off
+        float jumpStartY;         // take-off height, the cut measures from it
 
         // --- render interpolation only, not part of the simulation ---
         Vector3 eyePosition;
@@ -219,6 +231,7 @@ namespace KotH.Shared.Player
                 doubleJumpUsed = false;
                 jumpWindowOpen = false;
                 hasPendingAirPress = false;
+                jumpCutPending = false;
             }
             else
             {
@@ -251,6 +264,7 @@ namespace KotH.Shared.Player
             // would project the fresh upward speed straight back into the
             // slope and the double jump would be dead on arrival.
             bool jumped = ProcessJumpPresses(input.JumpPresses);
+            UpdateJumpCut(input.JumpHeld, dt);
 
             if (onSteepGround && !jumped)
                 Slide(dt);
@@ -411,6 +425,12 @@ namespace KotH.Shared.Player
                     jumpWindowOpen = true;
                     timeSinceGroundJump = 0f;
 
+                    // The cut needs the take-off height, since it trims what
+                    // is left to climb rather than the speed itself.
+                    jumpCutPending = true;
+                    jumpHeldTime = 0f;
+                    jumpStartY = transform.position.y;
+
                     // The take-off press does NOT count as the first tap.
                     hasPendingAirPress = false;
 
@@ -445,6 +465,33 @@ namespace KotH.Shared.Player
             }
 
             return jumped;
+        }
+
+        // Called right after the presses, so a tap shorter than a single
+        // tick is already trimmed in the tick it took off in.
+        void UpdateJumpCut(bool held, float dt)
+        {
+            if (!jumpCutPending)
+                return;
+
+            if (held)
+            {
+                jumpHeldTime += dt;
+                if (jumpHeldTime >= fullJumpHold)
+                    jumpCutPending = false;   // full height earned
+                return;
+            }
+
+            // Trims what is LEFT to climb, not the speed, so the total comes
+            // out at the earned height whichever tick this runs in. Min, not
+            // assignment: anyone already slower keeps his speed.
+            float t = Mathf.InverseLerp(minJumpHold, fullJumpHold, jumpHeldTime);
+            float target = Mathf.Lerp(minJumpHeight, jumpHeight, t);
+            float risen = transform.position.y - jumpStartY;
+            float rest = Mathf.Sqrt(Mathf.Max(0f, (target - risen) * -2f * gravity));
+
+            velocity.y = Mathf.Min(velocity.y, rest);
+            jumpCutPending = false;
         }
 
         void UpdateCrouch(bool wantsCrouch, float dt)

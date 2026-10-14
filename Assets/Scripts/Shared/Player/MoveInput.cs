@@ -32,6 +32,14 @@ namespace KotH.Shared.Player
         /// </summary>
         public byte AttackPresses;
 
+        /// <summary>
+        /// Whether the jump key is still down. The hold time is counted in
+        /// PlayerMotor, so a server can replay the height from the same
+        /// input. Left false next to a JumpPresses of 1, the jump comes out
+        /// at minimum height -- a trap for every rig that builds its own.
+        /// </summary>
+        public bool JumpHeld;
+
         public bool Sprint;
         public bool Crouch;
     }

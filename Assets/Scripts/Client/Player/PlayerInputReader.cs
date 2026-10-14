@@ -97,7 +97,10 @@ namespace KotH.Client.Player
                 JumpPresses = jumpPresses,
                 AttackPresses = attackPresses,
                 // Held states may be read here directly: GetKey is stable
-                // across frames, unlike GetKeyDown.
+                // across frames, unlike GetKeyDown. A press that begins and
+                // ends inside one tick reads false here and lands at the
+                // minimum jump height, which is exactly right.
+                JumpHeld = Input.GetButton("Jump"),
                 Sprint = Input.GetKey(sprintKey),
                 Crouch = Input.GetKey(crouchKey),
             };
