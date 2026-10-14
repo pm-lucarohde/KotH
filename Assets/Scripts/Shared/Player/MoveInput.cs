@@ -24,8 +24,16 @@ namespace KotH.Shared.Player
         /// <summary>Absoluter Blickwinkel hoch/runter, in Grad, bereits geklemmt.</summary>
         public float Pitch;
 
-        /// <summary>Flanke: wurde seit dem letzten Tick gedrückt. Kein Dauerzustand.</summary>
-        public bool Jump;
+        /// <summary>
+        /// Anzahl der Sprungtasten-Drücke seit dem letzten Tick.
+        ///
+        /// Ein Zähler statt eines bool, weil ein Tick bei 40 Hz 25 ms dauert:
+        /// ein schneller Doppeltipp kann komplett hineinfallen, und mit einem
+        /// bool ginge der zweite Druck verloren. Die Doppelsprung-Geste wird
+        /// daraus im PlayerMotor erkannt — nicht im Client, damit ein Server
+        /// sie aus demselben Eingabestrom nachrechnen kann.
+        /// </summary>
+        public byte JumpPresses;
 
         public bool Sprint;
         public bool Crouch;

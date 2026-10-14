@@ -131,10 +131,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3b7df523017ffb3f79e933bc26fc0285, type: 3}
   m_Name: 
   m_EditorClassIdentifier: KotH::KotH.Shared.Player.PlayerMotor
-  walkSpeed: 4.5
-  sprintSpeed: 7.5
-  crouchSpeed: 2
-  jumpHeight: 1.1
+  walkSpeed: 5.175
+  sprintSpeed: 8.625
+  crouchSpeed: 2.1
+  groundAcceleration: 50
+  groundDeceleration: 35
+  airAcceleration: 7.5
+  jumpHeight: 1.5
+  doubleJumpHeight: 1
+  doubleTapWindow: 0.25
   gravity: -20
   standHeight: 2
   crouchHeight: 1.2
@@ -145,6 +150,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   cameraMount: {fileID: 793576110581430329}
+  logJumpStats: 1
 --- !u!114 &5599838516717837321
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -27,7 +27,7 @@ namespace KotH.Client.Player
 
         float yaw;
         float pitch;
-        bool jumpQueued;
+        byte jumpPresses;
 
         public float Yaw => yaw;
         public float Pitch => pitch;
@@ -63,9 +63,11 @@ namespace KotH.Client.Player
             }
 
             // GetButtonDown ist nur in einem einzigen Bild wahr. Läuft in genau
-            // diesem Bild kein FixedUpdate, wäre der Sprung sonst verloren.
-            if (Input.GetButtonDown("Jump"))
-                jumpQueued = true;
+            // diesem Bild kein FixedUpdate, wäre der Druck sonst verloren.
+            // Gezählt statt gemerkt, damit auch zwei Drücke innerhalb eines
+            // Ticks (25 ms) beide ankommen — der Doppelsprung hängt daran.
+            if (Input.GetButtonDown("Jump") && jumpPresses < byte.MaxValue)
+                jumpPresses++;
         }
 
         void FixedUpdate()
@@ -77,14 +79,14 @@ namespace KotH.Client.Player
                     Input.GetAxisRaw("Vertical")),
                 Yaw = yaw,
                 Pitch = pitch,
-                Jump = jumpQueued,
+                JumpPresses = jumpPresses,
                 // Dauerzustände dürfen hier direkt abgefragt werden: GetKey ist
                 // über mehrere Bilder stabil, anders als GetKeyDown.
                 Sprint = Input.GetKey(sprintKey),
                 Crouch = Input.GetKey(crouchKey),
             };
 
-            jumpQueued = false;
+            jumpPresses = 0;
 
             motor.Tick(input, Time.fixedDeltaTime);
         }
