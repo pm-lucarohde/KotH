@@ -98,6 +98,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   groundProbeExtra: 0.1
+  minSlideSpeed: 6
   cameraMount: {fileID: 793576110581430329}
 --- !u!114 &5599838516717837321
 MonoBehaviour:

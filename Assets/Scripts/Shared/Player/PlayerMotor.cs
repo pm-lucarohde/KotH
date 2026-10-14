@@ -57,6 +57,10 @@ namespace KotH.Shared.Player
         // How far below the feet the probe still looks for ground.
         [SerializeField] float groundProbeExtra = 0.1f;
 
+        // Speed the slide starts at, so stepping onto a steep face slides
+        // at once instead of accelerating out of a standstill.
+        [SerializeField] float minSlideSpeed = 6f;
+
         [Header("Verknüpfung")]
         [SerializeField] Transform cameraMount;
 
@@ -160,20 +164,16 @@ namespace KotH.Shared.Player
 
             UpdateCrouch(input.Crouch, dt);
             UpdateHorizontal(input, dt);
-            ProcessJumpPresses(input.JumpPresses);
 
-            if (onSteepGround)
-            {
-                // The slope cancels the part of gravity pressing into it;
-                // what is left accelerates the player downhill, so steeper
-                // means faster.
-                velocity += Vector3.ProjectOnPlane(
-                    Vector3.up * gravity, groundNormal) * dt;
-            }
+            // A jump this tick wins over the slide: otherwise the redirect
+            // would project the fresh upward speed straight back into the
+            // slope and the double jump would be dead on arrival.
+            bool jumped = ProcessJumpPresses(input.JumpPresses);
+
+            if (onSteepGround && !jumped)
+                Slide(dt);
             else
-            {
                 velocity.y += gravity * dt;
-            }
 
             controller.Move(velocity * dt);
 
@@ -207,11 +207,38 @@ namespace KotH.Shared.Player
         }
 
         /// <summary>
-        /// Ground jump and double jump. The counter can exceed 1 when the key
-        /// was pressed more than once inside a single 25 ms tick.
+        /// Slides down a face that is too steep to stand on. Called instead
+        /// of plain gravity, never on top of it.
         /// </summary>
-        void ProcessJumpPresses(int presses)
+        void Slide(float dt)
         {
+            // Landing redirects momentum along the slope instead of dropping
+            // it. Without this the slide restarts from zero on every contact
+            // and velocity.y drifts into nonsense while the slope blocks it.
+            velocity = Vector3.ProjectOnPlane(velocity, groundNormal);
+
+            Vector3 downhill =
+                Vector3.ProjectOnPlane(Vector3.down, groundNormal).normalized;
+
+            // Floor the downhill speed, so there is no dead time at all.
+            float speed = Vector3.Dot(velocity, downhill);
+            if (speed < minSlideSpeed)
+                velocity += downhill * (minSlideSpeed - speed);
+
+            // The slope cancels the part of gravity pressing into it; what
+            // is left accelerates the player on downhill.
+            velocity += Vector3.ProjectOnPlane(Vector3.up * gravity, groundNormal) * dt;
+        }
+
+        /// <summary>
+        /// Ground jump and double jump. The counter can exceed 1 when the key
+        /// was pressed more than once inside a single 25 ms tick. Returns
+        /// whether a jump actually fired this tick.
+        /// </summary>
+        bool ProcessJumpPresses(int presses)
+        {
+            bool jumped = false;
+
             for (int i = 0; i < presses; i++)
             {
                 // Jumping while crouched is allowed; the player stays crouched
@@ -221,6 +248,7 @@ namespace KotH.Shared.Player
                     velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
                     grounded = false;
                     doubleJumpUsed = false;
+                    jumped = true;
 
                     // Opens the window in which a double tap counts.
                     jumpWindowOpen = true;
@@ -253,10 +281,13 @@ namespace KotH.Shared.Player
                     velocity.y = Mathf.Sqrt(doubleJumpHeight * -2f * gravity);
                     doubleJumpUsed = true;
                     jumpWindowOpen = false;
+                    jumped = true;
                 }
 
                 hasPendingAirPress = false;
             }
+
+            return jumped;
         }
 
         void UpdateCrouch(bool wantsCrouch, float dt)
