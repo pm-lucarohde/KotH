@@ -44,6 +44,11 @@ namespace KotH.Shared.Player
         [SerializeField] float standEyeHeight = 1.68f;
         [SerializeField] float crouchEyeHeight = 0.78f;
         [SerializeField] float eyeMoveSpeed = 6f;
+
+        // Step height the controller climbs. Crouched it is much lower, so
+        // ducking becomes a real trade: you fit through gaps but lose reach.
+        [SerializeField] float standStepOffset = 0.45f;
+        [SerializeField] float crouchStepOffset = 0.25f;
         [SerializeField] LayerMask headroomMask = ~0;
 
         [Header("Verknüpfung")]
@@ -84,7 +89,7 @@ namespace KotH.Shared.Player
             // GetComponent belongs here, not in Tick and not in Update.
             controller = GetComponent<CharacterController>();
 
-            ApplyHeight(standHeight);
+            ApplyHeight(standHeight, standStepOffset);
             if (cameraMount != null)
                 cameraMount.localPosition = EyeLocalPosition(standEyeHeight);
 
@@ -231,12 +236,12 @@ namespace KotH.Shared.Player
             if (wantsCrouch && !isCrouching)
             {
                 isCrouching = true;
-                ApplyHeight(crouchHeight);
+                ApplyHeight(crouchHeight, crouchStepOffset);
             }
             else if (!wantsCrouch && isCrouching && HasHeadroom())
             {
                 isCrouching = false;
-                ApplyHeight(standHeight);
+                ApplyHeight(standHeight, standStepOffset);
             }
 
             if (cameraMount == null)
@@ -248,13 +253,15 @@ namespace KotH.Shared.Player
         }
 
         /// <summary>
-        /// Sets the height and shifts the center so the feet stay put.
-        /// Without that correction the player would sink when crouching.
+        /// The only place that reshapes the controller. Shifts the center so
+        /// the feet stay put, otherwise the player would sink when crouching.
+        /// Unity clamps stepOffset to the height, so it has to follow along.
         /// </summary>
-        void ApplyHeight(float height)
+        void ApplyHeight(float height, float stepOffset)
         {
             controller.height = height;
             controller.center = new Vector3(0f, (height - standHeight) * 0.5f, 0f);
+            controller.stepOffset = stepOffset;
         }
 
         /// <summary>

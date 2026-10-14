@@ -57,7 +57,7 @@ CharacterController:
   m_Height: 1.8
   m_Radius: 0.4
   m_SlopeLimit: 50
-  m_StepOffset: 0.3
+  m_StepOffset: 0.45
   m_SkinWidth: 0.04
   m_MinMoveDistance: 0
   m_Center: {x: 0, y: 0, z: 0}
@@ -89,6 +89,8 @@ MonoBehaviour:
   standEyeHeight: 1.68
   crouchEyeHeight: 0.78
   eyeMoveSpeed: 6
+  standStepOffset: 0.45
+  crouchStepOffset: 0.25
   headroomMask:
     serializedVersion: 2
     m_Bits: 4294967295
