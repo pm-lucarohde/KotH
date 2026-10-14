@@ -32,6 +32,12 @@ namespace KotH.Shared.Player
         [Header("Sprung und Schwerkraft")]
         [SerializeField] float jumpHeight = 1.5f;
         [SerializeField] float doubleJumpHeight = 1f;
+
+        // Ab dem Bodensprung offen. Nur innerhalb dieser Zeit wird ein
+        // Doppeltipp überhaupt ausgewertet.
+        [SerializeField] float doubleJumpWindow = 0.5f;
+
+        // Maximaler Abstand zwischen den beiden Tipps des Doppeltipps.
         [SerializeField] float doubleTapWindow = 0.25f;
 
         // Bewusst rund die doppelte Erdbeschleunigung. Mit -9.81 fühlt sich ein
@@ -61,6 +67,8 @@ namespace KotH.Shared.Player
         bool isCrouching;
         bool grounded;
         bool doubleJumpUsed;      // pro Flug nur einmal
+        bool jumpWindowOpen;      // 500-ms-Fenster seit dem Bodensprung
+        float timeSinceGroundJump;
         bool hasPendingAirPress;  // erster Luft-Tipp wartet auf seinen Partner
         float timeSinceAirPress;
 
@@ -112,13 +120,27 @@ namespace KotH.Shared.Player
                     velocity.y = -2f; // drückt die Figur an den Boden, hält sie an Hängen
 
                 doubleJumpUsed = false;
+                jumpWindowOpen = false;
                 hasPendingAirPress = false;
             }
-            else if (hasPendingAirPress)
+            else
             {
-                timeSinceAirPress += dt;
-                if (timeSinceAirPress > doubleTapWindow)
-                    hasPendingAirPress = false;
+                if (jumpWindowOpen)
+                {
+                    timeSinceGroundJump += dt;
+                    if (timeSinceGroundJump > doubleJumpWindow)
+                    {
+                        jumpWindowOpen = false;
+                        hasPendingAirPress = false;
+                    }
+                }
+
+                if (hasPendingAirPress)
+                {
+                    timeSinceAirPress += dt;
+                    if (timeSinceAirPress > doubleTapWindow)
+                        hasPendingAirPress = false;
+                }
             }
 
             UpdateCrouch(input.Crouch, dt);
@@ -172,6 +194,10 @@ namespace KotH.Shared.Player
                     grounded = false;
                     doubleJumpUsed = false;
 
+                    // Öffnet das Zeitfenster, in dem ein Doppeltipp zählt.
+                    jumpWindowOpen = true;
+                    timeSinceGroundJump = 0f;
+
                     // Der Absprung zählt ausdrücklich NICHT als erster Tipp
                     // der Doppelsprung-Geste.
                     hasPendingAirPress = false;
@@ -185,6 +211,10 @@ namespace KotH.Shared.Player
                 if (grounded)
                     continue;
 
+                // Fenster zu: Tipps verfallen wirkungslos.
+                if (!jumpWindowOpen)
+                    continue;
+
                 if (!hasPendingAirPress)
                 {
                     // Erster Tipp in der Luft: nur vormerken.
@@ -193,14 +223,21 @@ namespace KotH.Shared.Player
                     continue;
                 }
 
-                // Zweiter Tipp innerhalb des Fensters. velocity.y >= 0 deckt
-                // beide erlaubten Fälle ab: im Steigflug oder exakt am
-                // Scheitel. Im Sinkflug ist die Bedingung dauerhaft falsch —
-                // und wird es ohne Bodenkontakt auch nicht mehr wahr.
-                if (!doubleJumpUsed && velocity.y >= 0f)
+                // Zweiter Tipp: innerhalb von doubleTapWindow nach dem ersten
+                // UND innerhalb von doubleJumpWindow nach dem Absprung. Beides
+                // wird oben im Tick mitgeführt. Die Vertikalgeschwindigkeit
+                // spielt bewusst keine Rolle mehr — das Zeitfenster ersetzt
+                // die frühere Bedingung velocity.y >= 0.
+                if (!doubleJumpUsed)
                 {
                     velocity.y = Mathf.Sqrt(doubleJumpHeight * -2f * gravity);
                     doubleJumpUsed = true;
+                    jumpWindowOpen = false;
+
+                    // Der Scheitel kann jetzt auch nach einem bereits
+                    // gemeldeten Scheitel liegen, deshalb neu verfolgen.
+                    if (logJumpStats)
+                        trackingApex = true;
                 }
 
                 hasPendingAirPress = false;
