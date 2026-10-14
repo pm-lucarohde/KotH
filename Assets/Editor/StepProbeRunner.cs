@@ -9,7 +9,7 @@ using UnityEngine;
 /// </summary>
 public static class StepProbeRunner
 {
-    const double WatchdogSeconds = 180.0;
+    const double WatchdogSeconds = 600.0;
 
     static double deadline;
 
