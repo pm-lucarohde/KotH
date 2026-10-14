@@ -103,6 +103,9 @@ namespace KotH.Shared.Player
         [Tooltip("Tempo, über das ein Hang das Gleiten nicht hinaustreibt")]
         [SerializeField] float maxSlideSpeed = 15f;
 
+        [Tooltip("Abstand zwischen zwei Gleitvorgängen, ab dem Start gezählt")]
+        [SerializeField] float slideCooldown = 0.5f;
+
         [Header("Verknüpfung")]
         [SerializeField] Transform cameraMount;
 
@@ -115,6 +118,7 @@ namespace KotH.Shared.Player
         bool sprintArmed;         // walk speed has been exceeded at least once
         bool sliding;             // crouch slide, the deliberate one
         float slideSpeed;         // what the slide rolls out at, not velocity
+        float slideCooldownLeft;  // counted from the START of the last slide
         float lastStepSpeed;      // speed the last tick really made, in 3D
         float currentHeight;      // the shape, which needs time to follow
         bool grounded;            // standing on WALKABLE ground
@@ -360,6 +364,11 @@ namespace KotH.Shared.Player
         // key end it on flat ground; downhill only the key does.
         void UpdateSlide(in MoveInput input, float dt)
         {
+            // Counted down before the start below, so the tick a slide
+            // begins in sets the full time rather than a shortened one.
+            if (slideCooldownLeft > 0f)
+                slideCooldownLeft = Mathf.Max(0f, slideCooldownLeft - dt);
+
             if (sliding)
             {
                 // Released, too slow, airborne, or on a face the steep slide
@@ -391,10 +400,14 @@ namespace KotH.Shared.Player
             // Out of a sprint only, and only while the body really moves that
             // fast: lastStepSpeed, because velocity survives a wall untouched
             // and a slide out of the run-up would end in the tick it began.
+            // Measured from the start, not the end: a slide that ran its
+            // full course is longer than the cooldown and so never waits,
+            // while hammering the key does.
             if (input.Crouch && sprinting && grounded && !onSteepGround
-                && lastStepSpeed > walkSpeed)
+                && slideCooldownLeft <= 0f && lastStepSpeed > walkSpeed)
             {
                 sliding = true;
+                slideCooldownLeft = slideCooldown;
                 slideSpeed = new Vector2(velocity.x, velocity.z).magnitude;
             }
         }

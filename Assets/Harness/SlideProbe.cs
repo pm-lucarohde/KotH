@@ -11,7 +11,8 @@ using UnityEngine;
 public sealed class SlideProbe : MonoBehaviour
 {
     enum Check { Duration, EndsOnRelease, SpeedRises, SpeedCapped,
-                 EndsEarly, JumpClamped, Turns, RollsOut, NoStart, Eyes }
+                 EndsEarly, JumpClamped, Turns, RollsOut, NoStart, Eyes,
+                 CooldownBlocks, CooldownClears }
 
     struct Case
     {
@@ -24,6 +25,7 @@ public sealed class SlideProbe : MonoBehaviour
         public bool steer;         // hold forward during the slide
         public float yawTurn;      // degrees turned over the slide
         public int jumpAt;         // tick inside the slide, -1 = never
+        public int retryAt;         // tick after the slide start to press again
         public bool shouldStart;
         public Check check;
     }
@@ -74,6 +76,14 @@ public sealed class SlideProbe : MonoBehaviour
         new Case { name = "Auf 55 Grad, zu steil", surface = 3, runup = 30,
                    crouchHold = -1, steer = true, jumpAt = -1,
                    shouldStart = false, check = Check.NoStart },
+        // Cooldown runs from the START, so a slide broken off early still
+        // has to wait out the rest of it, while a full one never waits.
+        new Case { name = "Erneut nach 12 Ticks", surface = 0, runup = 30,
+                   crouchHold = 8, steer = true, jumpAt = -1, retryAt = 12,
+                   shouldStart = true, check = Check.CooldownBlocks },
+        new Case { name = "Erneut nach 22 Ticks", surface = 0, runup = 30,
+                   crouchHold = 8, steer = true, jumpAt = -1, retryAt = 22,
+                   shouldStart = true, check = Check.CooldownClears },
     };
 
     PlayerMotor motor;
@@ -82,6 +92,7 @@ public sealed class SlideProbe : MonoBehaviour
     GameObject wall;
 
     float walkSpeed, sprintSpeed, slideDeceleration, maxSlideSpeed;
+    float slideCooldown;
     float standEye, crouchEye;   // eye height above the body centre
 
     bool ready;
@@ -95,6 +106,7 @@ public sealed class SlideProbe : MonoBehaviour
     bool ended;
     int slideStart = -1;
     int slideTicks;
+    int slideCount;             // how often a slide started in this case
     float distance;
     float speedStart, speedEnd, speedMax;
     float airSpeed = float.NaN;
@@ -112,6 +124,7 @@ public sealed class SlideProbe : MonoBehaviour
             || !Read("sprintSpeed", out sprintSpeed)
             || !Read("slideDeceleration", out slideDeceleration)
             || !Read("maxSlideSpeed", out maxSlideSpeed)
+            || !Read("slideCooldown", out slideCooldown)
             || !ReadEye(out standEye, out crouchEye))
             return;
 
@@ -121,7 +134,9 @@ public sealed class SlideProbe : MonoBehaviour
                     / Time.fixedDeltaTime;
         Debug.Log($"[slide] Sollwerte: gehen {walkSpeed:F3}," +
                   $" sprint {sprintSpeed:F3}, Reibung {slideDeceleration:F1}," +
-                  $" Deckel {maxSlideSpeed:F1} m/s");
+                  $" Deckel {maxSlideSpeed:F1} m/s," +
+                  $" Pause {slideCooldown * 1000f:F0} ms" +
+                  $" ({slideCooldown / Time.fixedDeltaTime:F0} Ticks)");
         Debug.Log($"[slide] flach erwartet: {ticks:F1} Ticks," +
                   $" {(sprintSpeed + walkSpeed) * 0.5f * ticks * Time.fixedDeltaTime:F2} m;" +
                   $" Auge {standEye:F3} stehend, {crouchEye:F3} geduckt;" +
@@ -242,6 +257,7 @@ public sealed class SlideProbe : MonoBehaviour
         ended = false;
         slideStart = -1;
         slideTicks = 0;
+        slideCount = 0;
         distance = 0f;
         speedStart = 0f;
         speedEnd = 0f;
@@ -275,6 +291,11 @@ public sealed class SlideProbe : MonoBehaviour
 
         bool crouch = tick >= c.runup
                    && (c.crouchHold < 0 || tick < c.runup + c.crouchHold);
+
+        // Pressed again after the first slide was let go, to see whether the
+        // cooldown still blocks. Held from there on.
+        if (c.retryAt > 0 && started && tick >= slideStart + c.retryAt)
+            crouch = true;
         bool inSlide = started && !ended;
 
         byte jump = 0;
@@ -304,6 +325,9 @@ public sealed class SlideProbe : MonoBehaviour
         // Only the FIRST slide of a case is measured. Downhill the player
         // slides again the moment he lands, which otherwise overwrote the
         // start values and fired a second jump.
+        if (motor.IsSliding && !wasSliding)
+            slideCount++;
+
         if (motor.IsSliding && !ended)
         {
             if (!wasSliding)
@@ -416,6 +440,18 @@ public sealed class SlideProbe : MonoBehaviour
                 float turned = Mathf.Abs(Mathf.DeltaAngle(headingStart, headingEnd));
                 ok = turned > 60f;
                 note = $"Bahn drehte {turned:F1}° von {c.yawTurn:F0}° Blick";
+                break;
+            case Check.CooldownBlocks:
+                ok = slideCount == 1;
+                note = $"{slideCount} Slide(s), erneut {c.retryAt} Ticks" +
+                       $" nach dem Start versucht, Pause ist" +
+                       $" {slideCooldown / Time.fixedDeltaTime:F0} Ticks";
+                break;
+            case Check.CooldownClears:
+                ok = slideCount == 2;
+                note = $"{slideCount} Slide(s), erneut {c.retryAt} Ticks" +
+                       $" nach dem Start versucht, Pause ist" +
+                       $" {slideCooldown / Time.fixedDeltaTime:F0} Ticks";
                 break;
             case Check.RollsOut:
                 ok = distance > 2.5f && slideTicks > wantTicks - 3f;
