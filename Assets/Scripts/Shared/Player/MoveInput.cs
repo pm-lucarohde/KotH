@@ -3,35 +3,25 @@ using UnityEngine;
 namespace KotH.Shared.Player
 {
     /// <summary>
-    /// Die Spielereingabe eines einzelnen Ticks.
-    ///
-    /// Enthält bewusst ausschließlich Werttypen. Dadurch bleibt das Struct
-    /// kopierbar und lässt sich später unverändert über das Netzwerk schicken —
-    /// genau das ist der Grund, warum Eingabe und Bewegung getrennt sind.
-    ///
-    /// Yaw und Pitch sind absolute Winkel, keine Mausdeltas: verlorene oder
-    /// umsortierte Pakete können die Blickrichtung dann nicht dauerhaft
-    /// verdrehen, weil der Empfänger nichts aufsummieren muss.
+    /// Player input for a single tick. Value types only, so it can go over
+    /// the wire later unchanged. Yaw and Pitch are absolute angles, not
+    /// deltas: lost or reordered packets then cannot skew the view.
     /// </summary>
     public struct MoveInput
     {
-        /// <summary>x = seitwärts, y = vorwärts. Jeweils -1..1.</summary>
+        /// <summary>x = strafe, y = forward. Each -1..1.</summary>
         public Vector2 Move;
 
-        /// <summary>Absolute Drehung um die Hochachse, in Grad.</summary>
+        /// <summary>Absolute yaw in degrees.</summary>
         public float Yaw;
 
-        /// <summary>Absoluter Blickwinkel hoch/runter, in Grad, bereits geklemmt.</summary>
+        /// <summary>Absolute pitch in degrees, already clamped.</summary>
         public float Pitch;
 
         /// <summary>
-        /// Anzahl der Sprungtasten-Drücke seit dem letzten Tick.
-        ///
-        /// Ein Zähler statt eines bool, weil ein Tick bei 40 Hz 25 ms dauert:
-        /// ein schneller Doppeltipp kann komplett hineinfallen, und mit einem
-        /// bool ginge der zweite Druck verloren. Die Doppelsprung-Geste wird
-        /// daraus im PlayerMotor erkannt — nicht im Client, damit ein Server
-        /// sie aus demselben Eingabestrom nachrechnen kann.
+        /// Jump presses since the last tick. A counter, not a bool: a 25 ms
+        /// tick can swallow a fast double tap. The gesture is recognised in
+        /// PlayerMotor, so a server can replay it from the same input.
         /// </summary>
         public byte JumpPresses;
 

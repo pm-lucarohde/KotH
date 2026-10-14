@@ -3,15 +3,9 @@ using UnityEngine;
 namespace KotH.Shared.Player
 {
     /// <summary>
-    /// Bewegt die Spielerfigur. Die einzige Stelle im Projekt, die den
-    /// <see cref="CharacterController"/> anfasst.
-    ///
-    /// Liest selbst keine Eingabe und kennt keine Kamera — beides gäbe es auf
-    /// einem dedizierten Server nicht. Stattdessen bekommt der Motor pro Tick
-    /// ein fertiges <see cref="MoveInput"/> gereicht.
-    ///
-    /// Der gesamte veränderliche Zustand steckt in wenigen Feldern, damit er
-    /// sich später für Reconciliation sichern und zurückspielen lässt.
+    /// Moves the player; the only place that touches CharacterController.
+    /// Reads no input and knows no camera - a dedicated server has neither.
+    /// Mutable state is kept in a few fields so it can be replayed later.
     /// </summary>
     [RequireComponent(typeof(CharacterController))]
     public sealed class PlayerMotor : MonoBehaviour
@@ -25,24 +19,22 @@ namespace KotH.Shared.Player
         [SerializeField] float groundAcceleration = 50f;
         [SerializeField] float groundDeceleration = 35f;
 
-        // 15 % der Bodenbeschleunigung. Reicht zum Nachkorrigieren im Sprung,
-        // aber bei normaler Flugzeit nicht, um die Richtung umzukehren.
+        // 15% of ground acceleration: enough to correct mid-jump, not enough
+        // to reverse direction within a normal flight time.
         [SerializeField] float airAcceleration = 7.5f;
 
         [Header("Sprung und Schwerkraft")]
         [SerializeField] float jumpHeight = 1.5f;
         [SerializeField] float doubleJumpHeight = 1f;
 
-        // Ab dem Bodensprung offen. Nur innerhalb dieser Zeit wird ein
-        // Doppeltipp überhaupt ausgewertet.
+        // Opens on the ground jump. A double tap only counts inside this time.
         [SerializeField] float doubleJumpWindow = 0.5f;
 
-        // Maximaler Abstand zwischen den beiden Tipps des Doppeltipps.
+        // Maximum gap between the two taps of the double tap.
         [SerializeField] float doubleTapWindow = 0.25f;
 
-        // Bewusst rund die doppelte Erdbeschleunigung. Mit -9.81 fühlt sich ein
-        // Sprung schwebend an; das machen praktisch alle Shooter so. Die
-        // Projekteinstellung bleibt unberührt, die gilt weiter für Rigidbodies.
+        // Deliberately about twice real gravity; at -9.81 a jump feels floaty.
+        // The project setting is untouched and still applies to rigidbodies.
         [SerializeField] float gravity = -20f;
 
         [Header("Körpermaße (m)")]
@@ -58,21 +50,21 @@ namespace KotH.Shared.Player
 
         CharacterController controller;
 
-        // --- veränderlicher Zustand ---
+        // --- mutable state ---
         Vector3 velocity;
         bool isCrouching;
         bool grounded;
-        bool doubleJumpUsed;      // pro Flug nur einmal
-        bool jumpWindowOpen;      // 500-ms-Fenster seit dem Bodensprung
+        bool doubleJumpUsed;      // once per flight
+        bool jumpWindowOpen;      // window since the ground jump
         float timeSinceGroundJump;
-        bool hasPendingAirPress;  // erster Luft-Tipp wartet auf seinen Partner
+        bool hasPendingAirPress;  // first air tap waiting for its partner
         float timeSinceAirPress;
 
-        // --- nur für die Kamera-Interpolation, keine Simulation ---
+        // --- camera interpolation only, not part of the simulation ---
         Vector3 eyePosition;
         Vector3 previousEyePosition;
 
-        // Vorab angelegt, damit die Kopffreiheitsprüfung pro Tick nichts alloziert.
+        // Preallocated so the headroom check allocates nothing per tick.
         readonly Collider[] headroomHits = new Collider[8];
 
         public Vector3 EyePosition => eyePosition;
@@ -82,7 +74,7 @@ namespace KotH.Shared.Player
 
         void Awake()
         {
-            // GetComponent gehört hierher — nicht in Tick und nicht in Update.
+            // GetComponent belongs here, not in Tick and not in Update.
             controller = GetComponent<CharacterController>();
 
             ApplyHeight(standHeight);
@@ -93,23 +85,23 @@ namespace KotH.Shared.Player
         }
 
         /// <summary>
-        /// Ein Simulationsschritt. Wird mit festem dt aufgerufen (40 Hz), damit
-        /// Client und Server später denselben Schritt rechnen können.
+        /// One simulation step, called with a fixed dt (40 Hz) so that client
+        /// and server can compute the same step.
         /// </summary>
         public void Tick(in MoveInput input, float dt)
         {
             previousEyePosition = eyePosition;
 
-            // Yaw dreht den Körper. Pitch gehört allein der Kamera, sonst würde
-            // sich die Figur beim Hochschauen nach hinten kippen.
+            // Yaw turns the body; pitch belongs to the camera alone, else the
+            // player would tilt backwards when looking up.
             transform.rotation = Quaternion.Euler(0f, input.Yaw, 0f);
 
-            // isGrounded spiegelt das Ergebnis des letzten Move wider.
+            // isGrounded reflects the result of the last Move.
             grounded = controller.isGrounded;
             if (grounded)
             {
                 if (velocity.y < 0f)
-                    velocity.y = -2f; // drückt die Figur an den Boden, hält sie an Hängen
+                    velocity.y = -2f; // keeps the player pinned on slopes
 
                 doubleJumpUsed = false;
                 jumpWindowOpen = false;
@@ -148,7 +140,7 @@ namespace KotH.Shared.Player
 
         void UpdateHorizontal(in MoveInput input, float dt)
         {
-            // Ohne Begrenzung wäre diagonales Laufen um Faktor 1,41 schneller.
+            // Without clamping, moving diagonally would be 1.41x faster.
             Vector2 move = Vector2.ClampMagnitude(input.Move, 1f);
             bool hasInput = move.sqrMagnitude > 0.0001f;
 
@@ -158,8 +150,8 @@ namespace KotH.Shared.Player
                         : input.Sprint ? sprintSpeed
                         : walkSpeed;
 
-            // Ohne Eingabe in der Luft: Rate 0, der Schwung bleibt erhalten.
-            // Alles andere wäre eine versteckte Luftbremse beim Loslassen.
+            // No input while airborne means rate 0, so momentum is preserved.
+            // Anything else would be a hidden air brake on key release.
             float rate = grounded
                 ? (hasInput ? groundAcceleration : groundDeceleration)
                 : (hasInput ? airAcceleration : 0f);
@@ -172,59 +164,47 @@ namespace KotH.Shared.Player
         }
 
         /// <summary>
-        /// Boden- und Doppelsprung. Der Zähler kann größer als 1 sein, wenn
-        /// innerhalb eines Ticks (25 ms) mehrfach gedrückt wurde.
+        /// Ground jump and double jump. The counter can exceed 1 when the key
+        /// was pressed more than once inside a single 25 ms tick.
         /// </summary>
         void ProcessJumpPresses(int presses)
         {
             for (int i = 0; i < presses; i++)
             {
-                // Geduckt springen ist erlaubt; die Figur bleibt dabei
-                // geduckt und behält das niedrigere Ducktempo.
+                // Jumping while crouched is allowed; the player stays crouched
+                // and keeps the slower crouch speed.
                 if (grounded)
                 {
                     velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
                     grounded = false;
                     doubleJumpUsed = false;
 
-                    // Öffnet das Zeitfenster, in dem ein Doppeltipp zählt.
+                    // Opens the window in which a double tap counts.
                     jumpWindowOpen = true;
                     timeSinceGroundJump = 0f;
 
-                    // Der Absprung zählt ausdrücklich NICHT als erster Tipp
-                    // der Doppelsprung-Geste.
+                    // The take-off press does NOT count as the first tap.
                     hasPendingAirPress = false;
 
                     continue;
                 }
 
-                // Fenster zu: Tipps verfallen wirkungslos.
+                // Window closed: taps expire without effect.
                 if (!jumpWindowOpen)
                     continue;
 
                 if (!hasPendingAirPress)
                 {
-                    // Druck 2 von 3: erster Tipp des Doppeltipps, nur vormerken.
+                    // Press 2 of 3: first tap of the double tap, remember it.
                     hasPendingAirPress = true;
                     timeSinceAirPress = 0f;
                     continue;
                 }
 
-                // Druck 3 von 3: zweiter Tipp des Doppeltipps — hier und nur
-                // hier löst der Doppelsprung aus. Die beiden Zeitbedingungen
-                // (höchstens doubleTapWindow nach Druck 2, höchstens
-                // doubleJumpWindow nach dem Absprung) werden oben im Tick
-                // mitgeführt; ist eine abgelaufen, kommt die Ausführung gar
-                // nicht bis hierher.
-                //
-                // Die Vertikalgeschwindigkeit spielt bewusst keine Rolle mehr,
-                // das Zeitfenster hat die frühere Bedingung velocity.y >= 0
-                // ersetzt.
-                //
-                // Gesperrt wird nach dem Duckzustand in genau diesem Moment,
-                // also dem der Auslösung — nicht nach dem beim Absprung.
-                // UpdateCrouch läuft im Tick davor, die Abfrage sieht die
-                // Eingabe desselben Ticks bereits.
+                // Press 3 of 3: the only place the double jump fires. Both
+                // timers are tracked in Tick, so an expired one never gets
+                // here. Vertical velocity no longer matters, the window
+                // replaced it. Crouch is checked at trigger time, not take-off.
                 if (!doubleJumpUsed && !isCrouching)
                 {
                     velocity.y = Mathf.Sqrt(doubleJumpHeight * -2f * gravity);
@@ -258,9 +238,8 @@ namespace KotH.Shared.Player
         }
 
         /// <summary>
-        /// Setzt die Höhe und verschiebt den Mittelpunkt so, dass die Füße
-        /// stehen bleiben. Ohne die Korrektur würde die Figur beim Ducken
-        /// einsinken oder in den Boden rutschen.
+        /// Sets the height and shifts the center so the feet stay put.
+        /// Without that correction the player would sink when crouching.
         /// </summary>
         void ApplyHeight(float height)
         {
@@ -269,8 +248,8 @@ namespace KotH.Shared.Player
         }
 
         /// <summary>
-        /// Passt die stehende Kapsel an die jetzige Position, ohne dass etwas im
-        /// Weg ist? Der eigene Controller zählt dabei nicht mit.
+        /// Does the standing capsule fit at the current position? The player's
+        /// own controller does not count as an obstacle.
         /// </summary>
         bool HasHeadroom()
         {
@@ -281,8 +260,8 @@ namespace KotH.Shared.Player
             Vector3 bottom = feet + Vector3.up * radius;
             Vector3 top = feet + Vector3.up * (standHeight - radius);
 
-            // Radius leicht verkleinert, sonst streift die Prüfung Wände,
-            // an denen man gerade entlangläuft.
+            // Slightly smaller radius, otherwise the check grazes walls the
+            // player is currently running along.
             int count = Physics.OverlapCapsuleNonAlloc(
                 bottom, top, radius * 0.95f, headroomHits,
                 headroomMask, QueryTriggerInteraction.Ignore);
