@@ -151,7 +151,6 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   cameraMount: {fileID: 793576110581430329}
-  logJumpStats: 1
 --- !u!114 &5599838516717837321
 MonoBehaviour:
   m_ObjectHideFlags: 0

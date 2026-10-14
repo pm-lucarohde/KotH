@@ -56,10 +56,6 @@ namespace KotH.Shared.Player
         [Header("Verknüpfung")]
         [SerializeField] Transform cameraMount;
 
-        [Header("Diagnose")]
-        [Tooltip("Protokolliert die erreichte Sprunghöhe. Nur zum Abnehmen gedacht.")]
-        [SerializeField] bool logJumpStats = true;
-
         CharacterController controller;
 
         // --- veränderlicher Zustand ---
@@ -75,10 +71,6 @@ namespace KotH.Shared.Player
         // --- nur für die Kamera-Interpolation, keine Simulation ---
         Vector3 eyePosition;
         Vector3 previousEyePosition;
-
-        // --- nur für die Diagnose ---
-        float jumpStartY;
-        bool trackingApex;
 
         // Vorab angelegt, damit die Kopffreiheitsprüfung pro Tick nichts alloziert.
         readonly Collider[] headroomHits = new Collider[8];
@@ -151,7 +143,6 @@ namespace KotH.Shared.Player
 
             controller.Move(velocity * dt);
 
-            ReportApex();
             eyePosition = CurrentEyeWorldPosition();
         }
 
@@ -202,7 +193,6 @@ namespace KotH.Shared.Player
                     // der Doppelsprung-Geste.
                     hasPendingAirPress = false;
 
-                    BeginApexTracking();
                     continue;
                 }
 
@@ -233,11 +223,6 @@ namespace KotH.Shared.Player
                     velocity.y = Mathf.Sqrt(doubleJumpHeight * -2f * gravity);
                     doubleJumpUsed = true;
                     jumpWindowOpen = false;
-
-                    // Der Scheitel kann jetzt auch nach einem bereits
-                    // gemeldeten Scheitel liegen, deshalb neu verfolgen.
-                    if (logJumpStats)
-                        trackingApex = true;
                 }
 
                 hasPendingAirPress = false;
@@ -302,29 +287,6 @@ namespace KotH.Shared.Player
             }
 
             return true;
-        }
-
-        void BeginApexTracking()
-        {
-            if (!logJumpStats)
-                return;
-
-            jumpStartY = transform.position.y;
-            trackingApex = true;
-        }
-
-        /// <summary>
-        /// Meldet die Scheitelhöhe, sobald die Vertikalgeschwindigkeit das
-        /// Vorzeichen wechselt. Reine Diagnose, fliegt nach der Abnahme raus.
-        /// </summary>
-        void ReportApex()
-        {
-            if (!trackingApex || velocity.y >= 0f)
-                return;
-
-            trackingApex = false;
-            Debug.Log($"Sprunghöhe: {transform.position.y - jumpStartY:0.00} m"
-                    + (doubleJumpUsed ? " (mit Doppelsprung)" : ""));
         }
 
         Vector3 EyeLocalPosition(float eyeHeightAboveFeet)
