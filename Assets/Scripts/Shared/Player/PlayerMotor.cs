@@ -51,6 +51,12 @@ namespace KotH.Shared.Player
         [SerializeField] float crouchStepOffset = 0.25f;
         [SerializeField] LayerMask headroomMask = ~0;
 
+        [Header("Hang")]
+        [SerializeField] LayerMask groundMask = ~0;
+
+        // How far below the feet the probe still looks for ground.
+        [SerializeField] float groundProbeExtra = 0.1f;
+
         [Header("Verknüpfung")]
         [SerializeField] Transform cameraMount;
 
@@ -59,7 +65,10 @@ namespace KotH.Shared.Player
         // --- mutable state ---
         Vector3 velocity;
         bool isCrouching;
-        bool grounded;
+        bool grounded;            // standing on WALKABLE ground
+        bool onSteepGround;       // touching ground, but too steep to stand
+        Vector3 groundNormal = Vector3.up;
+        float groundAngle;
         bool doubleJumpUsed;      // once per flight
         bool jumpWindowOpen;      // window since the ground jump
         float timeSinceGroundJump;
@@ -74,6 +83,7 @@ namespace KotH.Shared.Player
 
         // Preallocated so the headroom check allocates nothing per tick.
         readonly Collider[] headroomHits = new Collider[8];
+        readonly RaycastHit[] groundHits = new RaycastHit[8];
 
         public Vector3 EyePosition => eyePosition;
         public Vector3 PreviousEyePosition => previousEyePosition;
@@ -82,6 +92,8 @@ namespace KotH.Shared.Player
         public float Height => controller.height;
         public float Radius => controller.radius;
         public bool IsGrounded => grounded;
+        public bool IsSliding => onSteepGround;
+        public float GroundAngle => groundAngle;
         public bool IsCrouching => isCrouching;
 
         void Awake()
@@ -110,8 +122,13 @@ namespace KotH.Shared.Player
             // player would tilt backwards when looking up.
             transform.rotation = Quaternion.Euler(0f, input.Yaw, 0f);
 
-            // isGrounded reflects the result of the last Move.
-            grounded = controller.isGrounded;
+            // isGrounded only says THAT there is ground, never how steep it
+            // is. Too steep counts as not grounded, so jumping, ground
+            // acceleration and the double jump reset all fall into place.
+            bool touching = controller.isGrounded;
+            groundAngle = touching ? ProbeGroundAngle() : 0f;
+            onSteepGround = touching && groundAngle > controller.slopeLimit;
+            grounded = touching && !onSteepGround;
             if (grounded)
             {
                 if (velocity.y < 0f)
@@ -145,7 +162,18 @@ namespace KotH.Shared.Player
             UpdateHorizontal(input, dt);
             ProcessJumpPresses(input.JumpPresses);
 
-            velocity.y += gravity * dt;
+            if (onSteepGround)
+            {
+                // The slope cancels the part of gravity pressing into it;
+                // what is left accelerates the player downhill, so steeper
+                // means faster.
+                velocity += Vector3.ProjectOnPlane(
+                    Vector3.up * gravity, groundNormal) * dt;
+            }
+            else
+            {
+                velocity.y += gravity * dt;
+            }
 
             controller.Move(velocity * dt);
 
@@ -290,6 +318,39 @@ namespace KotH.Shared.Player
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Reads the steepness of the surface under the feet. Preallocated
+        /// and self-filtered: the cast starts inside the player's own capsule,
+        /// so its own collider always shows up as a zero distance hit.
+        /// </summary>
+        float ProbeGroundAngle()
+        {
+            Vector3 origin = transform.position + controller.center;
+            float distance = controller.height * 0.5f - controller.radius
+                           + controller.skinWidth + groundProbeExtra;
+
+            int count = Physics.SphereCastNonAlloc(
+                origin, controller.radius * 0.95f, Vector3.down, groundHits,
+                distance, groundMask, QueryTriggerInteraction.Ignore);
+
+            groundNormal = Vector3.up;
+            float nearest = float.MaxValue;
+
+            for (int i = 0; i < count; i++)
+            {
+                if (groundHits[i].collider == controller)
+                    continue;
+
+                if (groundHits[i].distance >= nearest)
+                    continue;
+
+                nearest = groundHits[i].distance;
+                groundNormal = groundHits[i].normal;
+            }
+
+            return Vector3.Angle(groundNormal, Vector3.up);
         }
 
         Vector3 EyeLocalPosition(float eyeHeightAboveFeet)
