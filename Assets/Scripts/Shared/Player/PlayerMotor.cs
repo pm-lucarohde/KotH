@@ -204,21 +204,27 @@ namespace KotH.Shared.Player
 
                 if (!hasPendingAirPress)
                 {
-                    // Erster Tipp in der Luft: nur vormerken.
+                    // Druck 2 von 3: erster Tipp des Doppeltipps, nur vormerken.
                     hasPendingAirPress = true;
                     timeSinceAirPress = 0f;
                     continue;
                 }
 
-                // Zweiter Tipp: innerhalb von doubleTapWindow nach dem ersten
-                // UND innerhalb von doubleJumpWindow nach dem Absprung. Beides
-                // wird oben im Tick mitgeführt. Die Vertikalgeschwindigkeit
-                // spielt bewusst keine Rolle mehr — das Zeitfenster ersetzt
-                // die frühere Bedingung velocity.y >= 0.
-                // Geduckt ist der Doppelsprung gesperrt. Geprüft wird der
-                // Zustand im Moment des zweiten Tipps — UpdateCrouch läuft im
-                // Tick vorher, die Abfrage sieht also schon die Eingabe dieses
-                // Ticks.
+                // Druck 3 von 3: zweiter Tipp des Doppeltipps — hier und nur
+                // hier löst der Doppelsprung aus. Die beiden Zeitbedingungen
+                // (höchstens doubleTapWindow nach Druck 2, höchstens
+                // doubleJumpWindow nach dem Absprung) werden oben im Tick
+                // mitgeführt; ist eine abgelaufen, kommt die Ausführung gar
+                // nicht bis hierher.
+                //
+                // Die Vertikalgeschwindigkeit spielt bewusst keine Rolle mehr,
+                // das Zeitfenster hat die frühere Bedingung velocity.y >= 0
+                // ersetzt.
+                //
+                // Gesperrt wird nach dem Duckzustand in genau diesem Moment,
+                // also dem der Auslösung — nicht nach dem beim Absprung.
+                // UpdateCrouch läuft im Tick davor, die Abfrage sieht die
+                // Eingabe desselben Ticks bereits.
                 if (!doubleJumpUsed && !isCrouching)
                 {
                     velocity.y = Mathf.Sqrt(doubleJumpHeight * -2f * gravity);
