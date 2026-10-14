@@ -80,8 +80,11 @@ MonoBehaviour:
   groundAcceleration: 50
   groundDeceleration: 35
   airAcceleration: 7.5
-  jumpHeight: 1.5
-  doubleJumpHeight: 1
+  jumpHeight: 1.6
+  doubleJumpHeight: 1.0822
+  minJumpHeight: 1.0744
+  minJumpHold: 0.032
+  fullJumpHold: 0.2
   doubleJumpWindow: 1
   doubleTapWindow: 0.25
   gravity: -20

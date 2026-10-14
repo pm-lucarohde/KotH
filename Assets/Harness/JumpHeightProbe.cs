@@ -13,6 +13,14 @@ public sealed class JumpHeightProbe : MonoBehaviour
     const int MaxFlightTicks = 140;
     const int SettleTicks = 40;
 
+    // The heights Luca asked for, in metres actually reached. They live here
+    // rather than in the motor because the motor's fields carry the
+    // pre-correction for the Euler loss and no longer state the real peak.
+    const float WantedFullPeak = 1.5f;
+    const float WantedMinPeak = 1.0f;
+    const float WantedDoublePeak = 1.0f;
+    const float PeakTolerance = 0.01f;
+
     // Flat and clear: CrouchTest sits within z +-1.5, StepTest near z -10,
     // the mountain beyond z 10. The ground reaches x and z -25.
     static readonly Vector3 Spot = new Vector3(-20f, 0.9f, -20f);
@@ -58,6 +66,7 @@ public sealed class JumpHeightProbe : MonoBehaviour
     float risenAtCut;                    // height climbed when the cut landed
     float speedAfterCut = float.NaN;     // vertical speed the cut tick left
     float doubleJumpSpeed = float.NaN;   // vertical speed right after it fired
+    float doubleJumpFrom;                // height it fired at, peak counts from there
     readonly float[] peaks = new float[Cases.Length];
 
     void Start()
@@ -153,6 +162,11 @@ public sealed class JumpHeightProbe : MonoBehaviour
         if (cutTick)
             risenAtCut = motor.transform.position.y - startY;
 
+        // Same reason: the double jump climbs from where the body stands
+        // BEFORE this tick moves it, not from where it ends up.
+        if (c.doubleJump && tick == 4)
+            doubleJumpFrom = motor.transform.position.y - startY;
+
         motor.Tick(new MoveInput
         {
             Yaw = 0f,
@@ -211,8 +225,17 @@ public sealed class JumpHeightProbe : MonoBehaviour
             float want = Mathf.Sqrt(doubleJumpHeight * -2f * gravity)
                        + gravity * Time.fixedDeltaTime;
             ok = Mathf.Abs(doubleJumpSpeed - want) < 0.02f;
-            extra = $", Absprung doppelt {doubleJumpSpeed:F3}" +
-                    $" gegen {want:F3} m/s {(ok ? "ok" : "ABWEICHUNG")}";
+
+            // Its peak counts from where it fired, not from the ground.
+            float climbed = peak - doubleJumpFrom;
+            bool peakOk = Mathf.Abs(climbed - WantedDoublePeak) < PeakTolerance;
+            if (!peakOk)
+                failures++;
+
+            extra = $", Absprung {doubleJumpSpeed:F3} gegen {want:F3} m/s" +
+                    $" {(ok ? "ok" : "ABWEICHUNG")}, ab {doubleJumpFrom:F3} m" +
+                    $" noch {climbed:F3} gegen {WantedDoublePeak:F3}" +
+                    $" {(peakOk ? "ok" : "ABWEICHUNG")}";
         }
 
         if (!ok)
@@ -237,7 +260,11 @@ public sealed class JumpHeightProbe : MonoBehaviour
                   $" {jumpHeight - minJumpHeight:F3} m");
         Debug.Log($"[jump]    Euler frisst oben {jumpHeight - high:F3} m," +
                   $" unten {minJumpHeight - low:F3} m" +
-                  $" -- gilt genauso fuer den ungekappten Sprung");
+                  $" -- die Felder tragen das vorkorrigiert");
+
+        // The point of the pre-correction: the real peaks, not the fields.
+        CheckPeak("volle Hoehe", high, WantedFullPeak);
+        CheckPeak("Mindesthoehe", low, WantedMinPeak);
 
         if (span < 0.9f * (jumpHeight - minJumpHeight))
         {
@@ -267,6 +294,17 @@ public sealed class JumpHeightProbe : MonoBehaviour
             ? "[jump] ALLE FÄLLE WIE ERWARTET"
             : $"[jump] {failures} ABWEICHUNGEN");
         UnityEditor.EditorApplication.Exit(failures == 0 ? 0 : 1);
+    }
+
+    void CheckPeak(string what, float measured, float wanted)
+    {
+        bool ok = Mathf.Abs(measured - wanted) < PeakTolerance;
+        if (!ok)
+            failures++;
+
+        Debug.Log($"[jump]    {what,-14} erreicht {measured:F3} m," +
+                  $" gewollt {wanted:F3} m, ab {measured - wanted:+0.000;-0.000}" +
+                  $" -> {(ok ? "ok" : "ABWEICHUNG")}");
     }
 }
 #endif

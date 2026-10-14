@@ -24,11 +24,15 @@ namespace KotH.Shared.Player
         [SerializeField] float airAcceleration = 7.5f;
 
         [Header("Sprung und Schwerkraft")]
-        [SerializeField] float jumpHeight = 1.5f;
-        [SerializeField] float doubleJumpHeight = 1f;
+        // All three carry a pre-correction: integrating at 40 Hz loses
+        // v*dt/2 of every jump, so a plain 1.5 would peak at 1.405 m. These
+        // numbers are chosen so the REAL peaks come out at 1.50, 1.00 and
+        // 1.00 m. Retuning one means measuring it again, see JumpHeightProbe.
+        [SerializeField] float jumpHeight = 1.6f;
+        [SerializeField] float doubleJumpHeight = 1.0822f;
 
         [Tooltip("Sprunghöhe bei ganz kurzem Antippen")]
-        [SerializeField] float minJumpHeight = 1f;
+        [SerializeField] float minJumpHeight = 1.0744f;
 
         [Tooltip("Haltedauer, bis zu der nur die Mindesthöhe kommt")]
         [SerializeField] float minJumpHold = 0.032f;
