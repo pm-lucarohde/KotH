@@ -44,7 +44,14 @@ namespace KotH.Client.Player
         void Update()
         {
             if (Input.GetKeyDown(KeyCode.Escape))
-                SetCursorLocked(false);
+            {
+                // First press frees the mouse, a second one quits. Two
+                // presses, so it never fires by accident in a fullscreen test.
+                if (Cursor.lockState == CursorLockMode.Locked)
+                    SetCursorLocked(false);
+                else
+                    Quit();
+            }
             else if (Input.GetMouseButtonDown(0) && Cursor.lockState != CursorLockMode.Locked)
                 SetCursorLocked(true);
 
@@ -85,6 +92,19 @@ namespace KotH.Client.Player
             jumpPresses = 0;
 
             motor.Tick(input, Time.fixedDeltaTime);
+        }
+
+        /// <summary>
+        /// Leaves play mode in the editor instead of closing it, which
+        /// Application.Quit would do. A placeholder until there is a menu.
+        /// </summary>
+        static void Quit()
+        {
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#else
+            Application.Quit();
+#endif
         }
 
         static void SetCursorLocked(bool locked)
