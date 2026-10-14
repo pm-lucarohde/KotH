@@ -84,6 +84,8 @@ namespace KotH.Shared.Player
         Vector3 groundNormal = Vector3.up;
         float groundAngle;
         float steepTime;          // how long the ground has read too steep
+        Vector3 contactNormal;    // most upright contact of the last Move
+        bool hasContactNormal;
         float maxStepHeight;      // our own step limit, PhysX gets none
         bool doubleJumpUsed;      // once per flight
         bool jumpWindowOpen;      // window since the ground jump
@@ -142,12 +144,27 @@ namespace KotH.Shared.Player
             // is. Too steep counts as not grounded, so jumping, ground
             // acceleration and the double jump reset all fall into place.
             bool touching = controller.isGrounded;
-            groundAngle = touching ? ProbeGroundAngle() : 0f;
+            bool knownGround = false;
 
+            if (touching)
+            {
+                knownGround = ProbeGround();
+            }
+            else
+            {
+                groundNormal = Vector3.up;
+                groundAngle = 0f;
+            }
+
+            // Ground nothing could read is never flat ground: it means the
+            // capsule rests against something too steep to measure. Reading
+            // it as flat let the player stand on a cliff face.
+            //
             // A steep reading blocks jumping at once, but sliding waits until
             // the reading holds - a stair edge reports steep for a tick or
             // two and would otherwise shove the player back down the step.
-            bool steepReading = touching && groundAngle > controller.slopeLimit;
+            bool steepReading = touching
+                && (!knownGround || groundAngle > controller.slopeLimit);
             steepTime = steepReading ? steepTime + dt : 0f;
 
             grounded = touching && !steepReading;
@@ -200,6 +217,10 @@ namespace KotH.Shared.Player
             else
                 velocity.y += gravity * dt;
 
+            // Cleared here so the contacts collected below belong to this
+            // tick's movement, both the step-up lift and the main Move.
+            hasContactNormal = false;
+
             TryStepUp(dt);
             controller.Move(velocity * dt);
 
@@ -243,8 +264,18 @@ namespace KotH.Shared.Player
             // and velocity.y drifts into nonsense while the slope blocks it.
             velocity = Vector3.ProjectOnPlane(velocity, groundNormal);
 
-            Vector3 downhill =
-                Vector3.ProjectOnPlane(Vector3.down, groundNormal).normalized;
+            Vector3 downhill = Vector3.ProjectOnPlane(Vector3.down, groundNormal);
+
+            // No usable slope direction, so there is nothing to redirect
+            // along. Normalizing a zero vector here would poison velocity
+            // with NaN and freeze the player for the rest of the session.
+            if (downhill.sqrMagnitude < 0.0001f)
+            {
+                velocity.y += gravity * dt;
+                return;
+            }
+
+            downhill.Normalize();
 
             // Floor the downhill speed, so there is no dead time at all.
             float speed = Vector3.Dot(velocity, downhill);
@@ -453,17 +484,30 @@ namespace KotH.Shared.Player
         }
 
         /// <summary>
-        /// Reads the steepness of the surface under the feet. The probe is
-        /// deliberately thin: a sphere as wide as the body would catch the
-        /// riser of the stair in front of the player and report 90 degrees.
+        /// Reads the surface under the feet into groundNormal and groundAngle.
+        /// Returns false when nothing was found, which the caller must not
+        /// confuse with flat ground. Thin on purpose: a sphere as wide as the
+        /// body would catch the riser of the stair in front of the player.
         /// </summary>
-        float ProbeGroundAngle()
+        bool ProbeGround()
         {
+            // What PhysX actually touched during the last Move comes first.
+            // On a slope the capsule rests on the SIDE of its lower sphere,
+            // so the surface sits radius * (1/cos a - 1) below the body axis
+            // - 0.30 m at 55 degrees - where no cast from the axis reaches.
+            if (hasContactNormal)
+            {
+                groundNormal = contactNormal;
+                groundAngle = Vector3.Angle(groundNormal, Vector3.up);
+                return true;
+            }
+
             // A quarter of the body radius stays well clear of anything the
             // player is standing against, and the cast length follows it so
             // the sphere still reaches below the feet.
             float probeRadius = controller.radius * 0.25f;
             Vector3 origin = transform.position + controller.center;
+
             float distance = controller.height * 0.5f - probeRadius
                            + controller.skinWidth + groundProbeExtra;
 
@@ -472,6 +516,7 @@ namespace KotH.Shared.Player
                 distance, groundMask, QueryTriggerInteraction.Ignore);
 
             groundNormal = Vector3.up;
+            groundAngle = 0f;
             float nearest = float.MaxValue;
 
             for (int i = 0; i < count; i++)
@@ -493,7 +538,28 @@ namespace KotH.Shared.Player
                 groundNormal = groundHits[i].normal;
             }
 
-            return Vector3.Angle(groundNormal, Vector3.up);
+            if (nearest == float.MaxValue)
+                return false;
+
+            groundAngle = Vector3.Angle(groundNormal, Vector3.up);
+            return true;
+        }
+
+        /// <summary>
+        /// Collects the surface holding the player up. The most upright
+        /// contact wins: on a stair the tread beats the riser in front of it,
+        /// which is what a body-wide cast used to get wrong.
+        /// </summary>
+        void OnControllerColliderHit(ControllerColliderHit hit)
+        {
+            if (hit.normal.y <= 0f)
+                return;
+
+            if (!hasContactNormal || hit.normal.y > contactNormal.y)
+            {
+                contactNormal = hit.normal;
+                hasContactNormal = true;
+            }
         }
 
         Vector3 EyeLocalPosition(float eyeHeightAboveFeet)
