@@ -21,7 +21,7 @@ namespace KotH.Client.Player
 
         [Header("Tasten")]
         [SerializeField] KeyCode sprintKey = KeyCode.LeftShift;
-        [SerializeField] KeyCode crouchKey = KeyCode.LeftControl;
+        [SerializeField] KeyCode crouchKey = KeyCode.E;
 
         float yaw;
         float pitch;

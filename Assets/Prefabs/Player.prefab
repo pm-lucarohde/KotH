@@ -124,7 +124,7 @@ MonoBehaviour:
   minPitch: -89
   maxPitch: 89
   sprintKey: 304
-  crouchKey: 306
+  crouchKey: 101
 --- !u!114 &3586287705380455928
 MonoBehaviour:
   m_ObjectHideFlags: 0
