@@ -57,7 +57,7 @@ CharacterController:
   m_Height: 1.8
   m_Radius: 0.4
   m_SlopeLimit: 50
-  m_StepOffset: 0.45
+  m_StepOffset: 0
   m_SkinWidth: 0.04
   m_MinMoveDistance: 0
   m_Center: {x: 0, y: 0, z: 0}
@@ -99,6 +99,9 @@ MonoBehaviour:
     m_Bits: 4294967295
   groundProbeExtra: 0.1
   minSlideSpeed: 3
+  slideConfirmTime: 0.075
+  logSlope: 0
+  stepProbeAhead: 0.05
   cameraMount: {fileID: 793576110581430329}
 --- !u!114 &5599838516717837321
 MonoBehaviour:

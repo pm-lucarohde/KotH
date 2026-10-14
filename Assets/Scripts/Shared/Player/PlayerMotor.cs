@@ -68,6 +68,9 @@ namespace KotH.Shared.Player
 
         [SerializeField] bool logSlope;
 
+        // How far past the blocking wall the ledge is measured.
+        [SerializeField] float stepProbeAhead = 0.05f;
+
         [Header("Verknüpfung")]
         [SerializeField] Transform cameraMount;
 
@@ -81,6 +84,7 @@ namespace KotH.Shared.Player
         Vector3 groundNormal = Vector3.up;
         float groundAngle;
         float steepTime;          // how long the ground has read too steep
+        float maxStepHeight;      // our own step limit, PhysX gets none
         bool doubleJumpUsed;      // once per flight
         bool jumpWindowOpen;      // window since the ground jump
         float timeSinceGroundJump;
@@ -196,6 +200,7 @@ namespace KotH.Shared.Player
             else
                 velocity.y += gravity * dt;
 
+            TryStepUp(dt);
             controller.Move(velocity * dt);
 
             eyePosition = CurrentEyeWorldPosition();
@@ -341,7 +346,82 @@ namespace KotH.Shared.Player
         {
             controller.height = height;
             controller.center = new Vector3(0f, (height - standHeight) * 0.5f, 0f);
-            controller.stepOffset = stepOffset;
+
+            // PhysX gets no step budget at all. Its own stepping resolves
+            // corner contacts by lifting the capsule, which lets a player who
+            // wiggles the view ratchet up walls far above the limit.
+            maxStepHeight = stepOffset;
+            controller.stepOffset = 0f;
+        }
+
+        /// <summary>
+        /// Climbs a step, but only onto a ledge it has actually measured:
+        /// blocked ahead, room one step higher, and a walkable surface there.
+        /// </summary>
+        void TryStepUp(float dt)
+        {
+            if (!grounded || maxStepHeight <= 0f)
+                return;
+
+            Vector3 step = new Vector3(velocity.x, 0f, velocity.z) * dt;
+            float travel = step.magnitude;
+            if (travel < 0.0001f)
+                return;
+
+            float walkable = Mathf.Cos(controller.slopeLimit * Mathf.Deg2Rad);
+            Vector3 forward = step / travel;
+            float reach = travel + controller.skinWidth + stepProbeAhead;
+            float radius = controller.radius;
+
+            Vector3 feet = transform.position + controller.center
+                         - Vector3.up * (controller.height * 0.5f);
+            Vector3 bottom = feet + Vector3.up * radius;
+            Vector3 top = feet + Vector3.up * (controller.height - radius);
+
+            // Classify the obstacle from ankle height. Asking the body
+            // capsule is unreliable: its lower sphere rides over the edge of
+            // a step and reports an almost flat normal, which made crouched
+            // stepping fail while standing happened to work.
+            Vector3 ankle = feet + Vector3.up * 0.01f;
+            if (!Physics.Raycast(ankle, forward, out RaycastHit riser, reach + radius,
+                    groundMask, QueryTriggerInteraction.Ignore))
+                return;
+
+            // A walkable face is a ramp; the controller handles those itself.
+            if (riser.normal.y > walkable)
+                return;
+
+            // Room for the whole body one step higher? This is the check that
+            // stops the corner exploit: a step that is too tall still blocks.
+            Vector3 lift = Vector3.up * maxStepHeight;
+            if (Physics.CapsuleCast(bottom + lift, top + lift, radius, forward,
+                    out _, reach, groundMask, QueryTriggerInteraction.Ignore))
+                return;
+
+            // Measure the ledge from above rather than trusting the wall hit.
+            // The ankle ray starts at the body axis, so its distance already
+            // includes the radius.
+            Vector3 ahead = feet + lift
+                          + forward * (riser.distance + stepProbeAhead);
+
+            if (!Physics.Raycast(ahead, Vector3.down, out RaycastHit ledge,
+                    maxStepHeight, groundMask, QueryTriggerInteraction.Ignore))
+                return;
+
+            if (ledge.normal.y < walkable)
+                return;
+
+            float rise = maxStepHeight - ledge.distance;
+            if (rise <= 0.001f)
+                return;
+
+            controller.Move(Vector3.up * (rise + controller.skinWidth));
+
+            // The lift only clears the ledge by skinWidth, and the settling
+            // speed of -2 m/s eats more than that in one tick. Without this
+            // the player drops straight back onto the lip and sticks there.
+            if (velocity.y < 0f)
+                velocity.y = 0f;
         }
 
         /// <summary>
