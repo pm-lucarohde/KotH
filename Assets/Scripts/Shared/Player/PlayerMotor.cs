@@ -102,6 +102,7 @@ namespace KotH.Shared.Player
         float maxStepHeight;      // our own step limit, PhysX gets none
         bool steppedUp;           // climbed a ledge this tick
         bool wedged;              // last move was refused by the world
+        float knockbackTime;      // ground control stays soft this long
         bool doubleJumpUsed;      // once per flight
         bool jumpWindowOpen;      // window since the ground jump
         float timeSinceGroundJump;
@@ -128,6 +129,26 @@ namespace KotH.Shared.Player
         public bool IsSliding => onSteepGround;
         public float GroundAngle => groundAngle;
         public bool IsCrouching => isCrouching;
+        public Vector3 Velocity => velocity;
+
+        /// <summary>
+        /// Adds a push from outside the motor, for instance a body collision.
+        /// Softening ground control afterwards is what makes a push visible
+        /// at all: at 50 m/s2 a 1.4 m/s push would be regulated away inside
+        /// two ticks, leaving nothing to feel.
+        /// </summary>
+        public void AddVelocity(Vector3 delta, float maxSoftenTime)
+        {
+            velocity += delta;
+
+            // Only as long as the body really needs to come to rest again.
+            // A flat cap left anyone in constant contact permanently limp,
+            // because every nudge, however small, renewed the full time.
+            float leaving = Mathf.Abs(Vector3.Dot(velocity, delta.normalized));
+
+            knockbackTime = Mathf.Max(knockbackTime,
+                Mathf.Min(maxSoftenTime, leaving / airAcceleration));
+        }
 
         void Awake()
         {
@@ -252,6 +273,11 @@ namespace KotH.Shared.Player
 
             eyePosition = CurrentEyeWorldPosition();
             bodyCenter = CurrentBodyCenter();
+
+            // Counted down last, so the tick a push arrived in is softened
+            // in full rather than by whatever is left of dt.
+            if (knockbackTime > 0f)
+                knockbackTime = Mathf.Max(0f, knockbackTime - dt);
         }
 
         void UpdateHorizontal(in MoveInput input, float dt)
@@ -268,9 +294,14 @@ namespace KotH.Shared.Player
 
             // No input while airborne means rate 0, so momentum is preserved.
             // Anything else would be a hidden air brake on key release.
-            float rate = grounded
-                ? (hasInput ? groundAcceleration : groundDeceleration)
-                : (hasInput ? airAcceleration : 0f);
+            //
+            // Right after a push, air control holds for both of them: full
+            // ground acceleration would cancel the push within a tick or two.
+            float rate = knockbackTime > 0f
+                ? airAcceleration
+                : grounded
+                    ? (hasInput ? groundAcceleration : groundDeceleration)
+                    : (hasInput ? airAcceleration : 0f);
 
             Vector3 current = new Vector3(velocity.x, 0f, velocity.z);
             Vector3 next = Vector3.MoveTowards(current, wish * speed, rate * dt);

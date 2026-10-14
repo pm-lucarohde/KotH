@@ -1,4 +1,5 @@
 using KotH.Shared.Player;
+using KotH.Shared.Simulation;
 using UnityEngine;
 
 namespace KotH.Client.Player
@@ -8,10 +9,10 @@ namespace KotH.Client.Player
     /// class that reads input the SIMULATION consumes, so switching to the
     /// new Input System or to network packets later means changing exactly
     /// one file. Debug keys and menus read their own keys; they never feed
-    /// the motor and never go over the wire.
+    /// the motor and never go over the wire. SimulationSystem does the
+    /// ticking; switching this component off takes the player out of it.
     /// </summary>
-    [RequireComponent(typeof(PlayerMotor))]
-    public sealed class PlayerInputReader : MonoBehaviour
+    public sealed class PlayerInputReader : SimulationBody
     {
         [Header("Maus")]
         [SerializeField] float mouseSensitivity = 2f;
@@ -22,8 +23,6 @@ namespace KotH.Client.Player
         [SerializeField] KeyCode sprintKey = KeyCode.LeftShift;
         [SerializeField] KeyCode crouchKey = KeyCode.LeftControl;
 
-        PlayerMotor motor;
-
         float yaw;
         float pitch;
         byte jumpPresses;
@@ -31,18 +30,22 @@ namespace KotH.Client.Player
         public float Yaw => yaw;
         public float Pitch => pitch;
 
-        void Awake()
+        protected override void Awake()
         {
-            motor = GetComponent<PlayerMotor>();
+            base.Awake();
             yaw = transform.eulerAngles.y;
             SetCursorLocked(true);
         }
 
-        void OnDisable() => SetCursorLocked(false);
+        protected override void OnDisable()
+        {
+            base.OnDisable();
+            SetCursorLocked(false);
+        }
 
-        // Update runs per frame, FixedUpdate per tick. At 144 fps and 40 Hz
-        // that is about three and a half frames per tick, so everything that
-        // happens per frame has to be collected here.
+        // Update runs per frame, ReadInput once per tick. At 144 fps and
+        // 40 Hz that is about three and a half frames per tick, so anything
+        // that happens per frame has to be collected here.
         void Update()
         {
             if (Input.GetKeyDown(KeyCode.Escape))
@@ -75,7 +78,7 @@ namespace KotH.Client.Player
                 jumpPresses++;
         }
 
-        void FixedUpdate()
+        public override MoveInput ReadInput()
         {
             var input = new MoveInput
             {
@@ -91,9 +94,10 @@ namespace KotH.Client.Player
                 Crouch = Input.GetKey(crouchKey),
             };
 
+            // Cleared on read, so a press is consumed by exactly one tick.
             jumpPresses = 0;
 
-            motor.Tick(input, Time.fixedDeltaTime);
+            return input;
         }
 
         /// <summary>
