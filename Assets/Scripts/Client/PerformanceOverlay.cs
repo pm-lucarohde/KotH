@@ -1,5 +1,5 @@
+using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace KotH.Client
 {
@@ -17,13 +17,20 @@ namespace KotH.Client
         [Header("Messung")]
         [SerializeField] float windowSeconds = 10f;
 
-        // Caps the ring buffer. Above this rate the window shortens instead
-        // of the buffer growing without bound.
+        // Starting size of the ring buffer. It doubles on demand up to four
+        // times this, so a fast machine does not silently end up with a
+        // shorter window than it asked for.
         [SerializeField] int maxTrackedFps = 500;
 
         [Header("Anzeige")]
         [SerializeField] float refreshInterval = 0.25f;
-        [SerializeField] int fontSize = 16;
+
+        // The one percent low walks a ten second window, so it wanders
+        // visibly when redrawn four times a second. Every few seconds says
+        // the same thing and sits still while being read.
+        [SerializeField] float lowRefreshInterval = 3f;
+
+        [SerializeField] float fontSize = 18f;
         [SerializeField] float margin = 8f;
 
         // The first frames after a scene load take hundreds of milliseconds
@@ -36,6 +43,7 @@ namespace KotH.Client
         const int BucketCount = 1000;
 
         float[] frameMs;
+        int maxCapacity;
         int[] bucketCount;
         double[] bucketSum;
 
@@ -46,8 +54,10 @@ namespace KotH.Client
         int skipFrames;
 
         Canvas canvas;
-        Text label;
+        TextMeshProUGUI label;
         float sinceRefresh;
+        float sinceLowRefresh;
+        float cachedLowFps;
 
         public float FrameTimeMs => count > 0 ? (float)(sumMs / count) : 0f;
         public float Fps => count > 0 ? 1000f / FrameTimeMs : 0f;
@@ -60,6 +70,7 @@ namespace KotH.Client
             skipFrames = SkippedFrames;
 
             int capacity = Mathf.Max(64, Mathf.CeilToInt(windowSeconds * maxTrackedFps));
+            maxCapacity = capacity * 4;
             frameMs = new float[capacity];
             bucketCount = new int[BucketCount + 1];
             bucketSum = new double[BucketCount + 1];
@@ -82,6 +93,13 @@ namespace KotH.Client
             if (!canvas.enabled)
                 return;
 
+            sinceLowRefresh += Time.unscaledDeltaTime;
+            if (sinceLowRefresh >= lowRefreshInterval || cachedLowFps <= 0f)
+            {
+                sinceLowRefresh = 0f;
+                cachedLowFps = OnePercentLowFps;
+            }
+
             sinceRefresh += Time.unscaledDeltaTime;
             if (sinceRefresh < refreshInterval)
                 return;
@@ -95,8 +113,10 @@ namespace KotH.Client
             if (count == 0)
                 return;
 
-            label.text = $"{Fps:F0} FPS | {FrameTimeMs:F1} ms" +
-                         $" | 1% {OnePercentLowFps:F0} FPS";
+            // The mark tag paints a band behind the glyphs, so the readout
+            // stays legible on sky and on grey rock without a second object.
+            label.text = $"<mark=#000000A0>{Fps:F0} FPS | {FrameTimeMs:F1} ms" +
+                         $" | 1% {cachedLowFps:F0} FPS</mark>";
         }
 
         /// <summary>
@@ -139,7 +159,12 @@ namespace KotH.Client
             }
 
             if (count == frameMs.Length)
-                Pop();
+            {
+                if (frameMs.Length < maxCapacity)
+                    Grow();
+                else
+                    Pop();
+            }
 
             int slot = (head + count) % frameMs.Length;
             frameMs[slot] = ms;
@@ -160,6 +185,21 @@ namespace KotH.Client
             count--;
             sumMs -= ms;
             Histogram(ms, -1);
+        }
+
+        /// <summary>
+        /// Doubles the ring buffer when the frame rate outruns it. Allocates
+        /// at most twice in a session and never per frame; without it the
+        /// window would quietly become shorter than windowSeconds.
+        /// </summary>
+        void Grow()
+        {
+            var bigger = new float[Mathf.Min(frameMs.Length * 2, maxCapacity)];
+            for (int i = 0; i < count; i++)
+                bigger[i] = frameMs[(head + i) % frameMs.Length];
+
+            frameMs = bigger;
+            head = 0;
         }
 
         void Histogram(float ms, int sign)
@@ -193,42 +233,19 @@ namespace KotH.Client
             var textGo = new GameObject("Readout");
             textGo.transform.SetParent(canvasGo.transform, false);
 
-            label = textGo.AddComponent<Text>();
-            label.font = BuiltinFont();
+            label = textGo.AddComponent<TextMeshProUGUI>();
             label.fontSize = fontSize;
             label.color = Color.white;
-            label.alignment = TextAnchor.UpperLeft;
-            label.horizontalOverflow = HorizontalWrapMode.Overflow;
-            label.verticalOverflow = VerticalWrapMode.Overflow;
+            label.alignment = TextAlignmentOptions.TopLeft;
+            label.textWrappingMode = TextWrappingModes.NoWrap;
             label.raycastTarget = false;
-
-            // Readable against both the sky and the grey rock.
-            var shadow = textGo.AddComponent<Shadow>();
-            shadow.effectColor = new Color(0f, 0f, 0f, 0.85f);
-            shadow.effectDistance = new Vector2(1f, -1f);
 
             RectTransform rect = label.rectTransform;
             rect.anchorMin = new Vector2(0f, 1f);
             rect.anchorMax = new Vector2(0f, 1f);
             rect.pivot = new Vector2(0f, 1f);
             rect.anchoredPosition = new Vector2(margin, -margin);
-            rect.sizeDelta = new Vector2(400f, fontSize * 2f);
-        }
-
-        /// <summary>
-        /// The font Unity ships inside the editor, so the overlay needs no
-        /// font asset in the project. Called LegacyRuntime.ttf since 2022,
-        /// Arial.ttf before that.
-        /// </summary>
-        static Font BuiltinFont()
-        {
-            Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-
-            // Explicit == null: Unity's fake null makes ?? and is null lie.
-            if (font == null)
-                font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-
-            return font;
+            rect.sizeDelta = new Vector2(420f, fontSize * 2f);
         }
     }
 }

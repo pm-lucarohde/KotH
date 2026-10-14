@@ -2,7 +2,8 @@
     "name": "KotH",
     "rootNamespace": "KotH",
     "references": [
-        "Unity.Burst"
+        "Unity.Burst",
+        "Unity.TextMeshPro"
     ],
     "allowUnsafeCode": false,
     "autoReferenced": true

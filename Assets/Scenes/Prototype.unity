@@ -1477,7 +1477,8 @@ MonoBehaviour:
   windowSeconds: 10
   maxTrackedFps: 500
   refreshInterval: 0.25
-  fontSize: 16
+  lowRefreshInterval: 3
+  fontSize: 18
   margin: 8
 --- !u!4 &640526853
 Transform:
