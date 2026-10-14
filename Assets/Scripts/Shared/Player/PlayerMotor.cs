@@ -43,7 +43,11 @@ namespace KotH.Shared.Player
         [SerializeField] float crouchHeight = 0.9f;
         [SerializeField] float standEyeHeight = 1.68f;
         [SerializeField] float crouchEyeHeight = 0.78f;
-        [SerializeField] float eyeMoveSpeed = 6f;
+
+        // Drives collision height and eye together, in m/s of height: the
+        // 0.90 m between the poses take 0.15 s. One rate, because two would
+        // let the eye leave the body it belongs to.
+        [SerializeField] float poseChangeSpeed = 6f;
 
         // Step height the controller climbs. Crouched it is much lower, so
         // ducking becomes a real trade: you fit through gaps but lose reach.
@@ -76,7 +80,8 @@ namespace KotH.Shared.Player
 
         // --- mutable state ---
         Vector3 velocity;
-        bool isCrouching;
+        bool isCrouching;         // the INTENT, set by the key, not the shape
+        float currentHeight;      // the shape, which needs time to follow
         bool grounded;            // standing on WALKABLE ground
         bool onSteepGround;       // confirmed too steep, sliding
         Vector3 groundNormal = Vector3.up;
@@ -117,7 +122,8 @@ namespace KotH.Shared.Player
             // GetComponent belongs here, not in Tick and not in Update.
             controller = GetComponent<CharacterController>();
 
-            ApplyHeight(standHeight, standStepOffset);
+            currentHeight = standHeight;
+            ApplyHeight(currentHeight);
             if (cameraMount != null)
                 cameraMount.localPosition = EyeLocalPosition(standEyeHeight);
 
@@ -342,39 +348,53 @@ namespace KotH.Shared.Player
 
         void UpdateCrouch(bool wantsCrouch, float dt)
         {
-            if (wantsCrouch && !isCrouching)
-            {
+            // Intent switches instantly, so movement speed and the double
+            // jump react to the key rather than to the ongoing animation.
+            if (wantsCrouch)
                 isCrouching = true;
-                ApplyHeight(crouchHeight, crouchStepOffset);
-            }
-            else if (!wantsCrouch && isCrouching && HasHeadroom())
+            else if (currentHeight < standHeight)
+                // Re-asked on every tick of the 0.15 s rise instead of once
+                // on release: a ceiling arriving midway has to push the pose
+                // back down rather than let the body grow into it.
+                isCrouching = !HasHeadroom();
+
+            float wanted = isCrouching ? crouchHeight : standHeight;
+            if (currentHeight != wanted)
             {
-                isCrouching = false;
-                ApplyHeight(standHeight, standStepOffset);
+                currentHeight =
+                    Mathf.MoveTowards(currentHeight, wanted, poseChangeSpeed * dt);
+                ApplyHeight(currentHeight);
             }
 
             if (cameraMount == null)
                 return;
 
-            Vector3 target = EyeLocalPosition(isCrouching ? crouchEyeHeight : standEyeHeight);
+            // The eye comes out of the body's own progress instead of running
+            // its own timer. That makes lockstep a property of the shape, not
+            // an agreement between two speeds that can drift apart.
+            float t = Mathf.InverseLerp(crouchHeight, standHeight, currentHeight);
             cameraMount.localPosition =
-                Vector3.MoveTowards(cameraMount.localPosition, target, eyeMoveSpeed * dt);
+                EyeLocalPosition(Mathf.Lerp(crouchEyeHeight, standEyeHeight, t));
         }
 
         /// <summary>
         /// The only place that reshapes the controller. Shifts the center so
         /// the feet stay put, otherwise the player would sink when crouching.
-        /// Unity clamps stepOffset to the height, so it has to follow along.
+        /// Called every tick while the pose changes, not once per keypress.
         /// </summary>
-        void ApplyHeight(float height, float stepOffset)
+        void ApplyHeight(float height)
         {
             controller.height = height;
             controller.center = new Vector3(0f, (height - standHeight) * 0.5f, 0f);
 
+            // The standing budget only once fully upright: anywhere in
+            // between, the crouched one holds, or tapping crouch would grant
+            // the tall reach for a few ticks at crouch collision height.
+            maxStepHeight = height >= standHeight ? standStepOffset : crouchStepOffset;
+
             // PhysX gets no step budget at all. Its own stepping resolves
             // corner contacts by lifting the capsule, which lets a player who
             // wiggles the view ratchet up walls far above the limit.
-            maxStepHeight = stepOffset;
             controller.stepOffset = 0f;
         }
 
