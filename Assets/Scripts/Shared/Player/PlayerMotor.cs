@@ -352,18 +352,22 @@ namespace KotH.Shared.Player
         }
 
         /// <summary>
-        /// Reads the steepness of the surface under the feet. Preallocated
-        /// and self-filtered: the cast starts inside the player's own capsule,
-        /// so its own collider always shows up as a zero distance hit.
+        /// Reads the steepness of the surface under the feet. The probe is
+        /// deliberately thin: a sphere as wide as the body would catch the
+        /// riser of the stair in front of the player and report 90 degrees.
         /// </summary>
         float ProbeGroundAngle()
         {
+            // A quarter of the body radius stays well clear of anything the
+            // player is standing against, and the cast length follows it so
+            // the sphere still reaches below the feet.
+            float probeRadius = controller.radius * 0.25f;
             Vector3 origin = transform.position + controller.center;
-            float distance = controller.height * 0.5f - controller.radius
+            float distance = controller.height * 0.5f - probeRadius
                            + controller.skinWidth + groundProbeExtra;
 
             int count = Physics.SphereCastNonAlloc(
-                origin, controller.radius * 0.95f, Vector3.down, groundHits,
+                origin, probeRadius, Vector3.down, groundHits,
                 distance, groundMask, QueryTriggerInteraction.Ignore);
 
             groundNormal = Vector3.up;
@@ -371,7 +375,14 @@ namespace KotH.Shared.Player
 
             for (int i = 0; i < count; i++)
             {
+                // The cast starts inside the player's own capsule, so its
+                // collider always shows up at distance zero.
                 if (groundHits[i].collider == controller)
+                    continue;
+
+                // Walls and overhangs are not ground. Without this a vertical
+                // face reads as 90 degrees and triggers the slide.
+                if (groundHits[i].normal.y <= 0f)
                     continue;
 
                 if (groundHits[i].distance >= nearest)
