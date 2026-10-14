@@ -47,9 +47,7 @@ public sealed class ImpactProbe : MonoBehaviour
     };
 
     PlayerMotor player;
-    CharacterController playerController;
     PlayerMotor dummy;
-    CharacterController dummyController;
     TrainingDummy dummyBody;
     ScriptedBody scripted;
 
@@ -60,7 +58,7 @@ public sealed class ImpactProbe : MonoBehaviour
 
     void Start()
     {
-        if (!ProbeSubject.TryBind(out player, out playerController))
+        if (!ProbeSubject.TryBind(out player))
             return;
 
         if (!SimulationSystem.HasActive)
@@ -79,7 +77,6 @@ public sealed class ImpactProbe : MonoBehaviour
         }
 
         dummy = target.Motor;
-        dummyController = dummy.GetComponent<CharacterController>();
         dummyBody = target;
 
         // The input reader is off by now, so this is the only body on the
@@ -189,8 +186,8 @@ public sealed class ImpactProbe : MonoBehaviour
 
         Case c = Cases[caseIndex];
 
-        Place(playerController, player, c.start);
-        Place(dummyController, dummy, DummySpot);
+        Place(player, c.start);
+        Place(dummy, DummySpot);
 
         tick = 0;
         pushes = 0;
@@ -217,12 +214,9 @@ public sealed class ImpactProbe : MonoBehaviour
     /// teleport, so without this every case would start with the momentum of
     /// the one before it.
     /// </summary>
-    static void Place(CharacterController cc, PlayerMotor motor, Vector3 at)
+    static void Place(PlayerMotor motor, Vector3 at)
     {
-        cc.enabled = false;
-        motor.transform.position = at;
-        cc.enabled = true;
-
+        motor.Teleport(at);
         motor.AddVelocity(-motor.Velocity, 0f);
     }
 

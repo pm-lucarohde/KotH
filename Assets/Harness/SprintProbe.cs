@@ -135,7 +135,6 @@ public sealed class SprintProbe : MonoBehaviour
     };
 
     PlayerMotor motor;
-    CharacterController controller;
     GameObject wall;
 
     float walkSpeed;
@@ -155,7 +154,7 @@ public sealed class SprintProbe : MonoBehaviour
 
     void Start()
     {
-        if (!ProbeSubject.TryBind(out motor, out controller))
+        if (!ProbeSubject.TryBind(out motor))
             return;
 
         if (!ReadSpeed("walkSpeed", out walkSpeed)
@@ -201,10 +200,10 @@ public sealed class SprintProbe : MonoBehaviour
     void CheckSlopeHeadroom()
     {
         float ratio = walkSpeed / sprintSpeed;
-        float limit = Mathf.Cos(controller.slopeLimit * Mathf.Deg2Rad);
+        float limit = Mathf.Cos(motor.SlopeLimit * Mathf.Deg2Rad);
 
         Debug.Log($"[sprint] gehen/sprint {ratio:F3} gegen" +
-                  $" cos({controller.slopeLimit:F0}°) = {limit:F3}:" +
+                  $" cos({motor.SlopeLimit:F0}°) = {limit:F3}:" +
                   $" {(ratio < limit ? "Luft da" : "ZU KNAPP, Sprint stirbt bergauf")}");
 
         if (ratio >= limit)
@@ -277,9 +276,7 @@ public sealed class SprintProbe : MonoBehaviour
             yaw = Mathf.Atan2(uphill.x, uphill.z) * Mathf.Rad2Deg;
         }
 
-        controller.enabled = false;
-        motor.transform.position = start;
-        controller.enabled = true;
+        motor.Teleport(start);
     }
 
     void StartPhase()

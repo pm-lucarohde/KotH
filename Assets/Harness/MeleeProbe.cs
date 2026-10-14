@@ -29,9 +29,8 @@ public sealed class MeleeProbe : MonoBehaviour
     enum Phase { Hull, Reach, Burst, Sideways, Done }
 
     PlayerMotor player;
-    CharacterController playerController;
     PlayerMotor dummy;
-    CharacterController dummyController;
+    Collider dummyHull;   // the shape a ray can actually meet
     TrainingDummy dummyBody;
     DamagePercent damage;
     MeleeAttack attack;
@@ -45,7 +44,7 @@ public sealed class MeleeProbe : MonoBehaviour
 
     void Start()
     {
-        if (!ProbeSubject.TryBind(out player, out playerController))
+        if (!ProbeSubject.TryBind(out player))
             return;
 
         if (!SimulationSystem.HasActive)
@@ -65,7 +64,7 @@ public sealed class MeleeProbe : MonoBehaviour
 
         dummyBody = target;
         dummy = target.Motor;
-        dummyController = dummy.GetComponent<CharacterController>();
+        dummyHull = dummy.GetComponent<Collider>();
         damage = target.GetComponent<DamagePercent>();
         attack = player.GetComponent<MeleeAttack>();
 
@@ -89,7 +88,7 @@ public sealed class MeleeProbe : MonoBehaviour
         dummyBody.enabled = false;
         dummyBody.enabled = true;
 
-        Place(playerController, player, PlayerSpot);
+        Place(player, PlayerSpot);
         distance = firstDistance;
         PlaceDummy();
     }
@@ -142,7 +141,7 @@ public sealed class MeleeProbe : MonoBehaviour
             return;
 
         Vector3 d = dummy.transform.position;
-        Bounds b = dummyController.bounds;
+        Bounds b = dummyHull.bounds;
 
         // Straight down the axis finds the crown, sideways at the middle
         // finds the radius.
@@ -242,7 +241,7 @@ public sealed class MeleeProbe : MonoBehaviour
                   $" Dummy bei ({d.x:F2}/{d.y:F2}/{d.z:F2})");
 
         // Within reach, but a metre off the line of sight.
-        Place(dummyController, dummy,
+        Place(dummy,
               new Vector3(PlayerSpot.x + 1.5f, 0.94f, PlayerSpot.z + 1.0f));
 
         damage.Reset();
@@ -313,16 +312,18 @@ public sealed class MeleeProbe : MonoBehaviour
 
     void PlaceDummy()
     {
-        Place(dummyController, dummy,
+        Place(dummy,
               new Vector3(PlayerSpot.x + distance, 0.94f, PlayerSpot.z));
     }
 
-    static void Place(CharacterController cc, PlayerMotor motor, Vector3 at)
+    /// <summary>
+    /// Teleports a body and clears what it was doing. Velocity survives a
+    /// teleport, so without this every case would start with the momentum of
+    /// the one before it.
+    /// </summary>
+    static void Place(PlayerMotor motor, Vector3 at)
     {
-        cc.enabled = false;
-        motor.transform.position = at;
-        cc.enabled = true;
-
+        motor.Teleport(at);
         motor.AddVelocity(-motor.Velocity, 0f);
     }
 }

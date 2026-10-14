@@ -113,7 +113,6 @@ public sealed class SlideProbe : MonoBehaviour
     };
 
     PlayerMotor motor;
-    CharacterController controller;
     readonly GameObject[] grounds = new GameObject[Surfaces.Length];
     GameObject wall;
 
@@ -146,7 +145,7 @@ public sealed class SlideProbe : MonoBehaviour
 
     void Start()
     {
-        if (!ProbeSubject.TryBind(out motor, out controller))
+        if (!ProbeSubject.TryBind(out motor))
             return;
 
         if (!Read("walkSpeed", out walkSpeed)
@@ -267,9 +266,7 @@ public sealed class SlideProbe : MonoBehaviour
         spot.y += 1.2f;
         yaw = c.uphill ? 180f : 0f;
 
-        controller.enabled = false;
-        motor.transform.position = spot;
-        controller.enabled = true;
+        motor.Teleport(spot);
 
         // Dropped onto the face rather than placed on it: that way no angle
         // needs its start height computed, and no case inherits a velocity.

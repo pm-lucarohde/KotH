@@ -11,11 +11,9 @@ using UnityEngine;
 /// </summary>
 public static class ProbeSubject
 {
-    public static bool TryBind(out PlayerMotor motor,
-                               out CharacterController controller)
+    public static bool TryBind(out PlayerMotor motor)
     {
         motor = null;
-        controller = null;
 
         // The input reader is what makes a body the player, and its
         // RequireComponent puts the motor on that same object.
@@ -31,7 +29,6 @@ public static class ProbeSubject
 
         reader.enabled = false;
         motor = reader.GetComponent<PlayerMotor>();
-        controller = motor.GetComponent<CharacterController>();
         return true;
     }
 }

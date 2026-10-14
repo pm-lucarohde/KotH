@@ -102,7 +102,6 @@ public sealed class StepProbe : MonoBehaviour
     const int TicksPerCase = 240;
 
     PlayerMotor motor;
-    CharacterController controller;
 
     int caseIndex = -1;
     int rampIndex = -1;
@@ -113,7 +112,7 @@ public sealed class StepProbe : MonoBehaviour
     int steepTicks;
     Vector3 startFlat;
     int loggedJumps;
-    int airTicks;        // controller.isGrounded read false
+    int airTicks;        // no ground of any steepness under the feet
     int slideTicks;
     float maxAngle;
     Vector2 rampMove;
@@ -121,12 +120,12 @@ public sealed class StepProbe : MonoBehaviour
 
     void Start()
     {
-        if (!ProbeSubject.TryBind(out motor, out controller))
+        if (!ProbeSubject.TryBind(out motor))
             return;
 
-        Debug.Log("[probe] stepOffset " + controller.stepOffset +
-                  ", height " + controller.height +
-                  ", slopeLimit " + controller.slopeLimit);
+        Debug.Log("[probe] stepOffset " + motor.MaxStepHeight +
+                  ", height " + motor.Height +
+                  ", slopeLimit " + motor.SlopeLimit);
 
         // Ramps first: they are what is under investigation, and a watchdog
         // that fires must not eat the cases that matter.
@@ -190,9 +189,7 @@ public sealed class StepProbe : MonoBehaviour
 
     void Place(Vector3 start)
     {
-        controller.enabled = false;
-        motor.transform.position = start;
-        controller.enabled = true;
+        motor.Teleport(start);
 
         tick = 0;
         startY = start.y;
@@ -237,7 +234,7 @@ public sealed class StepProbe : MonoBehaviour
         motor.Tick(input, Time.fixedDeltaTime);
         float after = motor.transform.position.y;
 
-        if (motor.GroundAngle > controller.slopeLimit)
+        if (motor.GroundAngle > motor.SlopeLimit)
             steepTicks++;
 
         // Only height gained near the flight counts. With wiggle the
@@ -286,16 +283,16 @@ public sealed class StepProbe : MonoBehaviour
         float y = motor.transform.position.y;
         if (y > maxY) maxY = y;
         if (y < minY) minY = y;
-        if (!controller.isGrounded) airTicks++;
+        if (!motor.IsTouchingGround) airTicks++;
         if (motor.IsSlidingDownSteep) slideTicks++;
         if (motor.GroundAngle > maxAngle) maxAngle = motor.GroundAngle;
-        if (motor.GroundAngle > controller.slopeLimit) steepTicks++;
+        if (motor.GroundAngle > motor.SlopeLimit) steepTicks++;
 
         // The first ticks tell the whole story: if isGrounded flickers, the
         // steep reading never holds long enough to confirm a slide.
         if (tick < 16)
             Debug.Log($"[probe] ~ {r.Name} t{tick:D3} y {y:F3}" +
-                      $" | touching {controller.isGrounded}" +
+                      $" | touching {motor.IsTouchingGround}" +
                       $" | angle {motor.GroundAngle:F1} | grounded {motor.IsGrounded}" +
                       $" | sliding {motor.IsSlidingDownSteep}");
 

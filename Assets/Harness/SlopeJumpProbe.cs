@@ -14,7 +14,6 @@ public sealed class SlopeJumpProbe : MonoBehaviour
     static readonly string[] Ramps = { "Ramp20", "Ramp35", "Ramp45" };
 
     PlayerMotor motor;
-    CharacterController controller;
 
     int caseIndex = -1;
     int tick;
@@ -27,7 +26,7 @@ public sealed class SlopeJumpProbe : MonoBehaviour
 
     void Start()
     {
-        if (!ProbeSubject.TryBind(out motor, out controller))
+        if (!ProbeSubject.TryBind(out motor))
             return;
 
         Next();
@@ -53,9 +52,7 @@ public sealed class SlopeJumpProbe : MonoBehaviour
         Vector3 start = surface - downhill * (t.localScale.z * 0.35f)
                       + Vector3.up * 0.95f;
 
-        controller.enabled = false;
-        motor.transform.position = start;
-        controller.enabled = true;
+        motor.Teleport(start);
 
         // The motor keeps velocity, sprint and slide state across cases, so
         // all three are cleared by standing still. Without this the walking

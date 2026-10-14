@@ -47,7 +47,6 @@ public sealed class CrestProbe : MonoBehaviour
                       Sprint = sprint, WiggleHz = hz, WiggleDeg = deg };
 
     PlayerMotor motor;
-    CharacterController controller;
 
     int caseIndex = -1;
     int tick;
@@ -60,7 +59,7 @@ public sealed class CrestProbe : MonoBehaviour
 
     void Start()
     {
-        if (!ProbeSubject.TryBind(out motor, out controller))
+        if (!ProbeSubject.TryBind(out motor))
             return;
 
         Next();
@@ -88,9 +87,7 @@ public sealed class CrestProbe : MonoBehaviour
 
         yaw = Mathf.Atan2(uphill.x, uphill.z) * Mathf.Rad2Deg + c.YawBias;
 
-        controller.enabled = false;
-        motor.transform.position = start;
-        controller.enabled = true;
+        motor.Teleport(start);
 
         // The motor keeps velocity, sprint and slide state across cases, so
         // all three are cleared by standing still. Without this the crouched

@@ -134,7 +134,7 @@ namespace KotH.Shared.Player
         float slideSpeed;         // what the slide rolls out at, not velocity
         float slideCooldownLeft;  // counted from the START of the last slide
         float lastStepSpeed;      // speed the last tick really made, in 3D
-        bool touchingGround;      // ground of ANY steepness under the feet
+        bool touchingGround;      // any-steepness contact AFTER the move
         float currentHeight;      // the shape, which needs time to follow
         bool grounded;            // standing on WALKABLE ground
         bool onSteepGround;       // confirmed too steep, sliding
@@ -208,9 +208,10 @@ namespace KotH.Shared.Player
         }
 
         /// <summary>
-        /// Puts the body somewhere and drops what it was carrying. Velocity
-        /// survives a plain position write, so without the reset every probe
-        /// case would start with the momentum of the one before it.
+        /// Puts the body somewhere. Deliberately moves nothing else: velocity
+        /// survives, so a caller that wants a clean start has to say so. The
+        /// probes rely on that - clearing it here moved their starting points
+        /// and changed 84 measured cases out of 252.
         /// </summary>
         public void Teleport(Vector3 position)
         {
@@ -221,9 +222,6 @@ namespace KotH.Shared.Player
             controller.enabled = false;
             transform.position = position;
             controller.enabled = was;
-
-            velocity = Vector3.zero;
-            lastStepSpeed = 0f;
         }
 
         void Awake()
@@ -265,7 +263,6 @@ namespace KotH.Shared.Player
             // is. Too steep counts as not grounded, so jumping, ground
             // acceleration and the double jump reset all fall into place.
             bool touching = controller.isGrounded;
-            touchingGround = touching;
             bool knownGround = false;
 
             if (touching)
@@ -377,6 +374,11 @@ namespace KotH.Shared.Player
             // would drop below walking speed on any ramp past 39 degrees.
             Vector3 step = transform.position - beforeMove;
             lastStepSpeed = step.magnitude / dt;
+
+            // Read AFTER the movement, so it is the contact the NEXT tick
+            // will work from. Set at the top of the tick it would be one
+            // step behind for anyone reading it once the tick returned.
+            touchingGround = controller.isGrounded;
 
             eyePosition = CurrentEyeWorldPosition();
             bodyCenter = CurrentBodyCenter();

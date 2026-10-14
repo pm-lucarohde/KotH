@@ -49,7 +49,6 @@ public sealed class JumpHeightProbe : MonoBehaviour
     };
 
     PlayerMotor motor;
-    CharacterController controller;
 
     float jumpHeight;
     float minJumpHeight;
@@ -71,7 +70,7 @@ public sealed class JumpHeightProbe : MonoBehaviour
 
     void Start()
     {
-        if (!ProbeSubject.TryBind(out motor, out controller))
+        if (!ProbeSubject.TryBind(out motor))
             return;
 
         if (!Read("jumpHeight", out jumpHeight)
@@ -117,9 +116,7 @@ public sealed class JumpHeightProbe : MonoBehaviour
             return;
         }
 
-        controller.enabled = false;
-        motor.transform.position = Spot;
-        controller.enabled = true;
+        motor.Teleport(Spot);
 
         // Standing still until grounded is certain: a jump that starts in
         // the air would measure the fall, not the jump.
