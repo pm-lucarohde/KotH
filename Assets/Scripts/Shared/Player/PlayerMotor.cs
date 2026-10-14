@@ -37,11 +37,12 @@ namespace KotH.Shared.Player
         // The project setting is untouched and still applies to rigidbodies.
         [SerializeField] float gravity = -20f;
 
+        // Eyes sit 0.12 m below the crown in both poses, as on a real body.
         [Header("Körpermaße (m)")]
-        [SerializeField] float standHeight = 2f;
-        [SerializeField] float crouchHeight = 1.2f;
-        [SerializeField] float standEyeHeight = 1.7f;
-        [SerializeField] float crouchEyeHeight = 1f;
+        [SerializeField] float standHeight = 1.8f;
+        [SerializeField] float crouchHeight = 0.9f;
+        [SerializeField] float standEyeHeight = 1.68f;
+        [SerializeField] float crouchEyeHeight = 0.78f;
         [SerializeField] float eyeMoveSpeed = 6f;
         [SerializeField] LayerMask headroomMask = ~0;
 
