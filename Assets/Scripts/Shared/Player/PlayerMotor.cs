@@ -96,6 +96,13 @@ namespace KotH.Shared.Player
         // How far past the blocking wall the ledge is measured.
         [SerializeField] float stepProbeAhead = 0.05f;
 
+        [Header("Gleiten")]
+        [Tooltip("Reibung beim Gleiten, deutlich kleiner als beim Bremsen")]
+        [SerializeField] float slideDeceleration = 6f;
+
+        [Tooltip("Tempo, über das ein Hang das Gleiten nicht hinaustreibt")]
+        [SerializeField] float maxSlideSpeed = 15f;
+
         [Header("Verknüpfung")]
         [SerializeField] Transform cameraMount;
 
@@ -106,6 +113,8 @@ namespace KotH.Shared.Player
         bool isCrouching;         // the INTENT, set by the key, not the shape
         bool sprinting;           // the STATE, started by the key, ended by speed
         bool sprintArmed;         // walk speed has been exceeded at least once
+        bool sliding;             // crouch slide, the deliberate one
+        float slideSpeed;         // what the slide rolls out at, not velocity
         float lastStepSpeed;      // speed the last tick really made, in 3D
         float currentHeight;      // the shape, which needs time to follow
         bool grounded;            // standing on WALKABLE ground
@@ -145,10 +154,11 @@ namespace KotH.Shared.Player
         public float Height => controller.height;
         public float Radius => controller.radius;
         public bool IsGrounded => grounded;
-        public bool IsSliding => onSteepGround;
+        public bool IsSlidingDownSteep => onSteepGround;
         public float GroundAngle => groundAngle;
         public bool IsCrouching => isCrouching;
         public bool IsSprinting => sprinting;
+        public bool IsSliding => sliding;
         public Vector3 Velocity => velocity;
 
         /// <summary>
@@ -261,6 +271,10 @@ namespace KotH.Shared.Player
             // started with and the result is used in the same tick.
             UpdateSprint(input.Sprint);
 
+            // After UpdateSprint, which it asks, and before UpdateHorizontal,
+            // which reads slideSpeed as its target.
+            UpdateSlide(input, dt);
+
             UpdateCrouch(input.Crouch, dt);
             UpdateHorizontal(input, dt);
 
@@ -271,7 +285,7 @@ namespace KotH.Shared.Player
             UpdateJumpCut(input.JumpHeld, dt);
 
             if (onSteepGround && !jumped)
-                Slide(dt);
+                SlideDownSteep(dt);
             else
                 velocity.y += gravity * dt;
 
@@ -341,6 +355,50 @@ namespace KotH.Shared.Player
                 sprinting = false;
         }
 
+        // The crouch slide: a sprint that keeps its momentum while ducking
+        // instead of being pulled down to crouch speed. Only speed or the
+        // key end it on flat ground; downhill only the key does.
+        void UpdateSlide(in MoveInput input, float dt)
+        {
+            if (sliding)
+            {
+                // Released, too slow, airborne, or on a face the steep slide
+                // owns. Losing ground covers the jump without its own case.
+                if (!input.Crouch || !grounded || onSteepGround
+                    || slideSpeed < walkSpeed)
+                {
+                    sliding = false;
+                    return;
+                }
+
+                // Friction always, gravity only along the slope: downhill it
+                // adds, uphill it subtracts, on the flat it is zero. Same
+                // projection SlideDownSteep uses, so both agree on downhill.
+                Vector3 flat = new Vector3(velocity.x, 0f, velocity.z);
+                float push = 0f;
+                if (flat.sqrMagnitude > 0.0001f)
+                {
+                    Vector3 slope =
+                        Vector3.ProjectOnPlane(Vector3.up * gravity, groundNormal);
+                    push = Vector3.Dot(slope, flat.normalized);
+                }
+
+                slideSpeed = Mathf.Min(maxSlideSpeed,
+                    slideSpeed + (push - slideDeceleration) * dt);
+                return;
+            }
+
+            // Out of a sprint only, and only while the body really moves that
+            // fast: lastStepSpeed, because velocity survives a wall untouched
+            // and a slide out of the run-up would end in the tick it began.
+            if (input.Crouch && sprinting && grounded && !onSteepGround
+                && lastStepSpeed > walkSpeed)
+            {
+                sliding = true;
+                slideSpeed = new Vector2(velocity.x, velocity.z).magnitude;
+            }
+        }
+
         void UpdateHorizontal(in MoveInput input, float dt)
         {
             // Without clamping, moving diagonally would be 1.41x faster.
@@ -349,7 +407,21 @@ namespace KotH.Shared.Player
 
             Vector3 wish = transform.right * move.x + transform.forward * move.y;
 
-            float speed = isCrouching ? crouchSpeed
+            // A slide rolls out along the direction it has, even with no key
+            // down: the usual deceleration to zero would otherwise end it
+            // the moment the key is released.
+            if (sliding && !hasInput)
+            {
+                Vector3 rolling = new Vector3(velocity.x, 0f, velocity.z);
+                if (rolling.sqrMagnitude > 0.0001f)
+                {
+                    wish = rolling.normalized;
+                    hasInput = true;
+                }
+            }
+
+            float speed = sliding ? slideSpeed
+                        : isCrouching ? crouchSpeed
                         : sprinting ? sprintSpeed
                         : walkSpeed;
 
@@ -372,10 +444,11 @@ namespace KotH.Shared.Player
         }
 
         /// <summary>
-        /// Slides down a face that is too steep to stand on. Called instead
-        /// of plain gravity, never on top of it.
+        /// Slides down a face that is too steep to stand on, against the
+        /// player's will. Called instead of plain gravity, never on top of
+        /// it. Not to be confused with UpdateSlide, the crouch slide.
         /// </summary>
-        void Slide(float dt)
+        void SlideDownSteep(float dt)
         {
             // Landing redirects momentum along the slope instead of dropping
             // it. Without this the slide restarts from zero on every contact
@@ -420,6 +493,12 @@ namespace KotH.Shared.Player
                 // and keeps the slower crouch speed.
                 if (grounded)
                 {
+                    // No bonus out of a slide: the speed a slope lent it
+                    // stops at the ground. Clamped before take-off, since
+                    // the flight would keep it almost unchanged.
+                    if (sliding)
+                        ClampToSprintSpeed();
+
                     velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
                     grounded = false;
                     doubleJumpUsed = false;
@@ -469,6 +548,17 @@ namespace KotH.Shared.Player
             }
 
             return jumped;
+        }
+
+        void ClampToSprintSpeed()
+        {
+            Vector3 flat = new Vector3(velocity.x, 0f, velocity.z);
+            if (flat.magnitude <= sprintSpeed)
+                return;
+
+            flat = flat.normalized * sprintSpeed;
+            velocity.x = flat.x;
+            velocity.z = flat.z;
         }
 
         // Called right after the presses, so a tap shorter than a single

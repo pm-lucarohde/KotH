@@ -252,7 +252,7 @@ public sealed class StepProbe : MonoBehaviour
             loggedJumps++;
             Debug.Log($"[probe] {c.Name} t{tick:D3} +{after - before:F3} m -> y {after:F3}" +
                       $" | angle {motor.GroundAngle:F1} | grounded {motor.IsGrounded}" +
-                      $" | sliding {motor.IsSliding} | yaw {yaw:F0}");
+                      $" | sliding {motor.IsSlidingDownSteep} | yaw {yaw:F0}");
         }
 
         tick++;
@@ -287,7 +287,7 @@ public sealed class StepProbe : MonoBehaviour
         if (y > maxY) maxY = y;
         if (y < minY) minY = y;
         if (!controller.isGrounded) airTicks++;
-        if (motor.IsSliding) slideTicks++;
+        if (motor.IsSlidingDownSteep) slideTicks++;
         if (motor.GroundAngle > maxAngle) maxAngle = motor.GroundAngle;
         if (motor.GroundAngle > controller.slopeLimit) steepTicks++;
 
@@ -297,7 +297,7 @@ public sealed class StepProbe : MonoBehaviour
             Debug.Log($"[probe] ~ {r.Name} t{tick:D3} y {y:F3}" +
                       $" | touching {controller.isGrounded}" +
                       $" | angle {motor.GroundAngle:F1} | grounded {motor.IsGrounded}" +
-                      $" | sliding {motor.IsSliding}");
+                      $" | sliding {motor.IsSlidingDownSteep}");
 
         tick++;
         if (tick >= r.Ticks)
