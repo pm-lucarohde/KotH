@@ -74,6 +74,7 @@ namespace KotH.Shared.Player
         public Vector3 BodyCenter => bodyCenter;
         public Vector3 PreviousBodyCenter => previousBodyCenter;
         public float Height => controller.height;
+        public float Radius => controller.radius;
         public bool IsGrounded => grounded;
         public bool IsCrouching => isCrouching;
 

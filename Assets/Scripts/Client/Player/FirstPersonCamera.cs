@@ -19,10 +19,7 @@ namespace KotH.Client.Player
             if (motor == null || input == null)
                 return;
 
-            // How far into the current tick are we? Time.fixedTime is the
-            // timestamp of the last FixedUpdate.
-            float alpha = Mathf.Clamp01(
-                (Time.time - Time.fixedTime) / Time.fixedDeltaTime);
+            float alpha = TickInterpolation.Alpha;
 
             transform.SetPositionAndRotation(
                 Vector3.Lerp(motor.PreviousEyePosition, motor.EyePosition, alpha),

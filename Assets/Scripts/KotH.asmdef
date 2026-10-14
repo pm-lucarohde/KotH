@@ -1,6 +1,9 @@
 {
     "name": "KotH",
     "rootNamespace": "KotH",
+    "references": [
+        "Unity.Burst"
+    ],
     "allowUnsafeCode": false,
     "autoReferenced": true
 }

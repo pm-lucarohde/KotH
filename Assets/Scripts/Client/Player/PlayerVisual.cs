@@ -4,31 +4,33 @@ using UnityEngine;
 namespace KotH.Client.Player
 {
     /// <summary>
-    /// Draws the player body. Presentation only - nothing here is simulated.
-    /// The motor moves the root in 40 steps per second; a rigidly parented
-    /// mesh would show those steps in its shadow and in any third-person
-    /// view, even though the camera itself is already interpolated.
+    /// Marks the player body for interpolation; presentation only, nothing
+    /// here is simulated. A rigidly parented mesh would show the 40 Hz tick
+    /// in its shadow and in any third-person view. PlayerVisualSystem does
+    /// the actual work for every body at once.
     /// </summary>
     [RequireComponent(typeof(MeshFilter))]
     public sealed class PlayerVisual : MonoBehaviour
     {
         [SerializeField] PlayerMotor motor;
 
-        void LateUpdate()
+        public PlayerMotor Motor => motor;
+
+        void OnEnable()
         {
+            // Explicit == null: Unity's fake null makes ?? and is null lie.
             if (motor == null)
+            {
+                Debug.LogWarning("PlayerVisual without a motor stays still.", this);
                 return;
+            }
 
-            float alpha = Mathf.Clamp01(
-                (Time.time - Time.fixedTime) / Time.fixedDeltaTime);
+            PlayerVisualSystem.Register(this);
+        }
 
-            // World position on purpose: this overrides the parent's snapping.
-            transform.position = Vector3.Lerp(
-                motor.PreviousBodyCenter, motor.BodyCenter, alpha);
-
-            // A primitive capsule is 2 m tall at scale 1, so half the
-            // controller height matches it to the collider when crouching.
-            transform.localScale = new Vector3(1f, motor.Height * 0.5f, 1f);
+        void OnDisable()
+        {
+            PlayerVisualSystem.Unregister(this);
         }
     }
 }
