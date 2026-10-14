@@ -34,8 +34,11 @@ namespace KotH.Shared.Simulation
         public static float LastApproach { get; private set; }
 
         [Header("Körperstoß")]
-        [Tooltip("Anteil der Annäherungsgeschwindigkeit, den beide als Rückprall bekommen.")]
-        [SerializeField] float bounce = 1f / 6f;
+        [Tooltip("Anteil der Annäherung, mit dem sich beide vom gemeinsamen " +
+                 "Tempo entfernen. 0,5 ist ein vollelastischer Stoß, mehr " +
+                 "würde bei jeder Berührung Energie erzeugen.")]
+        [Range(0f, 0.5f)]
+        [SerializeField] float bounce = 1f / 3f;
 
         [Tooltip("Langsamere Annäherung löst keinen Stoß aus.")]
         [SerializeField] float minApproach = 0.5f;
@@ -146,12 +149,17 @@ namespace KotH.Shared.Simulation
                     if (approach <= minApproach)
                         continue;
 
-                    // The component along the normal is dropped and replaced
-                    // by a separating speed. Both get the same amount, so the
-                    // pair always ends up moving away from each other.
+                    // Both end up moving around the speed they share along
+                    // the normal, not around zero. That conserves momentum:
+                    // running into someone hands the motion over instead of
+                    // stopping the runner dead and barely nudging the other.
+                    float alongA = Vector3.Dot(a.velocity, n);
+                    float alongB = Vector3.Dot(b.velocity, n);
+                    float shared = (alongA + alongB) * 0.5f;
                     float separate = bounce * approach;
-                    impulses[i] += n * (-separate - Vector3.Dot(a.velocity, n));
-                    impulses[j] += n * (separate - Vector3.Dot(b.velocity, n));
+
+                    impulses[i] += n * (shared - separate - alongA);
+                    impulses[j] += n * (shared + separate - alongB);
                     LastContactCount++;
                     LastNormal = n;
                     LastApproach = approach;

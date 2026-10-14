@@ -2457,7 +2457,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e793fcde0317a76882a3cda7e562ea7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: KotH::KotH.Shared.Simulation.SimulationSystem
-  bounce: 0.16666667
+  bounce: 0.33333334
   minApproach: 0.5
   contactRange: 0.1
   knockbackLock: 0.2

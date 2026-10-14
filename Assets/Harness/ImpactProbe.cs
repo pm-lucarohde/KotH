@@ -119,11 +119,18 @@ public sealed class ImpactProbe : MonoBehaviour
                 Vector3 n = SimulationSystem.LastNormal;
                 float approach = SimulationSystem.LastApproach;
 
+                float alongPlayer = Vector3.Dot(player.Velocity, n);
+                float alongDummy = Vector3.Dot(dummy.Velocity, n);
+
+                // Separation must be 2 * bounce * approach, and the sum along
+                // the normal must survive the hit - that is the momentum.
                 Debug.Log($"[impact] {c.name}: erster Stoß bei Tick {tick}," +
                           $" Normale {Show(n)}, Annäherung {approach:F3} m/s," +
-                          $" erwartet je {approach / 6f:F3}," +
-                          $" Spieler entlang n {Vector3.Dot(player.Velocity, n):F3}," +
-                          $" Dummy entlang n {Vector3.Dot(dummy.Velocity, n):F3}," +
+                          $" Spieler entlang n {alongPlayer:F3}," +
+                          $" Dummy entlang n {alongDummy:F3}," +
+                          $" Trennung {alongDummy - alongPlayer:F3}" +
+                          $" (soll {2f / 3f * approach:F3})," +
+                          $" Summe entlang n {alongPlayer + alongDummy:F3}," +
                           $" Spieler {Show(player.Velocity)}, Dummy {Show(dummy.Velocity)}");
             }
         }
