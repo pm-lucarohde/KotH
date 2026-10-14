@@ -26,6 +26,7 @@ namespace KotH.Client.Player
         float yaw;
         float pitch;
         byte jumpPresses;
+        bool crouchPressed;
         byte attackPresses;
 
         public float Yaw => yaw;
@@ -83,6 +84,12 @@ namespace KotH.Client.Player
             // the double jump depends on that.
             if (Input.GetButtonDown("Jump") && jumpPresses < byte.MaxValue)
                 jumpPresses++;
+
+            // Latched, not counted: a tick spans three or four frames, so
+            // reading GetKeyDown inside ReadInput would miss a press that
+            // began in any other frame. One flag is enough, see MoveInput.
+            if (Input.GetKeyDown(crouchKey))
+                crouchPressed = true;
         }
 
         public override MoveInput ReadInput()
@@ -101,6 +108,7 @@ namespace KotH.Client.Player
                 // ends inside one tick reads false here and lands at the
                 // minimum jump height, which is exactly right.
                 JumpHeld = Input.GetButton("Jump"),
+                CrouchPressed = crouchPressed,
                 Sprint = Input.GetKey(sprintKey),
                 Crouch = Input.GetKey(crouchKey),
             };
@@ -108,6 +116,7 @@ namespace KotH.Client.Player
             // Cleared on read, so a press is consumed by exactly one tick.
             jumpPresses = 0;
             attackPresses = 0;
+            crouchPressed = false;
 
             return input;
         }

@@ -40,6 +40,14 @@ namespace KotH.Shared.Player
         /// </summary>
         public bool JumpHeld;
 
+        /// <summary>
+        /// Crouch key newly pressed, collected per frame. A bool and not a
+        /// counter like JumpPresses: crouching has no double tap gesture, so
+        /// two presses inside one tick need not both survive. Only the slide
+        /// reads it; the crouch pose follows Crouch, which is held.
+        /// </summary>
+        public bool CrouchPressed;
+
         public bool Sprint;
         public bool Crouch;
     }

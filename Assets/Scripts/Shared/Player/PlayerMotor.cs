@@ -279,7 +279,9 @@ namespace KotH.Shared.Player
             // which reads slideSpeed as its target.
             UpdateSlide(input, dt);
 
-            UpdateCrouch(input.Crouch, dt);
+            // A slide crouches on its own, so a tapped one lowers the eyes
+            // exactly like a held key does.
+            UpdateCrouch(input.Crouch || sliding, dt);
             UpdateHorizontal(input, dt);
 
             // A jump this tick wins over the slide: otherwise the redirect
@@ -297,7 +299,10 @@ namespace KotH.Shared.Player
             // tick's movement, both the step-up lift and the main Move.
             // After the jump on purpose: a jump leaves the ledge
             // deliberately and must keep its horizontal speed.
-            if (isCrouching && grounded && !jumped)
+            // Not while sliding: the guard is there so crouched creeping
+            // does not walk off a ledge, and it zeroes the velocity. A slide
+            // is meant to carry over the edge instead of sticking to it.
+            if (isCrouching && !sliding && grounded && !jumped)
                 GuardLedge(dt);
 
             hasContactNormal = false;
@@ -371,10 +376,11 @@ namespace KotH.Shared.Player
 
             if (sliding)
             {
-                // Released, too slow, airborne, or on a face the steep slide
-                // owns. Losing ground covers the jump without its own case.
-                if (!input.Crouch || !grounded || onSteepGround
-                    || slideSpeed < walkSpeed)
+                // Too slow, airborne, or on a face the steep slide owns.
+                // Letting go of the key does NOT end it -- a tap is enough
+                // to start, so there is nothing to release. The jump key
+                // cancels it in ProcessJumpPresses, before any of this.
+                if (!grounded || onSteepGround || slideSpeed < walkSpeed)
                 {
                     sliding = false;
                     return;
@@ -403,7 +409,7 @@ namespace KotH.Shared.Player
             // Measured from the start, not the end: a slide that ran its
             // full course is longer than the cooldown and so never waits,
             // while hammering the key does.
-            if (input.Crouch && sprinting && grounded && !onSteepGround
+            if (input.CrouchPressed && sprinting && grounded && !onSteepGround
                 && slideCooldownLeft <= 0f && lastStepSpeed > walkSpeed)
             {
                 sliding = true;
@@ -502,16 +508,21 @@ namespace KotH.Shared.Player
 
             for (int i = 0; i < presses; i++)
             {
+                // The first press out of a slide only cancels it, and is
+                // used up doing so. A following press jumps as usual, even
+                // within this same tick. The clamp keeps a slope's lent
+                // speed on the ground instead of carrying it into flight.
+                if (sliding)
+                {
+                    sliding = false;
+                    ClampToSprintSpeed();
+                    continue;
+                }
+
                 // Jumping while crouched is allowed; the player stays crouched
                 // and keeps the slower crouch speed.
                 if (grounded)
                 {
-                    // No bonus out of a slide: the speed a slope lent it
-                    // stops at the ground. Clamped before take-off, since
-                    // the flight would keep it almost unchanged.
-                    if (sliding)
-                        ClampToSprintSpeed();
-
                     velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
                     grounded = false;
                     doubleJumpUsed = false;

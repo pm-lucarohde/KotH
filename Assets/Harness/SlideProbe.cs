@@ -10,9 +10,10 @@ using UnityEngine;
 /// </summary>
 public sealed class SlideProbe : MonoBehaviour
 {
-    enum Check { Duration, EndsOnRelease, SpeedRises, SpeedCapped,
-                 EndsEarly, JumpClamped, Turns, RollsOut, NoStart, Eyes,
-                 CooldownBlocks, CooldownClears }
+    enum Check { Duration, SpeedRises, SpeedCapped,
+                 EndsEarly, Turns, RollsOut, NoStart, Eyes,
+                 CooldownBlocks, CooldownClears, CarriesOverEdge,
+                 JumpCancels, JumpAfterCancel }
 
     struct Case
     {
@@ -26,12 +27,16 @@ public sealed class SlideProbe : MonoBehaviour
         public float yawTurn;      // degrees turned over the slide
         public int jumpAt;         // tick inside the slide, -1 = never
         public int retryAt;         // tick after the slide start to press again
+        public float startAt;       // metres along the face to begin, 0 = 3
+        public bool jumpTwice;      // second press two ticks after the first
         public bool shouldStart;
         public Check check;
     }
 
     // Flat, 20, 35 and 55 degrees, each its own patch far from the scene.
-    static readonly float[] Surfaces = { 0f, 20f, 35f, 55f };
+    // The fifth is flat but short, so a slide runs off its edge.
+    static readonly float[] Surfaces = { 0f, 20f, 35f, 55f, 0f };
+    static readonly float[] Lengths = { 60f, 60f, 60f, 60f, 8f };
     const float SurfaceGap = 60f;
     static readonly Vector3 Origin = new Vector3(-110f, 0f, -140f);
 
@@ -40,30 +45,47 @@ public sealed class SlideProbe : MonoBehaviour
         new Case { name = "Flach, Dauer", surface = 0, runup = 30,
                    crouchHold = -1, steer = true, jumpAt = -1,
                    shouldStart = true, check = Check.Duration },
-        new Case { name = "Flach, Augenhöhe", surface = 0, runup = 30,
-                   crouchHold = 20, steer = true, jumpAt = -1,
+        new Case { name = "Angetippt, Augenhöhe", surface = 0, runup = 30,
+                   crouchHold = 1, steer = true, jumpAt = -1,
                    shouldStart = true, check = Check.Eyes },
-        new Case { name = "Ducken loslassen", surface = 0, runup = 30,
-                   crouchHold = 8, steer = true, jumpAt = -1,
-                   shouldStart = true, check = Check.EndsOnRelease },
+        new Case { name = "Angetippt, Dauer", surface = 0, runup = 30,
+                   crouchHold = 1, steer = true, jumpAt = -1,
+                   shouldStart = true, check = Check.Duration },
+        new Case { name = "Gehalten, Dauer", surface = 0, runup = 30,
+                   crouchHold = -1, steer = true, jumpAt = -1,
+                   shouldStart = true, check = Check.Duration },
+        // GuardLedge is off during a slide, so this must fly off the edge
+        // with its speed instead of stopping dead on it.
+        new Case { name = "Über die Kante", surface = 4, runup = 12,
+                   crouchHold = 1, steer = true, jumpAt = -1, startAt = 2f,
+                   shouldStart = true, check = Check.CarriesOverEdge },
         new Case { name = "Ohne Richtungstaste", surface = 0, runup = 30,
                    crouchHold = -1, steer = false, jumpAt = -1,
                    shouldStart = true, check = Check.RollsOut },
         new Case { name = "Lenken um 90 Grad", surface = 0, runup = 30,
                    crouchHold = -1, steer = true, yawTurn = 90f, jumpAt = -1,
                    shouldStart = true, check = Check.Turns },
-        new Case { name = "Sprung aus dem Slide", surface = 0, runup = 30,
-                   crouchHold = -1, steer = true, jumpAt = 6,
-                   shouldStart = true, check = Check.JumpClamped },
+        // The first jump press only cancels, the next one jumps.
+        new Case { name = "Leertaste bricht ab", surface = 0, runup = 30,
+                   crouchHold = 1, steer = true, jumpAt = 6,
+                   shouldStart = true, check = Check.JumpCancels },
+        new Case { name = "Zweiter Druck springt", surface = 0, runup = 30,
+                   crouchHold = 1, steer = true, jumpAt = 6, jumpTwice = true,
+                   shouldStart = true, check = Check.JumpAfterCancel },
         new Case { name = "Rampe 20 bergab", surface = 1, runup = 30,
                    crouchHold = -1, steer = true, jumpAt = -1,
                    shouldStart = true, check = Check.SpeedRises },
         new Case { name = "Rampe 35 bergab", surface = 2, runup = 30,
                    crouchHold = -1, steer = true, jumpAt = -1,
                    shouldStart = true, check = Check.SpeedCapped },
-        new Case { name = "Rampe 35 bergab, Sprung", surface = 2, runup = 30,
-                   crouchHold = -1, steer = true, jumpAt = 30,
-                   shouldStart = true, check = Check.JumpClamped },
+        // Downhill the slide borrows speed from the slope; the cancel has
+        // to hand it back, or the next press would carry it into flight.
+        new Case { name = "Bergab abgebrochen", surface = 2, runup = 30,
+                   crouchHold = 1, steer = true, jumpAt = 30,
+                   shouldStart = true, check = Check.JumpCancels },
+        new Case { name = "Bergab, dann springen", surface = 2, runup = 30,
+                   crouchHold = 1, steer = true, jumpAt = 30, jumpTwice = true,
+                   shouldStart = true, check = Check.JumpAfterCancel },
         new Case { name = "Rampe 20 bergauf", surface = 1, uphill = true,
                    runup = 30, crouchHold = -1, steer = true, jumpAt = -1,
                    shouldStart = true, check = Check.EndsEarly },
@@ -76,13 +98,17 @@ public sealed class SlideProbe : MonoBehaviour
         new Case { name = "Auf 55 Grad, zu steil", surface = 3, runup = 30,
                    crouchHold = -1, steer = true, jumpAt = -1,
                    shouldStart = false, check = Check.NoStart },
-        // Cooldown runs from the START, so a slide broken off early still
-        // has to wait out the rest of it, while a full one never waits.
-        new Case { name = "Erneut nach 12 Ticks", surface = 0, runup = 30,
-                   crouchHold = 8, steer = true, jumpAt = -1, retryAt = 12,
+        // Only a cancelled slide can be followed by another one: a slide
+        // that runs out ends at walkSpeed, which is below its own start
+        // threshold. So both cases cancel at tick 6 and press again, once
+        // inside the 20 tick pause and once after it.
+        new Case { name = "Erneut 4 Ticks nach Abbruch", surface = 0,
+                   runup = 30, crouchHold = 1, steer = true, jumpAt = 6,
+                   retryAt = 10,
                    shouldStart = true, check = Check.CooldownBlocks },
-        new Case { name = "Erneut nach 22 Ticks", surface = 0, runup = 30,
-                   crouchHold = 8, steer = true, jumpAt = -1, retryAt = 22,
+        new Case { name = "Erneut 16 Ticks nach Abbruch", surface = 0,
+                   runup = 30, crouchHold = 1, steer = true, jumpAt = 6,
+                   retryAt = 22,
                    shouldStart = true, check = Check.CooldownClears },
     };
 
@@ -111,6 +137,9 @@ public sealed class SlideProbe : MonoBehaviour
     float speedStart, speedEnd, speedMax;
     float airSpeed = float.NaN;
     float headingStart, headingEnd;
+    bool groundedAtEnd;         // read at the end, not in the report
+    bool liftedOff;             // left the ground at all after the slide
+    float cancelSpeed;          // flat speed the tick the slide ended
     float eyeLow = float.MaxValue;
     float eyeAfter = float.NaN;
     Vector3 slideFrom;
@@ -192,13 +221,15 @@ public sealed class SlideProbe : MonoBehaviour
             // whatever the angle, and the descent runs off in +z.
             Quaternion rot = Quaternion.Euler(Surfaces[i], 0f, 0f);
             Vector3 pivot = Origin + Vector3.left * (SurfaceGap * i);
-            Vector3 centre = pivot + rot * new Vector3(0f, -0.5f, 30f);
+            Vector3 centre = pivot
+                + rot * new Vector3(0f, -0.5f, Lengths[i] * 0.5f);
 
             grounds[i] = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            grounds[i].name = $"SlideProbeGround{Surfaces[i]:F0}";
+            grounds[i].name = $"SlideProbeGround{i}_{Surfaces[i]:F0}";
             grounds[i].transform.rotation = rot;
             grounds[i].transform.position = centre;
-            grounds[i].transform.localScale = new Vector3(40f, 1f, 60f);
+            grounds[i].transform.localScale =
+                new Vector3(40f, 1f, Lengths[i]);
         }
 
         wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -231,7 +262,8 @@ public sealed class SlideProbe : MonoBehaviour
         Vector3 pivot = Origin + Vector3.left * (SurfaceGap * c.surface);
 
         // Uphill starts further down the face and looks back up it.
-        Vector3 spot = pivot + rot * new Vector3(0f, 0f, c.uphill ? 40f : 3f);
+        float along = c.uphill ? 40f : (c.startAt > 0f ? c.startAt : 3f);
+        Vector3 spot = pivot + rot * new Vector3(0f, 0f, along);
         spot.y += 1.2f;
         yaw = c.uphill ? 180f : 0f;
 
@@ -265,6 +297,9 @@ public sealed class SlideProbe : MonoBehaviour
         airSpeed = float.NaN;
         headingStart = 0f;
         headingEnd = 0f;
+        groundedAtEnd = true;
+        liftedOff = false;
+        cancelSpeed = 0f;
         eyeLow = float.MaxValue;
         eyeAfter = float.NaN;
         slideFrom = Vector3.zero;
@@ -292,14 +327,21 @@ public sealed class SlideProbe : MonoBehaviour
         bool crouch = tick >= c.runup
                    && (c.crouchHold < 0 || tick < c.runup + c.crouchHold);
 
-        // Pressed again after the first slide was let go, to see whether the
-        // cooldown still blocks. Held from there on.
-        if (c.retryAt > 0 && started && tick >= slideStart + c.retryAt)
+        // The slide starts on the edge of the key, the pose follows the held
+        // state -- which is the whole point of a tap being enough.
+        bool pressed = tick == c.runup;
+
+        if (c.retryAt > 0 && started && tick == slideStart + c.retryAt)
+        {
+            pressed = true;
             crouch = true;
+        }
         bool inSlide = started && !ended;
 
         byte jump = 0;
-        if (c.jumpAt >= 0 && inSlide && tick == slideStart + c.jumpAt)
+        if (c.jumpAt >= 0 && started && tick == slideStart + c.jumpAt)
+            jump = 1;
+        else if (c.jumpTwice && started && tick == slideStart + c.jumpAt + 2)
             jump = 1;
 
 
@@ -316,6 +358,7 @@ public sealed class SlideProbe : MonoBehaviour
             Yaw = yaw + turn,
             Sprint = tick < c.runup,
             Crouch = crouch,
+            CrouchPressed = pressed,
             JumpPresses = jump,
         }, dt);
 
@@ -357,11 +400,18 @@ public sealed class SlideProbe : MonoBehaviour
         else if (wasSliding && !ended)
         {
             ended = true;
+            groundedAtEnd = motor.IsGrounded;
+            cancelSpeed =
+                new Vector2(motor.Velocity.x, motor.Velocity.z).magnitude;
+        }
 
-            // The first airborne tick after a slide jump: whatever it keeps
-            // here is what the flight will carry.
-            if (!motor.IsGrounded)
-                airSpeed = new Vector2(motor.Velocity.x, motor.Velocity.z).magnitude;
+        // The first airborne tick after the slide, whether that came from a
+        // jump or from running off an edge: what it keeps, the flight keeps.
+        if (ended && !liftedOff && !motor.IsGrounded)
+        {
+            liftedOff = true;
+            airSpeed =
+                new Vector2(motor.Velocity.x, motor.Velocity.z).magnitude;
         }
 
         // Watched for a while after the slide, so the eyes have time to rise.
@@ -414,12 +464,6 @@ public sealed class SlideProbe : MonoBehaviour
                      && speedEnd < walkSpeed + 0.3f;
                 note = $"{slideTicks} Ticks gegen {wantTicks:F1} erwartet";
                 break;
-            case Check.EndsOnRelease:
-                // Ends the tick after the key goes, and still fast doing it.
-                ok = slideTicks <= c.crouchHold + 1 && speedEnd > walkSpeed;
-                note = $"{slideTicks} Ticks bei {c.crouchHold} gehalten," +
-                       $" Ende noch {speedEnd:F3} m/s";
-                break;
             case Check.SpeedRises:
                 ok = speedMax > speedStart + 0.2f;
                 note = $"von {speedStart:F3} auf {speedMax:F3} m/s";
@@ -432,9 +476,17 @@ public sealed class SlideProbe : MonoBehaviour
                 ok = slideTicks < wantTicks - 2f;
                 note = $"{slideTicks} Ticks, flach waeren {wantTicks:F1}";
                 break;
-            case Check.JumpClamped:
-                ok = !float.IsNaN(airSpeed) && airSpeed <= sprintSpeed + 0.05f;
-                note = $"in der Luft {airSpeed:F3} gegen {sprintSpeed:F3} erlaubt";
+            case Check.JumpCancels:
+                // Cancelled, still standing, and the slope's loan handed back.
+                ok = !liftedOff && cancelSpeed <= sprintSpeed + 0.05f;
+                note = $"abgebrochen bei {speedEnd:F3}, danach" +
+                       $" {cancelSpeed:F3} gegen {sprintSpeed:F3} erlaubt," +
+                       $" abgehoben {(liftedOff ? "JA" : "nein")}";
+                break;
+            case Check.JumpAfterCancel:
+                ok = liftedOff && airSpeed <= sprintSpeed + 0.05f;
+                note = $"zweiter Druck hob {(liftedOff ? "ab" : "NICHT ab")}," +
+                       $" in der Luft {airSpeed:F3} gegen {sprintSpeed:F3}";
                 break;
             case Check.Turns:
                 float turned = Mathf.Abs(Mathf.DeltaAngle(headingStart, headingEnd));
@@ -452,6 +504,12 @@ public sealed class SlideProbe : MonoBehaviour
                 note = $"{slideCount} Slide(s), erneut {c.retryAt} Ticks" +
                        $" nach dem Start versucht, Pause ist" +
                        $" {slideCooldown / Time.fixedDeltaTime:F0} Ticks";
+                break;
+            case Check.CarriesOverEdge:
+                // Ended by losing the ground, and still carrying speed.
+                ok = !groundedAtEnd && speedEnd > walkSpeed;
+                note = $"verliess die Kante mit {speedEnd:F3} m/s," +
+                       $" Boden dabei {(groundedAtEnd ? "ja" : "nein")}";
                 break;
             case Check.RollsOut:
                 ok = distance > 2.5f && slideTicks > wantTicks - 3f;
