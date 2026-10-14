@@ -60,15 +60,20 @@ namespace KotH.Shared.Player
         bool hasPendingAirPress;  // first air tap waiting for its partner
         float timeSinceAirPress;
 
-        // --- camera interpolation only, not part of the simulation ---
+        // --- render interpolation only, not part of the simulation ---
         Vector3 eyePosition;
         Vector3 previousEyePosition;
+        Vector3 bodyCenter;
+        Vector3 previousBodyCenter;
 
         // Preallocated so the headroom check allocates nothing per tick.
         readonly Collider[] headroomHits = new Collider[8];
 
         public Vector3 EyePosition => eyePosition;
         public Vector3 PreviousEyePosition => previousEyePosition;
+        public Vector3 BodyCenter => bodyCenter;
+        public Vector3 PreviousBodyCenter => previousBodyCenter;
+        public float Height => controller.height;
         public bool IsGrounded => grounded;
         public bool IsCrouching => isCrouching;
 
@@ -82,6 +87,7 @@ namespace KotH.Shared.Player
                 cameraMount.localPosition = EyeLocalPosition(standEyeHeight);
 
             eyePosition = previousEyePosition = CurrentEyeWorldPosition();
+            bodyCenter = previousBodyCenter = CurrentBodyCenter();
         }
 
         /// <summary>
@@ -91,6 +97,7 @@ namespace KotH.Shared.Player
         public void Tick(in MoveInput input, float dt)
         {
             previousEyePosition = eyePosition;
+            previousBodyCenter = bodyCenter;
 
             // Yaw turns the body; pitch belongs to the camera alone, else the
             // player would tilt backwards when looking up.
@@ -136,6 +143,7 @@ namespace KotH.Shared.Player
             controller.Move(velocity * dt);
 
             eyePosition = CurrentEyeWorldPosition();
+            bodyCenter = CurrentBodyCenter();
         }
 
         void UpdateHorizontal(in MoveInput input, float dt)
@@ -280,5 +288,8 @@ namespace KotH.Shared.Player
 
         Vector3 CurrentEyeWorldPosition()
             => cameraMount != null ? cameraMount.position : transform.position;
+
+        Vector3 CurrentBodyCenter()
+            => transform.position + Vector3.up * controller.center.y;
     }
 }
