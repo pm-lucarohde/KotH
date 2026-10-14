@@ -57,6 +57,12 @@ public sealed class SlopeJumpProbe : MonoBehaviour
         motor.transform.position = start;
         controller.enabled = true;
 
+        // The motor keeps velocity, sprint and slide state across cases, so
+        // all three are cleared by standing still. Without this the walking
+        // cases inherited sprinting from the sprint case before them.
+        for (int i = 0; i < 60; i++)
+            motor.Tick(new MoveInput { Yaw = yaw }, Time.fixedDeltaTime);
+
         tick = 0;
         notGrounded = 0;
         streak = 0;

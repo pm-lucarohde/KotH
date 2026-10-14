@@ -92,6 +92,12 @@ public sealed class CrestProbe : MonoBehaviour
         motor.transform.position = start;
         controller.enabled = true;
 
+        // The motor keeps velocity, sprint and slide state across cases, so
+        // all three are cleared by standing still. Without this the crouched
+        // case inherited sprinting from the case before and slid up instead.
+        for (int i = 0; i < 60; i++)
+            motor.Tick(new MoveInput { Yaw = yaw }, Time.fixedDeltaTime);
+
         tick = 0;
         maxY = start.y;
         lastY = start.y;
