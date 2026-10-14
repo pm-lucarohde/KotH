@@ -38,7 +38,7 @@ namespace KotH.Shared.Simulation
                  "Tempo entfernen. 0,5 ist ein vollelastischer Stoß, mehr " +
                  "würde bei jeder Berührung Energie erzeugen.")]
         [Range(0f, 0.5f)]
-        [SerializeField] float bounce = 1f / 3f;
+        [SerializeField] float bounce = 1f / 6f;
 
         [Tooltip("Langsamere Annäherung löst keinen Stoß aus.")]
         [SerializeField] float minApproach = 0.5f;

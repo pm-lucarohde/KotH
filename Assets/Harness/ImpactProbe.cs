@@ -129,7 +129,9 @@ public sealed class ImpactProbe : MonoBehaviour
                           $" Spieler entlang n {alongPlayer:F3}," +
                           $" Dummy entlang n {alongDummy:F3}," +
                           $" Trennung {alongDummy - alongPlayer:F3}" +
-                          $" (soll {2f / 3f * approach:F3})," +
+                          $" (geteilt durch Annäherung" +
+                          $" {(alongDummy - alongPlayer) / approach:F3}," +
+                          $" soll 2*bounce)," +
                           $" Summe entlang n {alongPlayer + alongDummy:F3}," +
                           $" Spieler {Show(player.Velocity)}, Dummy {Show(dummy.Velocity)}");
             }
