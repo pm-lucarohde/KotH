@@ -5,8 +5,10 @@ namespace KotH.Client.Player
 {
     /// <summary>
     /// Turns keyboard and mouse into a MoveInput, once per tick. The only
-    /// class that touches Input.*, so switching to the new Input System or
-    /// to network packets later means changing exactly one file.
+    /// class that reads input the SIMULATION consumes, so switching to the
+    /// new Input System or to network packets later means changing exactly
+    /// one file. Debug keys and menus read their own keys; they never feed
+    /// the motor and never go over the wire.
     /// </summary>
     [RequireComponent(typeof(PlayerMotor))]
     public sealed class PlayerInputReader : MonoBehaviour

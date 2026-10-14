@@ -1444,6 +1444,56 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 569986483}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &640526851
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 640526853}
+  - component: {fileID: 640526852}
+  m_Layer: 0
+  m_Name: PerformanceOverlay
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &640526852
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 640526851}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 64f3175f2c7e5d80f8cdafb3e7bb23f3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: KotH::KotH.Client.PerformanceOverlay
+  toggleKey: 284
+  windowSeconds: 10
+  maxTrackedFps: 500
+  refreshInterval: 0.25
+  fontSize: 16
+  margin: 8
+--- !u!4 &640526853
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 640526851}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &733655004
 GameObject:
   m_ObjectHideFlags: 0
@@ -3909,6 +3959,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: KotH::KotH.Client.Player.FirstPersonCamera
   motor: {fileID: 6063342632643556069}
   input: {fileID: 6063342632643556068}
+  nearClipMargin: 0.7
 --- !u!1 &2003637367
 GameObject:
   m_ObjectHideFlags: 0
@@ -4150,3 +4201,4 @@ SceneRoots:
   - {fileID: 1203241501}
   - {fileID: 103877833}
   - {fileID: 368166463}
+  - {fileID: 640526853}
