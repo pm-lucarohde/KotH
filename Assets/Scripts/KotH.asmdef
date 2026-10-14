@@ -1,0 +1,6 @@
+{
+    "name": "KotH",
+    "rootNamespace": "KotH",
+    "allowUnsafeCode": false,
+    "autoReferenced": true
+}
