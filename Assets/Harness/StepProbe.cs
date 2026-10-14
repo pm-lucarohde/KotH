@@ -28,6 +28,9 @@ public sealed class StepProbe : MonoBehaviour
     static readonly Case[] Cases =
     {
         // Must climb.
+        C("+ Steps20 stehen",        -6f,   -11.5f, 0, 1, 0,   0,  0,   false),
+        C("+ Steps20 stehen wackel", -6f,   -11.5f, 0, 1, 0,   9f, 80f, false),
+        C("+ Steps30 stehen",        -10f,  -11.5f, 0, 1, 0,   0,  0,   false),
         C("+ Steps20 geduckt",       -6f,   -11.5f, 0, 1, 0,   0,  0,   true),
         C("+ Steps20 geduckt wackel",-6f,   -11.5f, 0, 1, 0,   9f, 80f, true),
         C("+ Steps40 ruhig",         -14f,  -11.5f, 0, 1, 0,   0,  0,   false),
@@ -91,6 +94,7 @@ public sealed class StepProbe : MonoBehaviour
     float maxY;
     float minY;
     int steepTicks;
+    Vector3 startFlat;
     int loggedJumps;
     int airTicks;        // controller.isGrounded read false
     int slideTicks;
@@ -166,6 +170,11 @@ public sealed class StepProbe : MonoBehaviour
         Place(start);
     }
 
+    // Generous: the deepest flight is climbed well inside this, but the
+    // mountain is roughly 20 m away.
+    bool NearStart(Vector3 p)
+        => (new Vector3(p.x, 0f, p.z) - startFlat).sqrMagnitude < 36f;
+
     void Place(Vector3 start)
     {
         controller.enabled = false;
@@ -174,6 +183,7 @@ public sealed class StepProbe : MonoBehaviour
 
         tick = 0;
         startY = start.y;
+        startFlat = new Vector3(start.x, 0f, start.z);
         maxY = startY;
         minY = startY;
         steepTicks = 0;
@@ -217,7 +227,10 @@ public sealed class StepProbe : MonoBehaviour
         if (motor.GroundAngle > controller.slopeLimit)
             steepTicks++;
 
-        if (after > maxY)
+        // Only height gained near the flight counts. With wiggle the
+        // player wanders tens of metres and walks up the mountain, which
+        // says nothing about stairs -- that read as 4.59 m once.
+        if (after > maxY && NearStart(motor.transform.position))
             maxY = after;
 
         // Only the first few climbing ticks, otherwise the log drowns.
@@ -232,9 +245,11 @@ public sealed class StepProbe : MonoBehaviour
         tick++;
         if (tick >= TicksPerCase)
         {
+            Vector3 end = motor.transform.position;
             Debug.Log($"[probe] == {c.Name}: max {maxY - startY:F3} m," +
-                      $" end {motor.transform.position.y - startY:F3} m," +
-                      $" steile Ticks {steepTicks}");
+                      $" end {end.y - startY:F3} m," +
+                      $" steile Ticks {steepTicks}," +
+                      $" Ende bei x {end.x:F1} z {end.z:F1}");
             NextCase();
         }
     }

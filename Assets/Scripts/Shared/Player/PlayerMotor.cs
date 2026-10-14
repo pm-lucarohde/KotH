@@ -61,6 +61,11 @@ namespace KotH.Shared.Player
         // How far below the feet the probe still looks for ground.
         [SerializeField] float groundProbeExtra = 0.1f;
 
+        // How far the player is pulled back down onto ground it ran off.
+        // Covers a sprint down the steepest walkable ramp; much more would
+        // glue the player to the floor at a real ledge.
+        [SerializeField] float groundSnapDistance = 0.3f;
+
         // Speed the slide starts at, so stepping onto a steep face slides
         // at once instead of accelerating out of a standstill.
         [SerializeField] float minSlideSpeed = 3f;
@@ -90,6 +95,7 @@ namespace KotH.Shared.Player
         Vector3 contactNormal;    // most upright contact of the last Move
         bool hasContactNormal;
         float maxStepHeight;      // our own step limit, PhysX gets none
+        bool steppedUp;           // climbed a ledge this tick
         bool doubleJumpUsed;      // once per flight
         bool jumpWindowOpen;      // window since the ground jump
         float timeSinceGroundJump;
@@ -219,9 +225,16 @@ namespace KotH.Shared.Player
             // Cleared here so the contacts collected below belong to this
             // tick's movement, both the step-up lift and the main Move.
             hasContactNormal = false;
+            steppedUp = false;
 
             TryStepUp(dt);
             controller.Move(velocity * dt);
+
+            // Only ground that was walkable at the start of the tick is worth
+            // keeping. A jump clears grounded itself, so it is never undone,
+            // and a step just climbed must not be pulled back down either.
+            if (grounded && !steppedUp)
+                SnapToGround();
 
             eyePosition = CurrentEyeWorldPosition();
             bodyCenter = CurrentBodyCenter();
@@ -461,11 +474,66 @@ namespace KotH.Shared.Player
 
             controller.Move(Vector3.up * (rise + controller.skinWidth));
 
+            // The body axis is still behind the ledge for a tick or two, so
+            // the ground snap would find the step BELOW and undo this lift.
+            // It only ever showed on flights shallower than the snap range.
+            steppedUp = true;
+
             // The lift only clears the ledge by skinWidth, and the settling
             // speed of -2 m/s eats more than that in one tick. Without this
             // the player drops straight back onto the lip and sticks there.
             if (velocity.y < 0f)
                 velocity.y = 0f;
+        }
+
+        /// <summary>
+        /// Pulls the player back onto walkable ground it just ran off.
+        /// Downhill the surface drops faster than the -2 m/s settling speed
+        /// follows, so grounded flickered: no jump, air acceleration instead
+        /// of ground acceleration, and visible hopping.
+        /// </summary>
+        void SnapToGround()
+        {
+            // Nothing was lost, or the player is on the way up anyway.
+            if (controller.isGrounded || velocity.y > 0f)
+                return;
+
+            float probeRadius = controller.radius * 0.25f;
+            float toFeet = controller.height * 0.5f - probeRadius;
+            Vector3 origin = transform.position + controller.center;
+
+            int count = Physics.SphereCastNonAlloc(
+                origin, probeRadius, Vector3.down, groundHits,
+                toFeet + groundSnapDistance, groundMask,
+                QueryTriggerInteraction.Ignore);
+
+            float walkable = Mathf.Cos(controller.slopeLimit * Mathf.Deg2Rad);
+            float nearest = float.MaxValue;
+
+            for (int i = 0; i < count; i++)
+            {
+                // The cast starts inside the player's own capsule.
+                if (groundHits[i].collider == controller)
+                    continue;
+
+                // Steep faces are not worth sticking to; that is the slide's
+                // job, and gluing to one would kill it.
+                if (groundHits[i].normal.y < walkable)
+                    continue;
+
+                if (groundHits[i].distance < nearest)
+                    nearest = groundHits[i].distance;
+            }
+
+            if (nearest == float.MaxValue)
+                return;
+
+            // On a slope the capsule rests on the SIDE of its lower sphere,
+            // so this reads too deep. That is the safe direction: Move stops
+            // at the first contact, it never pushes through the surface.
+            float gap = nearest - toFeet;
+            if (gap > 0f)
+                controller.Move(Vector3.down * gap);
         }
 
         /// <summary>
