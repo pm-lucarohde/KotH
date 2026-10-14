@@ -91,6 +91,9 @@ namespace KotH.Shared.Player
         // --- mutable state ---
         Vector3 velocity;
         bool isCrouching;         // the INTENT, set by the key, not the shape
+        bool sprinting;           // the STATE, started by the key, ended by speed
+        bool sprintArmed;         // walk speed has been exceeded at least once
+        float lastStepSpeed;      // speed the last tick really made, in 3D
         float currentHeight;      // the shape, which needs time to follow
         bool grounded;            // standing on WALKABLE ground
         bool onSteepGround;       // confirmed too steep, sliding
@@ -129,6 +132,7 @@ namespace KotH.Shared.Player
         public bool IsSliding => onSteepGround;
         public float GroundAngle => groundAngle;
         public bool IsCrouching => isCrouching;
+        public bool IsSprinting => sprinting;
         public Vector3 Velocity => velocity;
 
         /// <summary>
@@ -236,6 +240,10 @@ namespace KotH.Shared.Player
                 }
             }
 
+            // Before UpdateHorizontal, so it judges the speed this tick
+            // started with and the result is used in the same tick.
+            UpdateSprint(input.Sprint);
+
             UpdateCrouch(input.Crouch, dt);
             UpdateHorizontal(input, dt);
 
@@ -271,6 +279,13 @@ namespace KotH.Shared.Player
             if (grounded && !steppedUp)
                 SnapToGround();
 
+            // What the tick really covered, not what it asked for: a blocked
+            // controller leaves velocity untouched. Measured in 3D, because
+            // uphill the horizontal part alone shrinks by cos squared and
+            // would drop below walking speed on any ramp past 39 degrees.
+            Vector3 step = transform.position - beforeMove;
+            lastStepSpeed = step.magnitude / dt;
+
             eyePosition = CurrentEyeWorldPosition();
             bodyCenter = CurrentBodyCenter();
 
@@ -278,6 +293,34 @@ namespace KotH.Shared.Player
             // in full rather than by whatever is left of dt.
             if (knockbackTime > 0f)
                 knockbackTime = Mathf.Max(0f, knockbackTime - dt);
+        }
+
+        // The key starts the sprint, only speed ends it. Holding it rearms
+        // every tick, so a held key never lapses; after a single tap the
+        // limit takes over. Crouching and a push end it through that rule.
+        void UpdateSprint(bool wantsSprint)
+        {
+            if (wantsSprint)
+            {
+                sprinting = true;
+                sprintArmed = false;
+            }
+
+            if (!sprinting)
+                return;
+
+            // Measured, not wished for: velocity survives a wall untouched.
+            // It is last tick's value, so the sprint ends one tick late,
+            // which at 25 ms nobody can feel.
+            float flat = lastStepSpeed;
+
+            // The limit may only bite once walk speed was reached: from a
+            // standstill the speed starts below it, which would end the
+            // sprint in the very tick it began.
+            if (!sprintArmed)
+                sprintArmed = flat > walkSpeed;
+            else if (flat < walkSpeed)
+                sprinting = false;
         }
 
         void UpdateHorizontal(in MoveInput input, float dt)
@@ -289,7 +332,7 @@ namespace KotH.Shared.Player
             Vector3 wish = transform.right * move.x + transform.forward * move.y;
 
             float speed = isCrouching ? crouchSpeed
-                        : input.Sprint ? sprintSpeed
+                        : sprinting ? sprintSpeed
                         : walkSpeed;
 
             // No input while airborne means rate 0, so momentum is preserved.
