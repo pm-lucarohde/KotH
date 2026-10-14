@@ -179,7 +179,9 @@ namespace KotH.Shared.Player
         {
             for (int i = 0; i < presses; i++)
             {
-                if (grounded && !isCrouching)
+                // Geduckt springen ist erlaubt; die Figur bleibt dabei
+                // geduckt und behält das niedrigere Ducktempo.
+                if (grounded)
                 {
                     velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
                     grounded = false;
@@ -195,11 +197,6 @@ namespace KotH.Shared.Player
 
                     continue;
                 }
-
-                // Am Boden geduckt: kein Sprung, und der Druck darf auch nicht
-                // als erster Tipp der Luft-Geste zählen.
-                if (grounded)
-                    continue;
 
                 // Fenster zu: Tipps verfallen wirkungslos.
                 if (!jumpWindowOpen)
