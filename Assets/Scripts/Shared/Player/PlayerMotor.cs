@@ -61,6 +61,13 @@ namespace KotH.Shared.Player
         // at once instead of accelerating out of a standstill.
         [SerializeField] float minSlideSpeed = 3f;
 
+        // A stair edge can report a steep normal for a tick or two. Sliding
+        // only starts once the reading holds, so an edge cannot shove the
+        // player back down the step.
+        [SerializeField] float slideConfirmTime = 0.075f;
+
+        [SerializeField] bool logSlope;
+
         [Header("Verknüpfung")]
         [SerializeField] Transform cameraMount;
 
@@ -70,9 +77,10 @@ namespace KotH.Shared.Player
         Vector3 velocity;
         bool isCrouching;
         bool grounded;            // standing on WALKABLE ground
-        bool onSteepGround;       // touching ground, but too steep to stand
+        bool onSteepGround;       // confirmed too steep, sliding
         Vector3 groundNormal = Vector3.up;
         float groundAngle;
+        float steepTime;          // how long the ground has read too steep
         bool doubleJumpUsed;      // once per flight
         bool jumpWindowOpen;      // window since the ground jump
         float timeSinceGroundJump;
@@ -131,8 +139,21 @@ namespace KotH.Shared.Player
             // acceleration and the double jump reset all fall into place.
             bool touching = controller.isGrounded;
             groundAngle = touching ? ProbeGroundAngle() : 0f;
-            onSteepGround = touching && groundAngle > controller.slopeLimit;
-            grounded = touching && !onSteepGround;
+
+            // A steep reading blocks jumping at once, but sliding waits until
+            // the reading holds - a stair edge reports steep for a tick or
+            // two and would otherwise shove the player back down the step.
+            bool steepReading = touching && groundAngle > controller.slopeLimit;
+            steepTime = steepReading ? steepTime + dt : 0f;
+
+            grounded = touching && !steepReading;
+            bool wasSliding = onSteepGround;
+            onSteepGround = steepReading && steepTime >= slideConfirmTime;
+
+            if (logSlope && onSteepGround && !wasSliding)
+                Debug.Log($"slide starts: {groundAngle:F1} deg, normal {groundNormal}, held {steepTime:F3} s");
+            else if (logSlope && steepReading && steepTime <= dt)
+                Debug.Log($"steep reading ignored: {groundAngle:F1} deg, normal {groundNormal}");
             if (grounded)
             {
                 if (velocity.y < 0f)
