@@ -215,7 +215,11 @@ namespace KotH.Shared.Player
                 // wird oben im Tick mitgeführt. Die Vertikalgeschwindigkeit
                 // spielt bewusst keine Rolle mehr — das Zeitfenster ersetzt
                 // die frühere Bedingung velocity.y >= 0.
-                if (!doubleJumpUsed)
+                // Geduckt ist der Doppelsprung gesperrt. Geprüft wird der
+                // Zustand im Moment des zweiten Tipps — UpdateCrouch läuft im
+                // Tick vorher, die Abfrage sieht also schon die Eingabe dieses
+                // Ticks.
+                if (!doubleJumpUsed && !isCrouching)
                 {
                     velocity.y = Mathf.Sqrt(doubleJumpHeight * -2f * gravity);
                     doubleJumpUsed = true;
