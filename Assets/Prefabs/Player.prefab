@@ -81,7 +81,7 @@ MonoBehaviour:
   airAcceleration: 7.5
   jumpHeight: 1.5
   doubleJumpHeight: 1
-  doubleJumpWindow: 0.5
+  doubleJumpWindow: 1
   doubleTapWindow: 0.25
   gravity: -20
   standHeight: 1.8

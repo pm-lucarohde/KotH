@@ -28,7 +28,7 @@ namespace KotH.Shared.Player
         [SerializeField] float doubleJumpHeight = 1f;
 
         // Opens on the ground jump. A double tap only counts inside this time.
-        [SerializeField] float doubleJumpWindow = 0.5f;
+        [SerializeField] float doubleJumpWindow = 1f;
 
         // Maximum gap between the two taps of the double tap.
         [SerializeField] float doubleTapWindow = 0.25f;
