@@ -59,7 +59,7 @@ namespace KotH.Shared.Player
 
         // Speed the slide starts at, so stepping onto a steep face slides
         // at once instead of accelerating out of a standstill.
-        [SerializeField] float minSlideSpeed = 6f;
+        [SerializeField] float minSlideSpeed = 3f;
 
         [Header("Verknüpfung")]
         [SerializeField] Transform cameraMount;
