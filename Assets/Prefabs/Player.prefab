@@ -100,7 +100,6 @@ MonoBehaviour:
   groundProbeExtra: 0.1
   minSlideSpeed: 3
   slideConfirmTime: 0.075
-  logSlope: 0
   stepProbeAhead: 0.05
   cameraMount: {fileID: 793576110581430329}
 --- !u!114 &5599838516717837321

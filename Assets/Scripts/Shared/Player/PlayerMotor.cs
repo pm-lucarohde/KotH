@@ -66,8 +66,6 @@ namespace KotH.Shared.Player
         // player back down the step.
         [SerializeField] float slideConfirmTime = 0.075f;
 
-        [SerializeField] bool logSlope;
-
         // How far past the blocking wall the ledge is measured.
         [SerializeField] float stepProbeAhead = 0.05f;
 
@@ -168,13 +166,8 @@ namespace KotH.Shared.Player
             steepTime = steepReading ? steepTime + dt : 0f;
 
             grounded = touching && !steepReading;
-            bool wasSliding = onSteepGround;
             onSteepGround = steepReading && steepTime >= slideConfirmTime;
 
-            if (logSlope && onSteepGround && !wasSliding)
-                Debug.Log($"slide starts: {groundAngle:F1} deg, normal {groundNormal}, held {steepTime:F3} s");
-            else if (logSlope && steepReading && steepTime <= dt)
-                Debug.Log($"steep reading ignored: {groundAngle:F1} deg, normal {groundNormal}");
             if (grounded)
             {
                 if (velocity.y < 0f)
