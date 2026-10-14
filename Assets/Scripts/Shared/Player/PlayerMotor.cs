@@ -52,6 +52,12 @@ namespace KotH.Shared.Player
 
         // Eyes sit 0.12 m below the crown in both poses, as on a real body.
         [Header("Körpermaße (m)")]
+        // Our own shape from here on. A CharacterController answers a query
+        // with a smaller hull than it claims - 18 cm missing at the crown -
+        // and the simulation must not rest on a component it is about to
+        // lose. Awake checks these against the controller while both exist.
+        [SerializeField] float bodyRadius = 0.4f;
+        [SerializeField] float skinWidth = 0.04f;
         [SerializeField] float standHeight = 1.8f;
         [SerializeField] float crouchHeight = 0.9f;
         [SerializeField] float standEyeHeight = 1.68f;
@@ -74,6 +80,9 @@ namespace KotH.Shared.Player
         [SerializeField] LayerMask headroomMask = ~0;
 
         [Header("Hang")]
+        [Tooltip("Steilste Fläche, die noch begehbar ist")]
+        [SerializeField] float slopeLimit = 50f;
+
         [SerializeField] LayerMask groundMask = ~0;
 
         // How far below the feet the probe still looks for ground.
@@ -111,6 +120,11 @@ namespace KotH.Shared.Player
 
         CharacterController controller;
 
+        // Where the capsule's middle sits above the transform. The shape
+        // shrinks downward so the feet stay put, which is what ApplyHeight
+        // writes into the controller today.
+        float CenterY => (currentHeight - standHeight) * 0.5f;
+
         // --- mutable state ---
         Vector3 velocity;
         bool isCrouching;         // the INTENT, set by the key, not the shape
@@ -120,6 +134,7 @@ namespace KotH.Shared.Player
         float slideSpeed;         // what the slide rolls out at, not velocity
         float slideCooldownLeft;  // counted from the START of the last slide
         float lastStepSpeed;      // speed the last tick really made, in 3D
+        bool touchingGround;      // ground of ANY steepness under the feet
         float currentHeight;      // the shape, which needs time to follow
         bool grounded;            // standing on WALKABLE ground
         bool onSteepGround;       // confirmed too steep, sliding
@@ -155,9 +170,17 @@ namespace KotH.Shared.Player
         public Vector3 PreviousEyePosition => previousEyePosition;
         public Vector3 BodyCenter => bodyCenter;
         public Vector3 PreviousBodyCenter => previousBodyCenter;
-        public float Height => controller.height;
-        public float Radius => controller.radius;
+        public float Height => currentHeight;
+        public float Radius => bodyRadius;
+        public float SlopeLimit => slopeLimit;
+        public float MaxStepHeight => maxStepHeight;
         public bool IsGrounded => grounded;
+
+        /// <summary>
+        /// Ground of any steepness, walkable or not. IsGrounded is the
+        /// walkable part of it; a probe asking about contact needs this one.
+        /// </summary>
+        public bool IsTouchingGround => touchingGround;
         public bool IsSlidingDownSteep => onSteepGround;
         public float GroundAngle => groundAngle;
         public bool IsCrouching => isCrouching;
@@ -184,10 +207,37 @@ namespace KotH.Shared.Player
                 Mathf.Min(maxSoftenTime, leaving / airAcceleration));
         }
 
+        /// <summary>
+        /// Puts the body somewhere and drops what it was carrying. Velocity
+        /// survives a plain position write, so without the reset every probe
+        /// case would start with the momentum of the one before it.
+        /// </summary>
+        public void Teleport(Vector3 position)
+        {
+            // Switching the controller off is what makes PhysX accept the
+            // new place at once: autoSyncTransforms is off, so a bare write
+            // would leave the controller's own copy of the position behind.
+            bool was = controller.enabled;
+            controller.enabled = false;
+            transform.position = position;
+            controller.enabled = was;
+
+            velocity = Vector3.zero;
+            lastStepSpeed = 0f;
+        }
+
         void Awake()
         {
             // GetComponent belongs here, not in Tick and not in Update.
             controller = GetComponent<CharacterController>();
+
+            // The shape now lives in our own fields while the controller is
+            // still the one moving. Any disagreement would make this stage
+            // silently change behaviour, which is exactly what it must not.
+            Warn(bodyRadius, controller.radius, "bodyRadius");
+            Warn(skinWidth, controller.skinWidth, "skinWidth");
+            Warn(slopeLimit, controller.slopeLimit, "slopeLimit");
+            Warn(standHeight, controller.height, "standHeight");
 
             currentHeight = standHeight;
             ApplyHeight(currentHeight);
@@ -215,6 +265,7 @@ namespace KotH.Shared.Player
             // is. Too steep counts as not grounded, so jumping, ground
             // acceleration and the double jump reset all fall into place.
             bool touching = controller.isGrounded;
+            touchingGround = touching;
             bool knownGround = false;
 
             if (touching)
@@ -235,7 +286,7 @@ namespace KotH.Shared.Player
             // the reading holds - a stair edge reports steep for a tick or
             // two and would otherwise shove the player back down the step.
             bool steepReading = touching
-                && (!knownGround || groundAngle > controller.slopeLimit);
+                && (!knownGround || groundAngle > slopeLimit);
             steepTime = steepReading ? steepTime + dt : 0f;
 
             grounded = touching && !steepReading;
@@ -678,15 +729,15 @@ namespace KotH.Shared.Player
             if (travel < 0.0001f)
                 return;
 
-            float walkable = Mathf.Cos(controller.slopeLimit * Mathf.Deg2Rad);
+            float walkable = Mathf.Cos(slopeLimit * Mathf.Deg2Rad);
             Vector3 forward = step / travel;
-            float reach = travel + controller.skinWidth + stepProbeAhead;
-            float radius = controller.radius;
+            float reach = travel + skinWidth + stepProbeAhead;
+            float radius = bodyRadius;
 
-            Vector3 feet = transform.position + controller.center
-                         - Vector3.up * (controller.height * 0.5f);
+            Vector3 feet = transform.position + Vector3.up * CenterY
+                         - Vector3.up * (currentHeight * 0.5f);
             Vector3 bottom = feet + Vector3.up * radius;
-            Vector3 top = feet + Vector3.up * (controller.height - radius);
+            Vector3 top = feet + Vector3.up * (currentHeight - radius);
 
             // Classify the obstacle from ankle height. Asking the body
             // capsule is unreliable: its lower sphere rides over the edge of
@@ -728,7 +779,7 @@ namespace KotH.Shared.Player
             if (rise <= 0.001f)
                 return;
 
-            controller.Move(Vector3.up * (rise + controller.skinWidth));
+            controller.Move(Vector3.up * (rise + skinWidth));
 
             // The body axis is still behind the ledge for a tick or two, so
             // the ground snap would find the step BELOW and undo this lift.
@@ -777,16 +828,16 @@ namespace KotH.Shared.Player
         /// </summary>
         bool HasFooting(Vector3 step)
         {
-            float probeRadius = controller.radius * 0.25f;
-            float toFeet = controller.height * 0.5f - probeRadius;
-            Vector3 origin = transform.position + controller.center + step;
+            float probeRadius = bodyRadius * 0.25f;
+            float toFeet = currentHeight * 0.5f - probeRadius;
+            Vector3 origin = transform.position + Vector3.up * CenterY + step;
 
             int count = Physics.SphereCastNonAlloc(
                 origin, probeRadius, Vector3.down, groundHits,
                 toFeet + ledgeGuardDrop, groundMask,
                 QueryTriggerInteraction.Ignore);
 
-            float walkable = Mathf.Cos(controller.slopeLimit * Mathf.Deg2Rad);
+            float walkable = Mathf.Cos(slopeLimit * Mathf.Deg2Rad);
 
             for (int i = 0; i < count; i++)
             {
@@ -814,16 +865,16 @@ namespace KotH.Shared.Player
             if (controller.isGrounded || velocity.y > 0f)
                 return;
 
-            float probeRadius = controller.radius * 0.25f;
-            float toFeet = controller.height * 0.5f - probeRadius;
-            Vector3 origin = transform.position + controller.center;
+            float probeRadius = bodyRadius * 0.25f;
+            float toFeet = currentHeight * 0.5f - probeRadius;
+            Vector3 origin = transform.position + Vector3.up * CenterY;
 
             int count = Physics.SphereCastNonAlloc(
                 origin, probeRadius, Vector3.down, groundHits,
                 toFeet + groundSnapDistance, groundMask,
                 QueryTriggerInteraction.Ignore);
 
-            float walkable = Mathf.Cos(controller.slopeLimit * Mathf.Deg2Rad);
+            float walkable = Mathf.Cos(slopeLimit * Mathf.Deg2Rad);
             float nearest = float.MaxValue;
 
             for (int i = 0; i < count; i++)
@@ -881,9 +932,9 @@ namespace KotH.Shared.Player
         /// </summary>
         bool HasHeadroom()
         {
-            float radius = controller.radius;
+            float radius = bodyRadius;
             Vector3 feet = transform.position
-                         + Vector3.up * (controller.center.y - controller.height * 0.5f);
+                         + Vector3.up * (CenterY - currentHeight * 0.5f);
 
             Vector3 bottom = feet + Vector3.up * radius;
             Vector3 top = feet + Vector3.up * (standHeight - radius);
@@ -925,11 +976,11 @@ namespace KotH.Shared.Player
             // A quarter of the body radius stays well clear of anything the
             // player is standing against, and the cast length follows it so
             // the sphere still reaches below the feet.
-            float probeRadius = controller.radius * 0.25f;
-            Vector3 origin = transform.position + controller.center;
+            float probeRadius = bodyRadius * 0.25f;
+            Vector3 origin = transform.position + Vector3.up * CenterY;
 
-            float distance = controller.height * 0.5f - probeRadius
-                           + controller.skinWidth + groundProbeExtra;
+            float distance = currentHeight * 0.5f - probeRadius
+                           + skinWidth + groundProbeExtra;
 
             int count = Physics.SphereCastNonAlloc(
                 origin, probeRadius, Vector3.down, groundHits,
@@ -982,6 +1033,17 @@ namespace KotH.Shared.Player
             }
         }
 
+        /// <summary>
+        /// Reports a body field that drifted from the controller it mirrors.
+        /// Temporary: it goes with the controller in the next stage.
+        /// </summary>
+        static void Warn(float ours, float theirs, string name)
+        {
+            if (!Mathf.Approximately(ours, theirs))
+                Debug.LogWarning($"{name} {ours} weicht vom Controller" +
+                                 $" ({theirs}) ab.");
+        }
+
         Vector3 EyeLocalPosition(float eyeHeightAboveFeet)
             => new Vector3(0f, eyeHeightAboveFeet - standHeight * 0.5f, 0f);
 
@@ -989,6 +1051,6 @@ namespace KotH.Shared.Player
             => cameraMount != null ? cameraMount.position : transform.position;
 
         Vector3 CurrentBodyCenter()
-            => transform.position + Vector3.up * controller.center.y;
+            => transform.position + Vector3.up * CenterY;
     }
 }
