@@ -44,7 +44,25 @@ public sealed class StepProbe : MonoBehaviour
         C("- Steps50 seitlich",      -17.1f,-9.0f,  1, 0, 0,   9f, 80f, false),
         C("- Steps30 geduckt",       -10f,  -11.5f, 0, 1, 0,   9f, 80f, true),
         C("- Steps30 geduckt Ecke",  -9.1f, -11.5f, 0, 1, 0,   9f, 80f, true),
+        // Plateau top is y 5. Yaw 0 walks to its +z edge, the only one with
+        // no ramp attached -- walking down a ramp is not falling off.
+        L("= Kante geduckt",  new Vector3(0f, 5.95f, 16f), 0f, true),
+        L("= Kante stehend",  new Vector3(0f, 5.95f, 16f), 0f, false),
     };
+
+    // Same struct, but free to start anywhere: the ledge guard is tested on
+    // a real drop, not on a flight of stairs.
+    static Case L(string name, Vector3 start, float yaw, bool crouch)
+        => new Case
+        {
+            Name = name,
+            Start = start,
+            Move = new Vector2(0f, 1f),
+            BaseYaw = yaw,
+            WiggleHz = 0f,
+            WiggleDegrees = 0f,
+            Crouch = crouch,
+        };
 
     static Case C(string name, float x, float z, float mx, float my,
                   float yaw, float hz, float deg, bool crouch)

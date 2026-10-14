@@ -53,6 +53,11 @@ namespace KotH.Shared.Player
         // ducking becomes a real trade: you fit through gaps but lose reach.
         [SerializeField] float standStepOffset = 0.45f;
         [SerializeField] float crouchStepOffset = 0.25f;
+
+        // Crouching guards against falling: a step that would leave nothing
+        // walkable this far below the feet is refused. Deliberately larger
+        // than groundSnapDistance, so a drop is either caught or refused.
+        [SerializeField] float ledgeGuardDrop = 0.5f;
         [SerializeField] LayerMask headroomMask = ~0;
 
         [Header("Hang")]
@@ -96,6 +101,7 @@ namespace KotH.Shared.Player
         bool hasContactNormal;
         float maxStepHeight;      // our own step limit, PhysX gets none
         bool steppedUp;           // climbed a ledge this tick
+        bool wedged;              // last move was refused by the world
         bool doubleJumpUsed;      // once per flight
         bool jumpWindowOpen;      // window since the ground jump
         float timeSinceGroundJump;
@@ -224,11 +230,19 @@ namespace KotH.Shared.Player
 
             // Cleared here so the contacts collected below belong to this
             // tick's movement, both the step-up lift and the main Move.
+            // After the jump on purpose: a jump leaves the ledge
+            // deliberately and must keep its horizontal speed.
+            if (isCrouching && grounded && !jumped)
+                GuardLedge(dt);
+
             hasContactNormal = false;
             steppedUp = false;
 
+            Vector3 beforeMove = transform.position;
+
             TryStepUp(dt);
             controller.Move(velocity * dt);
+            UpdateWedged(beforeMove, dt);
 
             // Only ground that was walkable at the start of the tick is worth
             // keeping. A jump clears grounded itself, so it is never undone,
@@ -444,8 +458,11 @@ namespace KotH.Shared.Player
                     groundMask, QueryTriggerInteraction.Ignore))
                 return;
 
-            // A walkable face is a ramp; the controller handles those itself.
-            if (riser.normal.y > walkable)
+            // A walkable face is a ramp and the controller handles those
+            // itself -- unless it demonstrably did not. On the convex edge
+            // where a slope meets its top the capsule jams, and the ankle
+            // ray only ever sees the last centimetres of ramp.
+            if (riser.normal.y > walkable && !wedged)
                 return;
 
             // Room for the whole body one step higher? This is the check that
@@ -484,6 +501,66 @@ namespace KotH.Shared.Player
             // the player drops straight back onto the lip and sticks there.
             if (velocity.y < 0f)
                 velocity.y = 0f;
+        }
+
+        /// <summary>
+        /// Keeps a crouching player from walking off a ledge. The step is
+        /// tried axis by axis, so running ALONG an edge still works and only
+        /// the part pointing over it is dropped. In an inside corner neither
+        /// axis survives and the player stops, still fully steerable.
+        /// </summary>
+        void GuardLedge(float dt)
+        {
+            Vector3 step = new Vector3(velocity.x, 0f, velocity.z) * dt;
+            if (step.sqrMagnitude < 0.0000001f || HasFooting(step))
+                return;
+
+            if (step.x != 0f && HasFooting(new Vector3(step.x, 0f, 0f)))
+            {
+                velocity.z = 0f;
+                return;
+            }
+
+            if (step.z != 0f && HasFooting(new Vector3(0f, 0f, step.z)))
+            {
+                velocity.x = 0f;
+                return;
+            }
+
+            velocity.x = 0f;
+            velocity.z = 0f;
+        }
+
+        /// <summary>
+        /// Is there walkable ground under the player after this horizontal
+        /// step? Thin probe down the body axis, so the player may stand with
+        /// half the capsule over the edge - that is what it should feel like.
+        /// </summary>
+        bool HasFooting(Vector3 step)
+        {
+            float probeRadius = controller.radius * 0.25f;
+            float toFeet = controller.height * 0.5f - probeRadius;
+            Vector3 origin = transform.position + controller.center + step;
+
+            int count = Physics.SphereCastNonAlloc(
+                origin, probeRadius, Vector3.down, groundHits,
+                toFeet + ledgeGuardDrop, groundMask,
+                QueryTriggerInteraction.Ignore);
+
+            float walkable = Mathf.Cos(controller.slopeLimit * Mathf.Deg2Rad);
+
+            for (int i = 0; i < count; i++)
+            {
+                // The cast starts inside the player's own capsule.
+                if (groundHits[i].collider == controller)
+                    continue;
+
+                // A steep face below is a slide, not footing.
+                if (groundHits[i].normal.y >= walkable)
+                    return true;
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -534,6 +611,29 @@ namespace KotH.Shared.Player
             float gap = nearest - toFeet;
             if (gap > 0f)
                 controller.Move(Vector3.down * gap);
+        }
+
+        /// <summary>
+        /// Remembers a move the world refused, so the next TryStepUp may
+        /// measure a ledge it would otherwise have waved through. Compares
+        /// what was asked for against what the controller actually did.
+        /// </summary>
+        void UpdateWedged(Vector3 before, float dt)
+        {
+            Vector3 wanted = new Vector3(velocity.x, 0f, velocity.z) * dt;
+            float asked = wanted.magnitude;
+            if (asked < 0.0001f)
+            {
+                wedged = false;
+                return;
+            }
+
+            Vector3 moved = transform.position - before;
+            moved.y = 0f;
+
+            // A quarter of what was asked: sliding along a wall still makes
+            // progress, a capsule stuck on an edge makes almost none.
+            wedged = moved.magnitude < asked * 0.25f;
         }
 
         /// <summary>
