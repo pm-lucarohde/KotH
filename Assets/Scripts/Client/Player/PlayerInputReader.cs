@@ -26,6 +26,7 @@ namespace KotH.Client.Player
         float yaw;
         float pitch;
         byte jumpPresses;
+        byte attackPresses;
 
         public float Yaw => yaw;
         public float Pitch => pitch;
@@ -69,6 +70,12 @@ namespace KotH.Client.Player
                 pitch = Mathf.Clamp(
                     pitch - Input.GetAxisRaw("Mouse Y") * mouseSensitivity,
                     minPitch, maxPitch);
+
+                // Inside the locked branch on purpose. The click that grabs
+                // the mouse back runs in the else above, so coming out of the
+                // menu never lands a swing.
+                if (Input.GetMouseButtonDown(0) && attackPresses < byte.MaxValue)
+                    attackPresses++;
             }
 
             // GetButtonDown is true for a single frame only. Counted rather
@@ -88,6 +95,7 @@ namespace KotH.Client.Player
                 Yaw = yaw,
                 Pitch = pitch,
                 JumpPresses = jumpPresses,
+                AttackPresses = attackPresses,
                 // Held states may be read here directly: GetKey is stable
                 // across frames, unlike GetKeyDown.
                 Sprint = Input.GetKey(sprintKey),
@@ -96,6 +104,7 @@ namespace KotH.Client.Player
 
             // Cleared on read, so a press is consumed by exactly one tick.
             jumpPresses = 0;
+            attackPresses = 0;
 
             return input;
         }

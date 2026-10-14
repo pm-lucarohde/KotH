@@ -1,3 +1,4 @@
+using KotH.Shared.Combat;
 using KotH.Shared.Player;
 using UnityEngine;
 
@@ -14,6 +15,9 @@ namespace KotH.Shared.Simulation
     {
         public PlayerMotor Motor { get; private set; }
 
+        // Optional: a body without fists does not have to say so.
+        MeleeAttack attack;
+
         /// <summary>
         /// Input for the tick about to run. Called exactly once per tick by
         /// SimulationSystem, so per-frame state may be consumed here.
@@ -23,6 +27,19 @@ namespace KotH.Shared.Simulation
         protected virtual void Awake()
         {
             Motor = GetComponent<PlayerMotor>();
+            attack = GetComponent<MeleeAttack>();
+        }
+
+        /// <summary>
+        /// Combat for this tick. Driven separately from movement so every
+        /// swing sees where all bodies ended up, not where the ones ahead of
+        /// it in the list happened to be.
+        /// </summary>
+        public void TickCombat(in MoveInput input, float dt)
+        {
+            // Explicit == null, Unity's fake null breaks the shorthand.
+            if (attack != null)
+                attack.Tick(input, dt);
         }
 
         protected virtual void OnEnable()

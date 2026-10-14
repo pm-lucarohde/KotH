@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 6163649128481280472}
   - component: {fileID: 3720549102733626259}
   - component: {fileID: 5599838516717837321}
+  - component: {fileID: 3586287705380455928}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -88,8 +89,10 @@ MonoBehaviour:
   crouchHeight: 0.9
   standEyeHeight: 1.68
   crouchEyeHeight: 0.78
+  poseChangeSpeed: 6
   standStepOffset: 0.45
   crouchStepOffset: 0.25
+  ledgeGuardDrop: 0.5
   headroomMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -97,6 +100,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   groundProbeExtra: 0.1
+  groundSnapDistance: 0.3
   minSlideSpeed: 3
   slideConfirmTime: 0.075
   stepProbeAhead: 0.05
@@ -118,6 +122,21 @@ MonoBehaviour:
   maxPitch: 89
   sprintKey: 304
   crouchKey: 306
+--- !u!114 &3586287705380455928
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 782518704459711977}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 361cce481f304d39cad3c569e9918089, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: KotH::KotH.Shared.Combat.MeleeAttack
+  range: 3.5
+  damagePercent: 1.2
+  cooldownTicks: 13
 --- !u!1 &1682163390521746779
 GameObject:
   m_ObjectHideFlags: 0

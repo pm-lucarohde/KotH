@@ -2055,6 +2055,55 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 881181230}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &921108684
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 921108686}
+  - component: {fileID: 921108685}
+  m_Layer: 0
+  m_Name: DamageLabel
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &921108685
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 921108684}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1ce0d75f5f7256c1ab65fc74de6b93c3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: KotH::KotH.Client.DamageLabel
+  target: {fileID: 2160759176825664768}
+  motor: {fileID: 2160759176825664767}
+  offset: 0.35
+  fontSize: 1.2
+  color: {r: 1, g: 1, b: 1, a: 1}
+--- !u!4 &921108686
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 921108684}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &947021999
 GameObject:
   m_ObjectHideFlags: 0
@@ -4267,6 +4316,28 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ba426f59efb04624abd1fd7b94c44fd3, type: 3}
+--- !u!114 &2160759176825664767 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5094838039641791098, guid: ba426f59efb04624abd1fd7b94c44fd3, type: 3}
+  m_PrefabInstance: {fileID: 2160759176825664766}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b7df523017ffb3f79e933bc26fc0285, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: KotH::KotH.Shared.Player.PlayerMotor
+--- !u!114 &2160759176825664768 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5368358232115455419, guid: ba426f59efb04624abd1fd7b94c44fd3, type: 3}
+  m_PrefabInstance: {fileID: 2160759176825664766}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dacbf2122fd6044168195092514ca78d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: KotH::KotH.Shared.Combat.DamagePercent
 --- !u!1001 &6063342632643556067
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4362,3 +4433,4 @@ SceneRoots:
   - {fileID: 2160759176825664766}
   - {fileID: 1538695484}
   - {fileID: 1052369637}
+  - {fileID: 921108686}

@@ -87,6 +87,11 @@ public sealed class ImpactProbe : MonoBehaviour
         scripted = player.gameObject.AddComponent<ScriptedBody>();
         scripted.BeforeTick = Step;
 
+        // Reading in BeforeTick would be a tick late: inputs are gathered
+        // before the contacts are resolved, so a push read there has already
+        // had a full tick of damping applied to it.
+        SimulationSystem.AfterContacts = Report;
+
         // The dummy registered during scene load, so it would tick BEFORE
         // the player and its velocity would already be a tick old when read
         // below. Re-registering moves it behind the player.
@@ -97,11 +102,46 @@ public sealed class ImpactProbe : MonoBehaviour
     }
 
     /// <summary>
-    /// Runs inside the system's FixedUpdate, after the contacts and before
-    /// the tick. Any push is therefore already in the velocities here, which
-    /// is what makes it separable from ordinary acceleration.
+    /// Sets the input for the tick about to run. Called while the system
+    /// gathers inputs, which is BEFORE the contacts - the push of this tick
+    /// is read in Report instead.
     /// </summary>
     void Step()
+    {
+        if (caseIndex >= Cases.Length)
+            return;
+
+        Case c = Cases[caseIndex];
+
+        if (c.trace > 0 && tick % c.trace == 0)
+            Debug.Log($"[impact] {c.name} Tick {tick}:" +
+                      $" Spieler x {player.transform.position.x:F3}" +
+                      $" v {Show(player.Velocity)}," +
+                      $" Dummy x {dummy.transform.position.x:F3}" +
+                      $" v {Show(dummy.Velocity)}");
+
+        scripted.Input = new MoveInput
+        {
+            Move = c.move,
+            Yaw = c.yaw,
+            Sprint = c.sprint,
+            Crouch = c.crouch,
+        };
+
+        tick++;
+        if (tick < c.ticks)
+            return;
+
+        Summarise(c);
+        Next();
+    }
+
+    /// <summary>
+    /// Runs right after the contacts of a tick, before anything moves. That
+    /// is the one place a push shows up unmixed with the damping that the
+    /// tick applies to it straight afterwards.
+    /// </summary>
+    void Report()
     {
         if (caseIndex >= Cases.Length)
             return;
@@ -136,29 +176,6 @@ public sealed class ImpactProbe : MonoBehaviour
                           $" Spieler {Show(player.Velocity)}, Dummy {Show(dummy.Velocity)}");
             }
         }
-
-        if (c.trace > 0 && tick % c.trace == 0)
-            Debug.Log($"[impact] {c.name} Tick {tick}:" +
-                      $" Spieler x {player.transform.position.x:F3}" +
-                      $" v {Show(player.Velocity)}," +
-                      $" Dummy x {dummy.transform.position.x:F3}" +
-                      $" v {Show(dummy.Velocity)}," +
-                      $" Stöße in diesem Tick {SimulationSystem.LastContactCount}");
-
-        scripted.Input = new MoveInput
-        {
-            Move = c.move,
-            Yaw = c.yaw,
-            Sprint = c.sprint,
-            Crouch = c.crouch,
-        };
-
-        tick++;
-        if (tick < c.ticks)
-            return;
-
-        Report(c);
-        Next();
     }
 
     void Next()
@@ -182,7 +199,7 @@ public sealed class ImpactProbe : MonoBehaviour
         scripted.Input = new MoveInput { Yaw = c.yaw };
     }
 
-    void Report(Case c)
+    void Summarise(Case c)
     {
         Vector3 p = player.transform.position;
         Vector3 d = dummy.transform.position;

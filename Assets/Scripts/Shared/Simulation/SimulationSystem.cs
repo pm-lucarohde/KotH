@@ -33,6 +33,13 @@ namespace KotH.Shared.Simulation
         public static Vector3 LastNormal { get; private set; }
         public static float LastApproach { get; private set; }
 
+        /// <summary>
+        /// Raised after the contacts are resolved and before any body moves.
+        /// The only moment a push can be read apart from the movement that
+        /// follows it; null in the game, used by probes.
+        /// </summary>
+        public static System.Action AfterContacts;
+
         [Header("Körperstoß")]
         [Tooltip("Anteil der Annäherung, mit dem sich beide vom gemeinsamen " +
                  "Tempo entfernen. 0,5 ist ein vollelastischer Stoß, mehr " +
@@ -52,6 +59,7 @@ namespace KotH.Shared.Simulation
         // Reused across ticks so a step allocates nothing.
         readonly List<BodyContact.Body> states = new List<BodyContact.Body>();
         readonly List<Vector3> impulses = new List<Vector3>();
+        readonly List<MoveInput> inputs = new List<MoveInput>();
 
         public static void Register(SimulationBody body)
         {
@@ -87,17 +95,29 @@ namespace KotH.Shared.Simulation
         void FixedUpdate()
         {
             float dt = Time.fixedDeltaTime;
+            int count = bodies.Count;
+
+            // Gathered up front, because reading consumes: ReadInput clears
+            // the key presses it hands over, so asking a second time for the
+            // combat pass would get an empty input. It also separates taking
+            // orders from carrying them out, which is what a server needs.
+            inputs.Clear();
+            for (int i = 0; i < count; i++)
+                inputs.Add(bodies[i].ReadInput());
 
             // Contacts first, so a push still takes effect in this tick
             // instead of 25 ms later. It reads what the last tick left
             // behind, the only state both bodies agree on.
             ResolveContacts();
+            AfterContacts?.Invoke();
 
-            for (int i = 0; i < bodies.Count; i++)
-            {
-                SimulationBody body = bodies[i];
-                body.Motor.Tick(body.ReadInput(), dt);
-            }
+            for (int i = 0; i < count; i++)
+                bodies[i].Motor.Tick(inputs[i], dt);
+
+            // After every body has moved, so a swing sees where they all
+            // ended up rather than where the ones ahead of it stood.
+            for (int i = 0; i < count; i++)
+                bodies[i].TickCombat(inputs[i], dt);
         }
 
         /// <summary>

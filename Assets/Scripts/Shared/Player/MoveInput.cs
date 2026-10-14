@@ -25,6 +25,13 @@ namespace KotH.Shared.Player
         /// </summary>
         public byte JumpPresses;
 
+        /// <summary>
+        /// Attack presses since the last tick, counted for the same reason
+        /// as JumpPresses: the click is true for one frame, a tick spans
+        /// three or four of them.
+        /// </summary>
+        public byte AttackPresses;
+
         public bool Sprint;
         public bool Crouch;
     }
