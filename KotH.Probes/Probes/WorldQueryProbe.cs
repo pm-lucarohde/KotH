@@ -150,6 +150,8 @@ namespace KotH.Probes.Probes
 
                     List<RefHit> reference = ParseHits(string.Join(";", c, 11, c.Length - 11));
                     CompareSets(S(kind), $"{kind} {c[1]}", reference, hits, n);
+                    if (kind != "sphere")
+                        ShortSweeps(q, mask, kind, c[1], p, d, kind == "capsuleS" ? 1.8f : 0.9f, reference, hits);
                 }
                 else if (kind == "overlap")
                 {
@@ -255,6 +257,42 @@ namespace KotH.Probes.Probes
             }
 
             Log($"[wq] Kugelsweeps von unten, die den Boden treffen: {sweepsHit} von 200");
+        }
+
+        /// <summary>
+        /// Each PhysX hit again, swept only 1 cm past it. Bepu's compound
+        /// sweep once looked just length squared ahead and lost exactly
+        /// these: a box right in front of a short move.
+        /// </summary>
+        void ShortSweeps(WorldQueries q, CollisionMask mask, string kind, string index, Vector3 p, Vector3 d,
+                         float height, List<RefHit> reference, QueryHit[] hits)
+        {
+            Stat s = S(kind + "kurz");
+            Vector3 bottom = UMath.Add(p, UMath.Mul(UMath.Up, 0.4f));
+            Vector3 top = UMath.Add(p, UMath.Mul(UMath.Up, height - 0.4f));
+            foreach (RefHit r in reference)
+            {
+                if (r.Dist <= 0f)
+                    continue;
+
+                s.Cases++;
+                int n = q.CapsuleCastAll(bottom, top, 0.4f, d, r.Dist + 0.01f, mask, hits);
+                bool found = false;
+                for (int i = 0; i < n; i++)
+                {
+                    if (hits[i].Collider.Entity.Name != r.Name)
+                        continue;
+                    found = true;
+                    s.Agree++;
+                    Compare(s, $"{kind}kurz {index} {r.Name}", r.Dist, Ref.Pos(r.Normal), hits[i].Distance, hits[i].Normal);
+                }
+
+                if (!found)
+                {
+                    s.HitSetDiffers++;
+                    Note(s, $"{kind}kurz {index} {r.Name} bei {r.Dist:F4} mit Länge {r.Dist + 0.01f:F4} nicht gefunden");
+                }
+            }
         }
 
         void CompareSets(Stat s, string label, List<RefHit> reference, QueryHit[] hits, int n)
