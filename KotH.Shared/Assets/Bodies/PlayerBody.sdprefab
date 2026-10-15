@@ -1,0 +1,75 @@
+!PrefabAsset
+Id: E567C10B-E114-5A8A-953F-4C5179149FDB
+SerializedVersion: {Stride: 3.1.0.1}
+Tags: []
+Hierarchy:
+    RootParts:
+        - ref!! 01896716-22E7-57CD-B14C-B984B38A05DC
+    Parts:
+        -   Entity:
+                Id: 01896716-22E7-57CD-B14C-B984B38A05DC
+                Name: PlayerBody
+                Components:
+                    e9d42b536c885912ab53faee2418f2d5: !TransformComponent
+                        Id: F914536A-7170-547F-81AE-C07E315DA06F
+                        Position: {X: 0.0, Y: 0.0, Z: 0.0}
+                        Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    a5bc1f8e8aeb58548b05dc1225a74071: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
+                        Id: C59745DB-375D-5FFC-8D0B-06840A039650
+                        CollisionLayer: Layer6
+                        Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
+                            Colliders:
+                                5ffb22a1bc6d527cbffc5ec1e45a2814: !Stride.BepuPhysics.Definitions.Colliders.CapsuleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    Radius: 0.4
+                                    Length: 1.0
+                        CollisionGroup: {}
+                        ContactEventHandler: null
+                    4d3ef9ed716f5dd3955e78b88b06a13c: !KotH.PlayerMotor
+                        Id: 7A6B5F78-D6AD-5F3C-A249-A33FA43F6E6E
+                        WalkSpeed: 5.175
+                        SprintSpeed: 8.625
+                        CrouchSpeed: 2.1
+                        GroundAcceleration: 50.0
+                        GroundDeceleration: 35.0
+                        AirAcceleration: 7.5
+                        JumpHeight: 1.6
+                        DoubleJumpHeight: 1.0822
+                        MinJumpHeight: 1.0744
+                        MinJumpHold: 0.032
+                        FullJumpHold: 0.2
+                        DoubleJumpWindow: 1.0
+                        DoubleTapWindow: 0.25
+                        Gravity: -20.0
+                        BodyRadius: 0.4
+                        SkinWidth: 0.04
+                        StandHeight: 1.8
+                        CrouchHeight: 0.9
+                        StandEyeHeight: 1.68
+                        CrouchEyeHeight: 0.78
+                        PoseChangeSpeed: 6.0
+                        StandStepOffset: 0.45
+                        CrouchStepOffset: 0.25
+                        LedgeGuardDrop: 0.5
+                        HeadroomMask: Everything
+                        SlopeLimit: 50.0
+                        GroundMask: Everything
+                        GroundProbeExtra: 0.1
+                        GroundSnapDistance: 0.3
+                        MinSlideSpeed: 3.0
+                        SlideConfirmTime: 0.075
+                        StepProbeAhead: 0.05
+                        SlideDeceleration: 6.0
+                        MaxSlideSpeed: 15.0
+                        SlideCooldown: 0.5
+                    945c6ecc3232533e8a499e53c2ac2bab: !KotH.MeleeAttack
+                        Id: FAF34A22-BED8-52FF-8C51-56FCDE79EE37
+                        Range: 3.5
+                        DamagePercent: 1.2
+                        CooldownTicks: 13
+                    8b6c924086f0522dbd20f55e780fd49d: !KotH.Hittable
+                        Id: C85214C0-0EB6-5BEF-9DD2-6BFBA18EF2E4

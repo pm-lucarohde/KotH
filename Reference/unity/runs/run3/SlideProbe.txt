@@ -1,0 +1,42 @@
+[slide] entering play mode
+[slide] Sollwerte: gehen 5,175, sprint 8,625, Reibung 6,0, Deckel 15,0 m/s, Pause 500 ms (20 Ticks)
+[slide] flach erwartet: 23,0 Ticks, 3,97 m; Auge 0,780 stehend, -0,120 geduckt; Schub ab 17,5°
+[slide] == Flach, Dauer (0°), Boden bei 0,0°
+[slide]    24 Ticks gegen 23,0 erwartet; Start 8,625, Spitze 8,625, Ende 5,175 m/s, 4,14 m -> ok
+[slide] == Angetippt, Augenhöhe (0°), Boden bei 0,0°
+[slide]    Auge sank auf -0,120 (soll -0,120), danach zurueck auf 0,780; Start 8,625, Spitze 8,625, Ende 5,175 m/s, 4,14 m -> ok
+[slide] == Angetippt, Dauer (0°), Boden bei 0,0°
+[slide]    24 Ticks gegen 23,0 erwartet; Start 8,625, Spitze 8,625, Ende 5,175 m/s, 4,14 m -> ok
+[slide] == Gehalten, Dauer (0°), Boden bei 0,0°
+[slide]    24 Ticks gegen 23,0 erwartet; Start 8,625, Spitze 8,625, Ende 5,175 m/s, 4,14 m -> ok
+[slide] == Über die Kante (0°), Boden bei 0,0°
+[slide]    verliess die Kante mit 6,986 m/s, Boden dabei nein; Start 8,625, Spitze 8,625, Ende 6,986 m/s, 2,34 m -> ok
+[slide] == Ohne Richtungstaste (0°), Boden bei 0,0°
+[slide]    4,14 m ohne Taste, 24 Ticks; Start 8,625, Spitze 8,625, Ende 5,175 m/s, 4,14 m -> ok
+[slide] == Lenken um 90 Grad (0°), Boden bei 0,0°
+[slide]    Bahn drehte 90,0° von 90° Blick; Start 8,625, Spitze 8,625, Ende 5,175 m/s, 3,54 m -> ok
+[slide] == Leertaste bricht ab (0°), Boden bei 0,0°
+[slide]    abgebrochen bei 7,875, danach 7,725 gegen 8,625 erlaubt, abgehoben nein; Start 8,625, Spitze 8,625, Ende 7,875 m/s, 1,24 m -> ok
+[slide] == Zweiter Druck springt (0°), Boden bei 0,0°
+[slide]    zweiter Druck hob ab, in der Luft 8,625 gegen 8,625; Start 8,625, Spitze 8,625, Ende 7,875 m/s, 1,24 m -> ok
+[slide] == Rampe 20 bergab (20°), Boden bei 20,0°
+[slide]    von 8,625 auf 10,326 m/s; Start 8,625, Spitze 10,326, Ende 10,326 m/s, 37,90 m -> ok
+[slide] == Rampe 35 bergab (35°), Boden bei 35,0°
+[slide]    Spitze 14,655 gegen Deckel 15,0; Start 8,625, Spitze 14,655, Ende 14,655 m/s, 20,95 m -> ok
+[slide] == Bergab abgebrochen (35°), Boden bei 35,0°
+[slide]    abgebrochen bei 11,088, danach 8,625 gegen 8,625 erlaubt, abgehoben nein; Start 8,625, Spitze 11,088, Ende 11,088 m/s, 7,39 m -> ok
+[slide] == Bergab, dann springen (35°), Boden bei 35,0°
+[slide]    zweiter Druck hob ab, in der Luft 8,625 gegen 8,625; Start 8,625, Spitze 11,088, Ende 11,088 m/s, 7,39 m -> ok
+[slide] == Rampe 20 bergauf (20° bergauf), Boden bei 20,0°
+[slide]    13 Ticks, flach waeren 23,0; Start 7,616, Spitze 7,616, Ende 4,324 m/s, 1,94 m -> ok
+[slide] == Aus dem Anlauf (0°), Boden bei 0,0°
+[slide]    kein Slide, wie erwartet -> ok
+[slide] == Gegen eine Wand (0°), Boden bei 0,0°
+[slide]    kein Slide, wie erwartet -> ok
+[slide] == Auf 55 Grad, zu steil (55°), Boden bei 55,0°
+[slide]    kein Slide, wie erwartet -> ok
+[slide] == Erneut 4 Ticks nach Abbruch (0°), Boden bei 0,0°
+[slide]    1 Slide(s), erneut 10 Ticks nach dem Start versucht, Pause ist 20 Ticks; Start 8,625, Spitze 8,625, Ende 7,875 m/s, 1,24 m -> ok
+[slide] == Erneut 16 Ticks nach Abbruch (0°), Boden bei 0,0°
+[slide]    2 Slide(s), erneut 22 Ticks nach dem Start versucht, Pause ist 20 Ticks; Start 8,625, Spitze 8,625, Ende 7,875 m/s, 1,24 m -> ok
+[slide] ALLE FÄLLE WIE ERWARTET

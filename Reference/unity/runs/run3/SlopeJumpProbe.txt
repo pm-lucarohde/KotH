@@ -1,0 +1,7 @@
+[slope] entering play mode
+[slope] == Ramp20 gehen runter: ohne Boden 0 von 100 (0 %), längste Strecke 0 Ticks (0,000 s)
+[slope] == Ramp20 sprint runter: ohne Boden 0 von 100 (0 %), längste Strecke 0 Ticks (0,000 s)
+[slope] == Ramp35 gehen runter: ohne Boden 0 von 100 (0 %), längste Strecke 0 Ticks (0,000 s)
+[slope] == Ramp35 sprint runter: ohne Boden 0 von 100 (0 %), längste Strecke 0 Ticks (0,000 s)
+[slope] == Ramp45 gehen runter: ohne Boden 0 von 100 (0 %), längste Strecke 0 Ticks (0,000 s)
+[slope] == Ramp45 sprint runter: ohne Boden 0 von 100 (0 %), längste Strecke 0 Ticks (0,000 s)

@@ -1,0 +1,2084 @@
+!PrefabAsset
+Id: 44084777-0114-573C-8ADC-DAC14634241C
+SerializedVersion: {Stride: 3.1.0.1}
+Tags: []
+Hierarchy:
+    RootParts:
+        - ref!! 02302892-0341-5D08-9FF9-5A54A7D420C5
+        - ref!! 74025D39-204A-5AA1-9BA3-311EED29C7A6
+        - ref!! 0B50B0CC-4AD5-5AD6-B9C4-DD59901BB9B8
+        - ref!! 2FF5E0A5-B53C-5269-92DE-4A2B0A5329AC
+        - ref!! ABE93D9E-5249-5A2B-9312-E0ABE70193B5
+        - ref!! 6F788266-3A6A-58CB-B4BB-3A150B01C3CA
+        - ref!! 3157DC89-0441-50F0-A998-3B3580EDF85E
+        - ref!! 9E23EBD0-9743-5B65-B222-0E9B0D2809CE
+        - ref!! BB42380E-CC2C-549C-91E0-C865ACB5AC7F
+        - ref!! 280F98D7-1E49-5C63-83A9-4873861A90A9
+        - ref!! 13988EDE-1E3C-55D1-859B-31B600822F20
+        - ref!! 449C7F54-F288-54F2-86C3-0972A3931AD3
+        - ref!! D43096A1-8B68-5BE7-8A28-8CD035659AEF
+        - ref!! 4DC86034-E7F4-5166-BB54-31BD57B5CF2D
+        - ref!! 97171491-E73B-53E1-982A-E05887467183
+        - ref!! C13E88D2-1A72-51B0-9C9C-3C8D640577DE
+        - ref!! 8125FF88-0D2B-58B5-B4F5-9697A9740E92
+        - ref!! 3D955056-4021-553C-8E04-4A4C7C5E2193
+        - ref!! AAF233E6-8CE6-5EDB-A45D-04416790C2E9
+        - ref!! D62CC934-4589-5853-9DBA-A585B25FCCB2
+        - ref!! 72372EAE-F601-55AA-B4B5-48620F1BCB0B
+        - ref!! BD38190E-3D09-596F-B0DC-9B5060E54E21
+        - ref!! 879DB6CD-2F8C-5B17-804B-575F345713D9
+        - ref!! 402EFBC7-3B4F-50A2-8778-DC9A170C2E16
+        - ref!! A6A5963D-575A-5735-A876-970028D5771A
+        - ref!! 844B4A41-2A9F-5A14-8BF5-DD395882CF9E
+        - ref!! 2FC8E390-0DA2-5885-A623-49FEDCF71B2D
+        - ref!! 8A41DC25-066F-5525-99A8-01DFB5AB9CDE
+        - ref!! 57E3DC31-1073-52A6-8EDB-BB4C37FBCB3C
+        - ref!! B6E1CC43-51C7-57DE-906D-F9A33F9934E6
+        - ref!! 10529923-5E57-5484-B38A-2B2E59365329
+    Parts:
+        -   Entity:
+                Id: 02302892-0341-5D08-9FF9-5A54A7D420C5
+                Name: Steps30_5
+                Components:
+                    2ba004b36bb1505c8310f488d0a5d655: !TransformComponent
+                        Id: 7C9EBABE-C6EB-569D-A0F6-1D5103D4D608
+                        Position: {X: -10.0, Y: 0.90000004, Z: 6.7}
+                        Rotation: {X: 0.0, Y: 0.0, Z: -0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    a4af8f0fd5b25ad6b94d9e988fe8b2ee: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
+                        Id: 874828EB-8EA3-5F9B-9363-8656911D04AC
+                        Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
+                            Colliders:
+                                06b946a2863e5095926f7dee02fc4f34: !Stride.BepuPhysics.Definitions.Colliders.BoxCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    Size: {X: 2.0, Y: 1.8000001, Z: 0.6}
+                        CollisionGroup: {}
+                        ContactEventHandler: null
+        -   Entity:
+                Id: 74025D39-204A-5AA1-9BA3-311EED29C7A6
+                Name: Steps30_1
+                Components:
+                    a929b6d96e78554cb1b041e49ac6f53a: !TransformComponent
+                        Id: FDA0BAE2-4E85-5292-B6D7-6D788E5E3C05
+                        Position: {X: -10.0, Y: 0.3, Z: 9.1}
+                        Rotation: {X: 0.0, Y: 0.0, Z: -0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    e5099dc1b5dd5497abba3d852319c3d7: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
+                        Id: 888342CB-5A05-59B2-B29D-8342884028DE
+                        Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
+                            Colliders:
+                                b6938c129e6e518d86fae86e972c01a8: !Stride.BepuPhysics.Definitions.Colliders.BoxCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    Size: {X: 2.0, Y: 0.6, Z: 0.6}
+                        CollisionGroup: {}
+                        ContactEventHandler: null
+        -   Entity:
+                Id: 0B50B0CC-4AD5-5AD6-B9C4-DD59901BB9B8
+                Name: Steps40_0
+                Components:
+                    46a48de23b5054ae9b6d432ddefe5ea4: !TransformComponent
+                        Id: F4796E8F-B6CE-52E3-ACFF-CB02C412C077
+                        Position: {X: -14.0, Y: 0.2, Z: 9.7}
+                        Rotation: {X: 0.0, Y: 0.0, Z: -0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    e4545fe7435057028dc78bd915d4f16d: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
+                        Id: B7B6FFB2-57AB-5418-8E9A-C7646DF72CC2
+                        Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
+                            Colliders:
+                                a8dcd0b9af4b50339eeeb17549920559: !Stride.BepuPhysics.Definitions.Colliders.BoxCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    Size: {X: 2.0, Y: 0.4, Z: 0.6}
+                        CollisionGroup: {}
+                        ContactEventHandler: null
+        -   Entity:
+                Id: 2FF5E0A5-B53C-5269-92DE-4A2B0A5329AC
+                Name: Plateau
+                Components:
+                    0f6688900d13533dac0d79e1cecaa1e4: !TransformComponent
+                        Id: C20362D4-F112-5527-8876-49E4E5856F71
+                        Position: {X: 0.0, Y: 2.5, Z: -16.0}
+                        Rotation: {X: 0.0, Y: 0.0, Z: -0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    846ca6b9b02e5a339a8dfc0b5dda673f: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
+                        Id: EAE93246-FFC7-5DD5-8711-BBE80FAEAA21
+                        Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
+                            Colliders:
+                                af0a9bef2de7560090342afbe0215a69: !Stride.BepuPhysics.Definitions.Colliders.BoxCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    Size: {X: 12.0, Y: 5.0, Z: 12.0}
+                        CollisionGroup: {}
+                        ContactEventHandler: null
+        -   Entity:
+                Id: ABE93D9E-5249-5A2B-9312-E0ABE70193B5
+                Name: Steps30_0
+                Components:
+                    52d40c2af0585e52818d0bc55481cbd8: !TransformComponent
+                        Id: 91BDCBB7-D915-59AB-A254-C38B19DB287A
+                        Position: {X: -10.0, Y: 0.15, Z: 9.7}
+                        Rotation: {X: 0.0, Y: 0.0, Z: -0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    64da56cb9bfd576a841978decd9e83aa: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
+                        Id: 028BD3C0-8FAD-5F02-AD8B-988CC6211256
+                        Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
+                            Colliders:
+                                cf768474ecf651d29b2a7f1b6266a485: !Stride.BepuPhysics.Definitions.Colliders.BoxCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    Size: {X: 2.0, Y: 0.3, Z: 0.6}
+                        CollisionGroup: {}
+                        ContactEventHandler: null
+        -   Entity:
+                Id: 6F788266-3A6A-58CB-B4BB-3A150B01C3CA
+                Name: Steps20_2
+                Components:
+                    e832f74120e95ba199985528a4f9f453: !TransformComponent
+                        Id: 4D73EC42-0894-5EFC-98E1-348902EB1ED4
+                        Position: {X: -6.0, Y: 0.3, Z: 8.5}
+                        Rotation: {X: 0.0, Y: 0.0, Z: -0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    00a580d0655852b0aea631d60345118c: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
+                        Id: C9C291BD-8566-50C1-89BB-06FF287B7613
+                        Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
+                            Colliders:
+                                f0c561bf041d5ea88d774ac5d1e4de59: !Stride.BepuPhysics.Definitions.Colliders.BoxCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    Size: {X: 2.0, Y: 0.6, Z: 0.6}
+                        CollisionGroup: {}
+                        ContactEventHandler: null
+        -   Entity:
+                Id: 3157DC89-0441-50F0-A998-3B3580EDF85E
+                Name: Steps50_2
+                Components:
+                    0b07af5f161652db9edcae9a614fa5bf: !TransformComponent
+                        Id: DB22B577-F408-50F0-A7D2-7C27462201B4
+                        Position: {X: -18.0, Y: 0.75, Z: 8.5}
+                        Rotation: {X: 0.0, Y: 0.0, Z: -0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    e3b948f0ce575545b3a6de2277372a0a: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
+                        Id: B0A6247C-BD50-5885-B887-D8F3F2897758
+                        Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
+                            Colliders:
+                                922b029cba84581f9424e99796490966: !Stride.BepuPhysics.Definitions.Colliders.BoxCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    Size: {X: 2.0, Y: 1.5, Z: 0.6}
+                        CollisionGroup: {}
+                        ContactEventHandler: null
+        -   Entity:
+                Id: 9E23EBD0-9743-5B65-B222-0E9B0D2809CE
+                Name: Steps40_1
+                Components:
+                    f00d64d3681f5ca687e6a020a576f7ae: !TransformComponent
+                        Id: 236C0ECE-7D0F-5106-9E4E-46BE7748A71A
+                        Position: {X: -14.0, Y: 0.4, Z: 9.1}
+                        Rotation: {X: 0.0, Y: 0.0, Z: -0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    67718735778a53aeb923877c69232820: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
+                        Id: E0CDB231-8025-5CBA-9788-65F1E6B3529C
+                        Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
+                            Colliders:
+                                1b55e644c91f5f948ee88bffa1ac0432: !Stride.BepuPhysics.Definitions.Colliders.BoxCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    Size: {X: 2.0, Y: 0.8, Z: 0.6}
+                        CollisionGroup: {}
+                        ContactEventHandler: null
+        -   Entity:
+                Id: BB42380E-CC2C-549C-91E0-C865ACB5AC7F
+                Name: Ramp45
+                Components:
+                    e22bf73d1c1f5bafa77c70ef5be044de: !TransformComponent
+                        Id: BA43962F-0463-5F6C-ACBA-ABA4C4393A0E
+                        Position: {X: 8.287868, Y: 2.287868, Z: -16.0}
+                        Rotation: {X: -0.27059805, Y: -0.6532815, Z: -0.27059805, W: 0.6532815}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    f07e1fe78e0b5651816472b757804f4d: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
+                        Id: FA3A0109-1E0B-5E9F-AD4C-8BF1FB3302C9
+                        Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
+                            Colliders:
+                                cd216a462c795101b18b0862e796e800: !Stride.BepuPhysics.Definitions.Colliders.BoxCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    Size: {X: 4.000001, Y: 0.6, Z: 7.071069}
+                        CollisionGroup: {}
+                        ContactEventHandler: null
+        -   Entity:
+                Id: 280F98D7-1E49-5C63-83A9-4873861A90A9
+                Name: Steps30_2
+                Components:
+                    67a521bebe005f0d8fd7f38e941af387: !TransformComponent
+                        Id: 29564DC4-B4FB-583F-B9D0-FD970AD19AC2
+                        Position: {X: -10.0, Y: 0.45000002, Z: 8.5}
+                        Rotation: {X: 0.0, Y: 0.0, Z: -0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    92d070b5b82b5f40bffc8b09de3c7b97: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
+                        Id: C86683D9-2F40-570C-AFC6-39EB933EA1EE
+                        Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
+                            Colliders:
+                                46c0a52890f151bcaace99f9affb43f5: !Stride.BepuPhysics.Definitions.Colliders.BoxCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    Size: {X: 2.0, Y: 0.90000004, Z: 0.6}
+                        CollisionGroup: {}
+                        ContactEventHandler: null
+        -   Entity:
+                Id: 13988EDE-1E3C-55D1-859B-31B600822F20
+                Name: Steps20_3
+                Components:
+                    b5e5e57376655d60aa3c7a6e99b52e9f: !TransformComponent
+                        Id: BDA5375C-0770-5502-9E3B-1867F081FA41
+                        Position: {X: -6.0, Y: 0.4, Z: 7.9}
+                        Rotation: {X: 0.0, Y: 0.0, Z: -0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    6f9570069987545ea12da8cd5a3faded: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
+                        Id: 0961EDCC-C88D-506B-B110-BD0D800F0961
+                        Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
+                            Colliders:
+                                5da0d4733a215bc6bccf5856a8b24dbc: !Stride.BepuPhysics.Definitions.Colliders.BoxCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    Size: {X: 2.0, Y: 0.8, Z: 0.6}
+                        CollisionGroup: {}
+                        ContactEventHandler: null
+        -   Entity:
+                Id: 449C7F54-F288-54F2-86C3-0972A3931AD3
+                Name: Ramp55
+                Components:
+                    e4b81e792da1537eb346c63b7bc1827e: !TransformComponent
+                        Id: 93A2567B-E698-53A2-825E-56B984B6317E
+                        Position: {X: -7.504773, Y: 2.327927, Z: -16.0}
+                        Rotation: {X: -0.32650557, Y: 0.6272114, Z: 0.32650557, W: 0.6272114}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    328e10c89ba05d36b7ff258cf2ba6930: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
+                        Id: 80277BD5-F35C-51E9-B94F-CD9626148BC1
+                        Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
+                            Colliders:
+                                f05ad03f49a85b35aad42c7d475eb358: !Stride.BepuPhysics.Definitions.Colliders.BoxCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    Size: {X: 4.0, Y: 0.6, Z: 6.1038733}
+                        CollisionGroup: {}
+                        ContactEventHandler: null
+        -   Entity:
+                Id: D43096A1-8B68-5BE7-8A28-8CD035659AEF
+                Name: Steps40_3
+                Components:
+                    eea4c45c26835e0199636ca6a453f2ac: !TransformComponent
+                        Id: 0B4C866E-733E-5907-B3F4-801F23E25018
+                        Position: {X: -14.0, Y: 0.8, Z: 7.9}
+                        Rotation: {X: 0.0, Y: 0.0, Z: -0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    1fe8e944c9445965801508809cd66f3a: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
+                        Id: F3E522BC-B331-5FB8-AD16-82C5FE98CC5D
+                        Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
+                            Colliders:
+                                7041e9866b70532383c949e08d4786c0: !Stride.BepuPhysics.Definitions.Colliders.BoxCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    Size: {X: 2.0, Y: 1.6, Z: 0.6}
+                        CollisionGroup: {}
+                        ContactEventHandler: null
+        -   Entity:
+                Id: 4DC86034-E7F4-5166-BB54-31BD57B5CF2D
+                Name: Steps40_2
+                Components:
+                    b22195510e3656858b24b74df7196bd8: !TransformComponent
+                        Id: 1E8AB752-1184-50A3-91BE-ACD36066EBB1
+                        Position: {X: -14.0, Y: 0.6, Z: 8.5}
+                        Rotation: {X: 0.0, Y: 0.0, Z: -0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    65142a3ecf2f5432969f9efe3cea894d: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
+                        Id: 7F041917-E786-5012-94DE-3E221B09447E
+                        Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
+                            Colliders:
+                                bc4815487b465c20840802c4381b88a0: !Stride.BepuPhysics.Definitions.Colliders.BoxCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    Size: {X: 2.0, Y: 1.2, Z: 0.6}
+                        CollisionGroup: {}
+                        ContactEventHandler: null
+        -   Entity:
+                Id: 97171491-E73B-53E1-982A-E05887467183
+                Name: Steps50_3
+                Components:
+                    abc4e6dd1cf8549a8f86ff2d54d95e83: !TransformComponent
+                        Id: 5D4C740C-AAAE-57B7-90B6-BEAD77DF265F
+                        Position: {X: -18.0, Y: 1.0, Z: 7.9}
+                        Rotation: {X: 0.0, Y: 0.0, Z: -0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    3864535e9cb559c7894222bd1988469c: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
+                        Id: DC2D07BC-44C6-5C62-9D4F-21C639AB0D16
+                        Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
+                            Colliders:
+                                fb6e9b5747385bd4995036002d94a3ef: !Stride.BepuPhysics.Definitions.Colliders.BoxCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    Size: {X: 2.0, Y: 2.0, Z: 0.6}
+                        CollisionGroup: {}
+                        ContactEventHandler: null
+        -   Entity:
+                Id: C13E88D2-1A72-51B0-9C9C-3C8D640577DE
+                Name: Steps30_3
+                Components:
+                    17f404ff69f159af8dc2ed737436aac9: !TransformComponent
+                        Id: 57080DB4-2F58-589F-98BA-B12C1110F34A
+                        Position: {X: -10.0, Y: 0.6, Z: 7.9}
+                        Rotation: {X: 0.0, Y: 0.0, Z: -0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    9b79ea2e4d7f5b4384ed63076601b0df: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
+                        Id: 76F26FD5-C58B-59F0-A27D-F696AF1D1187
+                        Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
+                            Colliders:
+                                15ec0a0481c6532bbc72dbc14c24a0db: !Stride.BepuPhysics.Definitions.Colliders.BoxCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    Size: {X: 2.0, Y: 1.2, Z: 0.6}
+                        CollisionGroup: {}
+                        ContactEventHandler: null
+        -   Entity:
+                Id: 8125FF88-0D2B-58B5-B4F5-9697A9740E92
+                Name: Steps20_1
+                Components:
+                    cd429a6c9f2056889cc1c3ff6b86426b: !TransformComponent
+                        Id: 1CFDE366-8198-5958-9BF7-6906D23C4833
+                        Position: {X: -6.0, Y: 0.2, Z: 9.1}
+                        Rotation: {X: 0.0, Y: 0.0, Z: -0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    e1becf4108e05a548bb29bdbf329e439: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
+                        Id: EC14C17E-F0BE-523C-B46E-942B97F77C6A
+                        Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
+                            Colliders:
+                                b3013b68878b5b5ab737a2c643c414a9: !Stride.BepuPhysics.Definitions.Colliders.BoxCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    Size: {X: 2.0, Y: 0.4, Z: 0.6}
+                        CollisionGroup: {}
+                        ContactEventHandler: null
+        -   Entity:
+                Id: 3D955056-4021-553C-8E04-4A4C7C5E2193
+                Name: CrouchTest
+                Components:
+                    5519739b97ac51108fc04c7cc0738e8b: !TransformComponent
+                        Id: 39002293-7197-56C8-B5B8-A069E50A65C8
+                        Position: {X: 6.0, Y: 1.2, Z: -0.0}
+                        Rotation: {X: -0.0, Y: -0.0, Z: 0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    dbc57696a0d151cd8b698792355aa7e3: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
+                        Id: 30619D5B-F935-5B69-BF6E-DE6076FBB242
+                        Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
+                            Colliders:
+                                58c6345af0d6517e8d366bc879f17412: !Stride.BepuPhysics.Definitions.Colliders.BoxCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    Size: {X: 4.0, Y: 0.2, Z: 3.0}
+                        CollisionGroup: {}
+                        ContactEventHandler: null
+        -   Entity:
+                Id: AAF233E6-8CE6-5EDB-A45D-04416790C2E9
+                Name: Steps50_4
+                Components:
+                    4f4d4b0be34156ca871a9c8ab4069543: !TransformComponent
+                        Id: CD022FD9-665A-585D-9E8E-D3F3CF35E5E4
+                        Position: {X: -18.0, Y: 1.25, Z: 7.2999997}
+                        Rotation: {X: 0.0, Y: 0.0, Z: -0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    88f7b93411175c7786a01705379c73bf: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
+                        Id: B40BA544-D78C-574D-96C8-65F65FD767CA
+                        Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
+                            Colliders:
+                                4702c0b3071c58bd9b1f8f21b3896517: !Stride.BepuPhysics.Definitions.Colliders.BoxCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    Size: {X: 2.0, Y: 2.5, Z: 0.6}
+                        CollisionGroup: {}
+                        ContactEventHandler: null
+        -   Entity:
+                Id: D62CC934-4589-5853-9DBA-A585B25FCCB2
+                Name: Steps20_0
+                Components:
+                    dc66cc72156757ec9eb6ded88bf9939c: !TransformComponent
+                        Id: 8FDC268B-95CA-5CAD-B941-E6C413A1EC09
+                        Position: {X: -6.0, Y: 0.1, Z: 9.7}
+                        Rotation: {X: 0.0, Y: 0.0, Z: -0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    ef62ff31bc44555ca58567bf11f1b668: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
+                        Id: C3988D72-79D4-5DFE-99ED-D1093E05613C
+                        Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
+                            Colliders:
+                                50b74b3bd4e95a4bbe823018f82eddc1: !Stride.BepuPhysics.Definitions.Colliders.BoxCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    Size: {X: 2.0, Y: 0.2, Z: 0.6}
+                        CollisionGroup: {}
+                        ContactEventHandler: null
+        -   Entity:
+                Id: 72372EAE-F601-55AA-B4B5-48620F1BCB0B
+                Name: Steps40_5
+                Components:
+                    99807b0d2c7c5a7ea6ec0c1fca78e77a: !TransformComponent
+                        Id: EDA2F648-05DF-58A4-A544-EAF4F13C74F1
+                        Position: {X: -14.0, Y: 1.2, Z: 6.7}
+                        Rotation: {X: 0.0, Y: 0.0, Z: -0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    d1e85ee94ce55849ba22689054f80131: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
+                        Id: C55BFCC5-E02A-53C4-AB04-49F06146DF11
+                        Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
+                            Colliders:
+                                d925dbc1be495bd2a11652402f4bd169: !Stride.BepuPhysics.Definitions.Colliders.BoxCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    Size: {X: 2.0, Y: 2.4, Z: 0.6}
+                        CollisionGroup: {}
+                        ContactEventHandler: null
+        -   Entity:
+                Id: BD38190E-3D09-596F-B0DC-9B5060E54E21
+                Name: Steps50_1
+                Components:
+                    fb2b52857b6558babe6af456921e5c5e: !TransformComponent
+                        Id: DA478D33-E780-5DD7-B660-1A39B1235135
+                        Position: {X: -18.0, Y: 0.5, Z: 9.1}
+                        Rotation: {X: 0.0, Y: 0.0, Z: -0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    66592e03849d56ed9caa1da92e1ee18a: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
+                        Id: E797712E-043A-5EE0-9F34-11B58A9587E8
+                        Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
+                            Colliders:
+                                a1b1a683c88b5399849fb81a79a7cb56: !Stride.BepuPhysics.Definitions.Colliders.BoxCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    Size: {X: 2.0, Y: 1.0, Z: 0.6}
+                        CollisionGroup: {}
+                        ContactEventHandler: null
+        -   Entity:
+                Id: 879DB6CD-2F8C-5B17-804B-575F345713D9
+                Name: Ramp35
+                Components:
+                    7e364587782454589d9e4680de0f7561: !TransformComponent
+                        Id: DF2E3149-C7C5-59A9-A878-50F58DCB3C7A
+                        Position: {X: 3.5, Y: 2.2542543, Z: -6.601703}
+                        Rotation: {X: 0.0, Y: -0.953717, Z: -0.3007058, W: 0.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    be7e9288a48c590e870090cb9260ae74: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
+                        Id: 29E726F5-807B-57BC-A1FB-0F10359E399C
+                        Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
+                            Colliders:
+                                9c760e7bae5d53ef8a4457269dfd9337: !Stride.BepuPhysics.Definitions.Colliders.BoxCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    Size: {X: 4.000002, Y: 0.6, Z: 8.7172365}
+                        CollisionGroup: {}
+                        ContactEventHandler: null
+        -   Entity:
+                Id: 402EFBC7-3B4F-50A2-8778-DC9A170C2E16
+                Name: Steps20_5
+                Components:
+                    fcc15996a43b505fad3af168f15815aa: !TransformComponent
+                        Id: F7AF267F-70F3-51D6-B9ED-406B78514149
+                        Position: {X: -6.0, Y: 0.6, Z: 6.7}
+                        Rotation: {X: 0.0, Y: 0.0, Z: -0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    1ecbbcdfc96254c3b0fb2567e178932e: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
+                        Id: EE300705-070E-5245-9C5A-6CA4F3E5413D
+                        Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
+                            Colliders:
+                                5d344da6f4dc5f9ca133c9261e62fe4a: !Stride.BepuPhysics.Definitions.Colliders.BoxCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    Size: {X: 2.0, Y: 1.2, Z: 0.6}
+                        CollisionGroup: {}
+                        ContactEventHandler: null
+        -   Entity:
+                Id: A6A5963D-575A-5735-A876-970028D5771A
+                Name: Ramp20
+                Components:
+                    7be0acb5761f59f89cb38bf8f539a294: !TransformComponent
+                        Id: D056C373-E712-5F4E-A2F7-AF5D88E30D68
+                        Position: {X: -3.5, Y: 2.2180922, Z: -3.2339122}
+                        Rotation: {X: 0.0, Y: -0.9848078, Z: -0.17364816, W: 0.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    d86b4ee710aa5df59a507c9bcc334764: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
+                        Id: E7BC3EF3-3DC0-59E6-B87B-8EF153A9E9ED
+                        Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
+                            Colliders:
+                                edd2060307305bdab7b805bdf526410d: !Stride.BepuPhysics.Definitions.Colliders.BoxCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    Size: {X: 4.0, Y: 0.6, Z: 14.619026}
+                        CollisionGroup: {}
+                        ContactEventHandler: null
+        -   Entity:
+                Id: 844B4A41-2A9F-5A14-8BF5-DD395882CF9E
+                Name: Steps40_4
+                Components:
+                    39400e89c9c158ad9cf7c7ec0b70a115: !TransformComponent
+                        Id: 99AC0960-5803-5505-B8B4-9731D9BC5668
+                        Position: {X: -14.0, Y: 1.0, Z: 7.2999997}
+                        Rotation: {X: 0.0, Y: 0.0, Z: -0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    66ad2e9bc9fb50b897bded88a54dbbfc: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
+                        Id: C1A37DC4-4343-5C83-80CC-EEE26A2633E3
+                        Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
+                            Colliders:
+                                2aa7bd7225da5ac0b960434f559defca: !Stride.BepuPhysics.Definitions.Colliders.BoxCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    Size: {X: 2.0, Y: 2.0, Z: 0.6}
+                        CollisionGroup: {}
+                        ContactEventHandler: null
+        -   Entity:
+                Id: 2FC8E390-0DA2-5885-A623-49FEDCF71B2D
+                Name: Steps20_4
+                Components:
+                    ca8273a802345107820325bcbd622910: !TransformComponent
+                        Id: 2F05EFC6-6DA4-5460-9192-A94FEFB10103
+                        Position: {X: -6.0, Y: 0.5, Z: 7.2999997}
+                        Rotation: {X: 0.0, Y: 0.0, Z: -0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    48a238f838c05546a5ade39ebb765e3f: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
+                        Id: 5575B4D8-EA06-54C9-909C-CCBFD016AF54
+                        Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
+                            Colliders:
+                                9cdac1edf84e5ef1a1662079c643f84b: !Stride.BepuPhysics.Definitions.Colliders.BoxCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    Size: {X: 2.0, Y: 1.0, Z: 0.6}
+                        CollisionGroup: {}
+                        ContactEventHandler: null
+        -   Entity:
+                Id: 8A41DC25-066F-5525-99A8-01DFB5AB9CDE
+                Name: Steps30_4
+                Components:
+                    6d5496830ea3506cb59b9bb7db437d73: !TransformComponent
+                        Id: F795BC33-DDE4-51C1-9C22-8E8C25E864F0
+                        Position: {X: -10.0, Y: 0.75, Z: 7.2999997}
+                        Rotation: {X: 0.0, Y: 0.0, Z: -0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    dc96927d3400512181ed25ff73f91265: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
+                        Id: 8E61C0B7-4243-5652-9A3C-5B896319F20A
+                        Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
+                            Colliders:
+                                930b9de60acc5da4a564170cccbf9997: !Stride.BepuPhysics.Definitions.Colliders.BoxCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    Size: {X: 2.0, Y: 1.5, Z: 0.6}
+                        CollisionGroup: {}
+                        ContactEventHandler: null
+        -   Entity:
+                Id: 57E3DC31-1073-52A6-8EDB-BB4C37FBCB3C
+                Name: Steps50_5
+                Components:
+                    4e7c61434cf156a3ad21c9e61f290c6b: !TransformComponent
+                        Id: 215A1453-4493-5074-803F-8B16F2C70FEA
+                        Position: {X: -18.0, Y: 1.5, Z: 6.7}
+                        Rotation: {X: 0.0, Y: 0.0, Z: -0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    f246d34dbf1150919f9580070084c4b5: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
+                        Id: C6246498-999F-5CB7-AD3C-FA7AF8975BFB
+                        Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
+                            Colliders:
+                                75acca1732a459e99bbc8cc58f9de511: !Stride.BepuPhysics.Definitions.Colliders.BoxCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    Size: {X: 2.0, Y: 3.0, Z: 0.6}
+                        CollisionGroup: {}
+                        ContactEventHandler: null
+        -   Entity:
+                Id: B6E1CC43-51C7-57DE-906D-F9A33F9934E6
+                Name: Steps50_0
+                Components:
+                    a20378d6f67153758eb218a4c0cce419: !TransformComponent
+                        Id: 189AD4D6-F95F-53A9-854E-B8B997977098
+                        Position: {X: -18.0, Y: 0.25, Z: 9.7}
+                        Rotation: {X: 0.0, Y: 0.0, Z: -0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    fae2674a6b3755029954ffde13200ad6: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
+                        Id: 2B02B5A1-CC85-53C2-92E0-EF9CD1C7356A
+                        Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
+                            Colliders:
+                                01960fecdaa85c98b52fe266a9fb2bfc: !Stride.BepuPhysics.Definitions.Colliders.BoxCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    Size: {X: 2.0, Y: 0.5, Z: 0.6}
+                        CollisionGroup: {}
+                        ContactEventHandler: null
+        -   Entity:
+                Id: 10529923-5E57-5484-B38A-2B2E59365329
+                Name: Ground
+                Components:
+                    8e5422c8db3c5d3a86092eda1b3523d1: !TransformComponent
+                        Id: B88B1521-D442-5AFA-A4C5-C0F835AE3747
+                        Position: {X: 0.0, Y: 0.0, Z: 0.0}
+                        Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    3a95acf1c89f5217838eb0cdc968054e: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
+                        Id: C8D75D6E-9197-5D29-AF0C-663DDD170507
+                        Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
+                            Colliders:
+                                b2ac60d0957056f59574a238402e2192: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -20.000002, Y: -1.110223E-16, Z: -25.0}
+                                    B: {X: -25.0, Y: -8.881784E-17, Z: -20.0}
+                                    C: {X: -25.0, Y: -1.110223E-16, Z: -25.0}
+                                679cd046f26b599cbf90df9eccaf136e: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -20.000002, Y: -1.110223E-16, Z: -25.0}
+                                    B: {X: -20.000002, Y: -8.881784E-17, Z: -20.0}
+                                    C: {X: -25.0, Y: -8.881784E-17, Z: -20.0}
+                                f33de95206765c62a048e3621b3001d1: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -15.0, Y: -1.110223E-16, Z: -25.0}
+                                    B: {X: -20.000002, Y: -8.881784E-17, Z: -20.0}
+                                    C: {X: -20.000002, Y: -1.110223E-16, Z: -25.0}
+                                fd3cf3e659ff52fc8f8988b6361dfb48: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -20.000002, Y: -8.881784E-17, Z: -20.0}
+                                    B: {X: -25.0, Y: -6.6613384E-17, Z: -15.0}
+                                    C: {X: -25.0, Y: -8.881784E-17, Z: -20.0}
+                                ec1cdace42ce583298e0dd39eb7a0978: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -15.0, Y: -1.110223E-16, Z: -25.0}
+                                    B: {X: -15.0, Y: -8.881784E-17, Z: -20.0}
+                                    C: {X: -20.000002, Y: -8.881784E-17, Z: -20.0}
+                                37e02cbdc05c575bb15f9886de24be02: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -9.999999, Y: -1.110223E-16, Z: -25.0}
+                                    B: {X: -15.0, Y: -8.881784E-17, Z: -20.0}
+                                    C: {X: -15.0, Y: -1.110223E-16, Z: -25.0}
+                                0460fd70130c543d9dee1ea3fcfcb393: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -20.000002, Y: -8.881784E-17, Z: -20.0}
+                                    B: {X: -20.000002, Y: -6.6613384E-17, Z: -15.0}
+                                    C: {X: -25.0, Y: -6.6613384E-17, Z: -15.0}
+                                1b7dbe3c83ce5c9c9f343303f28af031: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -15.0, Y: -8.881784E-17, Z: -20.0}
+                                    B: {X: -20.000002, Y: -6.6613384E-17, Z: -15.0}
+                                    C: {X: -20.000002, Y: -8.881784E-17, Z: -20.0}
+                                d35f77a7f3415719acd41020eb2c874d: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -20.000002, Y: -6.6613384E-17, Z: -15.0}
+                                    B: {X: -25.0, Y: -4.4408918E-17, Z: -9.999999}
+                                    C: {X: -25.0, Y: -6.6613384E-17, Z: -15.0}
+                                2799562575be5cb383d9fcab4bda5ece: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -9.999999, Y: -1.110223E-16, Z: -25.0}
+                                    B: {X: -9.999999, Y: -8.881784E-17, Z: -20.0}
+                                    C: {X: -15.0, Y: -8.881784E-17, Z: -20.0}
+                                60fdcdabdb4a5f1a965b09fc53506533: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -5.000001, Y: -1.110223E-16, Z: -25.0}
+                                    B: {X: -9.999999, Y: -8.881784E-17, Z: -20.0}
+                                    C: {X: -9.999999, Y: -1.110223E-16, Z: -25.0}
+                                6824ba411314542b936a0a2507d825a2: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -15.0, Y: -8.881784E-17, Z: -20.0}
+                                    B: {X: -15.0, Y: -6.6613384E-17, Z: -15.0}
+                                    C: {X: -20.000002, Y: -6.6613384E-17, Z: -15.0}
+                                b8f8b6484da6515197ecc111ece2186b: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -9.999999, Y: -8.881784E-17, Z: -20.0}
+                                    B: {X: -15.0, Y: -6.6613384E-17, Z: -15.0}
+                                    C: {X: -15.0, Y: -8.881784E-17, Z: -20.0}
+                                77485a3de7155fa08b8c61f7d54e329b: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -20.000002, Y: -6.6613384E-17, Z: -15.0}
+                                    B: {X: -20.000002, Y: -4.4408918E-17, Z: -9.999999}
+                                    C: {X: -25.0, Y: -4.4408918E-17, Z: -9.999999}
+                                7c7094c477235f78aaa345b2d708ecf1: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -15.0, Y: -6.6613384E-17, Z: -15.0}
+                                    B: {X: -20.000002, Y: -4.4408918E-17, Z: -9.999999}
+                                    C: {X: -20.000002, Y: -6.6613384E-17, Z: -15.0}
+                                20bdea6cada25da9897eb59d9ee4552f: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -20.000002, Y: -4.4408918E-17, Z: -9.999999}
+                                    B: {X: -25.0, Y: -2.2204459E-17, Z: -4.9999995}
+                                    C: {X: -25.0, Y: -4.4408918E-17, Z: -9.999999}
+                                4d3b07b0f1035684ad6e96e265aa340f: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -5.000001, Y: -1.110223E-16, Z: -25.0}
+                                    B: {X: -5.000001, Y: -8.881784E-17, Z: -20.0}
+                                    C: {X: -9.999999, Y: -8.881784E-17, Z: -20.0}
+                                e2527a3d92245f28b1ee106641bc62c7: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 0.0, Y: -1.110223E-16, Z: -25.0}
+                                    B: {X: -5.000001, Y: -8.881784E-17, Z: -20.0}
+                                    C: {X: -5.000001, Y: -1.110223E-16, Z: -25.0}
+                                31b5e5987aca55578a4ec3870f29d5b2: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -9.999999, Y: -8.881784E-17, Z: -20.0}
+                                    B: {X: -9.999999, Y: -6.6613384E-17, Z: -15.0}
+                                    C: {X: -15.0, Y: -6.6613384E-17, Z: -15.0}
+                                a7567b0be36c5b96bfba0d844a09b357: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -5.000001, Y: -8.881784E-17, Z: -20.0}
+                                    B: {X: -9.999999, Y: -6.6613384E-17, Z: -15.0}
+                                    C: {X: -9.999999, Y: -8.881784E-17, Z: -20.0}
+                                c9bb9f49611753d3b2de9b0bd32bcfc1: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -15.0, Y: -6.6613384E-17, Z: -15.0}
+                                    B: {X: -15.0, Y: -4.4408918E-17, Z: -9.999999}
+                                    C: {X: -20.000002, Y: -4.4408918E-17, Z: -9.999999}
+                                6e172e61ddd75eb6a5c0a2d4b4cff612: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -9.999999, Y: -6.6613384E-17, Z: -15.0}
+                                    B: {X: -15.0, Y: -4.4408918E-17, Z: -9.999999}
+                                    C: {X: -15.0, Y: -6.6613384E-17, Z: -15.0}
+                                4ecc8bebd15e51958ead4136d3e971fc: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -20.000002, Y: -4.4408918E-17, Z: -9.999999}
+                                    B: {X: -20.000002, Y: -2.2204459E-17, Z: -4.9999995}
+                                    C: {X: -25.0, Y: -2.2204459E-17, Z: -4.9999995}
+                                9bdd211d39975ae0945ecec99e4a8c2e: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -15.0, Y: -4.4408918E-17, Z: -9.999999}
+                                    B: {X: -20.000002, Y: -2.2204459E-17, Z: -4.9999995}
+                                    C: {X: -20.000002, Y: -4.4408918E-17, Z: -9.999999}
+                                c7d3678068c35ae7979f46c19da03ee3: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -20.000002, Y: -2.2204459E-17, Z: -4.9999995}
+                                    B: {X: -25.0, Y: 0.0, Z: -0.0}
+                                    C: {X: -25.0, Y: -2.2204459E-17, Z: -4.9999995}
+                                90daea5bf78e50b4832bb059e3e901e3: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 0.0, Y: -1.110223E-16, Z: -25.0}
+                                    B: {X: 0.0, Y: -8.881784E-17, Z: -20.0}
+                                    C: {X: -5.000001, Y: -8.881784E-17, Z: -20.0}
+                                bf7ce145071d59fea8005ec079bff4c3: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 4.9999995, Y: -1.110223E-16, Z: -25.0}
+                                    B: {X: 0.0, Y: -8.881784E-17, Z: -20.0}
+                                    C: {X: 0.0, Y: -1.110223E-16, Z: -25.0}
+                                3b0a38ef73425ba89da359b00344ecfa: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -5.000001, Y: -8.881784E-17, Z: -20.0}
+                                    B: {X: -5.000001, Y: -6.6613384E-17, Z: -15.0}
+                                    C: {X: -9.999999, Y: -6.6613384E-17, Z: -15.0}
+                                64f8f12fef6a59018bf8c3bcbefdb177: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 0.0, Y: -8.881784E-17, Z: -20.0}
+                                    B: {X: -5.000001, Y: -6.6613384E-17, Z: -15.0}
+                                    C: {X: -5.000001, Y: -8.881784E-17, Z: -20.0}
+                                998a5ea1bb435945a1ba716ecb0f24ed: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -9.999999, Y: -6.6613384E-17, Z: -15.0}
+                                    B: {X: -9.999999, Y: -4.4408918E-17, Z: -9.999999}
+                                    C: {X: -15.0, Y: -4.4408918E-17, Z: -9.999999}
+                                9519f0386bc55baaaec9242cb16aa6b9: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -5.000001, Y: -6.6613384E-17, Z: -15.0}
+                                    B: {X: -9.999999, Y: -4.4408918E-17, Z: -9.999999}
+                                    C: {X: -9.999999, Y: -6.6613384E-17, Z: -15.0}
+                                b7a42665060154738741c8d4e3ca1d3b: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -15.0, Y: -4.4408918E-17, Z: -9.999999}
+                                    B: {X: -15.0, Y: -2.2204459E-17, Z: -4.9999995}
+                                    C: {X: -20.000002, Y: -2.2204459E-17, Z: -4.9999995}
+                                567b6f6700ac527991d1ae887097af29: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -9.999999, Y: -4.4408918E-17, Z: -9.999999}
+                                    B: {X: -15.0, Y: -2.2204459E-17, Z: -4.9999995}
+                                    C: {X: -15.0, Y: -4.4408918E-17, Z: -9.999999}
+                                4371c450cf9455c48419899dcd944665: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -20.000002, Y: -2.2204459E-17, Z: -4.9999995}
+                                    B: {X: -20.000002, Y: 0.0, Z: -0.0}
+                                    C: {X: -25.0, Y: 0.0, Z: -0.0}
+                                ea6ebd0bf32b57f1bd546ae6ff404c5f: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -15.0, Y: -2.2204459E-17, Z: -4.9999995}
+                                    B: {X: -20.000002, Y: 0.0, Z: -0.0}
+                                    C: {X: -20.000002, Y: -2.2204459E-17, Z: -4.9999995}
+                                b935f36283a956a1a5f742d32e2ee5ba: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -20.000002, Y: 0.0, Z: -0.0}
+                                    B: {X: -25.0, Y: 2.2204466E-17, Z: 5.000001}
+                                    C: {X: -25.0, Y: 0.0, Z: -0.0}
+                                b2fe46e2c52e5b8da048d09dd19e3f9a: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 4.9999995, Y: -1.110223E-16, Z: -25.0}
+                                    B: {X: 4.9999995, Y: -8.881784E-17, Z: -20.0}
+                                    C: {X: 0.0, Y: -8.881784E-17, Z: -20.0}
+                                e8135118d2de580f88757b46a0542689: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 9.999999, Y: -1.110223E-16, Z: -25.0}
+                                    B: {X: 4.9999995, Y: -8.881784E-17, Z: -20.0}
+                                    C: {X: 4.9999995, Y: -1.110223E-16, Z: -25.0}
+                                fe05a997cc8e57c9bd8373ba4f862bac: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 0.0, Y: -8.881784E-17, Z: -20.0}
+                                    B: {X: 0.0, Y: -6.6613384E-17, Z: -15.0}
+                                    C: {X: -5.000001, Y: -6.6613384E-17, Z: -15.0}
+                                a97984281490551c9d559571b66cf3d1: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 4.9999995, Y: -8.881784E-17, Z: -20.0}
+                                    B: {X: 0.0, Y: -6.6613384E-17, Z: -15.0}
+                                    C: {X: 0.0, Y: -8.881784E-17, Z: -20.0}
+                                f00aa1cc7e815ec38036ac7477d06131: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -5.000001, Y: -6.6613384E-17, Z: -15.0}
+                                    B: {X: -5.000001, Y: -4.4408918E-17, Z: -9.999999}
+                                    C: {X: -9.999999, Y: -4.4408918E-17, Z: -9.999999}
+                                91cc960501a05da1ab21213fc48ee4c6: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 0.0, Y: -6.6613384E-17, Z: -15.0}
+                                    B: {X: -5.000001, Y: -4.4408918E-17, Z: -9.999999}
+                                    C: {X: -5.000001, Y: -6.6613384E-17, Z: -15.0}
+                                d9cc556e3f415ff5848e7d00c0934143: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -9.999999, Y: -4.4408918E-17, Z: -9.999999}
+                                    B: {X: -9.999999, Y: -2.2204459E-17, Z: -4.9999995}
+                                    C: {X: -15.0, Y: -2.2204459E-17, Z: -4.9999995}
+                                f19ac520b4e35405844fb7b210e81ba7: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -5.000001, Y: -4.4408918E-17, Z: -9.999999}
+                                    B: {X: -9.999999, Y: -2.2204459E-17, Z: -4.9999995}
+                                    C: {X: -9.999999, Y: -4.4408918E-17, Z: -9.999999}
+                                dbe73f2c96c35f689dce92a229682a77: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -15.0, Y: -2.2204459E-17, Z: -4.9999995}
+                                    B: {X: -15.0, Y: 0.0, Z: -0.0}
+                                    C: {X: -20.000002, Y: 0.0, Z: -0.0}
+                                4fe5e7814fc35494ba5f776cb4ed0361: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -9.999999, Y: -2.2204459E-17, Z: -4.9999995}
+                                    B: {X: -15.0, Y: 0.0, Z: -0.0}
+                                    C: {X: -15.0, Y: -2.2204459E-17, Z: -4.9999995}
+                                d1baff18589754a0a1cc13be85c87584: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -20.000002, Y: 0.0, Z: -0.0}
+                                    B: {X: -20.000002, Y: 2.2204466E-17, Z: 5.000001}
+                                    C: {X: -25.0, Y: 2.2204466E-17, Z: 5.000001}
+                                044a33e5d5f6521ebdd48490c22a33c9: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -15.0, Y: 0.0, Z: -0.0}
+                                    B: {X: -20.000002, Y: 2.2204466E-17, Z: 5.000001}
+                                    C: {X: -20.000002, Y: 0.0, Z: -0.0}
+                                89463a076e3c515eadb69b4d2d89cfcb: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -20.000002, Y: 2.2204466E-17, Z: 5.000001}
+                                    B: {X: -25.0, Y: 4.4408918E-17, Z: 9.999999}
+                                    C: {X: -25.0, Y: 2.2204466E-17, Z: 5.000001}
+                                692e8ee8d0ff58cfbfbd88fd856204fc: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 9.999999, Y: -1.110223E-16, Z: -25.0}
+                                    B: {X: 9.999999, Y: -8.881784E-17, Z: -20.0}
+                                    C: {X: 4.9999995, Y: -8.881784E-17, Z: -20.0}
+                                7fec0e19c78157e3a33ac3b2d3db3bc1: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 15.0, Y: -1.110223E-16, Z: -25.0}
+                                    B: {X: 9.999999, Y: -8.881784E-17, Z: -20.0}
+                                    C: {X: 9.999999, Y: -1.110223E-16, Z: -25.0}
+                                29527426aa6255969d0b57627c9cd724: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 4.9999995, Y: -8.881784E-17, Z: -20.0}
+                                    B: {X: 4.9999995, Y: -6.6613384E-17, Z: -15.0}
+                                    C: {X: 0.0, Y: -6.6613384E-17, Z: -15.0}
+                                1beb8f64d5c95771b50d3381f92de16e: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 9.999999, Y: -8.881784E-17, Z: -20.0}
+                                    B: {X: 4.9999995, Y: -6.6613384E-17, Z: -15.0}
+                                    C: {X: 4.9999995, Y: -8.881784E-17, Z: -20.0}
+                                27cbe2810a935300b482afda52808d67: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 0.0, Y: -6.6613384E-17, Z: -15.0}
+                                    B: {X: 0.0, Y: -4.4408918E-17, Z: -9.999999}
+                                    C: {X: -5.000001, Y: -4.4408918E-17, Z: -9.999999}
+                                0c042e14975e5b41ab2fd8584f6fb52b: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 4.9999995, Y: -6.6613384E-17, Z: -15.0}
+                                    B: {X: 0.0, Y: -4.4408918E-17, Z: -9.999999}
+                                    C: {X: 0.0, Y: -6.6613384E-17, Z: -15.0}
+                                b28e6bccc6255c7bba20fd6527824320: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -5.000001, Y: -4.4408918E-17, Z: -9.999999}
+                                    B: {X: -5.000001, Y: -2.2204459E-17, Z: -4.9999995}
+                                    C: {X: -9.999999, Y: -2.2204459E-17, Z: -4.9999995}
+                                89dbf519b1d5598b92a3243c1961e7ee: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 0.0, Y: -4.4408918E-17, Z: -9.999999}
+                                    B: {X: -5.000001, Y: -2.2204459E-17, Z: -4.9999995}
+                                    C: {X: -5.000001, Y: -4.4408918E-17, Z: -9.999999}
+                                c07aa38632265a00b77f269edc339cff: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -9.999999, Y: -2.2204459E-17, Z: -4.9999995}
+                                    B: {X: -9.999999, Y: 0.0, Z: -0.0}
+                                    C: {X: -15.0, Y: 0.0, Z: -0.0}
+                                2fd73e5e943b5ed9a10a0b7cdbc1f101: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -5.000001, Y: -2.2204459E-17, Z: -4.9999995}
+                                    B: {X: -9.999999, Y: 0.0, Z: -0.0}
+                                    C: {X: -9.999999, Y: -2.2204459E-17, Z: -4.9999995}
+                                135d998e467f56c1a2da65d0091b1bfe: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -15.0, Y: 0.0, Z: -0.0}
+                                    B: {X: -15.0, Y: 2.2204466E-17, Z: 5.000001}
+                                    C: {X: -20.000002, Y: 2.2204466E-17, Z: 5.000001}
+                                2487745c2f0956f9b5c74bc42d30692b: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -9.999999, Y: 0.0, Z: -0.0}
+                                    B: {X: -15.0, Y: 2.2204466E-17, Z: 5.000001}
+                                    C: {X: -15.0, Y: 0.0, Z: -0.0}
+                                a6913b79476a55fdaf69f7267e1fef6b: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -20.000002, Y: 2.2204466E-17, Z: 5.000001}
+                                    B: {X: -20.000002, Y: 4.4408918E-17, Z: 9.999999}
+                                    C: {X: -25.0, Y: 4.4408918E-17, Z: 9.999999}
+                                b12a96058c2e570a96aad9cd5f7528b7: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -15.0, Y: 2.2204466E-17, Z: 5.000001}
+                                    B: {X: -20.000002, Y: 4.4408918E-17, Z: 9.999999}
+                                    C: {X: -20.000002, Y: 2.2204466E-17, Z: 5.000001}
+                                09b84934503f5791a927eba45fd1e770: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -20.000002, Y: 4.4408918E-17, Z: 9.999999}
+                                    B: {X: -25.0, Y: 6.6613384E-17, Z: 15.0}
+                                    C: {X: -25.0, Y: 4.4408918E-17, Z: 9.999999}
+                                5c40236074445e67b7c60a70e366d530: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -20.000002, Y: 4.4408918E-17, Z: 9.999999}
+                                    B: {X: -20.000002, Y: 6.6613384E-17, Z: 15.0}
+                                    C: {X: -25.0, Y: 6.6613384E-17, Z: 15.0}
+                                e541384484ff583d976da79ea6970b41: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -20.000002, Y: 6.6613384E-17, Z: 15.0}
+                                    B: {X: -25.0, Y: 8.881785E-17, Z: 20.000002}
+                                    C: {X: -25.0, Y: 6.6613384E-17, Z: 15.0}
+                                319b828cd0855b91bab1b64625d258e8: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -15.0, Y: 2.2204466E-17, Z: 5.000001}
+                                    B: {X: -15.0, Y: 4.4408918E-17, Z: 9.999999}
+                                    C: {X: -20.000002, Y: 4.4408918E-17, Z: 9.999999}
+                                8089fa97c70d580a874a3e3aa380c6c2: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -15.0, Y: 4.4408918E-17, Z: 9.999999}
+                                    B: {X: -20.000002, Y: 6.6613384E-17, Z: 15.0}
+                                    C: {X: -20.000002, Y: 4.4408918E-17, Z: 9.999999}
+                                67c35b52b56258b0a70535da52b8ceae: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -9.999999, Y: 0.0, Z: -0.0}
+                                    B: {X: -9.999999, Y: 2.2204466E-17, Z: 5.000001}
+                                    C: {X: -15.0, Y: 2.2204466E-17, Z: 5.000001}
+                                8ba1a1b64039503e985a4cee1d918448: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -9.999999, Y: 2.2204466E-17, Z: 5.000001}
+                                    B: {X: -15.0, Y: 4.4408918E-17, Z: 9.999999}
+                                    C: {X: -15.0, Y: 2.2204466E-17, Z: 5.000001}
+                                242157bef0e9564b98d97eba8b0df9f3: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -5.000001, Y: -2.2204459E-17, Z: -4.9999995}
+                                    B: {X: -5.000001, Y: 0.0, Z: -0.0}
+                                    C: {X: -9.999999, Y: 0.0, Z: -0.0}
+                                e3585cf3c66f5b1785e23237ce38310f: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -5.000001, Y: 0.0, Z: -0.0}
+                                    B: {X: -9.999999, Y: 2.2204466E-17, Z: 5.000001}
+                                    C: {X: -9.999999, Y: 0.0, Z: -0.0}
+                                ec3e628a73e7582fa49331bd770c68f2: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 0.0, Y: -4.4408918E-17, Z: -9.999999}
+                                    B: {X: 0.0, Y: -2.2204459E-17, Z: -4.9999995}
+                                    C: {X: -5.000001, Y: -2.2204459E-17, Z: -4.9999995}
+                                f6ad75595d065c319ccae4469ef8b9a9: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 0.0, Y: -2.2204459E-17, Z: -4.9999995}
+                                    B: {X: -5.000001, Y: 0.0, Z: -0.0}
+                                    C: {X: -5.000001, Y: -2.2204459E-17, Z: -4.9999995}
+                                5a6c68552d7b5a178eae970e1940a668: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -20.000002, Y: 6.6613384E-17, Z: 15.0}
+                                    B: {X: -20.000002, Y: 8.881785E-17, Z: 20.000002}
+                                    C: {X: -25.0, Y: 8.881785E-17, Z: 20.000002}
+                                7b07a23e223e549bbe54241f41a5b3d0: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -20.000002, Y: 8.881785E-17, Z: 20.000002}
+                                    B: {X: -25.0, Y: 1.110223E-16, Z: 25.0}
+                                    C: {X: -25.0, Y: 8.881785E-17, Z: 20.000002}
+                                0f8570cd34d65e48a6eb1ad33ee51b56: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -20.000002, Y: 8.881785E-17, Z: 20.000002}
+                                    B: {X: -20.000002, Y: 1.110223E-16, Z: 25.0}
+                                    C: {X: -25.0, Y: 1.110223E-16, Z: 25.0}
+                                89791b3ba3e95db18cc9c2bec85f1d2b: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -15.0, Y: 4.4408918E-17, Z: 9.999999}
+                                    B: {X: -15.0, Y: 6.6613384E-17, Z: 15.0}
+                                    C: {X: -20.000002, Y: 6.6613384E-17, Z: 15.0}
+                                096cc8a3e984541daec5e07cc1fbf4e2: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -15.0, Y: 6.6613384E-17, Z: 15.0}
+                                    B: {X: -20.000002, Y: 8.881785E-17, Z: 20.000002}
+                                    C: {X: -20.000002, Y: 6.6613384E-17, Z: 15.0}
+                                fbac04e19f1e5502864d70b86ab26343: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -15.0, Y: 8.881785E-17, Z: 20.000002}
+                                    B: {X: -20.000002, Y: 1.110223E-16, Z: 25.0}
+                                    C: {X: -20.000002, Y: 8.881785E-17, Z: 20.000002}
+                                ea51ab8ee09f59b6b78ca0454759e0b9: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -15.0, Y: 6.6613384E-17, Z: 15.0}
+                                    B: {X: -15.0, Y: 8.881785E-17, Z: 20.000002}
+                                    C: {X: -20.000002, Y: 8.881785E-17, Z: 20.000002}
+                                1b479dff629954f7a595ef7f1f810a9c: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -15.0, Y: 8.881785E-17, Z: 20.000002}
+                                    B: {X: -15.0, Y: 1.110223E-16, Z: 25.0}
+                                    C: {X: -20.000002, Y: 1.110223E-16, Z: 25.0}
+                                92d88188de2c5d0a8dc9a9c322e05e56: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -9.999999, Y: 2.2204466E-17, Z: 5.000001}
+                                    B: {X: -9.999999, Y: 4.4408918E-17, Z: 9.999999}
+                                    C: {X: -15.0, Y: 4.4408918E-17, Z: 9.999999}
+                                f1d0c4073b335b70b02aa42dc5cbcb53: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -9.999999, Y: 4.4408918E-17, Z: 9.999999}
+                                    B: {X: -15.0, Y: 6.6613384E-17, Z: 15.0}
+                                    C: {X: -15.0, Y: 4.4408918E-17, Z: 9.999999}
+                                ca0a357fb8765dff9649e620ebf881f0: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -5.000001, Y: 0.0, Z: -0.0}
+                                    B: {X: -5.000001, Y: 2.2204466E-17, Z: 5.000001}
+                                    C: {X: -9.999999, Y: 2.2204466E-17, Z: 5.000001}
+                                1d968bbb8a15522188a58d4f6150f33c: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -5.000001, Y: 2.2204466E-17, Z: 5.000001}
+                                    B: {X: -9.999999, Y: 4.4408918E-17, Z: 9.999999}
+                                    C: {X: -9.999999, Y: 2.2204466E-17, Z: 5.000001}
+                                cc1aa9b8ce675397934c23c95ac1dcc8: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -9.999999, Y: 6.6613384E-17, Z: 15.0}
+                                    B: {X: -15.0, Y: 8.881785E-17, Z: 20.000002}
+                                    C: {X: -15.0, Y: 6.6613384E-17, Z: 15.0}
+                                3ac9ecf47e165acbbf639cb81e30279a: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -9.999999, Y: 4.4408918E-17, Z: 9.999999}
+                                    B: {X: -9.999999, Y: 6.6613384E-17, Z: 15.0}
+                                    C: {X: -15.0, Y: 6.6613384E-17, Z: 15.0}
+                                32ea68eb977d51d080e83bdface970ef: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -9.999999, Y: 8.881785E-17, Z: 20.000002}
+                                    B: {X: -15.0, Y: 1.110223E-16, Z: 25.0}
+                                    C: {X: -15.0, Y: 8.881785E-17, Z: 20.000002}
+                                58dc25d006f05cebafaf8c9a9a3b8446: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -9.999999, Y: 6.6613384E-17, Z: 15.0}
+                                    B: {X: -9.999999, Y: 8.881785E-17, Z: 20.000002}
+                                    C: {X: -15.0, Y: 8.881785E-17, Z: 20.000002}
+                                9c47261fbf515f688a0f162f6e2c12a1: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -9.999999, Y: 8.881785E-17, Z: 20.000002}
+                                    B: {X: -9.999999, Y: 1.110223E-16, Z: 25.0}
+                                    C: {X: -15.0, Y: 1.110223E-16, Z: 25.0}
+                                d89bd72c0f63564b9ede17b67ec68afa: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -5.000001, Y: 4.4408918E-17, Z: 9.999999}
+                                    B: {X: -9.999999, Y: 6.6613384E-17, Z: 15.0}
+                                    C: {X: -9.999999, Y: 4.4408918E-17, Z: 9.999999}
+                                cf56e05693875813a553588e62a3001f: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -5.000001, Y: 2.2204466E-17, Z: 5.000001}
+                                    B: {X: -5.000001, Y: 4.4408918E-17, Z: 9.999999}
+                                    C: {X: -9.999999, Y: 4.4408918E-17, Z: 9.999999}
+                                3205c0ca3b775fb282bfabf1d69e5323: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 0.0, Y: 0.0, Z: -0.0}
+                                    B: {X: -5.000001, Y: 2.2204466E-17, Z: 5.000001}
+                                    C: {X: -5.000001, Y: 0.0, Z: -0.0}
+                                1095078070c254c998eeb5f8b60fd780: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 0.0, Y: -2.2204459E-17, Z: -4.9999995}
+                                    B: {X: 0.0, Y: 0.0, Z: -0.0}
+                                    C: {X: -5.000001, Y: 0.0, Z: -0.0}
+                                5a58422140265574bc85ced91728e36e: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -5.000001, Y: 6.6613384E-17, Z: 15.0}
+                                    B: {X: -9.999999, Y: 8.881785E-17, Z: 20.000002}
+                                    C: {X: -9.999999, Y: 6.6613384E-17, Z: 15.0}
+                                5e51c99114585411b276ad5145a8c93e: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -5.000001, Y: 4.4408918E-17, Z: 9.999999}
+                                    B: {X: -5.000001, Y: 6.6613384E-17, Z: 15.0}
+                                    C: {X: -9.999999, Y: 6.6613384E-17, Z: 15.0}
+                                c0593de498a855cfb098f6285233435a: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -5.000001, Y: 8.881785E-17, Z: 20.000002}
+                                    B: {X: -9.999999, Y: 1.110223E-16, Z: 25.0}
+                                    C: {X: -9.999999, Y: 8.881785E-17, Z: 20.000002}
+                                5a02eebddfde5d7fb9143d18be8462d0: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -5.000001, Y: 6.6613384E-17, Z: 15.0}
+                                    B: {X: -5.000001, Y: 8.881785E-17, Z: 20.000002}
+                                    C: {X: -9.999999, Y: 8.881785E-17, Z: 20.000002}
+                                552451304ded599589fba5b0b59f6767: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: -5.000001, Y: 8.881785E-17, Z: 20.000002}
+                                    B: {X: -5.000001, Y: 1.110223E-16, Z: 25.0}
+                                    C: {X: -9.999999, Y: 1.110223E-16, Z: 25.0}
+                                77477b18836557cca0a3199d251d7515: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 0.0, Y: 2.2204466E-17, Z: 5.000001}
+                                    B: {X: -5.000001, Y: 4.4408918E-17, Z: 9.999999}
+                                    C: {X: -5.000001, Y: 2.2204466E-17, Z: 5.000001}
+                                ab3fc9c775f654719fbd8f497792b0bd: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 0.0, Y: 0.0, Z: -0.0}
+                                    B: {X: 0.0, Y: 2.2204466E-17, Z: 5.000001}
+                                    C: {X: -5.000001, Y: 2.2204466E-17, Z: 5.000001}
+                                2f885c2561ad5d6bb02f7c336076b092: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 0.0, Y: 4.4408918E-17, Z: 9.999999}
+                                    B: {X: -5.000001, Y: 6.6613384E-17, Z: 15.0}
+                                    C: {X: -5.000001, Y: 4.4408918E-17, Z: 9.999999}
+                                f4787d6566d455afaaed91ab15f328e1: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 0.0, Y: 2.2204466E-17, Z: 5.000001}
+                                    B: {X: 0.0, Y: 4.4408918E-17, Z: 9.999999}
+                                    C: {X: -5.000001, Y: 4.4408918E-17, Z: 9.999999}
+                                ca565378ce0150b79690a323812f9766: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 0.0, Y: 6.6613384E-17, Z: 15.0}
+                                    B: {X: -5.000001, Y: 8.881785E-17, Z: 20.000002}
+                                    C: {X: -5.000001, Y: 6.6613384E-17, Z: 15.0}
+                                d99da07f0abb5cc59a6976e4a189ae9c: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 0.0, Y: 4.4408918E-17, Z: 9.999999}
+                                    B: {X: 0.0, Y: 6.6613384E-17, Z: 15.0}
+                                    C: {X: -5.000001, Y: 6.6613384E-17, Z: 15.0}
+                                ee9acad8f4875934abba60ba650f89a9: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 0.0, Y: 8.881785E-17, Z: 20.000002}
+                                    B: {X: -5.000001, Y: 1.110223E-16, Z: 25.0}
+                                    C: {X: -5.000001, Y: 8.881785E-17, Z: 20.000002}
+                                db6be23ab3a85dce903c9b645b460f89: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 0.0, Y: 6.6613384E-17, Z: 15.0}
+                                    B: {X: 0.0, Y: 8.881785E-17, Z: 20.000002}
+                                    C: {X: -5.000001, Y: 8.881785E-17, Z: 20.000002}
+                                4d97b979f02e5001ab63f110675ad234: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 0.0, Y: 8.881785E-17, Z: 20.000002}
+                                    B: {X: 0.0, Y: 1.110223E-16, Z: 25.0}
+                                    C: {X: -5.000001, Y: 1.110223E-16, Z: 25.0}
+                                a386b75c24d6587aaaf7ce2159f8e7ca: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 4.9999995, Y: 8.881785E-17, Z: 20.000002}
+                                    B: {X: 0.0, Y: 1.110223E-16, Z: 25.0}
+                                    C: {X: 0.0, Y: 8.881785E-17, Z: 20.000002}
+                                ee3a3eaaf10155268a07999f9319ef97: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 4.9999995, Y: 8.881785E-17, Z: 20.000002}
+                                    B: {X: 4.9999995, Y: 1.110223E-16, Z: 25.0}
+                                    C: {X: 0.0, Y: 1.110223E-16, Z: 25.0}
+                                70dc7c597d975e8f8e9f9f442178b113: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 4.9999995, Y: 6.6613384E-17, Z: 15.0}
+                                    B: {X: 0.0, Y: 8.881785E-17, Z: 20.000002}
+                                    C: {X: 0.0, Y: 6.6613384E-17, Z: 15.0}
+                                4fa6d2cacd605232901bc2619364d512: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 4.9999995, Y: 6.6613384E-17, Z: 15.0}
+                                    B: {X: 4.9999995, Y: 8.881785E-17, Z: 20.000002}
+                                    C: {X: 0.0, Y: 8.881785E-17, Z: 20.000002}
+                                36c7fddd4ca457ad9fdf603d33738e49: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 4.9999995, Y: 4.4408918E-17, Z: 9.999999}
+                                    B: {X: 0.0, Y: 6.6613384E-17, Z: 15.0}
+                                    C: {X: 0.0, Y: 4.4408918E-17, Z: 9.999999}
+                                4ac22ba56b6154fd90911bc50a0c7a2a: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 4.9999995, Y: 4.4408918E-17, Z: 9.999999}
+                                    B: {X: 4.9999995, Y: 6.6613384E-17, Z: 15.0}
+                                    C: {X: 0.0, Y: 6.6613384E-17, Z: 15.0}
+                                4d4962cf2c3250bf8be2db0cd6105559: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 4.9999995, Y: 2.2204466E-17, Z: 5.000001}
+                                    B: {X: 0.0, Y: 4.4408918E-17, Z: 9.999999}
+                                    C: {X: 0.0, Y: 2.2204466E-17, Z: 5.000001}
+                                87ef6be9e9fb5bf4a81dbc7892d285a6: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 4.9999995, Y: 2.2204466E-17, Z: 5.000001}
+                                    B: {X: 4.9999995, Y: 4.4408918E-17, Z: 9.999999}
+                                    C: {X: 0.0, Y: 4.4408918E-17, Z: 9.999999}
+                                778b2c9988a6573888cbb2e6a2ba20b4: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 4.9999995, Y: 0.0, Z: -0.0}
+                                    B: {X: 0.0, Y: 2.2204466E-17, Z: 5.000001}
+                                    C: {X: 0.0, Y: 0.0, Z: -0.0}
+                                a7832fbbd50d50a3b5c437e15087ab13: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 4.9999995, Y: 0.0, Z: -0.0}
+                                    B: {X: 4.9999995, Y: 2.2204466E-17, Z: 5.000001}
+                                    C: {X: 0.0, Y: 2.2204466E-17, Z: 5.000001}
+                                0b5095ca89ba52a9ac00f2c25d0e8cd9: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 9.999999, Y: 8.881785E-17, Z: 20.000002}
+                                    B: {X: 4.9999995, Y: 1.110223E-16, Z: 25.0}
+                                    C: {X: 4.9999995, Y: 8.881785E-17, Z: 20.000002}
+                                b03fb9d91fa4515db3eb154a13bc1efc: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 9.999999, Y: 8.881785E-17, Z: 20.000002}
+                                    B: {X: 9.999999, Y: 1.110223E-16, Z: 25.0}
+                                    C: {X: 4.9999995, Y: 1.110223E-16, Z: 25.0}
+                                32e06d3b8046530998ed4f59a0ef3de4: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 9.999999, Y: 6.6613384E-17, Z: 15.0}
+                                    B: {X: 4.9999995, Y: 8.881785E-17, Z: 20.000002}
+                                    C: {X: 4.9999995, Y: 6.6613384E-17, Z: 15.0}
+                                f03285fc5a0a5d29a9e7d6bfdd63c160: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 9.999999, Y: 6.6613384E-17, Z: 15.0}
+                                    B: {X: 9.999999, Y: 8.881785E-17, Z: 20.000002}
+                                    C: {X: 4.9999995, Y: 8.881785E-17, Z: 20.000002}
+                                112e46fe8ed652349c1344047b839601: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 9.999999, Y: 4.4408918E-17, Z: 9.999999}
+                                    B: {X: 4.9999995, Y: 6.6613384E-17, Z: 15.0}
+                                    C: {X: 4.9999995, Y: 4.4408918E-17, Z: 9.999999}
+                                7863b45b62b750fabb6ccca3a1701dc3: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 9.999999, Y: 4.4408918E-17, Z: 9.999999}
+                                    B: {X: 9.999999, Y: 6.6613384E-17, Z: 15.0}
+                                    C: {X: 4.9999995, Y: 6.6613384E-17, Z: 15.0}
+                                e6cc022bea395054a056b8b509781fec: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 9.999999, Y: 2.2204466E-17, Z: 5.000001}
+                                    B: {X: 4.9999995, Y: 4.4408918E-17, Z: 9.999999}
+                                    C: {X: 4.9999995, Y: 2.2204466E-17, Z: 5.000001}
+                                4b60aecd806f5eb8b9b6c7748c85570e: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 9.999999, Y: 2.2204466E-17, Z: 5.000001}
+                                    B: {X: 9.999999, Y: 4.4408918E-17, Z: 9.999999}
+                                    C: {X: 4.9999995, Y: 4.4408918E-17, Z: 9.999999}
+                                61f8a801186c509b83bd34d4afae7994: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 15.0, Y: 8.881785E-17, Z: 20.000002}
+                                    B: {X: 9.999999, Y: 1.110223E-16, Z: 25.0}
+                                    C: {X: 9.999999, Y: 8.881785E-17, Z: 20.000002}
+                                65fa3d546e8950a89a3982c86ca39c73: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 15.0, Y: 8.881785E-17, Z: 20.000002}
+                                    B: {X: 15.0, Y: 1.110223E-16, Z: 25.0}
+                                    C: {X: 9.999999, Y: 1.110223E-16, Z: 25.0}
+                                fa42019e748c5e69a7e27f7e506ab5f1: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 15.0, Y: 6.6613384E-17, Z: 15.0}
+                                    B: {X: 9.999999, Y: 8.881785E-17, Z: 20.000002}
+                                    C: {X: 9.999999, Y: 6.6613384E-17, Z: 15.0}
+                                d8b9ecb1d0a05f769f54142f2a278318: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 15.0, Y: 6.6613384E-17, Z: 15.0}
+                                    B: {X: 15.0, Y: 8.881785E-17, Z: 20.000002}
+                                    C: {X: 9.999999, Y: 8.881785E-17, Z: 20.000002}
+                                a7426640c7d458f28dc983ee555f1d19: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 15.0, Y: 4.4408918E-17, Z: 9.999999}
+                                    B: {X: 9.999999, Y: 6.6613384E-17, Z: 15.0}
+                                    C: {X: 9.999999, Y: 4.4408918E-17, Z: 9.999999}
+                                f6320e4c7aec5310a65e067483f856a0: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 15.0, Y: 4.4408918E-17, Z: 9.999999}
+                                    B: {X: 15.0, Y: 6.6613384E-17, Z: 15.0}
+                                    C: {X: 9.999999, Y: 6.6613384E-17, Z: 15.0}
+                                0e3c1f0ef51451c9ba16ee7e8334b796: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 20.0, Y: 8.881785E-17, Z: 20.000002}
+                                    B: {X: 15.0, Y: 1.110223E-16, Z: 25.0}
+                                    C: {X: 15.0, Y: 8.881785E-17, Z: 20.000002}
+                                b0f79be3d14f5e83890c964eabf0646f: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 20.0, Y: 8.881785E-17, Z: 20.000002}
+                                    B: {X: 20.0, Y: 1.110223E-16, Z: 25.0}
+                                    C: {X: 15.0, Y: 1.110223E-16, Z: 25.0}
+                                e4b609efdf3e51d4b95c6761d9c8a49e: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 20.0, Y: 6.6613384E-17, Z: 15.0}
+                                    B: {X: 15.0, Y: 8.881785E-17, Z: 20.000002}
+                                    C: {X: 15.0, Y: 6.6613384E-17, Z: 15.0}
+                                61714070c13053cbad41e814fcd4af1b: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 20.0, Y: 6.6613384E-17, Z: 15.0}
+                                    B: {X: 20.0, Y: 8.881785E-17, Z: 20.000002}
+                                    C: {X: 15.0, Y: 8.881785E-17, Z: 20.000002}
+                                37b04581e7315684b75cbf5b0152f53b: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 25.0, Y: 8.881785E-17, Z: 20.000002}
+                                    B: {X: 20.0, Y: 1.110223E-16, Z: 25.0}
+                                    C: {X: 20.0, Y: 8.881785E-17, Z: 20.000002}
+                                43f4cc419523589b8ca9dee4ef930f74: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 25.0, Y: 8.881785E-17, Z: 20.000002}
+                                    B: {X: 25.0, Y: 1.110223E-16, Z: 25.0}
+                                    C: {X: 20.0, Y: 1.110223E-16, Z: 25.0}
+                                1fc477c7b00c5cbb82d96c244f3e32b1: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 25.0, Y: 6.6613384E-17, Z: 15.0}
+                                    B: {X: 25.0, Y: 8.881785E-17, Z: 20.000002}
+                                    C: {X: 20.0, Y: 8.881785E-17, Z: 20.000002}
+                                584a285048185813a269bb147e35962a: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 25.0, Y: 6.6613384E-17, Z: 15.0}
+                                    B: {X: 20.0, Y: 8.881785E-17, Z: 20.000002}
+                                    C: {X: 20.0, Y: 6.6613384E-17, Z: 15.0}
+                                a008b550dd855ae9aa89d133b3712702: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 25.0, Y: 4.4408918E-17, Z: 9.999999}
+                                    B: {X: 25.0, Y: 6.6613384E-17, Z: 15.0}
+                                    C: {X: 20.0, Y: 6.6613384E-17, Z: 15.0}
+                                12e483a726b350aeac2e495576f6e542: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 20.0, Y: 4.4408918E-17, Z: 9.999999}
+                                    B: {X: 20.0, Y: 6.6613384E-17, Z: 15.0}
+                                    C: {X: 15.0, Y: 6.6613384E-17, Z: 15.0}
+                                ba33aa78acc0572eb0aeaa01e0edfe4e: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 25.0, Y: 4.4408918E-17, Z: 9.999999}
+                                    B: {X: 20.0, Y: 6.6613384E-17, Z: 15.0}
+                                    C: {X: 20.0, Y: 4.4408918E-17, Z: 9.999999}
+                                1ad65a925f0659b49c6a918a5cf66696: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 20.0, Y: 4.4408918E-17, Z: 9.999999}
+                                    B: {X: 15.0, Y: 6.6613384E-17, Z: 15.0}
+                                    C: {X: 15.0, Y: 4.4408918E-17, Z: 9.999999}
+                                a32e1a480ee35b47b54c33370bd3d401: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 25.0, Y: 2.2204466E-17, Z: 5.000001}
+                                    B: {X: 25.0, Y: 4.4408918E-17, Z: 9.999999}
+                                    C: {X: 20.0, Y: 4.4408918E-17, Z: 9.999999}
+                                36330358dcac5165b20a8cb1b6a56e7d: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 25.0, Y: 2.2204466E-17, Z: 5.000001}
+                                    B: {X: 20.0, Y: 4.4408918E-17, Z: 9.999999}
+                                    C: {X: 20.0, Y: 2.2204466E-17, Z: 5.000001}
+                                f5f0d1eb73dd508fbd38fffbc26cd9de: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 20.0, Y: 2.2204466E-17, Z: 5.000001}
+                                    B: {X: 20.0, Y: 4.4408918E-17, Z: 9.999999}
+                                    C: {X: 15.0, Y: 4.4408918E-17, Z: 9.999999}
+                                ad7c750559cb51f491743bc5a4c303b9: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 25.0, Y: 0.0, Z: -0.0}
+                                    B: {X: 25.0, Y: 2.2204466E-17, Z: 5.000001}
+                                    C: {X: 20.0, Y: 2.2204466E-17, Z: 5.000001}
+                                38c397af7a82595699ee8b2ed42ca12e: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 20.0, Y: 2.2204466E-17, Z: 5.000001}
+                                    B: {X: 15.0, Y: 4.4408918E-17, Z: 9.999999}
+                                    C: {X: 15.0, Y: 2.2204466E-17, Z: 5.000001}
+                                f619719f80b2504dafdbdfadc8545617: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 15.0, Y: 2.2204466E-17, Z: 5.000001}
+                                    B: {X: 15.0, Y: 4.4408918E-17, Z: 9.999999}
+                                    C: {X: 9.999999, Y: 4.4408918E-17, Z: 9.999999}
+                                e0f163834692592c997f0784f7aa0d16: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 15.0, Y: 2.2204466E-17, Z: 5.000001}
+                                    B: {X: 9.999999, Y: 4.4408918E-17, Z: 9.999999}
+                                    C: {X: 9.999999, Y: 2.2204466E-17, Z: 5.000001}
+                                4da7c6f99be45bf5b7ed77e107cb5741: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 25.0, Y: 0.0, Z: -0.0}
+                                    B: {X: 20.0, Y: 2.2204466E-17, Z: 5.000001}
+                                    C: {X: 20.0, Y: 0.0, Z: -0.0}
+                                d860bf77b08c5c4a806538893496856e: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 20.0, Y: 0.0, Z: -0.0}
+                                    B: {X: 20.0, Y: 2.2204466E-17, Z: 5.000001}
+                                    C: {X: 15.0, Y: 2.2204466E-17, Z: 5.000001}
+                                cc5fc02cafd15583b1f20ca8e1321af6: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 25.0, Y: -2.2204459E-17, Z: -4.9999995}
+                                    B: {X: 25.0, Y: 0.0, Z: -0.0}
+                                    C: {X: 20.0, Y: 0.0, Z: -0.0}
+                                1e2ef0f0c8735c21b391724887879c51: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 15.0, Y: 0.0, Z: -0.0}
+                                    B: {X: 15.0, Y: 2.2204466E-17, Z: 5.000001}
+                                    C: {X: 9.999999, Y: 2.2204466E-17, Z: 5.000001}
+                                71177d9273905f54bad1b20ef7306506: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 20.0, Y: 0.0, Z: -0.0}
+                                    B: {X: 15.0, Y: 2.2204466E-17, Z: 5.000001}
+                                    C: {X: 15.0, Y: 0.0, Z: -0.0}
+                                3b1e14988a8552b8b8fce9c7ac1b0ab5: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 25.0, Y: -2.2204459E-17, Z: -4.9999995}
+                                    B: {X: 20.0, Y: 0.0, Z: -0.0}
+                                    C: {X: 20.0, Y: -2.2204459E-17, Z: -4.9999995}
+                                28a602b8b9f555a185b86c011fae0147: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 20.0, Y: -2.2204459E-17, Z: -4.9999995}
+                                    B: {X: 20.0, Y: 0.0, Z: -0.0}
+                                    C: {X: 15.0, Y: 0.0, Z: -0.0}
+                                f943614d878b5fe2a45733f28f356f97: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 25.0, Y: -4.4408918E-17, Z: -9.999999}
+                                    B: {X: 25.0, Y: -2.2204459E-17, Z: -4.9999995}
+                                    C: {X: 20.0, Y: -2.2204459E-17, Z: -4.9999995}
+                                3e2af01248095cd8a40f3db14d82e1b2: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 15.0, Y: 0.0, Z: -0.0}
+                                    B: {X: 9.999999, Y: 2.2204466E-17, Z: 5.000001}
+                                    C: {X: 9.999999, Y: 0.0, Z: -0.0}
+                                4098a9005cbe5c298a607b4adb877ab5: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 9.999999, Y: 0.0, Z: -0.0}
+                                    B: {X: 9.999999, Y: 2.2204466E-17, Z: 5.000001}
+                                    C: {X: 4.9999995, Y: 2.2204466E-17, Z: 5.000001}
+                                00d1839f5bb95ee1b73b9ce81c3c7187: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 9.999999, Y: 0.0, Z: -0.0}
+                                    B: {X: 4.9999995, Y: 2.2204466E-17, Z: 5.000001}
+                                    C: {X: 4.9999995, Y: 0.0, Z: -0.0}
+                                b68883e896da50d18261129a46a53d7a: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 25.0, Y: -4.4408918E-17, Z: -9.999999}
+                                    B: {X: 20.0, Y: -2.2204459E-17, Z: -4.9999995}
+                                    C: {X: 20.0, Y: -4.4408918E-17, Z: -9.999999}
+                                5a94b328d694513a813fde6e013f2306: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 25.0, Y: -6.6613384E-17, Z: -15.0}
+                                    B: {X: 25.0, Y: -4.4408918E-17, Z: -9.999999}
+                                    C: {X: 20.0, Y: -4.4408918E-17, Z: -9.999999}
+                                af63e2cfd54750de8ca3fb9cd05f6588: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 20.0, Y: -2.2204459E-17, Z: -4.9999995}
+                                    B: {X: 15.0, Y: 0.0, Z: -0.0}
+                                    C: {X: 15.0, Y: -2.2204459E-17, Z: -4.9999995}
+                                78ec8633f7e65de4aee208d47f3a071a: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 15.0, Y: -2.2204459E-17, Z: -4.9999995}
+                                    B: {X: 15.0, Y: 0.0, Z: -0.0}
+                                    C: {X: 9.999999, Y: 0.0, Z: -0.0}
+                                70b0616751eb5e18bf41721b7a05e6b7: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 20.0, Y: -4.4408918E-17, Z: -9.999999}
+                                    B: {X: 20.0, Y: -2.2204459E-17, Z: -4.9999995}
+                                    C: {X: 15.0, Y: -2.2204459E-17, Z: -4.9999995}
+                                c9fc781bf78d54f2bffbad7f81c9cb49: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 9.999999, Y: -2.2204459E-17, Z: -4.9999995}
+                                    B: {X: 9.999999, Y: 0.0, Z: -0.0}
+                                    C: {X: 4.9999995, Y: 0.0, Z: -0.0}
+                                c6714d3bdf585199847c078a1daf1999: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 15.0, Y: -2.2204459E-17, Z: -4.9999995}
+                                    B: {X: 9.999999, Y: 0.0, Z: -0.0}
+                                    C: {X: 9.999999, Y: -2.2204459E-17, Z: -4.9999995}
+                                09051ab9e7c5528b911769dcfe4711d9: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 25.0, Y: -6.6613384E-17, Z: -15.0}
+                                    B: {X: 20.0, Y: -4.4408918E-17, Z: -9.999999}
+                                    C: {X: 20.0, Y: -6.6613384E-17, Z: -15.0}
+                                0de2bdcb448252efa5be9e5d16dc4eee: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 25.0, Y: -8.881784E-17, Z: -20.0}
+                                    B: {X: 25.0, Y: -6.6613384E-17, Z: -15.0}
+                                    C: {X: 20.0, Y: -6.6613384E-17, Z: -15.0}
+                                374da37ad13053ef8b6d7aa45e2dabc0: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 20.0, Y: -4.4408918E-17, Z: -9.999999}
+                                    B: {X: 15.0, Y: -2.2204459E-17, Z: -4.9999995}
+                                    C: {X: 15.0, Y: -4.4408918E-17, Z: -9.999999}
+                                3cf4ebf679bb5982acc565076aa2aac7: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 15.0, Y: -4.4408918E-17, Z: -9.999999}
+                                    B: {X: 15.0, Y: -2.2204459E-17, Z: -4.9999995}
+                                    C: {X: 9.999999, Y: -2.2204459E-17, Z: -4.9999995}
+                                136c463da10a52f8ae0c968c05382293: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 20.0, Y: -6.6613384E-17, Z: -15.0}
+                                    B: {X: 20.0, Y: -4.4408918E-17, Z: -9.999999}
+                                    C: {X: 15.0, Y: -4.4408918E-17, Z: -9.999999}
+                                f755d23621bc5c3e8db9caaa320de493: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 9.999999, Y: -2.2204459E-17, Z: -4.9999995}
+                                    B: {X: 4.9999995, Y: 0.0, Z: -0.0}
+                                    C: {X: 4.9999995, Y: -2.2204459E-17, Z: -4.9999995}
+                                41a96afe06bd5218998ba418fc8ae983: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 4.9999995, Y: -2.2204459E-17, Z: -4.9999995}
+                                    B: {X: 4.9999995, Y: 0.0, Z: -0.0}
+                                    C: {X: 0.0, Y: 0.0, Z: -0.0}
+                                881f13a7700752a2a742db25c8ffeae0: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 4.9999995, Y: -2.2204459E-17, Z: -4.9999995}
+                                    B: {X: 0.0, Y: 0.0, Z: -0.0}
+                                    C: {X: 0.0, Y: -2.2204459E-17, Z: -4.9999995}
+                                539887dd87f25209bdd26a3ead23d92e: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 25.0, Y: -8.881784E-17, Z: -20.0}
+                                    B: {X: 20.0, Y: -6.6613384E-17, Z: -15.0}
+                                    C: {X: 20.0, Y: -8.881784E-17, Z: -20.0}
+                                bffcbbb888655b06bd2bbd6e55f9117e: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 25.0, Y: -1.110223E-16, Z: -25.0}
+                                    B: {X: 25.0, Y: -8.881784E-17, Z: -20.0}
+                                    C: {X: 20.0, Y: -8.881784E-17, Z: -20.0}
+                                a9bc15fce1c95fd29a9c905a7b0f3210: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 25.0, Y: -1.110223E-16, Z: -25.0}
+                                    B: {X: 20.0, Y: -8.881784E-17, Z: -20.0}
+                                    C: {X: 20.0, Y: -1.110223E-16, Z: -25.0}
+                                d3359c76a2895282af474c0438d8e94a: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 20.0, Y: -6.6613384E-17, Z: -15.0}
+                                    B: {X: 15.0, Y: -4.4408918E-17, Z: -9.999999}
+                                    C: {X: 15.0, Y: -6.6613384E-17, Z: -15.0}
+                                b5674a325fb05ae7b2f9c5a3168c558b: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 20.0, Y: -8.881784E-17, Z: -20.0}
+                                    B: {X: 20.0, Y: -6.6613384E-17, Z: -15.0}
+                                    C: {X: 15.0, Y: -6.6613384E-17, Z: -15.0}
+                                f3b4086fa9cc55b99e19d818d968d3e0: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 15.0, Y: -4.4408918E-17, Z: -9.999999}
+                                    B: {X: 9.999999, Y: -2.2204459E-17, Z: -4.9999995}
+                                    C: {X: 9.999999, Y: -4.4408918E-17, Z: -9.999999}
+                                ce8ffcbce8ab556bbbd8cc13eef0dace: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 9.999999, Y: -4.4408918E-17, Z: -9.999999}
+                                    B: {X: 9.999999, Y: -2.2204459E-17, Z: -4.9999995}
+                                    C: {X: 4.9999995, Y: -2.2204459E-17, Z: -4.9999995}
+                                0a8ee900fa1856098cdf3cc489d55d66: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 15.0, Y: -6.6613384E-17, Z: -15.0}
+                                    B: {X: 15.0, Y: -4.4408918E-17, Z: -9.999999}
+                                    C: {X: 9.999999, Y: -4.4408918E-17, Z: -9.999999}
+                                f0b90d83260f57d3b9df5b90a5c81a8d: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 4.9999995, Y: -4.4408918E-17, Z: -9.999999}
+                                    B: {X: 4.9999995, Y: -2.2204459E-17, Z: -4.9999995}
+                                    C: {X: 0.0, Y: -2.2204459E-17, Z: -4.9999995}
+                                225b9523c3f15a3d8a20f36f1816211d: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 9.999999, Y: -4.4408918E-17, Z: -9.999999}
+                                    B: {X: 4.9999995, Y: -2.2204459E-17, Z: -4.9999995}
+                                    C: {X: 4.9999995, Y: -4.4408918E-17, Z: -9.999999}
+                                10e810e5d51955a687d95407a191743a: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 4.9999995, Y: -4.4408918E-17, Z: -9.999999}
+                                    B: {X: 0.0, Y: -2.2204459E-17, Z: -4.9999995}
+                                    C: {X: 0.0, Y: -4.4408918E-17, Z: -9.999999}
+                                bab152032e2e553092b1eba40820c1cc: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 4.9999995, Y: -6.6613384E-17, Z: -15.0}
+                                    B: {X: 4.9999995, Y: -4.4408918E-17, Z: -9.999999}
+                                    C: {X: 0.0, Y: -4.4408918E-17, Z: -9.999999}
+                                324ae38c5b8555bda26caa1055ad4a34: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 20.0, Y: -1.110223E-16, Z: -25.0}
+                                    B: {X: 20.0, Y: -8.881784E-17, Z: -20.0}
+                                    C: {X: 15.0, Y: -8.881784E-17, Z: -20.0}
+                                933354bb25945db9863e808f1e49d6fb: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 20.0, Y: -8.881784E-17, Z: -20.0}
+                                    B: {X: 15.0, Y: -6.6613384E-17, Z: -15.0}
+                                    C: {X: 15.0, Y: -8.881784E-17, Z: -20.0}
+                                17c20d1dbedf5e4dbb1873dfa9177e3d: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 20.0, Y: -1.110223E-16, Z: -25.0}
+                                    B: {X: 15.0, Y: -8.881784E-17, Z: -20.0}
+                                    C: {X: 15.0, Y: -1.110223E-16, Z: -25.0}
+                                86ab9056280d5df0b2c4f96bd2f36921: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 15.0, Y: -1.110223E-16, Z: -25.0}
+                                    B: {X: 15.0, Y: -8.881784E-17, Z: -20.0}
+                                    C: {X: 9.999999, Y: -8.881784E-17, Z: -20.0}
+                                a530c112d5f1542da9c47d8998a76a5d: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 15.0, Y: -6.6613384E-17, Z: -15.0}
+                                    B: {X: 9.999999, Y: -4.4408918E-17, Z: -9.999999}
+                                    C: {X: 9.999999, Y: -6.6613384E-17, Z: -15.0}
+                                16a9c34c596b597fb470ebc3e2777e40: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 9.999999, Y: -6.6613384E-17, Z: -15.0}
+                                    B: {X: 9.999999, Y: -4.4408918E-17, Z: -9.999999}
+                                    C: {X: 4.9999995, Y: -4.4408918E-17, Z: -9.999999}
+                                4a376d7f2ce85b128302f4ad850e5afc: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 9.999999, Y: -6.6613384E-17, Z: -15.0}
+                                    B: {X: 4.9999995, Y: -4.4408918E-17, Z: -9.999999}
+                                    C: {X: 4.9999995, Y: -6.6613384E-17, Z: -15.0}
+                                5d0e54449c72576e972d047ec47749e8: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 15.0, Y: -8.881784E-17, Z: -20.0}
+                                    B: {X: 15.0, Y: -6.6613384E-17, Z: -15.0}
+                                    C: {X: 9.999999, Y: -6.6613384E-17, Z: -15.0}
+                                65428d670abd58f6a47b67b31efbadda: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 15.0, Y: -8.881784E-17, Z: -20.0}
+                                    B: {X: 9.999999, Y: -6.6613384E-17, Z: -15.0}
+                                    C: {X: 9.999999, Y: -8.881784E-17, Z: -20.0}
+                                8b6b2bd590515397953bade91988fb7c: !Stride.BepuPhysics.Definitions.Colliders.TriangleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    A: {X: 9.999999, Y: -8.881784E-17, Z: -20.0}
+                                    B: {X: 9.999999, Y: -6.6613384E-17, Z: -15.0}
+                                    C: {X: 4.9999995, Y: -6.6613384E-17, Z: -15.0}
+                        CollisionGroup: {}
+                        ContactEventHandler: null

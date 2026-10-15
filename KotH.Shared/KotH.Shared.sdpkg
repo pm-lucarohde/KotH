@@ -9,4 +9,7 @@ Meta:
 AssetFolders:
     -   Path: !dir Assets
 ResourceFolders: []
-RootAssets: []
+RootAssets:
+    - E567C10B-E114-5A8A-953F-4C5179149FDB:Bodies/PlayerBody
+    - 05D7003D-4281-5114-9EAA-3254A0018FE0:Bodies/DummyBody
+    - 44084777-0114-573C-8ADC-DAC14634241C:Arena/ArenaCollision

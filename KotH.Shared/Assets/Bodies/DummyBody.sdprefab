@@ -1,0 +1,80 @@
+!PrefabAsset
+Id: 05D7003D-4281-5114-9EAA-3254A0018FE0
+SerializedVersion: {Stride: 3.1.0.1}
+Tags: []
+Hierarchy:
+    RootParts:
+        - ref!! E1AA026B-4FA1-583E-B310-7857EB4980D5
+    Parts:
+        -   Entity:
+                Id: E1AA026B-4FA1-583E-B310-7857EB4980D5
+                Name: DummyBody
+                Components:
+                    59281f4d0c99534d81d7bdb72cc9fc58: !TransformComponent
+                        Id: 1D0E721B-0D52-5994-9A7A-50F67005864B
+                        Position: {X: 0.0, Y: 0.0, Z: 0.0}
+                        Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    17c38a80754e5709b4cb6752cd658fdf: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics
+                        Id: 69C8330E-7994-5754-A8B2-9B91401010F5
+                        CollisionLayer: Layer6
+                        Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
+                            Colliders:
+                                ed46f0aa7dbc56d7bd2bed180e332d88: !Stride.BepuPhysics.Definitions.Colliders.CapsuleCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    Radius: 0.4
+                                    Length: 1.0
+                        CollisionGroup: {}
+                        ContactEventHandler: null
+                    0eac8b55522b5cd7b6c710bc38016a71: !KotH.PlayerMotor
+                        Id: 0E93A158-1B1E-5930-944A-DA3E86FAC07B
+                        WalkSpeed: 5.175
+                        SprintSpeed: 8.625
+                        CrouchSpeed: 2.1
+                        GroundAcceleration: 50.0
+                        GroundDeceleration: 35.0
+                        AirAcceleration: 7.5
+                        JumpHeight: 1.6
+                        DoubleJumpHeight: 1.0822
+                        MinJumpHeight: 1.0744
+                        MinJumpHold: 0.032
+                        FullJumpHold: 0.2
+                        DoubleJumpWindow: 1.0
+                        DoubleTapWindow: 0.25
+                        Gravity: -20.0
+                        BodyRadius: 0.4
+                        SkinWidth: 0.04
+                        StandHeight: 1.8
+                        CrouchHeight: 0.9
+                        StandEyeHeight: 1.68
+                        CrouchEyeHeight: 0.78
+                        PoseChangeSpeed: 6.0
+                        StandStepOffset: 0.45
+                        CrouchStepOffset: 0.25
+                        LedgeGuardDrop: 0.5
+                        HeadroomMask: Everything
+                        SlopeLimit: 50.0
+                        GroundMask: Everything
+                        GroundProbeExtra: 0.1
+                        GroundSnapDistance: 0.3
+                        MinSlideSpeed: 3.0
+                        SlideConfirmTime: 0.075
+                        StepProbeAhead: 0.05
+                        SlideDeceleration: 6.0
+                        MaxSlideSpeed: 15.0
+                        SlideCooldown: 0.5
+                    7ed05bd373f45cf5b987e93312e9d84a: !KotH.MeleeAttack
+                        Id: 58B06144-DEA1-53F5-ACA0-FDC46EA32C73
+                        Range: 3.5
+                        DamagePercent: 1.2
+                        CooldownTicks: 13
+                    b4cfffc7c97d5c37860bb9e0eaef3f8f: !KotH.Hittable
+                        Id: 37AE09CB-EB28-595D-AC42-D432C9695D60
+                    ded595eb62ac5a168a2414e5e34e1257: !KotH.DamagePercent
+                        Id: EEE9BDEA-1CCB-5B27-A6AC-A183A68BF799
+                        MaxPercent: 1000.0
+                    9979ff4602295142be4566cef64fe0fe: !KotH.TrainingDummy
+                        Id: 72DF6504-488F-5C0B-A26C-E01938093616

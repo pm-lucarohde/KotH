@@ -1,0 +1,19 @@
+[jump] entering play mode
+[jump] Sollwerte: voll 1,600 m, minimal 1,074 m, Haltespanne 32-200 ms, doppelt 1,082 m, g -20,0
+[jump] JumpHeld vergessen       gehalten  0 Ticks (  0 ms): Gipfel 0,993 m nach  26 Ticks, Soll 1,074 m, gestiegen 0,000, Schnitt 6,056 gegen 6,056 m/s ok
+[jump] 1 Tick (25 ms)           gehalten  1 Ticks ( 25 ms): Gipfel 1,000 m nach  26 Ticks, Soll 1,074 m, gestiegen 0,188, Schnitt 5,456 gegen 5,456 m/s ok
+[jump] 2 Ticks (50 ms)          gehalten  2 Ticks ( 50 ms): Gipfel 1,062 m nach  27 Ticks, Soll 1,131 m, gestiegen 0,363, Schnitt 5,043 gegen 5,043 m/s ok
+[jump] 3 Ticks (75 ms)          gehalten  3 Ticks ( 75 ms): Gipfel 1,145 m nach  28 Ticks, Soll 1,209 m, gestiegen 0,525, Schnitt 4,730 gegen 4,730 m/s ok
+[jump] 4 Ticks (100 ms)         gehalten  4 Ticks (100 ms): Gipfel 1,226 m nach  29 Ticks, Soll 1,287 m, gestiegen 0,675, Schnitt 4,448 gegen 4,448 m/s ok
+[jump] 5 Ticks (125 ms)         gehalten  5 Ticks (125 ms): Gipfel 1,308 m nach  30 Ticks, Soll 1,365 m, gestiegen 0,813, Schnitt 4,203 gegen 4,203 m/s ok
+[jump] 6 Ticks (150 ms)         gehalten  6 Ticks (150 ms): Gipfel 1,387 m nach  31 Ticks, Soll 1,444 m, gestiegen 0,938, Schnitt 3,999 gegen 3,999 m/s ok
+[jump] 7 Ticks (175 ms)         gehalten  7 Ticks (175 ms): Gipfel 1,469 m nach  32 Ticks, Soll 1,522 m, gestiegen 1,050, Schnitt 3,844 gegen 3,844 m/s ok
+[jump] 8 Ticks (200 ms)         gehalten  8 Ticks (200 ms): Gipfel 1,500 m nach  32 Ticks
+[jump] 9 Ticks (225 ms)         gehalten  9 Ticks (225 ms): Gipfel 1,500 m nach  32 Ticks
+[jump] 12 Ticks, ungekappt      gehalten 12 Ticks (300 ms): Gipfel 1,500 m nach  32 Ticks
+[jump] Doppelsprung nach Tipp   gehalten  1 Ticks ( 25 ms): Gipfel 1,560 m nach  34 Ticks, Absprung 6,079 gegen 6,079 m/s ok, ab 0,559 m noch 1,001 gegen 1,000 ok
+[jump] == Gipfel von 1,000 bis 1,500 m, Spanne 0,500 gegen eingestellte 0,526 m
+[jump]    Euler frisst oben 0,100 m, unten 0,074 m -- die Felder tragen das vorkorrigiert
+[jump]    volle Hoehe    erreicht 1,500 m, gewollt 1,500 m, ab +0,000 -> ok
+[jump]    Mindesthoehe   erreicht 1,000 m, gewollt 1,000 m, ab +0,000 -> ok
+[jump] ALLE FÄLLE WIE ERWARTET
