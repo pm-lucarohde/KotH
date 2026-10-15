@@ -378,8 +378,18 @@ namespace KotH.Shared.Player
             Vector3 beforeMove = transform.position;
 
             TryStepUp(dt);
-            touchingGround = MoveBody(velocity * dt).hasGround;
+            CapsuleSweep.Result moved = MoveBody(velocity * dt);
+            touchingGround = moved.hasGround;
+
+            // Before the speed is trimmed: UpdateWedged asks what the tick
+            // wanted to cover, and a trimmed speed never shows a block.
             UpdateWedged(beforeMove, dt);
+
+            // Speed a wall refused is gone, not carried. Kept, it fed a
+            // sprint that never ends, a body push with invented momentum
+            // and a lastStepSpeed that disagreed with velocity. A riser low
+            // enough to climb keeps it, see CapsuleSweep.IsRiser.
+            velocity = moved.velocity;
 
             // Only ground that was walkable at the start of the tick is worth
             // keeping. A jump clears grounded itself, so it is never undone,
@@ -743,7 +753,7 @@ namespace KotH.Shared.Player
             CapsuleSweep.Result r = sweep.Move(
                 hull, transform.position, FootOffset, currentHeight,
                 bodyRadius, skinWidth, Mathf.Cos(slopeLimit * Mathf.Deg2Rad),
-                delta, WorldMask);
+                maxStepHeight, delta, velocity, WorldMask);
 
             transform.position = r.position;
 

@@ -32,6 +32,7 @@ namespace KotH.Shared.Player
             public bool blocked;          // a contact refused part of the move
             public Vector3 lastNormal;    // most recent contact, any direction
             public bool hasContact;
+            public Vector3 velocity;      // what the contacts left of it
         }
 
         /// <summary>
@@ -41,11 +42,13 @@ namespace KotH.Shared.Player
         /// </summary>
         public Result Move(Collider self, Vector3 position, float footOffset,
                            float height, float radius, float skin,
-                           float walkableY, Vector3 delta, LayerMask mask)
+                           float walkableY, float stepHeight, Vector3 delta,
+                           Vector3 velocity, LayerMask mask)
         {
             Result r = default;
             r.position = position;
             r.groundNormal = Vector3.up;
+            r.velocity = velocity;
 
             // Out of anything it already overlaps first: a cast that starts
             // inside a collider reports distance zero and a normal that
@@ -106,6 +109,15 @@ namespace KotH.Shared.Player
                 else
                 {
                     remaining = Vector3.ProjectOnPlane(remaining, hit.normal);
+
+                    // A wall takes the speed it refuses with it. Walkable
+                    // ground does not: the motor owns the vertical there,
+                    // and laying speed onto a ramp would shave cos squared
+                    // off every uphill tick.
+                    if (!IsRiser(r.position, footOffset, radius, skin,
+                                 stepHeight, hit.normal, mask))
+                        r.velocity = Vector3.ProjectOnPlane(r.velocity,
+                                                            hit.normal);
                 }
 
                 // A pass that neither moved the body nor turned what is
@@ -179,6 +191,27 @@ namespace KotH.Shared.Player
             }
 
             return position;
+        }
+
+        /// <summary>
+        /// True when the face ends below stepHeight, so the motor climbs it
+        /// instead of stopping. Its step-up aims along velocity: trimmed at
+        /// a riser hit at an angle, it then looked along the step and not
+        /// onto it, and stairs taken diagonally climbed at half the height.
+        /// </summary>
+        static bool IsRiser(Vector3 position, float footOffset, float radius,
+                            float skin, float stepHeight, Vector3 normal,
+                            LayerMask mask)
+        {
+            Vector3 into = new Vector3(-normal.x, 0f, -normal.z);
+            if (stepHeight <= 0f || into.sqrMagnitude < 1e-4f)
+                return false;
+
+            Vector3 above = position
+                          + Vector3.up * (footOffset + stepHeight);
+
+            return !Physics.Raycast(above, into.normalized,
+                radius + skin * 2f, mask, QueryTriggerInteraction.Ignore);
         }
 
         /// <summary>
