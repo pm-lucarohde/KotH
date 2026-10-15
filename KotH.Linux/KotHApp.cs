@@ -2,6 +2,10 @@ using System;
 using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
+using KotH.Client.Hud;
+using KotH.Client.Player;
+using Stride.Core.Diagnostics;
+using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Games;
 using Stride.Graphics;
@@ -12,16 +16,47 @@ using var game = new KotHGame();
 game.Run();
 
 /// <summary>
-/// The game, plus one test aid: with KOTH_SHOT set to a path it saves the
-/// back buffer as PNG after KOTH_SHOT_SECONDS (default 5) and quits. Taken
-/// from inside the game on purpose, a desktop screenshot would capture
-/// whatever else is on the screen.
+/// The game, plus one test aid: with KOTH_SHOT set to a path it shows the
+/// F3 readout, holds the view at KOTH_SHOT_YAW / _PITCH / _FOV if given,
+/// saves the back buffer as PNG after KOTH_SHOT_SECONDS (default 7, past
+/// Stride's splash screen), reports the label font and quits. Taken from
+/// inside the game on purpose, a desktop screenshot would capture whatever
+/// else is on the screen.
 /// </summary>
 sealed class KotHGame : Game
 {
     readonly string shotPath = Environment.GetEnvironmentVariable("KOTH_SHOT");
-    readonly double shotSeconds = double.TryParse(Environment.GetEnvironmentVariable("KOTH_SHOT_SECONDS"),
-        NumberStyles.Float, CultureInfo.InvariantCulture, out double s) ? s : 5.0;
+    readonly double shotSeconds = Number("KOTH_SHOT_SECONDS") ?? 7.0;
+    readonly double? shotYaw = Number("KOTH_SHOT_YAW");
+    readonly double shotPitch = Number("KOTH_SHOT_PITCH") ?? 0.0;
+    readonly double? shotFov = Number("KOTH_SHOT_FOV");
+
+    public KotHGame()
+    {
+        // Warnings and errors reach the terminal in Release too; otherwise
+        // a script failing in Start leaves nothing but a black window.
+        ConsoleLogMode = ConsoleLogMode.Always;
+        ConsoleLogLevel = LogMessageType.Warning;
+    }
+
+    protected override void Update(GameTime gameTime)
+    {
+        base.Update(gameTime);
+
+        if (shotPath == null)
+            return;
+
+        if (Find<PerformanceOverlay>() is { } overlay)
+            overlay.Visible = true;
+        if (shotYaw.HasValue && Find<PlayerInputReader>() is { } reader)
+            reader.Look((float)shotYaw.Value, (float)shotPitch);
+        if (shotFov.HasValue && Find<CameraComponent>() is { } camera)
+            camera.VerticalFieldOfView = (float)shotFov.Value;
+    }
+
+    static double? Number(string variable) =>
+        double.TryParse(Environment.GetEnvironmentVariable(variable), NumberStyles.Float,
+                        CultureInfo.InvariantCulture, out double value) ? value : null;
 
     protected override void Draw(GameTime gameTime)
     {
@@ -44,7 +79,40 @@ sealed class KotHGame : Game
         }
 
         Console.WriteLine($"[shot] {shotPath} nach {gameTime.Total.TotalSeconds:F1} s, {gameTime.FramePerSecond:F0} fps");
+        ReportFont();
         Exit();
+    }
+
+    /// <summary>
+    /// MeleeProbe's font check, moved here because measuring needs the
+    /// loaded font and so a graphics device: a font without glyphs draws
+    /// nothing while every other check stays green.
+    /// </summary>
+    void ReportFont()
+    {
+        DamageLabel label = Find<DamageLabel>();
+        if (label == null)
+        {
+            Console.WriteLine("[schrift] kein DamageLabel in der Szene");
+            return;
+        }
+
+        Vector2 size = label.Measure("1000,0 %");
+        Console.WriteLine(string.Format(HudRenderer.Numbers,
+            "[schrift] {0}, \"1000,0 %\" misst {1:F3} x {2:F3} m (muss über null sein), " +
+            "Schriftgröße {3:F2} m, aktueller Text \"{4}\", Label auf y {5:F3}",
+            label.Font?.FontType, size.X, size.Y, label.FontSize, label.Text, label.Entity.Transform.Position.Y));
+    }
+
+    T Find<T>() where T : EntityComponent
+    {
+        Scene scene = SceneSystem.SceneInstance?.RootScene;
+        if (scene == null)
+            return null;
+        foreach (Entity e in scene.Entities)
+            if (e.Get<T>() is { } found)
+                return found;
+        return null;
     }
 }
 

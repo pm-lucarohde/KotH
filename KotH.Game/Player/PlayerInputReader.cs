@@ -41,6 +41,13 @@ namespace KotH.Client.Player
         [DataMemberIgnore] public float Yaw => yaw;
         [DataMemberIgnore] public float Pitch => pitch;
 
+        /// <summary>Points the view, as a test aid: screenshots at a fixed angle.</summary>
+        public void Look(float yawDegrees, float pitchDegrees)
+        {
+            yaw = yawDegrees;
+            pitch = UMath.Clamp(pitchDegrees, MinPitch, MaxPitch);
+        }
+
         protected override void Attach(Shared.Physics.WorldQueries world)
         {
             base.Attach(world);

@@ -1,4 +1,6 @@
+using KotH.Client.Hud;
 using KotH.Client.Player;
+using KotH.Shared.Combat;
 using KotH.Shared.Hosting;
 using KotH.Shared.Physics;
 using KotH.Shared.Player;
@@ -6,6 +8,7 @@ using KotH.Shared.Simulation;
 using Stride.BepuPhysics;
 using Stride.Core;
 using Stride.Engine;
+using Stride.Graphics;
 using Stride.Rendering;
 
 namespace KotH.Client
@@ -20,6 +23,7 @@ namespace KotH.Client
     public sealed class GameRoot : StartupScript
     {
         [Display("Körpermodell", "Darstellung")] public Model BodyModel;
+        [Display("Schrift der Schadensanzeige", "Darstellung")] public SpriteFont LabelFont;
 
         public override void Start()
         {
@@ -44,6 +48,7 @@ namespace KotH.Client
 
             Entity.Get<SimulationDriver>().LocalInput = reader;
 
+            TransformComponent view = null;
             foreach (Entity e in Entity.Scene.Entities)
             {
                 var camera = e.Get<FirstPersonCamera>();
@@ -51,7 +56,10 @@ namespace KotH.Client
                     continue;
                 camera.Motor = player.Get<PlayerMotor>();
                 camera.Reader = reader;
+                view = e.Transform;
             }
+
+            AddLabel(dummy, view);
         }
 
         /// <summary>
@@ -77,6 +85,18 @@ namespace KotH.Client
             Entity body = builder.SpawnBody(url, marker.Transform.Position, marker.Transform.Rotation, extra);
             body.Name = name;
             return body;
+        }
+
+        void AddLabel(Entity body, TransformComponent camera)
+        {
+            var label = new DamageLabel
+            {
+                Font = LabelFont,
+                Target = body.Get<DamagePercent>(),
+                Motor = body.Get<PlayerMotor>(),
+                Camera = camera,
+            };
+            Entity.Scene.Entities.Add(new Entity(body.Name + "Label") { label });
         }
 
         void AddVisual(PlayerVisualSystem system, Entity body)

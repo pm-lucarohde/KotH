@@ -1,0 +1,13 @@
+!SpriteFont
+Id: 083E3CA2-4062-5729-94AB-DE5DF2E7A56A
+SerializedVersion: {Stride: 2.1.0.0}
+Tags: []
+FontSource: !FileFontProvider
+    Source: !file ../../Resources/Fonts/OpenSans-Regular.ttf
+FontType: !OfflineRasterizedSpriteFontType
+    Size: 18.0
+    CharacterSet: null
+    CharacterRegions:
+        28c64e2437ba52c3ac4e48e8891e734b:
+            Start: ' '
+            End: "\x7F"

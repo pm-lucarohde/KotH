@@ -70,6 +70,26 @@ Layers: {}
 """ % (guid("Materials/" + name + "/asset"), f32(smoothness), f32(color[0]), f32(color[1]), f32(color[2]))
 
 
+def font(name, font_type, size):
+    """OpenSans from Resources/Fonts, compiled into a texture at build time.
+    No runtime rasterising, so nothing depends on FreeType when it runs.
+    The region ends at DEL like Stride's samples: a bare "~" reads as null."""
+    return """!SpriteFont
+Id: %s
+SerializedVersion: {Stride: 2.1.0.0}
+Tags: []
+FontSource: !FileFontProvider
+    Source: !file ../../Resources/Fonts/OpenSans-Regular.ttf
+FontType: %s
+    Size: %s
+    CharacterSet: null
+    CharacterRegions:
+        %s:
+            Start: ' '
+            End: "\\x7F"
+""" % (guid("Fonts/" + name + "/asset"), font_type, f32(size), key("Fonts/" + name + "/region"))
+
+
 def model(name, shape, mat):
     return """!ProceduralModelAsset
 Id: %s
@@ -150,6 +170,8 @@ def scene():
     ])
 
     # Unity's light: rotation (0.408, -0.235, 0.109, 0.875), warm white.
+    # Unity rendered in gamma space without tone mapping; these intensities
+    # are fitted so lit and shadowed ground match its screenshot in linear.
     light = entity("Directional light", [
         transform("Light", (0.0, 3.0, 0.0), mirror_q((0.40821788, -0.23456968, 0.10938163, 0.8754261)),
                   (1.0, 1.0, 1.0)),
@@ -167,7 +189,7 @@ def scene():
                                 PartitionMode: !LightDirectionalShadowMap.PartitionLogarithmic {}
                                 ComputeTransmittance: false
                                 BiasParameters: {}
-                        Intensity: 20.0""" % (key("Light/light"), guid("Light/light")),
+                        Intensity: 1.54""" % (key("Light/light"), guid("Light/light")),
     ])
 
     skybox = entity("Skybox", [
@@ -175,27 +197,40 @@ def scene():
         """                    50ab9d07393b0d80a6cff9ffb3104e4a: !BackgroundComponent
                         Id: F22FCA71-C8F9-4653-8466-CE6945A2DAB3
                         Texture: C8F1566C-4832-4943-B46D-E72AD417E250:Skybox texture
+                        Intensity: 0.35
                     5733ca1e623fcf399f389e2b0e7c54ec: !LightComponent
                         Id: 1FACD078-5BD4-4D10-B178-959F2F56BDCE
                         Type: !LightSkybox
-                            Skybox: F9A75D1E-7197-4A46-90CF-5A7F970DCDCA:Skybox""",
+                            Skybox: F9A75D1E-7197-4A46-90CF-5A7F970DCDCA:Skybox
+                        Intensity: 0.26""",
     ], SKYBOX_ENTITY)
 
     root = entity("GameRoot", [
         transform("GameRoot", (0.0, 0.0, 0.0), (0.0, 0.0, 0.0, 1.0), (1.0, 1.0, 1.0)),
         """                    %s: !KotH.GameRoot
                         Id: %s
-                        BodyModel: %s""" % (key("GameRoot/root"), guid("GameRoot/root"), ref("Models/Body")),
+                        BodyModel: %s
+                        LabelFont: %s""" % (key("GameRoot/root"), guid("GameRoot/root"), ref("Models/Body"),
+                                            ref("Fonts/Label")),
         """                    %s: !KotH.SimulationDriver
                         Id: %s""" % (key("GameRoot/driver"), guid("GameRoot/driver")),
         """                    %s: !KotH.PlayerVisualSystem
                         Id: %s""" % (key("GameRoot/visuals"), guid("GameRoot/visuals")),
     ])
 
+    hud = entity("Hud", [
+        transform("Hud", (0.0, 0.0, 0.0), (0.0, 0.0, 0.0, 1.0), (1.0, 1.0, 1.0)),
+        """                    %s: !KotH.Crosshair
+                        Id: %s""" % (key("Hud/crosshair"), guid("Hud/crosshair")),
+        """                    %s: !KotH.PerformanceOverlay
+                        Id: %s
+                        Font: %s""" % (key("Hud/overlay"), guid("Hud/overlay"), ref("Fonts/Overlay")),
+    ])
+
     arena_root, arena_parts = arena_visual()
     roots = [guid("GameRoot/entity"), guid("Camera/entity"), guid("Directional light/entity"),
-             SKYBOX_ENTITY, guid("ArenaVisual/entity")]
-    parts = [root, camera, light, skybox, arena_root] + arena_parts
+             SKYBOX_ENTITY, guid("Hud/entity"), guid("ArenaVisual/entity")]
+    parts = [root, camera, light, skybox, hud, arena_root] + arena_parts
     return """!SceneAsset
 Id: A1A78B9B-C5BB-4CD0-B45E-BE04A2C3C984
 SerializedVersion: {Stride: 3.1.0.1}
@@ -227,6 +262,11 @@ def main():
     Length: 1.0
     Radius: 0.5
     Tessellation: 16""", "Player"))
+
+    # The readout is drawn at exactly its size, pixel for pixel; the label
+    # scales with distance, which a distance field survives.
+    write("Fonts/Overlay.sdfnt", font("Overlay", "!OfflineRasterizedSpriteFontType", 18.0))
+    write("Fonts/Label.sdfnt", font("Label", "!SignedDistanceFieldSpriteFontType", 48.0))
 
     print(write("MainScene.sdscene", scene()))
 
