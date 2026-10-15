@@ -55,9 +55,12 @@ public sealed class SlideProbe : MonoBehaviour
                    crouchHold = -1, steer = true, jumpAt = -1,
                    shouldStart = true, check = Check.Duration },
         // GuardLedge is off during a slide, so this must fly off the edge
-        // with its speed instead of stopping dead on it.
+        // with its speed instead of stopping dead on it. Started at 4 m of
+        // the 8 m face, not 2: from 2 the slide decayed to walking speed
+        // one centimetre short of the edge, so the case measured the decay
+        // and never the edge at all.
         new Case { name = "Über die Kante", surface = 4, runup = 12,
-                   crouchHold = 1, steer = true, jumpAt = -1, startAt = 2f,
+                   crouchHold = 1, steer = true, jumpAt = -1, startAt = 4f,
                    shouldStart = true, check = Check.CarriesOverEdge },
         new Case { name = "Ohne Richtungstaste", surface = 0, runup = 30,
                    crouchHold = -1, steer = false, jumpAt = -1,
