@@ -15,11 +15,7 @@ namespace KotH.Client
     [DataContract("KotH.SimulationDriver")]
     public sealed class SimulationDriver : SyncScript
     {
-        // Unity's Maximum Allowed Timestep: after a hitch the game slows
-        // down instead of running a burst of catch-up ticks.
-        const double MaxFrameSeconds = 1.0 / 3.0;
-
-        double accumulator;
+        readonly TickClock clock = new TickClock();
 
         /// <summary>The local player's input, set by GameRoot.</summary>
         [DataMemberIgnore] public PlayerInputReader LocalInput { get; set; }
@@ -46,16 +42,11 @@ namespace KotH.Client
             bool grabbed = UpdateCursor();
             LocalInput?.Collect(Input, Captured && !grabbed);
 
-            double frame = Game.UpdateTime.Elapsed.TotalSeconds;
-            accumulator += frame < MaxFrameSeconds ? frame : MaxFrameSeconds;
-
-            while (accumulator >= SimulationSystem.TickSeconds)
-            {
+            int due = clock.Advance(Game.UpdateTime.Elapsed.TotalSeconds);
+            for (int i = 0; i < due; i++)
                 system.Tick();
-                accumulator -= SimulationSystem.TickSeconds;
-            }
 
-            TickInterpolation.Alpha = (float)(accumulator / SimulationSystem.TickSeconds);
+            TickInterpolation.Alpha = clock.Alpha;
         }
 
         /// <summary>

@@ -39,7 +39,7 @@ namespace KotH.Probes.Harness
         }
 
         /// <summary>Runs the probe to its end and returns its exit code.</summary>
-        public int Run(HeadlessWorld world, int maxTicks)
+        public virtual int Run(HeadlessWorld world, int maxTicks)
         {
             World = world;
             Log("[" + Tag + "] entering play mode");

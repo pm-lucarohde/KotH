@@ -9,6 +9,10 @@ Eingefroren am 15.10.2026, bevor Unity aus dem Repo verschwindet.
 - `dump/colliders.txt` – alle Collider der Arena in InstanceID-Reihenfolge.
 - `dump/rotations.txt.gz` – Bits von `Quaternion.Euler` und `Quaternion*Vector3`.
 - `dump/queries.txt.gz` – PhysX-Antworten auf 6 500 Abfragen je Art.
+- `dump/clock.txt` – Unitys Player-Loop über 200 Frames mit festen Schlafzeiten
+  (Hänger bis 1 s): echte und gekappte Frame-Zeit, Ticks pro Frame, Alpha,
+  Kamera, Auge, Nahebene; Spieler bei Frame 30 um 3 m angehoben. Gemessen nach
+  b09cb6b mit einer Einmal-Probe, die Quelle liegt in `.work/unity-dump/ClockProbe.cs`.
 - `dump/crouchoffset.txt` – Beleg: `ComputePenetration` legt `center` auf die
   übergebene Pose, die geduckte Hülle wurde 0,45 m zu tief gemessen.
 
