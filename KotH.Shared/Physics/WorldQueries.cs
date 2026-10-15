@@ -127,8 +127,9 @@ namespace KotH.Shared.Physics
             if (overlapBuffer.Count > 0)
                 return true;
 
-            var velocity = new BodyVelocity(direction, Vector3.Zero);
-            return simulation.SweepCast(shape, pose, velocity, maxDistance, out _, mask);
+            // The whole move over one unit of time, see SweepAll.
+            var velocity = new BodyVelocity(UMath.Mul(direction, maxDistance), Vector3.Zero);
+            return simulation.SweepCast(shape, pose, velocity, 1f, out _, mask);
         }
 
         /// <summary>
@@ -217,10 +218,15 @@ namespace KotH.Shared.Physics
                 };
             }
 
+            // The whole move as velocity over one unit of time. Bepu's compound
+            // sweep prefilters its children with a ray of sweep * maximumT,
+            // the sweep already scaled by maximumT: with unit speed it only
+            // looked maximumT squared ahead and missed close boxes on short
+            // moves. At maximumT 1 both agree; its thresholds scale along.
             int started = count;
             hitBuffer.Clear();
-            var velocity = new BodyVelocity(direction, Vector3.Zero);
-            simulation.SweepCastPenetrating(shape, pose, velocity, maxDistance, hitBuffer, mask);
+            var velocity = new BodyVelocity(UMath.Mul(direction, maxDistance), Vector3.Zero);
+            simulation.SweepCastPenetrating(shape, pose, velocity, 1f, hitBuffer, mask);
 
             for (int i = 0; i < hitBuffer.Count && count < results.Length; i++)
             {
@@ -228,7 +234,9 @@ namespace KotH.Shared.Physics
                 if (ContainsHit(results, started, h.Collidable))
                     continue;
 
-                results[count++] = ToHit(h);
+                QueryHit hit = ToHit(h);
+                hit.Distance = h.Distance * maxDistance;
+                results[count++] = hit;
             }
 
             return count;
