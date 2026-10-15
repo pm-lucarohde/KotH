@@ -224,6 +224,11 @@ namespace KotH.Probes.Probes
                 Mix(ref chain, (int)(h >> 32));
             }
 
+            // The chain depends on the instruction set the code runs with.
+            Log($"[det] Befehlssatz: AVX {System.Runtime.Intrinsics.X86.Avx.IsSupported}, " +
+                $"AVX2 {System.Runtime.Intrinsics.X86.Avx2.IsSupported}, " +
+                $"FMA {System.Runtime.Intrinsics.X86.Fma.IsSupported}, " +
+                $"Vector<float> {System.Numerics.Vector<float>.Count} breit");
             for (int t = 0; t <= Ticks; t += Ticks / 4)
                 Log($"[det] Hash Tick {t}: {reference[t]:X16}");
             Log($"[det] Hashkette über {reference.Length} Ticks: {chain:X16}");

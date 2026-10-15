@@ -89,20 +89,26 @@ außer dem einzelnen CapsuleCast (oben). Offen zum Merken:
 
 ## NativeAOT (Etappe 8)
 
-Probes, Server und Client als NativeAOT (`Tools/publish_aot.sh`, Box `aot`):
+Probes, Server und Client als NativeAOT (`Tools/publish_aot.sh`, Box `aot`), alle mit
+dem Befehlssatz **x86-64-v2** (Lucas Entscheidung, `Directory.Build.props`):
 - Alle acht Bewegungs- und Kampfproben sind unter AOT byte-gleich mit JIT, ebenso
   `worldquery` und `clock`.
-- DeterminismProbe: Hashkette über 1001 Ticks `290BCEB905C5638C` unter JIT und AOT
-  (`KotH.Probes determinism hashes`).
+- DeterminismProbe: Hashkette über 1001 Ticks `10BFD5B7A436F3D8` unter JIT und AOT
+  (`KotH.Probes determinism hashes`, gibt auch den Befehlssatz aus).
 - Server: 2000 Ticks, Endzustand des Dummys bitgleich mit JIT.
 
-Fund dabei: Mit dem Standard-Befehlssatz von NativeAOT kippten drei Step-Winkel in
-der letzten Anzeigestelle, die Hashkette wich ab Tick 0 ab. Die Gleitkommaergebnisse
-hängen am Befehlssatz (der JIT nutzt auf dem Ryzen 5900X AVX2/FMA). Alle AOT-Builds
-sind deshalb auf `x86-64-v3` festgelegt (`Directory.Build.props`); damit ist AOT
-bitgleich mit JIT. Für Peer-to-Peer heißt das: Alle Peers brauchen dasselbe Binary
-mit demselben Befehlssatz, ein JIT-Build auf anderer Hardware ist nicht garantiert
-bitgleich.
+Die Gleitkommaergebnisse hängen am Befehlssatz: AVX2/FMA-Code rundet anders als
+SSE-Code (mit AVX2 lautet die Kette `290BCEB905C5638C`, drei Step-Winkel kippen in der
+letzten Anzeigestelle). Ein JIT-Build auf einer AVX2-CPU rechnet deshalb nur mit
+`DOTNET_EnableAVX=0` wie die AOT-Builds. Die runtimeconfig nimmt diese Einstellung nicht
+an, nur die Umgebung. `.work/tools/stride_runs.sh` setzt sie. Für Peer-to-Peer heißt das:
+Alle Peers brauchen dasselbe AOT-Binary.
+
+Regression gegen Unity unter v2 (JIT mit `DOTNET_EnableAVX=0`, drei Läufe byte-gleich):
+94/94 Urteile gleich, 352 von 367 Werten in 5 mm, 4 Anzeigerundung. Die übrigen Fälle
+sind die oben beschriebenen: Crest geduckt einen Tick später, Steps40 ruhig, Step-Ticks
+und ein Bodenwinkel in der letzten Stelle (t018: 2,1 statt 2,0°; t032 und t029 stimmen
+unter v2 mit Unity überein).
 
 Verbleibende AOT-Warnungen (8) liegen alle in Fremdcode: Silk.NET (Pfadsuche über
 `Assembly.Location`/`DependencyContext`, IL3000/IL3002), Stride.Graphics (nur macOS)
