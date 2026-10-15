@@ -157,4 +157,5 @@ Hierarchy:
     print(path, asset, len(parts), "entities")
 
 
-main()
+if __name__ == "__main__":
+    main()

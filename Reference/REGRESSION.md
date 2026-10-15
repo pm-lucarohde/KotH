@@ -66,7 +66,7 @@ Läufe: `KotH.Probes <name>`, jede Probe dreimal.
 | 43c90b0 | Bepus Compound-Sweep sah bei maxDistance < 1 nur maxDistance² weit (Strahl `sweep·maximumT` mit schon skaliertem `sweep`). Fix: Weg als Geschwindigkeit über T = 1. | Crest, Impact, JumpHeight, Step, Sprint, Slide |
 | d586828 | Bepu meldet bloßes Berühren mit Rauschtiefe; `Depenetrate` hob den Körper um die Haut (4 cm). Schwelle 1e-5 m, PhysX' kleinste echte Tiefe im Dump: 6,4e-5. | Step, Sprint, Melee |
 | 3e36f07 | `StaticComponent.Teleport` schreibt die Entity auf Pose − Schwerpunkt zurück; geduckt stand die Transform bis 0,45 m zu hoch. | Determinism |
-| (dieser Commit) | Der einzelne `CapsuleCast` (TryStepUp: Platz eine Stufe höher?) zählte eine Startüberlappung als blockiert. In Unity nachgemessen: Er ignoriert Collider, in denen er startet (`CapsuleCastAll` meldet sie mit Abstand 0). Die Probenzahlen ändern sich nicht. | Port-Prüfer |
+| d1999a5 | Der einzelne `CapsuleCast` (TryStepUp: Platz eine Stufe höher?) zählte eine Startüberlappung als blockiert. In Unity nachgemessen: Er ignoriert Collider, in denen er startet (`CapsuleCastAll` meldet sie mit Abstand 0). Die Probenzahlen ändern sich nicht. | Port-Prüfer |
 | d9d3b23 | Penetrationsrichtung zeigte zur Bepu-Seite statt zur PhysX-Seite. | WorldQueryProbe |
 
 Physikabfragen gegen PhysX (`KotH.Probes worldquery`, 6 500 Abfragen je Art):
