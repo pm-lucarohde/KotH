@@ -932,10 +932,13 @@ namespace KotH.Shared.Player
             // On a slope the capsule rests on the SIDE of its lower sphere,
             // so this reads too deep. That is the safe direction: Move stops
             // at the first contact, it never pushes through the surface.
+            // Ground within snap range either way: either the feet are
+            // pulled down onto it, or it already reaches them.
             float gap = nearest - toFeet;
             if (gap > 0f)
                 MoveBody(Vector3.down * gap);
-                touchingGround = true;
+
+            touchingGround = true;
         }
 
         /// <summary>
