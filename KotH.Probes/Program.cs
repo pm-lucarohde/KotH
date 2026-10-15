@@ -21,12 +21,13 @@ Probe probe = name switch
     "slopejump" => new SlopeJumpProbe(),
     "crest" => new CrestProbe(),
     "impact" => new ImpactProbe(),
+    "jumpheight" => new JumpHeightProbe(),
     _ => null,
 };
 
 if (probe == null)
 {
-    Console.Error.WriteLine("Aufruf: KotH.Probes <worldquery|rotation|slopejump|crest|impact>");
+    Console.Error.WriteLine("Aufruf: KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight>");
     return 64;
 }
 
