@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>KotH.Server</RootNamespace>
+    <OutputPath>..\Bin\Server\$(Configuration)\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
+    <StrideCurrentPackagePath>$(MSBuildThisFileDirectory)..\KotH.Shared\KotH.Shared.sdpkg</StrideCurrentPackagePath>
+    <StridePlatform>Linux</StridePlatform>
+    <PublishAot>true</PublishAot>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\KotH.Shared\KotH.Shared.csproj" />
+    <TrimmerRootAssembly Include="KotH.Shared" />
+  </ItemGroup>
+</Project>

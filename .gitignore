@@ -105,3 +105,13 @@ InitTestScene*.unity*
 
 # Auto-generated scenes by play mode tests
 /[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
+
+# Stride / .NET (the Unity rules above ignore every *.csproj and *.sln)
+!/KotH.*/KotH.*.csproj
+bin/
+Bin/
+obj/
+Cache/
+*.sdpkg.user
+.idea/
+.work/

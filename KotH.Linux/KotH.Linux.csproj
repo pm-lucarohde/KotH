@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>KotH.Linux</RootNamespace>
+    <AssemblyName>KotH</AssemblyName>
+    <OutputPath>..\Bin\Linux\$(Configuration)\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
+    <StrideCurrentPackagePath>$(MSBuildThisFileDirectory)..\KotH.Game\KotH.Game.sdpkg</StrideCurrentPackagePath>
+    <StridePlatform>Linux</StridePlatform>
+    <StrideGraphicsApi>Vulkan</StrideGraphicsApi>
+    <PublishAot>true</PublishAot>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\KotH.Game\KotH.Game.csproj" />
+    <!-- Scripts and serializers are only reached through the asset database,
+         which the trimmer cannot see: without these the scene fails to load. -->
+    <TrimmerRootAssembly Include="KotH.Game" />
+    <TrimmerRootAssembly Include="KotH.Shared" />
+  </ItemGroup>
+</Project>
