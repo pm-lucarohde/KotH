@@ -147,14 +147,14 @@ public sealed class MeleeProbe : MonoBehaviour
         // finds the radius.
         float crown = float.NaN;
         if (Physics.Raycast(new Vector3(d.x, d.y + 3f, d.z), Vector3.down,
-                            out RaycastHit top, 6f, ~0, QueryTriggerInteraction.Ignore))
+                            out RaycastHit top, 6f, ~0, QueryTriggerInteraction.Collide))
             crown = top.point.y;
 
         // From the far side on purpose: the player stands on the -x side and
         // a ray from there measures him instead of the dummy.
         float radius = float.NaN;
         if (Physics.Raycast(new Vector3(d.x + 3f, d.y, d.z), Vector3.left,
-                            out RaycastHit side, 6f, ~0, QueryTriggerInteraction.Ignore))
+                            out RaycastHit side, 6f, ~0, QueryTriggerInteraction.Collide))
             radius = side.point.x - d.x;
 
         Debug.Log($"[melee] == Trefferfläche: Dummy-Mitte y {d.y:F3}," +

@@ -70,9 +70,14 @@ namespace KotH.Shared.Combat
 
             // Mask is 0 while the layer is missing, so nothing is ever hit.
             // Hittable.Awake reports that case on its own.
+            //
+            // Collide, not Ignore: a hit hull is a trigger on purpose. It
+            // must not block anything - least of all the body's own
+            // controller sitting on the same object - but a swing has to
+            // find it.
             if (!Physics.Raycast(motor.EyePosition, aim, out RaycastHit hit,
                                  range, Hittable.Mask,
-                                 QueryTriggerInteraction.Ignore))
+                                 QueryTriggerInteraction.Collide))
                 return;
 
             DamagePercent target = hit.collider.GetComponentInParent<DamagePercent>();

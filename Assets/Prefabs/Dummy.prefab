@@ -66,9 +66,6 @@ PrefabInstance:
       addedObject: {fileID: 8082995573592303353}
     - targetCorrespondingSourceObject: {fileID: 782518704459711977, guid: 020dc4d502bc3b1b2b0d439f0bec6e89, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1476373829247994628}
-    - targetCorrespondingSourceObject: {fileID: 782518704459711977, guid: 020dc4d502bc3b1b2b0d439f0bec6e89, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 5368358232115455419}
   m_SourcePrefab: {fileID: 100100000, guid: 020dc4d502bc3b1b2b0d439f0bec6e89, type: 3}
 --- !u!1 &9208342932141282304 stripped
@@ -88,18 +85,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4495f6e97b2b217ac90d81486eadc3bb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: KotH::KotH.Shared.Dummy.TrainingDummy
---- !u!114 &1476373829247994628
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 9208342932141282304}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2bdb0f6d3e60a9b67af8c84e9852874d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: KotH::KotH.Shared.Combat.Hittable
 --- !u!114 &5368358232115455419
 MonoBehaviour:
   m_ObjectHideFlags: 0

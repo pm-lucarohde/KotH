@@ -119,6 +119,7 @@ namespace KotH.Shared.Player
         [SerializeField] Transform cameraMount;
 
         CharacterController controller;
+        CapsuleCollider hull;     // what a shot may hit, full height
 
         // Where the capsule's middle sits above the transform. The shape
         // shrinks downward so the feet stay put, which is what ApplyHeight
@@ -228,6 +229,10 @@ namespace KotH.Shared.Player
         {
             // GetComponent belongs here, not in Tick and not in Update.
             controller = GetComponent<CharacterController>();
+            hull = GetComponent<CapsuleCollider>();
+
+            if (hull == null)
+                Debug.LogWarning("Keine Trefferkapsel am Körper.", this);
 
             // The shape now lives in our own fields while the controller is
             // still the one moving. Any disagreement would make this stage
@@ -703,8 +708,18 @@ namespace KotH.Shared.Player
         /// </summary>
         void ApplyHeight(float height)
         {
+            Vector3 center = new Vector3(0f, (height - standHeight) * 0.5f, 0f);
+
             controller.height = height;
-            controller.center = new Vector3(0f, (height - standHeight) * 0.5f, 0f);
+            controller.center = center;
+
+            // The hit hull follows the pose: crouching has to make the body
+            // a smaller target, or ducking would be free cover.
+            if (hull != null)
+            {
+                hull.height = height;
+                hull.center = center;
+            }
 
             // The standing budget only once fully upright: anywhere in
             // between, the crouched one holds, or tapping crouch would grant
