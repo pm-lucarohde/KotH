@@ -409,12 +409,18 @@ namespace KotH.Shared.Player
         /// <summary>
         /// Moves the hit hull to the simulated pose, which Unity's
         /// Physics.SyncTransforms did. Statics only reach the broadphase
-        /// when teleported, and nobody steps this physics world. Teleport
-        /// also writes the entity, which Publish has set to the same pose.
+        /// when teleported, and nobody steps this physics world.
         /// </summary>
         public void SyncHull()
         {
-            hull?.Teleport(position, rotation);
+            if (hull == null)
+                return;
+
+            // Teleport puts the shape at pose plus centre of mass, right, but
+            // writes the entity back at pose MINUS it: a crouched body, whose
+            // capsule sits off-centre, would be drawn up to 0.45 m too high.
+            hull.Teleport(position, rotation);
+            Publish();
         }
 
         /// <summary>
