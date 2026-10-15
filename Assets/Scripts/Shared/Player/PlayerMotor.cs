@@ -3,11 +3,12 @@ using UnityEngine;
 namespace KotH.Shared.Player
 {
     /// <summary>
-    /// Moves the player; the only place that touches CharacterController.
-    /// Reads no input and knows no camera - a dedicated server has neither.
-    /// Mutable state is kept in a few fields so it can be replayed later.
+    /// Moves the player. Reads no input and knows no camera - a dedicated
+    /// server has neither. All mutable state lives in the fields below and
+    /// nowhere else, which is what lets a tick be replayed later.
+    /// Collision goes through CapsuleSweep rather than CharacterController:
+    /// PhysX keeps the controller's state where nobody can restore it.
     /// </summary>
-    [RequireComponent(typeof(CharacterController))]
     public sealed class PlayerMotor : MonoBehaviour
     {
         [Header("Tempo (m/s)")]
@@ -55,7 +56,7 @@ namespace KotH.Shared.Player
         // Our own shape from here on. A CharacterController answers a query
         // with a smaller hull than it claims - 18 cm missing at the crown -
         // and the simulation must not rest on a component it is about to
-        // lose. Awake checks these against the controller while both exist.
+        // lose - the sweep reads them directly.
         [SerializeField] float bodyRadius = 0.4f;
         [SerializeField] float skinWidth = 0.04f;
         [SerializeField] float standHeight = 1.8f;
@@ -68,7 +69,7 @@ namespace KotH.Shared.Player
         // let the eye leave the body it belongs to.
         [SerializeField] float poseChangeSpeed = 6f;
 
-        // Step height the controller climbs. Crouched it is much lower, so
+        // Step height the body climbs. Crouched it is much lower, so
         // ducking becomes a real trade: you fit through gaps but lose reach.
         [SerializeField] float standStepOffset = 0.45f;
         [SerializeField] float crouchStepOffset = 0.25f;
@@ -118,12 +119,22 @@ namespace KotH.Shared.Player
         [Header("Verknüpfung")]
         [SerializeField] Transform cameraMount;
 
-        CharacterController controller;
         CapsuleCollider hull;     // what a shot may hit, full height
+        readonly CapsuleSweep sweep = new CapsuleSweep();
+
+        // Bodies never block movement - BodyContact resolves them - so no
+        // world query may see one. The body's own hull sits on that layer
+        // too, so this skips it as well. An invariant, not a setting.
+        LayerMask WorldMask => groundMask & ~Combat.Hittable.Mask;
+        LayerMask HeadroomMask => headroomMask & ~Combat.Hittable.Mask;
+
+        // Feet relative to the transform. The pose shrinks downward from the
+        // standing centre, so this does not move when crouching.
+        float FootOffset => -standHeight * 0.5f;
 
         // Where the capsule's middle sits above the transform. The shape
         // shrinks downward so the feet stay put, which is what ApplyHeight
-        // writes into the controller today.
+        // the hull is given in ApplyHeight.
         float CenterY => (currentHeight - standHeight) * 0.5f;
 
         // --- mutable state ---
@@ -216,31 +227,31 @@ namespace KotH.Shared.Player
         /// </summary>
         public void Teleport(Vector3 position)
         {
-            // Switching the controller off is what makes PhysX accept the
-            // new place at once: autoSyncTransforms is off, so a bare write
-            // would leave the controller's own copy of the position behind.
-            bool was = controller.enabled;
-            controller.enabled = false;
             transform.position = position;
-            controller.enabled = was;
+
+            // autoSyncTransforms is off, so the hull's collider would keep
+            // its old place until the next physics step. The sweep queries
+            // against it in the same tick, so it has to know now.
+            Physics.SyncTransforms();
+        }
+
+        /// <summary>
+        /// Shifts the body out of another one. Velocity is left alone: being
+        /// pushed out of an overlap is a correction, not a hit - the push
+        /// itself goes through AddVelocity.
+        /// </summary>
+        public void Nudge(Vector3 delta)
+        {
+            transform.position += delta;
         }
 
         void Awake()
         {
             // GetComponent belongs here, not in Tick and not in Update.
-            controller = GetComponent<CharacterController>();
             hull = GetComponent<CapsuleCollider>();
 
             if (hull == null)
                 Debug.LogWarning("Keine Trefferkapsel am Körper.", this);
-
-            // The shape now lives in our own fields while the controller is
-            // still the one moving. Any disagreement would make this stage
-            // silently change behaviour, which is exactly what it must not.
-            Warn(bodyRadius, controller.radius, "bodyRadius");
-            Warn(skinWidth, controller.skinWidth, "skinWidth");
-            Warn(slopeLimit, controller.slopeLimit, "slopeLimit");
-            Warn(standHeight, controller.height, "standHeight");
 
             currentHeight = standHeight;
             ApplyHeight(currentHeight);
@@ -267,7 +278,10 @@ namespace KotH.Shared.Player
             // isGrounded only says THAT there is ground, never how steep it
             // is. Too steep counts as not grounded, so jumping, ground
             // acceleration and the double jump reset all fall into place.
-            bool touching = controller.isGrounded;
+            // What the last tick's sweep ended up touching. PhysX used to
+            // answer this from inside the controller; now it is our own
+            // field and therefore part of what a rollback can restore.
+            bool touching = touchingGround;
             bool knownGround = false;
 
             if (touching)
@@ -364,7 +378,7 @@ namespace KotH.Shared.Player
             Vector3 beforeMove = transform.position;
 
             TryStepUp(dt);
-            controller.Move(velocity * dt);
+            touchingGround = MoveBody(velocity * dt).hasGround;
             UpdateWedged(beforeMove, dt);
 
             // Only ground that was walkable at the start of the tick is worth
@@ -374,16 +388,11 @@ namespace KotH.Shared.Player
                 SnapToGround();
 
             // What the tick really covered, not what it asked for: a blocked
-            // controller leaves velocity untouched. Measured in 3D, because
+            // body leaves velocity untouched. Measured in 3D, because
             // uphill the horizontal part alone shrinks by cos squared and
             // would drop below walking speed on any ramp past 39 degrees.
             Vector3 step = transform.position - beforeMove;
             lastStepSpeed = step.magnitude / dt;
-
-            // Read AFTER the movement, so it is the contact the NEXT tick
-            // will work from. Set at the top of the tick it would be one
-            // step behind for anyone reading it once the tick returned.
-            touchingGround = controller.isGrounded;
 
             eyePosition = CurrentEyeWorldPosition();
             bodyCenter = CurrentBodyCenter();
@@ -702,7 +711,7 @@ namespace KotH.Shared.Player
         }
 
         /// <summary>
-        /// The only place that reshapes the controller. Shifts the center so
+        /// The only place that reshapes the body. Shifts the hull's centre so
         /// the feet stay put, otherwise the player would sink when crouching.
         /// Called every tick while the pose changes, not once per keypress.
         /// </summary>
@@ -710,11 +719,9 @@ namespace KotH.Shared.Player
         {
             Vector3 center = new Vector3(0f, (height - standHeight) * 0.5f, 0f);
 
-            controller.height = height;
-            controller.center = center;
-
             // The hit hull follows the pose: crouching has to make the body
-            // a smaller target, or ducking would be free cover.
+            // a smaller target, or ducking would be free cover. The sweep
+            // reads currentHeight directly and needs nothing here.
             if (hull != null)
             {
                 hull.height = height;
@@ -725,11 +732,29 @@ namespace KotH.Shared.Player
             // between, the crouched one holds, or tapping crouch would grant
             // the tall reach for a few ticks at crouch collision height.
             maxStepHeight = height >= standHeight ? standStepOffset : crouchStepOffset;
+        }
 
-            // PhysX gets no step budget at all. Its own stepping resolves
-            // corner contacts by lifting the capsule, which lets a player who
-            // wiggles the view ratchet up walls far above the limit.
-            controller.stepOffset = 0f;
+        /// <summary>
+        /// Moves the body and keeps the most upright upward contact of the
+        /// whole tick, which is what OnControllerColliderHit used to collect.
+        /// </summary>
+        CapsuleSweep.Result MoveBody(Vector3 delta)
+        {
+            CapsuleSweep.Result r = sweep.Move(
+                hull, transform.position, FootOffset, currentHeight,
+                bodyRadius, skinWidth, Mathf.Cos(slopeLimit * Mathf.Deg2Rad),
+                delta, WorldMask);
+
+            transform.position = r.position;
+
+            if (r.hasGround
+                && (!hasContactNormal || r.groundNormal.y > contactNormal.y))
+            {
+                contactNormal = r.groundNormal;
+                hasContactNormal = true;
+            }
+
+            return r;
         }
 
         /// <summary>
@@ -762,10 +787,10 @@ namespace KotH.Shared.Player
             // stepping fail while standing happened to work.
             Vector3 ankle = feet + Vector3.up * 0.01f;
             if (!Physics.Raycast(ankle, forward, out RaycastHit riser, reach + radius,
-                    groundMask, QueryTriggerInteraction.Ignore))
+                    WorldMask, QueryTriggerInteraction.Ignore))
                 return;
 
-            // A walkable face is a ramp and the controller handles those
+            // A walkable face is a ramp and the sweep handles those
             // itself -- unless it demonstrably did not. On the convex edge
             // where a slope meets its top the capsule jams, and the ankle
             // ray only ever sees the last centimetres of ramp.
@@ -776,7 +801,7 @@ namespace KotH.Shared.Player
             // stops the corner exploit: a step that is too tall still blocks.
             Vector3 lift = Vector3.up * maxStepHeight;
             if (Physics.CapsuleCast(bottom + lift, top + lift, radius, forward,
-                    out _, reach, groundMask, QueryTriggerInteraction.Ignore))
+                    out _, reach, WorldMask, QueryTriggerInteraction.Ignore))
                 return;
 
             // Measure the ledge from above rather than trusting the wall hit.
@@ -786,7 +811,7 @@ namespace KotH.Shared.Player
                           + forward * (riser.distance + stepProbeAhead);
 
             if (!Physics.Raycast(ahead, Vector3.down, out RaycastHit ledge,
-                    maxStepHeight, groundMask, QueryTriggerInteraction.Ignore))
+                    maxStepHeight, WorldMask, QueryTriggerInteraction.Ignore))
                 return;
 
             if (ledge.normal.y < walkable)
@@ -796,7 +821,7 @@ namespace KotH.Shared.Player
             if (rise <= 0.001f)
                 return;
 
-            controller.Move(Vector3.up * (rise + skinWidth));
+            MoveBody(Vector3.up * (rise + skinWidth));
 
             // The body axis is still behind the ledge for a tick or two, so
             // the ground snap would find the step BELOW and undo this lift.
@@ -851,17 +876,13 @@ namespace KotH.Shared.Player
 
             int count = Physics.SphereCastNonAlloc(
                 origin, probeRadius, Vector3.down, groundHits,
-                toFeet + ledgeGuardDrop, groundMask,
+                toFeet + ledgeGuardDrop, WorldMask,
                 QueryTriggerInteraction.Ignore);
 
             float walkable = Mathf.Cos(slopeLimit * Mathf.Deg2Rad);
 
             for (int i = 0; i < count; i++)
             {
-                // The cast starts inside the player's own capsule.
-                if (groundHits[i].collider == controller)
-                    continue;
-
                 // A steep face below is a slide, not footing.
                 if (groundHits[i].normal.y >= walkable)
                     return true;
@@ -879,7 +900,7 @@ namespace KotH.Shared.Player
         void SnapToGround()
         {
             // Nothing was lost, or the player is on the way up anyway.
-            if (controller.isGrounded || velocity.y > 0f)
+            if (touchingGround || velocity.y > 0f)
                 return;
 
             float probeRadius = bodyRadius * 0.25f;
@@ -888,7 +909,7 @@ namespace KotH.Shared.Player
 
             int count = Physics.SphereCastNonAlloc(
                 origin, probeRadius, Vector3.down, groundHits,
-                toFeet + groundSnapDistance, groundMask,
+                toFeet + groundSnapDistance, WorldMask,
                 QueryTriggerInteraction.Ignore);
 
             float walkable = Mathf.Cos(slopeLimit * Mathf.Deg2Rad);
@@ -896,10 +917,6 @@ namespace KotH.Shared.Player
 
             for (int i = 0; i < count; i++)
             {
-                // The cast starts inside the player's own capsule.
-                if (groundHits[i].collider == controller)
-                    continue;
-
                 // Steep faces are not worth sticking to; that is the slide's
                 // job, and gluing to one would kill it.
                 if (groundHits[i].normal.y < walkable)
@@ -917,13 +934,14 @@ namespace KotH.Shared.Player
             // at the first contact, it never pushes through the surface.
             float gap = nearest - toFeet;
             if (gap > 0f)
-                controller.Move(Vector3.down * gap);
+                MoveBody(Vector3.down * gap);
+                touchingGround = true;
         }
 
         /// <summary>
         /// Remembers a move the world refused, so the next TryStepUp may
         /// measure a ledge it would otherwise have waved through. Compares
-        /// what was asked for against what the controller actually did.
+        /// what was asked for against what the sweep actually did.
         /// </summary>
         void UpdateWedged(Vector3 before, float dt)
         {
@@ -944,8 +962,9 @@ namespace KotH.Shared.Player
         }
 
         /// <summary>
-        /// Does the standing capsule fit at the current position? The player's
-        /// own controller does not count as an obstacle.
+        /// Does the standing capsule fit at the current position? The body's
+        /// own hull is a trigger on a masked-out layer, so it never shows up
+        /// here and needs no check of its own.
         /// </summary>
         bool HasHeadroom()
         {
@@ -960,15 +979,9 @@ namespace KotH.Shared.Player
             // player is currently running along.
             int count = Physics.OverlapCapsuleNonAlloc(
                 bottom, top, radius * 0.95f, headroomHits,
-                headroomMask, QueryTriggerInteraction.Ignore);
+                HeadroomMask, QueryTriggerInteraction.Ignore);
 
-            for (int i = 0; i < count; i++)
-            {
-                if (headroomHits[i] != controller)
-                    return false;
-            }
-
-            return true;
+            return count == 0;
         }
 
         /// <summary>
@@ -1001,7 +1014,7 @@ namespace KotH.Shared.Player
 
             int count = Physics.SphereCastNonAlloc(
                 origin, probeRadius, Vector3.down, groundHits,
-                distance, groundMask, QueryTriggerInteraction.Ignore);
+                distance, WorldMask, QueryTriggerInteraction.Ignore);
 
             groundNormal = Vector3.up;
             groundAngle = 0f;
@@ -1009,11 +1022,6 @@ namespace KotH.Shared.Player
 
             for (int i = 0; i < count; i++)
             {
-                // The cast starts inside the player's own capsule, so its
-                // collider always shows up at distance zero.
-                if (groundHits[i].collider == controller)
-                    continue;
-
                 // Walls and overhangs are not ground. Without this a vertical
                 // face reads as 90 degrees and triggers the slide.
                 if (groundHits[i].normal.y <= 0f)
@@ -1038,29 +1046,6 @@ namespace KotH.Shared.Player
         /// contact wins: on a stair the tread beats the riser in front of it,
         /// which is what a body-wide cast used to get wrong.
         /// </summary>
-        void OnControllerColliderHit(ControllerColliderHit hit)
-        {
-            if (hit.normal.y <= 0f)
-                return;
-
-            if (!hasContactNormal || hit.normal.y > contactNormal.y)
-            {
-                contactNormal = hit.normal;
-                hasContactNormal = true;
-            }
-        }
-
-        /// <summary>
-        /// Reports a body field that drifted from the controller it mirrors.
-        /// Temporary: it goes with the controller in the next stage.
-        /// </summary>
-        static void Warn(float ours, float theirs, string name)
-        {
-            if (!Mathf.Approximately(ours, theirs))
-                Debug.LogWarning($"{name} {ours} weicht vom Controller" +
-                                 $" ({theirs}) ab.");
-        }
-
         Vector3 EyeLocalPosition(float eyeHeightAboveFeet)
             => new Vector3(0f, eyeHeightAboveFeet - standHeight * 0.5f, 0f);
 

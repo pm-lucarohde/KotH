@@ -59,6 +59,7 @@ namespace KotH.Shared.Simulation
         // Reused across ticks so a step allocates nothing.
         readonly List<BodyContact.Body> states = new List<BodyContact.Body>();
         readonly List<Vector3> impulses = new List<Vector3>();
+        readonly List<Vector3> shifts = new List<Vector3>();
         readonly List<MoveInput> inputs = new List<MoveInput>();
 
         public static void Register(SimulationBody body)
@@ -114,10 +115,72 @@ namespace KotH.Shared.Simulation
             for (int i = 0; i < count; i++)
                 bodies[i].Motor.Tick(inputs[i], dt);
 
+            // After the moves, because that is when bodies can overlap, and
+            // before combat, so a swing sees where everyone really stands.
+            SeparateBodies();
+
             // After every body has moved, so a swing sees where they all
             // ended up rather than where the ones ahead of it stood.
             for (int i = 0; i < count; i++)
                 bodies[i].TickCombat(inputs[i], dt);
+        }
+
+        /// <summary>
+        /// Pushes overlapping bodies out of each other, sideways only. Until
+        /// now PhysX did this through the character controllers; they are
+        /// gone, so somebody has to. Shifts are collected before they are
+        /// applied, so the result does not depend on the list order.
+        /// </summary>
+        void SeparateBodies()
+        {
+            int count = bodies.Count;
+            if (count < 2)
+                return;
+
+            states.Clear();
+            shifts.Clear();
+
+            for (int i = 0; i < count; i++)
+            {
+                PlayerMotor motor = bodies[i].Motor;
+                states.Add(new BodyContact.Body
+                {
+                    center = motor.BodyCenter,
+                    velocity = motor.Velocity,
+                    height = motor.Height,
+                    radius = motor.Radius,
+                });
+
+                shifts.Add(Vector3.zero);
+            }
+
+            bool any = false;
+
+            for (int i = 0; i < count; i++)
+            {
+                for (int j = i + 1; j < count; j++)
+                {
+                    if (!BodyContact.TryGetSideways(
+                            states[i], states[j],
+                            out Vector3 n, out float overlap))
+                        continue;
+
+                    // Half each: neither body owns the ground they share.
+                    Vector3 push = n * (overlap * 0.5f);
+                    shifts[i] -= push;
+                    shifts[j] += push;
+                    any = true;
+                }
+            }
+
+            if (!any)
+                return;
+
+            for (int i = 0; i < count; i++)
+            {
+                if (shifts[i].sqrMagnitude > 0f)
+                    bodies[i].Motor.Nudge(shifts[i]);
+            }
         }
 
         /// <summary>
