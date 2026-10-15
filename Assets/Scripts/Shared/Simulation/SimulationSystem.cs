@@ -53,6 +53,12 @@ namespace KotH.Shared.Simulation
         /// </summary>
         public static System.Action AfterContacts;
 
+        /// <summary>
+        /// Raised once every body has simulated and none has published.
+        /// Lets a probe check that the buffer holds; null in the game.
+        /// </summary>
+        public static System.Action BeforePublish;
+
         [Header("Körperstoß")]
         [Tooltip("Anteil der Annäherung, mit dem sich beide vom gemeinsamen " +
                  "Tempo entfernen. 0,5 ist ein vollelastischer Stoß, mehr " +
@@ -142,15 +148,21 @@ namespace KotH.Shared.Simulation
             ResolveContacts();
             AfterContacts?.Invoke();
 
-            // No body sees another while moving: they are all on the
-            // Hittable layer, which every motor query leaves out. That, not
-            // a buffer, is what keeps the list order out of the result.
+            // Two phases: every body computes its tick on its own pose, and
+            // none becomes visible before all are done. Bodies are also left
+            // out of every motor query; the buffer still holds if that ever
+            // changes, so the list order stays out of the result either way.
             for (int i = 0; i < count; i++)
-                bodies[i].Motor.Tick(tickInputs[i], dt);
+                bodies[i].Motor.Simulate(tickInputs[i], dt);
 
             // After the moves, because that is when bodies can overlap, and
             // before combat, so a swing sees where everyone really stands.
             SeparateBodies();
+
+            BeforePublish?.Invoke();
+
+            for (int i = 0; i < count; i++)
+                bodies[i].Motor.Publish();
 
             // The swing asks PhysX, which otherwise knows the hulls only as
             // the last physics step left them. A resimulation runs many ticks

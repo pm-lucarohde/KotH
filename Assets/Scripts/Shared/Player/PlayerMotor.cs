@@ -138,6 +138,10 @@ namespace KotH.Shared.Player
         float CenterY => (currentHeight - standHeight) * 0.5f;
 
         // --- mutable state ---
+        // The pose the simulation works on. The transform learns it only in
+        // Publish, so no body can see another's half finished tick.
+        Vector3 position;
+        Quaternion rotation = Quaternion.identity;
         Vector3 velocity;
         bool isCrouching;         // the INTENT, set by the key, not the shape
         bool sprinting;           // the STATE, started by the key, ended by speed
@@ -225,9 +229,10 @@ namespace KotH.Shared.Player
         /// probes rely on that - clearing it here moved their starting points
         /// and changed 84 measured cases out of 252.
         /// </summary>
-        public void Teleport(Vector3 position)
+        public void Teleport(Vector3 to)
         {
-            transform.position = position;
+            position = to;
+            transform.position = to;
 
             // autoSyncTransforms is off, so the hull's collider would keep
             // its old place until the next physics step. The sweep queries
@@ -240,8 +245,8 @@ namespace KotH.Shared.Player
         {
             return new MotorState
             {
-                Position = transform.position,
-                Rotation = transform.rotation,
+                Position = position,
+                Rotation = rotation,
                 Velocity = velocity,
                 IsCrouching = isCrouching,
                 Sprinting = sprinting,
@@ -284,7 +289,8 @@ namespace KotH.Shared.Player
         /// </summary>
         public void RestoreState(in MotorState s)
         {
-            transform.SetPositionAndRotation(s.Position, s.Rotation);
+            position = s.Position;
+            rotation = s.Rotation;
             velocity = s.Velocity;
             isCrouching = s.IsCrouching;
             sprinting = s.Sprinting;
@@ -321,6 +327,7 @@ namespace KotH.Shared.Player
             // maxStepHeight is derived from the height, not stored.
             ApplyHeight(currentHeight);
             PlaceEye();
+            Publish();
             Physics.SyncTransforms();
         }
 
@@ -331,7 +338,16 @@ namespace KotH.Shared.Player
         /// </summary>
         public void Nudge(Vector3 delta)
         {
-            transform.position += delta;
+            position += delta;
+        }
+
+        /// <summary>
+        /// Hands the simulated pose to the transform. PhysX is left to the
+        /// caller: one sync after all bodies have published, not one each.
+        /// </summary>
+        public void Publish()
+        {
+            transform.SetPositionAndRotation(position, rotation);
         }
 
         void Awake()
@@ -341,6 +357,9 @@ namespace KotH.Shared.Player
 
             if (hull == null)
                 Debug.LogWarning("Keine Trefferkapsel am Körper.", this);
+
+            position = transform.position;
+            rotation = transform.rotation;
 
             currentHeight = standHeight;
             ApplyHeight(currentHeight);
@@ -352,17 +371,29 @@ namespace KotH.Shared.Player
         }
 
         /// <summary>
-        /// One simulation step, called with a fixed dt (40 Hz) so that client
-        /// and server can compute the same step.
+        /// Simulate and Publish in one, for a body ticked on its own.
+        /// SimulationSystem calls the halves itself, so every body has
+        /// computed its tick before the first one becomes visible.
         /// </summary>
         public void Tick(in MoveInput input, float dt)
+        {
+            Simulate(input, dt);
+            Publish();
+        }
+
+        /// <summary>
+        /// One simulation step, called with a fixed dt (40 Hz) so that client
+        /// and server can compute the same step. Reads and writes only the
+        /// motor's own state; the transform stays as it was until Publish.
+        /// </summary>
+        public void Simulate(in MoveInput input, float dt)
         {
             previousEyePosition = eyePosition;
             previousBodyCenter = bodyCenter;
 
             // Yaw turns the body; pitch belongs to the camera alone, else the
             // player would tilt backwards when looking up.
-            transform.rotation = Quaternion.Euler(0f, input.Yaw, 0f);
+            rotation = Quaternion.Euler(0f, input.Yaw, 0f);
 
             // isGrounded only says THAT there is ground, never how steep it
             // is. Too steep counts as not grounded, so jumping, ground
@@ -464,7 +495,7 @@ namespace KotH.Shared.Player
             hasContactNormal = false;
             steppedUp = false;
 
-            Vector3 beforeMove = transform.position;
+            Vector3 beforeMove = position;
 
             TryStepUp(dt);
             CapsuleSweep.Result moved = MoveBody(velocity * dt);
@@ -490,7 +521,7 @@ namespace KotH.Shared.Player
             // body leaves velocity untouched. Measured in 3D, because
             // uphill the horizontal part alone shrinks by cos squared and
             // would drop below walking speed on any ramp past 39 degrees.
-            Vector3 step = transform.position - beforeMove;
+            Vector3 step = position - beforeMove;
             lastStepSpeed = step.magnitude / dt;
 
             eyePosition = CurrentEyeWorldPosition();
@@ -590,7 +621,8 @@ namespace KotH.Shared.Player
             Vector2 move = Vector2.ClampMagnitude(input.Move, 1f);
             bool hasInput = move.sqrMagnitude > 0.0001f;
 
-            Vector3 wish = transform.right * move.x + transform.forward * move.y;
+            Vector3 wish = rotation * Vector3.right * move.x
+                         + rotation * Vector3.forward * move.y;
 
             // A slide rolls out along the direction it has, even with no key
             // down: the usual deceleration to zero would otherwise end it
@@ -702,7 +734,7 @@ namespace KotH.Shared.Player
                     // is left to climb rather than the speed itself.
                     jumpCutPending = true;
                     jumpHeldTime = 0f;
-                    jumpStartY = transform.position.y;
+                    jumpStartY = position.y;
 
                     // The take-off press does NOT count as the first tap.
                     hasPendingAirPress = false;
@@ -771,7 +803,7 @@ namespace KotH.Shared.Player
             // assignment: anyone already slower keeps his speed.
             float t = Mathf.InverseLerp(minJumpHold, fullJumpHold, jumpHeldTime);
             float target = Mathf.Lerp(minJumpHeight, jumpHeight, t);
-            float risen = transform.position.y - jumpStartY;
+            float risen = position.y - jumpStartY;
             float rest = Mathf.Sqrt(Mathf.Max(0f, (target - risen) * -2f * gravity));
 
             velocity.y = Mathf.Min(velocity.y, rest);
@@ -850,11 +882,11 @@ namespace KotH.Shared.Player
         CapsuleSweep.Result MoveBody(Vector3 delta)
         {
             CapsuleSweep.Result r = sweep.Move(
-                hull, transform.position, FootOffset, currentHeight,
+                hull, position, FootOffset, currentHeight,
                 bodyRadius, skinWidth, Mathf.Cos(slopeLimit * Mathf.Deg2Rad),
                 maxStepHeight, delta, velocity, WorldMask);
 
-            transform.position = r.position;
+            position = r.position;
 
             if (r.hasGround
                 && (!hasContactNormal || r.groundNormal.y > contactNormal.y))
@@ -885,7 +917,7 @@ namespace KotH.Shared.Player
             float reach = travel + skinWidth + stepProbeAhead;
             float radius = bodyRadius;
 
-            Vector3 feet = transform.position + Vector3.up * CenterY
+            Vector3 feet = position + Vector3.up * CenterY
                          - Vector3.up * (currentHeight * 0.5f);
             Vector3 bottom = feet + Vector3.up * radius;
             Vector3 top = feet + Vector3.up * (currentHeight - radius);
@@ -981,7 +1013,7 @@ namespace KotH.Shared.Player
         {
             float probeRadius = bodyRadius * 0.25f;
             float toFeet = currentHeight * 0.5f - probeRadius;
-            Vector3 origin = transform.position + Vector3.up * CenterY + step;
+            Vector3 origin = position + Vector3.up * CenterY + step;
 
             int count = Physics.SphereCastNonAlloc(
                 origin, probeRadius, Vector3.down, groundHits,
@@ -1014,7 +1046,7 @@ namespace KotH.Shared.Player
 
             float probeRadius = bodyRadius * 0.25f;
             float toFeet = currentHeight * 0.5f - probeRadius;
-            Vector3 origin = transform.position + Vector3.up * CenterY;
+            Vector3 origin = position + Vector3.up * CenterY;
 
             int count = Physics.SphereCastNonAlloc(
                 origin, probeRadius, Vector3.down, groundHits,
@@ -1065,7 +1097,7 @@ namespace KotH.Shared.Player
                 return;
             }
 
-            Vector3 moved = transform.position - before;
+            Vector3 moved = position - before;
             moved.y = 0f;
 
             // A quarter of what was asked: sliding along a wall still makes
@@ -1081,7 +1113,7 @@ namespace KotH.Shared.Player
         bool HasHeadroom()
         {
             float radius = bodyRadius;
-            Vector3 feet = transform.position
+            Vector3 feet = position
                          + Vector3.up * (CenterY - currentHeight * 0.5f);
 
             Vector3 bottom = feet + Vector3.up * radius;
@@ -1119,7 +1151,7 @@ namespace KotH.Shared.Player
             // player is standing against, and the cast length follows it so
             // the sphere still reaches below the feet.
             float probeRadius = bodyRadius * 0.25f;
-            Vector3 origin = transform.position + Vector3.up * CenterY;
+            Vector3 origin = position + Vector3.up * CenterY;
 
             float distance = currentHeight * 0.5f - probeRadius
                            + skinWidth + groundProbeExtra;
@@ -1162,9 +1194,11 @@ namespace KotH.Shared.Player
             => new Vector3(0f, eyeHeightAboveFeet - standHeight * 0.5f, 0f);
 
         Vector3 CurrentEyeWorldPosition()
-            => cameraMount != null ? cameraMount.position : transform.position;
+            => cameraMount != null
+                ? position + rotation * cameraMount.localPosition
+                : position;
 
         Vector3 CurrentBodyCenter()
-            => transform.position + Vector3.up * CenterY;
+            => position + Vector3.up * CenterY;
     }
 }

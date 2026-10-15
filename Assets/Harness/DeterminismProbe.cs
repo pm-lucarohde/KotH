@@ -81,6 +81,13 @@ public sealed class DeterminismProbe : MonoBehaviour
     readonly ulong[] reference = new ulong[Ticks + 1];
     readonly bool[] contactAt = new bool[Ticks];
 
+    // Transforms as the last tick published them, checked mid-tick.
+    Vector3 publishedPlayer;
+    Vector3 publishedDummy;
+    int bufferChecks;
+    int bufferMoved;     // ticks where the new pose really differed
+    int bufferLeaks;
+
     System.Random rng;
     int tick = -SettleTicks;
     int leg;
@@ -119,6 +126,31 @@ public sealed class DeterminismProbe : MonoBehaviour
 
         rng = new System.Random(Seed);
         player.Teleport(Start0);
+        SimulationSystem.BeforePublish = CheckBuffer;
+    }
+
+    // Everyone has simulated, nobody has published: the transforms must
+    // still show the last tick. Anything else means a body could have
+    // seen another's half finished move.
+    void CheckBuffer()
+    {
+        bufferChecks++;
+        if (!Same(player.transform.position, publishedPlayer)
+            || !Same(dummy.transform.position, publishedDummy))
+            bufferLeaks++;
+
+        if (!Same(player.CaptureState().Position, publishedPlayer))
+            bufferMoved++;
+    }
+
+    // Exact, unlike Vector3 ==, which forgives anything under 1e-5.
+    static bool Same(Vector3 a, Vector3 b)
+        => a.x == b.x && a.y == b.y && a.z == b.z;
+
+    void Remember()
+    {
+        publishedPlayer = player.transform.position;
+        publishedDummy = dummy.transform.position;
     }
 
     void FixedUpdate()
@@ -214,6 +246,7 @@ public sealed class DeterminismProbe : MonoBehaviour
 
     void StepWith(in MoveInput playerInput)
     {
+        Remember();
         IReadOnlyList<SimulationBody> bodies = SimulationSystem.Bodies;
         for (int i = 0; i < bodies.Count; i++)
             buffer[i] = bodies[i] == scripted ? playerInput : dummyInput;
@@ -225,6 +258,17 @@ public sealed class DeterminismProbe : MonoBehaviour
     {
         bool ok = Coverage();
         ok &= Complete();
+
+        if (bufferLeaks == 0 && bufferMoved > Ticks / 2)
+            Debug.Log($"[det] GLEICH   Puffer: in {bufferChecks} Ticks, davon {bufferMoved}" +
+                      " mit Bewegung, stand kein Transform vor dem Veroeffentlichen" +
+                      " schon auf dem neuen Stand");
+        else
+        {
+            Debug.Log($"[det] ANDERS   Puffer: {bufferLeaks} von {bufferChecks} Ticks" +
+                      $" zeigten den neuen Stand zu frueh, {bufferMoved} mit Bewegung");
+            ok = false;
+        }
 
         ok &= Replay("Nachspielen ab Start", 0);
         ok &= Replay($"Rollback bei Tick {RollbackTick}", RollbackTick);
