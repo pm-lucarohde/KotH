@@ -42,6 +42,16 @@ namespace KotH.Shared.Combat
 
         public float Range => range;
 
+        /// <summary>
+        /// Ticks until the next swing may start. The only part of the
+        /// attack a rollback has to restore; the counters are diagnostics.
+        /// </summary>
+        public int TicksUntilReady
+        {
+            get => ticksUntilReady;
+            set => ticksUntilReady = value;
+        }
+
         void Awake()
         {
             motor = GetComponent<PlayerMotor>();

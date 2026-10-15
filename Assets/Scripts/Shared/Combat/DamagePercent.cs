@@ -33,6 +33,15 @@ namespace KotH.Shared.Combat
             return true;
         }
 
+        /// <summary>
+        /// Sets the value as a rollback captured it. Not a hit: no cap
+        /// check, no notion of change, just the state as it was.
+        /// </summary>
+        public void Restore(float value)
+        {
+            percent = value;
+        }
+
         /// <summary>Back to zero, for a round restart or a probe.</summary>
         public void Reset()
         {

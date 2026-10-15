@@ -19,6 +19,19 @@ namespace KotH.Shared.Simulation
 
         public static bool HasActive => active != null;
 
+        /// <summary>The driver in the scene, null without one.</summary>
+        public static SimulationSystem Active => active;
+
+        /// <summary>
+        /// Bodies in tick order. The order carries no meaning - the
+        /// determinism probe proves that by reversing it - but the inputs
+        /// handed to Step line up with it.
+        /// </summary>
+        public static IReadOnlyList<SimulationBody> Bodies => bodies;
+
+        /// <summary>Ticks stepped so far. Part of what a snapshot records.</summary>
+        public static int CurrentTick { get; private set; }
+
         /// <summary>
         /// Contacts the last tick resolved. Diagnostics: without it a probe
         /// cannot tell a push apart from ordinary acceleration.
@@ -95,7 +108,6 @@ namespace KotH.Shared.Simulation
 
         void FixedUpdate()
         {
-            float dt = Time.fixedDeltaTime;
             int count = bodies.Count;
 
             // Gathered up front, because reading consumes: ReadInput clears
@@ -106,23 +118,95 @@ namespace KotH.Shared.Simulation
             for (int i = 0; i < count; i++)
                 inputs.Add(bodies[i].ReadInput());
 
+            Step(inputs, Time.fixedDeltaTime);
+        }
+
+        /// <summary>
+        /// One tick for every body, with inputs given in Bodies order. Reads
+        /// nothing from devices and nothing from the clock, so the same
+        /// inputs on the same snapshot always produce the same tick.
+        /// </summary>
+        public void Step(IReadOnlyList<MoveInput> tickInputs, float dt)
+        {
+            int count = bodies.Count;
+            if (tickInputs.Count != count)
+            {
+                Debug.LogError(
+                    $"Step mit {tickInputs.Count} Eingaben für {count} Körper.", this);
+                return;
+            }
+
             // Contacts first, so a push still takes effect in this tick
             // instead of 25 ms later. It reads what the last tick left
             // behind, the only state both bodies agree on.
             ResolveContacts();
             AfterContacts?.Invoke();
 
+            // No body sees another while moving: they are all on the
+            // Hittable layer, which every motor query leaves out. That, not
+            // a buffer, is what keeps the list order out of the result.
             for (int i = 0; i < count; i++)
-                bodies[i].Motor.Tick(inputs[i], dt);
+                bodies[i].Motor.Tick(tickInputs[i], dt);
 
             // After the moves, because that is when bodies can overlap, and
             // before combat, so a swing sees where everyone really stands.
             SeparateBodies();
 
+            // The swing asks PhysX, which otherwise knows the hulls only as
+            // the last physics step left them. A resimulation runs many ticks
+            // between two physics steps and would hit stale hulls.
+            Physics.SyncTransforms();
+
             // After every body has moved, so a swing sees where they all
             // ended up rather than where the ones ahead of it stood.
             for (int i = 0; i < count; i++)
-                bodies[i].TickCombat(inputs[i], dt);
+                bodies[i].TickCombat(tickInputs[i], dt);
+
+            CurrentTick++;
+        }
+
+        /// <summary>Records every body as this tick left it.</summary>
+        public static void Capture(WorldSnapshot into)
+        {
+            into.Clear();
+            into.Tick = CurrentTick;
+
+            for (int i = 0; i < bodies.Count; i++)
+            {
+                into.bodies.Add(bodies[i]);
+                into.states.Add(bodies[i].CaptureState());
+            }
+        }
+
+        /// <summary>
+        /// Puts every body in the snapshot back. Bodies that joined since
+        /// are left alone; deciding what they should be is netcode's job.
+        /// </summary>
+        public static void Restore(WorldSnapshot from)
+        {
+            for (int i = 0; i < from.Count; i++)
+            {
+                // Explicit == null: a body destroyed since is fake null.
+                SimulationBody body = from.bodies[i];
+                if (body != null)
+                    body.RestoreState(from.states[i]);
+            }
+
+            CurrentTick = from.Tick;
+        }
+
+        /// <summary>
+        /// Rolls back to a snapshot and steps forward again, one entry of
+        /// ticks per tick, each in Bodies order. All the server will need
+        /// for a late input: correct the input, resimulate from before it.
+        /// </summary>
+        public void Resimulate(WorldSnapshot from,
+                               IReadOnlyList<MoveInput[]> ticks, float dt)
+        {
+            Restore(from);
+
+            for (int t = 0; t < ticks.Count; t++)
+                Step(ticks[t], dt);
         }
 
         /// <summary>

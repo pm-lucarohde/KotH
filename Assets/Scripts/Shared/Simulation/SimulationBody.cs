@@ -17,6 +17,7 @@ namespace KotH.Shared.Simulation
 
         // Optional: a body without fists does not have to say so.
         MeleeAttack attack;
+        DamagePercent damage;
 
         /// <summary>
         /// Input for the tick about to run. Called exactly once per tick by
@@ -28,6 +29,31 @@ namespace KotH.Shared.Simulation
         {
             Motor = GetComponent<PlayerMotor>();
             attack = GetComponent<MeleeAttack>();
+            damage = GetComponent<DamagePercent>();
+        }
+
+        /// <summary>This body's state as the last tick left it.</summary>
+        public BodyState CaptureState()
+        {
+            // Explicit == null, Unity's fake null breaks the shorthand.
+            return new BodyState
+            {
+                Motor = Motor.CaptureState(),
+                AttackCooldown = attack != null ? attack.TicksUntilReady : 0,
+                DamagePercent = damage != null ? damage.Percent : 0f,
+            };
+        }
+
+        /// <summary>Puts this body back to a captured tick.</summary>
+        public void RestoreState(in BodyState state)
+        {
+            Motor.RestoreState(state.Motor);
+
+            if (attack != null)
+                attack.TicksUntilReady = state.AttackCooldown;
+
+            if (damage != null)
+                damage.Restore(state.DamagePercent);
         }
 
         /// <summary>

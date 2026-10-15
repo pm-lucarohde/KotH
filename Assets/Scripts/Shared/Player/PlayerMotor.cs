@@ -168,7 +168,7 @@ namespace KotH.Shared.Player
         float jumpHeldTime;       // how long the key stayed down since take-off
         float jumpStartY;         // take-off height, the cut measures from it
 
-        // --- render interpolation only, not part of the simulation ---
+        // --- read by the simulation too: contacts and the swing start here ---
         Vector3 eyePosition;
         Vector3 previousEyePosition;
         Vector3 bodyCenter;
@@ -232,6 +232,95 @@ namespace KotH.Shared.Player
             // autoSyncTransforms is off, so the hull's collider would keep
             // its old place until the next physics step. The sweep queries
             // against it in the same tick, so it has to know now.
+            Physics.SyncTransforms();
+        }
+
+        /// <summary>The motor as this tick left it, for a later rollback.</summary>
+        public MotorState CaptureState()
+        {
+            return new MotorState
+            {
+                Position = transform.position,
+                Rotation = transform.rotation,
+                Velocity = velocity,
+                IsCrouching = isCrouching,
+                Sprinting = sprinting,
+                SprintArmed = sprintArmed,
+                Sliding = sliding,
+                SlideSpeed = slideSpeed,
+                SlideCooldownLeft = slideCooldownLeft,
+                LastStepSpeed = lastStepSpeed,
+                TouchingGround = touchingGround,
+                CurrentHeight = currentHeight,
+                Grounded = grounded,
+                OnSteepGround = onSteepGround,
+                GroundNormal = groundNormal,
+                GroundAngle = groundAngle,
+                SteepTime = steepTime,
+                ContactNormal = contactNormal,
+                HasContactNormal = hasContactNormal,
+                SteppedUp = steppedUp,
+                Wedged = wedged,
+                KnockbackTime = knockbackTime,
+                DoubleJumpUsed = doubleJumpUsed,
+                JumpWindowOpen = jumpWindowOpen,
+                TimeSinceGroundJump = timeSinceGroundJump,
+                HasPendingAirPress = hasPendingAirPress,
+                TimeSinceAirPress = timeSinceAirPress,
+                JumpCutPending = jumpCutPending,
+                JumpHeldTime = jumpHeldTime,
+                JumpStartY = jumpStartY,
+                EyePosition = eyePosition,
+                PreviousEyePosition = previousEyePosition,
+                BodyCenter = bodyCenter,
+                PreviousBodyCenter = previousBodyCenter,
+            };
+        }
+
+        /// <summary>
+        /// Puts the motor back to a captured tick. The shape and the eye
+        /// follow the restored height, and PhysX learns the new hull pose
+        /// at once: a swing in the very next tick already asks for it.
+        /// </summary>
+        public void RestoreState(in MotorState s)
+        {
+            transform.SetPositionAndRotation(s.Position, s.Rotation);
+            velocity = s.Velocity;
+            isCrouching = s.IsCrouching;
+            sprinting = s.Sprinting;
+            sprintArmed = s.SprintArmed;
+            sliding = s.Sliding;
+            slideSpeed = s.SlideSpeed;
+            slideCooldownLeft = s.SlideCooldownLeft;
+            lastStepSpeed = s.LastStepSpeed;
+            touchingGround = s.TouchingGround;
+            currentHeight = s.CurrentHeight;
+            grounded = s.Grounded;
+            onSteepGround = s.OnSteepGround;
+            groundNormal = s.GroundNormal;
+            groundAngle = s.GroundAngle;
+            steepTime = s.SteepTime;
+            contactNormal = s.ContactNormal;
+            hasContactNormal = s.HasContactNormal;
+            steppedUp = s.SteppedUp;
+            wedged = s.Wedged;
+            knockbackTime = s.KnockbackTime;
+            doubleJumpUsed = s.DoubleJumpUsed;
+            jumpWindowOpen = s.JumpWindowOpen;
+            timeSinceGroundJump = s.TimeSinceGroundJump;
+            hasPendingAirPress = s.HasPendingAirPress;
+            timeSinceAirPress = s.TimeSinceAirPress;
+            jumpCutPending = s.JumpCutPending;
+            jumpHeldTime = s.JumpHeldTime;
+            jumpStartY = s.JumpStartY;
+            eyePosition = s.EyePosition;
+            previousEyePosition = s.PreviousEyePosition;
+            bodyCenter = s.BodyCenter;
+            previousBodyCenter = s.PreviousBodyCenter;
+
+            // maxStepHeight is derived from the height, not stored.
+            ApplyHeight(currentHeight);
+            PlaceEye();
             Physics.SyncTransforms();
         }
 
@@ -709,6 +798,16 @@ namespace KotH.Shared.Player
                 ApplyHeight(currentHeight);
             }
 
+            PlaceEye();
+        }
+
+        /// <summary>
+        /// Puts the camera mount at the eye height the current pose implies.
+        /// The mount is simulation state as much as presentation: the swing
+        /// starts at its world position.
+        /// </summary>
+        void PlaceEye()
+        {
             if (cameraMount == null)
                 return;
 
