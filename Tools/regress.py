@@ -7,6 +7,8 @@ Fall und Tick. Der Text ohne Zahlen
 muss gleich sein (sonst STRUKTUR), jede Zahl darf um 5 mm (0,005) vom
 naechsten Referenzwert abweichen oder muss zwischen den Werten der
 Referenzlaeufe liegen (Ramp45/55 streuen schon in Unity). Was nur die 1 %
+einhaelt, steht als NUR 1 % da; eine Einheit der letzten Anzeigestelle
+zaehlt als Anzeigerundung (Mono rundete den 7-stelligen Text). Was nur 1 %
 einhaelt, steht als NUR 1 % da: fuer Tempo und Prozent gilt es, fuer
 Koordinaten nicht. Alles wird mit beiden Zeilen gemeldet und von Hand
 begruendet.
@@ -47,6 +49,15 @@ def cases(path):
 
 def numbers(text):
     return [float(n.replace(",", ".")) for n in NUM.findall(text)]
+
+
+def last_place(text):
+    """Size of one unit in the last printed digit of every number."""
+    out = []
+    for n in NUM.findall(text):
+        m = re.search(r"[.,](\d+)", n)
+        out.append(10.0 ** -len(m.group(1)) if m and "E" not in n else 0.0)
+    return out
 
 
 def skeleton(text):
@@ -91,22 +102,33 @@ def main():
                 report.append("STRUKTUR  %s\n    neu : %s\n    ref : %s" % (k, line, "\n    ref : ".join(known)))
                 continue
             vals = numbers(line)
+            places = last_place(line)
             refvals = [numbers(r) for r in same_shape]
-            bad, rel = [], []
+            bad, rel, shown = [], [], []
             for i, v in enumerate(vals):
                 rv = [r[i] for r in refvals]
                 if min(rv) <= v <= max(rv) or any(within_abs(v, x) for x in rv):
+                    continue
+                # One unit in the last printed digit of a half-way value:
+                # Mono rounded the float's 7-digit text, .NET the exact value.
+                if places[i] > 0 and any(abs(abs(v - x) - places[i]) < places[i] * 1e-3 for x in rv) \
+                        and places[i] <= 0.01:
+                    shown.append("#%d: %g statt %s" % (i + 1, v, "/".join("%g" % x for x in sorted(set(rv)))))
                     continue
                 nearest = min(rv, key=lambda x: abs(x - v))
                 text = "#%d: %g statt %s (Abstand %.4g)" % (i + 1, v, "/".join("%g" % x for x in sorted(set(rv))), abs(v - nearest))
                 # 1 % only holds for speeds, ticks and percent, never for a
                 # coordinate; which one a number is, a human decides.
                 (rel if any(within_rel(v, x) for x in rv) else bad).append(text)
+            if shown and not (bad or rel):
+                stats["anzeige"] += 1
+                if show_all:
+                    report.append("ANZEIGE   %s\n    %s" % (k, "; ".join(shown)))
             if bad or rel:
                 stats["ueber" if bad else "relativ"] += 1
                 report.append("%s  %s\n    %s\n    neu : %s\n    ref : %s" % (
                     "TOLERANZ" if bad else "NUR 1 % ", k, "; ".join(bad + rel), line, "\n    ref : ".join(same_shape)))
-            else:
+            elif not shown:
                 stats["ok"] += 1
                 if show_all and line not in known:
                     report.append("ok        %s\n    neu : %s\n    ref : %s" % (k, line, known[0]))
@@ -116,14 +138,14 @@ def main():
             stats["fehlt"] += 1
             report.append("FEHLT     %s" % k)
 
-        print("=== %s: %d Faelle, %d in Toleranz, %d nur in 1 %%, %d darueber, %d Struktur, %d neu, %d fehlen" % (
-            fn, stats["faelle"], stats["ok"], stats["relativ"], stats["ueber"], stats["struktur"], stats["neu"], stats["fehlt"]))
+        print("=== %s: %d Faelle, %d in Toleranz, %d Anzeigerundung, %d nur in 1 %%, %d darueber, %d Struktur, %d neu, %d fehlen" % (
+            fn, stats["faelle"], stats["ok"], stats["anzeige"], stats["relativ"], stats["ueber"], stats["struktur"], stats["neu"], stats["fehlt"]))
         for r in report:
             print(r)
         totals.update(stats)
 
-    print("--- gesamt: %d Faelle, %d in Toleranz, %d nur in 1 %%, %d darueber, %d Struktur, %d neu, %d fehlen" % (
-        totals["faelle"], totals["ok"], totals["relativ"], totals["ueber"], totals["struktur"], totals["neu"], totals["fehlt"]))
+    print("--- gesamt: %d Faelle, %d in Toleranz, %d Anzeigerundung, %d nur in 1 %%, %d darueber, %d Struktur, %d neu, %d fehlen" % (
+        totals["faelle"], totals["ok"], totals["anzeige"], totals["relativ"], totals["ueber"], totals["struktur"], totals["neu"], totals["fehlt"]))
 
 
 main()
