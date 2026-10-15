@@ -23,13 +23,16 @@ Probe probe = name switch
     "impact" => new ImpactProbe(),
     "jumpheight" => new JumpHeightProbe(),
     "slide" => new SlideProbe(),
+    "sprint" => new SprintProbe(),
+    "melee" => new MeleeProbe(),
+    "step" => new StepProbe(),
     "determinism" => new DeterminismProbe(),
     _ => null,
 };
 
 if (probe == null)
 {
-    Console.Error.WriteLine("Aufruf: KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|determinism>");
+    Console.Error.WriteLine("Aufruf: KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|step|determinism>");
     return 64;
 }
 
