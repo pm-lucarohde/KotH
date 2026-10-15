@@ -199,10 +199,34 @@ namespace KotH.Probes.Probes
 
             // All replays in one frame, with no physics step in between: the
             // situation a server resimulating a late input is in.
+            if (PrintHashes)
+                LogChain();
+
             bool ok = Report();
             Log(ok ? "[det] ALLE FAELLE DETERMINISTISCH" : "[det] FEHLER");
             Exit(ok ? 0 : 1);
             failed = true;
+        }
+
+        /// <summary>
+        /// Prints the recorded hash chain, for comparing builds: the same
+        /// run under JIT and NativeAOT must give the same chain. Off by
+        /// default, so the log stays line for line Unity's.
+        /// </summary>
+        public bool PrintHashes { get; init; }
+
+        void LogChain()
+        {
+            ulong chain = 14695981039346656037UL;
+            foreach (ulong h in reference)
+            {
+                Mix(ref chain, (int)h);
+                Mix(ref chain, (int)(h >> 32));
+            }
+
+            for (int t = 0; t <= Ticks; t += Ticks / 4)
+                Log($"[det] Hash Tick {t}: {reference[t]:X16}");
+            Log($"[det] Hashkette über {reference.Length} Ticks: {chain:X16}");
         }
 
         MoveInput Steer()

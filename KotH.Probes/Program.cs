@@ -26,7 +26,7 @@ Probe probe = name switch
     "sprint" => new SprintProbe(),
     "melee" => new MeleeProbe(),
     "step" => new StepProbe(),
-    "determinism" => new DeterminismProbe(),
+    "determinism" => new DeterminismProbe { PrintHashes = Array.IndexOf(args, "hashes") > 0 },
     "clock" => new ClockProbe(dump),
     _ => null,
 };

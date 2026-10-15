@@ -86,3 +86,24 @@ außer dem einzelnen CapsuleCast (oben). Offen zum Merken:
   zusammengesetzte Geometrie mit mehreren Kindern wäre neu zu prüfen.
 - Überlappungen werden nach Registrierreihenfolge statt Unitys Instanz-ID summiert
   (nur letzte Bits).
+
+## NativeAOT (Etappe 8)
+
+Probes, Server und Client als NativeAOT (`Tools/publish_aot.sh`, Box `aot`):
+- Alle acht Bewegungs- und Kampfproben sind unter AOT byte-gleich mit JIT, ebenso
+  `worldquery` und `clock`.
+- DeterminismProbe: Hashkette über 1001 Ticks `290BCEB905C5638C` unter JIT und AOT
+  (`KotH.Probes determinism hashes`).
+- Server: 2000 Ticks, Endzustand des Dummys bitgleich mit JIT.
+
+Fund dabei: Mit dem Standard-Befehlssatz von NativeAOT kippten drei Step-Winkel in
+der letzten Anzeigestelle, die Hashkette wich ab Tick 0 ab. Die Gleitkommaergebnisse
+hängen am Befehlssatz (der JIT nutzt auf dem Ryzen 5900X AVX2/FMA). Alle AOT-Builds
+sind deshalb auf `x86-64-v3` festgelegt (`Directory.Build.props`); damit ist AOT
+bitgleich mit JIT. Für Peer-to-Peer heißt das: Alle Peers brauchen dasselbe Binary
+mit demselben Befehlssatz, ein JIT-Build auf anderer Hardware ist nicht garantiert
+bitgleich.
+
+Verbleibende AOT-Warnungen (8) liegen alle in Fremdcode: Silk.NET (Pfadsuche über
+`Assembly.Location`/`DependencyContext`, IL3000/IL3002), Stride.Graphics (nur macOS)
+und Stride.BepuPhysics (IL3053). KotH selbst erzeugt keine.

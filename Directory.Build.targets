@@ -1,0 +1,15 @@
+<Project>
+  <!-- A NativeAOT binary carries all managed code itself and its symbols in
+       the .dbg file; the libraries' XML docs and PDBs next to it are dead weight. -->
+  <PropertyGroup Condition="'$(PublishAot)' == 'true'">
+    <PublishReferencesDocumentationFiles>false</PublishReferencesDocumentationFiles>
+    <PublishDocumentationFile>false</PublishDocumentationFile>
+  </PropertyGroup>
+  <Target Name="KotHDropManagedSymbols" AfterTargets="ComputeResolvedFilesToPublishList"
+          Condition="'$(PublishAot)' == 'true'">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
+                             Condition="'%(ResolvedFileToPublish.Extension)' == '.pdb' or '%(ResolvedFileToPublish.Extension)' == '.xml'" />
+    </ItemGroup>
+  </Target>
+</Project>

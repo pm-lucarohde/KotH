@@ -7,5 +7,10 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <Deterministic>true</Deterministic>
     <NuGetAuditMode>direct</NuGetAuditMode>
+    <!-- One instruction set for every NativeAOT build. The simulation's floats
+         depend on it: the baseline build rounded step angles differently from
+         the JIT on AVX2. x86-64-v3 (AVX2, FMA) matches the JIT bit for bit and
+         is what peers must share for a deterministic lockstep later. -->
+    <IlcInstructionSet>x86-64-v3</IlcInstructionSet>
   </PropertyGroup>
 </Project>
