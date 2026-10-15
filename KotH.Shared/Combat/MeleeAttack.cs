@@ -57,7 +57,7 @@ namespace KotH.Shared.Combat
             set => ticksUntilReady = value;
         }
 
-        internal void Initialize(PlayerMotor owner)
+        public void Initialize(PlayerMotor owner)
         {
             motor = owner;
         }

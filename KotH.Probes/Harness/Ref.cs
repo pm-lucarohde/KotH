@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.IO.Compression;
+using KotH.Shared.Mathematics;
 using Stride.Core.Mathematics;
 
 namespace KotH.Probes.Harness
@@ -23,6 +24,14 @@ namespace KotH.Probes.Harness
 
         /// <summary>A Stride position or direction back in Unity's terms.</summary>
         public static Vector3 ToUnity(Vector3 stride) => new Vector3(stride.X, stride.Y, -stride.Z);
+
+        /// <summary>A Unity rotation as the Stride rotation, and back: the same flip.</summary>
+        public static Quaternion Rot(Quaternion unity) => new Quaternion(-unity.X, -unity.Y, unity.Z, unity.W);
+
+        public static Quaternion ToUnity(Quaternion stride) => new Quaternion(-stride.X, -stride.Y, stride.Z, stride.W);
+
+        /// <summary>Unity's Quaternion.Euler(x, y, 0), in Unity's coordinates.</summary>
+        public static Quaternion Euler(float x, float y) => ToUnity(UMath.Euler(Angle(x), Angle(y)));
 
         /// <summary>A Unity yaw or pitch as the Stride angle.</summary>
         public static float Angle(float unity) => -unity;

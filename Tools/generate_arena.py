@@ -31,6 +31,18 @@ def mirror_q(q):
     return (-q[0], -q[1], q[2], q[3])
 
 
+def read_spawns():
+    """Where Prototype.unity placed the player and the dummy, as markers."""
+    out = []
+    for line in open(os.path.join(DUMP, "colliders.txt")):
+        cells = line.rstrip("\n").split(";")
+        if int(cells[2].split()[1]) != 6:
+            continue
+        i = cells.index("pos")
+        out.append((cells[0] + "Spawn", floats(cells[i + 1:i + 4]), floats(cells[i + 5:i + 9])))
+    return out
+
+
 def read_colliders():
     out = []
     for line in open(os.path.join(DUMP, "colliders.txt")):
@@ -122,6 +134,10 @@ def main():
             comps = [transform(name, (0.0, 0.0, 0.0), (0.0, 0.0, 0.0, 1.0)),
                      static(name, "\n".join(shapes))]
         parts.append(entity(name, comps))
+
+    # Markers carry no collider, so they take no place in the query order.
+    for name, pos, rot in read_spawns():
+        parts.append(entity(name, [transform(name, mirror_v(pos), mirror_q(rot))]))
 
     asset = guid("ArenaCollision/asset")
     text = """!PrefabAsset

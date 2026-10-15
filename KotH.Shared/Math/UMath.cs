@@ -12,7 +12,8 @@ namespace KotH.Shared.Mathematics
     public static class UMath
     {
         // Unity's Mathf.PI is the float pi, so its Deg2Rad is not the double one.
-        public const float Deg2Rad = 3.14159274f * 2f / 360f;
+        public const float PI = 3.14159274f;
+        public const float Deg2Rad = PI * 2f / 360f;
         public const float Rad2Deg = 1f / Deg2Rad;
 
         // Mathf.Epsilon on x86 desktops, where flush-to-zero is off.

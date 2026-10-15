@@ -426,6 +426,10 @@ namespace KotH.Shared.Player
         {
             Simulate(input, dt);
             Publish();
+
+            // Unity's system synced every transform after each tick, this
+            // body's too; a body ticked on its own has nobody else to do it.
+            SyncHull();
         }
 
         /// <summary>

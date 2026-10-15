@@ -36,13 +36,23 @@ namespace KotH.Shared.Simulation
         /// </summary>
         protected internal virtual void Attach(WorldQueries world)
         {
-            Motor = Entity.Get<PlayerMotor>();
+            Motor = Wire(Entity, world);
             attack = Entity.Get<MeleeAttack>();
             damage = Entity.Get<DamagePercent>();
+        }
 
-            Motor.Initialize(world);
-            attack?.Initialize(Motor);
-            Entity.Get<Hittable>()?.Check(Motor.Hull);
+        /// <summary>
+        /// Binds a body's motor, fists and hull to the world. Also for a body
+        /// that is ticked by hand instead of by the system, as the probes do
+        /// with the player, whose input reader Unity switched off.
+        /// </summary>
+        public static PlayerMotor Wire(Entity entity, WorldQueries world)
+        {
+            PlayerMotor motor = entity.Get<PlayerMotor>();
+            motor.Initialize(world);
+            entity.Get<MeleeAttack>()?.Initialize(motor);
+            entity.Get<Hittable>()?.Check(motor.Hull);
+            return motor;
         }
 
         /// <summary>This body's state as the last tick left it.</summary>

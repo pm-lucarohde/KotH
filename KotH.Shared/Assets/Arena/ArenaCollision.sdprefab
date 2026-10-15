@@ -35,6 +35,8 @@ Hierarchy:
         - ref!! 57E3DC31-1073-52A6-8EDB-BB4C37FBCB3C
         - ref!! B6E1CC43-51C7-57DE-906D-F9A33F9934E6
         - ref!! 10529923-5E57-5484-B38A-2B2E59365329
+        - ref!! 349C9CCC-A41D-55EE-B1CD-4B67363AB7BE
+        - ref!! B3E51042-188B-5F8A-B576-D0635AA3999E
     Parts:
         -   Entity:
                 Id: 02302892-0341-5D08-9FF9-5A54A7D420C5
@@ -2082,3 +2084,23 @@ Hierarchy:
                                     C: {X: 4.9999995, Y: -6.6613384E-17, Z: -15.0}
                         CollisionGroup: {}
                         ContactEventHandler: null
+        -   Entity:
+                Id: 349C9CCC-A41D-55EE-B1CD-4B67363AB7BE
+                Name: PlayerSpawn
+                Components:
+                    fd5761d671d85d30b5d97bec4e2c036c: !TransformComponent
+                        Id: E0322DFC-BD08-59EF-9C7F-75584E73DB15
+                        Position: {X: 0.0, Y: 0.9, Z: -0.0}
+                        Rotation: {X: -0.0, Y: -0.0, Z: 0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+        -   Entity:
+                Id: B3E51042-188B-5F8A-B576-D0635AA3999E
+                Name: DummySpawn
+                Components:
+                    f75c8952b99a5c769cc65693abdfadc1: !TransformComponent
+                        Id: F715D107-BCBA-5185-A0D4-80F1DA5D147C
+                        Position: {X: 12.0, Y: 0.9, Z: 4.0}
+                        Rotation: {X: -0.0, Y: -0.7071068, Z: 0.0, W: -0.7071068}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}

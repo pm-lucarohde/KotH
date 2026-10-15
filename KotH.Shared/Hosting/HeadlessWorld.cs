@@ -98,6 +98,25 @@ namespace KotH.Shared.Hosting
             return root;
         }
 
+        /// <summary>A top-level entity by name, GameObject.Find for the arena.</summary>
+        public Entity Find(string name)
+        {
+            foreach (Entity e in Scene.Entities)
+                if (e.Name == name)
+                    return e;
+            return null;
+        }
+
+        /// <summary>Takes world geometry out, or puts it back: SetActive.</summary>
+        public void SetActive(Entity entity, bool active)
+        {
+            bool inside = entity.Scene != null;
+            if (active && !inside)
+                Scene.Entities.Add(entity);
+            else if (!active && inside)
+                Scene.Entities.Remove(entity);
+        }
+
         void RegisterColliders(Entity entity)
         {
             foreach (CollidableComponent c in entity.GetAll<CollidableComponent>())
