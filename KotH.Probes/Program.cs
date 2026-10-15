@@ -24,12 +24,13 @@ Probe probe = name switch
     "jumpheight" => new JumpHeightProbe(),
     "slide" => new SlideProbe(),
     "sprint" => new SprintProbe(),
+    "melee" => new MeleeProbe(),
     _ => null,
 };
 
 if (probe == null)
 {
-    Console.Error.WriteLine("Aufruf: KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint>");
+    Console.Error.WriteLine("Aufruf: KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee>");
     return 64;
 }
 
