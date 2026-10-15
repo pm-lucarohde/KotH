@@ -19,12 +19,13 @@ Probe probe = name switch
     "worldquery" => new WorldQueryProbe(dump),
     "rotation" => new RotationProbe(dump),
     "slopejump" => new SlopeJumpProbe(),
+    "step" => new StepProbe(),
     _ => null,
 };
 
 if (probe == null)
 {
-    Console.Error.WriteLine("Aufruf: KotH.Probes <worldquery|rotation|slopejump>");
+    Console.Error.WriteLine("Aufruf: KotH.Probes <worldquery|rotation|slopejump|step>");
     return 64;
 }
 
