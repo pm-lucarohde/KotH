@@ -34,6 +34,11 @@ namespace KotH.Shared.Physics
         /// <summary>What movement collides with: everything but bodies.</summary>
         public const CollisionMask WorldMask = CollisionMask.Everything & ~CollisionMask.Layer6;
 
+        // Bepu reports a face that is merely touched with a depth of float
+        // noise, up to about 1e-5 far from the origin; PhysX reported none,
+        // and its smallest real depth in 1 733 dumped cases was 6.4e-5.
+        const float TouchingDepth = 1e-5f;
+
         readonly BepuSimulation simulation;
 
         // Reused, so a query allocates nothing once they have grown.
@@ -177,7 +182,7 @@ namespace KotH.Shared.Physics
             for (int i = 0; i < overlapBuffer.Count; i++)
             {
                 OverlapInfo o = overlapBuffer[i];
-                if (o.Collidable != other || o.PenetrationLength <= 0f)
+                if (o.Collidable != other || o.PenetrationLength <= TouchingDepth)
                     continue;
 
                 if (!found || o.PenetrationLength > depth)
