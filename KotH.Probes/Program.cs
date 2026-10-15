@@ -26,12 +26,13 @@ Probe probe = name switch
     "sprint" => new SprintProbe(),
     "melee" => new MeleeProbe(),
     "step" => new StepProbe(),
+    "determinism" => new DeterminismProbe(),
     _ => null,
 };
 
 if (probe == null)
 {
-    Console.Error.WriteLine("Aufruf: KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|step>");
+    Console.Error.WriteLine("Aufruf: KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|step|determinism>");
     return 64;
 }
 
