@@ -44,6 +44,7 @@ namespace KotH.Shared.Physics
         // Reused, so a query allocates nothing once they have grown.
         readonly List<HitInfo> hitBuffer = new List<HitInfo>(64);
         readonly List<OverlapInfo> overlapBuffer = new List<OverlapInfo>(64);
+        readonly QueryHit[] anyHits = new QueryHit[16];
 
         // Stable order for colliders, by registration. Bepu reports overlaps
         // in no defined order, and float sums depend on the order they run in.
@@ -121,20 +122,21 @@ namespace KotH.Shared.Physics
             return SweepAll(shape, pose, direction, maxDistance, mask, results);
         }
 
-        /// <summary>Whether an upright capsule sweep hits anything, start overlaps included.</summary>
+        /// <summary>
+        /// Whether an upright capsule sweep hits anything, like the single
+        /// Physics.CapsuleCast: colliders it starts inside are not reported,
+        /// measured in Unity (CapsuleCastAll gives them at distance 0, the
+        /// single cast returns false). Anything further along still counts.
+        /// </summary>
         public bool CapsuleCastAny(Vector3 bottom, Vector3 top, float radius,
                                    Vector3 direction, float maxDistance, CollisionMask mask)
         {
             Capsule(bottom, top, radius, out BepuCapsule shape, out RigidPose pose);
-
-            overlapBuffer.Clear();
-            simulation.Overlap(shape, pose, overlapBuffer, mask);
-            if (overlapBuffer.Count > 0)
-                return true;
-
-            // The whole move over one unit of time, see SweepAll.
-            var velocity = new BodyVelocity(UMath.Mul(direction, maxDistance), Vector3.Zero);
-            return simulation.SweepCast(shape, pose, velocity, 1f, out _, mask);
+            int count = SweepAll(shape, pose, direction, maxDistance, mask, anyHits);
+            for (int i = 0; i < count; i++)
+                if (anyHits[i].Distance > 0f)
+                    return true;
+            return false;
         }
 
         /// <summary>

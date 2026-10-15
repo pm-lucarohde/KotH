@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using KotH.Shared.Physics;
 using KotH.Shared.Simulation;
 using Stride.BepuPhysics;
@@ -20,13 +19,14 @@ namespace KotH.Shared.Hosting
     /// </summary>
     public sealed class HeadlessWorld : IDisposable
     {
-        public const string ArenaUrl = "/KotH.Shared/Arena/ArenaCollision";
-        public const string PlayerBodyUrl = "/KotH.Shared/Bodies/PlayerBody";
-        public const string DummyBodyUrl = "/KotH.Shared/Bodies/DummyBody";
+        public const string ArenaUrl = WorldBuilder.ArenaUrl;
+        public const string PlayerBodyUrl = WorldBuilder.PlayerBodyUrl;
+        public const string DummyBodyUrl = WorldBuilder.DummyBodyUrl;
 
         readonly ServiceRegistry services = new ServiceRegistry();
         readonly ContentManager content;
         readonly SceneInstance sceneInstance;
+        readonly WorldBuilder builder;
 
         public HeadlessWorld()
         {
@@ -49,6 +49,7 @@ namespace KotH.Shared.Hosting
             // order they are added, so collider handles are the same every run.
             Scene = new Scene();
             sceneInstance = new SceneInstance(services, Scene);
+            builder = new WorldBuilder(Scene, content, Queries);
         }
 
         public BepuSimulation Physics { get; }
@@ -57,74 +58,17 @@ namespace KotH.Shared.Hosting
         public Scene Scene { get; }
         public ContentManager Content => content;
 
-        /// <summary>
-        /// Adds every collider of the arena prefab, in prefab order, and gives
-        /// each its place in the stable query order.
-        /// </summary>
-        public void LoadArena()
-        {
-            foreach (Entity e in content.Load<Prefab>(ArenaUrl).Instantiate())
-                AddStatic(e);
-        }
+        public void LoadArena() => builder.LoadArena();
 
-        /// <summary>
-        /// Adds world geometry built in code, as the probes do. Registered
-        /// in the stable order right after whatever came before it.
-        /// </summary>
-        public void AddStatic(Entity entity)
-        {
-            Scene.Entities.Add(entity);
-            RegisterColliders(entity);
-        }
+        public void AddStatic(Entity entity) => builder.AddStatic(entity);
 
-        /// <summary>
-        /// Spawns a body prefab at a pose, with an extra component added
-        /// before it enters the scene, typically its SimulationBody.
-        /// </summary>
         public Entity SpawnBody(string prefabUrl, Vector3 position, Quaternion rotation,
                                 params EntityComponent[] extra)
-        {
-            List<Entity> parts = content.Load<Prefab>(prefabUrl).Instantiate();
-            Entity root = parts[0];
-            root.Transform.Position = position;
-            root.Transform.Rotation = rotation;
+            => builder.SpawnBody(prefabUrl, position, rotation, extra);
 
-            foreach (EntityComponent c in extra)
-                root.Add(c);
+        public Entity Find(string name) => builder.Find(name);
 
-            foreach (Entity e in parts)
-                Scene.Entities.Add(e);
-
-            return root;
-        }
-
-        /// <summary>A top-level entity by name, GameObject.Find for the arena.</summary>
-        public Entity Find(string name)
-        {
-            foreach (Entity e in Scene.Entities)
-                if (e.Name == name)
-                    return e;
-            return null;
-        }
-
-        /// <summary>Takes world geometry out, or puts it back: SetActive.</summary>
-        public void SetActive(Entity entity, bool active)
-        {
-            bool inside = entity.Scene != null;
-            if (active && !inside)
-                Scene.Entities.Add(entity);
-            else if (!active && inside)
-                Scene.Entities.Remove(entity);
-        }
-
-        void RegisterColliders(Entity entity)
-        {
-            foreach (CollidableComponent c in entity.GetAll<CollidableComponent>())
-                Queries.Register(c);
-
-            foreach (TransformComponent child in entity.Transform.Children)
-                RegisterColliders(child.Entity);
-        }
+        public void SetActive(Entity entity, bool active) => builder.SetActive(entity, active);
 
         public void Dispose()
         {
