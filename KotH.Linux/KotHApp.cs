@@ -37,6 +37,9 @@ sealed class KotHGame : Game
         // a script failing in Start leaves nothing but a black window.
         ConsoleLogMode = ConsoleLogMode.Always;
         ConsoleLogLevel = LogMessageType.Warning;
+
+        // Uncapped like the Unity build: no wait for the display's refresh.
+        GraphicsDeviceManager.SynchronizeWithVerticalRetrace = false;
     }
 
     protected override void Update(GameTime gameTime)
@@ -78,7 +81,8 @@ sealed class KotHGame : Game
             image.Save(f, ImageFileType.Png);
         }
 
-        Console.WriteLine($"[shot] {shotPath} nach {gameTime.Total.TotalSeconds:F1} s, {gameTime.FramePerSecond:F0} fps");
+        Console.WriteLine($"[shot] {shotPath} nach {gameTime.Total.TotalSeconds:F1} s, {gameTime.FramePerSecond:F0} fps, " +
+                          $"Gier {Find<PlayerInputReader>()?.Yaw:F2}°");
         ReportFont();
         Exit();
     }

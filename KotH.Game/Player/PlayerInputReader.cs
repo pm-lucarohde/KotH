@@ -16,8 +16,11 @@ namespace KotH.Client.Player
     [DataContract("KotH.PlayerInputReader")]
     public sealed class PlayerInputReader : SimulationBody
     {
-        // Unity's "Mouse X" axis was 0.1 per pixel, times this: 0.2° a count.
-        const float DegreesPerPixelAtOne = 0.1f;
+        // Measured against the Unity build with a virtual uinput mouse: 400
+        // counts turned it 20° at sensitivity 2, linear, so its Linux "Mouse X"
+        // gave a quarter of the 0.1 per count its axis setting suggests.
+        // SDL's relative mode here delivers whole counts.
+        const float DegreesPerPixelAtOne = 0.025f;
 
         [Display("Mausempfindlichkeit", "Maus")] public float MouseSensitivity = 2f;
         [Display("Nick unten", "Maus")] public float MinPitch = -89f;
