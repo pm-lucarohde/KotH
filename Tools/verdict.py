@@ -8,7 +8,7 @@ unterscheidet, mit beiden vollstaendigen Zeilen.
 import io, os, re, sys, collections
 
 def num(s):
-    return float(s.replace(",", "."))
+    return float(s.rstrip(",").replace(",", "."))
 
 def verdicts(path):
     probe = os.path.basename(path)
