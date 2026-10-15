@@ -25,12 +25,13 @@ Probe probe = name switch
     "slide" => new SlideProbe(),
     "sprint" => new SprintProbe(),
     "melee" => new MeleeProbe(),
+    "step" => new StepProbe(),
     _ => null,
 };
 
 if (probe == null)
 {
-    Console.Error.WriteLine("Aufruf: KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee>");
+    Console.Error.WriteLine("Aufruf: KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|step>");
     return 64;
 }
 
