@@ -42,8 +42,11 @@ Ein Peer hostet, ein dedizierter Server ist nicht geplant.
 - Vulkan-Treiber.
 - Für die **NativeAOT-Builds**: eine Distrobox namens `aot` (Fedora 44) mit
   `clang`, `lld` und `zlib-devel`. Der normale JIT-Build braucht sie nicht.
-- Optional zum Bearbeiten von Szene, Prefabs und Tuning: **Stride Game Studio**.
-  Unter Linux läuft es über Wine bzw. Proton; geöffnet wird `KotH.slnx`.
+- Zum Bearbeiten von Szene, Prefabs und Tuning: **Stride Game Studio** 4.4.
+  Unter Linux läuft es über Wine bzw. Proton; geöffnet wird `KotH.slnx`. Das
+  Prefix braucht das Windows-SDK von .NET 11. Unter .NET 11 friert der Editor
+  unter Wine ohne den Fix aus [stride#3600](https://github.com/stride3d/stride/pull/3600)
+  ein ([stride#3599](https://github.com/stride3d/stride/issues/3599)).
 
 ## Bauen und starten
 
@@ -109,16 +112,17 @@ Einige Kernpunkte der Architektur:
 - **Koordinaten.** Stride-Konvention mit −Z als vorn. Unity-Werte werden exakt
   gespiegelt: `z → −z`, Quaternion `(x, y, z, w) → (−x, −y, z, w)`.
 
-### Generierte Assets
+### Assets
 
-Arena, Körper und die sichtbare Szene werden aus Skripten erzeugt. Änderungen
-gehören deshalb in den Generator, nicht nur ins Asset:
+Szene, Prefabs, Materialien und Tuningwerte werden in **Stride Game Studio**
+bearbeitet. Für den Umzug wurden sie einmalig aus Skripten erzeugt. Diese Skripte
+nicht erneut ausführen: Sie überschreiben jede Änderung aus Game Studio.
 
-| Skript | erzeugt |
+| Skript (nur Umzug) | hat erzeugt |
 |---|---|
 | `Tools/generate_arena.py` | `ArenaCollision.sdprefab` aus den Unity-Dumps, bitgenau |
 | `Tools/generate_bodies.py` | `PlayerBody`, `DummyBody` mit allen Tuningwerten |
-| `Tools/generate_client.py` | Materialien, Modelle, `MainScene`, Licht, Compositor |
+| `Tools/generate_client.py` | Materialien, Modelle, `MainScene`, Licht |
 
 ## Proben und Regression
 

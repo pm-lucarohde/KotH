@@ -1,11 +1,13 @@
 """Writes the client's visible assets: materials, procedural models and MainScene.
 
+One-off migration tool: since 16.10.2026 Game Studio owns the assets it
+wrote (Luca's decision). Running it again overwrites every edit made there.
+
 The look follows Prototype.unity: Ground, Rock (mountain), Prop (steps and
 the crouch slab), Player (bodies); one directional light at Unity's angle,
 camera at 85 degrees vertical FOV and 300 m far plane. Geometry comes from
 the same dump as ArenaCollision, mirrored the same exact way. Ids derive
-from names, so regenerating keeps every id and Game Studio edits survive
-as long as they are made in the generator too.
+from names, so a rerun keeps every id.
 """
 import os, sys
 sys.path.insert(0, os.path.dirname(__file__))

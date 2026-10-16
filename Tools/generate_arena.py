@@ -1,5 +1,8 @@
 """Writes ArenaCollision.sdprefab from the Unity dump of Prototype.unity.
 
+One-off migration tool: since 16.10.2026 Game Studio owns the assets it
+wrote (Luca's decision). Running it again overwrites every edit made there.
+
 Input: Reference/unity/dump/colliders.txt and ground.txt, every float as its
 exact bits. Unity (left-handed, +Z forward) maps to Stride (right-handed,
 -Z forward) by z -> -z and quaternion (x, y, z, w) -> (-x, -y, z, w), which

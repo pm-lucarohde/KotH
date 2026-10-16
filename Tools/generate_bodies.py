@@ -1,9 +1,12 @@
 """Writes the simulation halves of the bodies: PlayerBody and DummyBody.
 
+One-off migration tool: since 16.10.2026 Game Studio owns the assets it
+wrote (Luca's decision). Running it again overwrites every edit made there.
+
 These carry no model, so the server and the probes can load them without
 a GPU. The game's Player and Dummy prefabs nest them and add the visuals.
-Every tuning value is written out and equals the C# default, which in turn
-equals Unity's Player.prefab; ProbeDefaults checks both stay that way.
+Every tuning value was written out equal to the C# default and to
+Unity's Player.prefab.
 """
 import os, sys
 sys.path.insert(0, os.path.dirname(__file__))

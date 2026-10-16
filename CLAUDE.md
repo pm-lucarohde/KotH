@@ -104,12 +104,35 @@ Quaternion `(x,y,z,w) → (−x,−y,z,w)`. Jede Spiegelstelle im Code ist komme
 
 Kollision und Körper liegen in eigenen Prefabs **ohne Modelle**
 (`KotH.Shared/Assets/{Arena,Bodies}`), damit `HeadlessWorld` sie ohne Grafik lädt.
-Die Client-Prefabs verschachteln sie und legen die Modelle darüber. Diese Assets
-werden **generiert**, Änderungen gehören in den Generator:
+Die Client-Prefabs verschachteln sie und legen die Modelle darüber.
+
+**Quelle aller Assets ist Game Studio** (Lucas Entscheidung, 16.10.2026). Die
+Generatoren waren Umzugswerkzeug und **nicht erneut ausführen**, sie überschreiben
+jede Änderung aus Game Studio; sie fliegen in Etappe 11 mit Unity raus:
 
 - `Tools/generate_arena.py` – `ArenaCollision.sdprefab` aus den Unity-Dumps (Bits exakt).
-- `Tools/generate_bodies.py` – `PlayerBody`/`DummyBody`; Tuningwerte = C#-Standards.
-- `Tools/generate_client.py` – Materialien, Modelle, `MainScene`, Licht, Compositor.
+- `Tools/generate_bodies.py` – `PlayerBody`/`DummyBody` mit allen Tuningwerten.
+- `Tools/generate_client.py` – Materialien, Modelle, `MainScene`, Licht.
+
+Der `GraphicsCompositor` hat bewusst **keinen `Archetype`**: Game Studio setzt
+sonst nicht markierte Werte auf den Archetyp zurück, und Tonemapping und Bloom
+gehen beim Speichern an.
+
+### Game Studio (Wine/Proton)
+
+- Steam-Verknüpfung „Stride Game Studio 4.4.0“, Prefix `compatdata/2392464373`,
+  GE-Proton11-6; darin das Windows-SDK .NET 11 RC2. Projekt: `Z:\var\home\lr\KotH\KotH.slnx`.
+  Game Studio startet sich für das net11-Projekt selbst auf .NET 11 neu.
+- Startoptionen: `NUGET_PACKAGES=Z:/home/lr/.local/share/stride-winefix/packages
+  MSBUILDDISABLENODEREUSE=1 UseSharedCompilation=false %command%`.
+- Unter .NET 11 hilft `stride-wine-gcfix` nicht mehr gegen den GC-Hänger
+  (stride#3599). Der Editor lädt deshalb `Stride.Core` 4.4.0 + Lucas PR #3600 aus
+  `~/.local/share/stride-winefix/packages` (Symlinks auf `~/.nuget/packages`,
+  nur `stride.core/4.4.0` ist eine Kopie). Das `.nuget` im Prefix ist ein Symlink
+  auf `~/.nuget`: dort nie Dateien ersetzen, das trifft die Linux-Builds.
+- Aus der Shell nur mit `env -u DOTNET_ROOT` starten, sonst sucht der Windows-Host
+  die Laufzeit im Linux-.NET.
+- Speichern schreibt CRLF; `.gitattributes` normalisiert auf LF.
 
 ### Client-HUD
 

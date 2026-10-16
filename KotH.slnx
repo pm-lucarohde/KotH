@@ -1,7 +1,7 @@
 <Solution>
-  <Project Path="KotH.Shared/KotH.Shared.csproj" />
   <Project Path="KotH.Game/KotH.Game.csproj" />
   <Project Path="KotH.Linux/KotH.Linux.csproj" DefaultStartup="true" />
-  <Project Path="KotH.Server/KotH.Server.csproj" />
   <Project Path="KotH.Probes/KotH.Probes.csproj" />
+  <Project Path="KotH.Server/KotH.Server.csproj" />
+  <Project Path="KotH.Shared/KotH.Shared.csproj" />
 </Solution>

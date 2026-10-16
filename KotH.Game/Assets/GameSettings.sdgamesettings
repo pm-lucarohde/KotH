@@ -1,9 +1,9 @@
 !GameSettingsAsset
-Id: A6506873-DA64-457B-A729-FD6AE2219E76
+Id: a6506873-da64-457b-a729-fd6ae2219e76
 SerializedVersion: {Stride: 3.1.0.1}
 Tags: []
-DefaultScene: A1A78B9B-C5BB-4CD0-B45E-BE04A2C3C984:MainScene
-GraphicsCompositor: A01CDE80-EEF7-4AD0-ADA3-3D0AB8826C18:GraphicsCompositor
+DefaultScene: a1a78b9b-c5bb-4cd0-b45e-be04a2c3c984:MainScene
+GraphicsCompositor: a01cde80-eef7-4ad0-ada3-3d0ab8826c18:GraphicsCompositor
 Defaults:
     - !Stride.Audio.AudioEngineSettings,Stride.Audio
         HrtfSupport: false
@@ -21,5 +21,5 @@ Defaults:
         ResourceLiveTimeout: 0:00:00:08.0000000
     - !Stride.Assets.Textures.TextureSettings,Stride.Assets
         TextureQuality: Fast
-SplashScreenTexture: d26edb11-10bd-403c-b3c2-9c7fcccf25e5:StrideDefaultSplashScreen
+SplashScreenTexture: d26edb11-10bd-403c-b3c2-9c7fcccf25e5:/Stride.Engine/StrideDefaultSplashScreen
 SplashScreenColor: {R: 0, G: 0, B: 0, A: 255}

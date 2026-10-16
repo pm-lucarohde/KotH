@@ -1,0 +1,16 @@
+# Git stores text with LF. Game Studio runs under Wine and saves with CRLF;
+# normalizing keeps its saves from showing up as whole-file rewrites.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.dds binary
+*.ttf binary
+*.otf binary
+*.gz binary
+*.pyc binary
+*.fbx binary
+*.wav binary
+*.ogg binary
+*.dll binary
+*.exe binary

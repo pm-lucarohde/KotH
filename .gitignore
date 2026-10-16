@@ -115,3 +115,4 @@ Cache/
 *.sdpkg.user
 .idea/
 .work/
+__pycache__/
