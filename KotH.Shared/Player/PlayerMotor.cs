@@ -160,6 +160,7 @@ namespace KotH.Shared.Player
         bool hasContactNormal;
         float maxStepHeight;      // our own step limit, derived from the height
         bool steppedUp;           // climbed a ledge this tick
+        int stepSettleTicks;      // ticks a step-up still counts as standing
         bool wedged;              // last move was refused by the world
         float knockbackTime;      // ground control stays soft this long
         bool doubleJumpUsed;      // once per flight
@@ -320,6 +321,7 @@ namespace KotH.Shared.Player
                 ContactNormal = contactNormal,
                 HasContactNormal = hasContactNormal,
                 SteppedUp = steppedUp,
+                StepSettleTicks = stepSettleTicks,
                 Wedged = wedged,
                 KnockbackTime = knockbackTime,
                 DoubleJumpUsed = doubleJumpUsed,
@@ -364,6 +366,7 @@ namespace KotH.Shared.Player
             contactNormal = s.ContactNormal;
             hasContactNormal = s.HasContactNormal;
             steppedUp = s.SteppedUp;
+            stepSettleTicks = s.StepSettleTicks;
             wedged = s.Wedged;
             knockbackTime = s.KnockbackTime;
             doubleJumpUsed = s.DoubleJumpUsed;
@@ -554,7 +557,14 @@ namespace KotH.Shared.Player
 
             Vector3 beforeMove = position;
 
-            TryStepUp(dt);
+            // A step-up leaves the body a skin above the ledge, and it takes
+            // two ticks to count as grounded again. A sprint meets the next
+            // riser inside those two ticks, so they may climb as well.
+            bool settling = stepSettleTicks > 0;
+            if (settling)
+                stepSettleTicks--;
+
+            TryStepUp(dt, settling);
             CapsuleSweep.Result moved = MoveBody(UMath.Mul(velocity, dt));
             touchingGround = moved.hasGround;
 
@@ -962,9 +972,11 @@ namespace KotH.Shared.Player
         /// Climbs a step, but only onto a ledge it has actually measured:
         /// blocked ahead, room one step higher, and a walkable surface there.
         /// </summary>
-        void TryStepUp(float dt)
+        void TryStepUp(float dt, bool settling)
         {
-            if (!grounded || maxStepHeight <= 0f)
+            if (maxStepHeight <= 0f)
+                return;
+            if (!grounded && !(settling && velocity.Y <= 0f))
                 return;
 
             Vector3 step = UMath.Mul(new Vector3(velocity.X, 0f, velocity.Z), dt);
@@ -1026,6 +1038,7 @@ namespace KotH.Shared.Player
             // the ground snap would find the step BELOW and undo this lift.
             // It only ever showed on flights shallower than the snap range.
             steppedUp = true;
+            stepSettleTicks = 2;
 
             // The lift only clears the ledge by skinWidth, and the settling
             // speed of -2 m/s eats more than that in one tick. Without this

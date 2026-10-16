@@ -113,3 +113,25 @@ unter v2 mit Unity überein).
 Verbleibende AOT-Warnungen (8) liegen alle in Fremdcode: Silk.NET (Pfadsuche über
 `Assembly.Location`/`DependencyContext`, IL3000/IL3002), Stride.Graphics (nur macOS)
 und Stride.BepuPhysics (IL3053). KotH selbst erzeugt keine.
+
+## Gewollte Änderungen nach dem Umzug (16.10.2026)
+
+Luca hat drei Fehler gemeldet, die nach Etappe 8 behoben wurden. Zwei davon
+steckten schon im Unity-Original:
+
+1. **Gehaltene Leertaste löste den Doppelsprung aus** (`b0e26d0`, Fehler aus dem
+   Umzug). Strides `IsKeyPressed` meldet die Tastenwiederholung des Systems mit,
+   Unitys `GetKeyDown` nicht. `KeyPresses` zählt nur echte Drücke.
+2. **Gleiten direkt aus dem Sprint-Sprung** (`b0e26d0`, neues Verhalten): mit
+   gehaltener Ducktaste gelandet, startet der Slide im Landetick. SlideProbe hat
+   dafür drei Fälle ohne Unity-Gegenstück.
+3. **Hängenbleiben beim Hochsprinten der Treppen** (Fehler aus Unity). Nach einem
+   Stufenaufstieg schwebt der Körper eine Hautdicke über dem Absatz und gilt erst
+   zwei Ticks später wieder als am Boden. Im Sprint kommt die nächste Kante alle
+   2,8 Ticks, fällt also irgendwann in dieses Fenster, und der Körper prallt ab.
+   Jetzt darf der Aufstieg auch in diesen zwei Ticks greifen (`stepSettleTicks`).
+   Neue Probe `stairrun`: vorher 154 von 2916 Sprintläufen gestockt, jetzt keiner.
+
+Alle anderen Proben sind dabei byte-gleich geblieben, unter JIT und AOT. Die
+Hashkette der DeterminismProbe lautet jetzt `A4A9BBB937C62890`. Sie ändert sich, weil
+`MotorState` ein neues Feld hat; das Verhalten bleibt in allen Fällen gleich.

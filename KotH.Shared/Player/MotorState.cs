@@ -31,6 +31,7 @@ namespace KotH.Shared.Player
         public Vector3 ContactNormal;
         public bool HasContactNormal;
         public bool SteppedUp;
+        public int StepSettleTicks;
         public bool Wedged;
         public float KnockbackTime;
         public bool DoubleJumpUsed;
