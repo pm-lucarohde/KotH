@@ -56,7 +56,7 @@ namespace KotH.Client
         /// </summary>
         bool UpdateCursor()
         {
-            if (Input.IsKeyPressed(Stride.Input.Keys.Escape))
+            if (KeyPresses.Pressed(Input, Stride.Input.Keys.Escape))
             {
                 if (Captured)
                     SetCaptured(false);

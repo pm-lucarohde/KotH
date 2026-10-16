@@ -80,11 +80,11 @@ namespace KotH.Client.Player
             }
 
             // Counted rather than latched, so two presses inside one 25 ms
-            // tick both arrive - the double jump depends on that.
-            if (input.IsKeyPressed(Keys.Space) && jumpPresses < byte.MaxValue)
-                jumpPresses++;
+            // tick both arrive - the double jump depends on that. Repeats of
+            // a held key are no presses, see KeyPresses.
+            jumpPresses = (byte)System.Math.Min(byte.MaxValue, jumpPresses + KeyPresses.Count(input, Keys.Space));
 
-            if (input.IsKeyPressed(CrouchKey))
+            if (KeyPresses.Pressed(input, CrouchKey))
                 crouchPressed = true;
 
             move = new Vector2(Axis(input, Keys.D, Keys.Right, Keys.A, Keys.Left),

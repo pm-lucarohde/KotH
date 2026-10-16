@@ -117,7 +117,7 @@ namespace KotH.Client.Hud
             float delta = (float)Game.UpdateTime.Elapsed.TotalSeconds;
             Push(delta * 1000f);
 
-            if (Input.IsKeyPressed(ToggleKey))
+            if (KeyPresses.Pressed(Input, ToggleKey))
                 Visible = !Visible;
 
             if (!Visible)

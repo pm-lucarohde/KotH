@@ -19,7 +19,7 @@ namespace KotH.Probes.Probes
         enum Check { Duration, SpeedRises, SpeedCapped,
                      EndsEarly, Turns, RollsOut, NoStart, Eyes,
                      CooldownBlocks, CooldownClears, CarriesOverEdge,
-                     JumpCancels, JumpAfterCancel }
+                     JumpCancels, JumpAfterCancel, FromJump }
 
         struct Case
         {
@@ -35,6 +35,8 @@ namespace KotH.Probes.Probes
             public int retryAt;         // tick after the slide start to press again
             public float startAt;       // metres along the face to begin, 0 = 3
             public bool jumpTwice;      // second press two ticks after the first
+            public int takeoff;         // jump this many ticks before crouching, 0 = never
+            public bool noSprint;       // run-up at walking speed
             public bool shouldStart;
             public Check check;
         }
@@ -120,6 +122,17 @@ namespace KotH.Probes.Probes
                        runup = 30, crouchHold = 1, steer = true, jumpAt = 6,
                        retryAt = 22,
                        shouldStart = true, check = Check.CooldownClears },
+            // Out of a sprint jump: crouch goes down in the air, eight ticks
+            // after take-off, and the slide starts on landing if still held.
+            new Case { name = "Aus dem Sprung, gehalten gelandet", surface = 0,
+                       runup = 38, takeoff = 8, crouchHold = -1, steer = true, jumpAt = -1,
+                       shouldStart = true, check = Check.FromJump },
+            new Case { name = "Aus dem Sprung, in der Luft losgelassen", surface = 0,
+                       runup = 38, takeoff = 8, crouchHold = 4, steer = true, jumpAt = -1,
+                       shouldStart = false, check = Check.NoStart },
+            new Case { name = "Aus dem Sprung ohne Sprint", surface = 0,
+                       runup = 38, takeoff = 8, noSprint = true, crouchHold = -1, steer = true,
+                       jumpAt = -1, shouldStart = false, check = Check.NoStart },
         };
 
         PlayerMotor motor;
@@ -148,6 +161,7 @@ namespace KotH.Probes.Probes
         float headingStart, headingEnd;
         bool groundedAtEnd;         // read at the end, not in the report
         bool liftedOff;             // left the ground at all after the slide
+        bool startedOnLanding;      // airborne the tick before the slide began
         float cancelSpeed;          // flat speed the tick the slide ended
         float eyeLow = float.MaxValue;
         float eyeAfter = float.NaN;
@@ -272,6 +286,7 @@ namespace KotH.Probes.Probes
             headingEnd = 0f;
             groundedAtEnd = true;
             liftedOff = false;
+            startedOnLanding = false;
             cancelSpeed = 0f;
             eyeLow = float.MaxValue;
             eyeAfter = float.NaN;
@@ -316,6 +331,8 @@ namespace KotH.Probes.Probes
                 jump = 1;
             else if (c.jumpTwice && started && tick == slideStart + c.jumpAt + 2)
                 jump = 1;
+            else if (c.takeoff > 0 && tick == c.runup - c.takeoff)
+                jump = 1;
 
             float turn = inSlide && c.yawTurn != 0f
                 ? c.yawTurn * UMath.Clamp01((tick - slideStart) / 12f)
@@ -323,12 +340,13 @@ namespace KotH.Probes.Probes
 
             Vector3 before = Ref.ToUnity(motor.Position);
             bool wasSliding = motor.IsSliding;
+            bool wasGrounded = motor.IsGrounded;
 
             motor.Tick(new MoveInput
             {
                 Move = (tick < c.runup || c.steer) ? new Vector2(0f, 1f) : Vector2.Zero,
                 Yaw = Ref.Angle(yaw + turn),
-                Sprint = tick < c.runup,
+                Sprint = tick < c.runup && !c.noSprint,
                 Crouch = crouch,
                 CrouchPressed = pressed,
                 JumpPresses = jump,
@@ -353,6 +371,7 @@ namespace KotH.Probes.Probes
                     speedStart = flat;
                     slideFrom = before;
                     headingStart = Heading();
+                    startedOnLanding = !wasGrounded;
                 }
 
                 slideTicks++;
@@ -458,6 +477,14 @@ namespace KotH.Probes.Probes
                     ok = liftedOff && airSpeed <= sprintSpeed + 0.05f;
                     note = $"zweiter Druck hob {(liftedOff ? "ab" : "NICHT ab")}," +
                            $" in der Luft {airSpeed:F3} gegen {sprintSpeed:F3}";
+                    break;
+                case Check.FromJump:
+                    // Started in the landing tick, with the sprint's speed
+                    // carried through the crouched flight, and ran a full slide.
+                    ok = startedOnLanding && speedStart > sprintSpeed - 0.3f
+                         && UMath.Abs(slideTicks - wantTicks) <= 2f;
+                    note = $"Start {(startedOnLanding ? "bei der Landung" : "NICHT bei der Landung")}," +
+                           $" {slideTicks} Ticks gegen {wantTicks:F1} erwartet";
                     break;
                 case Check.Turns:
                     float turned = UMath.Abs(UMath.DeltaAngle(headingStart, headingEnd));

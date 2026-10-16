@@ -459,6 +459,7 @@ namespace KotH.Shared.Player
             // and therefore part of what a rollback can restore.
             bool touching = touchingGround;
             bool knownGround = false;
+            bool wasGrounded = grounded;
 
             if (touching)
             {
@@ -520,7 +521,7 @@ namespace KotH.Shared.Player
 
             // After UpdateSprint, which it asks, and before UpdateHorizontal,
             // which reads slideSpeed as its target.
-            UpdateSlide(input, dt);
+            UpdateSlide(input, grounded && !wasGrounded, dt);
 
             // A slide crouches on its own, so a tapped one lowers the eyes
             // exactly like a held key does.
@@ -618,7 +619,7 @@ namespace KotH.Shared.Player
         // The crouch slide: a sprint that keeps its momentum while ducking
         // instead of being pulled down to crouch speed. Only speed or the
         // key end it on flat ground; downhill only the key does.
-        void UpdateSlide(in MoveInput input, float dt)
+        void UpdateSlide(in MoveInput input, bool landed, float dt)
         {
             // Counted down before the start below, so the tick a slide
             // begins in sets the full time rather than a shortened one.
@@ -660,12 +661,19 @@ namespace KotH.Shared.Player
             // Measured from the start, not the end: a slide that ran its
             // full course is longer than the cooldown and so never waits,
             // while hammering the key does.
-            if (input.CrouchPressed && sprinting && grounded && !onSteepGround
-                && slideCooldownLeft <= 0f && lastStepSpeed > WalkSpeed)
+            // Landing with the key held slides straight out of a sprint jump.
+            // The landing tick's step is mostly the fall, so the flat speed
+            // is what has to be fast enough there.
+            float flatSpeed = UMath.Magnitude(new Vector2(velocity.X, velocity.Z));
+            bool tapped = input.CrouchPressed && lastStepSpeed > WalkSpeed;
+            bool landedCrouched = landed && input.Crouch && flatSpeed > WalkSpeed;
+
+            if ((tapped || landedCrouched) && sprinting && grounded && !onSteepGround
+                && slideCooldownLeft <= 0f)
             {
                 sliding = true;
                 slideCooldownLeft = SlideCooldown;
-                slideSpeed = UMath.Magnitude(new Vector2(velocity.X, velocity.Z));
+                slideSpeed = flatSpeed;
             }
         }
 
@@ -692,8 +700,10 @@ namespace KotH.Shared.Player
                 }
             }
 
+            // Crouching in the air out of a sprint keeps the sprint's speed:
+            // it is the run-up to a slide on landing, not crouched walking.
             float speed = sliding ? slideSpeed
-                        : isCrouching ? CrouchSpeed
+                        : isCrouching && (grounded || !sprinting) ? CrouchSpeed
                         : sprinting ? SprintSpeed
                         : WalkSpeed;
 
