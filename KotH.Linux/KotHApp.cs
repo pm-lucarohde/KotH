@@ -39,7 +39,7 @@ sealed class KotHGame : Game
         ConsoleLogLevel = LogMessageType.Warning;
 
         // Uncapped like the Unity build: no wait for the display's refresh.
-        GraphicsDeviceManager.SynchronizeWithVerticalRetrace = false;
+        GraphicsDeviceManager.SynchronizeWithVerticalRetrace = true;
     }
 
     protected override void Update(GameTime gameTime)
