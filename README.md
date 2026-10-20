@@ -6,7 +6,7 @@ Trainingsdummys (0 %, 50 % und 100 % Startschaden), Bewegung mit Sprint,
 Gleiten, Ducken, gestuftem Sprung und Doppelsprung, Körperstöße zwischen
 Spielern sowie ein Nahkampfschlag. Der Schlag erhöht das Schadensprozent des
 Getroffenen und stößt ihn umso weiter weg, je höher es schon war: bei 100 %
-2 m weit und 0,2 m hoch, linear bis 1000 %.
+4 m weit und 0,4 m hoch, linear bis 1000 %.
 
 | | |
 |---|---|
@@ -169,7 +169,7 @@ jede gewollte Änderung gegenüber Unity ist mit Ursache in
 AVX2/FMA rundet anders als SSE. Alle AOT-Builds sind deshalb fest auf
 x86-64-v2 gebaut. Ein JIT-Lauf auf einer AVX2-CPU rechnet nur mit
 `DOTNET_EnableAVX=0` genauso. Die Hashkette der DeterminismProbe muss unter JIT
-und AOT gleich sein; derzeit lautet sie `F8B581D86AC8D19F`. Für Peer-to-Peer
+und AOT gleich sein; derzeit lautet sie `DC3141482F59894C`. Für Peer-to-Peer
 heißt das: Alle Peers brauchen dasselbe Binary.
 
 ## Lizenz
