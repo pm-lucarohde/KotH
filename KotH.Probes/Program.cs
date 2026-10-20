@@ -36,12 +36,13 @@ Probe probe = name switch
     "wallknock" => new WallKnockProbe { Trace = Array.IndexOf(args, "trace") > 0 },
     "capture" => new CaptureProbe(),
     "netstate" => new NetStateProbe(),
+    "netplay" => new NetPlayProbe(),
     _ => null,
 };
 
 if (probe == null)
 {
-    Console.Error.WriteLine("Aufruf: KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|step|determinism|clock|stairrun|rampfoot|crouchedge|knockback|thirdperson|wallknock|capture|netstate>");
+    Console.Error.WriteLine("Aufruf: KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|step|determinism|clock|stairrun|rampfoot|crouchedge|knockback|thirdperson|wallknock|capture|netstate|netplay>");
     return 64;
 }
 

@@ -58,6 +58,7 @@ namespace KotH.Shared.Hosting
         public SimulationSystem Simulation { get; }
         public Scene Scene { get; }
         public ContentManager Content => content;
+        public WorldBuilder Builder => builder;
 
         public void LoadArena() => builder.LoadArena();
 

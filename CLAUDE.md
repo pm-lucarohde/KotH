@@ -48,7 +48,7 @@ Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Pr
 Es gibt keine Unit-Tests; geprüft wird mit **Proben** gegen die eingefrorene Unity-Referenz.
 
 ```bash
-Bin/Probes/Release/KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|step|determinism|clock|stairrun|rampfoot|crouchedge|knockback|thirdperson|wallknock|capture|netstate>
+Bin/Probes/Release/KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|step|determinism|clock|stairrun|rampfoot|crouchedge|knockback|thirdperson|wallknock|capture|netstate|netplay>
 Bin/Probes/Release/KotH.Probes determinism hashes   # Hashkette + Befehlssatz
 
 .work/tools/stride_runs.sh 3                        # alle Bewegungsproben 3x -> .work/regress/runK
@@ -60,7 +60,7 @@ python3 Tools/regress.py $R/run1,$R/run2,$R/run3 .work/regress/run1   # Zahlen i
 - Exit-Code 0 heißt bestanden. Ziel: alle Urteile gleich (94/94), bekannte
   Abweichungen mit Ursache stehen in `Reference/REGRESSION.md`, ebenso die gewollten
   Änderungen gegenüber Unity (deren Probenfälle haben keine Unity-Referenz,
-  `stairrun`, `rampfoot`, `crouchedge`, `thirdperson`, `wallknock`, `capture` und `netstate` laufen
+  `stairrun`, `rampfoot`, `crouchedge`, `thirdperson`, `wallknock`, `capture`, `netstate` und `netplay` laufen
   außerhalb von `stride_runs.sh`).
 - **JIT-Läufe brauchen `DOTNET_EnableAVX=0`**, sonst weichen die Floats von den
   AOT-Builds ab (`IlcInstructionSet=x86-64-v2` in `Directory.Build.props`, Lucas
@@ -92,6 +92,13 @@ Fünf Projekte (`KotH.slnx`):
   `Restore` stellt auch Mitgliedschaft und Reihenfolge der Körperliste her (unbekannte
   Körper werden geparkt). Netcode in `KotH.Shared/Net`: `StateCodec` (Snapshot als Bytes,
   `MotorState`/`BodyState` mit `Pack = 1`), Körper heißen dort nach `NetId`.
+- Netcode-Kern (Rollback im Stern, Lucas Entscheidung): `HostSession` bestätigt Ticks
+  (Eingaben, Beitritte, Abgänge), vergleicht Prüfsummen alle 40 Ticks und schickt bei
+  Desync den Zustand; `PeerSession` (auch der Host selbst über `LocalTransport`) sagt
+  fremde Eingaben vorher und rollt zurück (Ring 128, höchstens 15 Ticks voraus).
+  `INetTransport` mit `MemoryNetwork` für Proben; Peers legen Körper in NetId-Reihenfolge
+  an (Dummys 1–3, Spieler ab 4), sonst weicht die Abfrage-Ordnung ab. Mitspielen nur mit
+  gleicher `BuildId` (MVID + Befehlssatz).
 - `HillMatch` (Capture-Zone, `KotH.Shared/Match`) tickt am Ende von `Step()`; Punkte
   pro Körper in `BodyState`, Runde als `MatchState` im Snapshot. Nur mit
   `HeadlessWorld.StartMatch()` bzw. in `GameRoot`, Bewegungsproben laufen ohne.

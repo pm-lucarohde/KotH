@@ -1,0 +1,284 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using KotH.Probes.Harness;
+using KotH.Shared.Combat;
+using KotH.Shared.Hosting;
+using KotH.Shared.Net;
+using KotH.Shared.Player;
+using KotH.Shared.Simulation;
+using Stride.Core.Mathematics;
+
+namespace KotH.Probes.Probes
+{
+    /// <summary>
+    /// A whole rollback game in one process over a seeded network in memory:
+    /// a host with its own player and up to eleven peers, 15 to 75 ms one
+    /// way, jitter and 5 % loss. Peers join at the start and mid-game, one
+    /// leaves, one gets its state damaged, one brings a wrong build. Every
+    /// final state any peer reports must equal the host's, apart from the
+    /// damaged peer until its repair; rollbacks must really have happened.
+    /// </summary>
+    public sealed class NetPlayProbe : Probe
+    {
+        protected override string Tag => "netplay";
+
+        const double FrameMs = 8.0;
+        const double EndMs = 60000.0, SettleMs = 4000.0;
+        const double LateJoinMs = 20000.0, LeaveMs = 30000.0, DamageMs = 35000.0, WrongBuildMs = 40000.0;
+        const int EarlyPeers = 6, LatePeers = 4;
+        const int Seed = 20261021;
+
+        sealed class Peer
+        {
+            public string Name;
+            public HeadlessWorld World;
+            public PeerSession Session;
+            public MemoryNetwork.Endpoint Endpoint;
+            public Random Bot;
+            public MoveInput Held;
+            public int HoldTicks;
+            public bool Gone;
+            public readonly Dictionary<int, ulong> Hashes = new Dictionary<int, ulong>();
+
+            // Every report, also a tick reported again after a repair.
+            public readonly List<(int Tick, ulong Hash)> Reports = new List<(int, ulong)>();
+            public double WorstUpdateMs;
+        }
+
+        readonly List<Peer> peers = new List<Peer>();
+        MemoryNetwork net;
+        MemoryNetwork.Endpoint hostEnd;
+        HostSession host;
+        bool botsOn = true;
+        int failures;
+
+        public override int Run(HeadlessWorld unused, int maxTicks)
+        {
+            net = new MemoryNetwork(Seed);
+            hostEnd = net.CreateEndpoint();
+            host = new HostSession(hostEnd, net.Now);
+            Peer founder = AddPeer("Host", host.LocalTransport, founder: true);
+            host.AttachFounder(founder.Session);
+
+            var rng = new Random(Seed);
+            var joins = new List<double>();
+            for (int i = 0; i < EarlyPeers; i++)
+                joins.Add(300.0 * i);
+            for (int i = 0; i < LatePeers; i++)
+                joins.Add(LateJoinMs + 700.0 * i);
+
+            int damagedTick = -1, leaverIndex = -1;
+            Peer damaged = null;
+            MemoryNetwork.Endpoint wrong = null;
+            bool rejected = false;
+            var stopwatch = Stopwatch.StartNew();
+
+            while (net.Now < EndMs + SettleMs)
+            {
+                while (joins.Count > 0 && joins[0] <= net.Now)
+                {
+                    joins.RemoveAt(0);
+                    var end = net.CreateEndpoint();
+                    // The last one has a bad line: long, jittery and lossy.
+                    bool bad = joins.Count == 0;
+                    double latency = bad ? 140.0 : 15.0 + rng.NextDouble() * 60.0;
+                    net.Connect(hostEnd, end, latency, bad ? 70.0 : latency * 0.15, bad ? 0.10 : 0.05);
+                    Peer p = AddPeer($"P{peers.Count}", end, founder: false);
+                    p.Endpoint = end;
+                    Log($"[netplay] {p.Name} verbindet bei {net.Now / 1000:F1} s, {latency:F0} ms einfach");
+                }
+
+                if (leaverIndex < 0 && net.Now >= LeaveMs)
+                {
+                    leaverIndex = 2;
+                    Peer leaver = peers[leaverIndex];
+                    leaver.Endpoint.Disconnect(0);
+                    leaver.Gone = true;
+                    Log($"[netplay] {leaver.Name} geht bei {net.Now / 1000:F1} s");
+                }
+
+                if (damaged == null && net.Now >= DamageMs)
+                {
+                    // A desync on purpose: the first dummy's percent changes in one
+                    // peer's final state, which no rollback of its own undoes.
+                    damaged = peers[4];
+                    var bytes = new System.Buffers.ArrayBufferWriter<byte>();
+                    damaged.Session.TryEncodeFinal(0, bytes, out damagedTick);
+                    byte[] state = bytes.WrittenSpan.ToArray();
+                    const int firstBody = 16 + 21, percent = 5 + 186 + 4;
+                    System.Buffers.Binary.BinaryPrimitives.WriteSingleLittleEndian(state.AsSpan(firstBody + percent), 777f);
+                    bool loaded = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(state.AsSpan(firstBody)) == 1 &&
+                                  damaged.Session.LoadState(state);
+                    Check(loaded, $"{damaged.Name} bei Tick {damagedTick} verfälscht (Dummy 1 auf 777 %)");
+                }
+
+                if (wrong == null && net.Now >= WrongBuildMs)
+                {
+                    wrong = net.CreateEndpoint();
+                    net.Connect(hostEnd, wrong, 20.0, 0.0, 0.0);
+                    var hello = new System.Buffers.ArrayBufferWriter<byte>();
+                    var w = new Writer(hello);
+                    w.Byte((byte)MsgType.Hello);
+                    w.Bytes(new byte[NetProtocol.BuildId.Length]);
+                    w.Double(net.Now);
+                    w.Text("Falsch");
+                    wrong.Send(0, hello.WrittenSpan, reliable: true);
+                }
+                if (wrong != null && !rejected)
+                    while (wrong.Poll(out TransportEvent e))
+                        rejected |= e.Kind == TransportEventKind.Data && e.Data[0] == (byte)MsgType.Reject &&
+                                    e.Data[1] == (byte)RejectReason.Version;
+
+                botsOn = net.Now < EndMs;
+                host.Update(net.Now);
+                foreach (Peer p in peers)
+                {
+                    if (p.Gone)
+                        continue;
+                    long t0 = Stopwatch.GetTimestamp();
+                    p.Session.Update(net.Now);
+                    p.WorstUpdateMs = Math.Max(p.WorstUpdateMs, Stopwatch.GetElapsedTime(t0).TotalMilliseconds);
+                }
+                net.Now += FrameMs;
+            }
+
+            Log($"[netplay] {EndMs / 1000 + SettleMs / 1000:F0} s gespielt in {stopwatch.Elapsed.TotalSeconds:F1} s, " +
+                $"{net.Sent} Pakete, {net.Lost} verloren, {net.Bytes / 1024} KiB, Host bestätigt bis {host.NextConfirm - 1}, " +
+                $"{host.Substituted} Eingaben ersetzt");
+            Log($"[netplay] Build {NetProtocol.BuildText}");
+
+            Report(founder, damaged, damagedTick, rejected);
+            foreach (Peer p in peers)
+                p.World.Dispose();
+            Log(failures == 0 ? "[netplay] BESTANDEN" : $"[netplay] {failures} Fehler");
+            return failures == 0 ? 0 : 1;
+        }
+
+        Peer AddPeer(string name, INetTransport transport, bool founder)
+        {
+            var world = new HeadlessWorld();
+            world.LoadArena();
+            NetWorld.SpawnDummies(world.Builder);
+            world.StartMatch();
+            world.Simulation.Deactivate();
+
+            var p = new Peer { Name = name, World = world, Bot = new Random(Seed + peers.Count * 7919) };
+            p.Session = new PeerSession(new HeadlessNetWorld(world), transport, () => BotInput(p), name, founder, net.Now);
+            p.Session.Checksum += (tick, hash) =>
+            {
+                p.Hashes[tick] = hash;
+                p.Reports.Add((tick, hash));
+            };
+            peers.Add(p);
+            return p;
+        }
+
+        /// <summary>Holds a random input for a while, with presses now and then; idle once the bots stop.</summary>
+        MoveInput BotInput(Peer p)
+        {
+            if (!botsOn)
+                return new MoveInput { Yaw = p.Held.Yaw };
+
+            if (--p.HoldTicks <= 0)
+            {
+                Random r = p.Bot;
+                p.HoldTicks = 10 + r.Next(40);
+                p.Held = new MoveInput
+                {
+                    Move = new Vector2(r.Next(3) - 1, r.Next(3) - 1),
+                    Yaw = p.Held.Yaw + (float)(r.NextDouble() * 120.0 - 60.0),
+                    Pitch = (float)(r.NextDouble() * 40.0 - 20.0),
+                    Sprint = r.Next(3) == 0,
+                    Crouch = r.Next(12) == 0,
+                };
+            }
+
+            MoveInput m = p.Held;
+            Random b = p.Bot;
+            m.Yaw += (float)(b.NextDouble() - 0.5);
+            p.Held.Yaw = m.Yaw;
+            if (b.Next(30) == 0) { m.JumpPresses = 1; m.JumpHeld = true; }
+            if (b.Next(25) == 0) m.AttackPresses = 1;
+            return m;
+        }
+
+        void Report(Peer founder, Peer damaged, int damagedTick, bool rejected)
+        {
+            int compared = 0, mismatches = 0, damagedMismatches = 0, lastDamagedMismatch = -1;
+            foreach (Peer p in peers)
+            {
+                if (p == founder)
+                    continue;
+                foreach ((int at, ulong hash) in p.Reports)
+                {
+                    if (!founder.Hashes.TryGetValue(at, out ulong mine))
+                        continue;
+                    compared++;
+                    if (mine == hash)
+                        continue;
+                    if (p == damaged && at >= damagedTick)
+                    {
+                        damagedMismatches++;
+                        lastDamagedMismatch = Math.Max(lastDamagedMismatch, at);
+                    }
+                    else
+                    {
+                        mismatches++;
+                        if (mismatches <= 5)
+                            LogError($"[netplay] {p.Name} weicht bei Tick {at} vom Host ab");
+                    }
+                }
+            }
+
+            Check(compared > 400, $"{compared} Prüfsummen mit dem Host verglichen");
+            Check(mismatches == 0, $"ohne Eingriff kein einziger Desync ({mismatches})");
+            Check(damagedMismatches > 0 && host.Desyncs > 0 && damaged.Session.Repairs > 0,
+                  $"verfälschter Peer erkannt ({damagedMismatches} Prüfsummen anders, {host.Desyncs} Desyncs) und repariert ({damaged.Session.Repairs})");
+            Check(lastDamagedMismatch >= 0 && lastDamagedMismatch < damagedTick + 4 * PeerSession.ChecksumEvery,
+                  $"nach der Reparatur wieder gleich (letzte Abweichung Tick {lastDamagedMismatch}, verfälscht bei {damagedTick})");
+            Check(rejected, "falscher Build abgelehnt");
+
+            int joined = 0, rollbacks = 0, deepest = 0, stalls = 0;
+            double worst = 0;
+            foreach (Peer p in peers)
+            {
+                if (p.Session.Joined)
+                    joined++;
+                rollbacks += p.Session.Rollbacks;
+                deepest = Math.Max(deepest, p.Session.DeepestRollback);
+                stalls += p.Session.Stalls;
+                worst = Math.Max(worst, p.WorstUpdateMs);
+                Log($"[netplay] {p.Name,-5} NetId {p.Session.LocalNetId,2}, Ping {p.Session.RoundTripMs,5:F0} ms, " +
+                    $"Vorlauf {p.Session.Lead,5:F1}, Rollbacks {p.Session.Rollbacks,5} ({p.Session.RolledTicks} Ticks, " +
+                    $"tiefster {p.Session.DeepestRollback}), Warten {p.Session.Stalls}, Reparaturen {p.Session.Repairs}, " +
+                    $"bestätigt bis {p.Session.ConfirmedTick}, schlimmstes Update {p.WorstUpdateMs:F1} ms, " +
+                    $"vom Host {host.BytesSentTo(p.Session.LocalNetId) / 1024.0 / (EndMs + SettleMs) * 1000:F1} KiB/s");
+            }
+
+            Check(joined == peers.Count, $"alle {peers.Count} beigetreten, auch die späten");
+            Check(rollbacks > 100, $"{rollbacks} Rollbacks, die Vorhersage lag also oft daneben");
+            Check(deepest <= PeerSession.MaxPredict, $"tiefster Rollback {deepest} Ticks, höchstens {PeerSession.MaxPredict}");
+            Log($"[netplay] Warten gesamt {stalls}, schlimmstes Update {worst:F1} ms");
+
+            // Everyone still in the game reaches the same final tick with the same state.
+            int last = int.MaxValue;
+            foreach (Peer p in peers)
+                if (!p.Gone)
+                    last = Math.Min(last, p.Session.ConfirmedTick);
+            int tick = last / PeerSession.ChecksumEvery * PeerSession.ChecksumEvery;
+            bool same = true;
+            foreach (Peer p in peers)
+                if (!p.Gone && (!p.Hashes.TryGetValue(tick, out ulong h) || h != founder.Hashes[tick]))
+                    same = false;
+            Check(same, $"am Ende alle bei Tick {tick} bitgleich mit dem Host");
+        }
+
+        void Check(bool ok, string what)
+        {
+            if (!ok)
+                failures++;
+            Log($"[netplay] {(ok ? "ok    " : "FEHLER")} {what}");
+        }
+    }
+}

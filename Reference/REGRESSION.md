@@ -369,3 +369,20 @@ unter JIT und AOT; die Hashkette bleibt `A4A9BBB937C62890`.
       über ein Rundenende, Rollback über Beitritt und Verlassen bitgleich, frischer Körper
       in zwei Welten gleich, falscher Kopf, unbekannte ID und gekipptes Byte erkannt.
       JIT und AOT byte-gleich.
+
+## Netcode N4: Rollback-Kern mit Host, Vorhersage und Reparatur (20.10.2026)
+
+15. **Elf Peers rechnen über ein verlustbehaftetes Netz bitgleich.** Neu in
+    `KotH.Shared/Net`: `NetProtocol`, `Transport` (`MemoryNetwork`), `NetWorld`,
+    `HostSession`, `PeerSession`. Die Simulation selbst ist unverändert; nur
+    `HeadlessWorld` gibt seinen `Builder` heraus.
+    - Hashkette `880D0C64389C53E3`, Lasttest `ACA28FF778F7B0AE`; `capture`, `netstate`,
+      `knockback`, `wallknock`, `melee`, `impact`, `clock` byte-gleich, JIT und AOT.
+    - Neue Probe `netplay`: Host plus zehn Peers in einem Prozess (sechs früh, vier ab
+      20 s), 15–75 ms einfach mit 15 % Jitter und 5 % Verlust, einer mit 140 ± 70 ms und
+      10 % Verlust. Einer geht nach 30 s, einer wird über die Bytes verfälscht, ein
+      falscher Build klopft an. 64 s Spiel: 518 Prüfsummen ohne Eingriff gleich, die
+      Verfälschung erkannt und repariert, rund 17 000 Rollbacks, tiefster 15 Ticks,
+      am Ende alle bitgleich mit dem Host. Verkehr vom Host 14–51 KiB/s je Peer.
+    - JIT und AOT liefern dieselben Zähler und dieselbe `BuildId`; JIT ohne
+      `DOTNET_EnableAVX=0` hätte eine andere und würde abgewiesen.

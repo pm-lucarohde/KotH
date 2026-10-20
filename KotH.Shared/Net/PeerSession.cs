@@ -1,0 +1,550 @@
+using System;
+using System.Buffers;
+using System.Collections.Generic;
+using KotH.Shared.Player;
+using KotH.Shared.Simulation;
+
+namespace KotH.Shared.Net
+{
+    /// <summary>
+    /// One peer's side of a rollback game, the host's own player included.
+    /// Steps the world at once with the inputs it has: its own, the ones the
+    /// host confirmed, and for everyone else a guess. When a confirmed tick
+    /// shows a guess was wrong, it goes back to that tick and steps again.
+    /// Keeps its clock just far enough ahead of the host that its own inputs
+    /// arrive in time, and reports a checksum of every 40th final state.
+    /// </summary>
+    public sealed class PeerSession
+    {
+        /// <summary>Ticks between sampling an input and stepping with it.</summary>
+        public const int InputDelay = 1;
+
+        /// <summary>How far past the last confirmed tick the peer may guess; then it waits.</summary>
+        public const int MaxPredict = 15;
+
+        /// <summary>Ticks the own input should reach the host before the host needs it.</summary>
+        public const float LeadTarget = 2f;
+
+        public const int ChecksumEvery = 40;
+
+        const int Ring = 128;
+        const int MaxTicksPerUpdate = 20;
+        const int MaxInputsPerMessage = 32;
+
+        struct Used
+        {
+            public int NetId;
+            public MoveInput Input;
+        }
+
+        sealed class Record
+        {
+            public readonly List<Used> Inputs = new List<Used>();
+            public readonly List<NetEvent> Events = new List<NetEvent>();
+        }
+
+        readonly INetWorld world;
+        readonly SimulationSystem sim;
+        readonly INetTransport transport;
+        readonly Func<MoveInput> sampleLocal;
+        readonly string name;
+
+        readonly Dictionary<int, SimulationBody> bodies = new Dictionary<int, SimulationBody>();
+        readonly Dictionary<int, BodyState> joinStates = new Dictionary<int, BodyState>();
+        readonly Dictionary<int, int> leaveTicks = new Dictionary<int, int>();
+        readonly Dictionary<int, Record> confirmed = new Dictionary<int, Record>();
+        readonly Dictionary<int, MoveInput> lastConfirmed = new Dictionary<int, MoveInput>();
+
+        readonly WorldSnapshot[] snaps = new WorldSnapshot[Ring];
+        readonly int[] snapTicks = new int[Ring];
+        readonly List<Used>[] used = new List<Used>[Ring];
+        readonly int[] usedTicks = new int[Ring];
+        readonly MoveInput[] local = new MoveInput[Ring];
+        readonly int[] localTicks = new int[Ring];
+
+        readonly List<MoveInput> row = new List<MoveInput>();
+        readonly ArrayBufferWriter<byte> outgoing = new ArrayBufferWriter<byte>();
+        readonly ArrayBufferWriter<byte> stateBuffer = new ArrayBufferWriter<byte>();
+        readonly WorldSnapshot decoded = new WorldSnapshot();
+
+        int confirmedTick = -1;     // every record up to here is known and applied
+        int ackInputTick = -1;      // the host has our inputs up to here
+        int firstLocalTick = int.MaxValue, newestLocalTick = -1;
+        int checkedTick = -1;
+
+        // The tick this peer should be at, as a line over local time.
+        double syncTick, syncTime;
+        double lastSent = double.MinValue;
+        bool sendNow;
+
+        /// <summary>
+        /// A peer that joins: says hello and waits for the host's state. A
+        /// founder is the host's own peer, whose world is the start of the game.
+        /// </summary>
+        public PeerSession(INetWorld world, INetTransport transport, Func<MoveInput> sampleLocal,
+                           string name, bool founder, double now)
+        {
+            this.world = world;
+            sim = world.Simulation;
+            this.transport = transport;
+            this.sampleLocal = sampleLocal;
+            this.name = name;
+
+            for (int i = 0; i < Ring; i++)
+            {
+                snaps[i] = new WorldSnapshot();
+                snapTicks[i] = usedTicks[i] = localTicks[i] = -1;
+                used[i] = new List<Used>();
+            }
+
+            foreach (SimulationBody body in sim.Bodies)
+                if (body.NetId != 0)
+                    bodies[body.NetId] = body;
+
+            if (founder)
+            {
+                Joined = true;
+                syncTick = LeadTarget - InputDelay;
+                syncTime = now;
+            }
+
+            var w = new Writer(outgoing);
+            outgoing.Clear();
+            w.Byte((byte)MsgType.Hello);
+            w.Bytes(NetProtocol.BuildId);
+            w.Double(now);
+            w.Text(name);
+            transport.Send(0, outgoing.WrittenSpan, reliable: true);
+        }
+
+        public SimulationSystem Simulation => sim;
+
+        /// <summary>This peer's player, 0 until the host has said who it is.</summary>
+        public int LocalNetId { get; private set; }
+        public bool Joined { get; private set; }
+        public RejectReason? Rejected { get; private set; }
+        public int ConfirmedTick => confirmedTick;
+
+        /// <summary>Last measured round trip in milliseconds.</summary>
+        public double RoundTripMs { get; private set; }
+
+        /// <summary>How many ticks ahead of need the host last saw our input.</summary>
+        public float Lead { get; private set; }
+
+        public int Rollbacks { get; private set; }
+        public int RolledTicks { get; private set; }
+        public int DeepestRollback { get; private set; }
+        public int Stalls { get; private set; }
+        public int Repairs { get; private set; }
+
+        /// <summary>Raised for every checksum tick once its state is final.</summary>
+        public event Action<int, ulong> Checksum;
+
+        public SimulationBody BodyOf(int netId) => bodies.TryGetValue(netId, out SimulationBody b) ? b : null;
+
+        /// <summary>
+        /// Takes in what arrived, corrects any wrong guess, steps up to where
+        /// the clock says, and sends this peer's inputs. Call once per frame.
+        /// </summary>
+        public void Update(double now)
+        {
+            while (transport.Poll(out TransportEvent e))
+                if (e.Kind == TransportEventKind.Data && e.Data.Length > 0)
+                    Receive(e.Data, now);
+
+            if (!Joined)
+                return;
+
+            ApplyConfirmed();
+            Advance(now);
+            SendInputs(now);
+            ReportChecksums();
+            DropLeavers();
+        }
+
+        /// <summary>
+        /// The newest state no rollback can change any more, as bytes, if it is
+        /// at least the given tick. What the host sends a joining peer.
+        /// </summary>
+        public bool TryEncodeFinal(int atLeast, ArrayBufferWriter<byte> into, out int tick)
+        {
+            tick = FinalTick;
+            int slot = tick % Ring;
+            if (tick < atLeast || tick < 0 || snapTicks[slot] != tick)
+                return false;
+            StateCodec.Write(snaps[slot], into);
+            return true;
+        }
+
+        // The newest tick whose starting state is in the ring and settled:
+        // every tick before it confirmed, and stepped once, so recorded.
+        int FinalTick => Math.Min(confirmedTick + 1, sim.CurrentTick - 1);
+
+        void Receive(byte[] data, double now)
+        {
+            var r = new Reader(data);
+            switch ((MsgType)r.Byte())
+            {
+                case MsgType.Welcome: Welcome(ref r, now); break;
+                case MsgType.Reject: Rejected = (RejectReason)r.Byte(); break;
+                case MsgType.Confirmed: Confirm(ref r, now); break;
+                case MsgType.Repair: Repair(ref r, now); break;
+            }
+        }
+
+        void Welcome(ref Reader r, double now)
+        {
+            LocalNetId = r.Int();
+            int hostTick = r.Int();
+            double echo = r.Double();
+            RoundTripMs = Math.Max(0.0, now - echo);
+
+            // A founder already has the world; anyone else takes the host's.
+            int length = r.Int();
+            if (length > 0 && !TakeState(ref r, length))
+                return;
+
+            Joined = true;
+            syncTick = hostTick + RoundTripMs / 1000.0 / SimulationSystem.TickSeconds + LeadTarget - InputDelay;
+            syncTime = now;
+        }
+
+        void Repair(ref Reader r, double now)
+        {
+            int length = r.Int();
+            if (TakeState(ref r, length))
+                Repairs++;
+        }
+
+        /// <summary>
+        /// Builds the world a transfer describes: spawns every player of the
+        /// roster this peer lacks, in NetId order like everyone else did, and
+        /// restores. Confirmed history before the state no longer matters.
+        /// </summary>
+        bool TakeState(ref Reader r, int length)
+        {
+            ReadOnlySpan<byte> state = r.Bytes(length);
+            int players = r.Int();
+            var roster = new List<NetEvent>();
+            for (int i = 0; i < players; i++)
+                roster.Add(NetProtocol.ReadEvent(ref r));
+            if (r.Failed)
+                return false;
+
+            roster.Sort((a, b) => a.NetId.CompareTo(b.NetId));
+            foreach (NetEvent p in roster)
+                if (!bodies.ContainsKey(p.NetId))
+                    Spawn(p);
+
+            return LoadState(state);
+        }
+
+        /// <summary>
+        /// Restores a final state as bytes and starts over from it; every body
+        /// in it must exist here. Probes use it to damage a peer on purpose.
+        /// </summary>
+        public bool LoadState(ReadOnlySpan<byte> state)
+        {
+            if (!StateCodec.Read(state, BodyOf, decoded))
+                return false;
+            sim.Restore(decoded);
+
+            int tick = decoded.Tick;
+            confirmedTick = tick - 1;
+            confirmed.Clear();
+            for (int i = 0; i < Ring; i++)
+                snapTicks[i] = usedTicks[i] = -1;
+            checkedTick = tick - 1;
+            Capture(tick);
+            return true;
+        }
+
+        void Confirm(ref Reader r, double now)
+        {
+            int hostTick = r.Int();
+            double echo = r.Double();
+            float lead = r.Float();
+            int ackInputs = r.Int();
+            int first = r.Int();
+            int count = r.Byte();
+
+            RoundTripMs = RoundTripMs * 0.9 + Math.Max(0.0, now - echo) * 0.1;
+            ackInputTick = Math.Max(ackInputTick, ackInputs);
+
+            // Steer the clock: our input should reach the host LeadTarget
+            // ticks early. Slowly, the measurement is a round trip old.
+            if (!float.IsNaN(lead))
+            {
+                Lead = lead;
+                double error = LeadTarget - lead;
+                if (Math.Abs(error) > 12.0)
+                    syncTick += error;
+                else
+                    syncTick += Math.Clamp(error * 0.05, -0.5, 0.5);
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                int tick = first + i;
+                var rec = new Record();
+                int inputs = r.Byte();
+                for (int k = 0; k < inputs; k++)
+                {
+                    int id = r.Int();
+                    rec.Inputs.Add(new Used { NetId = id, Input = NetProtocol.ReadInput(ref r) });
+                }
+                int events = r.Byte();
+                for (int k = 0; k < events; k++)
+                    rec.Events.Add(NetProtocol.ReadEvent(ref r));
+                if (r.Failed)
+                    return;
+                if (tick > confirmedTick && !confirmed.ContainsKey(tick))
+                    confirmed[tick] = rec;
+            }
+        }
+
+        /// <summary>
+        /// Takes every confirmed tick that follows on from the last one. Any
+        /// already stepped with a different guess, or with a join or leave
+        /// it did not know of, is where the world has to go back to.
+        /// </summary>
+        void ApplyConfirmed()
+        {
+            int from = int.MaxValue;
+            while (confirmed.TryGetValue(confirmedTick + 1, out Record rec))
+            {
+                int tick = confirmedTick + 1;
+                foreach (NetEvent e in rec.Events)
+                {
+                    if (e.Join && !bodies.ContainsKey(e.NetId))
+                        Spawn(e);
+                    else if (!e.Join)
+                        leaveTicks[e.NetId] = tick;
+                }
+
+                if (tick < sim.CurrentTick && (rec.Events.Count > 0 || !SameAsUsed(tick, rec)))
+                    from = Math.Min(from, tick);
+
+                foreach (Used u in rec.Inputs)
+                    lastConfirmed[u.NetId] = u.Input;
+                confirmedTick = tick;
+            }
+
+            if (from != int.MaxValue)
+                Rollback(from);
+        }
+
+        bool SameAsUsed(int tick, Record rec)
+        {
+            int slot = tick % Ring;
+            if (usedTicks[slot] != tick)
+                return false;
+            List<Used> was = used[slot];
+            if (was.Count < rec.Inputs.Count)
+                return false;
+
+            foreach (Used u in rec.Inputs)
+            {
+                bool found = false;
+                foreach (Used v in was)
+                    if (v.NetId == u.NetId)
+                    {
+                        if (!NetProtocol.Same(u.Input, v.Input))
+                            return false;
+                        found = true;
+                        break;
+                    }
+                if (!found)
+                    return false;
+            }
+            return true;
+        }
+
+        void Rollback(int from)
+        {
+            int slot = from % Ring;
+            int until = sim.CurrentTick;
+            if (snapTicks[slot] != from)
+                throw new InvalidOperationException($"Kein Snapshot für Tick {from} zum Zurückrollen.");
+
+            sim.Restore(snaps[slot]);
+            for (int t = from; t < until; t++)
+                StepTick(t);
+
+            Rollbacks++;
+            RolledTicks += until - from;
+            DeepestRollback = Math.Max(DeepestRollback, until - from);
+        }
+
+        /// <summary>Steps new ticks up to the clock, never more than MaxPredict past the confirmed.</summary>
+        void Advance(double now)
+        {
+            double wanted = syncTick + (now - syncTime) / 1000.0 / SimulationSystem.TickSeconds;
+            for (int n = 0; n < MaxTicksPerUpdate && sim.CurrentTick < wanted; n++)
+            {
+                int tick = sim.CurrentTick;
+                if (tick - confirmedTick > MaxPredict)
+                {
+                    Stalls++;
+                    break;
+                }
+
+                if (sampleLocal != null && LocalNetId != 0)
+                {
+                    int at = tick + InputDelay;
+                    local[at % Ring] = sampleLocal();
+                    localTicks[at % Ring] = at;
+                    firstLocalTick = Math.Min(firstLocalTick, at);
+                    newestLocalTick = at;
+                }
+
+                StepTick(tick);
+                sendNow = true;
+            }
+        }
+
+        /// <summary>
+        /// One tick: records the state it starts from, applies its confirmed
+        /// joins and leaves, and steps with the best input there is per body.
+        /// </summary>
+        void StepTick(int tick)
+        {
+            Capture(tick);
+            confirmed.TryGetValue(tick, out Record rec);
+
+            if (rec != null)
+                foreach (NetEvent e in rec.Events)
+                {
+                    SimulationBody body = BodyOf(e.NetId);
+                    if (body == null)
+                        continue;
+                    if (e.Join)
+                        sim.Rejoin(body, joinStates[e.NetId]);
+                    else
+                        sim.Leave(body);
+                }
+
+            int slot = tick % Ring;
+            List<Used> was = used[slot];
+            was.Clear();
+            usedTicks[slot] = tick;
+            row.Clear();
+
+            foreach (SimulationBody body in sim.Bodies)
+            {
+                MoveInput input = InputOf(body, tick, rec);
+                row.Add(input);
+                if (body.NetId >= NetWorld.FirstPlayerId)
+                    was.Add(new Used { NetId = body.NetId, Input = input });
+            }
+
+            sim.Step(row, SimulationSystem.TickSeconds);
+        }
+
+        MoveInput InputOf(SimulationBody body, int tick, Record rec)
+        {
+            int id = body.NetId;
+            if (id < NetWorld.FirstPlayerId)
+                return body.ReadInput();
+
+            if (rec != null)
+                foreach (Used u in rec.Inputs)
+                    if (u.NetId == id)
+                        return u.Input;
+
+            if (id == LocalNetId && localTicks[tick % Ring] == tick)
+                return local[tick % Ring];
+
+            return lastConfirmed.TryGetValue(id, out MoveInput last) ? NetProtocol.Hold(last) : default;
+        }
+
+        void Capture(int tick)
+        {
+            int slot = tick % Ring;
+            sim.Capture(snaps[slot]);
+            snapTicks[slot] = tick;
+        }
+
+        /// <summary>
+        /// Own inputs the host has not acknowledged, at most once per tick
+        /// stepped or every 25 ms; it also carries how far we have confirmed.
+        /// </summary>
+        void SendInputs(double now)
+        {
+            if (!sendNow && now - lastSent < 25.0)
+                return;
+            sendNow = false;
+            lastSent = now;
+
+            int from = Math.Max(Math.Max(ackInputTick + 1, firstLocalTick), newestLocalTick - MaxInputsPerMessage + 1);
+            int count = newestLocalTick >= from ? newestLocalTick - from + 1 : 0;
+
+            outgoing.Clear();
+            var w = new Writer(outgoing);
+            w.Byte((byte)MsgType.Inputs);
+            w.Double(now);
+            w.Int(confirmedTick);
+            w.Int(count > 0 ? from : 0);
+            w.Byte((byte)count);
+            for (int t = from; t < from + count; t++)
+                NetProtocol.WriteInput(ref w, local[t % Ring]);
+            transport.Send(0, outgoing.WrittenSpan, reliable: false);
+        }
+
+        /// <summary>Hashes every 40th state once nothing can change it, and tells the host.</summary>
+        void ReportChecksums()
+        {
+            int final = FinalTick;
+            for (int t = checkedTick + 1; t <= final; t++)
+            {
+                if (snapTicks[t % Ring] != t)
+                    break;
+                checkedTick = t;
+                if (t % ChecksumEvery != 0)
+                    continue;
+
+                stateBuffer.Clear();
+                StateCodec.Write(snaps[t % Ring], stateBuffer);
+                ulong hash = StateCodec.Hash(stateBuffer.WrittenSpan);
+                Checksum?.Invoke(t, hash);
+
+                outgoing.Clear();
+                var w = new Writer(outgoing);
+                w.Byte((byte)MsgType.Checksum);
+                w.Int(t);
+                w.ULong(hash);
+                transport.Send(0, outgoing.WrittenSpan, reliable: true);
+            }
+        }
+
+        /// <summary>A body that left before the confirmed tick is out of every rollback's reach.</summary>
+        void DropLeavers()
+        {
+            List<int> gone = null;
+            foreach (KeyValuePair<int, int> leave in leaveTicks)
+                if (leave.Value <= confirmedTick)
+                    (gone ??= new List<int>()).Add(leave.Key);
+            if (gone == null)
+                return;
+
+            foreach (int id in gone)
+            {
+                leaveTicks.Remove(id);
+                if (bodies.Remove(id, out SimulationBody body))
+                    world.Despawn(body);
+                joinStates.Remove(id);
+                lastConfirmed.Remove(id);
+            }
+        }
+
+        /// <summary>A player as a join announces it: fresh at its slot, parked until its tick.</summary>
+        void Spawn(in NetEvent e)
+        {
+            SimulationBody body = world.SpawnPlayer(e.NetId, e.Slot, e.Name);
+            body.NetId = e.NetId;
+            bodies[e.NetId] = body;
+            joinStates[e.NetId] = body.CaptureState();
+            sim.Leave(body);
+        }
+    }
+}
