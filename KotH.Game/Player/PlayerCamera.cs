@@ -61,6 +61,7 @@ namespace KotH.Client.Player
         public override void Start()
         {
             cam = Entity.Get<CameraComponent>();
+            shown = Distance;
         }
 
         public override void Update()
@@ -78,7 +79,8 @@ namespace KotH.Client.Player
             {
                 Entity.Transform.Position = eye;
                 cam.NearClipPlane = ViewMath.NearPlane(Motor, cam.VerticalFieldOfView, aspect, NearClipMargin);
-                shown = 0f;
+                // Steps out at full distance at once; only a wall pulls it in.
+                shown = Distance;
                 ShowOwnFigure(false);
                 AimMark.Screen = new Vector2(0.5f, 0.5f);
                 return;
