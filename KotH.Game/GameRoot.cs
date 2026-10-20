@@ -65,6 +65,12 @@ namespace KotH.Client
         /// <userdoc>Tiefster Punkt beim Einfedern nach der Landung; das Spiel blendet ihn kurz ein.</userdoc>
         [Display("Landen", "Animation")] public AnimationClip LandAnimation;
 
+        /// <userdoc>Haltung beim Aufsteigen nach dem Absprung (nach Sanji): ein Bein gestreckt, das andere Knie hoch.</userdoc>
+        [Display("Springen", "Animation")] public AnimationClip JumpAnimation;
+
+        /// <userdoc>Tritt in die Luft beim Doppelsprung (Sanjis Sky Walk); das Spiel blendet ihn kurz ein.</userdoc>
+        [Display("Doppelsprung", "Animation")] public AnimationClip SkyWalkAnimation;
+
         /// <summary>Render group of the own figure, see PlayerCamera.</summary>
         const RenderGroup OwnFigureGroup = RenderGroup.Group1;
 
@@ -298,7 +304,8 @@ namespace KotH.Client
             // In the order of PlayerVisualSystem.Clips; a missing clip just never plays.
             AnimationClip[] clips = { IdleAnimation, RestAnimation, WalkForward, WalkBack, WalkLeft, WalkRight,
                                       RunForward, RunBack, RunLeft, RunRight,
-                                      CrouchAnimation, CrouchWalk, SlideAnimation, FallAnimation, LandAnimation };
+                                      CrouchAnimation, CrouchWalk, SlideAnimation, FallAnimation, LandAnimation,
+                                      JumpAnimation, SkyWalkAnimation };
             if (RestAnimation != null)
             {
                 var animation = new AnimationComponent();

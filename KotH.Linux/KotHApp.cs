@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using KotH.Client;
 using KotH.Client.Hud;
@@ -35,7 +37,8 @@ game.Run();
 /// just before it and reports how far the camera shake tilts the view,
 /// KOTH_SHOT_BLINK=1 has every figure blink so the shot shows shut lids,
 /// KOTH_SHOT_MOVE=x,y[,sprint] holds the move keys (D and W are +1),
-/// KOTH_SHOT_CROUCH=s presses crouch at s seconds and holds it (out of a sprint: a slide), saves the back buffer as PNG after KOTH_SHOT_SECONDS (default 3), reports
+/// KOTH_SHOT_CROUCH=s presses crouch at s seconds and holds it (out of a sprint: a slide),
+/// KOTH_SHOT_JUMP=s[,s2] presses jump at s seconds (and again at s2: the double jump), saves the back buffer as PNG after KOTH_SHOT_SECONDS (default 3), reports
 /// the label font and quits. Taken from
 /// inside the game on purpose, a desktop screenshot would capture whatever
 /// else is on the screen. For performance runs: KOTH_SIZE=1920x1080 sets the
@@ -56,6 +59,9 @@ sealed class KotHGame : Game
     bool shotBlink = Environment.GetEnvironmentVariable("KOTH_SHOT_BLINK") == "1";
     string shotMove = Environment.GetEnvironmentVariable("KOTH_SHOT_MOVE");
     double? shotCrouch = Number("KOTH_SHOT_CROUCH");
+    readonly Queue<double> shotJumps = new Queue<double>(
+        (Environment.GetEnvironmentVariable("KOTH_SHOT_JUMP") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(s => double.Parse(s, CultureInfo.InvariantCulture)));
     readonly string frameLogPath = Environment.GetEnvironmentVariable("KOTH_FRAMELOG");
     Int2 windowedSize;
     bool confined;
@@ -245,6 +251,11 @@ sealed class KotHGame : Game
             {
                 player.HoldCrouch();
                 shotCrouch = null;
+            }
+            while (shotJumps.Count > 0 && gameTime.Total.TotalSeconds >= shotJumps.Peek())
+            {
+                player.Jump();
+                shotJumps.Dequeue();
             }
             if (shotSwing && gameTime.Total.TotalSeconds >= shotSeconds - 1.0)
             {

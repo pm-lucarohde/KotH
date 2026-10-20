@@ -96,6 +96,13 @@ namespace KotH.Client.Player
                 attackPresses++;
         }
 
+        /// <summary>One jump press in the next tick, as a test aid: jumps seen in a screenshot.</summary>
+        public void Jump()
+        {
+            if (jumpPresses < byte.MaxValue)
+                jumpPresses++;
+        }
+
         protected override void Attach(Shared.Physics.WorldQueries world)
         {
             base.Attach(world);

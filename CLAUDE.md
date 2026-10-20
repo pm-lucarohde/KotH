@@ -52,7 +52,8 @@ Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Pr
   dem Bild, meldet die Kippung; nur mit `--host`, offline fehlt `DamagePercent`),
   `KOTH_SHOT_BLINK=1` (alle Figuren blinzeln, das Bild zeigt geschlossene Lider),
   `KOTH_SHOT_MOVE=x,y[,sprint]` (hält die Bewegungstasten, D und W sind +1),
-  `KOTH_SHOT_CROUCH=s` (Ducken ab s Sekunden gehalten; aus dem Sprint ein Gleiten), `KOTH_SIZE=WxH`, `KOTH_VSYNC=0|1`,
+  `KOTH_SHOT_CROUCH=s` (Ducken ab s Sekunden gehalten; aus dem Sprint ein Gleiten),
+  `KOTH_SHOT_JUMP=s[,s…]` (Sprungtaste zu diesen Zeiten; Doppelsprung = zwei schnelle Drücke in der Luft), `KOTH_SIZE=WxH`, `KOTH_VSYNC=0|1`,
   `KOTH_FRAMELOG=datei`.
 - Client: kein Splash (asynchrones Laden + `WaitIdle` ohne QueueLock gab
   `VK_ERROR_DEVICE_LOST`), Renderer-Parallelität 6 (gemessen, Lucas Wahl).
@@ -190,13 +191,16 @@ kein Zustand: ein Rollback behält ihn, im Netz kommt der Treffer mit der Bestä
 ### Figur und Animation
 
 Die Pilzfigur (`Mushroom.glb`) hat ein Skelett (`MushroomSkeleton.sdskel`, mit Ellenbogen
-und Knien) und 15 Clips: `MushroomIdle` (Atmen 4 s, Wiegen 8 s), `MushroomRest`
+und Knien) und 17 Clips: `MushroomIdle` (Atmen 4 s, Wiegen 8 s), `MushroomRest`
 (Grundhaltung: Luft, Rutschen am Steilhang), Gehen/Rennen je vorwärts, rückwärts,
 links, rechts (Gang nach Sanji, Lucas Wunsch), `MushroomCrouch` (Hocke mit Atmen, auch in
 der Luft), `MushroomCrouchWalk` (ein Clip für alle Richtungen, 3 Schritte/s) und
 `MushroomSlide` (Sanji-Grätsche), `MushroomFall` (nur abwärts, Arme schräg zur Seite und
 nach vorn, balanciert leicht) und `MushroomLand` (7 cm eingefedert: nach jeder Landung nach
-mindestens 0,15 s Luft ein gleich starker Impuls über alles, 0,06 s rein, weg nach 0,3 s). Geduckt macht die Pose die Figur nur etwa 20 cm niedriger
+mindestens 0,15 s Luft ein gleich starker Impuls über alles, 0,06 s rein, weg nach 0,3 s),
+`MushroomJump` (beim Aufsteigen, nach Sanji: ein Bein gestreckt, Knie hoch, Arme an der Hüfte)
+und `MushroomSkyWalk` (Doppelsprung als Tritt in die Luft, Impuls wie die Landung; erkannt am
+Schub nach oben in der Luft, die Simulation meldet nichts). Geduckt macht die Pose die Figur nur etwa 20 cm niedriger
 (Beine 35 cm); den Rest bis zur Hüllenhöhe staucht `PlayerVisualSystem` (`PoseDrops`, Werte
 gibt `rig.py` aus), lässt die Kappe 10 cm über die Hülle ragen und macht die Figur auf 90 %
 schmaler, damit sie weniger platt wirkt (Lucas Wahl, „Kappe über der Hülle“, „Breite

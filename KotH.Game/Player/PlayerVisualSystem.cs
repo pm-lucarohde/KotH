@@ -70,6 +70,9 @@ namespace KotH.Client.Player
         /// <userdoc>Wie tief sie dabei einfedert (1 = ganz in die Landepose).</userdoc>
         [Display("Aufprall", "Animation")] public float LandStrength = 1f;
 
+        /// <userdoc>Wie lange der Tritt in die Luft beim Doppelsprung dauert, in Sekunden.</userdoc>
+        [Display("Doppelsprung-Tritt", "Animation")] public float KickSeconds = 0.35f;
+
         /// <userdoc>Wie weit die Blätter des Rocks bei Sprinttempo nach hinten wehen, in Grad; langsamer entsprechend weniger, im Stand gar nicht.</userdoc>
         [Display("Wehen", "Blätter")] public float LeafSwing = 60f;
 
@@ -94,23 +97,27 @@ namespace KotH.Client.Player
         /// <summary>
         /// Clip names in every visual's AnimationComponent: idle, rest,
         /// walking and running forward, back, left and right, then crouched
-        /// still, crouched walking, the slide, falling and the landing's give.
+        /// still, crouched walking, the slide, falling, the landing's give,
+        /// rising after a jump and the kick of the double jump.
         /// </summary>
         public static readonly string[] Clips =
             { "Idle", "Rest", "WalkF", "WalkB", "WalkL", "WalkR", "RunF", "RunB", "RunL", "RunR",
-              "Crouch", "CrouchWalk", "Slide", "Fall", "Land" };
+              "Crouch", "CrouchWalk", "Slide", "Fall", "Land", "Jump", "SkyWalk" };
         const int IdleIndex = 0, RestIndex = 1, WalkIndex = 2, RunIndex = 6;
         const int CrouchIndex = 10, CrouchWalkIndex = 11, SlideIndex = 12, FallIndex = 13, LandIndex = 14;
+        const int JumpIndex = 15, KickIndex = 16;
 
         // A landing only counts after this long in the air: stepping down a
         // stair or snapping to the ground does not give at the knees.
         const float LandMinAir = 0.15f;
-        const float LandAttack = 0.06f;
+        const float LandAttack = 0.06f, KickAttack = 0.05f;
+        // A jump in the air shows as a sudden climb; gravity alone only slows it.
+        const float KickBoost = 3f;
 
         // How much lower than standing each clip's pose is, in metres (printed
         // by .work/rig/rig.py). The rest of the way down to the collider's
         // height the figure is squashed.
-        static readonly float[] PoseDrops = { 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0.207f, 0.189f, 0.209f, 0f, 0f };
+        static readonly float[] PoseDrops = { 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0.207f, 0.189f, 0.209f, 0f, 0f, 0f, 0f };
 
         // Lids open: shrunk to their pivot, as no triangle at all.
         const float Hidden = 1e-4f;
@@ -135,7 +142,7 @@ namespace KotH.Client.Player
             public readonly float[] Weights = new float[Clips.Length];
             public SimulationBody Body;
             public float Phase, BlinkClock;
-            public float AirTime, LandAge = float.MaxValue;
+            public float AirTime, LandAge = float.MaxValue, KickAge = float.MaxValue, LastClimb;
             public int[] Lids;
             public int Look = -2, Mouth = -2;
             public int[] Leaves;
@@ -389,9 +396,14 @@ namespace KotH.Client.Player
             float crouched = Crouched(motor);
             float stand = 1f - crouched;
             float slide = motor.IsSliding ? 1f : 0f;
-            // Falling blends in on the way down only; rising keeps the rest pose.
+            // Rising shows the jump, falling the fall; at the top the rest pose.
             bool airborne = !motor.IsGrounded;
             float falling = airborne ? Smooth(0f, 3f, -v.Y) : 0f;
+            float rising = airborne ? Smooth(0f, 3f, v.Y) : 0f;
+            if (airborne && f.AirTime > 0.05f && motor.KnockLeft <= 0f && v.Y - f.LastClimb > KickBoost)
+                f.KickAge = 0f;
+            f.LastClimb = v.Y;
+            f.KickAge += dt;
             if (airborne)
                 f.AirTime += dt;
             else
@@ -414,8 +426,9 @@ namespace KotH.Client.Player
 
             Span<float> target = stackalloc float[Clips.Length];
             target[IdleIndex] = stand * (1f - moving) * (still ? 1f : 0f);
-            target[RestIndex] = stand * (1f - moving) * (still ? 0f : 1f) * (1f - falling);
+            target[RestIndex] = stand * (1f - moving) * (still ? 0f : 1f) * (1f - falling - rising);
             target[FallIndex] = stand * (1f - moving) * (still ? 0f : 1f) * falling;
+            target[JumpIndex] = stand * (1f - moving) * (still ? 0f : 1f) * rising;
             for (int d = 0; d < 4; d++)
             {
                 target[WalkIndex + d] = stand * moving * (1f - run) * heading[d];
@@ -437,13 +450,17 @@ namespace KotH.Client.Player
             float land = f.LandAge < LandAttack ? f.LandAge / LandAttack
                        : 1f - Smooth(LandAttack, MathF.Max(LandAttack + 1e-3f, LandSeconds), f.LandAge);
             land *= LandStrength * stand * (1f - slide);
+            float kick = f.KickAge < KickAttack ? f.KickAge / KickAttack
+                       : 1f - Smooth(KickAttack, MathF.Max(KickAttack + 1e-3f, KickSeconds), f.KickAge);
+            kick *= stand;
             float total = 0f, drop = 0f;
             for (int i = 0; i < Clips.Length; i++)
             {
                 f.Weights[i] += (target[i] - f.Weights[i]) * follow;
                 if (f.Plays[i] is not { } play)
                     continue;
-                float weight = i == LandIndex ? land : f.Weights[i] * (1f - land);
+                float weight = i == LandIndex ? land : i == KickIndex ? kick
+                             : f.Weights[i] * MathF.Max(0f, 1f - land - kick);
                 play.Weight = weight < 1e-3f ? 0f : weight;
                 // Stride mixes by weight over the sum of weights, so does the drop.
                 total += play.Weight;

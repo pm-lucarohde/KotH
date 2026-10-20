@@ -151,6 +151,8 @@ meldet, wie weit die Kamera wackelt (nur im Netz, z. B. `--host --min-players 1`
 `KOTH_SHOT_MOVE=0,1,sprint` mit `KOTH_SHOT_THIRD=1` für ein Bild im Rennen.
 `KOTH_SHOT_CROUCH=s` drückt ab s Sekunden Ducken und hält es, etwa mit
 `KOTH_SHOT_MOVE=1,0,sprint`, `KOTH_SHOT_CROUCH=2.2` und `KOTH_SHOT_SECONDS=2.5` für ein Bild im Gleiten.
+`KOTH_SHOT_JUMP=s[,s…]` drückt zu diesen Zeiten die Sprungtaste; der Doppelsprung braucht in der
+Luft zwei schnelle Drücke, etwa `KOTH_SHOT_JUMP=2.0,2.2,2.25` mit `KOTH_SHOT_SECONDS=2.31`.
 
 Für Leistungsmessungen: `KOTH_SIZE=1920x1080` legt die Fenstergröße fest,
 `KOTH_VSYNC=0|1` schaltet V-Sync, und `KOTH_FRAMELOG=datei` schreibt jede
