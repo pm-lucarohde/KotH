@@ -1,0 +1,12 @@
+!ProceduralModelAsset
+Id: 1AB86A87-04BF-45CD-A1C9-5502AA737FFD
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Type: !CubeProceduralModel
+    Size: {X: 1.0, Y: 1.0, Z: 1.0}
+    Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+    UvScale: {X: 1.0, Y: 1.0}
+    LocalOffset: {X: 0.0, Y: 0.0, Z: 0.0}
+    NumberOfTextureCoordinates: 1
+    MaterialInstance:
+        Material: CBB8B034-1545-4980-A309-4687435A4529:Materials/ZoneEdge

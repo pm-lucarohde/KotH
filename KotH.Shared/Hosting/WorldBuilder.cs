@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using KotH.Shared.Match;
 using KotH.Shared.Physics;
 using Stride.BepuPhysics;
 using Stride.Core.Mathematics;
@@ -31,6 +32,9 @@ namespace KotH.Shared.Hosting
 
         public Scene Scene { get; }
 
+        /// <summary>The arena's capture zone, null until it is loaded or if it has none.</summary>
+        public CaptureZone Zone { get; private set; }
+
         /// <summary>
         /// Adds every collider of the arena prefab, in prefab order, and gives
         /// each its place in the stable query order.
@@ -38,7 +42,10 @@ namespace KotH.Shared.Hosting
         public void LoadArena()
         {
             foreach (Entity e in content.Load<Prefab>(ArenaUrl).Instantiate())
+            {
                 AddStatic(e);
+                Zone ??= e.Get<CaptureZone>();
+            }
         }
 
         /// <summary>

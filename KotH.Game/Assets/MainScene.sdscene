@@ -12,7 +12,21 @@ Hierarchy:
         - ref!! 7A7852EF-BC8E-4CD6-AEFC-28048C231EE5
         - ref!! 1CF3AC48-0B2B-50ED-B2FD-A700E4F2FAA4
         - ref!! 5DB33183-5007-5E05-870D-C89CB42ACC17
+        - ref!! 87F189D0-5C83-4C57-8C2E-071CB60E54D2
     Parts:
+        -   Entity:
+                Id: 87F189D0-5C83-4C57-8C2E-071CB60E54D2
+                Name: ZoneVisual
+                Components:
+                    e5babd71e6284a4c9b9660f8d6ff4808: !TransformComponent
+                        Id: A57B9CCC-62FA-40DD-897B-77C0E7E6AA11
+                        Position: {X: 0.0, Y: 0.0, Z: 0.0}
+                        Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    6f5453b5fe1348e9b702c511d2449171: !KotH.ZoneVisual
+                        Id: 7848132A-4358-4AFE-8B09-BEB950054399
+                        Cube: 1AB86A87-04BF-45CD-A1C9-5502AA737FFD:Models/ZoneCube
         -   Entity:
                 Id: C66042CC-6A58-5015-A989-C770025D8616
                 Name: GameRoot
@@ -111,6 +125,10 @@ Hierarchy:
                     51ac37f5a8b55c628360d192bbe63e55: !KotH.PerformanceOverlay
                         Id: 7EE9DCA1-CF2C-5CE7-AB93-254959AE3CF6
                         Font: 083E3CA2-4062-5729-94AB-DE5DF2E7A56A:Fonts/Overlay
+                    277d9c84d9404071930a3597f18fab91: !KotH.HillBoard
+                        Id: 05745E4A-802A-4A0E-B092-C6B17290ED77
+                        Font: BF458FFD-3AFB-4E1F-9772-98CC183D9082:Fonts/Hud
+                        BannerFont: AC86E8FA-7064-4617-806D-6BE1E27B35AA:Fonts/HudBanner
         -   Entity:
                 Id: 5DB33183-5007-5E05-870D-C89CB42ACC17
                 Name: ArenaVisual

@@ -6,6 +6,7 @@ using System.Text;
 using KotH.Probes.Harness;
 using KotH.Shared.Combat;
 using KotH.Shared.Dummy;
+using KotH.Shared.Match;
 using KotH.Shared.Mathematics;
 using KotH.Shared.Player;
 using KotH.Shared.Simulation;
@@ -115,6 +116,8 @@ namespace KotH.Probes.Probes
             dummyEntity = proto.Dummy;
 
             sim = World.Simulation;
+            // The route climbs the plateau, so the round is part of every hash.
+            World.StartMatch();
             dummy = dummyEntity.Get<TrainingDummy>();
             if (sim == null || dummy == null)
             {
@@ -180,7 +183,7 @@ namespace KotH.Probes.Probes
                 tick++;
                 if (tick == 0)
                 {
-                    SimulationSystem.Capture(snaps[0]);
+                    sim.Capture(snaps[0]);
                     reference[0] = Hash();
                 }
                 return;
@@ -192,7 +195,7 @@ namespace KotH.Probes.Probes
                 StepWith(inputs[tick]);
                 contactAt[tick] = SimulationSystem.LastContactCount > 0;
                 tick++;
-                SimulationSystem.Capture(snaps[tick]);
+                sim.Capture(snaps[tick]);
                 reference[tick] = Hash();
                 return;
             }
@@ -364,7 +367,7 @@ namespace KotH.Probes.Probes
 
         bool Replay(string name, int from)
         {
-            SimulationSystem.Restore(snaps[from]);
+            sim.Restore(snaps[from]);
             if (Hash() != reference[from])
                 return Fail(name, from, "schon direkt nach dem Restore");
 
@@ -403,7 +406,7 @@ namespace KotH.Probes.Probes
         // that stays equal here would pass every case above without meaning.
         bool CounterProbe()
         {
-            SimulationSystem.Restore(snaps[CounterTick]);
+            sim.Restore(snaps[CounterTick]);
             for (int t = CounterTick; t < Ticks; t++)
             {
                 MoveInput input = inputs[t];
@@ -497,6 +500,12 @@ namespace KotH.Probes.Probes
                 $" steil {steep}, Stufen {steps}, Stoesse {contacts}," +
                 $" Dummy-Prozent {percent:F1}, max y {maxY:F2}, Etappe {leg}/{Route.Length}");
 
+            int held = 0;
+            for (int t = 1; t <= Ticks; t++)
+                if (snaps[t].Match.Holder != null)
+                    held++;
+            Log($"[det] Zone: {held} Ticks allein gehalten, Punkte-Ticks {last.StateAt(Index(Ticks)).ScoreTicks}");
+
             var attack = playerEntity.Get<MeleeAttack>();
             Log($"[det] Schlaege {attack.SwingCount}, Treffer {attack.HitCount}");
 
@@ -516,8 +525,23 @@ namespace KotH.Probes.Probes
             Mix(ref h, SimulationSystem.CurrentTick);
             HashObject(ref h, scripted.CaptureState());
             HashObject(ref h, dummy.CaptureState());
+            HashMatch(ref h, sim.Match.State);
             return h;
         }
+
+        // The round holds body references, which the reflection walk cannot
+        // fold; they go in as who they are instead.
+        void HashMatch(ref ulong h, in MatchState m)
+        {
+            Mix(ref h, m.RoundTicks);
+            Mix(ref h, m.Over ? 1 : 0);
+            Mix(ref h, m.PauseTicks);
+            Mix(ref h, m.Inside);
+            Mix(ref h, Who(m.Winner));
+            Mix(ref h, Who(m.Holder));
+        }
+
+        int Who(SimulationBody body) => body == null ? 0 : body == scripted ? 1 : 2;
 
         static void Mix(ref ulong h, int bits)
         {
@@ -578,6 +602,11 @@ namespace KotH.Probes.Probes
                 string who = body == scripted ? "Spieler" : "Dummy";
                 DiffObject(sb, who, s.StateAt(i), body.CaptureState());
             }
+
+            MatchState want = s.Match, got = sim.Match.State;
+            if (want.RoundTicks != got.RoundTicks || want.Over != got.Over || want.PauseTicks != got.PauseTicks ||
+                want.Inside != got.Inside || want.Winner != got.Winner || want.Holder != got.Holder)
+                sb.Append($" Runde {want.RoundTicks}/{want.Inside}/{Who(want.Holder)}->{got.RoundTicks}/{got.Inside}/{Who(got.Holder)}");
 
             return sb.Length == 0 ? "nur CurrentTick" : sb.ToString();
         }

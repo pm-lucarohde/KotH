@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Threading;
 using KotH.Server;
 using KotH.Shared.Hosting;
+using KotH.Shared.Match;
 using KotH.Shared.Player;
 using KotH.Shared.Simulation;
 using Stride.Core.Mathematics;
@@ -30,6 +32,7 @@ int warmup = (int)(Option(args, "--warmup") ?? 0);
 
 using var world = new HeadlessWorld();
 world.LoadArena();
+HillMatch match = world.StartMatch();
 
 Entity spawn = world.Find("DummySpawn");
 Entity dummy = world.SpawnBody(HeadlessWorld.DummyBodyUrl, spawn.Transform.Position, spawn.Transform.Rotation);
@@ -99,6 +102,7 @@ if (fastTicks.HasValue)
     }
     Console.WriteLine($"[server] Endzustand {hash:X16}, {fallen} von {SimulationSystem.Bodies.Count} Körpern unter der Arena, " +
                       $"{respawns} Bots zurückgesetzt");
+    ReportMatch(match);
     return 0;
 }
 
@@ -128,6 +132,7 @@ while (!stop.IsCancellationRequested)
     {
         lastReport = now;
         timing.Report();
+        ReportMatch(match);
     }
 
     // Sleeps to the next tick instead of spinning; the scheduler's
@@ -138,8 +143,27 @@ while (!stop.IsCancellationRequested)
 }
 
 timing.Report();
+ReportMatch(match);
 Console.WriteLine("[server] beendet");
 return 0;
+
+// The round in one line: time, who holds the zone and the best three.
+static void ReportMatch(HillMatch match)
+{
+    MatchState m = match.State;
+    int left = Math.Max(0, match.LimitTicks - m.RoundTicks) / 40;
+    string zone = m.Over ? (m.Winner != null ? m.Winner.Entity.Name + " gewinnt" : "unentschieden")
+                : m.Holder != null ? m.Holder.Entity.Name + " allein"
+                : m.Inside > 1 ? $"umkämpft ({m.Inside})" : "frei";
+
+    var bodies = new List<SimulationBody>(SimulationSystem.Bodies);
+    bodies.Sort((x, y) => y.ScoreTicks.CompareTo(x.ScoreTicks));
+    var best = new List<string>();
+    for (int i = 0; i < Math.Min(3, bodies.Count); i++)
+        best.Add($"{bodies[i].Entity.Name} {HillMatch.Points(bodies[i].ScoreTicks)}");
+
+    Console.WriteLine($"[server] Runde noch {left / 60}:{left % 60:D2}, Zone {zone}, Beste: {string.Join(", ", best)}");
+}
 
 static double? Option(string[] args, string name)
 {

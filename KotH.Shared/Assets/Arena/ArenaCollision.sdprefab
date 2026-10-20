@@ -37,6 +37,7 @@ Hierarchy:
         - ref!! 10529923-5E57-5484-B38A-2B2E59365329
         - ref!! 349C9CCC-A41D-55EE-B1CD-4B67363AB7BE
         - ref!! B3E51042-188B-5F8A-B576-D0635AA3999E
+        - ref!! 78B82D8D-831F-4DA1-8EBA-25DA2C56BDA9
     Parts:
         -   Entity:
                 Id: 02302892-0341-5D08-9FF9-5A54A7D420C5
@@ -2104,3 +2105,20 @@ Hierarchy:
                         Rotation: {X: -0.0, Y: -0.7071068, Z: 0.0, W: -0.7071068}
                         Scale: {X: 1.0, Y: 1.0, Z: 1.0}
                         Children: {}
+        -   Entity:
+                Id: 78B82D8D-831F-4DA1-8EBA-25DA2C56BDA9
+                Name: CaptureZone
+                Components:
+                    022107a1c36d4e77a4726fdd8e38c8aa: !TransformComponent
+                        Id: 871C89EB-6B80-44DB-944C-33F2317CDD63
+                        Position: {X: 0.0, Y: 6.75, Z: -16.0}
+                        Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    e98b5e56211e4679b5f2450cff2e6e45: !KotH.CaptureZone
+                        Id: E7DD5D33-F6A4-4CEC-A6EB-3684037A99C1
+                        Size: {X: 12.0, Y: 3.5, Z: 12.0}
+                        WarmupSeconds: 3.0
+                        WinPoints: 150
+                        TimeLimitMinutes: 20.0
+                        WinPauseSeconds: 5.0

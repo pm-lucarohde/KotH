@@ -13,6 +13,15 @@ heranläuft, fliegt weniger weit. Bis 20 % steigt der Anteil von der Hälfte auf
 das volle Tempo. Wer gerade springt oder fällt, behält das: Der Stoß nach oben
 kommt auf seinen Sprung obendrauf.
 
+**Spielregel.** Oben auf dem Plateau, wo die Rampen hinaufführen, liegt die
+Capture-Zone, leuchtend umrandet. Wer allein in ihr steht, nimmt sie in 3 s ein und
+bekommt danach einen Punkt pro Sekunde; stehen mehrere drin, ist sie umkämpft und
+keiner punktet, und das Einnehmen beginnt von vorn. Wer zuerst 150 Punkte hat,
+gewinnt; nach 20 Minuten gewinnt, wer die meisten hat, bei Gleichstand ist die
+Runde unentschieden. Nach 5 s Siegeranzeige beginnt die nächste Runde, alle stehen
+wieder an ihrem Startpunkt. Die Dummys zählen wie Gegner. Die Werte stehen an der
+Komponente `CaptureZone` im Arena-Prefab und sind in Game Studio einstellbar.
+
 | | |
 |---|---|
 | Engine | [Stride](https://www.stride3d.net/) 4.4 mit Bepu-Physik |
@@ -75,7 +84,8 @@ ab, was gelegentlich passiert, das Skript einfach erneut starten.
 
 ### Server
 
-Der Server lädt Arena und Dummy ohne Fenster und ohne GPU und tickt mit 40 Hz.
+Der Server lädt Arena und Dummy ohne Fenster und ohne GPU, tickt mit 40 Hz und
+spielt die Runde um die Zone mit (Stand alle 10 s und am Ende).
 Es ist dieselbe Schleife, die später ein hostender Peer fährt.
 
 ```bash
@@ -127,6 +137,7 @@ Einige Kernpunkte der Architektur:
   auf ihrer eigenen Pose, Trennen, Veröffentlichen, Kampf.
 - **Rollback.** `Capture`, `Restore` und `Resimulate` über `WorldSnapshot`. Der
   `MotorState` enthält jedes Motorfeld, die DeterminismProbe prüft das bitgenau.
+  Der Snapshot hält auch die Runde (`HillMatch`) und die Punkte jedes Körpers.
 - **Unitys Rechenweg.** `UMath` bildet Unitys Mathe-Formeln Operation für
   Operation nach; `WorldQueries` beantwortet die Physikabfragen mit Bepu, aber
   mit der PhysX-Semantik, auf die der Motor abgestimmt ist.
@@ -156,7 +167,7 @@ Bin/Probes/Release/KotH.Probes determinism hashes
 
 Proben: `worldquery`, `rotation`, `slopejump`, `crest`, `impact`, `jumpheight`,
 `slide`, `sprint`, `melee`, `step`, `determinism`, `clock`, `stairrun`, `rampfoot`,
-`crouchedge`, `knockback`, `thirdperson`, `wallknock`.
+`crouchedge`, `knockback`, `thirdperson`, `wallknock`, `capture`.
 
 Vergleich mit der Unity-Referenz:
 
@@ -175,7 +186,7 @@ jede gewollte Änderung gegenüber Unity ist mit Ursache in
 AVX2/FMA rundet anders als SSE. Alle AOT-Builds sind deshalb fest auf
 x86-64-v2 gebaut. Ein JIT-Lauf auf einer AVX2-CPU rechnet nur mit
 `DOTNET_EnableAVX=0` genauso. Die Hashkette der DeterminismProbe muss unter JIT
-und AOT gleich sein; derzeit lautet sie `2645BFE8429DA550`. Für Peer-to-Peer
+und AOT gleich sein; derzeit lautet sie `880D0C64389C53E3`. Für Peer-to-Peer
 heißt das: Alle Peers brauchen dasselbe Binary.
 
 ## Lizenz

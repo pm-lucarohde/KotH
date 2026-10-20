@@ -1,0 +1,13 @@
+!SpriteFont
+Id: AC86E8FA-7064-4617-806D-6BE1E27B35AA
+SerializedVersion: {Stride: 2.1.0.0}
+Tags: []
+FontSource: !FileFontProvider
+    Source: !file ../../Resources/Fonts/OpenSans-Regular.ttf
+FontType: !OfflineRasterizedSpriteFontType
+    Size: 56.0
+    CharacterSet: null
+    CharacterRegions:
+        6f4410e1912849ecac4321b5f953d825:
+            Start: ' '
+            End: "\xFF"

@@ -299,3 +299,25 @@ unter JIT und AOT; die Hashkette bleibt `A4A9BBB937C62890`.
     - Ohne Rückstoß kehrt `ClipKnock` sofort zurück wie bisher: `knockback`
       byte-gleich, Hashkette `2645BFE8429DA550` und Lasttest `ACA28FF778F7B0AE`
       unverändert, unter JIT und AOT gleich.
+
+## Capture-Zone (20.10.2026, Lucas Vorgabe)
+
+11. **Neue Spielregel ohne Unity-Vorbild.** `HillMatch` (`KotH.Shared/Match`) tickt am
+    Ende von `Step()`, nach dem Kampf, auf den veröffentlichten Posen. Die Zone ist die
+    Komponente `CaptureZone` im Arena-Prefab, eine Box über dem Plateau (12 × 3,5 × 12 m),
+    abgefragt mit `UMath` statt über die Physik; der offene Punkt „Trigger kennt
+    WorldQueries nicht“ (oben) entfällt damit.
+    - Regeln in Ticks: 120 Ticks allein bis zum ersten Punkte-Tick, 40 Ticks je Punkt,
+      Sieg bei 150 Punkten oder nach 48 000 Ticks (Bester gewinnt, Gleichstand
+      unentschieden), 200 Ticks Pause, dann `ResetToSpawn` aller Körper.
+    - `BodyState` hat zwei Felder mehr (`ScoreTicks`, `AloneTicks`), `WorldSnapshot`
+      hält den `MatchState`. `Capture` und `Restore` sind dafür Instanzmethoden.
+    - Die Bewegungsproben laufen ohne Runde (`HeadlessWorld.StartMatch` ist ein
+      Opt-in), ihr Messpfad ist unberührt; `knockback` und `wallknock` byte-gleich.
+    - Die DeterminismProbe spielt die Runde mit (63 Ticks allein auf dem Plateau). Ihre
+      Hashkette ist jetzt `880D0C64389C53E3`, weil der Zustand zwei Felder und die
+      Runde mehr hat; alle Rollback-Fälle bitgleich, JIT und AOT gleich.
+    - Lasttest `ACA28FF778F7B0AE` unverändert (100 s erreichen keinen Sieg).
+    - Neue Probe `capture`: Aufwärmen, Punkte, umkämpft, Neustart des Aufwärmens,
+      Zonengrenzen, Sprung, Sieg, Pause, Spawn-Zustand bitgleich, Zeitlimit mit
+      Sieger und Unentschieden, Rollback samt Runde. JIT und AOT byte-gleich.

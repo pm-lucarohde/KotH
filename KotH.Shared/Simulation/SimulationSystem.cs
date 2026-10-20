@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using KotH.Shared.Match;
 using KotH.Shared.Mathematics;
 using KotH.Shared.Physics;
 using KotH.Shared.Player;
@@ -97,6 +98,13 @@ namespace KotH.Shared.Simulation
         /// <summary>The physics questions every body asks.</summary>
         public WorldQueries World { get; }
 
+        /// <summary>
+        /// The round played for the zone, null for none. Set by whoever hosts
+        /// a game; probes that only measure movement leave it off, so no
+        /// round end can ever put their bodies back.
+        /// </summary>
+        public HillMatch Match { get; set; }
+
         /// <summary>Makes this the driver. A second one stays inactive, as in Unity.</summary>
         public bool Activate()
         {
@@ -163,6 +171,10 @@ namespace KotH.Shared.Simulation
                 return;
             }
 
+            // Before anything moves, so a new round puts a body back exactly
+            // where it joined.
+            Match?.MarkNewcomers(bodies);
+
             // Contacts first, so a push still takes effect in this tick
             // instead of 25 ms later. It reads what the last tick left
             // behind, the only state both bodies agree on.
@@ -196,14 +208,18 @@ namespace KotH.Shared.Simulation
             for (int i = 0; i < count; i++)
                 bodies[i].TickCombat(tickInputs[i], dt);
 
+            // Last, on the poses everyone ended up in, after any knock.
+            Match?.Tick(bodies);
+
             CurrentTick++;
         }
 
-        /// <summary>Records every body as this tick left it.</summary>
-        public static void Capture(WorldSnapshot into)
+        /// <summary>Records every body and the round as this tick left them.</summary>
+        public void Capture(WorldSnapshot into)
         {
             into.Clear();
             into.Tick = CurrentTick;
+            into.Match = Match?.State ?? default;
 
             for (int i = 0; i < bodies.Count; i++)
             {
@@ -216,7 +232,7 @@ namespace KotH.Shared.Simulation
         /// Puts every body in the snapshot back. Bodies that joined since
         /// are left alone; deciding what they should be is netcode's job.
         /// </summary>
-        public static void Restore(WorldSnapshot from)
+        public void Restore(WorldSnapshot from)
         {
             for (int i = 0; i < from.Count; i++)
             {
@@ -225,6 +241,7 @@ namespace KotH.Shared.Simulation
                     body.RestoreState(from.states[i]);
             }
 
+            Match?.Restore(from.Match);
             CurrentTick = from.Tick;
         }
 

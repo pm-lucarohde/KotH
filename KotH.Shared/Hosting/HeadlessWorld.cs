@@ -1,4 +1,5 @@
 using System;
+using KotH.Shared.Match;
 using KotH.Shared.Physics;
 using KotH.Shared.Simulation;
 using Stride.BepuPhysics;
@@ -59,6 +60,21 @@ namespace KotH.Shared.Hosting
         public ContentManager Content => content;
 
         public void LoadArena() => builder.LoadArena();
+
+        /// <summary>The arena's capture zone, once it is loaded.</summary>
+        public CaptureZone Zone => builder.Zone;
+
+        /// <summary>
+        /// Plays a round for the arena's zone from here on. Off by default:
+        /// a round end puts every body back, which no movement probe wants.
+        /// </summary>
+        public HillMatch StartMatch()
+        {
+            if (Zone == null)
+                throw new InvalidOperationException("Die Arena hat keine Capture-Zone.");
+            Simulation.Match = new HillMatch(Zone);
+            return Simulation.Match;
+        }
 
         public void AddStatic(Entity entity) => builder.AddStatic(entity);
 

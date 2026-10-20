@@ -24,6 +24,17 @@ namespace KotH.Shared.Simulation
         MeleeAttack attack;
         DamagePercent damage;
 
+        // Where the body joined, for the next round of a HillMatch.
+        BodyState spawn;
+
+        /// <summary>Points earned in this round, in ticks; see HillMatch.Points.</summary>
+        [DataMemberIgnore] public int ScoreTicks { get; internal set; }
+
+        /// <summary>Ticks in a row this body has held the zone alone.</summary>
+        [DataMemberIgnore] public int AloneTicks { get; internal set; }
+
+        [DataMemberIgnore] public bool HasSpawn { get; private set; }
+
         /// <summary>
         /// Input for the tick about to run. Called exactly once per tick by
         /// SimulationSystem, so per-frame state may be consumed here.
@@ -63,7 +74,25 @@ namespace KotH.Shared.Simulation
                 Motor = Motor.CaptureState(),
                 AttackCooldown = attack != null ? attack.TicksUntilReady : 0,
                 DamagePercent = damage != null ? damage.Percent : 0f,
+                ScoreTicks = ScoreTicks,
+                AloneTicks = AloneTicks,
             };
+        }
+
+        /// <summary>Takes the present state as where a new round starts this body.</summary>
+        public void MarkSpawn()
+        {
+            spawn = CaptureState();
+            spawn.ScoreTicks = 0;
+            spawn.AloneTicks = 0;
+            HasSpawn = true;
+        }
+
+        /// <summary>Back to where it joined, with no points: a new round.</summary>
+        public void ResetToSpawn()
+        {
+            if (HasSpawn)
+                RestoreState(spawn);
         }
 
         /// <summary>Puts this body back to a captured tick.</summary>
@@ -76,6 +105,9 @@ namespace KotH.Shared.Simulation
 
             if (damage != null)
                 damage.Restore(state.DamagePercent);
+
+            ScoreTicks = state.ScoreTicks;
+            AloneTicks = state.AloneTicks;
         }
 
         /// <summary>

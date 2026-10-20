@@ -1,7 +1,9 @@
 using KotH.Client.Hud;
+using KotH.Client.Match;
 using KotH.Client.Player;
 using KotH.Shared.Combat;
 using KotH.Shared.Hosting;
+using KotH.Shared.Match;
 using KotH.Shared.Mathematics;
 using KotH.Shared.Physics;
 using KotH.Shared.Player;
@@ -42,6 +44,8 @@ namespace KotH.Client
 
             var builder = new WorldBuilder(Entity.Scene, Content, queries);
             builder.LoadArena();
+            if (builder.Zone != null)
+                system.Match = new HillMatch(builder.Zone);
 
             var reader = new PlayerInputReader();
             Entity player = Spawn(builder, WorldBuilder.PlayerBodyUrl, "PlayerSpawn", "Player", reader);
@@ -66,6 +70,24 @@ namespace KotH.Client
                 AddVisual(visuals, dummy);
 
             Entity.Get<SimulationDriver>().LocalInput = reader;
+
+            SimulationBody self = reader;
+            HillBoard board = null;
+            foreach (Entity e in Entity.Scene.Entities)
+                if (e.Get<HillBoard>() is { } found)
+                {
+                    board = found;
+                    board.Match = system.Match;
+                    board.Self = self;
+                }
+            foreach (Entity e in Entity.Scene.Entities)
+                if (e.Get<ZoneVisual>() is { } zone)
+                {
+                    zone.Zone = builder.Zone;
+                    zone.Match = system.Match;
+                    zone.Self = self;
+                    zone.Board = board;
+                }
 
             TransformComponent view = null;
             foreach (Entity e in Entity.Scene.Entities)

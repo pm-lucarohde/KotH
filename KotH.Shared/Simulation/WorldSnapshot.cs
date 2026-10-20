@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using KotH.Shared.Match;
 
 namespace KotH.Shared.Simulation
 {
@@ -15,6 +16,9 @@ namespace KotH.Shared.Simulation
 
         /// <summary>The tick this state is the end of.</summary>
         public int Tick { get; internal set; }
+
+        /// <summary>The round as this tick left it; default without a match.</summary>
+        public MatchState Match { get; internal set; }
 
         public int Count => bodies.Count;
 

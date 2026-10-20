@@ -12,5 +12,9 @@ namespace KotH.Shared.Simulation
         public MotorState Motor;
         public int AttackCooldown;
         public float DamagePercent;
+
+        // King of the hill, in ticks: points earned and time alone in the zone.
+        public int ScoreTicks;
+        public int AloneTicks;
     }
 }
