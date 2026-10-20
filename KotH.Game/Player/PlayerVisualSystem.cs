@@ -67,16 +67,16 @@ namespace KotH.Client.Player
         [Display("Aufprall", "Animation")] public float LandStrength = 1f;
 
         /// <userdoc>Wie weit die Blätter des Rocks bei Sprinttempo nach hinten wehen, in Grad; langsamer entsprechend weniger, im Stand gar nicht.</userdoc>
-        [Display("Wehen", "Blätter")] public float LeafSwing = 30f;
+        [Display("Wehen", "Blätter")] public float LeafSwing = 60f;
 
         /// <userdoc>Anteil, mit dem der Kragen mitweht (1 = so stark wie der Rock).</userdoc>
         [Display("Kragen", "Blätter")] public float CollarShare = 0.45f;
 
         /// <userdoc>Flattern der Blätter bei Sprinttempo, in Grad.</userdoc>
-        [Display("Flattern", "Blätter")] public float LeafFlutter = 5f;
+        [Display("Flattern", "Blätter")] public float LeafFlutter = 10f;
 
         /// <userdoc>Wie weit sich der Rock beim Fallen nach außen hebt, in Grad.</userdoc>
-        [Display("Fallwind", "Blätter")] public float LeafLift = 20f;
+        [Display("Fallwind", "Blätter")] public float LeafLift = 40f;
 
         /// <userdoc>Wie weit der Kopf dem Blick nach oben und unten folgt (1 = ganz).</userdoc>
         [Display("Kopf folgt Blick", "Animation")] public float HeadFollow = 0.5f;
