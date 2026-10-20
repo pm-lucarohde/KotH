@@ -252,13 +252,17 @@ unter JIT und AOT; die Hashkette bleibt `A4A9BBB937C62890`.
    also trifft jetzt, was man sieht: drei aufrechte Zylinder in `PlayerBody` und
    `DummyBody`, Beine 0–0,4 m mit r 0,25, Rumpf 0,4–1,1 m mit r 0,405, Kappe
    1,1–1,8 m mit r 0,45 (über dem Fuß; Rumpf und Kappe hat Luca nach dem ersten
-   Stand mit 0,45 / 0,50 um 10 % schmaler gewünscht). Nur die Trefferfläche: Bewegung und
+   Stand mit 0,45 / 0,50 um 10 % schmaler gewünscht). Der Rumpf ist in
+   Blickrichtung noch einmal 10 % flacher: zwei Zylinder mit r 0,3645, seitlich um
+   ±0,0405 versetzt, zusammen 0,81 m breit und 0,73 m tief. Die Hülle dreht mit
+   dem Körper (`SyncHull` teleportiert mit seiner Drehung). Nur die Trefferfläche: Bewegung und
    Körperstoß bleiben bei `BodyRadius` 0,40 m.
    - Ducken staucht jede Form zu den Füßen hin, wie das Modell
      (`PlayerMotor.ApplyHeight`); ihr Stand kommt aus dem Prefab.
-   - MeleeProbe misst bewusst anders als Unity: Radius in der Mitte 0,405 statt
-     0,400, Breite 0,900, letzter Treffer bei 3,840 m statt 3,820 m (Strahl
-     3,498 m). Takt, Deckel und seitlicher Versatz unverändert.
+   - MeleeProbe misst bewusst anders als Unity: Der Dummy steht um 90° gedreht,
+     der Strahl trifft ihn also von vorn; Radius in der Mitte 0,362 statt 0,400,
+     letzter Treffer bei 3,780 m statt 3,820 m (Strahl 3,483 m), Breite der
+     Hülle 0,900 (die Kappe). Takt, Deckel und seitlicher Versatz unverändert.
    - Alle anderen Proben sind byte-gleich zum Stand davor, `knockback` auch.
      Die Hashkette bleibt `2645BFE8429DA550`, der Lasttest mit 64 Bots auch bei
      `ACA28FF778F7B0AE` (mit r 0,45 / 0,50 trafen die Bots andere Schläge:
