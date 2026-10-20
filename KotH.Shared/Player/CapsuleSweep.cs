@@ -181,6 +181,13 @@ namespace KotH.Shared.Player
                 if (!any)
                     return position;
 
+                // Never pushed down into something: under a ramp's edge the
+                // ramp pushed a crouched body through the one-sided ground (a
+                // deliberate change from Unity). Blocked, it slides along the
+                // ground instead. Solid boxes resolve on the next pass, so
+                // other pushes stay unchecked, exactly as before.
+                if (push.Y < 0f)
+                    push = Shift(world, position, footOffset, height, radius, skin, push, mask, 2);
                 position = UMath.Add(position, push);
             }
 
@@ -217,20 +224,41 @@ namespace KotH.Shared.Player
         public Vector3 Clear(WorldQueries world, Vector3 position, float footOffset,
                              float height, float radius, float skin, Vector3 delta,
                              CollisionMask mask)
+            => Shift(world, position, footOffset, height, radius, skin, delta, mask, 1);
+
+        /// <summary>
+        /// Moves along delta like Clear, but what a face refuses slides along
+        /// it for up to passes - 1 more casts. Colliders the capsule already
+        /// overlaps do not stop it, Cast skips them. Unblocked, delta comes
+        /// back bit for bit.
+        /// </summary>
+        Vector3 Shift(WorldQueries world, Vector3 position, float footOffset,
+                      float height, float radius, float skin, Vector3 delta,
+                      CollisionMask mask, int passes)
         {
-            float distance = UMath.Magnitude(delta);
-            if (distance < MinStep)
-                return delta;
+            Vector3 moved = Vector3.Zero;
+            Vector3 remaining = delta;
 
-            // Started a skin back and stopped two skins short, as in Move.
-            Vector3 direction = UMath.Div(delta, distance);
-            if (!Cast(world, UMath.Sub(position, UMath.Mul(direction, skin)),
-                      footOffset, height, radius, direction,
-                      distance + skin * 2f, mask, out QueryHit hit))
-                return delta;
+            for (int pass = 0; pass < passes; pass++)
+            {
+                float distance = UMath.Magnitude(remaining);
+                if (distance < MinStep)
+                    return pass == 0 ? delta : moved;
 
-            float advance = UMath.Max(0f, hit.Distance - skin * 2f);
-            return UMath.Mul(direction, advance);
+                // Started a skin back and stopped two skins short, as in Move.
+                Vector3 direction = UMath.Div(remaining, distance);
+                Vector3 from = UMath.Add(position, moved);
+                if (!Cast(world, UMath.Sub(from, UMath.Mul(direction, skin)),
+                          footOffset, height, radius, direction,
+                          distance + skin * 2f, mask, out QueryHit hit))
+                    return pass == 0 ? delta : UMath.Add(moved, remaining);
+
+                Vector3 step = UMath.Mul(direction, UMath.Max(0f, hit.Distance - skin * 2f));
+                moved = pass == 0 ? step : UMath.Add(moved, step);
+                remaining = UMath.ProjectOnPlane(UMath.Sub(remaining, step), hit.Normal);
+            }
+
+            return moved;
         }
 
         bool Cast(WorldQueries world, Vector3 position, float footOffset, float height,

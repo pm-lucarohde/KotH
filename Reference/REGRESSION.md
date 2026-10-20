@@ -149,5 +149,17 @@ Hashkette der DeterminismProbe lautet jetzt `A4A9BBB937C62890`. Sie ändert sich
    allein sowie ein Pulk aus sechs, der sich unter den Rampen schiebt. Mit dem
    alten `Nudge` sinkt der Pulk in allen 8 Durchgängen ein, jetzt in keinem.
 
-Alle Bewegungsproben sind byte-gleich zum Stand davor, unter JIT und AOT; die
-Hashkette bleibt `A4A9BBB937C62890`.
+5. **Geduckt an der Seitenkante einer Rampe durch den Boden** (Fehler aus Unity
+   oder aus dem Port, ohne PhysX-Referenz für `ComputePenetration` nicht zu
+   trennen). Die Unterseite der Rampe drückt den Körper ein paar Zentimeter nach
+   unten; danach misst die Tiefenkorrektur den Boden mit dem übernommenen
+   Duck-Versatz (Kapsel 0,45 m zu tief), und Bepu liefert die waagerechte
+   Diagonalkante eines Bodendreiecks statt „nach oben“. `Depenetrate` fährt
+   einen Schub nach unten jetzt per Sweep ab und lässt ihn am Boden entlang
+   gleiten; andere Schübe bleiben ungeprüft wie in Unity, Boxen lösen sie im
+   nächsten Durchgang selbst. `rampfoot` prüft alle vier Seitenkanten mit
+   5 940 Läufen: vorher 286 eingesunken, jetzt keiner. Lasttest mit 64 Bots
+   über 40 000 Ticks: kein Durchfall mehr.
+
+Alle Bewegungsproben sind nach beiden Änderungen byte-gleich zum Stand davor,
+unter JIT und AOT; die Hashkette bleibt `A4A9BBB937C62890`.

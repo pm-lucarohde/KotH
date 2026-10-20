@@ -11,9 +11,9 @@ namespace KotH.Probes.Probes
     /// <summary>
     /// Crawls crouched under Ramp20 and Ramp35 towards their foot, where the
     /// tilted box meets the ground and the gap underneath closes: one body
-    /// alone, then a crowd that shoves itself apart while it crawls. Fails
-    /// if any body ends up below the ground. Found by the server's load test:
-    /// bodies pushed into that wedge by others sank through the floor.
+    /// alone, along the ramps' side edges, then a crowd that shoves itself
+    /// apart while it crawls. Fails if any body ends up below the ground.
+    /// Found by the server's load test: bodies in that wedge sank through.
     /// </summary>
     public sealed class RampFootProbe : Probe
     {
@@ -27,6 +27,7 @@ namespace KotH.Probes.Probes
         };
 
         const int Settle = 60, Ticks = 160;
+        const int EdgeTicks = 80;
         const int CrowdSize = 6, CrowdTicks = 300, CrowdRounds = 4;
 
         public override int Run(HeadlessWorld world, int maxTicks)
@@ -83,10 +84,64 @@ namespace KotH.Probes.Probes
                     $"{sunk} eingesunken -> {(sunk == 0 ? "ok" : "ABWEICHUNG")}");
             }
 
+            failures += SideEdges(motor);
             failures += Crowds(world, motor);
 
             Log(failures == 0 ? "[rampfoot] KEIN KÖRPER UNTER DEM BODEN" : $"[rampfoot] {failures} LÄUFE EINGESUNKEN");
             return failures == 0 ? 0 : 1;
+        }
+
+        /// <summary>
+        /// Starts beside each side edge, from half under it to a body width
+        /// clear, and crawls in at an angle towards the foot. Starts deep in
+        /// the ramp that leave no footing after settling are skipped.
+        /// </summary>
+        int SideEdges(PlayerMotor motor)
+        {
+            int failures = 0;
+            foreach (var ramp in Ramps)
+            for (int side = -1; side <= 1; side += 2)
+            {
+                int runs = 0, skipped = 0, sunk = 0, logged = 0;
+                for (int xi = 0; xi <= 10; xi++)
+                for (int zi = 0; zi <= 14; zi++)
+                for (int yi = 0; yi <= 8; yi++)
+                {
+                    var start = new Vector3(ramp.x + side * (2f + 0.1f * xi), 0.9f, ramp.z - 5f + 0.5f * zi);
+                    float yaw = 180f + side * 5f * yi;
+
+                    motor.Teleport(Ref.Pos(start));
+                    for (int i = 0; i < Settle; i++)
+                        motor.Tick(new MoveInput { Yaw = Ref.Angle(yaw), Crouch = true }, FixedDeltaTime);
+                    if (!motor.IsGrounded || motor.Position.Y < 0.5f)
+                    {
+                        skipped++;
+                        continue;
+                    }
+
+                    float lowest = float.MaxValue;
+                    for (int t = 0; t < EdgeTicks && lowest >= 0.5f; t++)
+                    {
+                        motor.Tick(new MoveInput { Move = new Vector2(0f, 1f), Yaw = Ref.Angle(yaw), Crouch = true },
+                                   FixedDeltaTime);
+                        lowest = Math.Min(lowest, motor.Position.Y);
+                    }
+
+                    runs++;
+                    if (lowest < 0.5f)
+                    {
+                        sunk++;
+                        if (logged++ < 3)
+                            Log($"[rampfoot]    eingesunken: x {start.X:F1} z {start.Z:F1} Blick {yaw:F0}°, " +
+                                $"Ende bei {Ref.V(motor.Position)} -> ABWEICHUNG");
+                    }
+                }
+
+                failures += sunk;
+                Log($"[rampfoot] == {ramp.name} Kante {(side < 0 ? "links" : "rechts")}: {runs} Läufe " +
+                    $"({skipped} Starts ohne Halt), {sunk} eingesunken -> {(sunk == 0 ? "ok" : "ABWEICHUNG")}");
+            }
+            return failures;
         }
 
         /// <summary>
