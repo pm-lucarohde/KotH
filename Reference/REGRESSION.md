@@ -208,9 +208,13 @@ unter JIT und AOT; die Hashkette bleibt `A4A9BBB937C62890`.
      steigend bis voll ab 20 %, darunter gar nicht. Der gezählte Teil vom
      Laufen des Getroffenen geht in den Stoß über, der Rest bleibt sein
      eigenes Laufen. Laufen beide gleich schnell aufeinander zu, fliegt er wie
-     im Stand. Der Stoß zeigt nie zum Schläger hin. Senkrecht zählt kein
-     Tempo, die Höhe ist immer die vorgegebene. Einstellbar: „Tempo zählt ab
+     im Stand. Der Stoß zeigt nie zum Schläger hin. Einstellbar: „Tempo zählt ab
      %“, „Tempoanteil am Anfang“, „Tempo voll ab %“.
+   - **Senkrecht** (Lucas Vorgabe): Steigt oder fällt der Getroffene in der
+     Luft, bleibt dieses Tempo, und der Stoß nach oben kommt voll obendrauf,
+     ohne Staffel; am Boden zählt es nicht. Das senkrechte Tempo des Schlägers
+     zählt nicht. Ein laufender Sprung des Getroffenen wird nach dem Treffer
+     beim Loslassen nicht mehr gekürzt, sonst fräße das den Stoß nach oben.
    - `knock` steht in `MotorState`; die DeterminismProbe prüft Rollback und
      Vollständigkeit weiter bitgenau.
    - Neue Probe `knockback`: 0 / 1,2 / 50 / 100 / 250 / 500 / 1000 % treffen
@@ -224,8 +228,12 @@ unter JIT und AOT; die Hashkette bleibt `A4A9BBB937C62890`.
      5,494 / 8,326 m (im Stand 1,2 / 1,8 / 2,4 m); unter 10 % und bei 0 %
      wirkt es nicht. Getroffener bei 100 %: geht heran 4,528 m, geht weg
      23,043 m; beide gehen aufeinander zu 12,000 m (bei 20 % 2,401 m), hält
-     der Getroffene danach weiter auf den Schläger zu, 2,468 m. Hashkette und
-     Lasttest berühren diesen Teil nicht.
+     der Getroffene danach weiter auf den Schläger zu, 2,468 m. Senkrecht bei
+     100 % (Höhe über dem Trefferpunkt, im Stand 1,2 m): im Steigen mit
+     5,5 m/s 3,864 m, im kurzen Sprung mit Loslassen nach dem Treffer 4,511 m
+     (ohne das Ende der Kürzung 0,620 m), im Fallen mit 2,5 m/s 0,491 m;
+     waagerecht jeweils 12,000 m. Hashkette und Lasttest berühren diesen Teil
+     nicht.
    - MeleeProbe stellt den Rückstoß ab, sie misst Reichweite und Trefferzahl
      gegen Unity. Alle Bewegungsproben sind byte-gleich zum Stand davor.
    - Die Hashkette der DeterminismProbe lautet jetzt `AFC01679A2071001`, unter

@@ -31,7 +31,11 @@ namespace KotH.Shared.Combat
         /// </userdoc>
         [Display("Weite bei 100 %", "Rückstoß")] public float KnockbackDistance = 12f;
 
-        /// <userdoc>Wie hoch ein Getroffener bei 100 % steigt, in Metern. Linear wie die Weite.</userdoc>
+        /// <userdoc>
+        /// Wie hoch ein Getroffener bei 100 % steigt, in Metern. Linear wie die Weite.
+        /// Steigt oder fällt er beim Treffer in der Luft, kommt der Stoß auf dieses
+        /// Tempo obendrauf.
+        /// </userdoc>
         [Display("Höhe bei 100 %", "Rückstoß")] public float KnockbackHeight = 1.2f;
 
         /// <userdoc>

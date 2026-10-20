@@ -15,7 +15,8 @@ namespace KotH.Probes.Probes
     /// up, linear to 1000 %. Then 100 % with the victim running against and
     /// along the knock: its own running simply adds on. Last the speeds of
     /// both along the line at the hit: a share of them from 10 %, all from
-    /// 20 %; head-on at equal speed they cancel.
+    /// 20 %; head-on at equal speed they cancel. Upward the victim's own
+    /// climb or fall in the air adds to the hop.
     /// </summary>
     public sealed class KnockbackProbe : Probe
     {
@@ -40,10 +41,12 @@ namespace KotH.Probes.Probes
         /// <summary>
         /// One knock as measured. Along is the attacker's speed towards the
         /// victim, Fleeing the victim's own away from it, both at the hit.
+        /// Up is its upward speed right after the hit, Climb the one it had
+        /// over the swing tick before the hit came in.
         /// </summary>
         struct Flight
         {
-            public float Distance, Rise, Angle, After, Along, Fleeing;
+            public float Distance, Rise, Angle, After, Along, Fleeing, Up, Climb;
             public int Ticks;
             public bool Off;
         }
@@ -162,6 +165,34 @@ namespace KotH.Probes.Probes
                     (ok ? "ok" : "ABWEICHUNG"));
             }
 
+            // The victim jumps and is hit rising, or falling back: its own
+            // upward speed stays and the hop adds to it, so it peaks where that
+            // sum carries it. The short jump lets go after the hit, which must
+            // no longer trim the rise. Sideways nothing changes.
+            float hop = PlayerMotor.LaunchSpeed(attack.KnockbackHeight, -victim.Gravity, FixedDeltaTime);
+            var jumps = new (int ticks, int hold, string what)[]
+            {
+                (4, 99, "Getroffener springt und steigt noch"),
+                (2, 3, "Getroffener springt kurz und lässt nach dem Treffer los"),
+                (20, 99, "Getroffener fällt nach dem Sprung"),
+            };
+            foreach (var j in jumps)
+            {
+                Flight f = Hit(100f, 0f, jumpTicks: j.ticks, holdTicks: j.hold);
+                float g = -victim.Gravity;
+                float want = f.Up > 0f ? f.Up * (f.Up - g * FixedDeltaTime) / (2f * g) : 0f;
+                float own = f.Up - hop;
+                bool hit = MathF.Abs(f.After - 100f - attack.DamagePercent) < 1e-3f;
+                bool ok = hit && MathF.Abs(own - f.Climb) < 1e-3f
+                    && MathF.Abs(f.Rise - want) <= MathF.Max(0.01f, want * 0.02f)
+                    && MathF.Abs(f.Distance - shortFlight) <= 0.02f && !f.Off;
+                if (!ok)
+                    failures++;
+                Log($"[knockback] == 100,0 %, {j.what}: eigenes Tempo nach oben {f.Climb:F3} m/s (übernommen {own:F3}), " +
+                    $"Höhe {f.Rise:F3} m (soll {want:F3}, im Stand {attack.KnockbackHeight:F3}), Weite {f.Distance:F3} m" +
+                    (hit ? "" : ", NICHT GETROFFEN") + " -> " + (ok ? "ok" : "ABWEICHUNG"));
+            }
+
             Log(failures == 0 ? "[knockback] RÜCKSTOSS WIE VORGEGEBEN" : $"[knockback] {failures} FÄLLE WEICHEN AB");
             return failures == 0 ? 0 : 1;
         }
@@ -186,14 +217,31 @@ namespace KotH.Probes.Probes
         /// hit on (-1 against, 1 along); attackerRun and victimRun are their
         /// inputs along +x up to and through the swing. Distance and angle
         /// are horizontal, signed along +x, from where the victim stood when
-        /// hit; rise is the peak.
+        /// hit; rise is the peak above that. With jumpTicks the victim takes
+        /// off that many ticks before the swing and holds the key holdTicks.
         /// </summary>
-        Flight Hit(float percent, float run, float attackerRun = 0f, bool sprint = false, float victimRun = 0f)
+        Flight Hit(float percent, float run, float attackerRun = 0f, bool sprint = false, float victimRun = 0f,
+                   int jumpTicks = -1, int holdTicks = 0)
         {
             Place();
+            float floor = victim.Position.Y;
             damage.Restore(percent);
             attack.ResetCounters();
             RunUp(attackerRun, victimRun, sprint);
+
+            int jumped = 0;
+            if (jumpTicks >= 0)
+            {
+                victimInput.Input.JumpPresses = 1;
+                for (; jumped < jumpTicks; jumped++)
+                {
+                    victimInput.Input.JumpHeld = jumped < holdTicks;
+                    world.Simulation.Tick();
+                    victimInput.Input.JumpPresses = 0;
+                }
+                victimInput.Input.JumpHeld = jumped < holdTicks;
+            }
+            float climb = victim.Velocity.Y + victim.Gravity * FixedDeltaTime;
 
             // The victim's speed before the swing tick, which is the one the
             // swing sees once both run at full speed: after it the knock is in.
@@ -204,6 +252,8 @@ namespace KotH.Probes.Probes
             attackerInput.Input.AttackPresses = 1;
             world.Simulation.Tick();
             attackerInput.Input.AttackPresses = 0;
+            float up = victim.Velocity.Y;
+            jumped++;
 
             // The same speed and line the swing saw: combat is the last phase.
             line = UMath.Sub(victim.Position, attacker.Position);
@@ -218,11 +268,12 @@ namespace KotH.Probes.Probes
             float top = start.Y;
             bool off = false;
             int resting = 0, t = 0;
-            for (; t < MaxFlight && resting < RestTicks; t++)
+            for (; t < MaxFlight && resting < RestTicks; t++, jumped++)
             {
+                victimInput.Input.JumpHeld = jumpTicks >= 0 && jumped < holdTicks;
                 world.Simulation.Tick();
                 top = MathF.Max(top, victim.Position.Y);
-                off |= victim.Position.Y < start.Y - 1f;
+                off |= victim.Position.Y < floor - 1f;
                 bool spent = victim.KnockLeft == 0f && (victim.IsGrounded || off);
                 resting = spent ? resting + 1 : 0;
             }
@@ -239,6 +290,8 @@ namespace KotH.Probes.Probes
                 After = damage.Percent,
                 Along = along,
                 Fleeing = fleeing,
+                Up = up,
+                Climb = climb,
                 Ticks = t,
                 Off = off,
             };

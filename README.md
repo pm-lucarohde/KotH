@@ -9,7 +9,8 @@ Getroffenen und stößt ihn umso weiter weg, je höher es schon war: bei 100 %
 12 m weit und 1,2 m hoch, linear bis 1000 %. Ab 10 % zählt auch das Tempo
 beider auf der Stoßlinie: Wer heranläuft, stößt stärker; wer als Getroffener
 heranläuft, fliegt weniger weit. Bis 20 % steigt der Anteil von der Hälfte auf
-das volle Tempo.
+das volle Tempo. Wer gerade springt oder fällt, behält das: Der Stoß nach oben
+kommt auf seinen Sprung obendrauf.
 
 | | |
 |---|---|

@@ -293,7 +293,8 @@ namespace KotH.Shared.Player
         /// strengthens it. The knock never points back. It is its own share
         /// of the velocity and sheds at the air acceleration no matter what
         /// is pressed; running after the hit adds on top of it, so running
-        /// against a knock takes exactly that speed off.
+        /// against a knock takes exactly that speed off. Upward the hit adds
+        /// to the body's own climb or fall in the air.
         /// </summary>
         public void Knock(Vector3 away, float distance, float height, float carry, float absorb, float dt)
         {
@@ -319,7 +320,13 @@ namespace KotH.Shared.Player
             Vector3 fresh = UMath.Mul(flat, speed);
             velocity.X += fresh.X - knock.X;
             velocity.Z += fresh.Z - knock.Z;
-            velocity.Y = LaunchSpeed(UMath.Max(0f, height), -Gravity, dt);
+            // Upward the own climb or fall in the air keeps going, the hit
+            // adds on top. On the ground it counts as nothing: there it is
+            // only the settling speed. A jump in progress is no longer trimmed
+            // on release, that would eat the rise of the hit.
+            float rising = grounded || touchingGround ? 0f : velocity.Y;
+            velocity.Y = rising + LaunchSpeed(UMath.Max(0f, height), -Gravity, dt);
+            jumpCutPending = false;
             knock = fresh;
         }
 
