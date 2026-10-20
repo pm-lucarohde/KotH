@@ -13,8 +13,9 @@ namespace KotH.Probes.Probes
     /// The hit's knockback against the percent before it: 0 % moves nothing,
     /// 100 % sends a body that does not steer 12 m along flat ground and 1.2 m
     /// up, linear to 1000 %. Then 100 % with the victim running against and
-    /// along the knock: its own running simply adds on. Last the attacker's
-    /// own speed: a share of it from 10 %, all of it from 20 %.
+    /// along the knock: its own running simply adds on. Last the speeds of
+    /// both along the line at the hit: a share of them from 10 %, all from
+    /// 20 %; head-on at equal speed they cancel.
     /// </summary>
     public sealed class KnockbackProbe : Probe
     {
@@ -36,10 +37,13 @@ namespace KotH.Probes.Probes
         DamagePercent damage;
         ScriptedBody attackerInput, victimInput;
 
-        /// <summary>One knock as measured; Along is the attacker's speed towards the victim.</summary>
+        /// <summary>
+        /// One knock as measured. Along is the attacker's speed towards the
+        /// victim, Fleeing the victim's own away from it, both at the hit.
+        /// </summary>
         struct Flight
         {
-            public float Distance, Rise, Angle, After, Along;
+            public float Distance, Rise, Angle, After, Along, Fleeing;
             public int Ticks;
             public bool Off;
         }
@@ -63,7 +67,7 @@ namespace KotH.Probes.Probes
             victim = body.Get<PlayerMotor>();
 
             Log($"[knockback] Weite bei 100 % {attack.KnockbackDistance:F2} m, Höhe {attack.KnockbackHeight:F2} m, " +
-                $"Schlägertempo ab {attack.CarryFromPercent:F0} % mit Anteil {attack.CarryStartShare:F2}, " +
+                $"Tempo zählt ab {attack.CarryFromPercent:F0} % mit Anteil {attack.CarryStartShare:F2}, " +
                 $"voll ab {attack.CarryFullPercent:F0} %");
 
             int failures = 0;
@@ -112,33 +116,48 @@ namespace KotH.Probes.Probes
             }
             attack.KnockbackHeight = height;
 
-            // The attacker's speed towards the victim: its share is added to
+            // Both speeds along the line at the hit: their share is added to
             // the launch speed, the distance then follows from braking at the
-            // air acceleration. Backing away takes some off, never past zero.
-            var carried = new (float percent, float run, bool sprint, string what)[]
+            // air acceleration. The victim lets go once hit, so nothing of its
+            // running is left; holding on it runs on against the knock.
+            var carried = new (float percent, float attacker, float victim, bool sprint, float holds, string what)[]
             {
-                (0f, 1f, true, "sprintet heran"),
-                (5f, 1f, false, "geht heran"),
-                (10f, 1f, false, "geht heran"),
-                (15f, 1f, false, "geht heran"),
-                (20f, 1f, false, "geht heran"),
-                (100f, 1f, false, "geht heran"),
-                (100f, 1f, true, "sprintet heran"),
-                (100f, -1f, false, "geht rückwärts weg"),
-                (10f, -1f, false, "geht rückwärts weg"),
+                (0f, 1f, 0f, true, 0f, "Schläger sprintet heran"),
+                (5f, 1f, 0f, false, 0f, "Schläger geht heran"),
+                (10f, 1f, 0f, false, 0f, "Schläger geht heran"),
+                (15f, 1f, 0f, false, 0f, "Schläger geht heran"),
+                (20f, 1f, 0f, false, 0f, "Schläger geht heran"),
+                (100f, 1f, 0f, false, 0f, "Schläger geht heran"),
+                (100f, 1f, 0f, true, 0f, "Schläger sprintet heran"),
+                (100f, -1f, 0f, false, 0f, "Schläger geht rückwärts weg"),
+                (10f, -1f, 0f, false, 0f, "Schläger geht rückwärts weg"),
+                (100f, 0f, -1f, false, 0f, "Getroffener geht heran"),
+                (100f, 0f, 1f, false, 0f, "Getroffener geht weg"),
+                (100f, 1f, -1f, false, 0f, "beide gehen aufeinander zu"),
+                (20f, 1f, -1f, false, 0f, "beide gehen aufeinander zu"),
+                (15f, 1f, -1f, false, 0f, "beide gehen aufeinander zu"),
+                (100f, 1f, -1f, false, -1f, "beide gehen aufeinander zu, Getroffener hält weiter"),
             };
             foreach (var c in carried)
             {
-                Flight f = Hit(c.percent, 0f, c.run, c.sprint);
+                Flight f = Hit(c.percent, c.holds, c.attacker, c.sprint, c.victim);
                 float share = attack.CarryShare(c.percent);
-                float want = Travel(c.percent, share * f.Along);
-                bool ok = c.percent == 0f
-                    ? f.Distance == 0f && f.Rise == 0f
+                float want = Travel(c.percent, share * (f.Along + f.Fleeing));
+                // Below the full share the rest of the victim's running stays
+                // its own and carries it on a little after the hit; holding on
+                // is not worked out either. Both only have to land short, the
+                // rest by less than its speed over half a second.
+                float rest = (1f - share) * MathF.Abs(f.Fleeing) * 0.5f;
+                bool exact = c.holds == 0f && (share >= 1f || f.Fleeing == 0f);
+                bool ok = c.percent == 0f ? f.Distance == 0f && f.Rise == 0f
+                    : c.holds != 0f ? f.Distance < want && !f.Off
+                    : !exact ? f.Distance < want && f.Distance > want - rest
                     : MathF.Abs(f.Distance - want) <= MathF.Max(0.02f, want * 0.01f) && MathF.Abs(f.Angle) < 1f;
                 if (!ok)
                     failures++;
-                Log($"[knockback] == {c.percent,5:F1} %, Schläger {c.what} mit {f.Along:F3} m/s, Anteil {share:F3}: " +
-                    $"Weite {f.Distance:F3} m (soll {want:F3}, im Stand {Travel(c.percent, 0f):F3})" +
+                Log($"[knockback] == {c.percent,5:F1} %, {c.what} (Schläger {f.Along:F3} m/s, Getroffener {f.Fleeing:F3} m/s), " +
+                    $"Anteil {share:F3}: Weite {f.Distance:F3} m ({(exact ? "soll" : "unter")} {want:F3}, " +
+                    $"im Stand {Travel(c.percent, 0f):F3})" +
                     (f.Off ? ", über den Rand der Arena (in der Luft gemessen)" : "") + " -> " +
                     (ok ? "ok" : "ABWEICHUNG"));
             }
@@ -164,23 +183,30 @@ namespace KotH.Probes.Probes
         /// <summary>
         /// One swing at a victim charged to percent, then waits until the
         /// knock is spent. run is the victim's own input along +x from the
-        /// hit on (-1 against, 1 along); attackerRun is the attacker's while
-        /// it swings (1 at the victim, -1 backing away). Distance and angle
+        /// hit on (-1 against, 1 along); attackerRun and victimRun are their
+        /// inputs along +x up to and through the swing. Distance and angle
         /// are horizontal, signed along +x, from where the victim stood when
         /// hit; rise is the peak.
         /// </summary>
-        Flight Hit(float percent, float run, float attackerRun = 0f, bool sprint = false)
+        Flight Hit(float percent, float run, float attackerRun = 0f, bool sprint = false, float victimRun = 0f)
         {
             Place();
             damage.Restore(percent);
             attack.ResetCounters();
-            RunUp(attackerRun, sprint);
+            RunUp(attackerRun, victimRun, sprint);
+
+            // The victim's speed before the swing tick, which is the one the
+            // swing sees once both run at full speed: after it the knock is in.
+            Vector3 line = UMath.Normalized(new Vector3(victim.Position.X - attacker.Position.X, 0f,
+                                                        victim.Position.Z - attacker.Position.Z));
+            float fleeing = UMath.Dot(new Vector3(victim.Velocity.X, 0f, victim.Velocity.Z), line);
+
             attackerInput.Input.AttackPresses = 1;
             world.Simulation.Tick();
             attackerInput.Input.AttackPresses = 0;
 
             // The same speed and line the swing saw: combat is the last phase.
-            Vector3 line = UMath.Sub(victim.Position, attacker.Position);
+            line = UMath.Sub(victim.Position, attacker.Position);
             line.Y = 0f;
             Vector3 speed = new Vector3(attacker.Velocity.X, 0f, attacker.Velocity.Z);
             float along = UMath.Dot(speed, UMath.Normalized(line));
@@ -212,28 +238,33 @@ namespace KotH.Probes.Probes
                 Angle = distance != 0f ? MathF.Atan2(dz, MathF.Abs(dx)) * 180f / MathF.PI : 0f,
                 After = damage.Percent,
                 Along = along,
+                Fleeing = fleeing,
                 Ticks = t,
                 Off = off,
             };
         }
 
         /// <summary>
-        /// Gets the attacker moving before the swing: run 1 from 4.4 m behind
-        /// the victim towards it until 2.6 m apart, -1 from 1.2 m backing off
-        /// until 2.4 m. The ground acceleration has it at full speed by then.
+        /// Gets the bodies moving before the swing, both facing +x: closing in
+        /// from 4.9 m until 2.6 m apart, drawing apart from 1.2 m until 2.4 m.
+        /// The ground acceleration has them at full speed by then. The victim
+        /// starts 2 m further on, so the attacker stays on the ground.
         /// </summary>
-        void RunUp(float run, bool sprint)
+        void RunUp(float attackerRun, float victimRun, bool sprint)
         {
-            if (run == 0f)
+            if (attackerRun == 0f && victimRun == 0f)
                 return;
 
-            float gap = run > 0f ? 4.4f : 1.2f;
+            bool closing = attackerRun > 0f || victimRun < 0f;
+            float gap = closing ? 4.9f : 1.2f;
+            victim.Teleport(new Vector3(victim.Position.X + 2f, victim.Position.Y, victim.Position.Z));
             attacker.Teleport(new Vector3(victim.Position.X - gap, attacker.Position.Y, attacker.Position.Z));
-            attackerInput.Input = new MoveInput { Yaw = Ref.Angle(90f), Move = new Vector2(0f, run), Sprint = sprint };
+            attackerInput.Input = new MoveInput { Yaw = Ref.Angle(90f), Move = new Vector2(0f, attackerRun), Sprint = sprint };
+            victimInput.Input = new MoveInput { Yaw = Ref.Angle(90f), Move = new Vector2(0f, victimRun) };
             for (int i = 0; i < 100; i++)
             {
                 float now = victim.Position.X - attacker.Position.X;
-                if (run > 0f ? now <= 2.6f : now >= 2.4f)
+                if (closing ? now <= 2.6f : now >= 2.4f)
                     break;
                 world.Simulation.Tick();
             }

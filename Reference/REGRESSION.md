@@ -202,12 +202,15 @@ unter JIT und AOT; die Hashkette bleibt `A4A9BBB937C62890`.
      beschleunigt das eigene Laufen dabei nur mit der Luftkontrolle. Was eine
      Wand an Tempo nimmt, geht zuerst vom Stoß ab (`ClipKnock`). Der
      Kantenschutz beim Ducken ruht, solange ein Stoß wirkt.
-   - **Tempo des Schlägers** (Lucas Vorgabe): Sein waagerechtes Tempo in
-     Stoßrichtung kommt auf die Startgeschwindigkeit, ab 10 % vor dem Treffer
-     zur Hälfte, linear steigend bis zum vollen Tempo ab 20 %; darunter zählt
-     es nicht. Wer sich wegbewegt, stößt schwächer, aber nie zu sich hin.
-     Einstellbar: „Schlägertempo ab %“, „Tempoanteil am Anfang“,
-     „Schlägertempo voll ab %“.
+   - **Tempo beider beim Treffer** (Lucas Vorgabe): Das waagerechte Tempo auf
+     der Stoßlinie zählt mit, das des Schlägers zum Getroffenen hin und das
+     des Getroffenen von ihm weg; ab 10 % vor dem Treffer zur Hälfte, linear
+     steigend bis voll ab 20 %, darunter gar nicht. Der gezählte Teil vom
+     Laufen des Getroffenen geht in den Stoß über, der Rest bleibt sein
+     eigenes Laufen. Laufen beide gleich schnell aufeinander zu, fliegt er wie
+     im Stand. Der Stoß zeigt nie zum Schläger hin. Senkrecht zählt kein
+     Tempo, die Höhe ist immer die vorgegebene. Einstellbar: „Tempo zählt ab
+     %“, „Tempoanteil am Anfang“, „Tempo voll ab %“.
    - `knock` steht in `MotorState`; die DeterminismProbe prüft Rollback und
      Vollständigkeit weiter bitgenau.
    - Neue Probe `knockback`: 0 / 1,2 / 50 / 100 / 250 / 500 / 1000 % treffen
@@ -219,7 +222,10 @@ unter JIT und AOT; die Hashkette bleibt `A4A9BBB937C62890`.
      weist das aus. Schlägertempo bei 100 %: gehend heran 23,043 m, sprintend
      32,389 m, rückwärts weg 4,528 m; bei 10 / 15 / 20 % gehend 3,111 /
      5,494 / 8,326 m (im Stand 1,2 / 1,8 / 2,4 m); unter 10 % und bei 0 %
-     wirkt es nicht. Hashkette und Lasttest berühren diesen Teil nicht.
+     wirkt es nicht. Getroffener bei 100 %: geht heran 4,528 m, geht weg
+     23,043 m; beide gehen aufeinander zu 12,000 m (bei 20 % 2,401 m), hält
+     der Getroffene danach weiter auf den Schläger zu, 2,468 m. Hashkette und
+     Lasttest berühren diesen Teil nicht.
    - MeleeProbe stellt den Rückstoß ab, sie misst Reichweite und Trefferzahl
      gegen Unity. Alle Bewegungsproben sind byte-gleich zum Stand davor.
    - Die Hashkette der DeterminismProbe lautet jetzt `AFC01679A2071001`, unter

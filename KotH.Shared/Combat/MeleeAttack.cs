@@ -35,21 +35,23 @@ namespace KotH.Shared.Combat
         [Display("Höhe bei 100 %", "Rückstoß")] public float KnockbackHeight = 1.2f;
 
         /// <userdoc>
-        /// Ab diesem Prozent vor dem Treffer kommt das Tempo des Schlägers in
-        /// Richtung des Getroffenen auf den Rückstoß, zunächst mit dem Anteil
-        /// „Tempoanteil am Anfang“. Darunter zählt es nicht.
+        /// Ab diesem Prozent vor dem Treffer zählt beim Treffer auch das Tempo
+        /// beider auf der Stoßlinie, zunächst mit dem Anteil „Tempoanteil am
+        /// Anfang“: Läuft der Schläger auf den Getroffenen zu, stößt er
+        /// stärker; läuft der Getroffene auf ihn zu, schwächer. Darunter zählt
+        /// es nicht.
         /// </userdoc>
-        [Display("Schlägertempo ab %", "Rückstoß")] public float CarryFromPercent = 10f;
+        [Display("Tempo zählt ab %", "Rückstoß")] public float CarryFromPercent = 10f;
 
-        /// <userdoc>Anteil des Schlägertempos ab „Schlägertempo ab %“, 0 bis 1.</userdoc>
+        /// <userdoc>Anteil beider Tempi ab „Tempo zählt ab %“, 0 bis 1.</userdoc>
         [Display("Tempoanteil am Anfang", "Rückstoß")] public float CarryStartShare = 0.5f;
 
         /// <userdoc>
-        /// Ab diesem Prozent zählt das Schlägertempo voll; dazwischen steigt
-        /// der Anteil linear. Wer sich beim Treffer wegbewegt, stößt schwächer,
-        /// aber nie zu sich hin.
+        /// Ab diesem Prozent zählen beide Tempi voll; dazwischen steigt der
+        /// Anteil linear. Gehen sie gegeneinander auf, fliegt der Getroffene
+        /// wie im Stand; der Stoß zeigt nie zum Schläger hin.
         /// </userdoc>
-        [Display("Schlägertempo voll ab %", "Rückstoß")] public float CarryFullPercent = 20f;
+        [Display("Tempo voll ab %", "Rückstoß")] public float CarryFullPercent = 20f;
 
         // Ticks, not seconds: a third of a second is 13.33 ticks at 40 Hz and
         // would silently round up to 14. Counting ticks is also what a server
@@ -141,8 +143,10 @@ namespace KotH.Shared.Combat
             if (UMath.SqrMagnitude(away) < 1e-8f)
                 away = new Vector3(aim.X, 0f, aim.Z);
 
-            // The attacker's own speed towards the victim rides along, a share
-            // of it from CarryFromPercent on; moving away takes some off.
+            // Both speeds along the line count, the same share of each from
+            // CarryFromPercent on: the attacker's towards the victim adds, the
+            // victim's towards the attacker takes off. Head-on at equal speed
+            // they cancel and the knock is the one from standing.
             float carry = 0f;
             float share = CarryShare(before);
             if (share > 0f)
@@ -151,11 +155,11 @@ namespace KotH.Shared.Combat
                 carry = UMath.Dot(run, UMath.Normalized(away)) * share;
             }
 
-            victim.Knock(away, KnockbackDistance * scale, KnockbackHeight * scale, carry, dt);
+            victim.Knock(away, KnockbackDistance * scale, KnockbackHeight * scale, carry, share, dt);
         }
 
         /// <summary>
-        /// Share of the attacker's speed added to the knock at this percent:
+        /// Share of both speeds along the line taken into the knock at this percent:
         /// none below CarryFromPercent, CarryStartShare there, rising linearly
         /// to all of it at CarryFullPercent.
         /// </summary>

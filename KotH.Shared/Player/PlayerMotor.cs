@@ -287,13 +287,15 @@ namespace KotH.Shared.Player
         /// <summary>
         /// Knocks the body away from a hit: without input, on flat ground, it
         /// travels distance horizontally and rises height. carry is speed
-        /// added on top along away, in m/s (the attacker's own run); the knock
-        /// never points back. The knock is its own share of the velocity and
-        /// sheds at the air acceleration no matter what is pressed; the body's
-        /// own running adds on top of it, so running against a knock takes
-        /// exactly that speed off.
+        /// added on top along away, in m/s (the attacker's own run). absorb
+        /// is the share of the body's own running along away that goes into
+        /// the knock as well: running at the attacker weakens it, fleeing
+        /// strengthens it. The knock never points back. It is its own share
+        /// of the velocity and sheds at the air acceleration no matter what
+        /// is pressed; running after the hit adds on top of it, so running
+        /// against a knock takes exactly that speed off.
         /// </summary>
-        public void Knock(Vector3 away, float distance, float height, float carry, float dt)
+        public void Knock(Vector3 away, float distance, float height, float carry, float absorb, float dt)
         {
             if (distance <= 0f && height <= 0f)
                 return;
@@ -301,8 +303,19 @@ namespace KotH.Shared.Player
             Vector3 flat = new Vector3(away.X, 0f, away.Z);
             flat = UMath.SqrMagnitude(flat) < 1e-8f ? Vector3.Zero : UMath.Normalized(flat);
 
-            // The running keeps going, an older knock is replaced.
-            float speed = UMath.Max(0f, LaunchSpeed(UMath.Max(0f, distance), AirAcceleration, dt) + carry);
+            // The share of the own running along the line moves into the
+            // knock; the rest and anything across it keep going.
+            float taken = 0f;
+            if (absorb > 0f)
+            {
+                Vector3 own = new Vector3(velocity.X - knock.X, 0f, velocity.Z - knock.Z);
+                taken = UMath.Dot(own, flat) * absorb;
+                velocity.X -= flat.X * taken;
+                velocity.Z -= flat.Z * taken;
+            }
+
+            // An older knock is replaced.
+            float speed = UMath.Max(0f, LaunchSpeed(UMath.Max(0f, distance), AirAcceleration, dt) + carry + taken);
             Vector3 fresh = UMath.Mul(flat, speed);
             velocity.X += fresh.X - knock.X;
             velocity.Z += fresh.Z - knock.Z;
