@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
+using KotH.Client;
 using KotH.Client.Hud;
 using KotH.Client.Player;
 using Stride.Core.Diagnostics;
@@ -10,6 +11,7 @@ using Stride.Core.Threading;
 using Stride.Engine;
 using Stride.Games;
 using Stride.Graphics;
+using Stride.Input;
 
 StdCxxPreload.Run();
 
@@ -23,7 +25,8 @@ using var game = new KotHGame();
 game.Run();
 
 /// <summary>
-/// The game, plus test aids. With KOTH_SHOT set to a path it shows the
+/// The game: F11 switches to borderless fullscreen at desktop resolution
+/// and back to the window as it was. Plus test aids. With KOTH_SHOT set to a path it shows the
 /// F3 readout, holds the view at KOTH_SHOT_YAW / _PITCH / _FOV if given,
 /// saves the back buffer as PNG after KOTH_SHOT_SECONDS (default 3), reports
 /// the label font and quits. Taken from
@@ -40,6 +43,8 @@ sealed class KotHGame : Game
     readonly double shotPitch = Number("KOTH_SHOT_PITCH") ?? 0.0;
     readonly double? shotFov = Number("KOTH_SHOT_FOV");
     readonly string frameLogPath = Environment.GetEnvironmentVariable("KOTH_FRAMELOG");
+    Int2 windowedSize;
+    int restoreFrames;
 
     // Ten minutes at 2000 FPS, allocated once so logging never allocates.
     float[] frameLog;
@@ -96,6 +101,10 @@ sealed class KotHGame : Game
     {
         base.Update(gameTime);
 
+        if (KeyPresses.Pressed(Input, Keys.F11))
+            ToggleFullscreen();
+        RestoreWindowSize();
+
         if (shotPath == null)
             return;
 
@@ -105,6 +114,52 @@ sealed class KotHGame : Game
             reader.Look((float)shotYaw.Value, (float)shotPitch);
         if (shotFov.HasValue && Find<CameraComponent>() is { } camera)
             camera.VerticalFieldOfView = (float)shotFov.Value;
+    }
+
+    /// <summary>
+    /// Borderless instead of exclusive: no mode switch, so toggling is quick
+    /// and other windows can still be reached. The back buffer follows the
+    /// window, so the desktop size never has to be asked for. Set on the
+    /// device manager: Stride 4.4 drops Window.IsFullscreen, its handler runs
+    /// the orientation update instead of the fullscreen one.
+    /// </summary>
+    void ToggleFullscreen()
+    {
+        GraphicsDeviceManager manager = GraphicsDeviceManager;
+        if (!manager.IsFullScreen)
+        {
+            Rectangle bounds = Window.ClientBounds;
+            windowedSize = new Int2(bounds.Width, bounds.Height);
+            Window.FullscreenIsBorderlessWindow = true;
+            restoreFrames = 0;
+        }
+        else
+        {
+            manager.PreferredBackBufferWidth = windowedSize.X;
+            manager.PreferredBackBufferHeight = windowedSize.Y;
+            restoreFrames = 30;
+        }
+
+        manager.IsFullScreen = !manager.IsFullScreen;
+        manager.ApplyChanges();
+    }
+
+    /// <summary>
+    /// Stride asks for the old window size while the window is still
+    /// fullscreen, and the window manager then brings back the fullscreen
+    /// size. Asked again once the window is back, for half a second at most.
+    /// </summary>
+    void RestoreWindowSize()
+    {
+        if (restoreFrames <= 0)
+            return;
+        restoreFrames--;
+
+        Rectangle bounds = Window.ClientBounds;
+        if (bounds.Width != windowedSize.X || bounds.Height != windowedSize.Y)
+            Window.SetSize(windowedSize);
+        else
+            restoreFrames = 0;
     }
 
     static double? Number(string variable) =>
