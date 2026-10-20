@@ -333,3 +333,21 @@ unter JIT und AOT; die Hashkette bleibt `A4A9BBB937C62890`.
     - Hashkette `880D0C64389C53E3` und Lasttest `ACA28FF778F7B0AE` unverändert, JIT und AOT.
     - Neuer Fall der DeterminismProbe: Eine zweite Welt im selben Prozess rechnet die
       Aufnahme im Wechsel mit der ersten nach, beide 1000 Ticks bitgleich.
+
+## Netcode N2: andere glibc (20.10.2026)
+
+13. **Die Simulation rechnet unter glibc 2.35 (Ubuntu 22.04) und 2.43 (Fedora 44) gleich.**
+    - Lückenlos über alle endlichen Float-Werte geprüft: `sinf`, `cosf`, `sin`, `cos`; über
+      den Definitionsbereich `acos` (float und double); `atan2` an 200 Mio. Stichproben.
+      Alles bitgleich (`.work/tools/libmcheck`). Eigene Winkelfunktionen sind nicht nötig.
+    - JIT-Läufe in der Box `sf3d`: Hashkette `880D0C64389C53E3` und Lasttest
+      `ACA28FF778F7B0AE` wie auf dem Host; `knockback` und `wallknock` gleich bis aufs
+      Dezimalzeichen (die Box hat kein ICU, siehe unten).
+    - Anders rechnen unter 2.35 nur `acosf`, `asinf` und `atan2f`; glibc 2.43 hat sie neu
+      versioniert. Die Simulation nutzt keine davon, Bepu und Stride.BepuPhysics auch nicht.
+      Der Lasttest-Bot lenkte mit `MathF.Atan2` und erzeugte deshalb unter 2.35 andere
+      Eingaben; jetzt nutzt er `UMath.Atan2` (double), der Endzustand bleibt gleich.
+    - **Offen für die Verteilung:**
+      - Die AOT-Binaries verlangen glibc ≥ 2.43 (`acosf@GLIBC_2.43` u. a.), weil sie in
+        Fedora 44 gelinkt werden. Unter Ubuntu 22.04 starten sie deshalb nicht.
+      - Ohne `libicu` bricht .NET beim deutschen Zahlenformat ab.

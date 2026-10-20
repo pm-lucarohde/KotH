@@ -1,4 +1,5 @@
 using System;
+using KotH.Shared.Mathematics;
 using KotH.Shared.Player;
 using KotH.Shared.Simulation;
 using Stride.Core;
@@ -78,7 +79,9 @@ namespace KotH.Server
             }
 
             // Stride yaw turns left; forward at yaw y is (-sin y, 0, -cos y).
-            float wanted = MathF.Atan2(-dx, -dz) * (180f / MathF.PI);
+            // UMath's double atan2, not MathF's: glibc 2.43 changed atan2f,
+            // and the load test compares end states across machines.
+            float wanted = UMath.Atan2(-dx, -dz) * (180f / MathF.PI);
             float turn = MathF.IEEERemainder(wanted - yaw, 360f);
             yaw += Math.Clamp(turn, -12f, 12f) + (Chance(20) ? Signed(6f) : 0f);
 
