@@ -31,7 +31,8 @@ game.Run();
 /// F3 readout, holds the view at KOTH_SHOT_YAW / _PITCH / _FOV if given,
 /// KOTH_SHOT_THIRD=1 steps back into third person, KOTH_SHOT_AT=x,y,z puts
 /// the player's body there once (Stride metres), KOTH_SHOT_SWING=1 swings
-/// once a second before the shot and reports the hit, saves the back buffer as PNG after KOTH_SHOT_SECONDS (default 3), reports
+/// once a second before the shot and reports the hit, KOTH_SHOT_SHAKE=1 takes a hit
+/// just before it and reports how far the camera shake tilts the view, saves the back buffer as PNG after KOTH_SHOT_SECONDS (default 3), reports
 /// the label font and quits. Taken from
 /// inside the game on purpose, a desktop screenshot would capture whatever
 /// else is on the screen. For performance runs: KOTH_SIZE=1920x1080 sets the
@@ -48,6 +49,7 @@ sealed class KotHGame : Game
     readonly bool shotThird = Environment.GetEnvironmentVariable("KOTH_SHOT_THIRD") == "1";
     Vector3? shotAt = Point("KOTH_SHOT_AT");
     bool shotSwing = Environment.GetEnvironmentVariable("KOTH_SHOT_SWING") == "1";
+    bool shotShake = Environment.GetEnvironmentVariable("KOTH_SHOT_SHAKE") == "1";
     readonly string frameLogPath = Environment.GetEnvironmentVariable("KOTH_FRAMELOG");
     Int2 windowedSize;
     bool confined;
@@ -230,6 +232,14 @@ sealed class KotHGame : Game
                 player.Swing();
                 shotSwing = false;
             }
+
+            // A hit taken just before the shot, as the camera sees one: a new tick.
+            if (shotShake && gameTime.Total.TotalSeconds >= shotSeconds - 0.05 &&
+                player.Entity.Get<KotH.Shared.Combat.DamagePercent>() is { } hit)
+            {
+                hit.LastHitTick++;
+                shotShake = false;
+            }
         }
     }
 
@@ -341,6 +351,13 @@ sealed class KotHGame : Game
         if (Find<PlayerInputReader>()?.Entity.Get<KotH.Shared.Combat.MeleeAttack>() is { } melee)
             Console.WriteLine($"[swing] {melee.SwingCount} Schläge, {melee.HitCount} Treffer, " +
                               $"zuletzt {melee.LastHitDistance:F3} m");
+        if (Find<PlayerInputReader>() is { } look && Find<PlayerCamera>() is { } view)
+        {
+            Quaternion still = KotH.Shared.Mathematics.UMath.Euler(look.Pitch, look.Yaw);
+            float dot = MathF.Min(1f, MathF.Abs(Quaternion.Dot(still, view.Entity.Transform.Rotation)));
+            Console.WriteLine(string.Format(HudRenderer.Numbers, "[wackeln] Bild um {0:F2}° gegen den Blick gekippt",
+                                            2f * MathF.Acos(dot) * 180f / MathF.PI));
+        }
         ReportFont();
         Exit();
     }

@@ -24,6 +24,13 @@ namespace KotH.Shared.Combat
         [DataMemberIgnore] public bool IsCapped => percent >= MaxPercent;
 
         /// <summary>
+        /// The tick of the last hit taken, also at the cap; -1 for none. For
+        /// the camera shake only, not part of the state: a hit simulated again
+        /// in a rollback keeps its tick, so the shake does not start twice.
+        /// </summary>
+        [DataMemberIgnore] public int LastHitTick { get; set; } = -1;
+
+        /// <summary>
         /// Charges the body up. Returns whether the value actually moved -
         /// at the cap the answer is false, and that is the place where
         /// "nothing happens after this" will turn into something else.

@@ -1,6 +1,7 @@
 using KotH.Shared.Mathematics;
 using KotH.Shared.Physics;
 using KotH.Shared.Player;
+using KotH.Shared.Simulation;
 using Stride.Core;
 using Stride.Core.Mathematics;
 using Stride.Engine;
@@ -137,6 +138,7 @@ namespace KotH.Shared.Combat
             // probe could not tell a miss apart from a full target.
             HitCount++;
             LastHitDistance = hit.Distance;
+            target.LastHitTick = Entity.Get<SimulationBody>()?.Simulation?.CurrentTick ?? 0;
 
             // The percent before this hit decides: a fresh body is not moved.
             float before = target.Percent;

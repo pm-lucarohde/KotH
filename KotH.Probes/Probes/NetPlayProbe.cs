@@ -159,6 +159,13 @@ namespace KotH.Probes.Probes
             Sanitizing();
             Check(countdownAt > 0 && runningAt - countdownAt >= CountdownTicks && runningAt - countdownAt < CountdownTicks + 40,
                   $"Countdown ab Tick {countdownAt}, Runde ab Tick {runningAt}");
+            // The camera shake keys on the tick of the last hit taken.
+            int marked = 0;
+            foreach (SimulationBody body in founder.World.Simulation.Bodies)
+                if (body.Entity.Get<DamagePercent>() is { LastHitTick: >= 0 } d && d.LastHitTick < founder.World.Simulation.CurrentTick)
+                    marked++;
+            Check(marked > 0, $"{marked} Körper tragen den Tick ihres letzten Treffers");
+
             foreach (Peer p in peers)
                 p.World.Dispose();
             LoadPause();

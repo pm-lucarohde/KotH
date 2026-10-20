@@ -141,6 +141,8 @@ Bin/Server/Release/KotH.Server --join 127.0.0.1 --bot    # beitreten
 Mit `KOTH_SHOT=bild.png` zeigt der Client die F3-Anzeige, speichert nach
 `KOTH_SHOT_SECONDS` (Standard 3 s) einen Screenshot und beendet sich.
 `KOTH_SHOT_YAW`, `KOTH_SHOT_PITCH` und `KOTH_SHOT_FOV` halten den Blick fest.
+`KOTH_SHOT_SHAKE=1` lässt die eigene Figur kurz vor dem Bild getroffen werden und
+meldet, wie weit die Kamera wackelt (nur im Netz, z. B. `--host --min-players 1`).
 
 Für Leistungsmessungen: `KOTH_SIZE=1920x1080` legt die Fenstergröße fest,
 `KOTH_VSYNC=0|1` schaltet V-Sync, und `KOTH_FRAMELOG=datei` schreibt jede
