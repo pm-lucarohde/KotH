@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using KotH.Shared.Mathematics;
 using KotH.Shared.Physics;
 using Stride.BepuPhysics;
@@ -118,7 +119,7 @@ namespace KotH.Shared.Player
         // --- wiring, set by Initialize ---
         WorldQueries world;
         StaticComponent hull;      // what a shot may hit, full height
-        CapsuleCollider hullShape;
+        readonly List<HullPart> hullParts = new List<HullPart>();
         readonly CapsuleSweep sweep = new CapsuleSweep();
 
         // Bodies never block movement - BodyContact resolves them - so no
@@ -229,22 +230,23 @@ namespace KotH.Shared.Player
         {
             world = queries;
             hull = Entity.Get<StaticComponent>();
-            hullShape = null;
+            hullParts.Clear();
 
+            // The standing shapes as authored; ApplyHeight scales from these
             if (hull?.Collider is CompoundCollider compound)
             {
                 for (int i = 0; i < compound.Colliders.Count; i++)
                 {
                     if (compound.Colliders[i] is CapsuleCollider capsule)
-                    {
-                        hullShape = capsule;
-                        break;
-                    }
+                        hullParts.Add(new HullPart(capsule, capsule.PositionLocal,
+                                                   capsule.Length + 2f * capsule.Radius));
+                    else if (compound.Colliders[i] is CylinderCollider cylinder)
+                        hullParts.Add(new HullPart(cylinder, cylinder.PositionLocal, cylinder.Length));
                 }
             }
 
-            if (hullShape == null)
-                Log.Warning($"Keine Trefferkapsel am Körper {Entity.Name}.");
+            if (hullParts.Count == 0)
+                Log.Warning($"Keine Trefferform am Körper {Entity.Name}.");
 
             position = Entity.Transform.Position;
             rotation = Entity.Transform.Rotation;
@@ -260,6 +262,21 @@ namespace KotH.Shared.Player
                 world.Register(hull);
 
             SyncHull();
+        }
+
+        /// <summary>One shape of the hit hull with its standing pose.</summary>
+        readonly struct HullPart
+        {
+            public readonly ColliderBase Shape;
+            public readonly Vector3 Position;
+            public readonly float Height;   // full height, end caps included
+
+            public HullPart(ColliderBase shape, Vector3 position, float height)
+            {
+                Shape = shape;
+                Position = position;
+                Height = height;
+            }
         }
 
         static readonly Stride.Core.Diagnostics.Logger Log =
@@ -1040,15 +1057,28 @@ namespace KotH.Shared.Player
         /// </summary>
         void ApplyHeight(float height)
         {
-            Vector3 center = new Vector3(0f, (height - StandHeight) * 0.5f, 0f);
-
             // The hit hull follows the pose: crouching has to make the body
-            // a smaller target, or ducking would be free cover. Bepu's
-            // capsule length is the segment between the end spheres.
-            if (hullShape != null)
+            // a smaller target, or ducking would be free cover. Every shape
+            // squashes toward the feet like the model does. Bepu's capsule
+            // length is the segment between the end spheres.
+            float scale = height / StandHeight;
+            for (int i = 0; i < hullParts.Count; i++)
             {
-                hullShape.Length = height - 2f * hullShape.Radius;
-                hullShape.PositionLocal = center;
+                HullPart part = hullParts[i];
+                Vector3 local = part.Position;
+                local.Y = FootOffset + (local.Y - FootOffset) * scale;
+                float tall = part.Height * scale;
+
+                if (part.Shape is CapsuleCollider capsule)
+                {
+                    capsule.Length = tall - 2f * capsule.Radius;
+                    capsule.PositionLocal = local;
+                }
+                else if (part.Shape is CylinderCollider cylinder)
+                {
+                    cylinder.Length = tall;
+                    cylinder.PositionLocal = local;
+                }
             }
 
             // The standing budget only once fully upright: anywhere in

@@ -244,3 +244,21 @@ unter JIT und AOT; die Hashkette bleibt `A4A9BBB937C62890`.
      unter JIT und AOT, etwa 1 ms je Tick.
    - Im Spiel stehen drei Dummys mit 0 %, 50 % und 100 % Startschaden
      nebeneinander; Server und Proben behalten ihren einen.
+
+## Trefferfläche folgt der Pilzfigur (20.10.2026, Lucas Vorgabe)
+
+8. **Drei Formen statt einer Kapsel** (in Unity: Kapsel mit Radius 0,40 m über
+   die volle Höhe). Die Pilzfigur ist an Beinen schmaler und an der Kappe breiter,
+   also trifft jetzt, was man sieht: drei aufrechte Zylinder in `PlayerBody` und
+   `DummyBody`, Beine 0–0,4 m mit r 0,25, Rumpf 0,4–1,1 m mit r 0,45, Kappe
+   1,1–1,8 m mit r 0,50 (über dem Fuß). Nur die Trefferfläche: Bewegung und
+   Körperstoß bleiben bei `BodyRadius` 0,40 m.
+   - Ducken staucht jede Form zu den Füßen hin, wie das Modell
+     (`PlayerMotor.ApplyHeight`); ihr Stand kommt aus dem Prefab.
+   - MeleeProbe misst bewusst anders als Unity: Radius in der Mitte 0,450 statt
+     0,400, Breite 1,000, letzter Treffer bei 3,880 m statt 3,820 m (Strahl
+     3,492 m). Takt, Deckel und seitlicher Versatz unverändert.
+   - Alle anderen Proben sind byte-gleich zum Stand davor, `knockback` auch.
+     Die Hashkette bleibt `2645BFE8429DA550`. Lasttest mit 64 Bots: Endzustand
+     jetzt `04074E8D84E233AF` (die Bots treffen andere Schläge), unter JIT und
+     AOT gleich.

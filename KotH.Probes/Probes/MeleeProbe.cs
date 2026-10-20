@@ -190,33 +190,40 @@ namespace KotH.Probes.Probes
         }
 
         /// <summary>
-        /// Collider.bounds of the hull, in Unity's coordinates. Unity's capsule
-        /// bounds are its AABB; Bepu's capsule is upright and turns only about
-        /// y, so that is the centre +- radius sideways and +- half length plus
-        /// radius vertically, where Length is the segment between the spheres.
+        /// Collider.bounds of the hull, in Unity's coordinates: the AABB of all
+        /// its upright shapes together. They turn only about y, so each is its
+        /// centre +- radius sideways and +- half its full height vertically
+        /// (a Bepu capsule's Length is the segment between the spheres).
         /// </summary>
         void HullBounds(out Vector3 min, out Vector3 max)
         {
-            CapsuleCollider capsule = null;
-            if (dummyHull?.Collider is CompoundCollider compound)
-                foreach (ColliderBase c in compound.Colliders)
-                    if (c is CapsuleCollider found)
-                    {
-                        capsule = found;
-                        break;
-                    }
+            min = new Vector3(float.MaxValue);
+            max = new Vector3(float.MinValue);
+            bool any = false;
 
-            if (capsule == null)
+            if (dummyHull?.Collider is CompoundCollider compound)
             {
-                min = max = new Vector3(float.NaN, float.NaN, float.NaN);
-                return;
+                TransformComponent pose = dummyHull.Entity.Transform;
+                foreach (ColliderBase c in compound.Colliders)
+                {
+                    float radius, half;
+                    if (c is CapsuleCollider capsule)
+                        (radius, half) = (capsule.Radius, capsule.Length * 0.5f + capsule.Radius);
+                    else if (c is CylinderCollider cylinder)
+                        (radius, half) = (cylinder.Radius, cylinder.Length * 0.5f);
+                    else
+                        continue;
+
+                    Vector3 centre = Ref.ToUnity(UMath.Add(pose.Position, UMath.Rotate(pose.Rotation, c.PositionLocal)));
+                    Vector3 extent = new Vector3(radius, half, radius);
+                    min = Vector3.Min(min, UMath.Sub(centre, extent));
+                    max = Vector3.Max(max, UMath.Add(centre, extent));
+                    any = true;
+                }
             }
 
-            TransformComponent pose = dummyHull.Entity.Transform;
-            Vector3 centre = Ref.ToUnity(UMath.Add(pose.Position, UMath.Rotate(pose.Rotation, capsule.PositionLocal)));
-            Vector3 extent = new Vector3(capsule.Radius, capsule.Length * 0.5f + capsule.Radius, capsule.Radius);
-            min = UMath.Sub(centre, extent);
-            max = UMath.Add(centre, extent);
+            if (!any)
+                min = max = new Vector3(float.NaN, float.NaN, float.NaN);
         }
 
         /// <summary>

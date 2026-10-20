@@ -21,12 +21,24 @@ Hierarchy:
                         CollisionLayer: Layer6
                         Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics
                             Colliders:
-                                5ffb22a1bc6d527cbffc5ec1e45a2814: !Stride.BepuPhysics.Definitions.Colliders.CapsuleCollider,Stride.BepuPhysics
+                                cbb6f0d41d9f4b99b7f33f4347a65e9e: !Stride.BepuPhysics.Definitions.Colliders.CylinderCollider,Stride.BepuPhysics
                                     Mass: 1.0
-                                    PositionLocal: {X: 0.0, Y: 0.0, Z: 0.0}
+                                    PositionLocal: {X: 0.0, Y: -0.7, Z: 0.0}
                                     RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
-                                    Radius: 0.4
-                                    Length: 1.0
+                                    Radius: 0.25
+                                    Length: 0.4
+                                cf6635f643f340a48fe1078a9db13ddb: !Stride.BepuPhysics.Definitions.Colliders.CylinderCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: -0.15, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    Radius: 0.45
+                                    Length: 0.7
+                                a1ee66b5ab5141e99e0d38d940153f17: !Stride.BepuPhysics.Definitions.Colliders.CylinderCollider,Stride.BepuPhysics
+                                    Mass: 1.0
+                                    PositionLocal: {X: 0.0, Y: 0.55, Z: 0.0}
+                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                    Radius: 0.5
+                                    Length: 0.7
                         CollisionGroup: {}
                         ContactEventHandler: null
                     4d3ef9ed716f5dd3955e78b88b06a13c: !KotH.PlayerMotor

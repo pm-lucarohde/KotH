@@ -430,12 +430,12 @@ namespace KotH.Probes.Probes
         }
 
         // Fields a snapshot deliberately leaves out, each with its reason.
-        // world, hullShape and eyeLocal are new in the port: Unity had no
+        // world, hullParts and eyeLocal are new in the port: Unity had no
         // query object, kept the shape in the hull and the eye on a mount.
         static readonly string[] NotState =
         {
             "hull", "sweep", "headroomHits", "groundHits",   // parts and buffers
-            "world", "hullShape",                             // wiring
+            "world", "hullParts",                             // wiring
             "maxStepHeight", "eyeLocal",                      // derived from the height
         };
 
