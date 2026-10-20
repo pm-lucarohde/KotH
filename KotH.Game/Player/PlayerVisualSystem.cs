@@ -78,6 +78,9 @@ namespace KotH.Client.Player
         /// <userdoc>Wie weit sich der Rock beim Fallen nach außen hebt, in Grad.</userdoc>
         [Display("Fallwind", "Blätter")] public float LeafLift = 40f;
 
+        /// <userdoc>Wie sehr Drehen die Blätter mitnimmt: so viele Meter vom Körper weg wirkt die Drehung wie Fahrtwind.</userdoc>
+        [Display("Drehwind", "Blätter")] public float TurnRadius = 1f;
+
         /// <userdoc>Wie weit der Kopf dem Blick nach oben und unten folgt (1 = ganz).</userdoc>
         [Display("Kopf folgt Blick", "Animation")] public float HeadFollow = 0.5f;
 
@@ -132,7 +135,8 @@ namespace KotH.Client.Player
             public int Look = -2;
             public int[] Leaves;
             public Vector2[] LeafBend, LeafRate;
-            public float LeafClock;
+            public float LeafClock, Yaw, Spin;
+            public bool HasYaw;
         }
 
         public PlayerVisualSystem()
@@ -230,15 +234,16 @@ namespace KotH.Client.Player
             t.Position.Y += 0.5f * (motor.StandHeight * scale - motor.Height);
             Blink(f, dt);
             LookUpDown(f, alpha);
-            Leaves(f, motor, dt);
+            Leaves(f, motor, t, dt);
         }
 
         /// <summary>
         /// Every leaf bone bends its tips with the wind of the motion: back
         /// leaves trail most, a fall lifts the skirt outwards, faster means
-        /// a little flutter. Bends are tip offsets in radians, on springs.
+        /// a little flutter. Turning moves every leaf sideways as well: its
+        /// own wind. Bends are tip offsets in radians, on springs.
         /// </summary>
-        void Leaves(Figure f, PlayerMotor motor, float dt)
+        void Leaves(Figure f, PlayerMotor motor, TransformComponent t, float dt)
         {
             SkeletonUpdater skeleton = f.Model?.Skeleton;
             if (skeleton == null)
@@ -259,12 +264,23 @@ namespace KotH.Client.Player
             // Air against the figure, in its own frame: X right, Z back.
             Vector3 local = Vector3.Transform(motor.Velocity, Quaternion.Invert(motor.Rotation));
             var flat = new Vector2(local.X, local.Z);
-            float speed = flat.Length();
-            float pace = Math.Clamp(speed / motor.SprintSpeed, 0f, 1f);
-            Vector2 heading = speed > 1e-3f ? flat / speed : Vector2.Zero;
             float lift = motor.IsGrounded ? 0f : Math.Clamp(-local.Y / 12f, 0f, 1f);
             dt = MathF.Min(dt, 1f / 30f);
             f.LeafClock += dt;
+
+            // Turn rate of the shown figure about +Y, a little smoothed.
+            Vector3 facing = Vector3.Transform(-Vector3.UnitZ, t.Rotation);
+            float yaw = MathF.Atan2(-facing.X, -facing.Z);
+            float turn = 0f;
+            if (f.HasYaw && dt > 0f)
+            {
+                float step = yaw - f.Yaw;
+                step -= MathUtil.TwoPi * MathF.Round(step / MathUtil.TwoPi);
+                turn = Math.Clamp(step / dt, -15f, 15f);
+            }
+            f.Yaw = yaw;
+            f.HasYaw = true;
+            f.Spin += (turn - f.Spin) * (1f - MathF.Exp(-dt / 0.05f));
 
             for (int k = 0; k < f.Leaves.Length; k++)
             {
@@ -274,7 +290,13 @@ namespace KotH.Client.Player
                 float a = MathUtil.TwoPi * i / count;
                 var outward = new Vector2(MathF.Sin(a), -MathF.Cos(a));
                 float share = skirt ? 1f : CollarShare;
-                float trail = 0.35f + 0.65f * MathF.Max(0f, Vector2.Dot(outward, heading));
+                // The leaf's own motion: the body's plus the turn's at its place.
+                Vector2 moving = flat + f.Spin * TurnRadius * new Vector2(outward.Y, -outward.X);
+                float speed = moving.Length();
+                float pace = Math.Clamp(speed / motor.SprintSpeed, 0f, 1f);
+                Vector2 heading = speed > 1e-3f ? moving / speed : Vector2.Zero;
+                // Downwind leaves stream freely, upwind ones lie against the body.
+                float trail = 0.5f + 0.5f * MathF.Max(0f, -Vector2.Dot(outward, heading));
                 // Each leaf flutters at its own rate, so they never move as one.
                 float w = f.LeafClock * (9f + 1.7f * k);
                 float flutter = MathUtil.DegreesToRadians(LeafFlutter) * pace;

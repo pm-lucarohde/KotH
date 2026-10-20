@@ -204,8 +204,8 @@ geduckt“); die Füße bleiben auf dem Boden der Hülle. `PlayerVisualSystem` s
 und setzt die Gewichte nach Tempo und Richtung (Strides Mischen normiert auf die Summe);
 die Lauf-Clips laufen mit `TimeFactor` 0 auf einer gemeinsamen Phase aus der Strecke
 (Gehen 3,5, Rennen 6 Schritte/s). Das Spiel selbst dreht drei Knochenarten: die Blätter (`Leaf.S0`–`S5` am Rock, `Leaf.C0`–`C3`
-am Kragen, zeigen nach oben mit dem Drehpunkt oben; Federn im Fahrtwind, „Blätter“ in
-`PlayerVisualSystem`), die Lider
+am Kragen, zeigen nach oben mit dem Drehpunkt oben; Federn im Fahrtwind und im Wind der
+Drehung, „Blätter“ in `PlayerVisualSystem`), die Lider
 (Blinzeln alle 10 s, offen auf einen Punkt geschrumpft) und `Look` unter dem Kopf (folgt
 `SimulationBody.LookPitch`, dem Nickwinkel der Eingabe, kein Zustand). Die Clips dürfen
 deshalb **keine Kanäle für Lider, Blätter und `Look`** haben. Erzeugt werden Modell, Clips,
