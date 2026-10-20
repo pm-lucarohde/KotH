@@ -1,8 +1,10 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using KotH.Shared.Mathematics;
 using KotH.Shared.Player;
 using KotH.Shared.Simulation;
+using Stride.Core.Mathematics;
 
 namespace KotH.Shared.Net
 {
@@ -53,7 +55,16 @@ namespace KotH.Shared.Net
         readonly Dictionary<int, BodyState> joinStates = new Dictionary<int, BodyState>();
         readonly Dictionary<int, int> leaveTicks = new Dictionary<int, int>();
         readonly Dictionary<int, Record> confirmed = new Dictionary<int, Record>();
-        readonly Dictionary<int, MoveInput> lastConfirmed = new Dictionary<int, MoveInput>();
+        readonly Dictionary<int, Known> lastConfirmed = new Dictionary<int, Known>();
+        readonly List<(SimulationBody Body, Vector3 At, float Yaw)> guessed = new List<(SimulationBody, Vector3, float)>();
+
+        /// <summary>A player's last two confirmed inputs, the base of every guess.</summary>
+        struct Known
+        {
+            public MoveInput Last, Prev;
+            public int Tick;
+            public bool HasPrev;
+        }
 
         readonly WorldSnapshot[] snaps = new WorldSnapshot[Ring];
         readonly int[] snapTicks = new int[Ring];
@@ -134,6 +145,17 @@ namespace KotH.Shared.Net
         public int Rollbacks { get; private set; }
         public int RolledTicks { get; private set; }
         public int DeepestRollback { get; private set; }
+
+        /// <summary>Metres the farthest other player moved per rollback, summed; see WorstCorrection.</summary>
+        public double CorrectionSum { get; private set; }
+        public float WorstCorrection { get; private set; }
+
+        /// <summary>Degrees the facing of the farthest turned other player snapped per rollback, summed.</summary>
+        public double TurnCorrectionSum { get; private set; }
+
+        /// <summary>How many ticks a guess keeps turning; 0 holds the last view.</summary>
+        public int TurnAhead { get; set; } = DefaultTurnAhead;
+        public const int DefaultTurnAhead = 8;
         public int Stalls { get; private set; }
         public int Repairs { get; private set; }
 
@@ -326,7 +348,11 @@ namespace KotH.Shared.Net
                     from = Math.Min(from, tick);
 
                 foreach (Used u in rec.Inputs)
-                    lastConfirmed[u.NetId] = u.Input;
+                {
+                    lastConfirmed.TryGetValue(u.NetId, out Known k);
+                    bool follows = k.Tick == tick - 1 && lastConfirmed.ContainsKey(u.NetId);
+                    lastConfirmed[u.NetId] = new Known { Last = u.Input, Prev = k.Last, Tick = tick, HasPrev = follows };
+                }
                 confirmedTick = tick;
             }
 
@@ -367,9 +393,26 @@ namespace KotH.Shared.Net
             if (snapTicks[slot] != from)
                 throw new InvalidOperationException($"Kein Snapshot für Tick {from} zum Zurückrollen.");
 
+            // Where the guess had the other players: the jump a correction shows.
+            guessed.Clear();
+            foreach (SimulationBody body in sim.Bodies)
+                if (body.NetId >= NetWorld.FirstPlayerId && body.NetId != LocalNetId)
+                    guessed.Add((body, body.Motor.Position, UMath.YawOf(body.Motor.Rotation)));
+
             sim.Restore(snaps[slot]);
             for (int t = from; t < until; t++)
                 StepTick(t);
+
+            float jump = 0f, turn = 0f;
+            foreach ((SimulationBody body, Vector3 at, float yaw) in guessed)
+                if (!body.IsParked)
+                {
+                    jump = Math.Max(jump, Vector3.Distance(body.Motor.Position, at));
+                    turn = Math.Max(turn, Math.Abs(UMath.DeltaAngle(yaw, UMath.YawOf(body.Motor.Rotation))));
+                }
+            CorrectionSum += jump;
+            WorstCorrection = Math.Max(WorstCorrection, jump);
+            TurnCorrectionSum += turn;
 
             Rollbacks++;
             RolledTicks += until - from;
@@ -455,7 +498,24 @@ namespace KotH.Shared.Net
             if (id == LocalNetId && localTicks[tick % Ring] == tick)
                 return local[tick % Ring];
 
-            return lastConfirmed.TryGetValue(id, out MoveInput last) ? NetProtocol.Hold(last) : default;
+            return lastConfirmed.TryGetValue(id, out Known known) ? Guess(known, tick) : default;
+        }
+
+        /// <summary>
+        /// What another player does in a tick not yet confirmed: the last
+        /// input without its presses, still turning as fast as between its
+        /// last two inputs, for at most TurnAhead ticks.
+        /// </summary>
+        MoveInput Guess(in Known k, int tick)
+        {
+            MoveInput m = NetProtocol.Hold(k.Last);
+            int ahead = Math.Min(tick - k.Tick, TurnAhead);
+            if (k.HasPrev && ahead > 0)
+            {
+                m.Yaw = k.Last.Yaw + ahead * UMath.DeltaAngle(k.Prev.Yaw, k.Last.Yaw);
+                m.Pitch = UMath.Clamp(k.Last.Pitch + ahead * (k.Last.Pitch - k.Prev.Pitch), -89f, 89f);
+            }
+            return m;
         }
 
         void Capture(int tick)

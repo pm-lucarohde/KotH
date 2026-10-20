@@ -42,6 +42,7 @@ namespace KotH.Probes.Probes
             public Random Bot;
             public MoveInput Held;
             public int HoldTicks;
+            public float Turn;
             public bool Gone;
             public readonly Dictionary<int, ulong> Hashes = new Dictionary<int, ulong>();
 
@@ -174,6 +175,8 @@ namespace KotH.Probes.Probes
 
             var p = new Peer { Name = name, World = world, Bot = new Random(Seed + peers.Count * 7919) };
             p.Session = new PeerSession(new HeadlessNetWorld(world), transport, () => BotInput(p), name, founder, net.Now);
+            if (int.TryParse(Environment.GetEnvironmentVariable("KOTH_TURN_AHEAD"), out int ahead))
+                p.Session.TurnAhead = ahead;
             p.Session.Checksum += (tick, hash) =>
             {
                 p.Hashes[tick] = hash;
@@ -216,10 +219,12 @@ namespace KotH.Probes.Probes
             {
                 Random r = p.Bot;
                 p.HoldTicks = 10 + r.Next(40);
+                // Turns like a mouse: steady for a while, a third of the time not at all.
+                p.Turn = r.Next(3) == 0 ? 0f : (float)(r.NextDouble() * 8.0 - 4.0);
                 p.Held = new MoveInput
                 {
                     Move = new Vector2(r.Next(3) - 1, r.Next(3) - 1),
-                    Yaw = p.Held.Yaw + (float)(r.NextDouble() * 120.0 - 60.0),
+                    Yaw = p.Held.Yaw,
                     Pitch = (float)(r.NextDouble() * 40.0 - 20.0),
                     Sprint = r.Next(3) == 0,
                     Crouch = r.Next(12) == 0,
@@ -228,7 +233,8 @@ namespace KotH.Probes.Probes
 
             MoveInput m = p.Held;
             Random b = p.Bot;
-            m.Yaw += (float)(b.NextDouble() - 0.5);
+            if (p.Turn != 0f)
+                m.Yaw += p.Turn + (float)(b.NextDouble() - 0.5) * 0.3f;
             p.Held.Yaw = m.Yaw;
             if (b.Next(30) == 0) { m.JumpPresses = 1; m.JumpHeld = true; }
             if (b.Next(25) == 0) m.AttackPresses = 1;
@@ -272,7 +278,8 @@ namespace KotH.Probes.Probes
             Check(rejected, "falscher Build abgelehnt");
 
             int joined = 0, rollbacks = 0, deepest = 0, stalls = 0;
-            double worst = 0;
+            double worst = 0, jumps = 0, turns = 0;
+            float worstJump = 0f;
             foreach (Peer p in peers)
             {
                 if (p.Session.Joined)
@@ -280,6 +287,9 @@ namespace KotH.Probes.Probes
                 rollbacks += p.Session.Rollbacks;
                 deepest = Math.Max(deepest, p.Session.DeepestRollback);
                 stalls += p.Session.Stalls;
+                jumps += p.Session.CorrectionSum;
+                turns += p.Session.TurnCorrectionSum;
+                worstJump = Math.Max(worstJump, p.Session.WorstCorrection);
                 worst = Math.Max(worst, p.WorstUpdateMs);
                 Log($"[netplay] {p.Name,-5} NetId {p.Session.LocalNetId,2}, Ping {p.Session.RoundTripMs,5:F0} ms, " +
                     $"Vorlauf {p.Session.Lead,5:F1}, Rollbacks {p.Session.Rollbacks,5} ({p.Session.RolledTicks} Ticks, " +
@@ -292,6 +302,8 @@ namespace KotH.Probes.Probes
             Check(rollbacks > 100, $"{rollbacks} Rollbacks, die Vorhersage lag also oft daneben");
             Check(deepest <= PeerSession.MaxPredict, $"tiefster Rollback {deepest} Ticks, höchstens {PeerSession.MaxPredict}");
             Log($"[netplay] Warten gesamt {stalls}, schlimmstes Update {worst:F1} ms");
+            Log($"[netplay] Drehung {peers[0].Session.TurnAhead} Ticks fortgeschrieben: Korrektur im Mittel " +
+                $"{jumps / Math.Max(rollbacks, 1) * 100:F1} cm und {turns / Math.Max(rollbacks, 1):F2}°, größte {worstJump * 100:F0} cm");
 
             // Everyone still in the game reaches the same final tick with the same state.
             int last = int.MaxValue;

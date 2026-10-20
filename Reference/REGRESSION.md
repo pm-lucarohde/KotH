@@ -405,3 +405,18 @@ unter JIT und AOT; die Hashkette bleibt `A4A9BBB937C62890`.
       nach der Runde wieder warten; alle 12 Startplätze frei und auf dem Boden.
     - `netplay` neu: Runde mit Lobby (Countdown für die Probe 10 s, Fenster 20 s),
       Countdown ab Tick 28, Runde ab Tick 428, Beitritt bei 45 s abgelehnt (`Closed`).
+
+## Netcode: Drehung in der Vorhersage (20.10.2026)
+
+17. **Fremde Spieler drehen sich in der Vorhersage weiter.** Statt die letzte bestätigte
+    Blickrichtung zu halten, schreibt `PeerSession.Guess` die Drehung der letzten zwei
+    bestätigten Eingaben fort, höchstens 8 Ticks (`TurnAhead`, Lucas Wunsch). Die
+    Simulation ist unberührt, nur die Vermutung ändert sich.
+    - Die `netplay`-Bots drehen jetzt gleichmäßig wie eine Maus (vorher ±60° auf einen
+      Schlag plus Zittern), die Zähler der Probe sind deshalb neu.
+    - Gemessen über 64 s (Korrektur = Sprung der am weitesten versetzten fremden Figur
+      je Rollback): halten 14,0 cm / 3,87°, 4 Ticks 13,0 cm / 3,64°, **8 Ticks
+      12,8 cm / 3,49°**, 15 Ticks 12,8 cm / 3,62°. Die Zahl der Rollbacks bleibt gleich
+      (rund 17 200): Eine geschätzte Drehung trifft den echten Wert nie aufs Bit.
+    - Glätten der Korrektur in der Darstellung will Luca nicht.
+    - JIT und AOT gleich, `netstate` besteht.
