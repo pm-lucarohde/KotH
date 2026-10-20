@@ -132,6 +132,11 @@ sealed class KotHGame : Game
             SdlGrab.SDL_GetWindowSize(sdl.SdlHandle, out windowedSize.X, out windowedSize.Y);
             SdlGrab.SDL_SetWindowFullscreen(sdl.SdlHandle, SdlGrab.FullscreenDesktop);
             PumpUntil(() => CoversDisplay(sdl.SdlHandle));
+            if (LaunchOptions.Current.Display != null)
+            {
+                SdlGrab.SDL_GetWindowPosition(sdl.SdlHandle, out int fx, out int fy);
+                Console.WriteLine($"[monitor] Vollbild bei {fx},{fy} (Monitor {LaunchOptions.Current.Display} von links gewünscht)");
+            }
         }
 
         SdlGrab.SDL_SetRelativeMouseMode(1);
@@ -153,6 +158,9 @@ sealed class KotHGame : Game
             return;
         bounds.Sort((a, b) => a.X.CompareTo(b.X));
         SdlGrab.Rect target = bounds[Math.Clamp(fromLeft, 0, bounds.Count - 1)];
+        // The window manager hands out the new window maximised, and a
+        // maximised window does not move.
+        SdlGrab.SDL_RestoreWindow(window);
         SdlGrab.SDL_SetWindowPosition(window, target.X + 40, target.Y + 40);
         PumpUntil(() =>
         {
@@ -412,6 +420,7 @@ static class SdlGrab
     [DllImport("libSDL2-2.0.so")] public static extern int SDL_GetWindowDisplayIndex(nint window);
     [DllImport("libSDL2-2.0.so")] public static extern int SDL_GetDisplayBounds(int displayIndex, out Rect rect);
     [DllImport("libSDL2-2.0.so")] public static extern int SDL_GetNumVideoDisplays();
+    [DllImport("libSDL2-2.0.so")] public static extern void SDL_RestoreWindow(nint window);
     [DllImport("libSDL2-2.0.so")] public static extern void SDL_SetWindowPosition(nint window, int x, int y);
     [DllImport("libSDL2-2.0.so")] public static extern void SDL_GetWindowPosition(nint window, out int x, out int y);
 
