@@ -54,8 +54,9 @@ namespace KotH.Client
                 SpawnDummy(builder, marker, side, 100f),
             };
 
+            // The own figure stays undrawn: the eyes sit inside its cap, and
+            // head and shoulders would show from within.
             var visuals = Entity.Get<PlayerVisualSystem>();
-            AddVisual(visuals, player);
             foreach (Entity dummy in dummies)
                 AddVisual(visuals, dummy);
 

@@ -1,0 +1,14 @@
+!Model
+Id: 5A577C74-31C4-461E-AB70-D9ECAE3CC5D1
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Models/Mushroom.glb
+PivotPosition: {X: 0.0, Y: 0.0, Z: 0.0}
+Materials:
+    4cb9b3292cde44508a19c0f504e4ceeb:
+        Name: Mushroom
+        MaterialInstance:
+            Material: 94D3E93A-86DB-4DF2-A874-B1ED628EF54F:Materials/Mushroom
+            IsShadowCaster: true
+Skeleton: null
+Modifiers: {}

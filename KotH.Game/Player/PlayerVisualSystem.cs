@@ -26,7 +26,10 @@ namespace KotH.Client.Player
             Priority = 500;
         }
 
-        /// <summary>Shows motor through visual, a capsule mesh 2 m tall and 1 m wide.</summary>
+        /// <summary>
+        /// Shows motor through visual, a model in true size for a standing
+        /// body, origin at the body centre, facing -Z.
+        /// </summary>
         public void Register(Entity visual, PlayerMotor motor)
         {
             visuals.Add(visual);
@@ -57,10 +60,10 @@ namespace KotH.Client.Player
                 PlayerMotor motor = motors[i];
                 TransformComponent t = visuals[i].Transform;
                 t.Position = UMath.Lerp(motor.PreviousBodyCenter, motor.BodyCenter, alpha);
+                t.Rotation = motor.Rotation;
 
-                // Matches the mesh to the collider in both measures.
-                float xz = motor.Radius * 2f;
-                t.Scale = new Vector3(xz, motor.Height * 0.5f, xz);
+                // Crouching squashes the model to the collider's height.
+                t.Scale = new Vector3(1f, motor.Height / motor.StandHeight, 1f);
             });
         }
     }
