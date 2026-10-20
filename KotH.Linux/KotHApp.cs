@@ -6,30 +6,44 @@ using KotH.Client.Hud;
 using KotH.Client.Player;
 using Stride.Core.Diagnostics;
 using Stride.Core.Mathematics;
+using Stride.Core.Threading;
 using Stride.Engine;
 using Stride.Games;
 using Stride.Graphics;
 
 StdCxxPreload.Run();
 
+// Six render threads instead of all 24: Stride's workers spin after every
+// parallel loop, and on this scene fewer of them are faster and far lighter
+// on the CPU (measured 20.10.2026, Luca's choice). The variable still wins.
+if (Environment.GetEnvironmentVariable("STRIDE_MAX_PARALLELISM") == null)
+    Dispatcher.MaxDegreeOfParallelism = 6;
+
 using var game = new KotHGame();
 game.Run();
 
 /// <summary>
-/// The game, plus one test aid: with KOTH_SHOT set to a path it shows the
+/// The game, plus test aids. With KOTH_SHOT set to a path it shows the
 /// F3 readout, holds the view at KOTH_SHOT_YAW / _PITCH / _FOV if given,
-/// saves the back buffer as PNG after KOTH_SHOT_SECONDS (default 7, past
-/// Stride's splash screen), reports the label font and quits. Taken from
+/// saves the back buffer as PNG after KOTH_SHOT_SECONDS (default 3), reports
+/// the label font and quits. Taken from
 /// inside the game on purpose, a desktop screenshot would capture whatever
-/// else is on the screen.
+/// else is on the screen. For performance runs: KOTH_SIZE=1920x1080 sets the
+/// window, KOTH_VSYNC=0 or 1 overrides V-Sync, and KOTH_FRAMELOG=path writes
+/// every frame time in milliseconds, one per line, when the game ends.
 /// </summary>
 sealed class KotHGame : Game
 {
     readonly string shotPath = Environment.GetEnvironmentVariable("KOTH_SHOT");
-    readonly double shotSeconds = Number("KOTH_SHOT_SECONDS") ?? 7.0;
+    readonly double shotSeconds = Number("KOTH_SHOT_SECONDS") ?? 3.0;
     readonly double? shotYaw = Number("KOTH_SHOT_YAW");
     readonly double shotPitch = Number("KOTH_SHOT_PITCH") ?? 0.0;
     readonly double? shotFov = Number("KOTH_SHOT_FOV");
+    readonly string frameLogPath = Environment.GetEnvironmentVariable("KOTH_FRAMELOG");
+
+    // Ten minutes at 2000 FPS, allocated once so logging never allocates.
+    float[] frameLog;
+    int frameCount;
 
     public KotHGame()
     {
@@ -38,8 +52,44 @@ sealed class KotHGame : Game
         ConsoleLogMode = ConsoleLogMode.Always;
         ConsoleLogLevel = LogMessageType.Warning;
 
-        // Uncapped like the Unity build: no wait for the display's refresh.
-        GraphicsDeviceManager.SynchronizeWithVerticalRetrace = true;
+        // Waits for the display's refresh (Luca's choice). The Unity build
+        // does too: its default quality level "Ultra" has vSyncCount 1.
+        GraphicsDeviceManager.SynchronizeWithVerticalRetrace =
+            Number("KOTH_VSYNC") is not { } vsync || vsync != 0.0;
+
+        if (frameLogPath != null)
+            frameLog = new float[600 * 2000];
+    }
+
+    protected override void PrepareContext()
+    {
+        base.PrepareContext();
+
+        // No splash screen, even if the settings name one again. With a splash
+        // Stride loads the scene on worker threads, and their uploads race the
+        // first swapchain resize: vkDeviceWaitIdle runs without the queue lock
+        // and about one AOT start in six ended in VK_ERROR_DEVICE_LOST.
+        SceneSystem.SplashScreenUrl = null;
+
+        // After the settings are applied, so the override wins over them.
+        string[] size = Environment.GetEnvironmentVariable("KOTH_SIZE")?.Split('x');
+        if (size is { Length: 2 } && int.TryParse(size[0], out int width) && int.TryParse(size[1], out int height))
+        {
+            GraphicsDeviceManager.PreferredBackBufferWidth = width;
+            GraphicsDeviceManager.PreferredBackBufferHeight = height;
+        }
+    }
+
+    protected override void EndRun()
+    {
+        base.EndRun();
+
+        if (frameLog == null)
+            return;
+        using var writer = new StreamWriter(frameLogPath);
+        for (int i = 0; i < frameCount; i++)
+            writer.WriteLine(frameLog[i].ToString("R", CultureInfo.InvariantCulture));
+        Console.WriteLine($"[frames] {frameCount} Frames nach {frameLogPath}");
     }
 
     protected override void Update(GameTime gameTime)
@@ -64,6 +114,13 @@ sealed class KotHGame : Game
     protected override void Draw(GameTime gameTime)
     {
         base.Draw(gameTime);
+
+        if (frameLog != null && frameCount < frameLog.Length)
+        {
+            if (frameCount == 0)
+                Console.WriteLine($"[frames] erster Frame {(DateTime.Now - System.Diagnostics.Process.GetCurrentProcess().StartTime).TotalMilliseconds:F0} ms nach Prozessstart");
+            frameLog[frameCount++] = (float)gameTime.Elapsed.TotalMilliseconds;
+        }
 
         if (shotPath == null || gameTime.Total.TotalSeconds < shotSeconds)
             return;
