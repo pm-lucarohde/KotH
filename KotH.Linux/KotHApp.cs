@@ -51,9 +51,9 @@ sealed class KotHGame : Game
     Int2 windowedSize;
     bool confined;
 
-    // From the first frame on, once the window manager has sized the window:
-    // that size is where F11 returns to. A fixed KOTH_SIZE stays a window.
-    bool startFullscreen = Environment.GetEnvironmentVariable("KOTH_SIZE") == null;
+    // Fullscreen before loading, see Initialize; the size asked for then is
+    // where F11 returns to. A fixed KOTH_SIZE stays a window.
+    readonly bool startFullscreen = Environment.GetEnvironmentVariable("KOTH_SIZE") == null;
     int restoreFrames;
 
     // Ten minutes at 2000 FPS, allocated once so logging never allocates.
@@ -96,10 +96,11 @@ sealed class KotHGame : Game
     }
 
     /// <summary>
-    /// Waits for the window manager to focus the new window, at most two
-    /// seconds, and captures the mouse right then. The game would only take
-    /// it after loading, and until then the pointer could leave the
-    /// fullscreen window for the other screen.
+    /// Waits for the window manager to show and focus the window, then goes
+    /// fullscreen at once and captures the mouse, each wait two seconds at
+    /// most. Both used to wait for the first frame after loading: until then
+    /// the pointer could leave for the other screen, and a grab only holds it
+    /// in a window that covers the whole screen.
     /// </summary>
     protected override void Initialize()
     {
@@ -109,14 +110,38 @@ sealed class KotHGame : Game
 
         // Pumping only moves the window's events into SDL's queue; the game
         // still reads every one of them later.
+        PumpUntil(() => SdlGrab.SDL_GetKeyboardFocus() == sdl.SdlHandle);
+
+        if (startFullscreen)
+        {
+            // The size the window manager gave the new window is where F11
+            // returns to. Stride applies the switch only in its loop, after
+            // loading; the window goes now, the device follows.
+            ToggleFullscreen();
+            SdlGrab.SDL_GetWindowSize(sdl.SdlHandle, out windowedSize.X, out windowedSize.Y);
+            SdlGrab.SDL_SetWindowFullscreen(sdl.SdlHandle, SdlGrab.FullscreenDesktop);
+            PumpUntil(() => CoversDisplay(sdl.SdlHandle));
+        }
+
+        SdlGrab.SDL_SetRelativeMouseMode(1);
+        SdlGrab.SDL_SetWindowGrab(sdl.SdlHandle, 1);
+    }
+
+    static void PumpUntil(Func<bool> done)
+    {
         var wait = System.Diagnostics.Stopwatch.StartNew();
-        while (SdlGrab.SDL_GetKeyboardFocus() != sdl.SdlHandle && wait.ElapsedMilliseconds < 2000)
+        while (!done() && wait.ElapsedMilliseconds < 2000)
         {
             SdlGrab.SDL_PumpEvents();
             System.Threading.Thread.Sleep(5);
         }
-        SdlGrab.SDL_SetRelativeMouseMode(1);
-        SdlGrab.SDL_SetWindowGrab(sdl.SdlHandle, 1);
+    }
+
+    static bool CoversDisplay(nint window)
+    {
+        SdlGrab.SDL_GetWindowSize(window, out int width, out int height);
+        return SdlGrab.SDL_GetDisplayBounds(SdlGrab.SDL_GetWindowDisplayIndex(window), out SdlGrab.Rect display) == 0 &&
+               width == display.W && height == display.H;
     }
 
     protected override void EndRun()
@@ -135,11 +160,8 @@ sealed class KotHGame : Game
     {
         base.Update(gameTime);
 
-        if (startFullscreen || KeyPresses.Pressed(Input, Keys.F11))
-        {
-            startFullscreen = false;
+        if (KeyPresses.Pressed(Input, Keys.F11))
             ToggleFullscreen();
-        }
         RestoreWindowSize();
         ConfinePointer();
 
@@ -340,4 +362,14 @@ static class SdlGrab
     [DllImport("libSDL2-2.0.so")] public static extern int SDL_SetRelativeMouseMode(int enabled);
     [DllImport("libSDL2-2.0.so")] public static extern nint SDL_GetKeyboardFocus();
     [DllImport("libSDL2-2.0.so")] public static extern void SDL_PumpEvents();
+    [DllImport("libSDL2-2.0.so")] public static extern int SDL_SetWindowFullscreen(nint window, uint flags);
+
+    /// <summary>SDL_WINDOW_FULLSCREEN_DESKTOP: borderless at the desktop's size.</summary>
+    public const uint FullscreenDesktop = 0x1001;
+    [DllImport("libSDL2-2.0.so")] public static extern void SDL_GetWindowSize(nint window, out int w, out int h);
+    [DllImport("libSDL2-2.0.so")] public static extern int SDL_GetWindowDisplayIndex(nint window);
+    [DllImport("libSDL2-2.0.so")] public static extern int SDL_GetDisplayBounds(int displayIndex, out Rect rect);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct Rect { public int X, Y, W, H; }
 }
