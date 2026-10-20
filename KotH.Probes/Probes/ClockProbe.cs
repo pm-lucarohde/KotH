@@ -84,7 +84,7 @@ namespace KotH.Probes.Probes
                 float dEye = Math.Max((eye - u.Eye).Length(), (previous - u.Previous).Length());
                 float dCamera = (camera - u.Camera).Length();
                 float dNear = Math.Abs(near - u.Near);
-                bool tickOk = due == u.Fixed && SimulationSystem.CurrentTick == u.Tick;
+                bool tickOk = due == u.Fixed && system.CurrentTick == u.Tick;
 
                 alphaMax = Math.Max(alphaMax, dAlpha);
                 eyeMax = Math.Max(eyeMax, dEye);
@@ -98,7 +98,7 @@ namespace KotH.Probes.Probes
                 if (!tickOk || dAlpha > AlphaTolerance || dCamera > PositionTolerance || dEye > PositionTolerance
                     || dNear > NearTolerance)
                 {
-                    Log($"[clock] ABWEICHUNG f {u.Index}: Ticks {due} (Unity {u.Fixed}), Zähler {SimulationSystem.CurrentTick} " +
+                    Log($"[clock] ABWEICHUNG f {u.Index}: Ticks {due} (Unity {u.Fixed}), Zähler {system.CurrentTick} " +
                         $"(Unity {u.Tick}), Alpha {alpha:F6} (Unity {u.Alpha:F6}), Kamera {Ref.V(Ref.Pos(camera))} " +
                         $"(Unity {Ref.V(Ref.Pos(u.Camera))}), Nahebene {near:F6} (Unity {u.Near:F6})");
                 }

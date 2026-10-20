@@ -189,7 +189,7 @@ namespace KotH.Probes.Probes
 
             // Walks to the -z edge and off it, past the warm-up on the way.
             var inputs = new List<MoveInput[]>();
-            IReadOnlyList<SimulationBody> bodies = SimulationSystem.Bodies;
+            IReadOnlyList<SimulationBody> bodies = world.Simulation.Bodies;
             for (int t = 0; t < 300; t++)
             {
                 a.Input.Move = t >= 150 ? new Vector2(0f, 0.5f) : Vector2.Zero;

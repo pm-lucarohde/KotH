@@ -47,7 +47,7 @@ for (int i = 0; i < botCount; i++)
     bot.Name = "Bot" + i;
 }
 
-Console.WriteLine($"[server] Arena geladen, {SimulationSystem.Bodies.Count} Körper, {1.0 / TickClock.TickSeconds:F0} Hz");
+Console.WriteLine($"[server] Arena geladen, {world.Simulation.Bodies.Count} Körper, {1.0 / TickClock.TickSeconds:F0} Hz");
 
 var timing = new TickTiming((int)(fastTicks ?? 0));
 
@@ -64,9 +64,9 @@ if (fastTicks.HasValue)
             MotorState t = m.CaptureState();
             Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
                 "[spur] {0} pos {1:F4} {2:F4} {3:F4} v {4:F3} {5:F3} {6:F3} g {7} t {8} c {9} s {10} h {11:F3} w {12} st {13} kb {14:F3} kontakte {15}",
-                SimulationSystem.CurrentTick, t.Position.X, t.Position.Y, t.Position.Z, t.Velocity.X, t.Velocity.Y, t.Velocity.Z,
+                world.Simulation.CurrentTick, t.Position.X, t.Position.Y, t.Position.Z, t.Velocity.X, t.Velocity.Y, t.Velocity.Z,
                 t.Grounded ? 1 : 0, t.TouchingGround ? 1 : 0, t.IsCrouching ? 1 : 0, t.Sliding ? 1 : 0, t.CurrentHeight,
-                t.Wedged ? 1 : 0, t.SteppedUp ? 1 : 0, t.KnockbackTime, SimulationSystem.LastContactCount));
+                t.Wedged ? 1 : 0, t.SteppedUp ? 1 : 0, t.KnockbackTime, world.Simulation.LastContactCount));
         }
     }
 
@@ -78,7 +78,7 @@ if (fastTicks.HasValue)
     // different builds can be compared; listed one by one for a few bodies.
     ulong hash = 14695981039346656037UL;
     int fallen = 0;
-    foreach (SimulationBody body in SimulationSystem.Bodies)
+    foreach (SimulationBody body in world.Simulation.Bodies)
     {
         MotorState s = body.Entity.Get<PlayerMotor>().CaptureState();
         foreach (float f in new[] { s.Position.X, s.Position.Y, s.Position.Z, s.Velocity.X, s.Velocity.Y, s.Velocity.Z })
@@ -87,22 +87,22 @@ if (fastTicks.HasValue)
             Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
                 "[server] {0} unter der Arena: Position {1:F1} {2:F1} {3:F1}, Ziel {4}",
                 body.Entity.Name, s.Position.X, s.Position.Y, s.Position.Z, (body as BenchBot)?.Target));
-        if (SimulationSystem.Bodies.Count <= 4)
+        if (world.Simulation.Bodies.Count <= 4)
             Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
                 "[server] {0}: Position {1:R} {2:R} {3:R}, Tempo {4:R} {5:R} {6:R}",
                 body.Entity.Name, s.Position.X, s.Position.Y, s.Position.Z, s.Velocity.X, s.Velocity.Y, s.Velocity.Z));
     }
     int respawns = 0;
-    foreach (SimulationBody body in SimulationSystem.Bodies)
+    foreach (SimulationBody body in world.Simulation.Bodies)
     {
         respawns += (body as BenchBot)?.Respawns ?? 0;
         if (body is BenchBot b && Environment.GetEnvironmentVariable("KOTH_FALLS") != null)
             foreach (Vector3 f in b.Falls)
                 Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "[fall] {0} {1:F2} {2:F2} {3:F2}", body.Entity.Name, f.X, f.Y, f.Z));
     }
-    Console.WriteLine($"[server] Endzustand {hash:X16}, {fallen} von {SimulationSystem.Bodies.Count} Körpern unter der Arena, " +
+    Console.WriteLine($"[server] Endzustand {hash:X16}, {fallen} von {world.Simulation.Bodies.Count} Körpern unter der Arena, " +
                       $"{respawns} Bots zurückgesetzt");
-    ReportMatch(match);
+    ReportMatch(world.Simulation, match);
     return 0;
 }
 
@@ -132,7 +132,7 @@ while (!stop.IsCancellationRequested)
     {
         lastReport = now;
         timing.Report();
-        ReportMatch(match);
+        ReportMatch(world.Simulation, match);
     }
 
     // Sleeps to the next tick instead of spinning; the scheduler's
@@ -143,12 +143,12 @@ while (!stop.IsCancellationRequested)
 }
 
 timing.Report();
-ReportMatch(match);
+ReportMatch(world.Simulation, match);
 Console.WriteLine("[server] beendet");
 return 0;
 
 // The round in one line: time, who holds the zone and the best three.
-static void ReportMatch(HillMatch match)
+static void ReportMatch(SimulationSystem simulation, HillMatch match)
 {
     MatchState m = match.State;
     int left = Math.Max(0, match.LimitTicks - m.RoundTicks) / 40;
@@ -156,7 +156,7 @@ static void ReportMatch(HillMatch match)
                 : m.Holder != null ? m.Holder.Entity.Name + " allein"
                 : m.Inside > 1 ? $"umkämpft ({m.Inside})" : "frei";
 
-    var bodies = new List<SimulationBody>(SimulationSystem.Bodies);
+    var bodies = new List<SimulationBody>(simulation.Bodies);
     bodies.Sort((x, y) => y.ScoreTicks.CompareTo(x.ScoreTicks));
     var best = new List<string>();
     for (int i = 0; i < Math.Min(3, bodies.Count); i++)
@@ -179,6 +179,7 @@ sealed class TickTiming
     long ticks;
     double sumMicros, maxMicros;
     long allocated;
+    int lastTick;
     readonly double[] samples;
 
     public TickTiming(int capacity)
@@ -191,6 +192,7 @@ sealed class TickTiming
         long before = GC.GetAllocatedBytesForCurrentThread();
         long start = Stopwatch.GetTimestamp();
         simulation.Tick();
+        lastTick = simulation.CurrentTick;
         double micros = Stopwatch.GetElapsedTime(start).TotalMicroseconds;
         allocated += GC.GetAllocatedBytesForCurrentThread() - before;
 
@@ -206,7 +208,7 @@ sealed class TickTiming
     {
         if (ticks == 0)
             return;
-        Console.WriteLine($"[server] Tick {SimulationSystem.CurrentTick}: Ø {sumMicros / ticks:F1} µs, " +
+        Console.WriteLine($"[server] Tick {lastTick}: Ø {sumMicros / ticks:F1} µs, " +
                           $"max {maxMicros:F1} µs, {(double)allocated / ticks:F1} B je Tick");
     }
 

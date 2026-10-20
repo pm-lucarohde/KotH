@@ -6,6 +6,7 @@ using System.Text;
 using KotH.Probes.Harness;
 using KotH.Shared.Combat;
 using KotH.Shared.Dummy;
+using KotH.Shared.Hosting;
 using KotH.Shared.Match;
 using KotH.Shared.Mathematics;
 using KotH.Shared.Player;
@@ -133,9 +134,9 @@ namespace KotH.Probes.Probes
             playerEntity.Add(scripted);
             dummyInput = dummy.ReadInput();
 
-            if (SimulationSystem.Bodies.Count != 2)
+            if (sim.Bodies.Count != 2)
             {
-                LogError($"[det] {SimulationSystem.Bodies.Count} Körper statt 2");
+                LogError($"[det] {sim.Bodies.Count} Körper statt 2");
                 Exit(3);
                 return;
             }
@@ -145,7 +146,7 @@ namespace KotH.Probes.Probes
 
             rng = new Random(Seed);
             player.Teleport(Ref.Pos(Start0));
-            SimulationSystem.BeforePublish = CheckBuffer;
+            sim.BeforePublish = CheckBuffer;
         }
 
         // Everyone has simulated, nobody has published: the transforms must
@@ -193,7 +194,7 @@ namespace KotH.Probes.Probes
             {
                 inputs[tick] = Steer();
                 StepWith(inputs[tick]);
-                contactAt[tick] = SimulationSystem.LastContactCount > 0;
+                contactAt[tick] = sim.LastContactCount > 0;
                 tick++;
                 sim.Capture(snaps[tick]);
                 reference[tick] = Hash();
@@ -297,7 +298,7 @@ namespace KotH.Probes.Probes
         void StepWith(in MoveInput playerInput)
         {
             Remember();
-            IReadOnlyList<SimulationBody> bodies = SimulationSystem.Bodies;
+            IReadOnlyList<SimulationBody> bodies = sim.Bodies;
             for (int i = 0; i < bodies.Count; i++)
                 buffer[i] = bodies[i] == scripted ? playerInput : dummyInput;
 
@@ -324,11 +325,11 @@ namespace KotH.Probes.Probes
             ok &= Replay($"Rollback bei Tick {RollbackTick}", RollbackTick);
 
             // Moves the dummy to the end of the list and back afterwards.
-            SimulationSystem.Unregister(dummy);
-            SimulationSystem.Register(dummy);
+            sim.Unregister(dummy);
+            sim.Register(dummy);
             ok &= Replay("Koerperliste umgedreht", 0);
-            SimulationSystem.Unregister(scripted);
-            SimulationSystem.Register(scripted);
+            sim.Unregister(scripted);
+            sim.Register(scripted);
 
             ok &= ReplayAt("Rollback im Gleiten", RollbackTick + 1,
                            t => snaps[t].StateAt(Index(t)).Motor.Sliding);
@@ -340,6 +341,7 @@ namespace KotH.Probes.Probes
             // From the start: the dummy is met first thing on the route.
             ok &= ReplayAt("Rollback vor einem Stoss", 1, t => contactAt[t]);
             ok &= ResimulateApi();
+            ok &= TwoWorlds();
             ok &= CounterProbe();
             return ok;
         }
@@ -388,7 +390,7 @@ namespace KotH.Probes.Probes
             for (int t = 0; t < Ticks; t++)
             {
                 var row = new MoveInput[2];
-                IReadOnlyList<SimulationBody> bodies = SimulationSystem.Bodies;
+                IReadOnlyList<SimulationBody> bodies = sim.Bodies;
                 for (int i = 0; i < bodies.Count; i++)
                     row[i] = bodies[i] == scripted ? inputs[t] : dummyInput;
                 ticks.Add(row);
@@ -399,6 +401,55 @@ namespace KotH.Probes.Probes
                 return Fail("Resimulate", Ticks, Diff(Ticks));
 
             Log($"[det] GLEICH   Resimulate: Endzustand nach {Ticks} Ticks bitgleich");
+            return true;
+        }
+
+        /// <summary>
+        /// A second world in the same process, built the same way, stepped
+        /// in turn with this one through the whole recording. Both must
+        /// match it tick for tick: nothing of one world may leak into the
+        /// other, which a host and its peers in one probe rely on.
+        /// </summary>
+        bool TwoWorlds()
+        {
+            using var second = new HeadlessWorld();
+            Prototype proto = Prototype.Open(second);
+            var player2 = new ScriptedBody();
+            proto.Player.Add(player2);
+            var dummy2 = proto.Dummy.Get<TrainingDummy>();
+            SimulationSystem sim2 = second.Simulation;
+            second.StartMatch();
+            sim2.Deactivate();
+            proto.Motor.Teleport(Ref.Pos(Start0));
+
+            var row = new MoveInput[2];
+            MoveInput dummy2Input = dummy2.ReadInput();
+            void Step2(in MoveInput input)
+            {
+                IReadOnlyList<SimulationBody> bodies = sim2.Bodies;
+                for (int i = 0; i < bodies.Count; i++)
+                    row[i] = bodies[i] == player2 ? input : dummy2Input;
+                sim2.Step(row, FixedDeltaTime);
+            }
+
+            for (int i = 0; i < SettleTicks; i++)
+                Step2(new MoveInput { Yaw = Ref.Angle(90f) });
+
+            sim.Restore(snaps[0]);
+            if (Hash(sim2, player2, dummy2) != reference[0])
+                return Fail("Zwei Welten", 0, "zweite Welt schon nach dem Einschwingen anders");
+
+            for (int t = 0; t < Ticks; t++)
+            {
+                StepWith(inputs[t]);
+                Step2(inputs[t]);
+                if (Hash() != reference[t + 1])
+                    return Fail("Zwei Welten", t + 1, "erste Welt: " + Diff(t + 1));
+                if (Hash(sim2, player2, dummy2) != reference[t + 1])
+                    return Fail("Zwei Welten", t + 1, "zweite Welt weicht ab");
+            }
+
+            Log($"[det] GLEICH   Zwei Welten im Wechsel: {Ticks} Ticks, beide bitgleich mit der Aufnahme");
             return true;
         }
 
@@ -519,29 +570,33 @@ namespace KotH.Probes.Probes
         // FNV-1a over the bits of every field of both bodies, found by
         // reflection: a field added to MotorState is covered without anyone
         // remembering to add it here.
-        ulong Hash()
+        ulong Hash() => Hash(sim, scripted, dummy);
+
+        static ulong Hash(SimulationSystem system, SimulationBody player, SimulationBody other)
         {
             ulong h = 14695981039346656037UL;
-            Mix(ref h, SimulationSystem.CurrentTick);
-            HashObject(ref h, scripted.CaptureState());
-            HashObject(ref h, dummy.CaptureState());
-            HashMatch(ref h, sim.Match.State);
+            Mix(ref h, system.CurrentTick);
+            HashObject(ref h, player.CaptureState());
+            HashObject(ref h, other.CaptureState());
+            HashMatch(ref h, system.Match.State, player);
             return h;
         }
 
         // The round holds body references, which the reflection walk cannot
         // fold; they go in as who they are instead.
-        void HashMatch(ref ulong h, in MatchState m)
+        static void HashMatch(ref ulong h, in MatchState m, SimulationBody player)
         {
             Mix(ref h, m.RoundTicks);
             Mix(ref h, m.Over ? 1 : 0);
             Mix(ref h, m.PauseTicks);
             Mix(ref h, m.Inside);
-            Mix(ref h, Who(m.Winner));
-            Mix(ref h, Who(m.Holder));
+            Mix(ref h, Who(m.Winner, player));
+            Mix(ref h, Who(m.Holder, player));
         }
 
-        int Who(SimulationBody body) => body == null ? 0 : body == scripted ? 1 : 2;
+        static int Who(SimulationBody body, SimulationBody player) => body == null ? 0 : body == player ? 1 : 2;
+
+        int Who(SimulationBody body) => Who(body, scripted);
 
         static void Mix(ref ulong h, int bits)
         {

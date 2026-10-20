@@ -87,7 +87,8 @@ Fünf Projekte (`KotH.slnx`):
   `Tick()` sammelt alle Eingaben, `Step()` läuft in festen Phasen: Kontakte →
   `Motor.Simulate` für alle (auf der eigenen Pose, noch unsichtbar) → `SeparateBodies`
   → `Publish` → `SyncHull` → Kampf. `Capture`/`Restore`/`Resimulate` mit
-  `WorldSnapshot` sind die Rollback-Grundlage.
+  `WorldSnapshot` sind die Rollback-Grundlage. Kein statischer Zustand: Körperliste und
+  Tickzähler gehören dem System, mehrere Welten laufen in einem Prozess.
 - `HillMatch` (Capture-Zone, `KotH.Shared/Match`) tickt am Ende von `Step()`; Punkte
   pro Körper in `BodyState`, Runde als `MatchState` im Snapshot. Nur mit
   `HeadlessWorld.StartMatch()` bzw. in `GameRoot`, Bewegungsproben laufen ohne.

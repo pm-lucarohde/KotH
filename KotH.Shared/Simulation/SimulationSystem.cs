@@ -22,52 +22,47 @@ namespace KotH.Shared.Simulation
 
         static readonly Logger Log = GlobalLogger.GetLogger("KotH");
 
-        // Static, so a body can register before the system is wired up and
-        // long after scene load once netcode spawns players.
-        static readonly List<SimulationBody> bodies = new List<SimulationBody>();
-        static SimulationSystem active;
-
-        public static bool HasActive => active != null;
-
-        /// <summary>The driver in charge, null without one.</summary>
-        public static SimulationSystem Active => active;
+        // Per world, not static: a probe runs a host and its peers side by
+        // side in one process, each with its own bodies and its own clock.
+        readonly List<SimulationBody> bodies = new List<SimulationBody>();
+        bool active;
 
         /// <summary>
         /// Bodies in tick order. The order carries no meaning - the
         /// determinism probe proves that by reversing it - but the inputs
         /// handed to Step line up with it.
         /// </summary>
-        public static IReadOnlyList<SimulationBody> Bodies => bodies;
+        public IReadOnlyList<SimulationBody> Bodies => bodies;
 
         /// <summary>Ticks stepped so far. Part of what a snapshot records.</summary>
-        public static int CurrentTick { get; private set; }
+        public int CurrentTick { get; private set; }
 
         /// <summary>
         /// Contacts the last tick resolved. Diagnostics: without it a probe
         /// cannot tell a push apart from ordinary acceleration.
         /// </summary>
-        public static int LastContactCount { get; private set; }
+        public int LastContactCount { get; private set; }
 
         /// <summary>
         /// Normal and closing speed of the last contact resolved. A probe
         /// needs these to check a push against the model: reading velocities
         /// before and after is a tick too late once gravity is involved.
         /// </summary>
-        public static Vector3 LastNormal { get; private set; }
-        public static float LastApproach { get; private set; }
+        public Vector3 LastNormal { get; private set; }
+        public float LastApproach { get; private set; }
 
         /// <summary>
         /// Raised after the contacts are resolved and before any body moves.
         /// The only moment a push can be read apart from the movement that
         /// follows it; null in the game, used by probes.
         /// </summary>
-        public static Action AfterContacts;
+        public Action AfterContacts;
 
         /// <summary>
         /// Raised once every body has simulated and none has published.
         /// Lets a probe check that the buffer holds; null in the game.
         /// </summary>
-        public static Action BeforePublish;
+        public Action BeforePublish;
 
         /// <summary>
         /// Share of the approach both bodies leave the shared speed with.
@@ -105,32 +100,20 @@ namespace KotH.Shared.Simulation
         /// </summary>
         public HillMatch Match { get; set; }
 
-        /// <summary>Makes this the driver. A second one stays inactive, as in Unity.</summary>
-        public bool Activate()
-        {
-            if (active != null && active != this)
-            {
-                Log.Warning("Zweites SimulationSystem, es bleibt aus.");
-                return false;
-            }
+        /// <summary>Whether Tick steps. A probe that calls Step itself switches it off.</summary>
+        public bool IsActive => active;
 
-            active = this;
-            return true;
-        }
+        public void Activate() => active = true;
 
-        public void Deactivate()
-        {
-            if (active == this)
-                active = null;
-        }
+        public void Deactivate() => active = false;
 
-        public static void Register(SimulationBody body)
+        public void Register(SimulationBody body)
         {
             if (!bodies.Contains(body))
                 bodies.Add(body);
         }
 
-        public static void Unregister(SimulationBody body)
+        public void Unregister(SimulationBody body)
         {
             bodies.Remove(body);
         }
@@ -141,7 +124,7 @@ namespace KotH.Shared.Simulation
         /// </summary>
         public void Tick()
         {
-            if (active != this)
+            if (!active)
                 return;
 
             int count = bodies.Count;
@@ -260,7 +243,7 @@ namespace KotH.Shared.Simulation
         }
 
         /// <summary>Back to tick zero, for a probe that starts a fresh world.</summary>
-        public static void ResetTickCounter() => CurrentTick = 0;
+        public void ResetTickCounter() => CurrentTick = 0;
 
         /// <summary>
         /// Pushes overlapping bodies out of each other, sideways only. No

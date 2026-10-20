@@ -66,7 +66,7 @@ namespace KotH.Probes.Probes
             Prototype proto = Prototype.Open(World);
             player = proto.Motor;
 
-            if (!SimulationSystem.HasActive)
+            if (World.Simulation == null)
             {
                 LogError("[impact] kein SimulationSystem in der Szene");
                 Exit(3);
@@ -93,13 +93,13 @@ namespace KotH.Probes.Probes
             // Reading in BeforeTick would be a tick late: inputs are gathered
             // before the contacts are resolved, so a push read there has already
             // had a full tick of damping applied to it.
-            SimulationSystem.AfterContacts = Report;
+            World.Simulation.AfterContacts = Report;
 
             // The dummy registered first, so it would tick BEFORE the player and
             // its velocity would already be a tick old when read below.
             // Re-registering moves it behind the player (OnDisable, OnEnable).
-            SimulationSystem.Unregister(dummyBody);
-            SimulationSystem.Register(dummyBody);
+            World.Simulation.Unregister(dummyBody);
+            World.Simulation.Register(dummyBody);
 
             Next();
         }
@@ -151,7 +151,7 @@ namespace KotH.Probes.Probes
 
             Case c = Cases[caseIndex];
 
-            if (SimulationSystem.LastContactCount > 0 && tick >= c.settle)
+            if (World.Simulation.LastContactCount > 0 && tick >= c.settle)
             {
                 pushes++;
 
@@ -159,8 +159,8 @@ namespace KotH.Probes.Probes
                 {
                     reported = true;
 
-                    Vector3 n = Ref.ToUnity(SimulationSystem.LastNormal);
-                    float approach = SimulationSystem.LastApproach;
+                    Vector3 n = Ref.ToUnity(World.Simulation.LastNormal);
+                    float approach = World.Simulation.LastApproach;
 
                     Vector3 vPlayer = Ref.ToUnity(player.Velocity);
                     Vector3 vDummy = Ref.ToUnity(dummy.Velocity);

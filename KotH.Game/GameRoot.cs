@@ -78,6 +78,7 @@ namespace KotH.Client
                 {
                     board = found;
                     board.Match = system.Match;
+                    board.Simulation = system;
                     board.Self = self;
                 }
             foreach (Entity e in Entity.Scene.Entities)

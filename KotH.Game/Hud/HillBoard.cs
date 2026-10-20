@@ -34,6 +34,7 @@ namespace KotH.Client.Hud
         [Display("Bestenliste", "Anzeige")] public int Leaders = 4;
 
         [DataMemberIgnore] public HillMatch Match { get; set; }
+        [DataMemberIgnore] public SimulationSystem Simulation { get; set; }
 
         /// <summary>The body this screen belongs to, named "Du" everywhere.</summary>
         [DataMemberIgnore] public SimulationBody Self { get; set; }
@@ -79,7 +80,7 @@ namespace KotH.Client.Hud
 
         public void Draw(SpriteBatch batch, Vector2 screen)
         {
-            if (Match == null || Font == null)
+            if (Match == null || Simulation == null || Font == null)
                 return;
 
             Rebuild();
@@ -110,7 +111,7 @@ namespace KotH.Client.Hud
 
         void Rebuild()
         {
-            int tick = SimulationSystem.CurrentTick;
+            int tick = Simulation.CurrentTick;
             if (tick == builtTick)
                 return;
             builtTick = tick;
@@ -146,7 +147,7 @@ namespace KotH.Client.Hud
                 banner = countdown = "";
 
             ranking.Clear();
-            foreach (SimulationBody body in SimulationSystem.Bodies)
+            foreach (SimulationBody body in Simulation.Bodies)
                 ranking.Add(body);
             // Ties keep the body list's order, so the list does not flicker.
             ranking.Sort((a, b) =>
@@ -189,9 +190,9 @@ namespace KotH.Client.Hud
 
         string NameOf(SimulationBody body) => body == Self ? "Du" : body.Entity.Name;
 
-        static int IndexOf(SimulationBody body)
+        int IndexOf(SimulationBody body)
         {
-            IReadOnlyList<SimulationBody> bodies = SimulationSystem.Bodies;
+            IReadOnlyList<SimulationBody> bodies = Simulation.Bodies;
             for (int i = 0; i < bodies.Count; i++)
                 if (bodies[i] == body)
                     return i;

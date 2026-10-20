@@ -58,7 +58,7 @@ namespace KotH.Probes.Probes
             Prototype scene = Prototype.Open(World);
             player = scene.Motor;
 
-            if (!SimulationSystem.HasActive)
+            if (World.Simulation == null)
             {
                 LogError("[melee] kein SimulationSystem in der Szene");
                 Exit(3);
@@ -107,8 +107,8 @@ namespace KotH.Probes.Probes
             // The dummy registered during scene load and would otherwise tick
             // before the player, making every reading a tick old. Unity's
             // enabled = false / true: out of the list and back in at its end.
-            SimulationSystem.Unregister(dummyBody);
-            SimulationSystem.Register(dummyBody);
+            World.Simulation.Unregister(dummyBody);
+            World.Simulation.Register(dummyBody);
 
             Place(player, PlayerSpot);
             distance = firstDistance;

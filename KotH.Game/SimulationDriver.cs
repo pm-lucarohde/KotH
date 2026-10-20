@@ -35,7 +35,7 @@ namespace KotH.Client
 
         public override void Update()
         {
-            SimulationSystem system = SimulationSystem.Active;
+            SimulationSystem system = Services.GetService<SimulationSystem>();
             if (system == null)
                 return;
 

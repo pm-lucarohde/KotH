@@ -22,13 +22,14 @@ namespace KotH.Shared.Simulation
                 return;
             }
 
+            component.Simulation = system;
             component.Attach(system.World);
-            SimulationSystem.Register(component);
+            system.Register(component);
         }
 
         protected override void OnEntityComponentRemoved(Entity entity, SimulationBody component, SimulationBody data)
         {
-            SimulationSystem.Unregister(component);
+            component.Simulation?.Unregister(component);
         }
     }
 }

@@ -20,6 +20,10 @@ namespace KotH.Shared.Simulation
         [DataMemberIgnore]
         public PlayerMotor Motor { get; private set; }
 
+        /// <summary>The world that ticks this body, set when it joins.</summary>
+        [DataMemberIgnore]
+        public SimulationSystem Simulation { get; internal set; }
+
         // Optional: a body without fists does not have to say so.
         MeleeAttack attack;
         DamagePercent damage;

@@ -67,7 +67,7 @@ namespace KotH.Client.Player
 
             // Several ticks in one frame start from the last shown rotation,
             // as near as this gets to the tick before without asking the motor.
-            int tick = SimulationSystem.CurrentTick;
+            int tick = Services.GetService<SimulationSystem>()?.CurrentTick ?? 0;
             if (tick != seenTick)
             {
                 seenTick = tick;

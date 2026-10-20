@@ -321,3 +321,15 @@ unter JIT und AOT; die Hashkette bleibt `A4A9BBB937C62890`.
     - Neue Probe `capture`: Aufwärmen, Punkte, umkämpft, Neustart des Aufwärmens,
       Zonengrenzen, Sprung, Sieg, Pause, Spawn-Zustand bitgleich, Zeitlimit mit
       Sieger und Unentschieden, Rollback samt Runde. JIT und AOT byte-gleich.
+
+## Netcode N1: kein statischer Simulationszustand (20.10.2026)
+
+12. **Körperliste, Tickzähler, Kontaktdiagnose und Probe-Haken gehören jetzt dem
+    `SimulationSystem`**, nicht mehr der Klasse. Damit laufen mehrere Welten in einem
+    Prozess, die Grundlage für Netcode-Proben mit Host und Mitspielern.
+    - Die acht Bewegungsproben von `stride_runs.sh` sind byte-gleich mit dem Stand davor
+      (`407a261`), dazu `knockback` und `wallknock`. Das Urteil bleibt „95, davon 94
+      gleich“; das eine ist der gewollte Gleitfall „Start bei der Landung“ ohne Unity-Urteil.
+    - Hashkette `880D0C64389C53E3` und Lasttest `ACA28FF778F7B0AE` unverändert, JIT und AOT.
+    - Neuer Fall der DeterminismProbe: Eine zweite Welt im selben Prozess rechnet die
+      Aufnahme im Wechsel mit der ersten nach, beide 1000 Ticks bitgleich.
