@@ -45,7 +45,7 @@ namespace KotH.Client.Player
         [Display("Stärke", "Wackeln bei Treffer")] public float ShakeDegrees = 1.5f;
 
         /// <userdoc>Wie oft das Bild pro Sekunde hin und her geht.</userdoc>
-        [Display("Tempo", "Wackeln bei Treffer")] public float ShakeHertz = 20f;
+        [Display("Tempo", "Wackeln bei Treffer")] public float ShakeHertz = 10f;
 
         [DataMemberIgnore] public PlayerMotor Motor { get; set; }
         [DataMemberIgnore] public PlayerInputReader Reader { get; set; }
