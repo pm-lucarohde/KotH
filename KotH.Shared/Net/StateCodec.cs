@@ -17,7 +17,13 @@ namespace KotH.Shared.Net
     public static class StateCodec
     {
         const uint Magic = 0x4B6F5448; // "KoTH"
-        const int Version = 1;
+        const int Version = 2;
+
+        /// <summary>Bytes before the round: magic, version, tick, body count.</summary>
+        public const int HeadBytes = 16;
+
+        // RoundTicks, Phase, PhaseTicks, Inside, Winner, Holder, MinPlayers.
+        public const int MatchBytes = 4 + 1 + 4 + 4 + 4 + 4 + 1;
 
         public static int BodyStateSize => Unsafe.SizeOf<BodyState>();
 
@@ -25,13 +31,13 @@ namespace KotH.Shared.Net
         public static void Write(WorldSnapshot snapshot, IBufferWriter<byte> into)
         {
             int count = snapshot.Count;
-            Span<byte> head = into.GetSpan(4 * 4 + MatchBytes);
+            Span<byte> head = into.GetSpan(HeadBytes + MatchBytes);
             BinaryPrimitives.WriteUInt32LittleEndian(head, Magic);
             BinaryPrimitives.WriteInt32LittleEndian(head[4..], Version);
             BinaryPrimitives.WriteInt32LittleEndian(head[8..], snapshot.Tick);
             BinaryPrimitives.WriteInt32LittleEndian(head[12..], count);
-            WriteMatch(head[16..], snapshot.Match);
-            into.Advance(16 + MatchBytes);
+            WriteMatch(head[HeadBytes..], snapshot.Match);
+            into.Advance(HeadBytes + MatchBytes);
 
             for (int i = 0; i < count; i++)
             {
@@ -56,15 +62,15 @@ namespace KotH.Shared.Net
         public static bool Read(ReadOnlySpan<byte> data, Func<int, SimulationBody> bodyOf, WorldSnapshot into)
         {
             into.Clear();
-            if (data.Length < 16 + MatchBytes ||
+            if (data.Length < HeadBytes + MatchBytes ||
                 BinaryPrimitives.ReadUInt32LittleEndian(data) != Magic ||
                 BinaryPrimitives.ReadInt32LittleEndian(data[4..]) != Version)
                 return false;
 
             into.Tick = BinaryPrimitives.ReadInt32LittleEndian(data[8..]);
             int count = BinaryPrimitives.ReadInt32LittleEndian(data[12..]);
-            ReadOnlySpan<byte> matchBytes = data.Slice(16, MatchBytes);
-            data = data[(16 + MatchBytes)..];
+            ReadOnlySpan<byte> matchBytes = data.Slice(HeadBytes, MatchBytes);
+            data = data[(HeadBytes + MatchBytes)..];
 
             int size = 5 + 2 * BodyStateSize;
             if (count < 0 || data.Length != count * size)
@@ -96,17 +102,15 @@ namespace KotH.Shared.Net
             return h;
         }
 
-        // RoundTicks, Over, PauseTicks, Inside, Winner, Holder.
-        const int MatchBytes = 4 + 1 + 4 + 4 + 4 + 4;
-
         static void WriteMatch(Span<byte> to, in MatchState m)
         {
             BinaryPrimitives.WriteInt32LittleEndian(to, m.RoundTicks);
-            to[4] = m.Over ? (byte)1 : (byte)0;
-            BinaryPrimitives.WriteInt32LittleEndian(to[5..], m.PauseTicks);
+            to[4] = (byte)m.Phase;
+            BinaryPrimitives.WriteInt32LittleEndian(to[5..], m.PhaseTicks);
             BinaryPrimitives.WriteInt32LittleEndian(to[9..], m.Inside);
             BinaryPrimitives.WriteInt32LittleEndian(to[13..], m.Winner?.NetId ?? 0);
             BinaryPrimitives.WriteInt32LittleEndian(to[17..], m.Holder?.NetId ?? 0);
+            to[21] = (byte)m.MinPlayers;
         }
 
         static MatchState ReadMatch(ReadOnlySpan<byte> from, Func<int, SimulationBody> bodyOf)
@@ -116,11 +120,12 @@ namespace KotH.Shared.Net
             return new MatchState
             {
                 RoundTicks = BinaryPrimitives.ReadInt32LittleEndian(from),
-                Over = from[4] != 0,
-                PauseTicks = BinaryPrimitives.ReadInt32LittleEndian(from[5..]),
+                Phase = (MatchPhase)from[4],
+                PhaseTicks = BinaryPrimitives.ReadInt32LittleEndian(from[5..]),
                 Inside = BinaryPrimitives.ReadInt32LittleEndian(from[9..]),
                 Winner = winner != 0 ? bodyOf(winner) : null,
                 Holder = holder != 0 ? bodyOf(holder) : null,
+                MinPlayers = from[21],
             };
         }
 

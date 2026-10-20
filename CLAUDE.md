@@ -102,6 +102,9 @@ Fünf Projekte (`KotH.slnx`):
 - `HillMatch` (Capture-Zone, `KotH.Shared/Match`) tickt am Ende von `Step()`; Punkte
   pro Körper in `BodyState`, Runde als `MatchState` im Snapshot. Nur mit
   `HeadlessWorld.StartMatch()` bzw. in `GameRoot`, Bewegungsproben laufen ohne.
+  Phasen `Running`/`Over` (0/1 wie das alte Flag) und für den Mehrspieler
+  `Waiting`/`Countdown`, nur mit `MinPlayers` > 0 (steht im `MatchState`, kommt also
+  mit dem Zustand zum Beitretenden). Spieler sind Körper ab `NetWorld.FirstPlayerId`.
 - `MotorState` muss **jedes** Motorfeld enthalten; die `DeterminismProbe` prüft
   Rollback bitgenau und hat Mutationstests.
 - `TickClock` bildet Unitys Player-Loop nach (Akkumulator, max. 0,333 s pro Frame,

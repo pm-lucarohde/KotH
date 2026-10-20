@@ -12,8 +12,9 @@ namespace KotH.Client.Hud
     /// <summary>
     /// The round on screen: own points and the time left at the top, what
     /// the zone is doing below, the warm-up as a bar, the best four at the
-    /// top right and the winner in the middle. Presentation only: it reads
-    /// the match and the bodies and never writes to either.
+    /// top right and the winner in the middle. Before a networked round the
+    /// top line waits for players or counts down instead. Presentation
+    /// only: it reads the match and the bodies and never writes to either.
     /// </summary>
     [DataContract("KotH.HillBoard")]
     public sealed class HillBoard : StartupScript, IHudElement
@@ -135,12 +136,25 @@ namespace KotH.Client.Hud
             warmup = look == ZoneLook.Own && Self.AloneTicks <= Match.WarmupTicks && Match.WarmupTicks > 0
                 ? (float)Self.AloneTicks / Match.WarmupTicks : 0f;
 
+            if (m.Phase == MatchPhase.Waiting)
+            {
+                score = string.Format(HudRenderer.Numbers, "Warte auf Spieler ({0} / {1})",
+                                      HillMatch.CountPlayers(Simulation.Bodies), m.MinPlayers);
+                status = "";
+            }
+            else if (m.Phase == MatchPhase.Countdown)
+            {
+                int start = (m.PhaseTicks + HillMatch.TicksPerPoint - 1) / HillMatch.TicksPerPoint;
+                score = string.Format(HudRenderer.Numbers, "Match beginnt in {0}:{1:D2}", start / 60, start % 60);
+                status = "";
+            }
+
             if (m.Over)
             {
                 banner = m.Winner == null ? "Unentschieden"
                        : m.Winner == Self ? "Du gewinnst!"
                        : NameOf(m.Winner) + " gewinnt";
-                int seconds = (m.PauseTicks + HillMatch.TicksPerPoint - 1) / HillMatch.TicksPerPoint;
+                int seconds = (m.PhaseTicks + HillMatch.TicksPerPoint - 1) / HillMatch.TicksPerPoint;
                 countdown = string.Format(HudRenderer.Numbers, "Neue Runde in {0}", seconds);
             }
             else

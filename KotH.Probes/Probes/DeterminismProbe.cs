@@ -589,8 +589,8 @@ namespace KotH.Probes.Probes
         static void HashMatch(ref ulong h, in MatchState m, SimulationBody player)
         {
             Mix(ref h, m.RoundTicks);
-            Mix(ref h, m.Over ? 1 : 0);
-            Mix(ref h, m.PauseTicks);
+            Mix(ref h, (int)m.Phase);
+            Mix(ref h, m.PhaseTicks);
             Mix(ref h, m.Inside);
             Mix(ref h, Who(m.Winner, player));
             Mix(ref h, Who(m.Holder, player));
@@ -661,7 +661,8 @@ namespace KotH.Probes.Probes
             }
 
             MatchState want = s.Match, got = sim.Match.State;
-            if (want.RoundTicks != got.RoundTicks || want.Over != got.Over || want.PauseTicks != got.PauseTicks ||
+            if (want.RoundTicks != got.RoundTicks || want.Phase != got.Phase || want.PhaseTicks != got.PhaseTicks ||
+                want.MinPlayers != got.MinPlayers ||
                 want.Inside != got.Inside || want.Winner != got.Winner || want.Holder != got.Holder)
                 sb.Append($" Runde {want.RoundTicks}/{want.Inside}/{Who(want.Holder)}->{got.RoundTicks}/{got.Inside}/{Who(got.Holder)}");
 

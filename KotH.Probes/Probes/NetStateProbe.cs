@@ -237,7 +237,7 @@ namespace KotH.Probes.Probes
             Check(!StateCodec.Read(bad, id => a.ById.GetValueOrDefault(id), scratch), "falscher Kopf abgelehnt");
 
             bad = (byte[])good.Clone();
-            bad[16 + 21] = 99;     // first body's NetId
+            bad[StateCodec.HeadBytes + StateCodec.MatchBytes] = 99;     // first body's NetId
             Check(!StateCodec.Read(bad, id => a.ById.GetValueOrDefault(id), scratch), "unbekannte NetId abgelehnt");
 
             bad = (byte[])good.Clone();

@@ -4,6 +4,7 @@ using System.Diagnostics;
 using KotH.Probes.Harness;
 using KotH.Shared.Combat;
 using KotH.Shared.Hosting;
+using KotH.Shared.Match;
 using KotH.Shared.Net;
 using KotH.Shared.Player;
 using KotH.Shared.Simulation;
@@ -15,9 +16,11 @@ namespace KotH.Probes.Probes
     /// A whole rollback game in one process over a seeded network in memory:
     /// a host with its own player and up to eleven peers, 15 to 75 ms one
     /// way, jitter and 5 % loss. Peers join at the start and mid-game, one
-    /// leaves, one gets its state damaged, one brings a wrong build. Every
-    /// final state any peer reports must equal the host's, apart from the
-    /// damaged peer until its repair; rollbacks must really have happened.
+    /// leaves, one gets its state damaged, one brings a wrong build, one
+    /// comes after the join window. The round waits for four players and
+    /// counts down first (shortened here). Every final state any peer
+    /// reports must equal the host's, apart from the damaged peer until its
+    /// repair; rollbacks must really have happened.
     /// </summary>
     public sealed class NetPlayProbe : Probe
     {
@@ -25,7 +28,8 @@ namespace KotH.Probes.Probes
 
         const double FrameMs = 8.0;
         const double EndMs = 60000.0, SettleMs = 4000.0;
-        const double LateJoinMs = 20000.0, LeaveMs = 30000.0, DamageMs = 35000.0, WrongBuildMs = 40000.0;
+        const double LateJoinMs = 20000.0, LeaveMs = 30000.0, DamageMs = 35000.0, WrongBuildMs = 40000.0, TooLateMs = 45000.0;
+        const int CountdownTicks = 400, JoinTicks = 800;
         const int EarlyPeers = 6, LatePeers = 4;
         const int Seed = 20261021;
 
@@ -60,6 +64,10 @@ namespace KotH.Probes.Probes
             host = new HostSession(hostEnd, net.Now);
             Peer founder = AddPeer("Host", host.LocalTransport, founder: true);
             host.AttachFounder(founder.Session);
+            HillMatch round = founder.World.Simulation.Match;
+            round.MinPlayers = HillMatch.DefaultMinPlayers;
+            host.CanJoin = () => round.AcceptsJoin;
+            int countdownAt = -1, runningAt = -1;
 
             var rng = new Random(Seed);
             var joins = new List<double>();
@@ -70,8 +78,8 @@ namespace KotH.Probes.Probes
 
             int damagedTick = -1, leaverIndex = -1;
             Peer damaged = null;
-            MemoryNetwork.Endpoint wrong = null;
-            bool rejected = false;
+            MemoryNetwork.Endpoint wrong = null, tooLate = null;
+            bool rejected = false, closed = false;
             var stopwatch = Stopwatch.StartNew();
 
             while (net.Now < EndMs + SettleMs)
@@ -106,7 +114,7 @@ namespace KotH.Probes.Probes
                     var bytes = new System.Buffers.ArrayBufferWriter<byte>();
                     damaged.Session.TryEncodeFinal(0, bytes, out damagedTick);
                     byte[] state = bytes.WrittenSpan.ToArray();
-                    const int firstBody = 16 + 21, percent = 5 + 186 + 4;
+                    const int firstBody = StateCodec.HeadBytes + StateCodec.MatchBytes, percent = 5 + 186 + 4;
                     System.Buffers.Binary.BinaryPrimitives.WriteSingleLittleEndian(state.AsSpan(firstBody + percent), 777f);
                     bool loaded = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(state.AsSpan(firstBody)) == 1 &&
                                   damaged.Session.LoadState(state);
@@ -114,21 +122,17 @@ namespace KotH.Probes.Probes
                 }
 
                 if (wrong == null && net.Now >= WrongBuildMs)
-                {
-                    wrong = net.CreateEndpoint();
-                    net.Connect(hostEnd, wrong, 20.0, 0.0, 0.0);
-                    var hello = new System.Buffers.ArrayBufferWriter<byte>();
-                    var w = new Writer(hello);
-                    w.Byte((byte)MsgType.Hello);
-                    w.Bytes(new byte[NetProtocol.BuildId.Length]);
-                    w.Double(net.Now);
-                    w.Text("Falsch");
-                    wrong.Send(0, hello.WrittenSpan, reliable: true);
-                }
-                if (wrong != null && !rejected)
-                    while (wrong.Poll(out TransportEvent e))
-                        rejected |= e.Kind == TransportEventKind.Data && e.Data[0] == (byte)MsgType.Reject &&
-                                    e.Data[1] == (byte)RejectReason.Version;
+                    wrong = Knock(new byte[NetProtocol.BuildId.Length], "Falsch");
+                rejected |= Refused(wrong, RejectReason.Version);
+                if (tooLate == null && net.Now >= TooLateMs)
+                    tooLate = Knock(NetProtocol.BuildId, "Spät");
+                closed |= Refused(tooLate, RejectReason.Closed);
+
+                MatchPhase phase = round.State.Phase;
+                if (countdownAt < 0 && phase == MatchPhase.Countdown)
+                    countdownAt = founder.World.Simulation.CurrentTick;
+                if (runningAt < 0 && countdownAt >= 0 && phase == MatchPhase.Running)
+                    runningAt = founder.World.Simulation.CurrentTick;
 
                 botsOn = net.Now < EndMs;
                 host.Update(net.Now);
@@ -149,6 +153,9 @@ namespace KotH.Probes.Probes
             Log($"[netplay] Build {NetProtocol.BuildText}");
 
             Report(founder, damaged, damagedTick, rejected);
+            Check(closed, "Beitritt nach dem Fenster abgelehnt");
+            Check(countdownAt > 0 && runningAt - countdownAt >= CountdownTicks && runningAt - countdownAt < CountdownTicks + 40,
+                  $"Countdown ab Tick {countdownAt}, Runde ab Tick {runningAt}");
             foreach (Peer p in peers)
                 p.World.Dispose();
             Log(failures == 0 ? "[netplay] BESTANDEN" : $"[netplay] {failures} Fehler");
@@ -160,7 +167,9 @@ namespace KotH.Probes.Probes
             var world = new HeadlessWorld();
             world.LoadArena();
             NetWorld.SpawnDummies(world.Builder);
-            world.StartMatch();
+            HillMatch match = world.StartMatch();
+            match.CountdownTicks = CountdownTicks;
+            match.JoinTicks = JoinTicks;
             world.Simulation.Deactivate();
 
             var p = new Peer { Name = name, World = world, Bot = new Random(Seed + peers.Count * 7919) };
@@ -172,6 +181,29 @@ namespace KotH.Probes.Probes
             };
             peers.Add(p);
             return p;
+        }
+
+        /// <summary>Says hello from a fresh endpoint with the given build, like a peer would.</summary>
+        MemoryNetwork.Endpoint Knock(byte[] build, string name)
+        {
+            var end = net.CreateEndpoint();
+            net.Connect(hostEnd, end, 20.0, 0.0, 0.0);
+            var hello = new System.Buffers.ArrayBufferWriter<byte>();
+            var w = new Writer(hello);
+            w.Byte((byte)MsgType.Hello);
+            w.Bytes(build);
+            w.Double(net.Now);
+            w.Text(name);
+            end.Send(0, hello.WrittenSpan, reliable: true);
+            return end;
+        }
+
+        static bool Refused(MemoryNetwork.Endpoint end, RejectReason why)
+        {
+            bool refused = false;
+            while (end != null && end.Poll(out TransportEvent e))
+                refused |= e.Kind == TransportEventKind.Data && e.Data[0] == (byte)MsgType.Reject && e.Data[1] == (byte)why;
+            return refused;
         }
 
         /// <summary>Holds a random input for a while, with presses now and then; idle once the bots stop.</summary>

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using KotH.Probes.Harness;
 using KotH.Shared.Hosting;
 using KotH.Shared.Match;
+using KotH.Shared.Net;
 using KotH.Shared.Player;
 using KotH.Shared.Simulation;
 using Stride.Core.Mathematics;
@@ -15,7 +16,8 @@ namespace KotH.Probes.Probes
     /// tick: three seconds alone before the first point, one point a second,
     /// nothing while shared, the warm-up starting over, the zone's edges,
     /// the win, the time limit with a leader and a draw, the reset to the
-    /// spawn, and a rollback through all of it. No Unity reference: new.
+    /// spawn, and a rollback through all of it. Then the lobby of a
+    /// networked round and the twelve player slots. No Unity reference: new.
     /// </summary>
     public sealed class CaptureProbe : Probe
     {
@@ -53,6 +55,8 @@ namespace KotH.Probes.Probes
             Win(spawnA, spawnB);
             TimeLimit();
             Rollback();
+            Lobby();
+            Slots();
 
             Log(failures == 0 ? "[capture] BESTANDEN" : $"[capture] {failures} Fehler");
             return failures == 0 ? 0 : 1;
@@ -211,6 +215,102 @@ namespace KotH.Probes.Probes
                   again.RoundTicks == end.RoundTicks && again.Inside == end.Inside &&
                   again.Holder == end.Holder && again.Over == end.Over,
                   "Rollback und Resimulate bitgleich samt Runde");
+        }
+
+        /// <summary>
+        /// Waiting for four players, the countdown, its stop when one
+        /// leaves, the start from the spawns, the join window, and back to
+        /// waiting after a round. Dummies (NetId 1 to 3) never count.
+        /// </summary>
+        void Lobby()
+        {
+            match.MinPlayers = 4;
+            a.NetId = NetWorld.FirstPlayerId;
+            b.NetId = NetWorld.FirstPlayerId + 1;
+            ScriptedBody dummy = Spawn("Dummy", new Vector3(-3f, 0.9f, -2f));
+            dummy.NetId = 1;
+            ScriptedBody c = Spawn("C", new Vector3(-6f, 0.9f, -2f));
+            c.NetId = NetWorld.FirstPlayerId + 2;
+
+            int carried = a.ScoreTicks;
+            a.Motor.Teleport(HillA);
+            Ticks(200);
+            Check(match.State.Phase == MatchPhase.Waiting && match.State.Holder == null && a.ScoreTicks == carried &&
+                  match.AcceptsJoin && HillMatch.CountPlayers(world.Simulation.Bodies) == 3,
+                  $"3 Spieler und ein Dummy: warten, die Zone zählt nicht ({a.ScoreTicks - carried})");
+
+            ScriptedBody d = Spawn("D", new Vector3(-9f, 0.9f, -2f));
+            d.NetId = NetWorld.FirstPlayerId + 3;
+            Ticks(1);
+            Check(match.State.Phase == MatchPhase.Countdown && match.State.PhaseTicks == match.CountdownTicks,
+                  $"4. Spieler startet den Countdown ({match.State.PhaseTicks} Ticks)");
+
+            Ticks(100);
+            BodyState left = d.CaptureState();
+            world.Simulation.Leave(d);
+            Ticks(1);
+            Check(match.State.Phase == MatchPhase.Waiting, "einer geht: zurück zum Warten");
+
+            world.Simulation.Rejoin(d, left);
+            Ticks(1);
+            Check(match.State.Phase == MatchPhase.Countdown && match.State.PhaseTicks == match.CountdownTicks,
+                  "wieder da: Countdown von vorn");
+
+            Ticks(match.CountdownTicks - 1);
+            Check(match.State.Phase == MatchPhase.Countdown && match.State.PhaseTicks == 1 && a.ScoreTicks == carried,
+                  "Countdown läuft bis zum letzten Tick ohne Punkte");
+            Ticks(1);
+            Check(match.State.Phase == MatchPhase.Running && match.State.RoundTicks == 0 &&
+                  match.State.MinPlayers == 4 && SameAsSpawn(a.CaptureState(), a.SpawnState),
+                  "bei 0 läuft die Runde, alle am Startplatz");
+
+            Ticks(match.JoinTicks - 1);
+            bool open = match.AcceptsJoin;
+            Ticks(1);
+            Check(open && !match.AcceptsJoin, $"Beitritt bis Tick {match.JoinTicks} der Runde, danach zu");
+
+            match.LimitTicks = match.State.RoundTicks + 1;
+            Ticks(1);
+            Check(match.State.Over && match.AcceptsJoin, "Runde vorbei, Beitritt wieder offen");
+            Ticks(match.PauseTicks);
+            Check(match.State.Phase == MatchPhase.Waiting, "nach der Pause wieder warten");
+            Ticks(1);
+            Check(match.State.Phase == MatchPhase.Countdown, "genug Spieler: gleich wieder Countdown");
+
+            match.LimitTicks = Math.Max(match.LimitTicks, 48000);
+            match.MinPlayers = 0;
+            Check(match.State.Phase == MatchPhase.Running && match.State.RoundTicks == 0, "ohne Mindestzahl sofort wie offline");
+        }
+
+        /// <summary>All twelve slots and the dummies at once: everyone stands where placed.</summary>
+        void Slots()
+        {
+            var w = new HeadlessWorld();
+            w.LoadArena();
+            NetWorld.SpawnDummies(w.Builder);
+            var net = new HeadlessNetWorld(w);
+            var players = new List<SimulationBody>();
+            for (int slot = 0; slot < NetWorld.MaxPlayers; slot++)
+                players.Add(net.SpawnPlayer(NetWorld.FirstPlayerId + slot, slot, "S" + slot));
+
+            for (int i = 0; i < 80; i++)
+                w.Simulation.Tick();
+
+            int moved = 0;
+            float worst = 0f;
+            for (int slot = 0; slot < players.Count; slot++)
+            {
+                Vector3 want = NetWorld.SlotMarker(w.Builder, slot).Transform.Position;
+                Vector3 got = players[slot].Motor.Position;
+                float off = MathF.Max(MathF.Abs(got.X - want.X), MathF.Max(MathF.Abs(got.Z - want.Z), MathF.Abs(got.Y - want.Y)));
+                worst = MathF.Max(worst, off);
+                if (off > 0.05f)
+                {
+                    moved++;
+                    Log($"[capture]        S{slot} bei {want} steht bei {got}");
+                }
+            }
+            Check(players.Count == 12 && moved == 0, $"12 Startplätze frei und auf dem Boden (größte Abweichung {worst * 100f:F1} cm)");
         }
 
         void Ticks(int n)

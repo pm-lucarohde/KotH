@@ -22,6 +22,12 @@ Runde unentschieden. Nach 5 s Siegeranzeige beginnt die nächste Runde, alle ste
 wieder an ihrem Startpunkt. Die Dummys zählen wie Gegner. Die Werte stehen an der
 Komponente `CaptureZone` im Arena-Prefab und sind in Game Studio einstellbar.
 
+Im Mehrspieler wartet die Runde auf 4 Spieler (Dummys zählen dafür nicht), dann läuft
+ein Countdown von 60 s; geht vorher einer, wird wieder gewartet. Bei 0 stehen alle an
+ihrem Startplatz (`PlayerSpawn0` bis `PlayerSpawn11`, zwei Reihen hinter dem Spawn).
+Beitreten geht beim Warten, im Countdown, nach einem Sieg und in der ersten Minute
+einer Runde. Offline beginnt die Runde sofort.
+
 | | |
 |---|---|
 | Engine | [Stride](https://www.stride3d.net/) 4.4 mit Bepu-Physik |

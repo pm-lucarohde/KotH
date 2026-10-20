@@ -386,3 +386,22 @@ unter JIT und AOT; die Hashkette bleibt `A4A9BBB937C62890`.
       am Ende alle bitgleich mit dem Host. Verkehr vom Host 14–51 KiB/s je Peer.
     - JIT und AOT liefern dieselben Zähler und dieselbe `BuildId`; JIT ohne
       `DOTNET_EnableAVX=0` hätte eine andere und würde abgewiesen.
+
+## Netcode N5: Lobby, Countdown und Startplätze (20.10.2026)
+
+16. **Die Runde wartet im Mehrspieler auf 4 Spieler und zählt 60 s herunter.**
+    `MatchState` hat statt `Over` eine Phase (`Running` = 0 und `Over` = 1 wie zuvor,
+    neu `Waiting` und `Countdown`), `PhaseTicks` statt `PauseTicks` und `MinPlayers`.
+    Offline bleibt `MinPlayers` 0 und alles wie bisher. `StateCodec` Version 2, die
+    Runde hat 22 statt 21 Bytes. `CaptureZone` hat `CountdownSeconds` und `JoinSeconds`
+    (je 60). Im Arena-Prefab liegen `PlayerSpawn0` bis `PlayerSpawn11` in zwei Reihen
+    à sechs bei z 4,5 und 6,5 mit Blick zur Zone; ein Halbkreis um den Spawn stieß an
+    `Ramp20`, `CrouchTest` und die Rampe.
+    - Hashkette `880D0C64389C53E3`, Lasttest `ACA28FF778F7B0AE`; `knockback`,
+      `wallknock`, `melee` byte-gleich, `netstate` bis auf die Zustandslänge
+      (1674 statt 1673 Bytes), der alte Teil von `capture` byte-gleich. JIT und AOT gleich.
+    - `capture` neu: warten mit 3 Spielern und einem Dummy, Countdown beim vierten,
+      Abbruch beim Gehen, Neustart beim Zurückkommen, Start am Startplatz, Beitrittsfenster,
+      nach der Runde wieder warten; alle 12 Startplätze frei und auf dem Boden.
+    - `netplay` neu: Runde mit Lobby (Countdown für die Probe 10 s, Fenster 20 s),
+      Countdown ab Tick 28, Runde ab Tick 428, Beitritt bei 45 s abgelehnt (`Closed`).

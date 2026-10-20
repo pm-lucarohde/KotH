@@ -1,14 +1,21 @@
 using System;
 using System.Collections.Generic;
 using KotH.Shared.Mathematics;
+using KotH.Shared.Net;
 using KotH.Shared.Simulation;
 using Stride.Core.Mathematics;
 
 namespace KotH.Shared.Match
 {
     /// <summary>
+    /// Where a round stands. Running and Over keep the values 0 and 1 they
+    /// had as a flag; the lobby phases only come up with MinPlayers set.
+    /// </summary>
+    public enum MatchPhase : byte { Running, Over, Waiting, Countdown }
+
+    /// <summary>
     /// Everything a round keeps besides the bodies' own scores. Part of a
-    /// snapshot: a restore puts the clock, the pause and who stood in the
+    /// snapshot: a restore puts the phase, the clocks and who stood in the
     /// zone back exactly as that tick left them.
     /// </summary>
     public struct MatchState
@@ -16,11 +23,10 @@ namespace KotH.Shared.Match
         /// <summary>Ticks the round has run, frozen once it is over.</summary>
         public int RoundTicks;
 
-        /// <summary>The round has ended and the winner is shown.</summary>
-        public bool Over;
+        public MatchPhase Phase;
 
-        /// <summary>Ticks of the pause left before the next round.</summary>
-        public int PauseTicks;
+        /// <summary>Ticks left of the countdown or of the pause after a win.</summary>
+        public int PhaseTicks;
 
         /// <summary>Who won; null while running, and for a draw.</summary>
         public SimulationBody Winner;
@@ -30,6 +36,15 @@ namespace KotH.Shared.Match
 
         /// <summary>The one body alone in the zone, null for none or several.</summary>
         public SimulationBody Holder;
+
+        /// <summary>
+        /// Players needed for the countdown, 0 to start at once (offline).
+        /// Kept in the round so a joining peer learns it with the state.
+        /// </summary>
+        public int MinPlayers;
+
+        /// <summary>The round has ended and the winner is shown.</summary>
+        public readonly bool Over => Phase == MatchPhase.Over;
     }
 
     /// <summary>
@@ -37,6 +52,8 @@ namespace KotH.Shared.Match
     /// few seconds and then earns a point per second; with two inside
     /// nobody does. First to the winning points takes the round, else the
     /// leader when time runs out. Ticked by SimulationSystem after combat.
+    /// With MinPlayers set a round waits for enough players and counts
+    /// down first; only players count, not the dummies.
     /// </summary>
     public sealed class HillMatch
     {
@@ -61,14 +78,49 @@ namespace KotH.Shared.Match
             WinTicks = zone.WinPoints * TicksPerPoint;
             LimitTicks = Ticks(zone.TimeLimitMinutes * 60f);
             PauseTicks = Ticks(zone.WinPauseSeconds);
+            CountdownTicks = Ticks(zone.CountdownSeconds);
+            JoinTicks = Ticks(zone.JoinSeconds);
         }
+
+        public const int DefaultMinPlayers = 4;
 
         public int WarmupTicks { get; set; }
         public int WinTicks { get; set; }
         public int LimitTicks { get; set; }
         public int PauseTicks { get; set; }
+        public int CountdownTicks { get; set; }
+
+        /// <summary>How long into a running round players may still join.</summary>
+        public int JoinTicks { get; set; }
 
         public MatchState State => state;
+
+        /// <summary>Players needed to start; setting it starts the round over.</summary>
+        public int MinPlayers
+        {
+            get => state.MinPlayers;
+            set
+            {
+                state.MinPlayers = Math.Max(0, value);
+                Reset();
+            }
+        }
+
+        /// <summary>
+        /// Whether a host takes a new player now: while waiting, counting
+        /// down, after a win, and in the first JoinTicks of a round.
+        /// </summary>
+        public bool AcceptsJoin => state.Phase != MatchPhase.Running || state.RoundTicks < JoinTicks;
+
+        /// <summary>Players among the bodies: everyone from the first player NetId on.</summary>
+        public static int CountPlayers(IReadOnlyList<SimulationBody> bodies)
+        {
+            int players = 0;
+            for (int i = 0; i < bodies.Count; i++)
+                if (bodies[i].NetId >= NetWorld.FirstPlayerId)
+                    players++;
+            return players;
+        }
 
         /// <summary>Whole points out of score ticks, as the HUD shows them.</summary>
         public static int Points(int scoreTicks) => scoreTicks / TicksPerPoint;
@@ -83,8 +135,13 @@ namespace KotH.Shared.Match
         /// <summary>Puts the round back to a captured tick.</summary>
         public void Restore(in MatchState from) => state = from;
 
-        /// <summary>A fresh round; the bodies are not touched.</summary>
-        public void Reset() => state = default;
+        /// <summary>A fresh round, or a fresh wait for players; the bodies are not touched.</summary>
+        public void Reset()
+            => state = new MatchState
+            {
+                MinPlayers = state.MinPlayers,
+                Phase = state.MinPlayers > 0 ? MatchPhase.Waiting : MatchPhase.Running,
+            };
 
         /// <summary>
         /// Remembers where a body joined, before its first tick, so a new
@@ -106,15 +163,38 @@ namespace KotH.Shared.Match
         {
             int count = bodies.Count;
 
-            if (state.Over)
+            switch (state.Phase)
             {
-                if (--state.PauseTicks > 0)
+                case MatchPhase.Over:
+                    if (--state.PhaseTicks > 0)
+                        return;
+                    for (int i = 0; i < count; i++)
+                        bodies[i].ResetToSpawn();
+                    Reset();
                     return;
 
-                for (int i = 0; i < count; i++)
-                    bodies[i].ResetToSpawn();
-                state = default;
-                return;
+                case MatchPhase.Waiting:
+                    // The zone does not count before the round; the count is checked every tick.
+                    if (CountPlayers(bodies) >= state.MinPlayers)
+                    {
+                        state.Phase = MatchPhase.Countdown;
+                        state.PhaseTicks = Math.Max(CountdownTicks, 1);
+                    }
+                    return;
+
+                case MatchPhase.Countdown:
+                    if (CountPlayers(bodies) < state.MinPlayers)
+                    {
+                        state.Phase = MatchPhase.Waiting;
+                        state.PhaseTicks = 0;
+                        return;
+                    }
+                    if (--state.PhaseTicks > 0)
+                        return;
+                    for (int i = 0; i < count; i++)
+                        bodies[i].ResetToSpawn();
+                    state = new MatchState { MinPlayers = state.MinPlayers };
+                    return;
             }
 
             int inside = 0;
@@ -155,9 +235,9 @@ namespace KotH.Shared.Match
 
         void End(IReadOnlyList<SimulationBody> bodies, SimulationBody winner)
         {
-            state.Over = true;
+            state.Phase = MatchPhase.Over;
             state.Winner = winner;
-            state.PauseTicks = Math.Max(PauseTicks, 1);
+            state.PhaseTicks = Math.Max(PauseTicks, 1);
             state.Holder = null;
             for (int i = 0; i < bodies.Count; i++)
                 bodies[i].AloneTicks = 0;

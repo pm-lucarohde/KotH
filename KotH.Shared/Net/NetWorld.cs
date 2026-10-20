@@ -71,12 +71,12 @@ namespace KotH.Shared.Net
             return dummies;
         }
 
-        /// <summary>Where a player slot starts: two rows of six beside the player marker.</summary>
-        public static Vector3 SlotPosition(WorldBuilder builder, int slot)
-        {
-            Vector3 start = builder.Find("PlayerSpawn").Transform.Position;
-            return new Vector3(start.X - 5f + (slot % 6) * 2f, start.Y, start.Z + 2f + (slot / 6) * 2.5f);
-        }
+        /// <summary>
+        /// Where a player slot starts and faces: the markers PlayerSpawn0 to
+        /// PlayerSpawn11 in the arena, two rows of six behind the offline spawn.
+        /// </summary>
+        public static Entity SlotMarker(WorldBuilder builder, int slot)
+            => builder.Find("PlayerSpawn" + slot);
     }
 
     /// <summary>The world of a host or peer without graphics: server and probes.</summary>
@@ -96,8 +96,9 @@ namespace KotH.Shared.Net
         public SimulationBody SpawnPlayer(int netId, int slot, string name)
         {
             var body = new NetBody { NetId = netId };
-            Entity e = builder.SpawnBody(WorldBuilder.PlayerBodyUrl, NetWorld.SlotPosition(builder, slot),
-                                         Quaternion.Identity, body, new DamagePercent());
+            Entity marker = NetWorld.SlotMarker(builder, slot);
+            Entity e = builder.SpawnBody(WorldBuilder.PlayerBodyUrl, marker.Transform.Position,
+                                         marker.Transform.Rotation, body, new DamagePercent());
             e.Name = name;
             return body;
         }

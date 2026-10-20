@@ -153,6 +153,8 @@ static void ReportMatch(SimulationSystem simulation, HillMatch match)
     MatchState m = match.State;
     int left = Math.Max(0, match.LimitTicks - m.RoundTicks) / 40;
     string zone = m.Over ? (m.Winner != null ? m.Winner.Entity.Name + " gewinnt" : "unentschieden")
+                : m.Phase == MatchPhase.Waiting ? $"warte auf Spieler ({HillMatch.CountPlayers(simulation.Bodies)} / {m.MinPlayers})"
+                : m.Phase == MatchPhase.Countdown ? $"Start in {(m.PhaseTicks + 39) / 40} s"
                 : m.Holder != null ? m.Holder.Entity.Name + " allein"
                 : m.Inside > 1 ? $"umkämpft ({m.Inside})" : "frei";
 
