@@ -25,8 +25,8 @@ using var game = new KotHGame();
 game.Run();
 
 /// <summary>
-/// The game: F11 switches to borderless fullscreen at desktop resolution
-/// and back to the window as it was. Plus test aids. With KOTH_SHOT set to a path it shows the
+/// The game: starts in borderless fullscreen, F11 switches to the window and
+/// back. Plus test aids. With KOTH_SHOT set to a path it shows the
 /// F3 readout, holds the view at KOTH_SHOT_YAW / _PITCH / _FOV if given,
 /// saves the back buffer as PNG after KOTH_SHOT_SECONDS (default 3), reports
 /// the label font and quits. Taken from
@@ -44,6 +44,10 @@ sealed class KotHGame : Game
     readonly double? shotFov = Number("KOTH_SHOT_FOV");
     readonly string frameLogPath = Environment.GetEnvironmentVariable("KOTH_FRAMELOG");
     Int2 windowedSize;
+
+    // From the first frame on, once the window manager has sized the window:
+    // that size is where F11 returns to. A fixed KOTH_SIZE stays a window.
+    bool startFullscreen = Environment.GetEnvironmentVariable("KOTH_SIZE") == null;
     int restoreFrames;
 
     // Ten minutes at 2000 FPS, allocated once so logging never allocates.
@@ -101,8 +105,11 @@ sealed class KotHGame : Game
     {
         base.Update(gameTime);
 
-        if (KeyPresses.Pressed(Input, Keys.F11))
+        if (startFullscreen || KeyPresses.Pressed(Input, Keys.F11))
+        {
+            startFullscreen = false;
             ToggleFullscreen();
+        }
         RestoreWindowSize();
 
         if (shotPath == null)

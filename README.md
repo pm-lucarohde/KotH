@@ -33,7 +33,7 @@ Ein Peer hostet, ein dedizierter Server ist nicht geplant.
 | E | ducken; im Sprint antippen = gleiten; aus dem Sprint-Sprung gehalten landen = gleiten |
 | Linksklick | schlagen |
 | F3 | Leistungsanzeige (FPS, Frametime, 1 %-Low) |
-| F11 | Vollbild (randlos) ein und aus |
+| F11 | zwischen Vollbild (randlos, Standard) und Fenster umschalten |
 | Escape | einmal: Maus freigeben, zweimal: beenden. Ein Klick fängt die Maus wieder ein. |
 
 ## Voraussetzungen
