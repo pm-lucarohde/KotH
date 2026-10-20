@@ -190,11 +190,13 @@ kein Zustand: ein Rollback behält ihn, im Netz kommt der Treffer mit der Bestä
 ### Figur und Animation
 
 Die Pilzfigur (`Mushroom.glb`) hat ein Skelett (`MushroomSkeleton.sdskel`, mit Ellenbogen
-und Knien) und 13 Clips: `MushroomIdle` (Atmen 4 s, Wiegen 8 s), `MushroomRest`
+und Knien) und 15 Clips: `MushroomIdle` (Atmen 4 s, Wiegen 8 s), `MushroomRest`
 (Grundhaltung: Luft, Rutschen am Steilhang), Gehen/Rennen je vorwärts, rückwärts,
 links, rechts (Gang nach Sanji, Lucas Wunsch), `MushroomCrouch` (Hocke mit Atmen, auch in
 der Luft), `MushroomCrouchWalk` (ein Clip für alle Richtungen, 3 Schritte/s) und
-`MushroomSlide` (Sanji-Grätsche). Geduckt macht die Pose die Figur nur etwa 20 cm niedriger
+`MushroomSlide` (Sanji-Grätsche), `MushroomFall` (nur abwärts, Arme schräg zur Seite und
+nach vorn, balanciert leicht) und `MushroomLand` (7 cm eingefedert: nach jeder Landung nach
+mindestens 0,15 s Luft ein gleich starker Impuls über alles, 0,06 s rein, weg nach 0,3 s). Geduckt macht die Pose die Figur nur etwa 20 cm niedriger
 (Beine 35 cm); den Rest bis zur Hüllenhöhe staucht `PlayerVisualSystem` (`PoseDrops`, Werte
 gibt `rig.py` aus), lässt die Kappe 10 cm über die Hülle ragen und macht die Figur auf 90 %
 schmaler, damit sie weniger platt wirkt (Lucas Wahl, „Kappe über der Hülle“, „Breite

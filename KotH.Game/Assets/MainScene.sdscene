@@ -54,6 +54,8 @@ Hierarchy:
                         CrouchAnimation: A7E4D001-9FE2-4801-A0F0-664595F86CF8:Models/MushroomCrouch
                         CrouchWalk: EB40CD69-9815-4DCD-B11E-D36599FFF5DA:Models/MushroomCrouchWalk
                         SlideAnimation: 37EA8620-E296-46AA-B0C9-02DA3BB621CD:Models/MushroomSlide
+                        FallAnimation: E4507AD7-2A47-4D8D-9072-A97C4E664E7E:Models/MushroomFall
+                        LandAnimation: 2E6B6B80-C1A4-4351-B97D-D12C21E8F335:Models/MushroomLand
                     e8ab9b370c105b9abc6477695d77ddec: !KotH.SimulationDriver
                         Id: 0F3CBBFE-76A6-50A8-B9C0-5AA9495E27D0
                     8ddde95318ac52e99340730c5af2c0b1: !KotH.PlayerVisualSystem

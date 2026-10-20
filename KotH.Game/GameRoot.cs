@@ -59,6 +59,12 @@ namespace KotH.Client
         /// <userdoc>Gleiten aus dem Sprint: ein Bein flach nach vorn gestreckt.</userdoc>
         [Display("Gleiten", "Animation")] public AnimationClip SlideAnimation;
 
+        /// <userdoc>Haltung beim Fallen: Arme schräg zur Seite und nach vorn, leichtes Balancieren.</userdoc>
+        [Display("Fallen", "Animation")] public AnimationClip FallAnimation;
+
+        /// <userdoc>Tiefster Punkt beim Einfedern nach der Landung; das Spiel blendet ihn kurz ein.</userdoc>
+        [Display("Landen", "Animation")] public AnimationClip LandAnimation;
+
         /// <summary>Render group of the own figure, see PlayerCamera.</summary>
         const RenderGroup OwnFigureGroup = RenderGroup.Group1;
 
@@ -292,7 +298,7 @@ namespace KotH.Client
             // In the order of PlayerVisualSystem.Clips; a missing clip just never plays.
             AnimationClip[] clips = { IdleAnimation, RestAnimation, WalkForward, WalkBack, WalkLeft, WalkRight,
                                       RunForward, RunBack, RunLeft, RunRight,
-                                      CrouchAnimation, CrouchWalk, SlideAnimation };
+                                      CrouchAnimation, CrouchWalk, SlideAnimation, FallAnimation, LandAnimation };
             if (RestAnimation != null)
             {
                 var animation = new AnimationComponent();
