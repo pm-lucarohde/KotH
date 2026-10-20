@@ -38,7 +38,7 @@ namespace KotH.Client
         /// <userdoc>Atmen und leichtes Wiegen, solange eine Figur still steht.</userdoc>
         [Display("Ruhe", "Animation")] public AnimationClip IdleAnimation;
 
-        /// <userdoc>Grundhaltung in der Luft, geduckt im Stand und beim Gleiten.</userdoc>
+        /// <userdoc>Grundhaltung in der Luft und beim Rutschen am Steilhang.</userdoc>
         [Display("Grundhaltung", "Animation")] public AnimationClip RestAnimation;
 
         [Display("Gehen vorwärts", "Animation")] public AnimationClip WalkForward;
@@ -49,6 +49,15 @@ namespace KotH.Client
         [Display("Rennen rückwärts", "Animation")] public AnimationClip RunBack;
         [Display("Rennen links", "Animation")] public AnimationClip RunLeft;
         [Display("Rennen rechts", "Animation")] public AnimationClip RunRight;
+
+        /// <userdoc>Hocke mit Atmen, geduckt im Stand und in der Luft.</userdoc>
+        [Display("Geduckt", "Animation")] public AnimationClip CrouchAnimation;
+
+        /// <userdoc>Schleichschritte geduckt, ein Clip für alle Richtungen.</userdoc>
+        [Display("Geduckt gehen", "Animation")] public AnimationClip CrouchWalk;
+
+        /// <userdoc>Gleiten aus dem Sprint: ein Bein flach nach vorn gestreckt.</userdoc>
+        [Display("Gleiten", "Animation")] public AnimationClip SlideAnimation;
 
         /// <summary>Render group of the own figure, see PlayerCamera.</summary>
         const RenderGroup OwnFigureGroup = RenderGroup.Group1;
@@ -282,7 +291,8 @@ namespace KotH.Client
             var visual = new Entity(body.Name + "Visual") { new ModelComponent(BodyModel) };
             // In the order of PlayerVisualSystem.Clips; a missing clip just never plays.
             AnimationClip[] clips = { IdleAnimation, RestAnimation, WalkForward, WalkBack, WalkLeft, WalkRight,
-                                      RunForward, RunBack, RunLeft, RunRight };
+                                      RunForward, RunBack, RunLeft, RunRight,
+                                      CrouchAnimation, CrouchWalk, SlideAnimation };
             if (RestAnimation != null)
             {
                 var animation = new AnimationComponent();

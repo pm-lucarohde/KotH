@@ -34,7 +34,8 @@ game.Run();
 /// once a second before the shot and reports the hit, KOTH_SHOT_SHAKE=1 takes a hit
 /// just before it and reports how far the camera shake tilts the view,
 /// KOTH_SHOT_BLINK=1 has every figure blink so the shot shows shut lids,
-/// KOTH_SHOT_MOVE=x,y[,sprint] holds the move keys (D and W are +1), saves the back buffer as PNG after KOTH_SHOT_SECONDS (default 3), reports
+/// KOTH_SHOT_MOVE=x,y[,sprint] holds the move keys (D and W are +1),
+/// KOTH_SHOT_CROUCH=s presses crouch at s seconds and holds it (out of a sprint: a slide), saves the back buffer as PNG after KOTH_SHOT_SECONDS (default 3), reports
 /// the label font and quits. Taken from
 /// inside the game on purpose, a desktop screenshot would capture whatever
 /// else is on the screen. For performance runs: KOTH_SIZE=1920x1080 sets the
@@ -54,6 +55,7 @@ sealed class KotHGame : Game
     bool shotShake = Environment.GetEnvironmentVariable("KOTH_SHOT_SHAKE") == "1";
     bool shotBlink = Environment.GetEnvironmentVariable("KOTH_SHOT_BLINK") == "1";
     string shotMove = Environment.GetEnvironmentVariable("KOTH_SHOT_MOVE");
+    double? shotCrouch = Number("KOTH_SHOT_CROUCH");
     readonly string frameLogPath = Environment.GetEnvironmentVariable("KOTH_FRAMELOG");
     Int2 windowedSize;
     bool confined;
@@ -238,6 +240,11 @@ sealed class KotHGame : Game
             {
                 motor.Teleport(shotAt.Value);
                 shotAt = null;
+            }
+            if (shotCrouch.HasValue && gameTime.Total.TotalSeconds >= shotCrouch.Value)
+            {
+                player.HoldCrouch();
+                shotCrouch = null;
             }
             if (shotSwing && gameTime.Total.TotalSeconds >= shotSeconds - 1.0)
             {

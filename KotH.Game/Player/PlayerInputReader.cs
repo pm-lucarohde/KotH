@@ -80,7 +80,14 @@ namespace KotH.Client.Player
         }
 
         Vector2? heldKeys;
-        bool heldSprint;
+        bool heldSprint, heldCrouch;
+
+        /// <summary>Crouch pressed now and held from then on, as a test aid: crouching and sliding seen in a screenshot.</summary>
+        public void HoldCrouch()
+        {
+            crouchPressed = true;
+            heldCrouch = true;
+        }
 
         /// <summary>One swing in the next tick, as a test aid: hits checked from a screenshot run.</summary>
         public void Swing()
@@ -145,6 +152,7 @@ namespace KotH.Client.Player
                 move = heldKeys.Value;
                 sprintHeld |= heldSprint;
             }
+            crouchHeld |= heldCrouch;
         }
 
         /// <summary>Unity's GetAxisRaw with snap: -1, 0 or 1.</summary>

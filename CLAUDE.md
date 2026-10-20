@@ -49,7 +49,8 @@ Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Pr
   `KOTH_SHOT_SWING=1` (ein Schlag, meldet Treffer), `KOTH_SHOT_SHAKE=1` (Treffer kurz vor
   dem Bild, meldet die Kippung; nur mit `--host`, offline fehlt `DamagePercent`),
   `KOTH_SHOT_BLINK=1` (alle Figuren blinzeln, das Bild zeigt geschlossene Lider),
-  `KOTH_SHOT_MOVE=x,y[,sprint]` (hält die Bewegungstasten, D und W sind +1), `KOTH_SIZE=WxH`, `KOTH_VSYNC=0|1`,
+  `KOTH_SHOT_MOVE=x,y[,sprint]` (hält die Bewegungstasten, D und W sind +1),
+  `KOTH_SHOT_CROUCH=s` (Ducken ab s Sekunden gehalten; aus dem Sprint ein Gleiten), `KOTH_SIZE=WxH`, `KOTH_VSYNC=0|1`,
   `KOTH_FRAMELOG=datei`.
 - Client: kein Splash (asynchrones Laden + `WaitIdle` ohne QueueLock gab
   `VK_ERROR_DEVICE_LOST`), Renderer-Parallelität 6 (gemessen, Lucas Wahl).
@@ -187,9 +188,13 @@ kein Zustand: ein Rollback behält ihn, im Netz kommt der Treffer mit der Bestä
 ### Figur und Animation
 
 Die Pilzfigur (`Mushroom.glb`) hat ein Skelett (`MushroomSkeleton.sdskel`, mit Ellenbogen
-und Knien) und zehn Clips: `MushroomIdle` (Atmen 4 s, Wiegen 8 s), `MushroomRest`
-(Grundhaltung: Luft, Gleiten, geduckt im Stand) und Gehen/Rennen je vorwärts, rückwärts,
-links, rechts (Gang nach Sanji, Lucas Wunsch). `PlayerVisualSystem` spielt alle zugleich
+und Knien) und 13 Clips: `MushroomIdle` (Atmen 4 s, Wiegen 8 s), `MushroomRest`
+(Grundhaltung: Luft, Rutschen am Steilhang), Gehen/Rennen je vorwärts, rückwärts,
+links, rechts (Gang nach Sanji, Lucas Wunsch), `MushroomCrouch` (Hocke mit Atmen, auch in
+der Luft), `MushroomCrouchWalk` (ein Clip für alle Richtungen, 3 Schritte/s) und
+`MushroomSlide` (Sanji-Grätsche). Geduckt macht die Pose die Figur nur etwa 20 cm niedriger
+(Beine 35 cm); den Rest bis zur Hüllenhöhe staucht `PlayerVisualSystem` (`PoseDrops`, Werte
+gibt `rig.py` aus), die Füße bleiben auf dem Boden der Hülle. `PlayerVisualSystem` spielt alle zugleich
 und setzt die Gewichte nach Tempo und Richtung (Strides Mischen normiert auf die Summe);
 die Lauf-Clips laufen mit `TimeFactor` 0 auf einer gemeinsamen Phase aus der Strecke
 (Gehen 3,5, Rennen 6 Schritte/s). Das Spiel selbst dreht zwei Knochenarten: die Lider
