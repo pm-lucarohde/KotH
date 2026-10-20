@@ -187,11 +187,13 @@ unter JIT und AOT; die Hashkette bleibt `A4A9BBB937C62890`.
 ## Neue Mechanik: Rückstoß nach Schadensprozent (20.10.2026, Lucas Vorgabe)
 
 7. **Ein Treffer stößt den Getroffenen weg** (in Unity gab es keinen Rückstoß).
-   Es zählt das Prozent vor dem Treffer: 0 % stößt nicht, 100 % ergeben ohne
+   Es zählt das Prozent vor dem Treffer: 0 % stößt nicht weg, 100 % ergeben ohne
    Gegensteuern auf ebenem Boden 12 m waagerecht und 1,2 m Höhe, linear bis
    1000 % (120 m / 12 m); zuerst waren es 2 m / 0,2 m, Luca hat zweimal
    verdoppelt und dann um 50 % erhöht. Einstellbar in `MeleeAttack` („Weite/Höhe bei 100 %“).
-   Die Richtung ist waagerecht weg vom Angreifer.
+   Die Richtung ist waagerecht weg vom Angreifer. Die Höhe gilt mindestens
+   wie bei 1 % (Lucas Vorgabe, „Höhe mindestens wie bei %“), auch bei 0 %:
+   ein Hüpfer von 1,2 cm, waagerecht bleibt dabei alles unberührt.
    - `PlayerMotor.Knock` setzt die Startgeschwindigkeit
      `v0 = a·dt/2 + √((a·dt/2)² + 2·a·d)`: waagerecht mit der
      Luftbeschleunigung (7,5 m/s²) als Bremse, senkrecht mit der Schwerkraft.
@@ -236,8 +238,9 @@ unter JIT und AOT; die Hashkette bleibt `A4A9BBB937C62890`.
      nicht.
    - MeleeProbe stellt den Rückstoß ab, sie misst Reichweite und Trefferzahl
      gegen Unity. Alle Bewegungsproben sind byte-gleich zum Stand davor.
-   - Die Hashkette der DeterminismProbe lautet jetzt `AFC01679A2071001`, unter
-     JIT und AOT gleich (die Probe schlägt zu). Lasttest mit 64 Bots:
-     Endzustand `075339B60C1BB468` unter JIT und AOT, etwa 1 ms je Tick.
+   - Die Hashkette der DeterminismProbe lautet jetzt `2645BFE8429DA550`, unter
+     JIT und AOT gleich (die Probe schlägt zu, seit dem Hüpfer bei 0 % schon
+     beim ersten Treffer). Lasttest mit 64 Bots: Endzustand `ACA28FF778F7B0AE`
+     unter JIT und AOT, etwa 1 ms je Tick.
    - Im Spiel stehen drei Dummys mit 0 %, 50 % und 100 % Startschaden
      nebeneinander; Server und Proben behalten ihren einen.

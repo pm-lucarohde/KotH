@@ -10,8 +10,8 @@ using Stride.Engine;
 namespace KotH.Probes.Probes
 {
     /// <summary>
-    /// The hit's knockback against the percent before it: 0 % moves nothing,
-    /// 100 % sends a body that does not steer 12 m along flat ground and 1.2 m
+    /// The hit's knockback against the percent before it: 0 % only hops as
+    /// high as 1 %, 100 % sends a body that does not steer 12 m along flat ground and 1.2 m
     /// up, linear to 1000 %. Then 100 % with the victim running against and
     /// along the knock: its own running simply adds on. Last the speeds of
     /// both along the line at the hit: a share of them from 10 %, all from
@@ -80,12 +80,11 @@ namespace KotH.Probes.Probes
                 Flight f = Hit(percent, 0f);
 
                 float wantDistance = attack.KnockbackDistance * percent / 100f;
-                float wantRise = attack.KnockbackHeight * percent / 100f;
-                bool ok = percent == 0f
-                    ? f.Distance == 0f && f.Rise == 0f
-                    : MathF.Abs(f.Distance - wantDistance) <= MathF.Max(0.02f, wantDistance * 0.01f)
-                      && MathF.Abs(f.Rise - wantRise) <= MathF.Max(0.01f, wantRise * 0.02f)
-                      && MathF.Abs(f.Angle) < 1f;
+                float wantRise = attack.KnockbackHeight * MathF.Max(percent, attack.KnockbackHeightFloor) / 100f;
+                bool ok = MathF.Abs(f.Rise - wantRise) <= MathF.Max(0.002f, wantRise * 0.02f)
+                    && (percent == 0f ? f.Distance == 0f
+                        : MathF.Abs(f.Distance - wantDistance) <= MathF.Max(0.02f, wantDistance * 0.01f)
+                          && MathF.Abs(f.Angle) < 1f);
                 ok &= MathF.Abs(f.After - MathF.Min(percent + attack.DamagePercent, 1000f)) < 1e-3f;
 
                 if (!ok)
@@ -152,7 +151,7 @@ namespace KotH.Probes.Probes
                 // rest by less than its speed over half a second.
                 float rest = (1f - share) * MathF.Abs(f.Fleeing) * 0.5f;
                 bool exact = c.holds == 0f && (share >= 1f || f.Fleeing == 0f);
-                bool ok = c.percent == 0f ? f.Distance == 0f && f.Rise == 0f
+                bool ok = c.percent == 0f ? f.Distance == 0f
                     : c.holds != 0f ? f.Distance < want && !f.Off
                     : !exact ? f.Distance < want && f.Distance > want - rest
                     : MathF.Abs(f.Distance - want) <= MathF.Max(0.02f, want * 0.01f) && MathF.Abs(f.Angle) < 1f;

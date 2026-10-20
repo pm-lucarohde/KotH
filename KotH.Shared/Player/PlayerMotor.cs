@@ -301,6 +301,23 @@ namespace KotH.Shared.Player
             if (distance <= 0f && height <= 0f)
                 return;
 
+            // A hop alone, as at 0 %, leaves the horizontal untouched,
+            // an older knock included.
+            if (distance > 0f || carry != 0f || absorb > 0f)
+                PushAway(away, distance, carry, absorb, dt);
+
+            // Upward the own climb or fall in the air keeps going, the hit
+            // adds on top. On the ground it counts as nothing: there it is
+            // only the settling speed. A jump in progress is no longer trimmed
+            // on release, that would eat the rise of the hit.
+            float rising = grounded || touchingGround ? 0f : velocity.Y;
+            velocity.Y = rising + LaunchSpeed(UMath.Max(0f, height), -Gravity, dt);
+            jumpCutPending = false;
+        }
+
+        /// <summary>The horizontal part of Knock; an older knock is replaced.</summary>
+        void PushAway(Vector3 away, float distance, float carry, float absorb, float dt)
+        {
             Vector3 flat = new Vector3(away.X, 0f, away.Z);
             flat = UMath.SqrMagnitude(flat) < 1e-8f ? Vector3.Zero : UMath.Normalized(flat);
 
@@ -315,18 +332,10 @@ namespace KotH.Shared.Player
                 velocity.Z -= flat.Z * taken;
             }
 
-            // An older knock is replaced.
             float speed = UMath.Max(0f, LaunchSpeed(UMath.Max(0f, distance), AirAcceleration, dt) + carry + taken);
             Vector3 fresh = UMath.Mul(flat, speed);
             velocity.X += fresh.X - knock.X;
             velocity.Z += fresh.Z - knock.Z;
-            // Upward the own climb or fall in the air keeps going, the hit
-            // adds on top. On the ground it counts as nothing: there it is
-            // only the settling speed. A jump in progress is no longer trimmed
-            // on release, that would eat the rise of the hit.
-            float rising = grounded || touchingGround ? 0f : velocity.Y;
-            velocity.Y = rising + LaunchSpeed(UMath.Max(0f, height), -Gravity, dt);
-            jumpCutPending = false;
             knock = fresh;
         }
 

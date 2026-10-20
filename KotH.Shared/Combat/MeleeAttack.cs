@@ -27,7 +27,7 @@ namespace KotH.Shared.Combat
         /// <userdoc>
         /// Wie weit ein Getroffener bei 100 % waagerecht fliegt, in Metern, ohne
         /// Gegensteuern auf ebenem Boden. Wächst linear mit dem Prozent vor dem
-        /// Treffer: 0 % stößt gar nicht, 1000 % zehnmal so weit.
+        /// Treffer: 0 % stößt waagerecht gar nicht, 1000 % zehnmal so weit.
         /// </userdoc>
         [Display("Weite bei 100 %", "Rückstoß")] public float KnockbackDistance = 12f;
 
@@ -37,6 +37,12 @@ namespace KotH.Shared.Combat
         /// Tempo obendrauf.
         /// </userdoc>
         [Display("Höhe bei 100 %", "Rückstoß")] public float KnockbackHeight = 1.2f;
+
+        /// <userdoc>
+        /// Darunter steigt ein Getroffener so hoch wie bei diesem Prozent, auch
+        /// bei 0 %. Nur die Höhe: waagerecht stößt 0 % weiter gar nicht.
+        /// </userdoc>
+        [Display("Höhe mindestens wie bei %", "Rückstoß")] public float KnockbackHeightFloor = 1f;
 
         /// <userdoc>
         /// Ab diesem Prozent vor dem Treffer zählt beim Treffer auch das Tempo
@@ -159,7 +165,8 @@ namespace KotH.Shared.Combat
                 carry = UMath.Dot(run, UMath.Normalized(away)) * share;
             }
 
-            victim.Knock(away, KnockbackDistance * scale, KnockbackHeight * scale, carry, share, dt);
+            float lift = UMath.Max(before, KnockbackHeightFloor) / 100f;
+            victim.Knock(away, KnockbackDistance * scale, KnockbackHeight * lift, carry, share, dt);
         }
 
         /// <summary>
