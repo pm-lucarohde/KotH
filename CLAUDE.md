@@ -32,6 +32,8 @@ Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Pr
 
 - AOT linkt in der Distrobox `aot` (clang, lld, zlib-devel); ILC stürzt gelegentlich
   ab, dann einfach erneut starten.
+  Das Skript baut immer `--no-incremental`: sonst bleibt nach neuen Skriptfeldern das alte
+  Szenen-Bundle liegen, und der AOT-Client stürzt beim Laden von `MainScene` ab.
 - Server: ohne Argument Echtzeit bis Strg+C, `--seconds N`, oder `--ticks N`
   (so schnell wie möglich, gibt µs/Tick, B/Tick und den exakten Endzustand aus).
   Lasttest: `--bodies N --warmup N` mit `BenchBot`s (geseedeter Zufall), Endzustands-Hash
