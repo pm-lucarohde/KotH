@@ -11,7 +11,7 @@ namespace KotH.Probes.Probes
 {
     /// <summary>
     /// The hit's knockback against the percent before it: 0 % moves nothing,
-    /// 100 % sends a body that does not steer 4 m along flat ground and 0.4 m
+    /// 100 % sends a body that does not steer 8 m along flat ground and 0.8 m
     /// up, linear to 1000 %. Then 100 % with the victim running against and
     /// along the knock: its own running simply adds on.
     /// </summary>
