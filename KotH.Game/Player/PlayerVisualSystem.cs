@@ -53,6 +53,9 @@ namespace KotH.Client.Player
         /// <userdoc>Schritte pro Sekunde beim geduckten Gehen.</userdoc>
         [Display("Schritte geduckt", "Animation")] public float CrouchSteps = 3f;
 
+        /// <userdoc>Breite der Figur geduckt und beim Gleiten (1 = wie stehend). Schmaler wirkt die gestauchte Figur weniger platt.</userdoc>
+        [Display("Breite geduckt", "Animation")] public float CrouchWidth = 0.9f;
+
         /// <userdoc>Wie weit der Kopf dem Blick nach oben und unten folgt (1 = ganz).</userdoc>
         [Display("Kopf folgt Blick", "Animation")] public float HeadFollow = 0.5f;
 
@@ -181,8 +184,10 @@ namespace KotH.Client.Player
             float drop = f.Animation != null ? Blend(f, motor, dt) : 0f;
             // A crouched pose is lower than standing; whatever is left to the
             // collider's height is squashed, feet kept on the collider's floor.
+            // Narrower as well, so it looks less flat (Luca's choice).
             float scale = motor.Height / (motor.StandHeight - drop);
-            t.Scale = new Vector3(1f, scale, 1f);
+            float width = 1f - (1f - CrouchWidth) * Crouched(motor);
+            t.Scale = new Vector3(width, scale, width);
             t.Position.Y += 0.5f * (motor.StandHeight * scale - motor.Height);
             Blink(f, dt);
             LookUpDown(f, alpha);
@@ -226,9 +231,7 @@ namespace KotH.Client.Player
             float moving = footing ? Smooth(0.15f, 1.2f, speed) : 0f;
             bool still = footing && speed < 0.1f;
             float run = Math.Clamp((speed - motor.WalkSpeed) / (motor.SprintSpeed - motor.WalkSpeed), 0f, 1f);
-            // Follows the collider's height, which glides between both.
-            float crouched = Math.Clamp((motor.StandHeight - motor.Height)
-                / MathF.Max(1e-3f, motor.StandHeight - motor.CrouchHeight), 0f, 1f);
+            float crouched = Crouched(motor);
             float stand = 1f - crouched;
             float slide = motor.IsSliding ? 1f : 0f;
 
@@ -279,6 +282,10 @@ namespace KotH.Client.Player
             }
             return total > 0f ? drop / total : 0f;
         }
+
+        /// <summary>0 standing, 1 crouched; follows the collider's height, which glides between both.</summary>
+        static float Crouched(PlayerMotor motor) =>
+            Math.Clamp((motor.StandHeight - motor.Height) / MathF.Max(1e-3f, motor.StandHeight - motor.CrouchHeight), 0f, 1f);
 
         static float Smooth(float e0, float e1, float x)
         {
