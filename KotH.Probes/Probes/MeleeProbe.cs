@@ -79,6 +79,14 @@ namespace KotH.Probes.Probes
             damage = target.Entity.Get<DamagePercent>();
             attack = scene.Player.Get<MeleeAttack>();
 
+            // Reach and hit rate against Unity, which had no knockback: a
+            // dummy pushed away by the burst would leave the range.
+            if (attack != null)
+            {
+                attack.KnockbackDistance = 0f;
+                attack.KnockbackHeight = 0f;
+            }
+
             if (damage == null || attack == null)
             {
                 LogError("[melee] DamagePercent am Dummy oder MeleeAttack am Spieler fehlt");

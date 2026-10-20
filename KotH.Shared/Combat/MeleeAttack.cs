@@ -24,6 +24,16 @@ namespace KotH.Shared.Combat
         /// <userdoc>Wie viel Prozent ein Treffer dem Getroffenen auflädt.</userdoc>
         [Display("Schadensprozent", "Schlag")] public float DamagePercent = 1.2f;
 
+        /// <userdoc>
+        /// Wie weit ein Getroffener bei 100 % waagerecht fliegt, in Metern, ohne
+        /// Gegensteuern auf ebenem Boden. Wächst linear mit dem Prozent vor dem
+        /// Treffer: 0 % stößt gar nicht, 1000 % zehnmal so weit.
+        /// </userdoc>
+        [Display("Weite bei 100 %", "Rückstoß")] public float KnockbackDistance = 2f;
+
+        /// <userdoc>Wie hoch ein Getroffener bei 100 % steigt, in Metern. Linear wie die Weite.</userdoc>
+        [Display("Höhe bei 100 %", "Rückstoß")] public float KnockbackHeight = 0.2f;
+
         // Ticks, not seconds: a third of a second is 13.33 ticks at 40 Hz and
         // would silently round up to 14. Counting ticks is also what a server
         // can replay without an argument about rounding.
@@ -98,7 +108,22 @@ namespace KotH.Shared.Combat
             // probe could not tell a miss apart from a full target.
             HitCount++;
             LastHitDistance = hit.Distance;
+
+            // The percent before this hit decides: a fresh body is not moved.
+            float scale = target.Percent / 100f;
             target.Add(DamagePercent);
+
+            PlayerMotor victim = target.Entity.Get<PlayerMotor>();
+            if (victim == null)
+                return;
+
+            // Away from the attacker; straight along the aim if they overlap.
+            Vector3 away = UMath.Sub(victim.Position, motor.Position);
+            away.Y = 0f;
+            if (UMath.SqrMagnitude(away) < 1e-8f)
+                away = new Vector3(aim.X, 0f, aim.Z);
+
+            victim.Knock(away, KnockbackDistance * scale, KnockbackHeight * scale, dt);
         }
 
         /// <summary>Clears the counters so a probe can measure one case.</summary>

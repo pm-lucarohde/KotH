@@ -2,11 +2,13 @@ using KotH.Client.Hud;
 using KotH.Client.Player;
 using KotH.Shared.Combat;
 using KotH.Shared.Hosting;
+using KotH.Shared.Mathematics;
 using KotH.Shared.Physics;
 using KotH.Shared.Player;
 using KotH.Shared.Simulation;
 using Stride.BepuPhysics;
 using Stride.Core;
+using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Graphics;
 using Stride.Rendering;
@@ -15,9 +17,9 @@ namespace KotH.Client
 {
     /// <summary>
     /// Builds the playable world when the scene starts: the arena's collision,
-    /// the player and the dummy, in exactly the order the server and the
-    /// probes use, so the same inputs give the same ticks everywhere. The
-    /// scene itself only carries what is drawn.
+    /// the player and three dummies charged to 0, 50 and 100 percent, the
+    /// player and the middle dummy in the order the server and the probes
+    /// use. The scene itself only carries what is drawn.
     /// </summary>
     [DataContract("KotH.GameRoot")]
     public sealed class GameRoot : StartupScript
@@ -40,11 +42,22 @@ namespace KotH.Client
 
             var reader = new PlayerInputReader();
             Entity player = Spawn(builder, WorldBuilder.PlayerBodyUrl, "PlayerSpawn", "Player", reader);
-            Entity dummy = Spawn(builder, WorldBuilder.DummyBodyUrl, "DummySpawn", "Dummy");
+
+            // Side by side across the dummy marker's facing, 3 m apart, so
+            // each percent's knockback can be tried right next to the others.
+            Entity marker = builder.Find("DummySpawn");
+            Vector3 side = UMath.Mul(UMath.Rotate(marker.Transform.Rotation, UMath.Right), 3f);
+            var dummies = new[]
+            {
+                SpawnDummy(builder, marker, Vector3.Zero, 0f),
+                SpawnDummy(builder, marker, UMath.Neg(side), 50f),
+                SpawnDummy(builder, marker, side, 100f),
+            };
 
             var visuals = Entity.Get<PlayerVisualSystem>();
             AddVisual(visuals, player);
-            AddVisual(visuals, dummy);
+            foreach (Entity dummy in dummies)
+                AddVisual(visuals, dummy);
 
             Entity.Get<SimulationDriver>().LocalInput = reader;
 
@@ -59,7 +72,17 @@ namespace KotH.Client
                 view = e.Transform;
             }
 
-            AddLabel(dummy, view);
+            foreach (Entity dummy in dummies)
+                AddLabel(dummy, view);
+        }
+
+        static Entity SpawnDummy(WorldBuilder builder, Entity marker, Vector3 offset, float percent)
+        {
+            Entity body = builder.SpawnBody(WorldBuilder.DummyBodyUrl,
+                UMath.Add(marker.Transform.Position, offset), marker.Transform.Rotation);
+            body.Name = $"Dummy {percent:F0} %";
+            body.Get<DamagePercent>().Restore(percent);
+            return body;
         }
 
         /// <summary>

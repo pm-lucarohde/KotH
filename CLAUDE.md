@@ -47,7 +47,7 @@ Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Pr
 Es gibt keine Unit-Tests; geprüft wird mit **Proben** gegen die eingefrorene Unity-Referenz.
 
 ```bash
-Bin/Probes/Release/KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|step|determinism|clock|stairrun|rampfoot|crouchedge>
+Bin/Probes/Release/KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|step|determinism|clock|stairrun|rampfoot|crouchedge|knockback>
 Bin/Probes/Release/KotH.Probes determinism hashes   # Hashkette + Befehlssatz
 
 .work/tools/stride_runs.sh 3                        # alle Bewegungsproben 3x -> .work/regress/runK

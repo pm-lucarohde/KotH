@@ -163,6 +163,7 @@ namespace KotH.Shared.Player
         int stepSettleTicks;      // ticks a step-up still counts as standing
         bool wedged;              // last move was refused by the world
         float knockbackTime;      // ground control stays soft this long
+        Vector3 knock;            // horizontal knockback still to shed, part of velocity
         bool doubleJumpUsed;      // once per flight
         bool jumpWindowOpen;      // window since the ground jump
         float timeSinceGroundJump;
@@ -194,6 +195,9 @@ namespace KotH.Shared.Player
         public float Radius => BodyRadius;
         public float MaxStepHeight => maxStepHeight;
         public bool IsGrounded => grounded;
+
+        /// <summary>Speed of the knock still to shed, m/s. Zero once a hit is spent.</summary>
+        public float KnockLeft => UMath.Magnitude(knock);
 
         /// <summary>
         /// Ground of any steepness, walkable or not. IsGrounded is the
@@ -281,6 +285,59 @@ namespace KotH.Shared.Player
         }
 
         /// <summary>
+        /// Knocks the body away from a hit: without input, on flat ground, it
+        /// travels distance horizontally and rises height. The knock is its
+        /// own share of the velocity and sheds at the air acceleration no
+        /// matter what is pressed; the body's own running adds on top of it,
+        /// so running against a knock takes exactly that speed off.
+        /// </summary>
+        public void Knock(Vector3 away, float distance, float height, float dt)
+        {
+            if (distance <= 0f && height <= 0f)
+                return;
+
+            Vector3 flat = new Vector3(away.X, 0f, away.Z);
+            flat = UMath.SqrMagnitude(flat) < 1e-8f ? Vector3.Zero : UMath.Normalized(flat);
+
+            // The running keeps going, an older knock is replaced.
+            Vector3 fresh = UMath.Mul(flat, LaunchSpeed(UMath.Max(0f, distance), AirAcceleration, dt));
+            velocity.X += fresh.X - knock.X;
+            velocity.Z += fresh.Z - knock.Z;
+            velocity.Y = LaunchSpeed(UMath.Max(0f, height), -Gravity, dt);
+            knock = fresh;
+        }
+
+        /// <summary>
+        /// Speed a wall took is taken from the knock first, as far as it ran
+        /// against the knock's direction. Left whole, the knock would outlive
+        /// the speed it is part of and the running share would turn backwards.
+        /// </summary>
+        void ClipKnock(Vector3 asked)
+        {
+            float left = UMath.Magnitude(knock);
+            if (left <= 0f)
+                return;
+
+            Vector3 along = UMath.Div(knock, left);
+            float taken = UMath.Dot(new Vector3(asked.X - velocity.X, 0f, asked.Z - velocity.Z), along);
+            if (taken > 0f)
+                knock = UMath.Mul(along, UMath.Max(0f, left - taken));
+        }
+
+        /// <summary>
+        /// Start speed that covers distance while braking at decel. The motor
+        /// brakes before it moves, so each tick loses decel*dt first; that
+        /// costs half a tick of travel, added back here.
+        /// </summary>
+        static float LaunchSpeed(float distance, float decel, float dt)
+        {
+            if (distance <= 0f)
+                return 0f;
+            float half = decel * dt * 0.5f;
+            return half + UMath.Sqrt(half * half + 2f * decel * distance);
+        }
+
+        /// <summary>
         /// Puts the body somewhere. Deliberately moves nothing else: velocity
         /// survives, so a caller that wants a clean start has to say so. The
         /// probes rely on that - clearing it here moved their starting points
@@ -324,6 +381,7 @@ namespace KotH.Shared.Player
                 StepSettleTicks = stepSettleTicks,
                 Wedged = wedged,
                 KnockbackTime = knockbackTime,
+                Knock = knock,
                 DoubleJumpUsed = doubleJumpUsed,
                 JumpWindowOpen = jumpWindowOpen,
                 TimeSinceGroundJump = timeSinceGroundJump,
@@ -369,6 +427,7 @@ namespace KotH.Shared.Player
             stepSettleTicks = s.StepSettleTicks;
             wedged = s.Wedged;
             knockbackTime = s.KnockbackTime;
+            knock = s.Knock;
             doubleJumpUsed = s.DoubleJumpUsed;
             jumpWindowOpen = s.JumpWindowOpen;
             timeSinceGroundJump = s.TimeSinceGroundJump;
@@ -552,7 +611,10 @@ namespace KotH.Shared.Player
             // Not while sliding: the guard is there so crouched creeping
             // does not walk off a ledge, and it zeroes the velocity. A slide
             // is meant to carry over the edge instead of sticking to it.
-            if (isCrouching && !sliding && grounded && !jumped)
+            // Nor while knocked away: it held a crouched body at every
+            // edge, the summit included, against any hit.
+            if (isCrouching && !sliding && grounded && !jumped
+                && UMath.SqrMagnitude(knock) <= 0f)
                 GuardLedge(dt);
 
             // Cleared here so the contacts collected below belong to this
@@ -581,7 +643,9 @@ namespace KotH.Shared.Player
             // sprint that never ends, a body push with invented momentum
             // and a lastStepSpeed that disagreed with velocity. A riser low
             // enough to climb keeps it, see CapsuleSweep.IsRiser.
+            Vector3 asked = velocity;
             velocity = moved.velocity;
+            ClipKnock(asked);
 
             // Only ground that was walkable at the start of the tick is worth
             // keeping. A jump clears grounded itself, so it is never undone,
@@ -733,8 +797,19 @@ namespace KotH.Shared.Player
                     ? (hasInput ? GroundAcceleration : GroundDeceleration)
                     : (hasInput ? AirAcceleration : 0f);
 
-            Vector3 current = new Vector3(velocity.X, 0f, velocity.Z);
+            // The body's own running, without the knock riding on it. The
+            // knock sheds on its own, whatever is pressed. Untouched without
+            // one: adding a zero flips the sign of a -0 and the bits change.
+            bool knocked = UMath.SqrMagnitude(knock) > 0f;
+            Vector3 current = knocked
+                ? new Vector3(velocity.X - knock.X, 0f, velocity.Z - knock.Z)
+                : new Vector3(velocity.X, 0f, velocity.Z);
             Vector3 next = UMath.MoveTowards(current, UMath.Mul(wish, speed), rate * dt);
+            if (knocked)
+            {
+                knock = UMath.MoveTowards(knock, Vector3.Zero, AirAcceleration * dt);
+                next = new Vector3(next.X + knock.X, 0f, next.Z + knock.Z);
+            }
 
             velocity.X = next.X;
             velocity.Z = next.Z;

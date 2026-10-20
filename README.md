@@ -1,10 +1,12 @@
 # KotH
 
 Ein King-of-the-Hill-Spiel in der Ego-Perspektive. Wer den Gipfel hält, gewinnt.
-Der aktuelle Stand ist ein Prototyp: Arena mit Berg, Rampen und Treppen, ein
-Trainingsdummy, Bewegung mit Sprint, Gleiten, Ducken, gestuftem Sprung und
-Doppelsprung, Körperstöße zwischen Spielern sowie ein Nahkampfschlag, der das
-Schadensprozent des Getroffenen erhöht.
+Der aktuelle Stand ist ein Prototyp: Arena mit Berg, Rampen und Treppen, drei
+Trainingsdummys (0 %, 50 % und 100 % Startschaden), Bewegung mit Sprint,
+Gleiten, Ducken, gestuftem Sprung und Doppelsprung, Körperstöße zwischen
+Spielern sowie ein Nahkampfschlag. Der Schlag erhöht das Schadensprozent des
+Getroffenen und stößt ihn umso weiter weg, je höher es schon war: bei 100 %
+2 m weit und 0,2 m hoch, linear bis 1000 %.
 
 | | |
 |---|---|
@@ -148,7 +150,7 @@ Bin/Probes/Release/KotH.Probes determinism hashes
 
 Proben: `worldquery`, `rotation`, `slopejump`, `crest`, `impact`, `jumpheight`,
 `slide`, `sprint`, `melee`, `step`, `determinism`, `clock`, `stairrun`, `rampfoot`,
-`crouchedge`.
+`crouchedge`, `knockback`.
 
 Vergleich mit der Unity-Referenz:
 
@@ -167,7 +169,7 @@ jede gewollte Änderung gegenüber Unity ist mit Ursache in
 AVX2/FMA rundet anders als SSE. Alle AOT-Builds sind deshalb fest auf
 x86-64-v2 gebaut. Ein JIT-Lauf auf einer AVX2-CPU rechnet nur mit
 `DOTNET_EnableAVX=0` genauso. Die Hashkette der DeterminismProbe muss unter JIT
-und AOT gleich sein; derzeit lautet sie `A4A9BBB937C62890`. Für Peer-to-Peer
+und AOT gleich sein; derzeit lautet sie `F8B581D86AC8D19F`. Für Peer-to-Peer
 heißt das: Alle Peers brauchen dasselbe Binary.
 
 ## Lizenz

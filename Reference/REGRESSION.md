@@ -183,3 +183,34 @@ unter JIT und AOT; die Hashkette bleibt `A4A9BBB937C62890`.
      ist das Reiten auf der Kante; beide liegen jetzt über der Toleranz, die
      Urteile bleiben gleich. „= Kante geduckt“ weicht um 1 mm ab. Alle anderen
      Proben byte-gleich, Hashkette unverändert.
+
+## Neue Mechanik: Rückstoß nach Schadensprozent (20.10.2026, Lucas Vorgabe)
+
+7. **Ein Treffer stößt den Getroffenen weg** (in Unity gab es keinen Rückstoß).
+   Es zählt das Prozent vor dem Treffer: 0 % stößt nicht, 100 % ergeben ohne
+   Gegensteuern auf ebenem Boden 2 m waagerecht und 0,2 m Höhe, linear bis
+   1000 % (20 m / 2 m). Einstellbar in `MeleeAttack` („Weite/Höhe bei 100 %“).
+   Die Richtung ist waagerecht weg vom Angreifer.
+   - `PlayerMotor.Knock` setzt die Startgeschwindigkeit
+     `v0 = a·dt/2 + √((a·dt/2)² + 2·a·d)`: waagerecht mit der
+     Luftbeschleunigung (7,5 m/s²) als Bremse, senkrecht mit der Schwerkraft.
+     Der Term `a·dt/2` gleicht aus, dass der Motor vor dem Bewegen bremst.
+   - Der Stoß ist ein eigener Anteil `knock` der Geschwindigkeit, der sich
+     unabhängig von der Eingabe abbaut; das eigene Laufen kommt obendrauf.
+     Wer gegen den Stoß läuft, nimmt ihm genau sein Lauftempo ab. In der Luft
+     beschleunigt das eigene Laufen dabei nur mit der Luftkontrolle. Was eine
+     Wand an Tempo nimmt, geht zuerst vom Stoß ab (`ClipKnock`). Der
+     Kantenschutz beim Ducken ruht, solange ein Stoß wirkt.
+   - `knock` steht in `MotorState`; die DeterminismProbe prüft Rollback und
+     Vollständigkeit weiter bitgenau.
+   - Neue Probe `knockback`: 0 / 1,2 / 50 / 100 / 250 / 500 / 1000 % treffen
+     Weite und Höhe auf 1 mm (100 %: 2,000 m / 0,201 m, 1000 %: 20,000 m /
+     2,001 m); dazu Gegen- und Mitlaufen bei 100 %: −2,840 m (Stoß + eigenes
+     Laufen = −2,835 m) und 6,841 m (6,841 m).
+   - MeleeProbe stellt den Rückstoß ab, sie misst Reichweite und Trefferzahl
+     gegen Unity. Alle Bewegungsproben sind byte-gleich zum Stand davor.
+   - Die Hashkette der DeterminismProbe lautet jetzt `F8B581D86AC8D19F`, unter
+     JIT und AOT gleich (die Probe schlägt zu). Lasttest mit 64 Bots:
+     Endzustand `2093B9002BD8B6C5` unter JIT und AOT, etwa 1 ms je Tick.
+   - Im Spiel stehen drei Dummys mit 0 %, 50 % und 100 % Startschaden
+     nebeneinander; Server und Proben behalten ihren einen.

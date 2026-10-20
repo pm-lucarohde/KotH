@@ -34,6 +34,7 @@ namespace KotH.Shared.Player
         public int StepSettleTicks;
         public bool Wedged;
         public float KnockbackTime;
+        public Vector3 Knock;
         public bool DoubleJumpUsed;
         public bool JumpWindowOpen;
         public float TimeSinceGroundJump;
