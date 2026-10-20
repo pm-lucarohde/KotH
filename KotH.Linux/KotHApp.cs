@@ -49,6 +49,7 @@ sealed class KotHGame : Game
     bool shotSwing = Environment.GetEnvironmentVariable("KOTH_SHOT_SWING") == "1";
     readonly string frameLogPath = Environment.GetEnvironmentVariable("KOTH_FRAMELOG");
     Int2 windowedSize;
+    bool confined;
 
     // From the first frame on, once the window manager has sized the window:
     // that size is where F11 returns to. A fixed KOTH_SIZE stays a window.
@@ -94,6 +95,30 @@ sealed class KotHGame : Game
         }
     }
 
+    /// <summary>
+    /// Waits for the window manager to focus the new window, at most two
+    /// seconds, and captures the mouse right then. The game would only take
+    /// it after loading, and until then the pointer could leave the
+    /// fullscreen window for the other screen.
+    /// </summary>
+    protected override void Initialize()
+    {
+        base.Initialize();
+        if (Window.NativeWindow?.NativeWindow is not Stride.Graphics.SDL.Window sdl)
+            return;
+
+        // Pumping only moves the window's events into SDL's queue; the game
+        // still reads every one of them later.
+        var wait = System.Diagnostics.Stopwatch.StartNew();
+        while (SdlGrab.SDL_GetKeyboardFocus() != sdl.SdlHandle && wait.ElapsedMilliseconds < 2000)
+        {
+            SdlGrab.SDL_PumpEvents();
+            System.Threading.Thread.Sleep(5);
+        }
+        SdlGrab.SDL_SetRelativeMouseMode(1);
+        SdlGrab.SDL_SetWindowGrab(sdl.SdlHandle, 1);
+    }
+
     protected override void EndRun()
     {
         base.EndRun();
@@ -116,6 +141,7 @@ sealed class KotHGame : Game
             ToggleFullscreen();
         }
         RestoreWindowSize();
+        ConfinePointer();
 
         if (shotPath == null)
             return;
@@ -141,6 +167,20 @@ sealed class KotHGame : Game
                 shotSwing = false;
             }
         }
+    }
+
+    /// <summary>
+    /// SDL's relative mode only hides the pointer here (X11 on Wayland): it
+    /// never grabs, so the pointer left the fullscreen window for the other
+    /// screen. While the game has the mouse, the window grabs it as well.
+    /// </summary>
+    void ConfinePointer()
+    {
+        bool confine = Input.IsMousePositionLocked && Window.Focused;
+        if (confine == confined || Window.NativeWindow?.NativeWindow is not Stride.Graphics.SDL.Window sdl)
+            return;
+        SdlGrab.SDL_SetWindowGrab(sdl.SdlHandle, confine ? 1 : 0);
+        confined = confine;
     }
 
     /// <summary>
@@ -292,4 +332,12 @@ static class StdCxxPreload
         if (DlOpen("libstdc++.so.6", RtldNow | RtldGlobal) == IntPtr.Zero)
             Console.Error.WriteLine("libstdc++.so.6 konnte nicht geladen werden, Audio fällt aus.");
     }
+}
+
+static class SdlGrab
+{
+    [DllImport("libSDL2-2.0.so")] public static extern void SDL_SetWindowGrab(nint window, int grabbed);
+    [DllImport("libSDL2-2.0.so")] public static extern int SDL_SetRelativeMouseMode(int enabled);
+    [DllImport("libSDL2-2.0.so")] public static extern nint SDL_GetKeyboardFocus();
+    [DllImport("libSDL2-2.0.so")] public static extern void SDL_PumpEvents();
 }
