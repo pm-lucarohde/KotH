@@ -56,6 +56,9 @@ namespace KotH.Client.Player
         /// <userdoc>Breite der Figur geduckt und beim Gleiten (1 = wie stehend). Schmaler wirkt die gestauchte Figur weniger platt.</userdoc>
         [Display("Breite geduckt", "Animation")] public float CrouchWidth = 0.9f;
 
+        /// <userdoc>So viele Meter ragt die Kappe geduckt und beim Gleiten über die Hülle hinaus; weniger Stauchung, bessere Proportionen. Dort zählt kein Treffer.</userdoc>
+        [Display("Kappe über der Hülle", "Animation")] public float CrouchOverhang = 0.1f;
+
         /// <userdoc>Wie weit der Kopf dem Blick nach oben und unten folgt (1 = ganz).</userdoc>
         [Display("Kopf folgt Blick", "Animation")] public float HeadFollow = 0.5f;
 
@@ -184,9 +187,11 @@ namespace KotH.Client.Player
             float drop = f.Animation != null ? Blend(f, motor, dt) : 0f;
             // A crouched pose is lower than standing; whatever is left to the
             // collider's height is squashed, feet kept on the collider's floor.
-            // Narrower as well, so it looks less flat (Luca's choice).
-            float scale = motor.Height / (motor.StandHeight - drop);
-            float width = 1f - (1f - CrouchWidth) * Crouched(motor);
+            // Narrower as well and the cap a little above the collider, so it
+            // looks less flat (Luca's choice).
+            float crouched = Crouched(motor);
+            float scale = (motor.Height + CrouchOverhang * crouched) / (motor.StandHeight - drop);
+            float width = 1f - (1f - CrouchWidth) * crouched;
             t.Scale = new Vector3(width, scale, width);
             t.Position.Y += 0.5f * (motor.StandHeight * scale - motor.Height);
             Blink(f, dt);

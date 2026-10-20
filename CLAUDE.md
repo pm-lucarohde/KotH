@@ -194,8 +194,9 @@ links, rechts (Gang nach Sanji, Lucas Wunsch), `MushroomCrouch` (Hocke mit Atmen
 der Luft), `MushroomCrouchWalk` (ein Clip für alle Richtungen, 3 Schritte/s) und
 `MushroomSlide` (Sanji-Grätsche). Geduckt macht die Pose die Figur nur etwa 20 cm niedriger
 (Beine 35 cm); den Rest bis zur Hüllenhöhe staucht `PlayerVisualSystem` (`PoseDrops`, Werte
-gibt `rig.py` aus) und macht sie auf 90 % schmaler, damit sie weniger platt wirkt (Lucas Wahl,
-„Breite geduckt“); die Füße bleiben auf dem Boden der Hülle. `PlayerVisualSystem` spielt alle zugleich
+gibt `rig.py` aus), lässt die Kappe 10 cm über die Hülle ragen und macht die Figur auf 90 %
+schmaler, damit sie weniger platt wirkt (Lucas Wahl, „Kappe über der Hülle“, „Breite
+geduckt“); die Füße bleiben auf dem Boden der Hülle. `PlayerVisualSystem` spielt alle zugleich
 und setzt die Gewichte nach Tempo und Richtung (Strides Mischen normiert auf die Summe);
 die Lauf-Clips laufen mit `TimeFactor` 0 auf einer gemeinsamen Phase aus der Strecke
 (Gehen 3,5, Rennen 6 Schritte/s). Das Spiel selbst dreht zwei Knochenarten: die Lider
