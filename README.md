@@ -2,7 +2,7 @@
 
 Ein King-of-the-Hill-Spiel in der Ego-Perspektive. Wer den Gipfel hält, gewinnt.
 Der aktuelle Stand ist ein Prototyp: Arena mit Berg, Rampen und Treppen, drei
-Trainingsdummys (0 %, 50 % und 100 % Startschaden), Bewegung mit Sprint,
+Trainingsdummys (0 %, 50 % und 100 % Startschaden) als Fliegenpilz-Figuren, Bewegung mit Sprint,
 Gleiten, Ducken, gestuftem Sprung und Doppelsprung, Körperstöße zwischen
 Spielern sowie ein Nahkampfschlag. Der Schlag erhöht das Schadensprozent des
 Getroffenen und stößt ihn umso weiter weg, je höher es schon war: bei 100 %
