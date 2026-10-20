@@ -72,6 +72,16 @@ namespace KotH.Client.Player
             pitch = UMath.Clamp(pitchDegrees, MinPitch, MaxPitch);
         }
 
+        /// <summary>Keys held from now on, as a test aid: animations seen in a screenshot run.</summary>
+        public void Hold(Vector2 keys, bool sprint)
+        {
+            heldKeys = keys;
+            heldSprint = sprint;
+        }
+
+        Vector2? heldKeys;
+        bool heldSprint;
+
         /// <summary>One swing in the next tick, as a test aid: hits checked from a screenshot run.</summary>
         public void Swing()
         {
@@ -130,6 +140,11 @@ namespace KotH.Client.Player
             jumpHeld = input.IsKeyDown(Keys.Space);
             sprintHeld = input.IsKeyDown(SprintKey);
             crouchHeld = input.IsKeyDown(CrouchKey);
+            if (heldKeys.HasValue)
+            {
+                move = heldKeys.Value;
+                sprintHeld |= heldSprint;
+            }
         }
 
         /// <summary>Unity's GetAxisRaw with snap: -1, 0 or 1.</summary>

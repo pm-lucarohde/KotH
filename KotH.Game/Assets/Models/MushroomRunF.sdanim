@@ -1,0 +1,15 @@
+!Animation
+Id: 8B57D920-06C3-4B8D-B783-98BC249B38F5
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: ../../Resources/Models/Mushroom_RunF.glb
+ClipDuration:
+    Enabled: false
+    StartAnimationTime: 0:00:00:00.0000000
+    EndAnimationTime: 0:00:30:00.0000000
+PivotPosition: {X: 0.0, Y: 0.0, Z: 0.0}
+RepeatMode: LoopInfinite
+Type: !StandardAnimationAssetType {}
+Skeleton: BD2F36A7-7DD4-4CD2-8E67-01E245ED7765:Models/MushroomSkeleton
+RootMotion: false
+PreviewModel: 5A577C74-31C4-461E-AB70-D9ECAE3CC5D1:Models/Mushroom

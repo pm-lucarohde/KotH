@@ -17,8 +17,10 @@ namespace KotH.Client.Player
     /// game instead of one per player, spread across worker threads. Each
     /// visual is its own root entity, so its transform is written alone and
     /// the 40 Hz snap of the simulated body never shows. Also plays the
-    /// figure's clips: the idle loop while a body stands still, else the
-    /// rest pose, and a blink every few seconds, set on the lid bones.
+    /// figure's clips, all at once with weights: the idle loop while a body
+    /// stands still, walking and running in four directions blended by
+    /// speed and heading, the rest pose otherwise, and a blink every few
+    /// seconds, set on the lid bones.
     /// </summary>
     [DataContract("KotH.PlayerVisualSystem")]
     public sealed class PlayerVisualSystem : SyncScript
@@ -34,20 +36,38 @@ namespace KotH.Client.Player
         int seenTick = -1;
 
         /// <userdoc>Sekunden zwischen zwei Lidschlägen einer Figur.</userdoc>
-        [Display("Blinzelabstand", "Animation")] public float BlinkInterval = 15f;
+        [Display("Blinzelabstand", "Animation")] public float BlinkInterval = 10f;
 
         /// <userdoc>Wie lange ein Lidschlag dauert, zu und wieder auf.</userdoc>
         [Display("Blinzeldauer", "Animation")] public float BlinkSeconds = 0.15f;
 
-        /// <userdoc>Überblendzeit zwischen Ruhe und Grundhaltung.</userdoc>
+        /// <userdoc>Überblendzeit zwischen Ruhe, Gehen, Rennen und Grundhaltung.</userdoc>
         [Display("Überblenden", "Animation")] public float BlendSeconds = 0.25f;
 
-        /// <summary>Clip names in every visual's AnimationComponent.</summary>
-        public const string IdleClip = "Idle", RestClip = "Rest";
+        /// <userdoc>Schritte pro Sekunde bei Gehtempo; die Füße rutschen etwas, wenn das kleiner ist als das Tempo verlangt.</userdoc>
+        [Display("Schritte Gehen", "Animation")] public float WalkSteps = 3.5f;
+
+        /// <userdoc>Schritte pro Sekunde bei Sprinttempo.</userdoc>
+        [Display("Schritte Rennen", "Animation")] public float RunSteps = 6f;
+
+        /// <userdoc>Wie weit der Kopf dem Blick nach oben und unten folgt (1 = ganz).</userdoc>
+        [Display("Kopf folgt Blick", "Animation")] public float HeadFollow = 0.5f;
+
+        /// <userdoc>Stärkste Neigung des Kopfes in Grad.</userdoc>
+        [Display("Kopfneigung höchstens", "Animation")] public float HeadMaxDegrees = 40f;
+
+        /// <summary>
+        /// Clip names in every visual's AnimationComponent: idle, rest, then
+        /// walking and running forward, back, left and right.
+        /// </summary>
+        public static readonly string[] Clips =
+            { "Idle", "Rest", "WalkF", "WalkB", "WalkL", "WalkR", "RunF", "RunB", "RunL", "RunR" };
+        const int IdleIndex = 0, RestIndex = 1, WalkIndex = 2, RunIndex = 6;
 
         // Lids open: shrunk to their pivot, as no triangle at all.
         const float Hidden = 1e-4f;
         static readonly string[] LidBones = { "Lid.L", "Lid.R" };
+        const string LookBone = "Look";
 
         readonly List<Figure> figures = new List<Figure>();
         readonly Random random = new Random();
@@ -56,9 +76,12 @@ namespace KotH.Client.Player
         {
             public AnimationComponent Animation;
             public ModelComponent Model;
-            public bool Idle, Started;
-            public float BlinkClock;
+            public PlayingAnimation[] Plays;
+            public readonly float[] Weights = new float[Clips.Length];
+            public SimulationBody Body;
+            public float Phase, BlinkClock;
             public int[] Lids;
+            public int Look = -2;
         }
 
         public PlayerVisualSystem()
@@ -81,6 +104,7 @@ namespace KotH.Client.Player
             {
                 Animation = visual.Get<AnimationComponent>(),
                 Model = visual.Get<ModelComponent>(),
+                Body = motor.Entity.Get<SimulationBody>(),
                 // Figures side by side never blink together.
                 BlinkClock = (float)random.NextDouble() * BlinkInterval,
             });
@@ -141,32 +165,97 @@ namespace KotH.Client.Player
 
             float dt = (float)Game.UpdateTime.Elapsed.TotalSeconds;
             for (int i = 0; i < count; i++)
-                Animate(figures[i], motors[i], dt);
+                Animate(figures[i], motors[i], dt, alpha);
         }
 
-        void Animate(Figure f, PlayerMotor motor, float dt)
+        void Animate(Figure f, PlayerMotor motor, float dt, float alpha)
         {
             if (f.Animation != null)
+                Blend(f, motor, dt);
+            Blink(f, dt);
+            LookUpDown(f, alpha);
+        }
+
+        /// <summary>The neck bone tilts with the view; no clip touches it.</summary>
+        void LookUpDown(Figure f, float alpha)
+        {
+            SkeletonUpdater skeleton = f.Model?.Skeleton;
+            if (skeleton == null || f.Body == null)
+                return;
+            if (f.Look == -2)
+                f.Look = Array.FindIndex(skeleton.Nodes, n => n.Name == LookBone);
+            if (f.Look < 0)
+                return;
+            float pitch = f.Body.PreviousLookPitch + (f.Body.LookPitch - f.Body.PreviousLookPitch) * alpha;
+            float tilt = Math.Clamp(pitch * HeadFollow, -HeadMaxDegrees, HeadMaxDegrees);
+            // The neck points up, its X is the figure's right: positive tips the head back.
+            skeleton.NodeTransformations[f.Look].Transform.Rotation = Quaternion.RotationX(MathUtil.DegreesToRadians(tilt));
+        }
+
+        void Blend(Figure f, PlayerMotor motor, float dt)
+        {
+            if (f.Plays == null)
             {
-                Vector3 v = motor.Velocity;
-                bool idle = motor.IsGrounded && !motor.IsCrouching && !motor.IsSliding
-                            && v.X * v.X + v.Z * v.Z < 0.01f && motor.KnockLeft <= 0f;
-                if (!f.Started)
+                // Every clip plays from the start on; only the weights change.
+                f.Plays = new PlayingAnimation[Clips.Length];
+                for (int i = 0; i < Clips.Length; i++)
+                    if (f.Animation.Animations.ContainsKey(Clips[i]))
+                        f.Plays[i] = f.Animation.Add(f.Animation.Animations[Clips[i]], 0, AnimationBlendOperation.LinearBlend, 1f, 0f, AnimationRepeatMode.LoopInfinite);
+                // Each figure breathes at its own point of the loop.
+                if (f.Plays[IdleIndex] is { } idlePlay)
+                    idlePlay.CurrentTime = TimeSpan.FromSeconds(random.NextDouble() * idlePlay.Clip.Duration.TotalSeconds);
+            }
+
+            Vector3 v = motor.Velocity;
+            float speed = MathF.Sqrt(v.X * v.X + v.Z * v.Z);
+            bool footing = motor.IsGrounded && !motor.IsSliding && motor.KnockLeft <= 0f;
+            float moving = footing ? Smooth(0.15f, 1.2f, speed) : 0f;
+            bool still = footing && !motor.IsCrouching && speed < 0.1f;
+            float run = Math.Clamp((speed - motor.WalkSpeed) / (motor.SprintSpeed - motor.WalkSpeed), 0f, 1f);
+
+            // Heading in the figure's own frame (it faces -Z): forward, back, left, right.
+            Vector3 local = Vector3.Transform(v, Quaternion.Invert(motor.Rotation));
+            float forward = -local.Z, right = local.X;
+            float sum = MathF.Max(1e-4f, MathF.Abs(forward) + MathF.Abs(right));
+            Span<float> heading = stackalloc float[4];
+            heading[0] = MathF.Max(0f, forward) / sum;
+            heading[1] = MathF.Max(0f, -forward) / sum;
+            heading[2] = MathF.Max(0f, -right) / sum;
+            heading[3] = MathF.Max(0f, right) / sum;
+
+            Span<float> target = stackalloc float[Clips.Length];
+            target[IdleIndex] = (1f - moving) * (still ? 1f : 0f);
+            target[RestIndex] = (1f - moving) * (still ? 0f : 1f);
+            for (int d = 0; d < 4; d++)
+            {
+                target[WalkIndex + d] = moving * (1f - run) * heading[d];
+                target[RunIndex + d] = moving * run * heading[d];
+            }
+
+            // One phase for all gaits and headings: their feet touch down together.
+            float stepsPerSecond = WalkSteps + (RunSteps - WalkSteps) * run;
+            float cycleMetres = 2f * (motor.WalkSpeed + (motor.SprintSpeed - motor.WalkSpeed) * run) / stepsPerSecond;
+            f.Phase = (f.Phase + speed / cycleMetres * dt) % 1f;
+
+            float follow = 1f - MathF.Exp(-3f * dt / MathF.Max(1e-3f, BlendSeconds));
+            for (int i = 0; i < Clips.Length; i++)
+            {
+                f.Weights[i] += (target[i] - f.Weights[i]) * follow;
+                if (f.Plays[i] is not { } play)
+                    continue;
+                play.Weight = f.Weights[i] < 1e-3f ? 0f : f.Weights[i];
+                if (i >= WalkIndex)
                 {
-                    // Each figure starts somewhere in the loop: no choir of breaths.
-                    PlayingAnimation play = f.Animation.Play(idle ? IdleClip : RestClip);
-                    if (idle)
-                        play.CurrentTime = TimeSpan.FromSeconds(random.NextDouble() * play.Clip.Duration.TotalSeconds);
-                    f.Started = true;
-                    f.Idle = idle;
-                }
-                else if (idle != f.Idle)
-                {
-                    f.Animation.Crossfade(idle ? IdleClip : RestClip, TimeSpan.FromSeconds(BlendSeconds));
-                    f.Idle = idle;
+                    play.TimeFactor = 0f;
+                    play.CurrentTime = TimeSpan.FromTicks((long)(f.Phase * play.Clip.Duration.Ticks));
                 }
             }
-            Blink(f, dt);
+        }
+
+        static float Smooth(float e0, float e1, float x)
+        {
+            float t = Math.Clamp((x - e0) / (e1 - e0), 0f, 1f);
+            return t * t * (3f - 2f * t);
         }
 
         void Blink(Figure f, float dt)

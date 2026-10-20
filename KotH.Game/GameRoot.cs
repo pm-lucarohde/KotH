@@ -38,8 +38,17 @@ namespace KotH.Client
         /// <userdoc>Atmen und leichtes Wiegen, solange eine Figur still steht.</userdoc>
         [Display("Ruhe", "Animation")] public AnimationClip IdleAnimation;
 
-        /// <userdoc>Grundhaltung, wenn die Figur sich bewegt (bis es Laufanimationen gibt).</userdoc>
+        /// <userdoc>Grundhaltung in der Luft, geduckt im Stand und beim Gleiten.</userdoc>
         [Display("Grundhaltung", "Animation")] public AnimationClip RestAnimation;
+
+        [Display("Gehen vorwärts", "Animation")] public AnimationClip WalkForward;
+        [Display("Gehen rückwärts", "Animation")] public AnimationClip WalkBack;
+        [Display("Gehen links", "Animation")] public AnimationClip WalkLeft;
+        [Display("Gehen rechts", "Animation")] public AnimationClip WalkRight;
+        [Display("Rennen vorwärts", "Animation")] public AnimationClip RunForward;
+        [Display("Rennen rückwärts", "Animation")] public AnimationClip RunBack;
+        [Display("Rennen links", "Animation")] public AnimationClip RunLeft;
+        [Display("Rennen rechts", "Animation")] public AnimationClip RunRight;
 
         /// <summary>Render group of the own figure, see PlayerCamera.</summary>
         const RenderGroup OwnFigureGroup = RenderGroup.Group1;
@@ -271,11 +280,15 @@ namespace KotH.Client
         Entity AddVisual(Entity body)
         {
             var visual = new Entity(body.Name + "Visual") { new ModelComponent(BodyModel) };
-            if (IdleAnimation != null && RestAnimation != null)
+            // In the order of PlayerVisualSystem.Clips; a missing clip just never plays.
+            AnimationClip[] clips = { IdleAnimation, RestAnimation, WalkForward, WalkBack, WalkLeft, WalkRight,
+                                      RunForward, RunBack, RunLeft, RunRight };
+            if (RestAnimation != null)
             {
                 var animation = new AnimationComponent();
-                animation.Animations[PlayerVisualSystem.IdleClip] = IdleAnimation;
-                animation.Animations[PlayerVisualSystem.RestClip] = RestAnimation;
+                for (int i = 0; i < clips.Length; i++)
+                    if (clips[i] != null)
+                        animation.Animations[PlayerVisualSystem.Clips[i]] = clips[i];
                 visual.Add(animation);
             }
             Entity.Scene.Entities.Add(visual);

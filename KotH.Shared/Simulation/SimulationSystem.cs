@@ -194,7 +194,10 @@ namespace KotH.Shared.Simulation
             // out of every motor query; the buffer still holds if that ever
             // changes, so the list order stays out of the result either way.
             for (int i = 0; i < count; i++)
+            {
                 bodies[i].Motor.Simulate(tickInputs[i], dt);
+                bodies[i].Look(tickInputs[i].Pitch);
+            }
 
             // After the moves, because that is when bodies can overlap, and
             // before combat, so a swing sees where everyone really stands.

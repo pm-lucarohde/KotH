@@ -48,7 +48,8 @@ Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Pr
   `_SECONDS` (Standard 3 s), `KOTH_SHOT_THIRD=1`, `KOTH_SHOT_AT=x,y,z`,
   `KOTH_SHOT_SWING=1` (ein Schlag, meldet Treffer), `KOTH_SHOT_SHAKE=1` (Treffer kurz vor
   dem Bild, meldet die Kippung; nur mit `--host`, offline fehlt `DamagePercent`),
-  `KOTH_SHOT_BLINK=1` (alle Figuren blinzeln, das Bild zeigt geschlossene Lider), `KOTH_SIZE=WxH`, `KOTH_VSYNC=0|1`,
+  `KOTH_SHOT_BLINK=1` (alle Figuren blinzeln, das Bild zeigt geschlossene Lider),
+  `KOTH_SHOT_MOVE=x,y[,sprint]` (hält die Bewegungstasten, D und W sind +1), `KOTH_SIZE=WxH`, `KOTH_VSYNC=0|1`,
   `KOTH_FRAMELOG=datei`.
 - Client: kein Splash (asynchrones Laden + `WaitIdle` ohne QueueLock gab
   `VK_ERROR_DEVICE_LOST`), Renderer-Parallelität 6 (gemessen, Lucas Wahl).
@@ -185,13 +186,20 @@ kein Zustand: ein Rollback behält ihn, im Netz kommt der Treffer mit der Bestä
 
 ### Figur und Animation
 
-Die Pilzfigur (`Mushroom.glb`) hat ein Skelett (`MushroomSkeleton.sdskel`) und zwei
-Clips: `MushroomIdle` (Atmen 4 s, Wiegen 8 s) im Stillstand, sonst `MushroomRest`
-(Grundhaltung); `PlayerVisualSystem` blendet um und lässt die Figuren blinzeln, indem es
-die Lid-Knochen skaliert (offen auf einen Punkt geschrumpft). Die Clips dürfen deshalb
-**keine Lid-Kanäle** haben, sonst überschreiben sie das Blinzeln. Erzeugt werden Modell,
-Clips und Lid-Textur mit `.work/rig/build.sh` (Blender headless, entfernt die Lid-Kanäle
-und kopiert nach `Resources/Models`). Nur Darstellung, die Simulation sieht davon nichts.
+Die Pilzfigur (`Mushroom.glb`) hat ein Skelett (`MushroomSkeleton.sdskel`, mit Ellenbogen
+und Knien) und zehn Clips: `MushroomIdle` (Atmen 4 s, Wiegen 8 s), `MushroomRest`
+(Grundhaltung: Luft, Gleiten, geduckt im Stand) und Gehen/Rennen je vorwärts, rückwärts,
+links, rechts (Gang nach Sanji, Lucas Wunsch). `PlayerVisualSystem` spielt alle zugleich
+und setzt die Gewichte nach Tempo und Richtung (Strides Mischen normiert auf die Summe);
+die Lauf-Clips laufen mit `TimeFactor` 0 auf einer gemeinsamen Phase aus der Strecke
+(Gehen 3,5, Rennen 6 Schritte/s). Das Spiel selbst dreht zwei Knochenarten: die Lider
+(Blinzeln alle 10 s, offen auf einen Punkt geschrumpft) und `Look` unter dem Kopf (folgt
+`SimulationBody.LookPitch`, dem Nickwinkel der Eingabe, kein Zustand). Die Clips dürfen
+deshalb **keine Kanäle für Lider und `Look`** haben. Erzeugt werden Modell, Clips,
+Lid-Textur und die Knotenliste des Skeletts mit `.work/rig/build.sh` (Blender headless,
+`rig.py`, entfernt diese Kanäle, kopiert nach `Resources/Models`). In Third Person dreht
+sich die eigene Figur in Laufrichtung; Seitwärts- und Rückwärts-Clips sieht man bei
+Spielern in First Person. Nur Darstellung, die Simulation sieht davon nichts.
 
 ## Git
 

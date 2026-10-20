@@ -48,6 +48,19 @@ namespace KotH.Shared.Simulation
         /// </summary>
         [DataMemberIgnore] public int NetId { get; set; }
 
+        /// <summary>
+        /// The view's pitch in the last two ticks, for the figure's head only.
+        /// Not part of the state: a resimulation writes it again.
+        /// </summary>
+        [DataMemberIgnore] public float LookPitch { get; private set; }
+        [DataMemberIgnore] public float PreviousLookPitch { get; private set; }
+
+        internal void Look(float pitch)
+        {
+            PreviousLookPitch = LookPitch;
+            LookPitch = pitch;
+        }
+
         /// <summary>Out of the tick for now, hull out of reach; see SimulationSystem.Leave.</summary>
         [DataMemberIgnore] public bool IsParked { get; internal set; }
 
