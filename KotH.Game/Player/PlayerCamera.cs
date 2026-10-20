@@ -42,10 +42,10 @@ namespace KotH.Client.Player
         [Display("Dauer", "Wackeln bei Treffer")] public float ShakeSeconds = 0.3f;
 
         /// <userdoc>Wie weit das Bild am Anfang höchstens kippt, in Grad; danach klingt es ab. Unabhängig vom Schadenswert.</userdoc>
-        [Display("Stärke", "Wackeln bei Treffer")] public float ShakeDegrees = 1.5f;
+        [Display("Stärke", "Wackeln bei Treffer")] public float ShakeDegrees = 1.125f;
 
         /// <userdoc>Wie oft das Bild pro Sekunde hin und her geht.</userdoc>
-        [Display("Tempo", "Wackeln bei Treffer")] public float ShakeHertz = 10f;
+        [Display("Tempo", "Wackeln bei Treffer")] public float ShakeHertz = 8f;
 
         [DataMemberIgnore] public PlayerMotor Motor { get; set; }
         [DataMemberIgnore] public PlayerInputReader Reader { get; set; }
