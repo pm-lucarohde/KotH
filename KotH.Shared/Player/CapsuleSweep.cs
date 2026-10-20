@@ -47,7 +47,7 @@ namespace KotH.Shared.Player
         public Result Move(WorldQueries world, float hullOffsetY, Vector3 position,
                            float footOffset, float height, float radius, float skin,
                            float walkableY, float stepHeight, Vector3 delta,
-                           Vector3 velocity, CollisionMask mask)
+                           Vector3 velocity, CollisionMask mask, bool grounded = false)
         {
             Result r = default;
             r.position = position;
@@ -112,15 +112,32 @@ namespace KotH.Shared.Player
                 }
                 else
                 {
-                    remaining = UMath.ProjectOnPlane(remaining, hit.Normal);
+                    Vector3 normal = hit.Normal;
+
+                    // A grounded body walks into an edge too high to step
+                    // onto, below its lower sphere's centre (crouched only):
+                    // the tilted normal lifted it onto the lip and the
+                    // settling speed bounced it back. Such an edge is a wall
+                    // (a deliberate change from Unity); met from above, not.
+                    if (grounded && normal.Y > 0f
+                        && hit.Point.Y - (r.position.Y + footOffset) > stepHeight)
+                    {
+                        Vector3 flat = new Vector3(normal.X, 0f, normal.Z);
+                        Vector3 across = new Vector3(remaining.X, 0f, remaining.Z);
+                        if (UMath.SqrMagnitude(flat) > 1e-8f
+                            && UMath.Dot(UMath.Normalized(flat), across) < -0.1f * UMath.Magnitude(across))
+                            normal = UMath.Normalized(flat);
+                    }
+
+                    remaining = UMath.ProjectOnPlane(remaining, normal);
 
                     // A wall takes the speed it refuses with it. Walkable
                     // ground does not: the motor owns the vertical there,
                     // and laying speed onto a ramp would shave cos squared
                     // off every uphill tick.
                     if (!IsRiser(world, r.position, footOffset, radius, skin,
-                                 stepHeight, hit.Normal, mask))
-                        r.velocity = UMath.ProjectOnPlane(r.velocity, hit.Normal);
+                                 stepHeight, normal, mask))
+                        r.velocity = UMath.ProjectOnPlane(r.velocity, normal);
                 }
 
                 // A pass that neither moved the body nor turned what is

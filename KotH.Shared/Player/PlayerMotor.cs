@@ -570,7 +570,7 @@ namespace KotH.Shared.Player
                 stepSettleTicks--;
 
             TryStepUp(dt, settling);
-            CapsuleSweep.Result moved = MoveBody(UMath.Mul(velocity, dt));
+            CapsuleSweep.Result moved = MoveBody(UMath.Mul(velocity, dt), grounded);
             touchingGround = moved.hasGround;
 
             // Before the speed is trimmed: UpdateWedged asks what the tick
@@ -952,14 +952,15 @@ namespace KotH.Shared.Player
 
         /// <summary>
         /// Moves the body and keeps the most upright upward contact of the
-        /// whole tick.
+        /// whole tick. onGround is for the tick's main move only: an edge
+        /// too high to step onto is then a wall, see CapsuleSweep.Move.
         /// </summary>
-        CapsuleSweep.Result MoveBody(Vector3 delta)
+        CapsuleSweep.Result MoveBody(Vector3 delta, bool onGround = false)
         {
             CapsuleSweep.Result r = sweep.Move(
                 world, CenterY, position, FootOffset, currentHeight,
                 BodyRadius, SkinWidth, UMath.Cos(SlopeLimit * UMath.Deg2Rad),
-                maxStepHeight, delta, velocity, WorldMask);
+                maxStepHeight, delta, velocity, WorldMask, onGround);
 
             position = r.position;
 

@@ -146,7 +146,8 @@ Bin/Probes/Release/KotH.Probes determinism hashes
 ```
 
 Proben: `worldquery`, `rotation`, `slopejump`, `crest`, `impact`, `jumpheight`,
-`slide`, `sprint`, `melee`, `step`, `determinism`, `clock`, `stairrun`, `rampfoot`.
+`slide`, `sprint`, `melee`, `step`, `determinism`, `clock`, `stairrun`, `rampfoot`,
+`crouchedge`.
 
 Vergleich mit der Unity-Referenz:
 

@@ -163,3 +163,23 @@ Hashkette der DeterminismProbe lautet jetzt `A4A9BBB937C62890`. Sie ändert sich
 
 Alle Bewegungsproben sind nach beiden Änderungen byte-gleich zum Stand davor,
 unter JIT und AOT; die Hashkette bleibt `A4A9BBB937C62890`.
+
+## Gewollte Änderung nach dem Umzug (20.10.2026, von Luca gemeldet)
+
+6. **Geduckt an Steps30 zappelte der Körper an der Stufe** (Fehler aus Unity).
+   Geduckt ist die Stufenhöhe 0,25 m, die Kanten von Steps30 und Steps40 liegen
+   darüber, aber unter der Mitte der unteren Kugel (0,4 m). Die schräge
+   Kantennormale hob den Körper bei jedem Tick auf die Kante, die Haltekraft von
+   −2 m/s wurde daran in Rückwärtsfahrt umgelenkt: Er schwebte 1,2 cm hoch und
+   wurde alle 7 Ticks 1,4 cm zurückgestoßen. Jetzt gilt eine solche Kante für
+   einen Körper am Boden, der waagerecht in sie hineinläuft, als senkrechte Wand
+   (`CapsuleSweep.Move`, Parameter `grounded`). Von oben getroffen, etwa beim
+   Absteigen über eine Seitenkante, bleibt alles wie bisher. Stehend greift die
+   Regel nie: Die Stufenhöhe 0,45 m liegt über dem Kugelradius.
+   - Neue Probe `crouchedge`: Steps30, 40 und 50 geduckt, gerade und schräg bis
+     60°, je 45 Läufe. Vorher zappelten 20 Läufe, jetzt keiner.
+   - StepProbe: „− Steps30 geduckt“ endet 3,1 statt 3,8 cm über dem Start, „−
+     Steps30 geduckt Ecke“ 0 statt 3,8 cm (Gipfel 0 statt 4,5 cm). Die Differenz
+     ist das Reiten auf der Kante; beide liegen jetzt über der Toleranz, die
+     Urteile bleiben gleich. „= Kante geduckt“ weicht um 1 mm ab. Alle anderen
+     Proben byte-gleich, Hashkette unverändert.

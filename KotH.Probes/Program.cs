@@ -30,12 +30,13 @@ Probe probe = name switch
     "clock" => new ClockProbe(dump),
     "stairrun" => new StairRunProbe(),
     "rampfoot" => new RampFootProbe(),
+    "crouchedge" => new CrouchEdgeProbe(),
     _ => null,
 };
 
 if (probe == null)
 {
-    Console.Error.WriteLine("Aufruf: KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|step|determinism|clock|stairrun|rampfoot>");
+    Console.Error.WriteLine("Aufruf: KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|step|determinism|clock|stairrun|rampfoot|crouchedge>");
     return 64;
 }
 
