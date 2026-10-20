@@ -21,7 +21,8 @@ namespace KotH.Client.Player
     /// stands still, walking and running in four directions blended by
     /// speed and heading, the rest pose otherwise, and a blink every few
     /// seconds, set on the lid bones. The leaves of skirt and collar swing
-    /// on springs in the wind of the figure's own motion.
+    /// on springs in the wind of the figure's own motion, and the mouth
+    /// opens and shuts a little, calm as breathing.
     /// </summary>
     [DataContract("KotH.PlayerVisualSystem")]
     public sealed class PlayerVisualSystem : SyncScript
@@ -59,6 +60,9 @@ namespace KotH.Client.Player
 
         /// <userdoc>So viele Meter ragt die Kappe geduckt und beim Gleiten über die Hülle hinaus; weniger Stauchung, bessere Proportionen. Dort zählt kein Treffer.</userdoc>
         [Display("Kappe über der Hülle", "Animation")] public float CrouchOverhang = 0.1f;
+
+        /// <userdoc>Wie weit sich der Mund im Atemrhythmus öffnet und schließt (0,1 = um 10 % seiner Höhe).</userdoc>
+        [Display("Mund", "Animation")] public float MouthBreath = 0.08f;
 
         /// <userdoc>Wie lange die Figur nach einer Landung einfedert, in Sekunden; jede Landung gleich stark.</userdoc>
         [Display("Einfedern", "Animation")] public float LandSeconds = 0.3f;
@@ -112,6 +116,7 @@ namespace KotH.Client.Player
         const float Hidden = 1e-4f;
         static readonly string[] LidBones = { "Lid.L", "Lid.R" };
         const string LookBone = "Look";
+        const string MouthBone = "Mouth";
 
         // Leaf bones from .work/rig/rig.py, evenly round the body from the
         // front to the right: six on the skirt, four on the collar.
@@ -132,10 +137,10 @@ namespace KotH.Client.Player
             public float Phase, BlinkClock;
             public float AirTime, LandAge = float.MaxValue;
             public int[] Lids;
-            public int Look = -2;
+            public int Look = -2, Mouth = -2;
             public int[] Leaves;
             public Vector2[] LeafBend, LeafRate;
-            public float LeafClock, Yaw, Spin;
+            public float LeafClock, Yaw, Spin, MouthClock;
             public bool HasYaw;
         }
 
@@ -162,6 +167,7 @@ namespace KotH.Client.Player
                 Body = motor.Entity.Get<SimulationBody>(),
                 // Figures side by side never blink together.
                 BlinkClock = (float)random.NextDouble() * BlinkInterval,
+                MouthClock = (float)random.NextDouble() * 30f,
             });
         }
 
@@ -233,6 +239,7 @@ namespace KotH.Client.Player
             t.Scale = new Vector3(width, scale, width);
             t.Position.Y += 0.5f * (motor.StandHeight * scale - motor.Height);
             Blink(f, dt);
+            Breathe(f, dt);
             LookUpDown(f, alpha);
             Leaves(f, motor, t, dt);
         }
@@ -317,6 +324,28 @@ namespace KotH.Client.Player
                     : Quaternion.Identity;
                 skeleton.NodeTransformations[node].Transform.Rotation = bend * skeleton.Nodes[node].Transform.Rotation;
             }
+        }
+
+        /// <summary>
+        /// The mouth bone stretches the painted mouth: two slow waves that
+        /// never line up, so it opens every two to four seconds, never quite
+        /// alike. A little narrower while open. No clip touches it.
+        /// </summary>
+        void Breathe(Figure f, float dt)
+        {
+            SkeletonUpdater skeleton = f.Model?.Skeleton;
+            if (skeleton == null)
+                return;
+            if (f.Mouth == -2)
+                f.Mouth = Array.FindIndex(skeleton.Nodes, n => n.Name == MouthBone);
+            if (f.Mouth < 0)
+                return;
+            f.MouthClock += dt;
+            float t = f.MouthClock;
+            float wave = 0.6f * MathF.Sin(MathUtil.TwoPi * t / 3.1f) + 0.4f * MathF.Sin(MathUtil.TwoPi * t / 4.7f + 1.3f);
+            // The mouth bone points down: its own Y is the mouth's height.
+            skeleton.NodeTransformations[f.Mouth].Transform.Scale =
+                new Vector3(1f - 0.35f * MouthBreath * wave, 1f + MouthBreath * wave, 1f);
         }
 
         /// <summary>The neck bone tilts with the view; no clip touches it.</summary>

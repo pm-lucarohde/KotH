@@ -26,6 +26,7 @@ Nodes:
     6ca30ac597a05fc89a2ae9f1c252324f: {Name: Head, Depth: 6, Preserve: true}
     65ea159144975df193f2e8ad0494d8fc: {Name: Lid.L, Depth: 7, Preserve: true}
     d9cb7c93e7555777991dad656ee087e6: {Name: Lid.R, Depth: 7, Preserve: true}
+    85df77261df05346afc139b52c0d1a6b: {Name: Mouth, Depth: 7, Preserve: true}
     1a1a5cbd57595bcca1c03dcfdc82339d: {Name: UpperArm.L, Depth: 5, Preserve: true}
     d67f988e13b55c9aa8e5b3e2f4f12b99: {Name: LowerArm.L, Depth: 6, Preserve: true}
     c847697ed1ab561bbd13e56aec5e21e7: {Name: UpperArm.R, Depth: 5, Preserve: true}
