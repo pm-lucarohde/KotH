@@ -203,10 +203,12 @@ schmaler, damit sie weniger platt wirkt (Lucas Wahl, „Kappe über der Hülle�
 geduckt“); die Füße bleiben auf dem Boden der Hülle. `PlayerVisualSystem` spielt alle zugleich
 und setzt die Gewichte nach Tempo und Richtung (Strides Mischen normiert auf die Summe);
 die Lauf-Clips laufen mit `TimeFactor` 0 auf einer gemeinsamen Phase aus der Strecke
-(Gehen 3,5, Rennen 6 Schritte/s). Das Spiel selbst dreht zwei Knochenarten: die Lider
+(Gehen 3,5, Rennen 6 Schritte/s). Das Spiel selbst dreht drei Knochenarten: die Blätter (`Leaf.S0`–`S5` am Rock, `Leaf.C0`–`C3`
+am Kragen, zeigen nach oben mit dem Drehpunkt oben; Federn im Fahrtwind, „Blätter“ in
+`PlayerVisualSystem`), die Lider
 (Blinzeln alle 10 s, offen auf einen Punkt geschrumpft) und `Look` unter dem Kopf (folgt
 `SimulationBody.LookPitch`, dem Nickwinkel der Eingabe, kein Zustand). Die Clips dürfen
-deshalb **keine Kanäle für Lider und `Look`** haben. Erzeugt werden Modell, Clips,
+deshalb **keine Kanäle für Lider, Blätter und `Look`** haben. Erzeugt werden Modell, Clips,
 Lid-Textur und die Knotenliste des Skeletts mit `.work/rig/build.sh` (Blender headless,
 `rig.py`, entfernt diese Kanäle, kopiert nach `Resources/Models`). In Third Person dreht
 sich die eigene Figur in Laufrichtung; Seitwärts- und Rückwärts-Clips sieht man bei

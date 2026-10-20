@@ -20,7 +20,8 @@ namespace KotH.Client.Player
     /// figure's clips, all at once with weights: the idle loop while a body
     /// stands still, walking and running in four directions blended by
     /// speed and heading, the rest pose otherwise, and a blink every few
-    /// seconds, set on the lid bones.
+    /// seconds, set on the lid bones. The leaves of skirt and collar swing
+    /// on springs in the wind of the figure's own motion.
     /// </summary>
     [DataContract("KotH.PlayerVisualSystem")]
     public sealed class PlayerVisualSystem : SyncScript
@@ -65,6 +66,18 @@ namespace KotH.Client.Player
         /// <userdoc>Wie tief sie dabei einfedert (1 = ganz in die Landepose).</userdoc>
         [Display("Aufprall", "Animation")] public float LandStrength = 1f;
 
+        /// <userdoc>Wie weit die Blätter des Rocks bei Sprinttempo nach hinten wehen, in Grad; langsamer entsprechend weniger, im Stand gar nicht.</userdoc>
+        [Display("Wehen", "Blätter")] public float LeafSwing = 30f;
+
+        /// <userdoc>Anteil, mit dem der Kragen mitweht (1 = so stark wie der Rock).</userdoc>
+        [Display("Kragen", "Blätter")] public float CollarShare = 0.45f;
+
+        /// <userdoc>Flattern der Blätter bei Sprinttempo, in Grad.</userdoc>
+        [Display("Flattern", "Blätter")] public float LeafFlutter = 5f;
+
+        /// <userdoc>Wie weit sich der Rock beim Fallen nach außen hebt, in Grad.</userdoc>
+        [Display("Fallwind", "Blätter")] public float LeafLift = 20f;
+
         /// <userdoc>Wie weit der Kopf dem Blick nach oben und unten folgt (1 = ganz).</userdoc>
         [Display("Kopf folgt Blick", "Animation")] public float HeadFollow = 0.5f;
 
@@ -97,6 +110,12 @@ namespace KotH.Client.Player
         static readonly string[] LidBones = { "Lid.L", "Lid.R" };
         const string LookBone = "Look";
 
+        // Leaf bones from .work/rig/rig.py, evenly round the body from the
+        // front to the right: six on the skirt, four on the collar.
+        const int SkirtLeaves = 6, CollarLeaves = 4;
+        // A spring a little under critical: stopping swings the leaves past.
+        const float LeafSpring = 150f, LeafDamping = 14f;
+
         readonly List<Figure> figures = new List<Figure>();
         readonly Random random = new Random();
 
@@ -111,6 +130,9 @@ namespace KotH.Client.Player
             public float AirTime, LandAge = float.MaxValue;
             public int[] Lids;
             public int Look = -2;
+            public int[] Leaves;
+            public Vector2[] LeafBend, LeafRate;
+            public float LeafClock;
         }
 
         public PlayerVisualSystem()
@@ -208,6 +230,71 @@ namespace KotH.Client.Player
             t.Position.Y += 0.5f * (motor.StandHeight * scale - motor.Height);
             Blink(f, dt);
             LookUpDown(f, alpha);
+            Leaves(f, motor, dt);
+        }
+
+        /// <summary>
+        /// Every leaf bone bends its tips with the wind of the motion: back
+        /// leaves trail most, a fall lifts the skirt outwards, faster means
+        /// a little flutter. Bends are tip offsets in radians, on springs.
+        /// </summary>
+        void Leaves(Figure f, PlayerMotor motor, float dt)
+        {
+            SkeletonUpdater skeleton = f.Model?.Skeleton;
+            if (skeleton == null)
+                return;
+            if (f.Leaves == null)
+            {
+                f.Leaves = new int[SkirtLeaves + CollarLeaves];
+                for (int k = 0; k < f.Leaves.Length; k++)
+                {
+                    string name = k < SkirtLeaves ? $"Leaf.S{k}" : $"Leaf.C{k - SkirtLeaves}";
+                    f.Leaves[k] = Array.FindIndex(skeleton.Nodes, n => n.Name == name);
+                }
+                f.LeafBend = new Vector2[f.Leaves.Length];
+                f.LeafRate = new Vector2[f.Leaves.Length];
+                f.LeafClock = (float)random.NextDouble() * 10f;
+            }
+
+            // Air against the figure, in its own frame: X right, Z back.
+            Vector3 local = Vector3.Transform(motor.Velocity, Quaternion.Invert(motor.Rotation));
+            var flat = new Vector2(local.X, local.Z);
+            float speed = flat.Length();
+            float pace = Math.Clamp(speed / motor.SprintSpeed, 0f, 1f);
+            Vector2 heading = speed > 1e-3f ? flat / speed : Vector2.Zero;
+            float lift = motor.IsGrounded ? 0f : Math.Clamp(-local.Y / 12f, 0f, 1f);
+            dt = MathF.Min(dt, 1f / 30f);
+            f.LeafClock += dt;
+
+            for (int k = 0; k < f.Leaves.Length; k++)
+            {
+                bool skirt = k < SkirtLeaves;
+                int count = skirt ? SkirtLeaves : CollarLeaves;
+                int i = skirt ? k : k - SkirtLeaves;
+                float a = MathUtil.TwoPi * i / count;
+                var outward = new Vector2(MathF.Sin(a), -MathF.Cos(a));
+                float share = skirt ? 1f : CollarShare;
+                float trail = 0.35f + 0.65f * MathF.Max(0f, Vector2.Dot(outward, heading));
+                // Each leaf flutters at its own rate, so they never move as one.
+                float w = f.LeafClock * (9f + 1.7f * k);
+                float flutter = MathUtil.DegreesToRadians(LeafFlutter) * pace;
+                Vector2 target = (-heading * MathUtil.DegreesToRadians(LeafSwing) * pace * trail
+                                + outward * (MathUtil.DegreesToRadians(LeafLift) * lift + flutter * MathF.Sin(w))
+                                + new Vector2(-outward.Y, outward.X) * flutter * 0.5f * MathF.Sin(1.3f * w + k)) * share;
+
+                f.LeafRate[k] += (LeafSpring * (target - f.LeafBend[k]) - LeafDamping * f.LeafRate[k]) * dt;
+                f.LeafBend[k] += f.LeafRate[k] * dt;
+                int node = f.Leaves[k];
+                if (node < 0)
+                    continue;
+                // A hanging tip moves along m when turned about down x m.
+                Vector2 m = f.LeafBend[k];
+                float angle = m.Length();
+                Quaternion bend = angle > 1e-5f
+                    ? Quaternion.RotationAxis(new Vector3(-m.Y / angle, 0f, m.X / angle), angle)
+                    : Quaternion.Identity;
+                skeleton.NodeTransformations[node].Transform.Rotation = bend * skeleton.Nodes[node].Transform.Rotation;
+            }
         }
 
         /// <summary>The neck bone tilts with the view; no clip touches it.</summary>
