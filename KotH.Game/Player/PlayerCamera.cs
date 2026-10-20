@@ -1,4 +1,3 @@
-using KotH.Client.Hud;
 using KotH.Shared.Combat;
 using KotH.Shared.Mathematics;
 using KotH.Shared.Physics;
@@ -82,7 +81,7 @@ namespace KotH.Client.Player
                 // Steps out at full distance at once; only a wall pulls it in.
                 shown = Distance;
                 ShowOwnFigure(false);
-                AimMark.Screen = new Vector2(0.5f, 0.5f);
+                Reader.AimAt(null);
                 return;
             }
 
@@ -94,35 +93,29 @@ namespace KotH.Client.Player
             Entity.Transform.Position = position;
             cam.NearClipPlane = ViewMath.NearPlane(Radius, cam.VerticalFieldOfView, aspect, NearClipMargin);
             ShowOwnFigure(UMath.Magnitude(UMath.Sub(position, eye)) >= ShowFigureFrom);
-            AimMark.Screen = Project(AimPoint(eye, rotation), position, rotation, aspect);
+            Reader.AimAt(AimTarget(path.Pivot, eye, rotation));
         }
 
         /// <summary>
-        /// Where a swing made now would end: the ray MeleeAttack casts, from
-        /// the eye along the view, to the first hull or its full reach.
+        /// What a swing should aim at: the first thing on the centre line, but
+        /// no further than where the line leaves the reach around the eye.
+        /// Cast from the pivot, which lies on that line, so whatever is
+        /// between the camera and the figure counts as behind it.
         /// </summary>
-        Vector3 AimPoint(Vector3 eye, Quaternion rotation)
+        Vector3 AimTarget(Vector3 pivot, Vector3 eye, Quaternion rotation)
         {
-            Vector3 aim = UMath.Rotate(rotation, UMath.Forward);
+            // |pivot + forward*s - eye| = reach; the pivot lies inside the
+            // reach, so the larger root is ahead of it.
+            Vector3 forward = UMath.Rotate(rotation, UMath.Forward);
+            Vector3 w = UMath.Sub(pivot, eye);
             float reach = Melee?.Range ?? 3.5f;
-            if (World.Raycast(eye, aim, reach, WorldQueries.HittableMask, out QueryHit hit, Motor.Hull))
-                reach = hit.Distance;
-            return UMath.Add(eye, UMath.Mul(aim, reach));
-        }
+            float b = UMath.Dot(forward, w);
+            float s = -b + UMath.Sqrt(UMath.Max(0f, b * b - UMath.SqrMagnitude(w) + reach * reach));
 
-        /// <summary>A world point on screen, 0 to 1 across and down, through this camera.</summary>
-        Vector2 Project(Vector3 point, Vector3 position, Quaternion rotation, float aspect)
-        {
-            Quaternion inverse = rotation;
-            inverse.Conjugate();
-            Vector3 local = UMath.Rotate(inverse, UMath.Sub(point, position));
-            if (local.Z > -0.01f)
-                return new Vector2(0.5f, 0.5f);
-
-            float t = (float)System.Math.Tan(cam.VerticalFieldOfView * 0.5f * UMath.Deg2Rad);
-            float x = local.X / -local.Z / (t * aspect);
-            float y = local.Y / -local.Z / t;
-            return new Vector2(0.5f + 0.5f * x, 0.5f - 0.5f * y);
+            if (World.Raycast(pivot, forward, s, WorldQueries.WorldMask | WorldQueries.HittableMask,
+                              out QueryHit hit, Motor.Hull))
+                s = hit.Distance;
+            return UMath.Add(pivot, UMath.Mul(forward, s));
         }
 
         /// <summary>The own figure is drawn only with room around the eye, else just its shadow.</summary>

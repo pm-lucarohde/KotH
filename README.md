@@ -39,7 +39,7 @@ Ein Peer hostet, ein dedizierter Server ist nicht geplant.
 | Linke Umschalttaste | sprinten (antippen genügt, der Sprint hält, solange das Tempo hält) |
 | E | ducken; im Sprint antippen = gleiten; aus dem Sprint-Sprung gehalten landen = gleiten |
 | Linksklick | schlagen |
-| Mausrad zurück / vor | Third-Person / zurück in die Ego-Perspektive. In Third-Person kreist die Kamera frei, die Figur läuft in Kamerarichtung und dreht sich beim Schlag zur Kamera |
+| Mausrad zurück / vor | Third-Person / zurück in die Ego-Perspektive. In Third-Person kreist die Kamera frei, die Figur läuft in Kamerarichtung, der Schlag trifft, was das Fadenkreuz zeigt (Reichweite vom Auge) |
 | F3 | Leistungsanzeige (FPS, Frametime, 1 %-Low) |
 | F11 | zwischen Vollbild (randlos, Standard) und Fenster umschalten |
 | Escape | einmal: Maus freigeben, zweimal: beenden. Ein Klick fängt die Maus wieder ein. |

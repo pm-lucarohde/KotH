@@ -39,6 +39,12 @@ namespace KotH.Client.Player
         float pitch;
         float bodyYaw;
         bool thirdPerson;
+
+        // Third person: the point under the crosshair, from the camera's last
+        // frame, and the pitch a swing this tick goes out at.
+        Vector3? aimTarget;
+        float sentPitch;
+        PlayerMotor motor;
         byte jumpPresses;
         bool crouchPressed;
         byte attackPresses;
@@ -66,11 +72,22 @@ namespace KotH.Client.Player
             pitch = UMath.Clamp(pitchDegrees, MinPitch, MaxPitch);
         }
 
+        /// <summary>One swing in the next tick, as a test aid: hits checked from a screenshot run.</summary>
+        public void Swing()
+        {
+            if (attackPresses < byte.MaxValue)
+                attackPresses++;
+        }
+
         protected override void Attach(Shared.Physics.WorldQueries world)
         {
             base.Attach(world);
             yaw = bodyYaw = UMath.YawOf(Entity.Transform.Rotation);
+            motor = Entity.Get<PlayerMotor>();
         }
+
+        /// <summary>What the crosshair points at in third person, null in first person.</summary>
+        public void AimAt(Vector3? target) => aimTarget = target;
 
         /// <summary>
         /// Per frame: mouse look and every press since the last frame. The
@@ -129,6 +146,7 @@ namespace KotH.Client.Player
         public override MoveInput ReadInput()
         {
             Vector2 wish = move;
+            sentPitch = pitch;
             if (!thirdPerson)
                 bodyYaw = yaw;
             else
@@ -138,7 +156,7 @@ namespace KotH.Client.Player
             {
                 Move = wish,
                 Yaw = bodyYaw,
-                Pitch = pitch,
+                Pitch = sentPitch,
                 JumpPresses = jumpPresses,
                 AttackPresses = attackPresses,
                 JumpHeld = jumpHeld,
@@ -155,15 +173,38 @@ namespace KotH.Client.Player
         }
 
         /// <summary>
-        /// Third person: a swing turns the figure to the view at once, the
-        /// keys turn it towards where they run. The returned move is that run
+        /// The swing starts at the eye, the camera sits above and behind it:
+        /// turned to the point under the crosshair instead of along the view,
+        /// it hits what the crosshair shows. Straight along the view if that
+        /// point is unknown or not ahead of the eye.
+        /// </summary>
+        void AimSwing()
+        {
+            bodyYaw = yaw;
+            if (aimTarget == null || motor == null)
+                return;
+
+            Vector3 d = UMath.Sub(aimTarget.Value, motor.EyePosition);
+            Vector3 view = UMath.Rotate(UMath.Euler(pitch, yaw), UMath.Forward);
+            if (UMath.Dot(d, view) < 0.1f)
+                return;
+
+            // Forward is -Z: yaw 0 looks along -Z, -90 along +X.
+            float flat = UMath.Sqrt(d.X * d.X + d.Z * d.Z);
+            bodyYaw = yaw + UMath.DeltaAngle(yaw, UMath.Atan2(-d.X, -d.Z) * UMath.Rad2Deg);
+            sentPitch = UMath.Clamp(UMath.Atan2(d.Y, flat) * UMath.Rad2Deg, MinPitch, MaxPitch);
+        }
+
+        /// <summary>
+        /// Third person: a swing turns the figure at once to what the
+        /// crosshair shows, the keys turn it towards where they run. The returned move is that run
         /// in the figure's own frame, so it goes exactly where the view says
         /// while the figure is still turning.
         /// </summary>
         Vector2 FaceAndRun(Vector2 keys)
         {
             if (attackPresses > 0)
-                bodyYaw = yaw;
+                AimSwing();
 
             if (UMath.SqrMagnitude(keys) < 0.0001f)
                 return keys;

@@ -271,9 +271,11 @@ unter JIT und AOT; die Hashkette bleibt `A4A9BBB937C62890`.
 ## Third-Person-Kamera (20.10.2026, Lucas Vorgabe)
 
 9. **Mausrad zurück schaltet in Third-Person** (in Unity gab es nur die
-   Ego-Perspektive). Die Kamera kreist frei; die Figur läuft in Kamerarichtung und
-   dreht sich beim Schlag zur Kamera. Das rechnet nur `PlayerInputReader` in die
-   bestehenden Felder `MoveInput.Yaw/Move` um, die Simulation bleibt gleich:
+   Ego-Perspektive). Die Kamera kreist frei; die Figur läuft in Kamerarichtung.
+   Das Fadenkreuz bleibt in der Mitte; ein Schlag zielt vom Auge auf den ersten
+   Punkt der Mittellinie, höchstens bis die Linie die Reichweite ums Auge verlässt.
+   Das rechnet nur `PlayerInputReader` in die bestehenden Felder
+   `MoveInput.Yaw/Pitch/Move` um, die Simulation bleibt gleich:
    Hashkette `2645BFE8429DA550`, Lasttest `ACA28FF778F7B0AE`, `clock` wie Unity.
    - Neue Probe `thirdperson` ohne Unity-Referenz: Kamera hinter jeder freien
      Stelle der Arena (Gitter 0,5 m, stehend und geduckt, Gier in 15°-Schritten,

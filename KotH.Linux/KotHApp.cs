@@ -29,7 +29,8 @@ game.Run();
 /// back. Plus test aids. With KOTH_SHOT set to a path it shows the
 /// F3 readout, holds the view at KOTH_SHOT_YAW / _PITCH / _FOV if given,
 /// KOTH_SHOT_THIRD=1 steps back into third person, KOTH_SHOT_AT=x,y,z puts
-/// the player's body there once (Stride metres), saves the back buffer as PNG after KOTH_SHOT_SECONDS (default 3), reports
+/// the player's body there once (Stride metres), KOTH_SHOT_SWING=1 swings
+/// once a second before the shot and reports the hit, saves the back buffer as PNG after KOTH_SHOT_SECONDS (default 3), reports
 /// the label font and quits. Taken from
 /// inside the game on purpose, a desktop screenshot would capture whatever
 /// else is on the screen. For performance runs: KOTH_SIZE=1920x1080 sets the
@@ -45,6 +46,7 @@ sealed class KotHGame : Game
     readonly double? shotFov = Number("KOTH_SHOT_FOV");
     readonly bool shotThird = Environment.GetEnvironmentVariable("KOTH_SHOT_THIRD") == "1";
     Vector3? shotAt = Point("KOTH_SHOT_AT");
+    bool shotSwing = Environment.GetEnvironmentVariable("KOTH_SHOT_SWING") == "1";
     readonly string frameLogPath = Environment.GetEnvironmentVariable("KOTH_FRAMELOG");
     Int2 windowedSize;
 
@@ -132,6 +134,11 @@ sealed class KotHGame : Game
             {
                 motor.Teleport(shotAt.Value);
                 shotAt = null;
+            }
+            if (shotSwing && gameTime.Total.TotalSeconds >= shotSeconds - 1.0)
+            {
+                player.Swing();
+                shotSwing = false;
             }
         }
     }
@@ -227,6 +234,9 @@ sealed class KotHGame : Game
 
         Console.WriteLine($"[shot] {shotPath} nach {gameTime.Total.TotalSeconds:F1} s, {gameTime.FramePerSecond:F0} fps, " +
                           $"Gier {Find<PlayerInputReader>()?.Yaw:F2}°");
+        if (Find<PlayerInputReader>()?.Entity.Get<KotH.Shared.Combat.MeleeAttack>() is { } melee)
+            Console.WriteLine($"[swing] {melee.SwingCount} Schläge, {melee.HitCount} Treffer, " +
+                              $"zuletzt {melee.LastHitDistance:F3} m");
         ReportFont();
         Exit();
     }

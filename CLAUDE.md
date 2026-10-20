@@ -37,7 +37,8 @@ Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Pr
   Lasttest: `--bodies N --warmup N` mit `BenchBot`s (geseedeter Zufall), Endzustands-Hash
   muss unter JIT und AOT gleich sein; `KOTH_TRACE=BotName`, `KOTH_FALLS=1`.
 - Client-Testhilfen in `KotH.Linux/KotHApp.cs`: `KOTH_SHOT` (Screenshot, F3-Anzeige an),
-  `KOTH_SHOT_YAW`/`_PITCH`/`_FOV`/`_SECONDS` (Standard 3 s), `KOTH_SIZE=WxH`,
+  `KOTH_SHOT_YAW`/`_PITCH`/`_FOV`/`_SECONDS` (Standard 3 s), `KOTH_SHOT_THIRD=1`,
+  `KOTH_SHOT_AT=x,y,z`, `KOTH_SHOT_SWING=1` (ein Schlag, meldet Treffer), `KOTH_SIZE=WxH`,
   `KOTH_VSYNC=0|1`, `KOTH_FRAMELOG=datei`.
 - Client: kein Splash (asynchrones Laden + `WaitIdle` ohne QueueLock gab
   `VK_ERROR_DEVICE_LOST`), Renderer-Parallelität 6 (gemessen, Lucas Wahl).
