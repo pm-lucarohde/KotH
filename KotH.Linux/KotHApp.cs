@@ -32,7 +32,8 @@ game.Run();
 /// KOTH_SHOT_THIRD=1 steps back into third person, KOTH_SHOT_AT=x,y,z puts
 /// the player's body there once (Stride metres), KOTH_SHOT_SWING=1 swings
 /// once a second before the shot and reports the hit, KOTH_SHOT_SHAKE=1 takes a hit
-/// just before it and reports how far the camera shake tilts the view, saves the back buffer as PNG after KOTH_SHOT_SECONDS (default 3), reports
+/// just before it and reports how far the camera shake tilts the view,
+/// KOTH_SHOT_BLINK=1 has every figure blink so the shot shows shut lids, saves the back buffer as PNG after KOTH_SHOT_SECONDS (default 3), reports
 /// the label font and quits. Taken from
 /// inside the game on purpose, a desktop screenshot would capture whatever
 /// else is on the screen. For performance runs: KOTH_SIZE=1920x1080 sets the
@@ -50,6 +51,7 @@ sealed class KotHGame : Game
     Vector3? shotAt = Point("KOTH_SHOT_AT");
     bool shotSwing = Environment.GetEnvironmentVariable("KOTH_SHOT_SWING") == "1";
     bool shotShake = Environment.GetEnvironmentVariable("KOTH_SHOT_SHAKE") == "1";
+    bool shotBlink = Environment.GetEnvironmentVariable("KOTH_SHOT_BLINK") == "1";
     readonly string frameLogPath = Environment.GetEnvironmentVariable("KOTH_FRAMELOG");
     Int2 windowedSize;
     bool confined;
@@ -240,6 +242,14 @@ sealed class KotHGame : Game
                 hit.LastHitTick++;
                 shotShake = false;
             }
+        }
+
+        // Shut at the shot: a third of the blink closes the lid.
+        if (shotBlink && Find<PlayerVisualSystem>() is { } visuals &&
+            gameTime.Total.TotalSeconds >= shotSeconds - visuals.BlinkSeconds * 0.4)
+        {
+            visuals.BlinkAll();
+            shotBlink = false;
         }
     }
 

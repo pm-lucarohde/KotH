@@ -10,5 +10,10 @@ Materials:
         MaterialInstance:
             Material: 94D3E93A-86DB-4DF2-A874-B1ED628EF54F:Materials/Mushroom
             IsShadowCaster: true
-Skeleton: null
+    1c4ed23a094d4f41a5e31e59d5d7ee25:
+        Name: MushroomLid
+        MaterialInstance:
+            Material: F38B176D-84CC-4455-A448-A7245B783EE1:Materials/MushroomLid
+            IsShadowCaster: false
+Skeleton: BD2F36A7-7DD4-4CD2-8E67-01E245ED7765:Models/MushroomSkeleton
 Modifiers: {}

@@ -11,6 +11,7 @@ using KotH.Shared.Net;
 using KotH.Shared.Physics;
 using KotH.Shared.Player;
 using KotH.Shared.Simulation;
+using Stride.Animations;
 using Stride.BepuPhysics;
 using Stride.Core;
 using Stride.Core.Mathematics;
@@ -33,6 +34,12 @@ namespace KotH.Client
     {
         [Display("Körpermodell", "Darstellung")] public Model BodyModel;
         [Display("Schrift der Schadensanzeige", "Darstellung")] public SpriteFont LabelFont;
+
+        /// <userdoc>Atmen und leichtes Wiegen, solange eine Figur still steht.</userdoc>
+        [Display("Ruhe", "Animation")] public AnimationClip IdleAnimation;
+
+        /// <userdoc>Grundhaltung, wenn die Figur sich bewegt (bis es Laufanimationen gibt).</userdoc>
+        [Display("Grundhaltung", "Animation")] public AnimationClip RestAnimation;
 
         /// <summary>Render group of the own figure, see PlayerCamera.</summary>
         const RenderGroup OwnFigureGroup = RenderGroup.Group1;
@@ -264,6 +271,13 @@ namespace KotH.Client
         Entity AddVisual(Entity body)
         {
             var visual = new Entity(body.Name + "Visual") { new ModelComponent(BodyModel) };
+            if (IdleAnimation != null && RestAnimation != null)
+            {
+                var animation = new AnimationComponent();
+                animation.Animations[PlayerVisualSystem.IdleClip] = IdleAnimation;
+                animation.Animations[PlayerVisualSystem.RestClip] = RestAnimation;
+                visual.Add(animation);
+            }
             Entity.Scene.Entities.Add(visual);
             visuals.Register(visual, body.Get<PlayerMotor>());
             return visual;

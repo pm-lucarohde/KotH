@@ -41,13 +41,14 @@ Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Pr
 - Client im Netz: `KotH --host`/`--join ADRESSE[:PORT]`, `--name`, `--port`,
   `--min-players`, `--display N` (Monitor von links). Ohne diese Argumente offline wie immer.
   Zwei Clients auf einem PC: `--host --min-players 2 --display 0` und
-  `--join 127.0.0.1 --display 1`. JIT-Client und AOT-Client spielen zusammen, wenn der
+  `--join 127.0.0.1 --display 1`, beides zusammen `Tools/two_clients.sh [aot|jit]`. JIT-Client und AOT-Client spielen zusammen, wenn der
   JIT-Client mit `DOTNET_EnableAVX=0` läuft (sonst andere `BuildId`).
 - Client-Testhilfen in `KotH.Linux/KotHApp.cs`: `KOTH_SHOT` (Screenshot, F3-Anzeige an,
   listet danach alle Schilder mit Text und Position), `KOTH_SHOT_YAW`/`_PITCH`/`_FOV`/
   `_SECONDS` (Standard 3 s), `KOTH_SHOT_THIRD=1`, `KOTH_SHOT_AT=x,y,z`,
   `KOTH_SHOT_SWING=1` (ein Schlag, meldet Treffer), `KOTH_SHOT_SHAKE=1` (Treffer kurz vor
-  dem Bild, meldet die Kippung; nur mit `--host`, offline fehlt `DamagePercent`), `KOTH_SIZE=WxH`, `KOTH_VSYNC=0|1`,
+  dem Bild, meldet die Kippung; nur mit `--host`, offline fehlt `DamagePercent`),
+  `KOTH_SHOT_BLINK=1` (alle Figuren blinzeln, das Bild zeigt geschlossene Lider), `KOTH_SIZE=WxH`, `KOTH_VSYNC=0|1`,
   `KOTH_FRAMELOG=datei`.
 - Client: kein Splash (asynchrones Laden + `WaitIdle` ohne QueueLock gab
   `VK_ERROR_DEVICE_LOST`), Renderer-Parallelität 6 (gemessen, Lucas Wahl).
@@ -181,6 +182,16 @@ Strides UI-Tiefenversatz unter Vulkan kippt. Zahlen im deutschen Format über
 Die Kamera wackelt bei jedem eingesteckten Treffer gleich stark (First und Third
 Person, `PlayerCamera`, „Wackeln bei Treffer“). Auslöser ist `DamagePercent.LastHitTick`,
 kein Zustand: ein Rollback behält ihn, im Netz kommt der Treffer mit der Bestätigung.
+
+### Figur und Animation
+
+Die Pilzfigur (`Mushroom.glb`) hat ein Skelett (`MushroomSkeleton.sdskel`) und zwei
+Clips: `MushroomIdle` (Atmen 4 s, Wiegen 8 s) im Stillstand, sonst `MushroomRest`
+(Grundhaltung); `PlayerVisualSystem` blendet um und lässt die Figuren blinzeln, indem es
+die Lid-Knochen skaliert (offen auf einen Punkt geschrumpft). Die Clips dürfen deshalb
+**keine Lid-Kanäle** haben, sonst überschreiben sie das Blinzeln. Erzeugt werden Modell,
+Clips und Lid-Textur mit `.work/rig/build.sh` (Blender headless, entfernt die Lid-Kanäle
+und kopiert nach `Resources/Models`). Nur Darstellung, die Simulation sieht davon nichts.
 
 ## Git
 

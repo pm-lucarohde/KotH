@@ -1,0 +1,23 @@
+!Skeleton
+Id: BD2F36A7-7DD4-4CD2-8E67-01E245ED7765
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: ../../Resources/Models/Mushroom.glb
+PivotPosition: {X: 0.0, Y: 0.0, Z: 0.0}
+Nodes:
+    281b95ce33d94baf88b1247c912a07a6: {Name: Rig, Depth: 0, Preserve: true}
+    a7fcfe35ecf94038b8ff0cb4fbc817aa: {Name: Mushroom, Depth: 1, Preserve: true}
+    f01cce42001145b9acf8464568bd58f4: {Name: Root, Depth: 1, Preserve: true}
+    4474c367996f4a7cabc08f6742c809db: {Name: Hips, Depth: 2, Preserve: true}
+    7dd78a51e95a4c8da9bb1c59e81c36f4: {Name: Leg.L, Depth: 3, Preserve: true}
+    f55f3a52dbd44dba91cb29aa18a80344: {Name: Leg.R, Depth: 3, Preserve: true}
+    7f2fead37bf7412f9f76aa69a70ebb30: {Name: Spine, Depth: 3, Preserve: true}
+    c54b9606462242ceb56b938dc5cdc34b: {Name: Breath, Depth: 4, Preserve: true}
+    c6617c22132c4b6da8d7e007927f18f7: {Name: Chest, Depth: 4, Preserve: true}
+    f0498d0cb7984887bcca4f5ce4bf76da: {Name: Head, Depth: 5, Preserve: true}
+    0a7f4219e7f14d4c960ecbead099bf0c: {Name: Lid.L, Depth: 6, Preserve: true}
+    a76dbaa9e7674a638ec43021a8899afd: {Name: Lid.R, Depth: 6, Preserve: true}
+    52bdc67d057446f49c965bf0745297e9: {Name: UpperArm.L, Depth: 5, Preserve: true}
+    6ecd65bbcb364a4c9e0afb0abfff48af: {Name: LowerArm.L, Depth: 6, Preserve: true}
+    38320fce6c7d4163aea6cd9933962b43: {Name: UpperArm.R, Depth: 5, Preserve: true}
+    2f11976c5c2d46c0b0ccdfd1bc3c749f: {Name: LowerArm.R, Depth: 6, Preserve: true}
