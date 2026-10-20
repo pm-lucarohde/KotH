@@ -9,7 +9,8 @@ namespace KotH.Client.Hud
 {
     /// <summary>
     /// A dot with four diagonal arms, drawn in code so it needs no sprite
-    /// asset. Presentation only: it reads nothing and is never read. Sizes
+    /// asset. Presentation only: it reads where the camera says a swing
+    /// lands, AimMark, and is never read. Sizes
     /// are in pixels and stay in pixels, like the performance readout --
     /// an aiming mark that grows with the window is a different mark.
     /// </summary>
@@ -76,7 +77,7 @@ namespace KotH.Client.Hud
 
         public void Draw(SpriteBatch batch, Vector2 screen)
         {
-            Vector2 center = screen * 0.5f;
+            Vector2 center = screen * AimMark.Screen;
 
             for (int i = 0; i < parts.Count; i++)
             {
@@ -129,5 +130,15 @@ namespace KotH.Client.Hud
 
             return Texture.New2D(device, DiscPixels, DiscPixels, PixelFormat.R8G8B8A8_UNorm, data);
         }
+    }
+
+    /// <summary>
+    /// Where on screen a swing lands, 0 to 1 across and down. The middle in
+    /// first person; in third person the camera sits above the eye the swing
+    /// starts from, so the mark drops a little below it.
+    /// </summary>
+    public static class AimMark
+    {
+        public static Vector2 Screen { get; set; } = new Vector2(0.5f, 0.5f);
     }
 }

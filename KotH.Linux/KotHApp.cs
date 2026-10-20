@@ -28,7 +28,8 @@ game.Run();
 /// The game: starts in borderless fullscreen, F11 switches to the window and
 /// back. Plus test aids. With KOTH_SHOT set to a path it shows the
 /// F3 readout, holds the view at KOTH_SHOT_YAW / _PITCH / _FOV if given,
-/// saves the back buffer as PNG after KOTH_SHOT_SECONDS (default 3), reports
+/// KOTH_SHOT_THIRD=1 steps back into third person, KOTH_SHOT_AT=x,y,z puts
+/// the player's body there once (Stride metres), saves the back buffer as PNG after KOTH_SHOT_SECONDS (default 3), reports
 /// the label font and quits. Taken from
 /// inside the game on purpose, a desktop screenshot would capture whatever
 /// else is on the screen. For performance runs: KOTH_SIZE=1920x1080 sets the
@@ -42,6 +43,8 @@ sealed class KotHGame : Game
     readonly double? shotYaw = Number("KOTH_SHOT_YAW");
     readonly double shotPitch = Number("KOTH_SHOT_PITCH") ?? 0.0;
     readonly double? shotFov = Number("KOTH_SHOT_FOV");
+    readonly bool shotThird = Environment.GetEnvironmentVariable("KOTH_SHOT_THIRD") == "1";
+    Vector3? shotAt = Point("KOTH_SHOT_AT");
     readonly string frameLogPath = Environment.GetEnvironmentVariable("KOTH_FRAMELOG");
     Int2 windowedSize;
 
@@ -121,6 +124,16 @@ sealed class KotHGame : Game
             reader.Look((float)shotYaw.Value, (float)shotPitch);
         if (shotFov.HasValue && Find<CameraComponent>() is { } camera)
             camera.VerticalFieldOfView = (float)shotFov.Value;
+        if (Find<PlayerInputReader>() is { } player)
+        {
+            if (shotThird)
+                player.ThirdPerson = true;
+            if (shotAt.HasValue && player.Entity.Get<KotH.Shared.Player.PlayerMotor>() is { } motor)
+            {
+                motor.Teleport(shotAt.Value);
+                shotAt = null;
+            }
+        }
     }
 
     /// <summary>
@@ -172,6 +185,18 @@ sealed class KotHGame : Game
     static double? Number(string variable) =>
         double.TryParse(Environment.GetEnvironmentVariable(variable), NumberStyles.Float,
                         CultureInfo.InvariantCulture, out double value) ? value : null;
+
+    static Vector3? Point(string variable)
+    {
+        string[] parts = Environment.GetEnvironmentVariable(variable)?.Split(',');
+        if (parts == null || parts.Length != 3)
+            return null;
+        var v = new float[3];
+        for (int i = 0; i < 3; i++)
+            if (!float.TryParse(parts[i], NumberStyles.Float, CultureInfo.InvariantCulture, out v[i]))
+                return null;
+        return new Vector3(v[0], v[1], v[2]);
+    }
 
     protected override void Draw(GameTime gameTime)
     {

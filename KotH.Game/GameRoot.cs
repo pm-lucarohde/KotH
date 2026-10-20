@@ -12,7 +12,6 @@ using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Graphics;
 using Stride.Rendering;
-using Stride.Rendering.Compositing;
 
 namespace KotH.Client
 {
@@ -28,7 +27,7 @@ namespace KotH.Client
         [Display("Körpermodell", "Darstellung")] public Model BodyModel;
         [Display("Schrift der Schadensanzeige", "Darstellung")] public SpriteFont LabelFont;
 
-        /// <summary>Render group of the own figure, drawn into shadow maps only.</summary>
+        /// <summary>Render group of the own figure, see PlayerCamera.</summary>
         const RenderGroup OwnFigureGroup = RenderGroup.Group1;
 
         public override void Start()
@@ -58,13 +57,11 @@ namespace KotH.Client
                 SpawnDummy(builder, marker, side, 100f),
             };
 
-            // The own figure only casts its shadow: the eyes sit inside its
-            // cap, so the camera skips its render group. Shadow views keep
-            // their own mask, which takes every group.
+            // The own figure has a render group of its own: the eyes sit in
+            // its cap, so the camera skips it unless it stands back far
+            // enough. Shadow views keep their own mask, the shadow stays.
             var visuals = Entity.Get<PlayerVisualSystem>();
             AddVisual(visuals, player).Get<ModelComponent>().RenderGroup = OwnFigureGroup;
-            if (SceneSystem.GraphicsCompositor?.Game is SceneCameraRenderer cameraRenderer)
-                cameraRenderer.RenderMask &= ~(RenderGroupMask)(1u << (int)OwnFigureGroup);
             foreach (Entity dummy in dummies)
                 AddVisual(visuals, dummy);
 
@@ -73,11 +70,14 @@ namespace KotH.Client
             TransformComponent view = null;
             foreach (Entity e in Entity.Scene.Entities)
             {
-                var camera = e.Get<FirstPersonCamera>();
+                var camera = e.Get<PlayerCamera>();
                 if (camera == null)
                     continue;
                 camera.Motor = player.Get<PlayerMotor>();
                 camera.Reader = reader;
+                camera.Melee = player.Get<MeleeAttack>();
+                camera.World = queries;
+                camera.OwnFigureGroup = OwnFigureGroup;
                 view = e.Transform;
             }
 

@@ -29,8 +29,16 @@ namespace KotH.Client.Player
         [Display("Sprint", "Tasten")] public Keys SprintKey = Keys.LeftShift;
         [Display("Ducken", "Tasten")] public Keys CrouchKey = Keys.E;
 
+        /// <userdoc>Wie schnell sich die Figur in Third-Person zur Laufrichtung dreht, in Grad pro Sekunde</userdoc>
+        [Display("Drehtempo", "Third-Person")] public float TurnSpeed = 720f;
+
+        // yaw and pitch are the view; bodyYaw is where the figure faces. In
+        // first person both yaws are one, in third person the view circles
+        // freely and the figure turns to where it runs.
         float yaw;
         float pitch;
+        float bodyYaw;
+        bool thirdPerson;
         byte jumpPresses;
         bool crouchPressed;
         byte attackPresses;
@@ -44,6 +52,13 @@ namespace KotH.Client.Player
         [DataMemberIgnore] public float Yaw => yaw;
         [DataMemberIgnore] public float Pitch => pitch;
 
+        /// <summary>Whether the view sits behind the figure instead of in its eyes.</summary>
+        [DataMemberIgnore] public bool ThirdPerson
+        {
+            get => thirdPerson;
+            set => thirdPerson = value;
+        }
+
         /// <summary>Points the view, as a test aid: screenshots at a fixed angle.</summary>
         public void Look(float yawDegrees, float pitchDegrees)
         {
@@ -54,7 +69,7 @@ namespace KotH.Client.Player
         protected override void Attach(Shared.Physics.WorldQueries world)
         {
             base.Attach(world);
-            yaw = UMath.YawOf(Entity.Transform.Rotation);
+            yaw = bodyYaw = UMath.YawOf(Entity.Transform.Rotation);
         }
 
         /// <summary>
@@ -77,6 +92,12 @@ namespace KotH.Client.Player
                 // never lands a swing.
                 if (input.IsMouseButtonPressed(MouseButton.Left) && attackPresses < byte.MaxValue)
                     attackPresses++;
+
+                // Wheel back steps out of the eyes, forward back into them.
+                if (input.MouseWheelDelta < 0f)
+                    thirdPerson = true;
+                else if (input.MouseWheelDelta > 0f)
+                    thirdPerson = false;
             }
 
             // Counted rather than latched, so two presses inside one 25 ms
@@ -107,10 +128,16 @@ namespace KotH.Client.Player
 
         public override MoveInput ReadInput()
         {
+            Vector2 wish = move;
+            if (!thirdPerson)
+                bodyYaw = yaw;
+            else
+                wish = FaceAndRun(move);
+
             var result = new MoveInput
             {
-                Move = move,
-                Yaw = yaw,
+                Move = wish,
+                Yaw = bodyYaw,
                 Pitch = pitch,
                 JumpPresses = jumpPresses,
                 AttackPresses = attackPresses,
@@ -125,6 +152,37 @@ namespace KotH.Client.Player
             attackPresses = 0;
             crouchPressed = false;
             return result;
+        }
+
+        /// <summary>
+        /// Third person: a swing turns the figure to the view at once, the
+        /// keys turn it towards where they run. The returned move is that run
+        /// in the figure's own frame, so it goes exactly where the view says
+        /// while the figure is still turning.
+        /// </summary>
+        Vector2 FaceAndRun(Vector2 keys)
+        {
+            if (attackPresses > 0)
+                bodyYaw = yaw;
+
+            if (UMath.SqrMagnitude(keys) < 0.0001f)
+                return keys;
+
+            Quaternion view = UMath.EulerYaw(yaw);
+            Vector3 run = UMath.Add(UMath.Mul(UMath.Rotate(view, UMath.Right), keys.X),
+                                    UMath.Mul(UMath.Rotate(view, UMath.Forward), keys.Y));
+
+            if (attackPresses == 0)
+            {
+                // Right is -90 degrees: yaw turns about +Y, to the left.
+                float heading = yaw + UMath.Atan2(-keys.X, keys.Y) * UMath.Rad2Deg;
+                float step = TurnSpeed * SimulationSystem.TickSeconds;
+                bodyYaw += UMath.Clamp(UMath.DeltaAngle(bodyYaw, heading), -step, step);
+            }
+
+            Quaternion body = UMath.EulerYaw(bodyYaw);
+            return new Vector2(UMath.Dot(run, UMath.Rotate(body, UMath.Right)),
+                               UMath.Dot(run, UMath.Rotate(body, UMath.Forward)));
         }
     }
 }

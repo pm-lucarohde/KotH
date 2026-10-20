@@ -267,3 +267,16 @@ unter JIT und AOT; die Hashkette bleibt `A4A9BBB937C62890`.
      Die Hashkette bleibt `2645BFE8429DA550`, der Lasttest mit 64 Bots auch bei
      `ACA28FF778F7B0AE` (mit r 0,45 / 0,50 trafen die Bots andere Schläge:
      `04074E8D84E233AF`), jeweils unter JIT und AOT gleich.
+
+## Third-Person-Kamera (20.10.2026, Lucas Vorgabe)
+
+9. **Mausrad zurück schaltet in Third-Person** (in Unity gab es nur die
+   Ego-Perspektive). Die Kamera kreist frei; die Figur läuft in Kamerarichtung und
+   dreht sich beim Schlag zur Kamera. Das rechnet nur `PlayerInputReader` in die
+   bestehenden Felder `MoveInput.Yaw/Move` um, die Simulation bleibt gleich:
+   Hashkette `2645BFE8429DA550`, Lasttest `ACA28FF778F7B0AE`, `clock` wie Unity.
+   - Neue Probe `thirdperson` ohne Unity-Referenz: Kamera hinter jeder freien
+     Stelle der Arena (Gitter 0,5 m, stehend und geduckt, Gier in 15°-Schritten,
+     8 Nickwinkel, 3,77 Mio. Blicke). Die Kamerakugel darf nichts überlappen
+     (1 cm Toleranz für gestreifte Flächen), beide Wegstücke müssen frei sein, die
+     Nahebene muss in der Kugel liegen.

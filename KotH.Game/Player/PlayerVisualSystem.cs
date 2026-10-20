@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using KotH.Shared.Mathematics;
 using KotH.Shared.Player;
+using KotH.Shared.Simulation;
 using Stride.Core;
 using Stride.Core.Mathematics;
 using Stride.Core.Threading;
@@ -20,6 +21,13 @@ namespace KotH.Client.Player
         readonly List<Entity> visuals = new List<Entity>();
         readonly List<PlayerMotor> motors = new List<PlayerMotor>();
 
+        // The rotations of the last two ticks per body: the motor keeps only
+        // the latest, and a figure turning in third person would show the
+        // 40 Hz steps. Presentation only, nothing goes back to the motor.
+        readonly List<Quaternion> fromRotations = new List<Quaternion>();
+        readonly List<Quaternion> toRotations = new List<Quaternion>();
+        int seenTick = -1;
+
         public PlayerVisualSystem()
         {
             // After the driver, before nothing in particular.
@@ -34,6 +42,8 @@ namespace KotH.Client.Player
         {
             visuals.Add(visual);
             motors.Add(motor);
+            fromRotations.Add(motor.Rotation);
+            toRotations.Add(motor.Rotation);
         }
 
         public void Unregister(Entity visual)
@@ -43,6 +53,8 @@ namespace KotH.Client.Player
                 return;
             visuals.RemoveAt(i);
             motors.RemoveAt(i);
+            fromRotations.RemoveAt(i);
+            toRotations.RemoveAt(i);
         }
 
         public override void Update()
@@ -53,6 +65,19 @@ namespace KotH.Client.Player
 
             float alpha = TickInterpolation.Alpha;
 
+            // Several ticks in one frame start from the last shown rotation,
+            // as near as this gets to the tick before without asking the motor.
+            int tick = SimulationSystem.CurrentTick;
+            if (tick != seenTick)
+            {
+                seenTick = tick;
+                for (int i = 0; i < count; i++)
+                {
+                    fromRotations[i] = toRotations[i];
+                    toRotations[i] = motors[i].Rotation;
+                }
+            }
+
             // Every body writes only its own transform, so the bodies split
             // freely; nothing is read back from a transform.
             Dispatcher.For(0, count, i =>
@@ -60,7 +85,7 @@ namespace KotH.Client.Player
                 PlayerMotor motor = motors[i];
                 TransformComponent t = visuals[i].Transform;
                 t.Position = UMath.Lerp(motor.PreviousBodyCenter, motor.BodyCenter, alpha);
-                t.Rotation = motor.Rotation;
+                t.Rotation = Quaternion.Slerp(fromRotations[i], toRotations[i], alpha);
 
                 // Crouching squashes the model to the collider's height.
                 t.Scale = new Vector3(1f, motor.Height / motor.StandHeight, 1f);

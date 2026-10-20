@@ -14,7 +14,7 @@
     <TrimmerRootAssembly Include="KotH.Shared" />
   </ItemGroup>
   <ItemGroup>
-    <!-- The client's view math, compiled in so ClockProbe measures the camera's own code. -->
+    <!-- The client's view math, compiled in so ClockProbe and ThirdPersonProbe measure the camera's own code. -->
     <Compile Include="..\KotH.Game\Player\ViewMath.cs" Link="Client\ViewMath.cs" />
   </ItemGroup>
 </Project>
