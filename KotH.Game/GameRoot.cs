@@ -12,6 +12,7 @@ using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Graphics;
 using Stride.Rendering;
+using Stride.Rendering.Compositing;
 
 namespace KotH.Client
 {
@@ -26,6 +27,9 @@ namespace KotH.Client
     {
         [Display("Körpermodell", "Darstellung")] public Model BodyModel;
         [Display("Schrift der Schadensanzeige", "Darstellung")] public SpriteFont LabelFont;
+
+        /// <summary>Render group of the own figure, drawn into shadow maps only.</summary>
+        const RenderGroup OwnFigureGroup = RenderGroup.Group1;
 
         public override void Start()
         {
@@ -54,9 +58,13 @@ namespace KotH.Client
                 SpawnDummy(builder, marker, side, 100f),
             };
 
-            // The own figure stays undrawn: the eyes sit inside its cap, and
-            // head and shoulders would show from within.
+            // The own figure only casts its shadow: the eyes sit inside its
+            // cap, so the camera skips its render group. Shadow views keep
+            // their own mask, which takes every group.
             var visuals = Entity.Get<PlayerVisualSystem>();
+            AddVisual(visuals, player).Get<ModelComponent>().RenderGroup = OwnFigureGroup;
+            if (SceneSystem.GraphicsCompositor?.Game is SceneCameraRenderer cameraRenderer)
+                cameraRenderer.RenderMask &= ~(RenderGroupMask)(1u << (int)OwnFigureGroup);
             foreach (Entity dummy in dummies)
                 AddVisual(visuals, dummy);
 
@@ -123,11 +131,12 @@ namespace KotH.Client
             Entity.Scene.Entities.Add(new Entity(body.Name + "Label") { label });
         }
 
-        void AddVisual(PlayerVisualSystem system, Entity body)
+        Entity AddVisual(PlayerVisualSystem system, Entity body)
         {
             var visual = new Entity(body.Name + "Visual") { new ModelComponent(BodyModel) };
             Entity.Scene.Entities.Add(visual);
             system.Register(visual, body.Get<PlayerMotor>());
+            return visual;
         }
     }
 }
