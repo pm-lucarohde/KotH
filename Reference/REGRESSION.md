@@ -250,15 +250,16 @@ unter JIT und AOT; die Hashkette bleibt `A4A9BBB937C62890`.
 8. **Drei Formen statt einer Kapsel** (in Unity: Kapsel mit Radius 0,40 m über
    die volle Höhe). Die Pilzfigur ist an Beinen schmaler und an der Kappe breiter,
    also trifft jetzt, was man sieht: drei aufrechte Zylinder in `PlayerBody` und
-   `DummyBody`, Beine 0–0,4 m mit r 0,25, Rumpf 0,4–1,1 m mit r 0,45, Kappe
-   1,1–1,8 m mit r 0,50 (über dem Fuß). Nur die Trefferfläche: Bewegung und
+   `DummyBody`, Beine 0–0,4 m mit r 0,25, Rumpf 0,4–1,1 m mit r 0,405, Kappe
+   1,1–1,8 m mit r 0,45 (über dem Fuß; Rumpf und Kappe hat Luca nach dem ersten
+   Stand mit 0,45 / 0,50 um 10 % schmaler gewünscht). Nur die Trefferfläche: Bewegung und
    Körperstoß bleiben bei `BodyRadius` 0,40 m.
    - Ducken staucht jede Form zu den Füßen hin, wie das Modell
      (`PlayerMotor.ApplyHeight`); ihr Stand kommt aus dem Prefab.
-   - MeleeProbe misst bewusst anders als Unity: Radius in der Mitte 0,450 statt
-     0,400, Breite 1,000, letzter Treffer bei 3,880 m statt 3,820 m (Strahl
-     3,492 m). Takt, Deckel und seitlicher Versatz unverändert.
+   - MeleeProbe misst bewusst anders als Unity: Radius in der Mitte 0,405 statt
+     0,400, Breite 0,900, letzter Treffer bei 3,840 m statt 3,820 m (Strahl
+     3,498 m). Takt, Deckel und seitlicher Versatz unverändert.
    - Alle anderen Proben sind byte-gleich zum Stand davor, `knockback` auch.
-     Die Hashkette bleibt `2645BFE8429DA550`. Lasttest mit 64 Bots: Endzustand
-     jetzt `04074E8D84E233AF` (die Bots treffen andere Schläge), unter JIT und
-     AOT gleich.
+     Die Hashkette bleibt `2645BFE8429DA550`, der Lasttest mit 64 Bots auch bei
+     `ACA28FF778F7B0AE` (mit r 0,45 / 0,50 trafen die Bots andere Schläge:
+     `04074E8D84E233AF`), jeweils unter JIT und AOT gleich.
