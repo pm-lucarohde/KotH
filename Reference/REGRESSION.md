@@ -202,12 +202,24 @@ unter JIT und AOT; die Hashkette bleibt `A4A9BBB937C62890`.
      beschleunigt das eigene Laufen dabei nur mit der Luftkontrolle. Was eine
      Wand an Tempo nimmt, geht zuerst vom Stoß ab (`ClipKnock`). Der
      Kantenschutz beim Ducken ruht, solange ein Stoß wirkt.
+   - **Tempo des Schlägers** (Lucas Vorgabe): Sein waagerechtes Tempo in
+     Stoßrichtung kommt auf die Startgeschwindigkeit, ab 10 % vor dem Treffer
+     zur Hälfte, linear steigend bis zum vollen Tempo ab 20 %; darunter zählt
+     es nicht. Wer sich wegbewegt, stößt schwächer, aber nie zu sich hin.
+     Einstellbar: „Schlägertempo ab %“, „Tempoanteil am Anfang“,
+     „Schlägertempo voll ab %“.
    - `knock` steht in `MotorState`; die DeterminismProbe prüft Rollback und
      Vollständigkeit weiter bitgenau.
    - Neue Probe `knockback`: 0 / 1,2 / 50 / 100 / 250 / 500 / 1000 % treffen
      Weite und Höhe auf 2 mm, nur 500 % landet 7 mm zu kurz (100 %: 12,000 m /
      1,201 m, 1000 %: 120,000 m / 12,001 m); dazu Gegen- und Mitlaufen bei
      100 %: 1,596 m (Stoß + eigenes Laufen = 1,601 m) und 22,404 m (22,404 m).
+     Der Boden reicht nur bis x = 25 m: 500 % und 1000 % fliegen über den Rand
+     und werden in der Luft gemessen, wo der Stoß genauso abklingt; die Probe
+     weist das aus. Schlägertempo bei 100 %: gehend heran 23,043 m, sprintend
+     32,389 m, rückwärts weg 4,528 m; bei 10 / 15 / 20 % gehend 3,111 /
+     5,494 / 8,326 m (im Stand 1,2 / 1,8 / 2,4 m); unter 10 % und bei 0 %
+     wirkt es nicht. Hashkette und Lasttest berühren diesen Teil nicht.
    - MeleeProbe stellt den Rückstoß ab, sie misst Reichweite und Trefferzahl
      gegen Unity. Alle Bewegungsproben sind byte-gleich zum Stand davor.
    - Die Hashkette der DeterminismProbe lautet jetzt `AFC01679A2071001`, unter

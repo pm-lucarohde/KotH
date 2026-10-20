@@ -6,7 +6,9 @@ Trainingsdummys (0 %, 50 % und 100 % Startschaden), Bewegung mit Sprint,
 Gleiten, Ducken, gestuftem Sprung und Doppelsprung, Körperstöße zwischen
 Spielern sowie ein Nahkampfschlag. Der Schlag erhöht das Schadensprozent des
 Getroffenen und stößt ihn umso weiter weg, je höher es schon war: bei 100 %
-12 m weit und 1,2 m hoch, linear bis 1000 %.
+12 m weit und 1,2 m hoch, linear bis 1000 %. Ab 10 % trägt der Schlag auch
+das Tempo des Schlägers in Richtung des Getroffenen mit, bis 20 % ansteigend
+von der Hälfte auf das volle Tempo.
 
 | | |
 |---|---|

@@ -34,6 +34,23 @@ namespace KotH.Shared.Combat
         /// <userdoc>Wie hoch ein Getroffener bei 100 % steigt, in Metern. Linear wie die Weite.</userdoc>
         [Display("Höhe bei 100 %", "Rückstoß")] public float KnockbackHeight = 1.2f;
 
+        /// <userdoc>
+        /// Ab diesem Prozent vor dem Treffer kommt das Tempo des Schlägers in
+        /// Richtung des Getroffenen auf den Rückstoß, zunächst mit dem Anteil
+        /// „Tempoanteil am Anfang“. Darunter zählt es nicht.
+        /// </userdoc>
+        [Display("Schlägertempo ab %", "Rückstoß")] public float CarryFromPercent = 10f;
+
+        /// <userdoc>Anteil des Schlägertempos ab „Schlägertempo ab %“, 0 bis 1.</userdoc>
+        [Display("Tempoanteil am Anfang", "Rückstoß")] public float CarryStartShare = 0.5f;
+
+        /// <userdoc>
+        /// Ab diesem Prozent zählt das Schlägertempo voll; dazwischen steigt
+        /// der Anteil linear. Wer sich beim Treffer wegbewegt, stößt schwächer,
+        /// aber nie zu sich hin.
+        /// </userdoc>
+        [Display("Schlägertempo voll ab %", "Rückstoß")] public float CarryFullPercent = 20f;
+
         // Ticks, not seconds: a third of a second is 13.33 ticks at 40 Hz and
         // would silently round up to 14. Counting ticks is also what a server
         // can replay without an argument about rounding.
@@ -110,7 +127,8 @@ namespace KotH.Shared.Combat
             LastHitDistance = hit.Distance;
 
             // The percent before this hit decides: a fresh body is not moved.
-            float scale = target.Percent / 100f;
+            float before = target.Percent;
+            float scale = before / 100f;
             target.Add(DamagePercent);
 
             PlayerMotor victim = target.Entity.Get<PlayerMotor>();
@@ -123,7 +141,32 @@ namespace KotH.Shared.Combat
             if (UMath.SqrMagnitude(away) < 1e-8f)
                 away = new Vector3(aim.X, 0f, aim.Z);
 
-            victim.Knock(away, KnockbackDistance * scale, KnockbackHeight * scale, dt);
+            // The attacker's own speed towards the victim rides along, a share
+            // of it from CarryFromPercent on; moving away takes some off.
+            float carry = 0f;
+            float share = CarryShare(before);
+            if (share > 0f)
+            {
+                Vector3 run = new Vector3(motor.Velocity.X, 0f, motor.Velocity.Z);
+                carry = UMath.Dot(run, UMath.Normalized(away)) * share;
+            }
+
+            victim.Knock(away, KnockbackDistance * scale, KnockbackHeight * scale, carry, dt);
+        }
+
+        /// <summary>
+        /// Share of the attacker's speed added to the knock at this percent:
+        /// none below CarryFromPercent, CarryStartShare there, rising linearly
+        /// to all of it at CarryFullPercent.
+        /// </summary>
+        public float CarryShare(float percent)
+        {
+            if (percent < CarryFromPercent)
+                return 0f;
+            if (percent >= CarryFullPercent)
+                return 1f;
+            float t = (percent - CarryFromPercent) / (CarryFullPercent - CarryFromPercent);
+            return CarryStartShare + (1f - CarryStartShare) * t;
         }
 
         /// <summary>Clears the counters so a probe can measure one case.</summary>

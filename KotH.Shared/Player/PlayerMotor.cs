@@ -286,12 +286,14 @@ namespace KotH.Shared.Player
 
         /// <summary>
         /// Knocks the body away from a hit: without input, on flat ground, it
-        /// travels distance horizontally and rises height. The knock is its
-        /// own share of the velocity and sheds at the air acceleration no
-        /// matter what is pressed; the body's own running adds on top of it,
-        /// so running against a knock takes exactly that speed off.
+        /// travels distance horizontally and rises height. carry is speed
+        /// added on top along away, in m/s (the attacker's own run); the knock
+        /// never points back. The knock is its own share of the velocity and
+        /// sheds at the air acceleration no matter what is pressed; the body's
+        /// own running adds on top of it, so running against a knock takes
+        /// exactly that speed off.
         /// </summary>
-        public void Knock(Vector3 away, float distance, float height, float dt)
+        public void Knock(Vector3 away, float distance, float height, float carry, float dt)
         {
             if (distance <= 0f && height <= 0f)
                 return;
@@ -300,7 +302,8 @@ namespace KotH.Shared.Player
             flat = UMath.SqrMagnitude(flat) < 1e-8f ? Vector3.Zero : UMath.Normalized(flat);
 
             // The running keeps going, an older knock is replaced.
-            Vector3 fresh = UMath.Mul(flat, LaunchSpeed(UMath.Max(0f, distance), AirAcceleration, dt));
+            float speed = UMath.Max(0f, LaunchSpeed(UMath.Max(0f, distance), AirAcceleration, dt) + carry);
+            Vector3 fresh = UMath.Mul(flat, speed);
             velocity.X += fresh.X - knock.X;
             velocity.Z += fresh.Z - knock.Z;
             velocity.Y = LaunchSpeed(UMath.Max(0f, height), -Gravity, dt);
@@ -329,7 +332,7 @@ namespace KotH.Shared.Player
         /// brakes before it moves, so each tick loses decel*dt first; that
         /// costs half a tick of travel, added back here.
         /// </summary>
-        static float LaunchSpeed(float distance, float decel, float dt)
+        public static float LaunchSpeed(float distance, float decel, float dt)
         {
             if (distance <= 0f)
                 return 0f;
