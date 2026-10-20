@@ -112,6 +112,35 @@ namespace KotH.Shared.Net
         static bool OnGrid(float v)
             => (v == 1f || v == -1f || v == 0f) && BitConverter.SingleToInt32Bits(v) != int.MinValue;
 
+        /// <summary>Largest datagram the protocol sends unreliably; fits every internet path.</summary>
+        public const int MaxDatagram = 1200;
+
+        /// <summary>Most presses of one key a player can make in a 25 ms tick.</summary>
+        public const byte MaxPresses = 4;
+
+        /// <summary>Furthest a yaw may have turned; no mouse gets there in a match.</summary>
+        public const float MaxYaw = 1e6f;
+
+        /// <summary>
+        /// What the host lets into the game: moves within -1..1, a finite view
+        /// with the pitch within 89 degrees, a few presses per tick. Anything
+        /// else is clamped, NaN becomes 0. A valid input comes back bit for
+        /// bit, so an honest peer never sees its own input corrected.
+        /// </summary>
+        public static MoveInput Sanitize(in MoveInput m)
+        {
+            MoveInput s = m;
+            s.Move = new Stride.Core.Mathematics.Vector2(Limit(m.Move.X, 1f), Limit(m.Move.Y, 1f));
+            s.Yaw = Limit(m.Yaw, MaxYaw);
+            s.Pitch = Limit(m.Pitch, 89f);
+            s.JumpPresses = Math.Min(m.JumpPresses, MaxPresses);
+            s.AttackPresses = Math.Min(m.AttackPresses, MaxPresses);
+            return s;
+        }
+
+        static float Limit(float v, float bound)
+            => float.IsNaN(v) ? 0f : v > bound ? bound : v < -bound ? -bound : v;
+
         /// <summary>Bit for bit, the way the simulation would see the difference.</summary>
         public static bool Same(in MoveInput a, in MoveInput b)
             => Bits(a.Move.X) == Bits(b.Move.X) && Bits(a.Move.Y) == Bits(b.Move.Y) &&

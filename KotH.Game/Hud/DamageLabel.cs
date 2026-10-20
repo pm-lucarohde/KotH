@@ -32,6 +32,9 @@ namespace KotH.Client.Hud
         [DataMemberIgnore] public DamagePercent Target { get; set; }
         [DataMemberIgnore] public PlayerMotor Motor { get; set; }
 
+        /// <summary>Shown before the percent, for other players; null for none.</summary>
+        [DataMemberIgnore] public string Name { get; set; }
+
         /// <summary>The camera the text turns towards.</summary>
         [DataMemberIgnore] public TransformComponent Camera { get; set; }
 
@@ -103,7 +106,8 @@ namespace KotH.Client.Hud
             if (value != shown)
             {
                 shown = value;
-                text.Text = value.ToString("F1", HudRenderer.Numbers) + " %";
+                string percent = value.ToString("F1", HudRenderer.Numbers) + " %";
+                text.Text = Name != null ? Name + "  " + percent : percent;
             }
         }
 

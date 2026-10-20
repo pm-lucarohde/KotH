@@ -21,9 +21,13 @@ using Stride.Engine;
 //                               the timing and every body's exact state
 //   --bodies N                  adds N roaming BenchBots (load test)
 //   --warmup N                  leaves the first N fast ticks out of the timing
+//   --host / --join ADDRESS     a networked peer instead, see NetPlay
 
 CultureInfo.DefaultThreadCurrentCulture = CultureInfo.GetCultureInfo("de-DE");
 CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("de-DE");
+
+if (NetPlay.Wanted(args))
+    return NetPlay.Run(args);
 
 double? seconds = Option(args, "--seconds");
 double? fastTicks = Option(args, "--ticks");

@@ -40,6 +40,12 @@ namespace KotH.Client.Hud
         /// <summary>The body this screen belongs to, named "Du" everywhere.</summary>
         [DataMemberIgnore] public SimulationBody Self { get; set; }
 
+        /// <summary>Networked: the round as the host confirmed it, for the winner banner.</summary>
+        [DataMemberIgnore] public Func<MatchState?> ConfirmedRound { get; set; }
+
+        /// <summary>Networked: what to say while there is no game, such as connecting.</summary>
+        [DataMemberIgnore] public Func<string> Notice { get; set; }
+
         static readonly Color4 Band = Color4.PremultiplyAlpha(new Color(0, 0, 0, 0xD0).ToColor4());
         const float Pad = 6f;
 
@@ -101,6 +107,13 @@ namespace KotH.Client.Hud
 
             DrawRanking(batch, screen);
 
+            string notice = Notice?.Invoke();
+            if (notice != null)
+            {
+                Centered(batch, Font, notice, Font.Size, screen.X, screen.Y * 0.32f, Color.White);
+                return;
+            }
+
             if (banner.Length > 0)
             {
                 SpriteFont big = BannerFont ?? Font;
@@ -149,12 +162,14 @@ namespace KotH.Client.Hud
                 status = "";
             }
 
-            if (m.Over)
+            // Networked, a win shows only once no rollback can take it back.
+            MatchState final = ConfirmedRound != null ? ConfirmedRound() ?? default : m;
+            if (final.Over)
             {
-                banner = m.Winner == null ? "Unentschieden"
-                       : m.Winner == Self ? "Du gewinnst!"
-                       : NameOf(m.Winner) + " gewinnt";
-                int seconds = (m.PhaseTicks + HillMatch.TicksPerPoint - 1) / HillMatch.TicksPerPoint;
+                banner = final.Winner == null ? "Unentschieden"
+                       : final.Winner == Self ? "Du gewinnst!"
+                       : NameOf(final.Winner) + " gewinnt";
+                int seconds = (final.PhaseTicks + HillMatch.TicksPerPoint - 1) / HillMatch.TicksPerPoint;
                 countdown = string.Format(HudRenderer.Numbers, "Neue Runde in {0}", seconds);
             }
             else

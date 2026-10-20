@@ -420,3 +420,32 @@ unter JIT und AOT; die Hashkette bleibt `A4A9BBB937C62890`.
       (rund 17 200): Eine geschätzte Drehung trifft den echten Wert nie aufs Bit.
     - Glätten der Korrektur in der Darstellung will Luca nicht.
     - JIT und AOT gleich, `netstate` besteht.
+
+## Netcode N6: UDP, Startargumente, fremde Spieler (20.10.2026)
+
+18. **Mehrspieler über echtes UDP.** `LiteNetTransport` mit LiteNetLib 2.1.4, Client mit
+    `--host`/`--join`/`--name`/`--port`/`--min-players`/`--display`, Server mit
+    `--host`/`--join`/`--bot`. Fremde Spieler als Pilzfigur mit Name und Prozent, F3 mit
+    Ping, Vorlauf, Rollback und Warten. Die Simulation ist unberührt.
+    - Hashkette `880D0C64389C53E3`, Lasttest `ACA28FF778F7B0AE`; `capture`, `netstate`,
+      `knockback`, `wallknock`, `melee` byte-gleich mit N5, JIT und AOT.
+    - **Datagramme höchstens 1200 Bytes.** Vorher packte der Host bis zu 24 bestätigte
+      Ticks in eine Nachricht, bei 12 Spielern bis 6 KB, zu groß für UDP im Internet.
+      Ein erster Versuch mit Limit, aber immer ab dem ältesten unquittierten Tick, ließ
+      den Peer mit 280 ms Ping endlos zurückfallen (Endtick 1880 statt 2520, 2471
+      Eingaben ersetzt). Jetzt vom neuesten Tick rückwärts, Wiederholung ab dem ältesten
+      erst bei überfälliger Quittung (Host schätzt den Ping aus den Quittungen).
+      Verkehr vom Host je Peer 12–39 KiB/s statt bis 51.
+    - **Uhr steht beim Warten.** Ein Host-Client schickt sein Hallo während des Ladens
+      und läuft erst 1,5 s später: Seine Uhr stand 60 Ticks vor, die Korrektur sprang auf
+      veralteten Messwerten immer wieder (Vorlauf 15, ständig Warten). Jetzt wartet die
+      Korrektur nach einem Sprung auf frische Werte, und ein wartender Peer hält seine
+      Uhr an. Neuer Fall in `netplay` („Ladepause“), ohne beide Korrekturen scheitert er
+      (558/750-mal gewartet), mit ihnen 130-mal im Anlauf, danach 0. Nebenbei wartet der
+      Peer mit der schlechten Leitung nur noch 127- statt 2082-mal.
+    - **Eingabeprüfung:** Der Host klemmt NaN, Unendlich, Bewegung über 1, Blick über 89°
+      und mehr als 4 Tastendrücke je Tick; 100 000 gültige Eingaben bleiben bitgleich.
+    - **Sieg nur bestätigt:** Das HUD zeigt „Du gewinnst!“ erst aus dem bestätigten Stand.
+    - UDP-Rauchtest auf localhost (`.work/udp/smoke.sh`): Host + 3 Bots, der vierte nach
+      30 s, Countdown 60 s, Runde ab 91 s, Beitritt bei 160 s abgelehnt (`Closed`), alle
+      Prüfsummen gleich, 0 Desyncs, 0 Eingaben ersetzt. JIT-Host mit AOT-Gast ebenso gleich.

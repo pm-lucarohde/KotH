@@ -155,10 +155,13 @@ namespace KotH.Probes.Probes
 
             Report(founder, damaged, damagedTick, rejected);
             Check(closed, "Beitritt nach dem Fenster abgelehnt");
+            Check(host.Sanitized == 0, $"ehrliche Eingaben nie geklemmt ({host.Sanitized})");
+            Sanitizing();
             Check(countdownAt > 0 && runningAt - countdownAt >= CountdownTicks && runningAt - countdownAt < CountdownTicks + 40,
                   $"Countdown ab Tick {countdownAt}, Runde ab Tick {runningAt}");
             foreach (Peer p in peers)
                 p.World.Dispose();
+            LoadPause();
             Log(failures == 0 ? "[netplay] BESTANDEN" : $"[netplay] {failures} Fehler");
             return failures == 0 ? 0 : 1;
         }
@@ -184,6 +187,73 @@ namespace KotH.Probes.Probes
             };
             peers.Add(p);
             return p;
+        }
+
+        /// <summary>
+        /// A hosting client says hello while still loading and runs its first
+        /// frame 1.5 s later: its clock starts far ahead and has to come back,
+        /// not wobble on stale measurements. Waiting is fine while it settles,
+        /// not after the first 6 s.
+        /// </summary>
+        void LoadPause()
+        {
+            peers.Clear();
+            net = new MemoryNetwork(Seed + 1);
+            hostEnd = net.CreateEndpoint();
+            host = new HostSession(hostEnd, net.Now);
+            Peer founder = AddPeer("Host", host.LocalTransport, founder: true);
+            host.AttachFounder(founder.Session);
+            net.Now = 1500.0;
+
+            var end = net.CreateEndpoint();
+            net.Connect(hostEnd, end, 15.0, 2.0, 0.0);
+            AddPeer("Gast", end, founder: false);
+
+            int settled = -1;
+            while (net.Now < 12000.0)
+            {
+                if (settled < 0 && net.Now >= 6000.0)
+                    settled = founder.Session.Stalls;
+                host.Update(net.Now);
+                foreach (Peer p in peers)
+                    p.Session.Update(net.Now);
+                net.Now += FrameMs;
+            }
+
+            PeerSession s = founder.Session;
+            Check(s.Stalls == settled && Math.Abs(s.Lead - PeerSession.LeadTarget) <= 1.0,
+                  $"Host nach 1,5 s Ladepause: Vorlauf {s.Lead:F1}, {settled}-mal gewartet im Anlauf, danach {s.Stalls - settled}");
+            foreach (Peer p in peers)
+                p.World.Dispose();
+        }
+
+        /// <summary>What the host does to bad inputs, and that it leaves good ones alone.</summary>
+        void Sanitizing()
+        {
+            var bad = new MoveInput
+            {
+                Move = new Vector2(float.NaN, -7f), Yaw = float.PositiveInfinity, Pitch = float.NaN,
+                JumpPresses = 200, AttackPresses = 9,
+            };
+            MoveInput clean = NetProtocol.Sanitize(bad);
+            Check(clean.Move == new Vector2(0f, -1f) && clean.Yaw == NetProtocol.MaxYaw && clean.Pitch == 0f &&
+                  clean.JumpPresses == NetProtocol.MaxPresses && clean.AttackPresses == NetProtocol.MaxPresses,
+                  "NaN, Unendlich, zu große Bewegung und Tastendrücke werden geklemmt");
+
+            var r = new Random(Seed);
+            int changed = 0;
+            for (int i = 0; i < 100000; i++)
+            {
+                var good = new MoveInput
+                {
+                    Move = new Vector2((float)(r.NextDouble() * 2 - 1), (float)(r.NextDouble() * 2 - 1)),
+                    Yaw = (float)((r.NextDouble() * 2 - 1) * 1e5), Pitch = (float)(r.NextDouble() * 178 - 89),
+                    JumpPresses = (byte)r.Next(3), AttackPresses = (byte)r.Next(3), Sprint = r.Next(2) == 0,
+                };
+                if (!NetProtocol.Same(NetProtocol.Sanitize(good), good))
+                    changed++;
+            }
+            Check(changed == 0, $"100 000 gültige Eingaben bitgleich durchgelassen ({changed} verändert)");
         }
 
         /// <summary>Says hello from a fresh endpoint with the given build, like a peer would.</summary>

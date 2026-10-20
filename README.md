@@ -110,6 +110,32 @@ aus, dazu einen Hash des Endzustands, der unter JIT und AOT gleich sein muss.
 `KOTH_TRACE=Bot5` schreibt die Spur eines Bots pro Tick, `KOTH_FALLS=1` jede
 Stelle, an der ein Bot unter den Boden gerät.
 
+### Mehrspieler
+
+Ein Spieler hostet, die anderen treten über seine IP bei (UDP, Standardport 7777;
+übers Internet muss der Host den Port im Router freigeben). Alle brauchen dasselbe
+Build, sonst lehnt der Host ab. Bis zu 12 Spieler.
+
+```bash
+cd Bin/Linux/Release
+./KotH --host --name Luca                     # hosten und mitspielen
+./KotH --join 192.168.0.5 --name Gast         # beitreten, auch ADRESSE:PORT
+./KotH --host --min-players 2 --display 0     # Runde ab 2 Spielern, linker Monitor
+./KotH --join 127.0.0.1 --display 1           # zweiter Client, rechter Monitor
+```
+
+`--display N` zählt die Monitore von links, 0 ist der linke. `--port N` ändert
+den Port. Ohne `--name` heißt man wie der Benutzer; doppelte Namen bekommen beim
+Host eine Nummer („Luca 2“). Esc gibt die Maus frei, um ins andere Fenster zu
+wechseln; ein Klick fängt sie wieder. F3 zeigt Ping, Vorlauf und Rollbacks.
+
+Der Server kann dasselbe ohne Fenster, mit einem Bot als Spieler:
+
+```bash
+Bin/Server/Release/KotH.Server --host --bot              # hosten
+Bin/Server/Release/KotH.Server --join 127.0.0.1 --bot    # beitreten
+```
+
 ### Testhilfen im Client
 
 Mit `KOTH_SHOT=bild.png` zeigt der Client die F3-Anzeige, speichert nach

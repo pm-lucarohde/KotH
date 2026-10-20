@@ -85,6 +85,7 @@ namespace KotH.Shared.Net
 
         // The tick this peer should be at, as a line over local time.
         double syncTick, syncTime;
+        double steadyFrom;
         double lastSent = double.MinValue;
         bool sendNow;
 
@@ -146,6 +147,12 @@ namespace KotH.Shared.Net
         public int RolledTicks { get; private set; }
         public int DeepestRollback { get; private set; }
 
+        /// <summary>Ticks the most recent rollback went back.</summary>
+        public int LastRollback { get; private set; }
+
+        /// <summary>The host went away; the game is over for this peer.</summary>
+        public bool HostLost { get; private set; }
+
         /// <summary>Metres the farthest other player moved per rollback, summed; see WorstCorrection.</summary>
         public double CorrectionSum { get; private set; }
         public float WorstCorrection { get; private set; }
@@ -171,8 +178,12 @@ namespace KotH.Shared.Net
         public void Update(double now)
         {
             while (transport.Poll(out TransportEvent e))
+            {
                 if (e.Kind == TransportEventKind.Data && e.Data.Length > 0)
                     Receive(e.Data, now);
+                else if (e.Kind == TransportEventKind.Disconnected)
+                    HostLost = true;
+            }
 
             if (!Joined)
                 return;
@@ -201,6 +212,31 @@ namespace KotH.Shared.Net
         // The newest tick whose starting state is in the ring and settled:
         // every tick before it confirmed, and stepped once, so recorded.
         int FinalTick => Math.Min(confirmedTick + 1, sim.CurrentTick - 1);
+
+        /// <summary>Where the shared clock stands now, in ticks with a fraction.</summary>
+        public double ClockTick(double now) => syncTick + (now - syncTime) / 1000.0 / SimulationSystem.TickSeconds;
+
+        /// <summary>
+        /// How far the shown frame lies between the last two stepped ticks,
+        /// 0 to 1, for drawing between them.
+        /// </summary>
+        public float Alpha(double now) => (float)Math.Clamp(ClockTick(now) - (sim.CurrentTick - 1), 0.0, 1.0);
+
+        /// <summary>
+        /// The round as no rollback can change it any more. What the HUD
+        /// shows for a win, so a banner never flashes up and vanishes again.
+        /// </summary>
+        public bool TryConfirmedMatch(out Match.MatchState state)
+        {
+            int tick = FinalTick;
+            if (tick >= 0 && snapTicks[tick % Ring] == tick)
+            {
+                state = snaps[tick % Ring].Match;
+                return true;
+            }
+            state = default;
+            return false;
+        }
 
         void Receive(byte[] data, double now)
         {
@@ -290,18 +326,35 @@ namespace KotH.Shared.Net
             int first = r.Int();
             int count = r.Byte();
 
-            RoundTripMs = RoundTripMs * 0.9 + Math.Max(0.0, now - echo) * 0.1;
+            // The welcome's round trip includes any pause before either side
+            // ran its next frame, such as loading. A far shorter one now
+            // means the clock started wrong: set it again from this one.
+            double sample = Math.Max(0.0, now - echo);
+            if (sample * 2.0 < RoundTripMs && sample + 50.0 < RoundTripMs)
+            {
+                RoundTripMs = sample;
+                syncTick = hostTick + sample / 1000.0 / SimulationSystem.TickSeconds + LeadTarget - InputDelay;
+                syncTime = now;
+                steadyFrom = now + sample + 600.0;
+            }
+            else
+                RoundTripMs = RoundTripMs * 0.9 + sample * 0.1;
             ackInputTick = Math.Max(ackInputTick, ackInputs);
 
             // Steer the clock: our input should reach the host LeadTarget
-            // ticks early. Slowly, the measurement is a round trip old.
+            // ticks early. Slowly, the measurement is a round trip old. After
+            // a jump the host's last samples still show the old lead: wait
+            // for fresh ones, or every message would jump again.
             if (!float.IsNaN(lead))
             {
                 Lead = lead;
                 double error = LeadTarget - lead;
-                if (Math.Abs(error) > 12.0)
+                if (now >= steadyFrom && Math.Abs(error) > 12.0)
+                {
                     syncTick += error;
-                else
+                    steadyFrom = now + RoundTripMs + 600.0;
+                }
+                else if (now >= steadyFrom)
                     syncTick += Math.Clamp(error * 0.05, -0.5, 0.5);
             }
 
@@ -415,6 +468,7 @@ namespace KotH.Shared.Net
             TurnCorrectionSum += turn;
 
             Rollbacks++;
+            LastRollback = until - from;
             RolledTicks += until - from;
             DeepestRollback = Math.Max(DeepestRollback, until - from);
         }
@@ -422,20 +476,25 @@ namespace KotH.Shared.Net
         /// <summary>Steps new ticks up to the clock, never more than MaxPredict past the confirmed.</summary>
         void Advance(double now)
         {
-            double wanted = syncTick + (now - syncTime) / 1000.0 / SimulationSystem.TickSeconds;
+            double wanted = ClockTick(now);
             for (int n = 0; n < MaxTicksPerUpdate && sim.CurrentTick < wanted; n++)
             {
                 int tick = sim.CurrentTick;
                 if (tick - confirmedTick > MaxPredict)
                 {
+                    // Too far ahead: the clock holds here instead of running on,
+                    // so the lead the host measures is the clock's own again.
                     Stalls++;
+                    syncTick = tick;
+                    syncTime = now;
                     break;
                 }
 
                 if (sampleLocal != null && LocalNetId != 0)
                 {
                     int at = tick + InputDelay;
-                    local[at % Ring] = sampleLocal();
+                    // Clamped as the host would, so a stray value never makes us roll back ourselves.
+                    local[at % Ring] = NetProtocol.Sanitize(sampleLocal());
                     localTicks[at % Ring] = at;
                     firstLocalTick = Math.Min(firstLocalTick, at);
                     newestLocalTick = at;

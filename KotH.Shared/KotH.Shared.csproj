@@ -6,6 +6,7 @@
   <ItemGroup>
     <PackageReference Include="Stride.Engine" Version="4.4.0" />
     <PackageReference Include="Stride.BepuPhysics" Version="4.4.0" />
+    <PackageReference Include="LiteNetLib" Version="2.1.4" />
     <PackageReference Include="Stride.AssetCompiler" Version="4.4.0" IncludeAssets="build;buildTransitive" />
   </ItemGroup>
 </Project>

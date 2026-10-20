@@ -1,3 +1,4 @@
+using KotH.Client.Net;
 using KotH.Client.Player;
 using KotH.Shared.Simulation;
 using Stride.Core;
@@ -10,7 +11,8 @@ namespace KotH.Client
     /// Runs the simulation at its fixed 40 Hz from the variable frame rate,
     /// the way Unity's FixedUpdate did: an accumulator, at most a third of a
     /// second caught up per frame. Input is collected first, so a press
-    /// reaches the very next tick. Runs before every other script.
+    /// reaches the very next tick. Runs before every other script. In a
+    /// networked game the session steps the world instead, on the shared clock.
     /// </summary>
     [DataContract("KotH.SimulationDriver")]
     public sealed class SimulationDriver : SyncScript
@@ -41,6 +43,13 @@ namespace KotH.Client
 
             bool grabbed = UpdateCursor();
             LocalInput?.Collect(Input, Captured && !grabbed);
+
+            if (Services.GetService<NetClient>() is { } net)
+            {
+                net.Update();
+                TickInterpolation.Alpha = net.Alpha;
+                return;
+            }
 
             int due = clock.Advance(Game.UpdateTime.Elapsed.TotalSeconds);
             for (int i = 0; i < due; i++)

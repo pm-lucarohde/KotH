@@ -4,6 +4,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using KotH.Client;
 using KotH.Client.Hud;
+using KotH.Client.Net;
 using KotH.Client.Player;
 using Stride.Core.Diagnostics;
 using Stride.Core.Mathematics;
@@ -74,6 +75,13 @@ sealed class KotHGame : Game
 
         if (frameLogPath != null)
             frameLog = new float[600 * 2000];
+
+        // A networked game must keep its clock with the other window in front.
+        if (LaunchOptions.Current.Networked)
+        {
+            TreatNotFocusedLikeMinimized = false;
+            InactiveSleepTime = TimeSpan.Zero;
+        }
     }
 
     protected override void PrepareContext()
@@ -112,6 +120,9 @@ sealed class KotHGame : Game
         // still reads every one of them later.
         PumpUntil(() => SdlGrab.SDL_GetKeyboardFocus() == sdl.SdlHandle);
 
+        if (LaunchOptions.Current.Display is { } display)
+            MoveToDisplay(sdl.SdlHandle, display);
+
         if (startFullscreen)
         {
             // The size the window manager gave the new window is where F11
@@ -125,6 +136,29 @@ sealed class KotHGame : Game
 
         SdlGrab.SDL_SetRelativeMouseMode(1);
         SdlGrab.SDL_SetWindowGrab(sdl.SdlHandle, 1);
+    }
+
+    /// <summary>
+    /// Puts the window on a monitor counted from the left, 0 the leftmost,
+    /// before it goes fullscreen there. SDL's own numbering follows no order.
+    /// </summary>
+    static void MoveToDisplay(nint window, int fromLeft)
+    {
+        int count = SdlGrab.SDL_GetNumVideoDisplays();
+        var bounds = new System.Collections.Generic.List<SdlGrab.Rect>();
+        for (int i = 0; i < count; i++)
+            if (SdlGrab.SDL_GetDisplayBounds(i, out SdlGrab.Rect r) == 0)
+                bounds.Add(r);
+        if (bounds.Count == 0)
+            return;
+        bounds.Sort((a, b) => a.X.CompareTo(b.X));
+        SdlGrab.Rect target = bounds[Math.Clamp(fromLeft, 0, bounds.Count - 1)];
+        SdlGrab.SDL_SetWindowPosition(window, target.X + 40, target.Y + 40);
+        PumpUntil(() =>
+        {
+            SdlGrab.SDL_GetWindowPosition(window, out int x, out int y);
+            return x >= target.X && x < target.X + target.W;
+        });
     }
 
     static void PumpUntil(Func<bool> done)
@@ -322,6 +356,14 @@ sealed class KotHGame : Game
             "[schrift] {0}, \"1000,0 %\" misst {1:F3} x {2:F3} m (muss über null sein), " +
             "Schriftgröße {3:F2} m, aktueller Text \"{4}\", Label auf y {5:F3}",
             label.Font?.FontType, size.X, size.Y, label.FontSize, label.Text, label.Entity.Transform.Position.Y));
+
+        foreach (Entity e in SceneSystem.SceneInstance.RootScene.Entities)
+            if (e.Get<DamageLabel>() is { } l)
+                Console.WriteLine(string.Format(HudRenderer.Numbers, "[schild] {0}: \"{1}\" bei {2:F1} {3:F1} {4:F1}, UI {5}, Welt-y {6:F1}, Breite {7:F0}",
+                    e.Name, l.Text, e.Transform.Position.X, e.Transform.Position.Y, e.Transform.Position.Z,
+                    e.Get<Stride.Engine.UIComponent>() is { } ui ? (ui.Enabled ? "an" : "aus") : "fehlt",
+                    e.Transform.WorldMatrix.TranslationVector.Y,
+                    e.Get<Stride.Engine.UIComponent>()?.Page?.RootElement?.ActualWidth ?? -1f));
     }
 
     T Find<T>() where T : EntityComponent
@@ -369,6 +411,9 @@ static class SdlGrab
     [DllImport("libSDL2-2.0.so")] public static extern void SDL_GetWindowSize(nint window, out int w, out int h);
     [DllImport("libSDL2-2.0.so")] public static extern int SDL_GetWindowDisplayIndex(nint window);
     [DllImport("libSDL2-2.0.so")] public static extern int SDL_GetDisplayBounds(int displayIndex, out Rect rect);
+    [DllImport("libSDL2-2.0.so")] public static extern int SDL_GetNumVideoDisplays();
+    [DllImport("libSDL2-2.0.so")] public static extern void SDL_SetWindowPosition(nint window, int x, int y);
+    [DllImport("libSDL2-2.0.so")] public static extern void SDL_GetWindowPosition(nint window, out int x, out int y);
 
     [StructLayout(LayoutKind.Sequential)]
     public struct Rect { public int X, Y, W, H; }

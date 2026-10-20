@@ -1,10 +1,13 @@
+using System.Collections.Generic;
 using KotH.Client.Hud;
 using KotH.Client.Match;
+using KotH.Client.Net;
 using KotH.Client.Player;
 using KotH.Shared.Combat;
 using KotH.Shared.Hosting;
 using KotH.Shared.Match;
 using KotH.Shared.Mathematics;
+using KotH.Shared.Net;
 using KotH.Shared.Physics;
 using KotH.Shared.Player;
 using KotH.Shared.Simulation;
@@ -21,10 +24,12 @@ namespace KotH.Client
     /// Builds the playable world when the scene starts: the arena's collision,
     /// the player and three dummies charged to 0, 50 and 100 percent, the
     /// player and the middle dummy in the order the server and the probes
-    /// use. The scene itself only carries what is drawn.
+    /// use. Started with --host or --join, the dummies come first and the
+    /// players arrive through the network session, see ClientNetWorld.
+    /// The scene itself only carries what is drawn.
     /// </summary>
     [DataContract("KotH.GameRoot")]
-    public sealed class GameRoot : StartupScript
+    public sealed class GameRoot : StartupScript, INetWorld
     {
         [Display("Körpermodell", "Darstellung")] public Model BodyModel;
         [Display("Schrift der Schadensanzeige", "Darstellung")] public SpriteFont LabelFont;
@@ -42,10 +47,19 @@ namespace KotH.Client
             // Before any body joins: their processor looks the system up.
             Services.AddService(system);
 
-            var builder = new WorldBuilder(Entity.Scene, Content, queries);
+            builder = new WorldBuilder(Entity.Scene, Content, queries);
             builder.LoadArena();
             if (builder.Zone != null)
                 system.Match = new HillMatch(builder.Zone);
+            simulation = system;
+            visuals = Entity.Get<PlayerVisualSystem>();
+
+            LaunchOptions options = LaunchOptions.Current;
+            if (options.Networked)
+            {
+                StartNetworked(options);
+                return;
+            }
 
             var reader = new PlayerInputReader();
             Entity player = Spawn(builder, WorldBuilder.PlayerBodyUrl, "PlayerSpawn", "Player", reader);
@@ -64,33 +78,42 @@ namespace KotH.Client
             // The own figure has a render group of its own: the eyes sit in
             // its cap, so the camera skips it unless it stands back far
             // enough. Shadow views keep their own mask, the shadow stays.
-            var visuals = Entity.Get<PlayerVisualSystem>();
-            AddVisual(visuals, player).Get<ModelComponent>().RenderGroup = OwnFigureGroup;
+            AddVisual(player).Get<ModelComponent>().RenderGroup = OwnFigureGroup;
             foreach (Entity dummy in dummies)
-                AddVisual(visuals, dummy);
+            {
+                AddVisual(dummy);
+                AddLabel(dummy, null);
+            }
+            BindLocal(player, reader);
+        }
 
+        void StartNetworked(LaunchOptions options)
+        {
+            BindWorld(null);
+            foreach (Entity dummy in NetWorld.SpawnDummies(builder))
+            {
+                AddVisual(dummy);
+                AddLabel(dummy, null);
+            }
+
+            // The local player's input waits for its body; until then the session samples nothing.
+            net = new NetClient(options, this, () => localReader?.ReadInput() ?? default, simulation.Match);
+            Services.AddService(net);
+            Log.Info($"Netzwerk: {(options.Host ? "Host" : "Gast")} als {options.Name}, Build {NetProtocol.BuildText}");
+        }
+
+        public override void Cancel()
+        {
+            net?.Dispose();
+        }
+
+        /// <summary>The camera, the HUD and the input on the local player's body.</summary>
+        void BindLocal(Entity player, PlayerInputReader reader)
+        {
+            localReader = reader;
             Entity.Get<SimulationDriver>().LocalInput = reader;
+            BindWorld(reader);
 
-            SimulationBody self = reader;
-            HillBoard board = null;
-            foreach (Entity e in Entity.Scene.Entities)
-                if (e.Get<HillBoard>() is { } found)
-                {
-                    board = found;
-                    board.Match = system.Match;
-                    board.Simulation = system;
-                    board.Self = self;
-                }
-            foreach (Entity e in Entity.Scene.Entities)
-                if (e.Get<ZoneVisual>() is { } zone)
-                {
-                    zone.Zone = builder.Zone;
-                    zone.Match = system.Match;
-                    zone.Self = self;
-                    zone.Board = board;
-                }
-
-            TransformComponent view = null;
             foreach (Entity e in Entity.Scene.Entities)
             {
                 var camera = e.Get<PlayerCamera>();
@@ -99,13 +122,94 @@ namespace KotH.Client
                 camera.Motor = player.Get<PlayerMotor>();
                 camera.Reader = reader;
                 camera.Melee = player.Get<MeleeAttack>();
-                camera.World = queries;
+                camera.World = simulation.World;
                 camera.OwnFigureGroup = OwnFigureGroup;
-                view = e.Transform;
             }
+        }
 
-            foreach (Entity dummy in dummies)
-                AddLabel(dummy, view);
+        /// <summary>Hands the round, the zone and the own body (null for none yet) to their displays.</summary>
+        void BindWorld(SimulationBody self)
+        {
+            HillBoard board = null;
+            foreach (Entity e in Entity.Scene.Entities)
+                if (e.Get<HillBoard>() is { } found)
+                {
+                    board = found;
+                    board.Match = simulation.Match;
+                    board.Simulation = simulation;
+                    board.Self = self;
+                    if (net != null)
+                    {
+                        NetClient client = net;
+                        board.Notice = () => client.Notice;
+                        board.ConfirmedRound = () => client.Session.TryConfirmedMatch(out MatchState m) ? m : null;
+                    }
+                }
+            foreach (Entity e in Entity.Scene.Entities)
+                if (e.Get<ZoneVisual>() is { } zone)
+                {
+                    zone.Zone = builder.Zone;
+                    zone.Match = simulation.Match;
+                    zone.Self = self;
+                    zone.Board = board;
+                }
+            foreach (Entity e in Entity.Scene.Entities)
+                if (e.Get<PerformanceOverlay>() is { } overlay && net != null)
+                {
+                    NetClient client = net;
+                    overlay.Network = () => client.Readout;
+                }
+        }
+
+        TransformComponent View()
+        {
+            foreach (Entity e in Entity.Scene.Entities)
+                if (e.Get<PlayerCamera>() != null)
+                    return e.Transform;
+            return null;
+        }
+
+        SimulationSystem INetWorld.Simulation => simulation;
+
+        /// <summary>
+        /// A player the session announces: the own one with the keyboard and
+        /// the camera, everyone else steered by the network and named above
+        /// the head. At its slot, already in the tick; the session parks it.
+        /// </summary>
+        SimulationBody INetWorld.SpawnPlayer(int netId, int slot, string name)
+        {
+            bool own = net != null && netId == net.Session.LocalNetId;
+            SimulationBody body = own ? new PlayerInputReader() : new NetBody();
+            body.NetId = netId;
+            Entity marker = NetWorld.SlotMarker(builder, slot);
+            Entity e = builder.SpawnBody(WorldBuilder.PlayerBodyUrl, marker.Transform.Position,
+                                         marker.Transform.Rotation, body, new DamagePercent());
+            e.Name = name;
+
+            Entity visual = AddVisual(e);
+            Entity label = null;
+            if (own)
+            {
+                visual.Get<ModelComponent>().RenderGroup = OwnFigureGroup;
+                BindLocal(e, (PlayerInputReader)body);
+            }
+            else
+                label = AddLabel(e, name);
+            shown[body] = (visual, label);
+            return body;
+        }
+
+        void INetWorld.Despawn(SimulationBody body)
+        {
+            simulation.Unregister(body);
+            if (shown.Remove(body, out (Entity Visual, Entity Label) drawn))
+            {
+                visuals.Unregister(drawn.Visual);
+                Entity.Scene.Entities.Remove(drawn.Visual);
+                if (drawn.Label != null)
+                    Entity.Scene.Entities.Remove(drawn.Label);
+            }
+            Entity.Scene.Entities.Remove(body.Entity);
         }
 
         static Entity SpawnDummy(WorldBuilder builder, Entity marker, Vector3 offset, float percent)
@@ -142,24 +246,35 @@ namespace KotH.Client
             return body;
         }
 
-        void AddLabel(Entity body, TransformComponent camera)
+        Entity AddLabel(Entity body, string name)
         {
             var label = new DamageLabel
             {
                 Font = LabelFont,
                 Target = body.Get<DamagePercent>(),
                 Motor = body.Get<PlayerMotor>(),
-                Camera = camera,
+                Camera = View(),
+                Name = name,
             };
-            Entity.Scene.Entities.Add(new Entity(body.Name + "Label") { label });
+            var entity = new Entity(body.Name + "Label") { label };
+            Entity.Scene.Entities.Add(entity);
+            return entity;
         }
 
-        Entity AddVisual(PlayerVisualSystem system, Entity body)
+        Entity AddVisual(Entity body)
         {
             var visual = new Entity(body.Name + "Visual") { new ModelComponent(BodyModel) };
             Entity.Scene.Entities.Add(visual);
-            system.Register(visual, body.Get<PlayerMotor>());
+            visuals.Register(visual, body.Get<PlayerMotor>());
             return visual;
         }
+
+        WorldBuilder builder;
+        SimulationSystem simulation;
+        PlayerVisualSystem visuals;
+        NetClient net;
+        PlayerInputReader localReader;
+        readonly Dictionary<SimulationBody, (Entity Visual, Entity Label)> shown =
+            new Dictionary<SimulationBody, (Entity, Entity)>();
     }
 }

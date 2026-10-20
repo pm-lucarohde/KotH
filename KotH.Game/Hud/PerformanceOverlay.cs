@@ -78,6 +78,9 @@ namespace KotH.Client.Hud
         [DataMemberIgnore] public float OnePercentLowFps => count > 0 ? 1000f / WorstPercentMs() : 0f;
         [DataMemberIgnore] public int SampleCount => count;
 
+        /// <summary>Networked: a second line with ping and rollbacks.</summary>
+        [DataMemberIgnore] public Func<string> Network { get; set; }
+
         /// <summary>Whether the readout is drawn; collecting never stops.</summary>
         [DataMemberIgnore]
         public bool Visible
@@ -156,6 +159,14 @@ namespace KotH.Client.Hud
             Vector2 size = Font.MeasureString(text, FontSize);
             batch.Draw(hud.White, new RectangleF(at.X, at.Y, size.X, size.Y), Band);
             batch.DrawString(Font, text, FontSize, at, Color4.White);
+
+            if (Network?.Invoke() is { } line)
+            {
+                at.Y += size.Y;
+                size = Font.MeasureString(line, FontSize);
+                batch.Draw(hud.White, new RectangleF(at.X, at.Y, size.X, size.Y), Band);
+                batch.DrawString(Font, line, FontSize, at, Color4.White);
+            }
         }
 
         /// <summary>

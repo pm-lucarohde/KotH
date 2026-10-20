@@ -36,10 +36,18 @@ Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Pr
   (so schnell wie möglich, gibt µs/Tick, B/Tick und den exakten Endzustand aus).
   Lasttest: `--bodies N --warmup N` mit `BenchBot`s (geseedeter Zufall), Endzustands-Hash
   muss unter JIT und AOT gleich sein; `KOTH_TRACE=BotName`, `KOTH_FALLS=1`.
-- Client-Testhilfen in `KotH.Linux/KotHApp.cs`: `KOTH_SHOT` (Screenshot, F3-Anzeige an),
-  `KOTH_SHOT_YAW`/`_PITCH`/`_FOV`/`_SECONDS` (Standard 3 s), `KOTH_SHOT_THIRD=1`,
-  `KOTH_SHOT_AT=x,y,z`, `KOTH_SHOT_SWING=1` (ein Schlag, meldet Treffer), `KOTH_SIZE=WxH`,
-  `KOTH_VSYNC=0|1`, `KOTH_FRAMELOG=datei`.
+  Netz: `--host [--port N] [--min-players N]`, `--join ADRESSE[:PORT]`, `--bot`, `--name`
+  (`KotH.Server/NetPlay.cs`), loggt jede 400. Prüfsumme zum Vergleich der Prozesse.
+- Client im Netz: `KotH --host`/`--join ADRESSE[:PORT]`, `--name`, `--port`,
+  `--min-players`, `--display N` (Monitor von links). Ohne diese Argumente offline wie immer.
+  Zwei Clients auf einem PC: `--host --min-players 2 --display 0` und
+  `--join 127.0.0.1 --display 1`. JIT-Client und AOT-Client spielen zusammen, wenn der
+  JIT-Client mit `DOTNET_EnableAVX=0` läuft (sonst andere `BuildId`).
+- Client-Testhilfen in `KotH.Linux/KotHApp.cs`: `KOTH_SHOT` (Screenshot, F3-Anzeige an,
+  listet danach alle Schilder mit Text und Position), `KOTH_SHOT_YAW`/`_PITCH`/`_FOV`/
+  `_SECONDS` (Standard 3 s), `KOTH_SHOT_THIRD=1`, `KOTH_SHOT_AT=x,y,z`,
+  `KOTH_SHOT_SWING=1` (ein Schlag, meldet Treffer), `KOTH_SIZE=WxH`, `KOTH_VSYNC=0|1`,
+  `KOTH_FRAMELOG=datei`.
 - Client: kein Splash (asynchrones Laden + `WaitIdle` ohne QueueLock gab
   `VK_ERROR_DEVICE_LOST`), Renderer-Parallelität 6 (gemessen, Lucas Wahl).
 
@@ -99,6 +107,14 @@ Fünf Projekte (`KotH.slnx`):
   `INetTransport` mit `MemoryNetwork` für Proben; Peers legen Körper in NetId-Reihenfolge
   an (Dummys 1–3, Spieler ab 4), sonst weicht die Abfrage-Ordnung ab. Mitspielen nur mit
   gleicher `BuildId` (MVID + Befehlssatz).
+- Über UDP: `LiteNetTransport` (LiteNetLib 2.1.4). Unzuverlässige Datagramme höchstens
+  `NetProtocol.MaxDatagram` (1200 B, das Speichernetz wirft darüber); der Host packt
+  bestätigte Ticks vom neuesten rückwärts und wiederholt ab dem ältesten unquittierten
+  erst, wenn die Quittung überfällig ist. Der Host klemmt Eingaben (`Sanitize`), der Peer
+  seine eigenen genauso. Wartet ein Peer (15 Ticks voraus), bleibt seine Uhr stehen.
+  Im Client ist `GameRoot` die `INetWorld`, `NetClient` hält die Sessions; das HUD zeigt
+  den Sieg nur aus dem bestätigten Stand (`TryConfirmedMatch`). Kein Glätten von
+  Korrekturen (Lucas Entscheidung).
 - `HillMatch` (Capture-Zone, `KotH.Shared/Match`) tickt am Ende von `Step()`; Punkte
   pro Körper in `BodyState`, Runde als `MatchState` im Snapshot. Nur mit
   `HeadlessWorld.StartMatch()` bzw. in `GameRoot`, Bewegungsproben laufen ohne.

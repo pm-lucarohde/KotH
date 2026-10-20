@@ -19,6 +19,7 @@ namespace KotH.Shared.Net
         public const int ConfirmDelay = 3;
 
         const int MaxRecordsPerMessage = 24;
+        const int SpareRecords = 8;     // newest plus spares per datagram, against loss
         const int KeepRecords = 600;
         const int LeadSamples = 20;
         public const int LocalPeer = -1;
@@ -42,7 +43,13 @@ namespace KotH.Shared.Net
             public double EchoTime, EchoReceived;
             public readonly Queue<float> Leads = new Queue<float>();
             public double LastSent = double.MinValue;
-            public int SentUpTo = -1;
+            public int SentThrough = -1;
+            public double LastResend;
+
+            // Round trip as the host sees it: from a tick going final to its
+            // acknowledgement, the least of the recent ones.
+            public double Rtt = 300.0;
+            public readonly Queue<double> RttSamples = new Queue<double>();
             public long BytesSent;
         }
 
@@ -50,6 +57,8 @@ namespace KotH.Shared.Net
         {
             public readonly List<(int NetId, MoveInput Input)> Inputs = new List<(int, MoveInput)>();
             public readonly List<NetEvent> Events = new List<NetEvent>();
+            public double At;   // when it became final
+            public byte[] Encoded;
         }
 
         readonly INetTransport transport;
@@ -86,6 +95,24 @@ namespace KotH.Shared.Net
         public int Players { get; private set; }
         public int Desyncs { get; private set; }
         public int Substituted { get; private set; }
+
+        readonly ArrayBufferWriter<byte> oneRecord = new ArrayBufferWriter<byte>();
+
+        static void WriteRecord(ref Writer w, Record rec)
+        {
+            w.Byte((byte)rec.Inputs.Count);
+            foreach ((int id, MoveInput input) in rec.Inputs)
+            {
+                w.Int(id);
+                NetProtocol.WriteInput(ref w, input);
+            }
+            w.Byte((byte)rec.Events.Count);
+            foreach (NetEvent e in rec.Events)
+                NetProtocol.WriteEvent(ref w, e);
+        }
+
+        /// <summary>Inputs the host had to clamp before confirming them; honest peers send none.</summary>
+        public int Sanitized { get; private set; }
 
         /// <summary>Bytes of confirmed ticks sent to the peer with this NetId so far.</summary>
         public long BytesSentTo(int netId)
@@ -183,6 +210,7 @@ namespace KotH.Shared.Net
                 return;
             }
 
+            name = UniqueName(string.IsNullOrWhiteSpace(name) ? "Spieler" : name.Trim());
             var c = new Client
             {
                 Peer = peer, NetId = nextNetId++, Slot = FreeSlot(), Name = name,
@@ -215,6 +243,15 @@ namespace KotH.Shared.Net
 
             c.EchoTime = sent;
             c.EchoReceived = now;
+            if (ack > c.AckConfirmed && records.TryGetValue(ack, out Record acked))
+            {
+                c.RttSamples.Enqueue(now - acked.At);
+                while (c.RttSamples.Count > LeadSamples)
+                    c.RttSamples.Dequeue();
+                c.Rtt = double.MaxValue;
+                foreach (double sample in c.RttSamples)
+                    c.Rtt = Math.Min(c.Rtt, sample);
+            }
             c.AckConfirmed = Math.Max(c.AckConfirmed, ack);
 
             for (int i = 0; i < count; i++)
@@ -224,7 +261,12 @@ namespace KotH.Shared.Net
                 if (r.Failed)
                     return;
                 if (tick >= nextConfirm && tick >= c.JoinTick)
-                    c.Inputs[tick] = input;
+                {
+                    MoveInput clean = NetProtocol.Sanitize(input);
+                    if (!NetProtocol.Same(clean, input))
+                        Sanitized++;
+                    c.Inputs[tick] = clean;
+                }
                 c.FirstInputTick = Math.Min(c.FirstInputTick, tick);
                 c.NewestInput = Math.Max(c.NewestInput, tick);
             }
@@ -234,6 +276,22 @@ namespace KotH.Shared.Net
                 c.Leads.Enqueue((float)(first + count - 1 - HostTick));
                 while (c.Leads.Count > LeadSamples)
                     c.Leads.Dequeue();
+            }
+        }
+
+        /// <summary>A name nobody in the game has, "Luca 2" for the second Luca.</summary>
+        string UniqueName(string wanted)
+        {
+            if (wanted.Length > 24)
+                wanted = wanted[..24];
+            for (int n = 1; ; n++)
+            {
+                string name = n == 1 ? wanted : $"{wanted} {n}";
+                bool taken = false;
+                foreach (Client other in clients.Values)
+                    taken |= other.Phase != Phase.Left && other.Name == name;
+                if (!taken)
+                    return name;
             }
         }
 
@@ -310,6 +368,11 @@ namespace KotH.Shared.Net
                 rec.Inputs.Add((c.NetId, input));
             }
 
+            rec.At = now;
+            oneRecord.Clear();
+            var rw = new Writer(oneRecord);
+            WriteRecord(ref rw, rec);
+            rec.Encoded = oneRecord.WrittenSpan.ToArray();
             records[t] = rec;
             records.Remove(t - KeepRecords);
             nextConfirm = t + 1;
@@ -412,9 +475,9 @@ namespace KotH.Shared.Net
         }
 
         /// <summary>
-        /// Final ticks a peer has not acknowledged, and its clock feedback:
-        /// whenever new ticks are final, else every 25 ms while some are
-        /// unacknowledged and every 50 ms as a heartbeat.
+        /// Final ticks and the clock feedback to every peer: whenever new
+        /// ticks are final, when an acknowledgement is overdue, else every
+        /// 50 ms as a heartbeat. Each datagram stays within MaxDatagram.
         /// </summary>
         void Broadcast()
         {
@@ -423,14 +486,42 @@ namespace KotH.Shared.Net
                 if (c.Phase != Phase.Playing)
                     continue;
 
-                int first = c.AckConfirmed + 1;
-                int count = Math.Min(nextConfirm - first, MaxRecordsPerMessage);
-                bool fresh = nextConfirm > c.SentUpTo;
-                if (!fresh && now - c.LastSent < (count > 0 ? 25.0 : 50.0))
+                // The newest ticks go out at once, with as many older ones as
+                // still fit, in case one got lost. From the oldest unacknowledged
+                // only once its acknowledgement is overdue.
+                int unacked = c.AckConfirmed + 1;
+                int last = nextConfirm - 1;
+                c.SentThrough = Math.Max(c.SentThrough, c.AckConfirmed);
+                bool fresh = last > c.SentThrough;
+                bool overdue = unacked <= c.SentThrough && records.TryGetValue(unacked, out Record oldest) &&
+                               now - oldest.At > c.Rtt * 1.5 + 40.0 && now - c.LastResend > c.Rtt;
+                if (!fresh && !overdue && now - c.LastSent < 50.0)
                     continue;
-                c.SentUpTo = nextConfirm;
-                if (count > 0 && !records.ContainsKey(first))
+                if (unacked <= last && !records.ContainsKey(unacked))
                     continue;   // fell out of the history; a repair will catch it up
+
+                const int Head = 1 + 4 + 8 + 4 + 4 + 4 + 1;
+                int first, fitting = 0, size = Head;
+                if (overdue)
+                {
+                    c.LastResend = now;
+                    first = unacked;
+                    while (first + fitting <= last && fitting < MaxRecordsPerMessage &&
+                           (fitting == 0 || size + records[first + fitting].Encoded.Length <= NetProtocol.MaxDatagram))
+                        size += records[first + fitting++].Encoded.Length;
+                }
+                else
+                {
+                    first = last + 1;
+                    while (first - 1 >= unacked && fitting < SpareRecords &&
+                           (fitting == 0 || size + records[first - 1].Encoded.Length <= NetProtocol.MaxDatagram))
+                    {
+                        size += records[--first].Encoded.Length;
+                        fitting++;
+                    }
+                    if (fitting == 0)
+                        first = unacked;
+                }
                 c.LastSent = now;
 
                 outgoing.Clear();
@@ -441,20 +532,10 @@ namespace KotH.Shared.Net
                 w.Float(MinLead(c));
                 w.Int(c.NewestInput);
                 w.Int(first);
-                w.Byte((byte)Math.Max(count, 0));
-                for (int t = first; t < first + count; t++)
-                {
-                    Record rec = records[t];
-                    w.Byte((byte)rec.Inputs.Count);
-                    foreach ((int id, MoveInput input) in rec.Inputs)
-                    {
-                        w.Int(id);
-                        NetProtocol.WriteInput(ref w, input);
-                    }
-                    w.Byte((byte)rec.Events.Count);
-                    foreach (NetEvent e in rec.Events)
-                        NetProtocol.WriteEvent(ref w, e);
-                }
+                w.Byte((byte)fitting);
+                for (int t = first; t < first + fitting; t++)
+                    w.Bytes(records[t].Encoded);
+                c.SentThrough = Math.Max(c.SentThrough, first + fitting - 1);
                 c.BytesSent += outgoing.WrittenCount;
                 Send(c.Peer, reliable: false);
             }

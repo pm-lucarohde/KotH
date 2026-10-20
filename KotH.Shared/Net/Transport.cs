@@ -65,6 +65,8 @@ namespace KotH.Shared.Net
             {
                 if (!links.TryGetValue(peer, out Link link) || !link.Open)
                     return;
+                if (!reliable && data.Length > NetProtocol.MaxDatagram)
+                    throw new InvalidOperationException($"Datagramm mit {data.Length} Bytes, erlaubt sind {NetProtocol.MaxDatagram}.");
                 if (!reliable && net.random.NextDouble() < link.Loss)
                 {
                     net.Lost++;
