@@ -390,13 +390,18 @@ namespace KotH.Shared.Player
         }
 
         /// <summary>
-        /// Shifts the body out of another one. Velocity is left alone: being
-        /// pushed out of an overlap is a correction, not a hit - the push
-        /// itself goes through AddVelocity.
+        /// Shifts the body out of another one, but never into the world:
+        /// unchecked, a crowd squeezed bodies into the wedge under a ramp's
+        /// foot and they fell through the one-sided ground (a deliberate
+        /// change from Unity). Velocity is left alone: being pushed out of
+        /// an overlap is a correction, not a hit - the push itself goes
+        /// through AddVelocity.
         /// </summary>
         public void Nudge(Vector3 delta)
         {
-            position = UMath.Add(position, delta);
+            Vector3 free = sweep.Clear(world, position, FootOffset, currentHeight,
+                                       BodyRadius, SkinWidth, delta, WorldMask);
+            position = UMath.Add(position, free);
         }
 
         /// <summary>

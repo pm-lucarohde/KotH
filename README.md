@@ -75,13 +75,28 @@ Bin/Server/Release/KotH.Server                # Echtzeit bis Strg+C
 Bin/Server/Release/KotH.Server --seconds 30   # Echtzeit für 30 s
 Bin/Server/Release/KotH.Server --ticks 2000   # so schnell wie möglich, mit µs/Tick,
                                               # Bytes/Tick und exaktem Endzustand
+Bin/Server/Release/KotH.Server --bodies 64 --warmup 400 --ticks 4000
+                                              # Lasttest: 64 Bots laufen, springen,
+                                              # gleiten und schlagen nach Zufall
 ```
+
+Der Lasttest misst erst nach `--warmup` Ticks und gibt Median und 99 % je Tick
+aus, dazu einen Hash des Endzustands, der unter JIT und AOT gleich sein muss.
+`KOTH_TRACE=Bot5` schreibt die Spur eines Bots pro Tick, `KOTH_FALLS=1` jede
+Stelle, an der ein Bot unter den Boden gerät.
 
 ### Testhilfen im Client
 
 Mit `KOTH_SHOT=bild.png` zeigt der Client die F3-Anzeige, speichert nach
-`KOTH_SHOT_SECONDS` (Standard 7 s) einen Screenshot und beendet sich.
+`KOTH_SHOT_SECONDS` (Standard 3 s) einen Screenshot und beendet sich.
 `KOTH_SHOT_YAW`, `KOTH_SHOT_PITCH` und `KOTH_SHOT_FOV` halten den Blick fest.
+
+Für Leistungsmessungen: `KOTH_SIZE=1920x1080` legt die Fenstergröße fest,
+`KOTH_VSYNC=0|1` schaltet V-Sync, und `KOTH_FRAMELOG=datei` schreibt jede
+Frametime in eine Datei. Strides Renderer läuft mit höchstens 6 Threads, das war
+gemessen der beste Kompromiss aus FPS und CPU-Last; `STRIDE_MAX_PARALLELISM`
+überschreibt das. Einen Splash-Screen gibt es nicht: Mit ihm lädt Stride die
+Szene asynchron, und das brachte unter Vulkan gelegentlich `VK_ERROR_DEVICE_LOST`.
 
 ## Projektstruktur
 
@@ -137,7 +152,7 @@ Bin/Probes/Release/KotH.Probes determinism hashes
 ```
 
 Proben: `worldquery`, `rotation`, `slopejump`, `crest`, `impact`, `jumpheight`,
-`slide`, `sprint`, `melee`, `step`, `determinism`, `clock`, `stairrun`.
+`slide`, `sprint`, `melee`, `step`, `determinism`, `clock`, `stairrun`, `rampfoot`.
 
 Vergleich mit der Unity-Referenz:
 

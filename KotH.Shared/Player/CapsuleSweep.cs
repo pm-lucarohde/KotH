@@ -208,6 +208,31 @@ namespace KotH.Shared.Player
                 radius + skin * 2f, mask, out _);
         }
 
+        /// <summary>
+        /// How much of delta the capsule can move straight without entering
+        /// anything, keeping the skin: no sliding, no contacts reported. For
+        /// corrections that must not push a body into the world. Returns
+        /// delta itself, bit for bit, when nothing is in the way.
+        /// </summary>
+        public Vector3 Clear(WorldQueries world, Vector3 position, float footOffset,
+                             float height, float radius, float skin, Vector3 delta,
+                             CollisionMask mask)
+        {
+            float distance = UMath.Magnitude(delta);
+            if (distance < MinStep)
+                return delta;
+
+            // Started a skin back and stopped two skins short, as in Move.
+            Vector3 direction = UMath.Div(delta, distance);
+            if (!Cast(world, UMath.Sub(position, UMath.Mul(direction, skin)),
+                      footOffset, height, radius, direction,
+                      distance + skin * 2f, mask, out QueryHit hit))
+                return delta;
+
+            float advance = UMath.Max(0f, hit.Distance - skin * 2f);
+            return UMath.Mul(direction, advance);
+        }
+
         bool Cast(WorldQueries world, Vector3 position, float footOffset, float height,
                   float radius, Vector3 direction, float distance,
                   CollisionMask mask, out QueryHit hit)

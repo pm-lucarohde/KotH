@@ -34,15 +34,20 @@ Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Pr
   ab, dann einfach erneut starten.
 - Server: ohne Argument Echtzeit bis Strg+C, `--seconds N`, oder `--ticks N`
   (so schnell wie möglich, gibt µs/Tick, B/Tick und den exakten Endzustand aus).
+  Lasttest: `--bodies N --warmup N` mit `BenchBot`s (geseedeter Zufall), Endzustands-Hash
+  muss unter JIT und AOT gleich sein; `KOTH_TRACE=BotName`, `KOTH_FALLS=1`.
 - Client-Testhilfen in `KotH.Linux/KotHApp.cs`: `KOTH_SHOT` (Screenshot, F3-Anzeige an),
-  `KOTH_SHOT_YAW`/`_PITCH`/`_FOV`/`_SECONDS`.
+  `KOTH_SHOT_YAW`/`_PITCH`/`_FOV`/`_SECONDS` (Standard 3 s), `KOTH_SIZE=WxH`,
+  `KOTH_VSYNC=0|1`, `KOTH_FRAMELOG=datei`.
+- Client: kein Splash (asynchrones Laden + `WaitIdle` ohne QueueLock gab
+  `VK_ERROR_DEVICE_LOST`), Renderer-Parallelität 6 (gemessen, Lucas Wahl).
 
 ## Tests: Proben und Regression
 
 Es gibt keine Unit-Tests; geprüft wird mit **Proben** gegen die eingefrorene Unity-Referenz.
 
 ```bash
-Bin/Probes/Release/KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|step|determinism|clock|stairrun>
+Bin/Probes/Release/KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|step|determinism|clock|stairrun|rampfoot>
 Bin/Probes/Release/KotH.Probes determinism hashes   # Hashkette + Befehlssatz
 
 .work/tools/stride_runs.sh 3                        # alle Bewegungsproben 3x -> .work/regress/runK
@@ -54,7 +59,7 @@ python3 Tools/regress.py $R/run1,$R/run2,$R/run3 .work/regress/run1   # Zahlen i
 - Exit-Code 0 heißt bestanden. Ziel: alle Urteile gleich (94/94), bekannte
   Abweichungen mit Ursache stehen in `Reference/REGRESSION.md`, ebenso die gewollten
   Änderungen gegenüber Unity (deren Probenfälle haben keine Unity-Referenz,
-  `stairrun` z. B. läuft außerhalb von `stride_runs.sh`).
+  `stairrun` und `rampfoot` laufen außerhalb von `stride_runs.sh`).
 - **JIT-Läufe brauchen `DOTNET_EnableAVX=0`**, sonst weichen die Floats von den
   AOT-Builds ab (`IlcInstructionSet=x86-64-v2` in `Directory.Build.props`, Lucas
   Entscheidung). Die Hashkette muss unter AOT und JIT gleich sein.

@@ -29,12 +29,13 @@ Probe probe = name switch
     "determinism" => new DeterminismProbe { PrintHashes = Array.IndexOf(args, "hashes") > 0 },
     "clock" => new ClockProbe(dump),
     "stairrun" => new StairRunProbe(),
+    "rampfoot" => new RampFootProbe(),
     _ => null,
 };
 
 if (probe == null)
 {
-    Console.Error.WriteLine("Aufruf: KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|step|determinism|clock|stairrun>");
+    Console.Error.WriteLine("Aufruf: KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|step|determinism|clock|stairrun|rampfoot>");
     return 64;
 }
 

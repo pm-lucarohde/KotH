@@ -1,0 +1,158 @@
+using System;
+using KotH.Probes.Harness;
+using KotH.Shared.Hosting;
+using KotH.Shared.Player;
+using KotH.Shared.Simulation;
+using Stride.Core.Mathematics;
+using Stride.Engine;
+
+namespace KotH.Probes.Probes
+{
+    /// <summary>
+    /// Crawls crouched under Ramp20 and Ramp35 towards their foot, where the
+    /// tilted box meets the ground and the gap underneath closes: one body
+    /// alone, then a crowd that shoves itself apart while it crawls. Fails
+    /// if any body ends up below the ground. Found by the server's load test:
+    /// bodies pushed into that wedge by others sank through the floor.
+    /// </summary>
+    public sealed class RampFootProbe : Probe
+    {
+        protected override string Tag => "rampfoot";
+
+        // Unity coordinates: ramp centre x and z; both climb towards +z.
+        static readonly (string name, float x, float z)[] Ramps =
+        {
+            ("Ramp20", -3.5f, 3.23f),
+            ("Ramp35", 3.5f, 6.6f),
+        };
+
+        const int Settle = 60, Ticks = 160;
+        const int CrowdSize = 6, CrowdTicks = 300, CrowdRounds = 4;
+
+        public override int Run(HeadlessWorld world, int maxTicks)
+        {
+            PlayerMotor motor = Prototype.Open(world).Motor;
+            int failures = 0;
+
+            foreach (var ramp in Ramps)
+            for (int s = 0; s < 2; s++)
+            {
+                bool sprint = s == 1;
+                int runs = 0, sunk = 0, logged = 0;
+
+                for (int xo = -3; xo <= 3; xo++)
+                for (int yw = -2; yw <= 2; yw++)
+                {
+                    float yaw = 180f + yw * 15f;
+                    var start = new Vector3(ramp.x + xo * 0.5f, 0.9f, ramp.z + 1.5f);
+
+                    // Crouched at rest first, so no run inherits the last one's state.
+                    motor.Teleport(Ref.Pos(start));
+                    for (int i = 0; i < Settle; i++)
+                        motor.Tick(new MoveInput { Yaw = Ref.Angle(yaw), Crouch = true }, FixedDeltaTime);
+
+                    float lowest = float.MaxValue;
+                    int lowestAt = -1;
+                    for (int t = 0; t < Ticks; t++)
+                    {
+                        motor.Tick(new MoveInput
+                        {
+                            Move = new Vector2(0f, 1f), Yaw = Ref.Angle(yaw), Crouch = true, Sprint = sprint,
+                        }, FixedDeltaTime);
+
+                        float y = motor.Position.Y;
+                        if (y < lowest)
+                        {
+                            lowest = y;
+                            lowestAt = t;
+                        }
+                    }
+
+                    runs++;
+                    if (lowest < 0.5f)
+                    {
+                        sunk++;
+                        if (logged++ < 3)
+                            Log($"[rampfoot]    eingesunken: x {start.X:F1} Blick {yaw:F0}°, tiefste Höhe {lowest:F3} " +
+                                $"in Tick {lowestAt}, Ende bei {Ref.V(motor.Position)} -> ABWEICHUNG");
+                    }
+                }
+
+                failures += sunk;
+                Log($"[rampfoot] == {ramp.name} geduckt{(sprint ? " mit Sprint" : "")}: {runs} Läufe, " +
+                    $"{sunk} eingesunken -> {(sunk == 0 ? "ok" : "ABWEICHUNG")}");
+            }
+
+            failures += Crowds(world, motor);
+
+            Log(failures == 0 ? "[rampfoot] KEIN KÖRPER UNTER DEM BODEN" : $"[rampfoot] {failures} LÄUFE EINGESUNKEN");
+            return failures == 0 ? 0 : 1;
+        }
+
+        /// <summary>
+        /// A crowd crawling under each ramp through the real SimulationSystem,
+        /// since only there do bodies separate each other. Strafing flips at
+        /// seeded random ticks, so the bodies keep shoving sideways.
+        /// </summary>
+        int Crowds(HeadlessWorld world, PlayerMotor alone)
+        {
+            alone.Teleport(Ref.Pos(-20f, 0.9f, -20f));   // out of the way
+            var bodies = new ScriptedBody[CrowdSize];
+            for (int i = 0; i < CrowdSize; i++)
+            {
+                bodies[i] = new ScriptedBody();
+                world.SpawnBody(HeadlessWorld.PlayerBodyUrl, Ref.Pos(-20f + i * 2f, 0.9f, 20f),
+                                Quaternion.Identity, bodies[i]);
+            }
+
+            int failures = 0;
+            uint rng = 12345u;
+            foreach (var ramp in Ramps)
+            for (int round = 0; round < CrowdRounds; round++)
+            {
+                // Two rows of three under the ramp's high end, crouched first.
+                for (int i = 0; i < CrowdSize; i++)
+                {
+                    var at = new Vector3(ramp.x - 1.2f + (i % 3) * 1.2f, 0.9f, ramp.z + 1.0f + (i / 3) * 1.0f);
+                    bodies[i].Motor.Teleport(Ref.Pos(at));
+                    bodies[i].Input = new MoveInput { Yaw = Ref.Angle(180f), Crouch = true };
+                }
+                for (int t = 0; t < Settle; t++)
+                    world.Simulation.Tick();
+
+                var strafe = new float[CrowdSize];
+                float lowest = float.MaxValue;
+                int lowestBody = -1, lowestTick = -1;
+                for (int t = 0; t < CrowdTicks; t++)
+                {
+                    for (int i = 0; i < CrowdSize; i++)
+                    {
+                        rng ^= rng << 13; rng ^= rng >> 17; rng ^= rng << 5;
+                        if (rng % 10u == 0u)
+                            strafe[i] = (rng >> 8) % 3u - 1f;
+                        bodies[i].Input = new MoveInput
+                        {
+                            Move = new Vector2(strafe[i] * 0.8f, 1f), Yaw = Ref.Angle(180f), Crouch = true,
+                        };
+                    }
+                    world.Simulation.Tick();
+
+                    for (int i = 0; i < CrowdSize; i++)
+                        if (bodies[i].Motor.Position.Y < lowest)
+                        {
+                            lowest = bodies[i].Motor.Position.Y;
+                            lowestBody = i;
+                            lowestTick = t;
+                        }
+                }
+
+                bool sunk = lowest < 0.5f;
+                if (sunk)
+                    failures++;
+                Log($"[rampfoot] == {ramp.name} Pulk {round + 1}: {CrowdSize} Körper, tiefste Höhe {lowest:F3}" +
+                    (sunk ? $" (Körper {lowestBody}, Tick {lowestTick}) -> ABWEICHUNG" : " -> ok"));
+            }
+            return failures;
+        }
+    }
+}

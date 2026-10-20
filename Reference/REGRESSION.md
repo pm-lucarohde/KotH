@@ -135,3 +135,19 @@ steckten schon im Unity-Original:
 Alle anderen Proben sind dabei byte-gleich geblieben, unter JIT und AOT. Die
 Hashkette der DeterminismProbe lautet jetzt `A4A9BBB937C62890`. Sie ändert sich, weil
 `MotorState` ein neues Feld hat; das Verhalten bleibt in allen Fällen gleich.
+
+## Gewollte Änderung in Etappe 10 (20.10.2026)
+
+4. **Körper wurden durch den Boden geschoben** (Fehler aus Unity, gefunden im
+   Lasttest des Servers mit 64 Bots: 47 Durchfälle in 4 400 Ticks). Am Fuß von
+   Ramp20 und Ramp35 bleibt unter der schrägen Box ein Keil, in den man geduckt
+   hineinkriecht. `SeparateBodies` schob dort mit `Motor.Nudge` ungeprüft weiter,
+   der Körper steckte danach in der Rampe, und deren Tiefenkorrektur drückte ihn
+   durch den einseitigen Boden. `Nudge` fährt die Verschiebung jetzt mit
+   `CapsuleSweep.Clear` ab und hält eine Hautdicke vor der Welt an; ist nichts im
+   Weg, bleibt die Verschiebung bitgleich. Neue Probe `rampfoot`: ein Körper
+   allein sowie ein Pulk aus sechs, der sich unter den Rampen schiebt. Mit dem
+   alten `Nudge` sinkt der Pulk in allen 8 Durchgängen ein, jetzt in keinem.
+
+Alle Bewegungsproben sind byte-gleich zum Stand davor, unter JIT und AOT; die
+Hashkette bleibt `A4A9BBB937C62890`.
