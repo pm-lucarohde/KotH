@@ -1,6 +1,8 @@
 # Unity-Referenz (Stand b09cb6b, Unity 6000.3.21f1, Editor-Mono)
 
-Eingefroren am 15.10.2026, bevor Unity aus dem Repo verschwindet.
+Eingefroren am 15.10.2026, bevor Unity aus dem Repo verschwand. Entfernt wurde
+das Unity-Projekt am 20.10.2026; sein Quelltext liegt in der Git-Geschichte bis
+`577ed3f`.
 
 - `runs/run1..3/` – alle acht Bewegungs- und Kampfproben, dreimal, nur die
   Probe-Zeilen aus dem Editor-Log (alle Exit 0).

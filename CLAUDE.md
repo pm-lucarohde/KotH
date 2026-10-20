@@ -4,8 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 KotH ist ein King-of-the-Hill-Spiel, umgezogen von Unity 6000.3 auf **Stride 4.4**,
 **.NET 11 RC2** (`global.json` pinnt das SDK), **Vulkan** und **NativeAOT** unter Linux.
-Unity (`Assets/`, `Packages/`, `ProjectSettings/`, `Builds/client`) liegt nur noch als
-Messreferenz im Repo und wird am Ende des Umzugs gelöscht; `Reference/unity/` bleibt.
+Das Unity-Projekt ist entfernt (letzter Stand in der Git-Geschichte: `577ed3f`); als
+Messreferenz bleibt `Reference/unity/` mit eingefrorenen Läufen und Dumps.
 Später soll Peer-to-Peer kommen (ein Peer hostet), keine dedizierten Server.
 
 ## Konventionen
@@ -112,12 +112,9 @@ Kollision und Körper liegen in eigenen Prefabs **ohne Modelle**
 Die Client-Prefabs verschachteln sie und legen die Modelle darüber.
 
 **Quelle aller Assets ist Game Studio** (Lucas Entscheidung, 16.10.2026). Die
-Generatoren waren Umzugswerkzeug und **nicht erneut ausführen**, sie überschreiben
-jede Änderung aus Game Studio; sie fliegen in Etappe 11 mit Unity raus:
-
-- `Tools/generate_arena.py` – `ArenaCollision.sdprefab` aus den Unity-Dumps (Bits exakt).
-- `Tools/generate_bodies.py` – `PlayerBody`/`DummyBody` mit allen Tuningwerten.
-- `Tools/generate_client.py` – Materialien, Modelle, `MainScene`, Licht.
+Generatoren aus dem Umzug (`Tools/generate_*.py`, in der Git-Geschichte bis
+`577ed3f`) sind entfernt; nicht wiederbeleben, sie überschrieben jede Änderung
+aus Game Studio.
 
 Der `GraphicsCompositor` hat bewusst **keinen `Archetype`**: Game Studio setzt
 sonst nicht markierte Werte auf den Archetyp zurück, und Tonemapping und Bloom

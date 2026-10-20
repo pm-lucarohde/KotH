@@ -17,9 +17,9 @@ Schadensprozent des Getroffenen erhöht.
 
 Das Projekt ist von Unity 6000.3 auf Stride umgezogen. Die Logik ist dabei
 gleich geblieben; gemessen wurde das gegen eingefrorene Unity-Messungen (siehe
-[Proben und Regression](#proben-und-regression)). Unity liegt noch als
-Messreferenz im Repo (`Assets/`, `Packages/`, `ProjectSettings/`) und wird zum
-Abschluss des Umzugs entfernt. Mehrspieler kommt später als Peer-to-Peer:
+[Proben und Regression](#proben-und-regression)). Das Unity-Projekt selbst ist
+entfernt und nur noch in der Git-Geschichte (bis `577ed3f`); die Messungen liegen
+in `Reference/unity/`. Mehrspieler kommt später als Peer-to-Peer:
 Ein Peer hostet, ein dedizierter Server ist nicht geplant.
 
 ## Steuerung
@@ -107,7 +107,7 @@ KotH.Game/     Client: Eingabe, Kamera, Darstellung, HUD, Szene und Materialien
 KotH.Linux/    ausführbarer Client (Vulkan, NativeAOT)
 KotH.Server/   Konsolen-Host ohne GPU
 KotH.Probes/   Messproben gegen die Unity-Referenz
-Tools/         Asset-Generatoren, Regressionsvergleich, AOT-Publish
+Tools/         Regressionsvergleich, AOT-Publish
 Reference/     eingefrorene Unity-Messungen und der Regressionsbericht
 ```
 
@@ -130,14 +130,8 @@ Einige Kernpunkte der Architektur:
 ### Assets
 
 Szene, Prefabs, Materialien und Tuningwerte werden in **Stride Game Studio**
-bearbeitet. Für den Umzug wurden sie einmalig aus Skripten erzeugt. Diese Skripte
-nicht erneut ausführen: Sie überschreiben jede Änderung aus Game Studio.
-
-| Skript (nur Umzug) | hat erzeugt |
-|---|---|
-| `Tools/generate_arena.py` | `ArenaCollision.sdprefab` aus den Unity-Dumps, bitgenau |
-| `Tools/generate_bodies.py` | `PlayerBody`, `DummyBody` mit allen Tuningwerten |
-| `Tools/generate_client.py` | Materialien, Modelle, `MainScene`, Licht |
+bearbeitet. Für den Umzug wurden sie einmalig aus Skripten erzeugt, die Arena
+bitgenau aus den Unity-Dumps; seitdem ist Game Studio ihre einzige Quelle.
 
 ## Proben und Regression
 
@@ -188,6 +182,3 @@ Ausgenommen sind mitgelieferte Fremdbestandteile unter ihren eigenen Lizenzen:
 - `KotH.Game/Resources/Fonts/OpenSans-Regular.ttf`: Open Sans, Apache License 2.0
   (`KotH.Game/Resources/Fonts/LICENSE.txt`).
 - `KotH.Game/Resources/skybox_texture_*.dds`: aus der Stride-Projektvorlage, MIT.
-- `Assets/TextMesh Pro/`: Unitys TextMesh-Pro-Ressourcen, Unity Companion License;
-  die enthaltene Schrift Liberation Sans steht unter der SIL Open Font License.
-  Das betrifft nur die Unity-Referenz und fällt mit ihr weg.
