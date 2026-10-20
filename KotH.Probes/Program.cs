@@ -33,12 +33,13 @@ Probe probe = name switch
     "crouchedge" => new CrouchEdgeProbe(),
     "knockback" => new KnockbackProbe(),
     "thirdperson" => new ThirdPersonProbe(),
+    "wallknock" => new WallKnockProbe { Trace = Array.IndexOf(args, "trace") > 0 },
     _ => null,
 };
 
 if (probe == null)
 {
-    Console.Error.WriteLine("Aufruf: KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|step|determinism|clock|stairrun|rampfoot|crouchedge|knockback|thirdperson>");
+    Console.Error.WriteLine("Aufruf: KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|step|determinism|clock|stairrun|rampfoot|crouchedge|knockback|thirdperson|wallknock>");
     return 64;
 }
 

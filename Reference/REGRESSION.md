@@ -282,3 +282,20 @@ unter JIT und AOT; die Hashkette bleibt `A4A9BBB937C62890`.
      8 Nickwinkel, 3,77 Mio. Blicke). Die Kamerakugel darf nichts überlappen
      (1 cm Toleranz für gestreifte Flächen), beide Wegstücke müssen frei sein, die
      Nahebene muss in der Kugel liegen.
+
+## Rückstoß prallt von Wänden ab (20.10.2026, von Luca gemeldet)
+
+10. **Ein schräg gegen die Wand gestoßener Körper flog nach der Landung zurück zur
+    Wand.** `ClipKnock` kürzte den Rückstoß nur, seine Richtung blieb: Der Rest
+    zeigte weiter in die Wand, der eigene Anteil (Tempo minus Rückstoß) dafür von ihr
+    weg. In der Luft sah das wie ein schwacher Abprall aus, am Boden bremste die
+    Reibung den eigenen Anteil, und der Rest zog den Körper zurück (bis 1,6 m/s).
+    Gerade gegen die Wand blieb ein Körper dagegen kleben.
+    - Jetzt verliert der Rückstoß seinen Teil in die Wand, 40 % davon kommen als
+      Abprall zurück (`PlayerMotor.KnockWallBounce`, Lucas Wahl); der Teil an der Wand
+      entlang bleibt. Das eigene Laufen prallt nie ab.
+    - Neue Probe `wallknock` ohne Unity-Referenz: Plateauwand, 0°, 15°, 30° und 45°,
+      100 bis 1000 %; nach dem Abprall darf sich der Körper nie mehr zur Wand bewegen.
+    - Ohne Rückstoß kehrt `ClipKnock` sofort zurück wie bisher: `knockback`
+      byte-gleich, Hashkette `2645BFE8429DA550` und Lasttest `ACA28FF778F7B0AE`
+      unverändert, unter JIT und AOT gleich.

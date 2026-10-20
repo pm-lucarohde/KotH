@@ -48,7 +48,7 @@ Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Pr
 Es gibt keine Unit-Tests; geprüft wird mit **Proben** gegen die eingefrorene Unity-Referenz.
 
 ```bash
-Bin/Probes/Release/KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|step|determinism|clock|stairrun|rampfoot|crouchedge|knockback|thirdperson>
+Bin/Probes/Release/KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|step|determinism|clock|stairrun|rampfoot|crouchedge|knockback|thirdperson|wallknock>
 Bin/Probes/Release/KotH.Probes determinism hashes   # Hashkette + Befehlssatz
 
 .work/tools/stride_runs.sh 3                        # alle Bewegungsproben 3x -> .work/regress/runK
@@ -60,8 +60,8 @@ python3 Tools/regress.py $R/run1,$R/run2,$R/run3 .work/regress/run1   # Zahlen i
 - Exit-Code 0 heißt bestanden. Ziel: alle Urteile gleich (94/94), bekannte
   Abweichungen mit Ursache stehen in `Reference/REGRESSION.md`, ebenso die gewollten
   Änderungen gegenüber Unity (deren Probenfälle haben keine Unity-Referenz,
-  `stairrun`, `rampfoot`, `crouchedge` und `thirdperson` laufen außerhalb von
-  `stride_runs.sh`).
+  `stairrun`, `rampfoot`, `crouchedge`, `thirdperson` und `wallknock` laufen
+  außerhalb von `stride_runs.sh`).
 - **JIT-Läufe brauchen `DOTNET_EnableAVX=0`**, sonst weichen die Floats von den
   AOT-Builds ab (`IlcInstructionSet=x86-64-v2` in `Directory.Build.props`, Lucas
   Entscheidung). Die Hashkette muss unter AOT und JIT gleich sein.

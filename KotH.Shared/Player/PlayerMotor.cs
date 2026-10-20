@@ -116,6 +116,9 @@ namespace KotH.Shared.Player
         /// <userdoc>Abstand zwischen zwei Gleitvorgängen, ab dem Start gezählt</userdoc>
         [Display("Abklingzeit", "Gleiten")] public float SlideCooldown = 0.5f;
 
+        /// <userdoc>Wie viel vom Rückstoß in eine Wand hinein als Abprall zurückkommt; das eigene Laufen prallt nie ab</userdoc>
+        [Display("Abprall an Wänden", "Rückstoß")] public float KnockWallBounce = 0.4f;
+
         // --- wiring, set by Initialize ---
         WorldQueries world;
         StaticComponent hull;      // what a shot may hit, full height
@@ -357,20 +360,33 @@ namespace KotH.Shared.Player
         }
 
         /// <summary>
-        /// Speed a wall took is taken from the knock first, as far as it ran
-        /// against the knock's direction. Left whole, the knock would outlive
-        /// the speed it is part of and the running share would turn backwards.
+        /// Speed a wall took comes out of the knock first: its part into the
+        /// wall is gone, KnockWallBounce of it comes back away from the wall,
+        /// its part along the wall goes on. Only shortened, a knock hitting a
+        /// wall at an angle kept pointing into it, and once the body landed
+        /// it carried the body back to the wall it had come off.
         /// </summary>
         void ClipKnock(Vector3 asked)
         {
-            float left = UMath.Magnitude(knock);
-            if (left <= 0f)
+            if (UMath.SqrMagnitude(knock) <= 0f)
                 return;
 
-            Vector3 along = UMath.Div(knock, left);
-            float taken = UMath.Dot(new Vector3(asked.X - velocity.X, 0f, asked.Z - velocity.Z), along);
-            if (taken > 0f)
-                knock = UMath.Mul(along, UMath.Max(0f, left - taken));
+            var taken = new Vector3(asked.X - velocity.X, 0f, asked.Z - velocity.Z);
+            float depth = UMath.Magnitude(taken);
+            if (depth <= 0f)
+                return;
+
+            // No more than the wall took: the rest of the knock's push into
+            // it was already cancelled by the body's own running away.
+            Vector3 into = UMath.Div(taken, depth);
+            float hit = UMath.Min(UMath.Dot(knock, into), depth);
+            if (hit <= 0f)
+                return;
+
+            float back = hit * KnockWallBounce;
+            knock = UMath.Sub(knock, UMath.Mul(into, hit + back));
+            velocity.X -= into.X * back;
+            velocity.Z -= into.Z * back;
         }
 
         /// <summary>
