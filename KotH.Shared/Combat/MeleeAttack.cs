@@ -29,10 +29,10 @@ namespace KotH.Shared.Combat
         /// Gegensteuern auf ebenem Boden. Wächst linear mit dem Prozent vor dem
         /// Treffer: 0 % stößt gar nicht, 1000 % zehnmal so weit.
         /// </userdoc>
-        [Display("Weite bei 100 %", "Rückstoß")] public float KnockbackDistance = 8f;
+        [Display("Weite bei 100 %", "Rückstoß")] public float KnockbackDistance = 12f;
 
         /// <userdoc>Wie hoch ein Getroffener bei 100 % steigt, in Metern. Linear wie die Weite.</userdoc>
-        [Display("Höhe bei 100 %", "Rückstoß")] public float KnockbackHeight = 0.8f;
+        [Display("Höhe bei 100 %", "Rückstoß")] public float KnockbackHeight = 1.2f;
 
         // Ticks, not seconds: a third of a second is 13.33 ticks at 40 Hz and
         // would silently round up to 14. Counting ticks is also what a server
