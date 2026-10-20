@@ -39,6 +39,18 @@ namespace KotH.Shared.Simulation
 
         [DataMemberIgnore] public bool HasSpawn { get; private set; }
 
+        /// <summary>Where a new round puts this body; see MarkSpawn.</summary>
+        [DataMemberIgnore] public BodyState SpawnState => spawn;
+
+        /// <summary>
+        /// The body's name on the network, the same on every peer. Inputs and
+        /// snapshots go by it, never by list position. Zero offline.
+        /// </summary>
+        [DataMemberIgnore] public int NetId { get; set; }
+
+        /// <summary>Out of the tick for now, hull out of reach; see SimulationSystem.Leave.</summary>
+        [DataMemberIgnore] public bool IsParked { get; internal set; }
+
         /// <summary>
         /// Input for the tick about to run. Called exactly once per tick by
         /// SimulationSystem, so per-frame state may be consumed here.
@@ -89,6 +101,13 @@ namespace KotH.Shared.Simulation
             spawn = CaptureState();
             spawn.ScoreTicks = 0;
             spawn.AloneTicks = 0;
+            HasSpawn = true;
+        }
+
+        /// <summary>Takes a spawn state another peer recorded, for a body built from a transfer.</summary>
+        public void SetSpawn(in BodyState state)
+        {
+            spawn = state;
             HasSpawn = true;
         }
 

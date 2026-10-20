@@ -538,6 +538,19 @@ namespace KotH.Shared.Player
             Entity.Transform.Rotation = rotation;
         }
 
+        // Far below the arena, where no swing reaches.
+        static readonly Vector3 ParkedHull = new Vector3(0f, -10000f, 0f);
+
+        /// <summary>
+        /// Takes the hit hull out of reach while the body is out of the tick,
+        /// without unregistering it: its place in the stable query order
+        /// has to survive a rollback that brings the body back.
+        /// </summary>
+        public void ParkHull()
+        {
+            hull?.Teleport(ParkedHull, Quaternion.Identity);
+        }
+
         /// <summary>
         /// Moves the hit hull to the simulated pose, which Unity's
         /// Physics.SyncTransforms did. Statics only reach the broadphase

@@ -347,7 +347,25 @@ unter JIT und AOT; die Hashkette bleibt `A4A9BBB937C62890`.
       versioniert. Die Simulation nutzt keine davon, Bepu und Stride.BepuPhysics auch nicht.
       Der Lasttest-Bot lenkte mit `MathF.Atan2` und erzeugte deshalb unter 2.35 andere
       Eingaben; jetzt nutzt er `UMath.Atan2` (double), der Endzustand bleibt gleich.
-    - **Offen für die Verteilung:**
-      - Die AOT-Binaries verlangen glibc ≥ 2.43 (`acosf@GLIBC_2.43` u. a.), weil sie in
-        Fedora 44 gelinkt werden. Unter Ubuntu 22.04 starten sie deshalb nicht.
-      - Ohne `libicu` bricht .NET beim deutschen Zahlenformat ab.
+    - **Verteilung, Lucas Entscheidung:** Fedora 44 bleibt die Build-Box, die AOT-Binaries
+      verlangen deshalb glibc ≥ 2.43 (`acosf@GLIBC_2.43` u. a.) und starten unter Ubuntu
+      22.04 nicht. `libicu` wird vorausgesetzt, ohne bricht .NET beim deutschen Zahlenformat ab.
+
+## Netcode N3: Zustand als Bytes, Rollback über Beitritt und Verlassen (20.10.2026)
+
+14. **Ein Snapshot geht bitgenau über die Leitung.** `StateCodec` (`KotH.Shared/Net`)
+    schreibt je Körper `NetId`, Zustand und Spawn-Zustand als rohe Bytes, dazu die Runde
+    mit IDs statt Referenzen. `MotorState` und `BodyState` sind dafür mit `Pack = 1`
+    gepackt, ohne Füllbytes (202 Bytes je Körper). Der FNV-Hash der Bytes ist die
+    Prüfsumme der Peers.
+    - `Restore` stellt jetzt auch die Mitgliedschaft und die Reihenfolge der Körperliste her:
+      Körper, die der Snapshot nicht kennt, werden geparkt (aus dem Tick, Hülle weit unter
+      der Arena, Platz in der Abfrage-Ordnung bleibt). `Leave` und `Rejoin` dazu. Die
+      Reihenfolge zählt, weil Float-Summen über drei berührende Körper an ihr hängen.
+    - DeterminismProbe: Der Fall „Körperliste umgedreht“ dreht die Liste jetzt nach dem
+      `Restore` um. Hashkette `880D0C64389C53E3` und Lasttest `ACA28FF778F7B0AE`
+      unverändert, `knockback` und `wallknock` byte-gleich.
+    - Neue Probe `netstate`: Übertragung in eine zweite Welt mit 600 Ticks bitgleich weiter
+      über ein Rundenende, Rollback über Beitritt und Verlassen bitgleich, frischer Körper
+      in zwei Welten gleich, falscher Kopf, unbekannte ID und gekipptes Byte erkannt.
+      JIT und AOT byte-gleich.

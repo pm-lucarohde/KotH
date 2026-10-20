@@ -119,6 +119,31 @@ namespace KotH.Shared.Simulation
         }
 
         /// <summary>
+        /// Takes a body out of the tick but keeps its entity and its place in
+        /// the query order, so a rollback to before it left can bring it
+        /// back exactly. Netcode destroys it once no rollback can reach back.
+        /// </summary>
+        public void Leave(SimulationBody body)
+        {
+            Unregister(body);
+            Park(body);
+        }
+
+        /// <summary>A parked body joins the tick again at the end of the list.</summary>
+        public void Rejoin(SimulationBody body, in BodyState state)
+        {
+            body.IsParked = false;
+            body.RestoreState(state);
+            Register(body);
+        }
+
+        static void Park(SimulationBody body)
+        {
+            body.IsParked = true;
+            body.Motor.ParkHull();
+        }
+
+        /// <summary>
         /// One fixed tick: gathers every body's input, then steps. Unity's
         /// FixedUpdate, called by whoever owns the clock.
         /// </summary>
@@ -212,16 +237,26 @@ namespace KotH.Shared.Simulation
         }
 
         /// <summary>
-        /// Puts every body in the snapshot back. Bodies that joined since
-        /// are left alone; deciding what they should be is netcode's job.
+        /// Puts the world back to the snapshot: who is in the tick, in which
+        /// order, and in what state. Bodies the snapshot does not know, such
+        /// as one that joined since, are parked; a rollback across a join or
+        /// a leave thus lands where every peer that never rolled back is.
         /// </summary>
         public void Restore(WorldSnapshot from)
         {
+            for (int i = 0; i < bodies.Count; i++)
+                if (!from.Contains(bodies[i]))
+                    Park(bodies[i]);
+
+            // The list order goes back too: float sums over three or more
+            // touching bodies depend on it, and peers must agree.
+            bodies.Clear();
             for (int i = 0; i < from.Count; i++)
             {
                 SimulationBody body = from.bodies[i];
-                if (body != null)
-                    body.RestoreState(from.states[i]);
+                body.IsParked = false;
+                body.RestoreState(from.states[i]);
+                bodies.Add(body);
             }
 
             Match?.Restore(from.Match);

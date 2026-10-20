@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Stride.Core.Mathematics;
 
 namespace KotH.Shared.Player
@@ -6,8 +7,10 @@ namespace KotH.Shared.Player
     /// Everything a PlayerMotor needs to continue from a tick exactly as it
     /// did the first time. Captured after a tick, restored before one. A
     /// field missing here is a rollback that silently diverges, so the
-    /// determinism probe hashes every one of them.
+    /// determinism probe hashes every one of them. Packed, so its bytes have
+    /// no padding and the network can send and hash them as they are.
     /// </summary>
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct MotorState
     {
         public Vector3 Position;

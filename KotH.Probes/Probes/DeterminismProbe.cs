@@ -324,12 +324,13 @@ namespace KotH.Probes.Probes
             ok &= Replay("Nachspielen ab Start", 0);
             ok &= Replay($"Rollback bei Tick {RollbackTick}", RollbackTick);
 
-            // Moves the dummy to the end of the list and back afterwards.
-            sim.Unregister(dummy);
-            sim.Register(dummy);
-            ok &= Replay("Koerperliste umgedreht", 0);
-            sim.Unregister(scripted);
-            sim.Register(scripted);
+            // Restore puts the recorded order back, so the dummy moves to
+            // the end of the list only after it; the next restore undoes it.
+            ok &= Replay("Koerperliste umgedreht", 0, () =>
+            {
+                sim.Unregister(dummy);
+                sim.Register(dummy);
+            });
 
             ok &= ReplayAt("Rollback im Gleiten", RollbackTick + 1,
                            t => snaps[t].StateAt(Index(t)).Motor.Sliding);
@@ -367,9 +368,10 @@ namespace KotH.Probes.Probes
             return false;
         }
 
-        bool Replay(string name, int from)
+        bool Replay(string name, int from, Action afterRestore = null)
         {
             sim.Restore(snaps[from]);
+            afterRestore?.Invoke();
             if (Hash() != reference[from])
                 return Fail(name, from, "schon direkt nach dem Restore");
 

@@ -23,9 +23,18 @@ namespace KotH.Shared.Simulation
         public int Count => bodies.Count;
 
         public SimulationBody BodyAt(int index) => bodies[index];
+
+        public bool Contains(SimulationBody body) => bodies.Contains(body);
+
+        /// <summary>Appends a body as a decoded transfer had it; see StateCodec.</summary>
+        internal void Add(SimulationBody body, in BodyState state)
+        {
+            bodies.Add(body);
+            states.Add(state);
+        }
         public BodyState StateAt(int index) => states[index];
 
-        internal void Clear()
+        public void Clear()
         {
             bodies.Clear();
             states.Clear();
