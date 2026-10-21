@@ -29,6 +29,9 @@ namespace KotH.Client.Hud
         [Display("Umkämpft", "Farben")] public Color ContestedColor = new Color(255, 205, 60);
         [Display("Gegner", "Farben")] public Color EnemyColor = new Color(255, 85, 70);
 
+        /// <userdoc>Ein Gegner steht allein in der Zone und nimmt sie gerade ein, bekommt also noch keine Punkte.</userdoc>
+        [Display("Gegner nimmt ein", "Farben")] public Color EnemyTakingColor = new Color(255, 140, 30);
+
         [Display("Rand", "Maße (Pixel)")] public float Margin = 12f;
         [Display("Balkenbreite", "Maße (Pixel)")] public float BarWidth = 220f;
         [Display("Balkenhöhe", "Maße (Pixel)")] public float BarHeight = 6f;
@@ -76,13 +79,15 @@ namespace KotH.Client.Hud
         public override void Cancel() => hud?.Remove(this);
 
         /// <summary>What the zone means for this screen; the visual uses the same colours.</summary>
-        public static ZoneLook Look(in MatchState m, SimulationBody self)
+        public static ZoneLook Look(in MatchState m, SimulationBody self, int warmupTicks)
         {
             if (m.Over || m.Inside == 0)
                 return ZoneLook.Free;
             if (m.Holder == null)
                 return ZoneLook.Contested;
-            return m.Holder == self ? ZoneLook.Own : ZoneLook.Enemy;
+            if (m.Holder == self)
+                return ZoneLook.Own;
+            return m.Holder.AloneTicks > warmupTicks ? ZoneLook.Enemy : ZoneLook.EnemyTaking;
         }
 
         public Color ColorOf(ZoneLook look) => look switch
@@ -90,6 +95,7 @@ namespace KotH.Client.Hud
             ZoneLook.Own => OwnColor,
             ZoneLook.Contested => ContestedColor,
             ZoneLook.Enemy => EnemyColor,
+            ZoneLook.EnemyTaking => EnemyTakingColor,
             _ => FreeColor,
         };
 
@@ -144,13 +150,14 @@ namespace KotH.Client.Hud
             int left = (Math.Max(0, Match.LimitTicks - m.RoundTicks) + HillMatch.TicksPerPoint - 1) / HillMatch.TicksPerPoint;
             score = string.Format(HudRenderer.Numbers, "Punkte {0} / {1}     {2}:{3:D2}", own, win, left / 60, left % 60);
 
-            ZoneLook look = Look(m, Self);
+            ZoneLook look = Look(m, Self, Match.WarmupTicks);
             statusColor = ColorOf(look);
             status = look switch
             {
                 ZoneLook.Own => Self.AloneTicks > Match.WarmupTicks ? "Du hältst die Zone" : "Du nimmst die Zone ein",
                 ZoneLook.Contested => "Umkämpft",
                 ZoneLook.Enemy => NameOf(m.Holder) + " hält die Zone",
+                ZoneLook.EnemyTaking => NameOf(m.Holder) + " nimmt die Zone ein",
                 _ => "Zone frei",
             };
 
@@ -262,5 +269,5 @@ namespace KotH.Client.Hud
     }
 
     /// <summary>How the zone looks from one body's point of view.</summary>
-    public enum ZoneLook { Free, Own, Contested, Enemy }
+    public enum ZoneLook { Free, Own, Contested, Enemy, EnemyTaking }
 }

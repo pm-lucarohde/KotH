@@ -47,7 +47,7 @@ namespace KotH.Client.Match
                 built = true;
             }
 
-            ZoneLook look = HillBoard.Look(Match.State, Self);
+            ZoneLook look = HillBoard.Look(Match.State, Self, Match.WarmupTicks);
             if (look == shown)
                 return;
             shown = look;
