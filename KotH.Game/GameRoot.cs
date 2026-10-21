@@ -25,11 +25,12 @@ using Stride.Rendering;
 namespace KotH.Client
 {
     /// <summary>
-    /// Builds the playable world when the scene starts: the arena's collision,
-    /// the player and the bots (--bots, three by default) that play for the
-    /// hill. Started with --host or --join, the players arrive through the
-    /// network session, the host's bots among them; see BotDirector.
-    /// The scene itself only carries what is drawn.
+    /// Builds the playable world when the scene starts: the map (--map, see
+    /// Maps) with its collision and its visuals, the player and the bots
+    /// (--bots, three by default) that play for the hill. Started with --host
+    /// or --join, the players arrive through the network session, the host's
+    /// bots among them; see BotDirector. A joiner builds the host's map once
+    /// it is welcomed. The scene itself only carries what every map shares.
     /// </summary>
     [DataContract("KotH.GameRoot")]
     public sealed class GameRoot : StartupScript, INetWorld
@@ -112,13 +113,20 @@ namespace KotH.Client
             Services.AddService(system);
 
             builder = new WorldBuilder(Entity.Scene, Content, queries);
-            builder.LoadArena();
-            if (builder.Zone != null)
-                system.Match = new HillMatch(builder.Zone);
             simulation = system;
             visuals = Entity.Get<PlayerVisualSystem>();
 
             LaunchOptions options = LaunchOptions.Current;
+            if (!options.Joining)
+            {
+                string map = options.Map;
+                if (!builder.HasMap(map))
+                {
+                    Log.Error($"Unbekannte Map {map}, lade {Maps.Default}");
+                    map = Maps.Default;
+                }
+                LoadMap(map);
+            }
             if (options.Networked)
             {
                 StartNetworked(options);
@@ -169,6 +177,28 @@ namespace KotH.Client
             }
             Log.Info($"Netzwerk: {(options.Host ? "Host" : "Gast")} als {options.Name}, Build {NetProtocol.BuildText}");
         }
+
+        /// <summary>The map's collision, its round and what is drawn of it; once per game.</summary>
+        void LoadMap(string map)
+        {
+            if (builder.Map == map)
+                return;
+            builder.LoadArena(map);
+            if (builder.Zone != null)
+                simulation.Match = new HillMatch(builder.Zone);
+            string url = Maps.VisualUrl(map);
+            if (Content.Exists(url))
+                foreach (Entity e in Content.Load<Prefab>(url).Instantiate())
+                    Entity.Scene.Entities.Add(e);
+            else
+                Log.Warning($"Map {map} hat keine Optik ({url})");
+            Log.Info($"Map {map} geladen");
+        }
+
+        string INetWorld.Map => builder.Map;
+
+        // Before the state: the own body arrives with it and binds the displays.
+        void INetWorld.LoadMap(string map) => LoadMap(map);
 
         public override void Cancel()
         {

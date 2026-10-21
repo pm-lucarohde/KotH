@@ -20,7 +20,6 @@ namespace KotH.Shared.Hosting
     /// </summary>
     public sealed class HeadlessWorld : IDisposable
     {
-        public const string ArenaUrl = WorldBuilder.ArenaUrl;
         public const string PlayerBodyUrl = WorldBuilder.PlayerBodyUrl;
         public const string DummyBodyUrl = WorldBuilder.DummyBodyUrl;
 
@@ -60,7 +59,7 @@ namespace KotH.Shared.Hosting
         public ContentManager Content => content;
         public WorldBuilder Builder => builder;
 
-        public void LoadArena() => builder.LoadArena();
+        public void LoadArena(string map) => builder.LoadArena(map);
 
         /// <summary>The arena's capture zone, once it is loaded.</summary>
         public CaptureZone Zone => builder.Zone;

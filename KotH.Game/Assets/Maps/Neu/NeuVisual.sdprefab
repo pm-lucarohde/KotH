@@ -1,0 +1,18 @@
+!PrefabAsset
+Id: 4E878930-C65F-4510-AD75-AA5358104790
+SerializedVersion: {Stride: 3.1.0.1}
+Tags: []
+Hierarchy:
+    RootParts:
+        - ref!! 6B6B6AD6-1A68-4011-A6F9-5A42DF987319
+    Parts:
+        -   Entity:
+                Id: 6B6B6AD6-1A68-4011-A6F9-5A42DF987319
+                Name: NeuVisual
+                Components:
+                    4bb4a807dd03419e8651f137bd533afb: !TransformComponent
+                        Id: BA9EC212-7F62-4EDF-8023-D01559827468
+                        Position: {X: 0.0, Y: 0.0, Z: 0.0}
+                        Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}

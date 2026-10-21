@@ -101,8 +101,16 @@ namespace KotH.Client.Hud
 
         public void Draw(SpriteBatch batch, Vector2 screen)
         {
-            if (Match == null || Simulation == null || Font == null)
+            if (Simulation == null || Font == null)
                 return;
+            // Joining, the round comes with the host's map; until then only the notice.
+            string notice = Notice?.Invoke();
+            if (Match == null)
+            {
+                if (notice != null)
+                    Centered(batch, Font, notice, Font.Size, screen.X, screen.Y * 0.32f, Color.White);
+                return;
+            }
 
             Rebuild();
 
@@ -121,7 +129,6 @@ namespace KotH.Client.Hud
 
             DrawDamage(batch, screen, DrawRanking(batch, screen) + Pad);
 
-            string notice = Notice?.Invoke();
             if (notice != null)
             {
                 Centered(batch, Font, notice, Font.Size, screen.X, screen.Y * 0.32f, Color.White);

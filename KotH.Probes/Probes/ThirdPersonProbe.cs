@@ -38,7 +38,7 @@ namespace KotH.Probes.Probes
 
         public override int Run(HeadlessWorld world, int maxTicks)
         {
-            world.LoadArena();
+            world.LoadArena(Maps.Test);
             WorldQueries q = world.Queries;
             var body = new PlayerMotor();
 

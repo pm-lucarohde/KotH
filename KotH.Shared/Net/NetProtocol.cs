@@ -13,7 +13,7 @@ namespace KotH.Shared.Net
     public enum MsgType : byte
     {
         Hello = 1,      // peer -> host: build, name
-        Welcome = 2,    // host -> peer: NetId, state, roster
+        Welcome = 2,    // host -> peer: NetId, map, state, roster
         Reject = 3,     // host -> peer: why not
         Inputs = 4,     // peer -> host: own inputs not yet acknowledged
         Confirmed = 5,  // host -> peer: final inputs and events per tick

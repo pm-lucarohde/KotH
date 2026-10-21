@@ -51,7 +51,7 @@ namespace KotH.Shared.Bots
             this.mesh = mesh;
             this.links = links;
             PolyCount = polys;
-            query = new DtNavMeshQuery(mesh);
+            query = mesh != null ? new DtNavMeshQuery(mesh) : null;
 
             var cost = new float[DtDetour.DT_MAX_AREAS];
             Array.Fill(cost, 1f);
@@ -79,6 +79,10 @@ namespace KotH.Shared.Bots
                 if (e.Get<StaticComponent>()?.Collider is CompoundCollider compound)
                     foreach (ColliderBase c in compound.Colliders)
                         AddShape(e.Transform.Position, e.Transform.Rotation, c, verts, tris);
+
+            // A map without ground yet: no mesh, every query fails, bots stand.
+            if (tris.Count == 0)
+                return new BotNavigation(null, new List<(Vector3, Vector3, LinkKind)>(), 0);
 
             var geom = new SimpleInputGeomProvider(verts.ToArray(), tris.ToArray());
             var cfg = new RcConfig(RcPartition.WATERSHED, s.CellSize, s.CellHeight,
@@ -280,7 +284,7 @@ namespace KotH.Shared.Bots
         public bool Nearest(Vector3 feet, out Vector3 onMesh)
         {
             onMesh = feet;
-            if (query.FindNearestPoly(V(feet), Extents, filter, out long poly, out RcVec3f p, out _).Failed() || poly == 0)
+            if (query == null || query.FindNearestPoly(V(feet), Extents, filter, out long poly, out RcVec3f p, out _).Failed() || poly == 0)
                 return false;
             onMesh = new Vector3(p.X, p.Y, p.Z);
             return true;
@@ -293,7 +297,7 @@ namespace KotH.Shared.Bots
         public bool Plan(Vector3 feet, Vector3 goal, List<Corner> corners)
         {
             corners.Clear();
-            if (query.FindNearestPoly(V(feet), Extents, filter, out long start, out RcVec3f a, out _).Failed() || start == 0 ||
+            if (query == null || query.FindNearestPoly(V(feet), Extents, filter, out long start, out RcVec3f a, out _).Failed() || start == 0 ||
                 query.FindNearestPoly(V(goal), Extents, filter, out long end, out RcVec3f b, out _).Failed() || end == 0)
                 return false;
 
@@ -336,7 +340,7 @@ namespace KotH.Shared.Bots
         {
             edge = Vector3.Zero;
             distance = radius;
-            if (query.FindNearestPoly(V(feet), Extents, filter, out long poly, out RcVec3f p, out _).Failed() || poly == 0)
+            if (query == null || query.FindNearestPoly(V(feet), Extents, filter, out long poly, out RcVec3f p, out _).Failed() || poly == 0)
                 return false;
             if (query.FindDistanceToWall(poly, p, radius, filter, out float hit, out RcVec3f at, out _).Failed() || hit >= radius)
                 return false;

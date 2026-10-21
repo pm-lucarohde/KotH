@@ -1,6 +1,6 @@
 #!/bin/bash
 # Two clients on this PC, one per monitor: host on the left, guest on the right.
-#   Tools/two_clients.sh [aot|jit]   (default: aot, Bin/Linux/aot)
+#   Tools/two_clients.sh [aot|jit] [MAP]   (default: aot, Bin/Linux/aot; the host's map, else Neu)
 # Only the host is heard: the guest gets OpenAL's null driver, so nothing plays twice.
 # Closing one window or Ctrl+C here ends both.
 set -e
@@ -11,7 +11,7 @@ case ${1:-aot} in
   *) echo "unbekannt: $1 (aot oder jit)" >&2; exit 64 ;;
 esac
 cd "$dir"
-./KotH --host --min-players 2 --display 0 --name Links &
+./KotH --host --min-players 2 --display 0 --name Links ${2:+--map "$2"} &
 host=$!
 sleep 2
 ALSOFT_DRIVERS=null ./KotH --join 127.0.0.1 --display 1 --name Rechts &

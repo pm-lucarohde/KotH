@@ -1,7 +1,8 @@
 # KotH
 
 Ein King-of-the-Hill-Spiel in der Ego-Perspektive. Wer den Gipfel hält, gewinnt.
-Der aktuelle Stand ist ein Prototyp: Arena mit Berg, Rampen und Treppen, Bots, die
+Der aktuelle Stand ist ein Prototyp: eine Testmap mit Berg, Rampen und Treppen
+(`--map Test`; Standard ist die neue, noch leere Map `Neu`), Bots, die
 um den Gipfel kämpfen, alle als Fliegenpilz-Figuren, Bewegung mit Sprint,
 Gleiten, Ducken, gestuftem Sprung und Doppelsprung, Körperstöße zwischen
 Spielern sowie ein Nahkampfschlag. Der Schlag erhöht das Schadensprozent des
@@ -26,7 +27,7 @@ das Einnehmen beginnt von vorn; geht der Halter hinaus, ist sie wieder frei. Wer
 gewinnt; nach 20 Minuten gewinnt, wer die meisten hat, bei Gleichstand ist die
 Runde unentschieden. Nach 5 s Siegeranzeige beginnt die nächste Runde, alle stehen
 wieder an ihrem Startpunkt. Die Werte stehen an der
-Komponente `CaptureZone` im Arena-Prefab und sind in Game Studio einstellbar.
+Komponente `CaptureZone` im Collision-Prefab der Map und sind in Game Studio einstellbar.
 Wer aus der Arena fliegt und unter 5 m unter den Boden fällt („Respawn unter“), steht
 sofort wieder an seinem Startplatz; Schadensprozent und Punkte bleiben.
 
@@ -36,7 +37,7 @@ Weg über ein Navmesh (Rampen, Treppen, Sprünge und Doppelsprünge an Kanten), 
 gleiten in Angriffe hinein und schlagen jeden, auch einander; sie zählen als Spieler.
 In der Lobby und im Countdown schlagen Bots nicht. Ein Bot sieht die Welt 0,2 s verzögert, wie ein Mensch mit Reaktionszeit. Stärke,
 Zielfehler und Navmesh stehen an der Komponente `BotSettings` (Entity „Bots“ im
-Arena-Prefab). Die Bots starten mit Lücken in beiden Reihen (`NetWorld.BotSlots`),
+Collision-Prefab der Map). Die Bots starten mit Lücken in beiden Reihen (`NetWorld.BotSlots`),
 nicht dicht nebeneinander.
 
 Im Mehrspieler wartet die Runde auf 4 Spieler (die Bots des Hosts zählen mit), dann läuft
@@ -123,10 +124,12 @@ Bin/Server/Release/KotH.Server                # Echtzeit bis Strg+C
 Bin/Server/Release/KotH.Server --seconds 30   # Echtzeit für 30 s
 Bin/Server/Release/KotH.Server --ticks 2000   # so schnell wie möglich, mit µs/Tick,
                                               # Bytes/Tick und exaktem Endzustand
-Bin/Server/Release/KotH.Server --bodies 64 --warmup 400 --ticks 4000
+Bin/Server/Release/KotH.Server --bodies 64 --warmup 400 --ticks 4000 --map Test
                                               # Lasttest: 64 Bots laufen, springen,
                                               # gleiten und schlagen nach Zufall
 ```
+
+`--map NAME` wählt die Map (Standard `Neu`), auch beim Hosten.
 
 Der Lasttest misst erst nach `--warmup` Ticks und gibt Median und 99 % je Tick
 aus, dazu einen Hash des Endzustands, der unter JIT und AOT gleich sein muss.
@@ -148,7 +151,11 @@ cd Bin/Linux/Release
 ```
 
 `Tools/two_clients.sh` startet beide Fenster auf einmal (AOT, mit `jit` die
-JIT-Builds) und schließt beide, wenn eins zugeht.
+JIT-Builds, danach optional die Map, z. B. `Tools/two_clients.sh aot Test`) und
+schließt beide, wenn eins zugeht.
+
+Die Map wählt der Host mit `--map NAME` (Standard `Neu`, die alte Arena ist `Test`);
+wer beitritt, bekommt sie vom Host und lädt sie selbst.
 
 `--display N` zählt die Monitore von links, 0 ist der linke. `--port N` ändert
 den Port. Ohne `--name` heißt man wie der Benutzer; doppelte Namen bekommen beim
@@ -226,6 +233,12 @@ Einige Kernpunkte der Architektur:
 Szene, Prefabs, Materialien und Tuningwerte werden in **Stride Game Studio**
 bearbeitet. Für den Umzug wurden sie einmalig aus Skripten erzeugt, die Arena
 bitgenau aus den Unity-Dumps; seitdem ist Game Studio ihre einzige Quelle.
+
+Jede Map hat einen Ordner `Maps/NAME`: `NAMECollision` in KotH.Shared (Kollision,
+Startplätze, Zone, Bot-Einstellungen; läuft auch ohne Grafik im Server und in den
+Proben) und `NAMEVisual` in KotH.Game (was man sieht). Eine neue Map braucht beide
+als Root-Asset (Game Studio: „Include in build as root asset“); `--map NAME` findet
+sie dann über den Ordnernamen.
 
 ## Proben und Regression
 

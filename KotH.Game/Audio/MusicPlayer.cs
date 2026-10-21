@@ -56,7 +56,8 @@ namespace KotH.Client.Audio
 
         public override void Update()
         {
-            if (failed || Match == null)
+            // Joining, the round comes with the host's map: until then it is the lobby.
+            if (failed || Match == null && ConfirmedRound == null)
                 return;
             try
             {

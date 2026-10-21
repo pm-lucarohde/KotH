@@ -19,6 +19,7 @@ namespace KotH.Server
     ///   --bot                                 the own player roams at random instead
     ///   --bots N, --bot-seed N                the host's bots (3 by default) and their seed
     ///   --name NAME, --seconds N              shown name; stops after N seconds
+    ///   --map NAME                            the host's map (Maps.Default); joiners take the host's
     ///
     /// Logs the round every 10 s and every 400th tick's checksum, so the
     /// logs of all processes can be compared line by line.
@@ -39,10 +40,20 @@ namespace KotH.Server
             int minPlayers = (int)(Number(args, "--min-players") ?? HillMatch.DefaultMinPlayers);
             int bots = Math.Clamp((int)(Number(args, "--bots") ?? 3), 0, NetWorld.MaxPlayers - 1);
             int botSeed = (int)(Number(args, "--bot-seed") ?? 1);
+            string map = Text(args, "--map") ?? Maps.Default;
 
             using var world = new HeadlessWorld();
-            world.LoadArena();
-            HillMatch round = world.StartMatch();
+            // A joiner builds the host's map once it is welcomed, see HeadlessNetWorld.
+            if (hosting)
+            {
+                if (!world.Builder.HasMap(map))
+                {
+                    Console.WriteLine($"[net] unbekannte Map: {map}");
+                    return 1;
+                }
+                world.LoadArena(map);
+                world.StartMatch();
+            }
             world.Simulation.Deactivate();
 
             var wall = Stopwatch.StartNew();
@@ -59,9 +70,10 @@ namespace KotH.Server
                 host = new HostSession(transport, Now());
                 session = new PeerSession(new HeadlessNetWorld(world), host.LocalTransport, sample, name, founder: true, Now());
                 host.AttachFounder(session);
+                HillMatch round = world.Simulation.Match;
                 round.MinPlayers = minPlayers;
                 host.CanJoin = () => round.AcceptsJoin;
-                Console.WriteLine($"[net] Host auf Port {port}, Runde ab {minPlayers} Spielern, Build {NetProtocol.BuildText}");
+                Console.WriteLine($"[net] Host auf Port {port}, Map {map}, Runde ab {minPlayers} Spielern, Build {NetProtocol.BuildText}");
                 if (bots > 0)
                 {
                     BotDirector director = BotDirector.Create(world.Builder, world.Simulation, session, botSeed);
@@ -122,26 +134,26 @@ namespace KotH.Server
                     if (!joined && session.Joined)
                     {
                         joined = true;
-                        Console.WriteLine($"[net] beigetreten als NetId {session.LocalNetId} bei Tick {world.Simulation.CurrentTick}");
+                        Console.WriteLine($"[net] beigetreten als NetId {session.LocalNetId} bei Tick {world.Simulation.CurrentTick}, Map {world.Builder.Map}");
                     }
                     if (now - lastReport >= 10000.0)
                     {
                         lastReport = now;
-                        Report(world, round, session, host);
+                        Report(world, session, host);
                     }
 
                     Thread.Sleep(2);
                 }
             }
 
-            Report(world, round, session, host);
+            Report(world, session, host);
             Console.WriteLine("[net] beendet");
             return code;
         }
 
-        static void Report(HeadlessWorld world, HillMatch round, PeerSession session, HostSession host)
+        static void Report(HeadlessWorld world, PeerSession session, HostSession host)
         {
-            MatchState m = round.State;
+            MatchState m = world.Simulation.Match?.State ?? default;
             int players = HillMatch.CountPlayers(world.Simulation.Bodies);
             string phase = m.Phase switch
             {

@@ -56,7 +56,7 @@ namespace KotH.Probes.Probes
                     $"Punkte je Runde {sum.Points / (float)Stats:F1}, erster in der Zone im Mittel nach {sum.ZoneTicks / 40f / Stats:F1} s");
                 return 0;
             }
-            world.LoadArena();
+            world.LoadArena(Maps.Test);
             world.StartMatch();
             Check(world.Builder.Bots != null, "Bot-Einstellungen im Arena-Prefab");
             var states = new LocalFinalStates(world.Simulation);
@@ -133,7 +133,7 @@ namespace KotH.Probes.Probes
         Result Play(int seed)
         {
             using var world = new HeadlessWorld();
-            world.LoadArena();
+            world.LoadArena(Maps.Test);
             HillMatch match = world.StartMatch();
             var states = new LocalFinalStates(world.Simulation);
             BotDirector director = BotDirector.Create(world.Builder, world.Simulation, states, seed);
@@ -265,7 +265,7 @@ namespace KotH.Probes.Probes
         void Lobby()
         {
             using var world = new HeadlessWorld();
-            world.LoadArena();
+            world.LoadArena(Maps.Test);
             HillMatch match = world.StartMatch();
             match.MinPlayers = 8;
             var states = new LocalFinalStates(world.Simulation);
@@ -308,7 +308,7 @@ namespace KotH.Probes.Probes
             HeadlessWorld World()
             {
                 var w = new HeadlessWorld();
-                w.LoadArena();
+                w.LoadArena(Maps.Test);
                 w.StartMatch().CountdownTicks = 40;
                 w.Simulation.Deactivate();
                 worlds.Add(w);

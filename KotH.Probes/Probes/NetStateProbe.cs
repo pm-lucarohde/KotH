@@ -66,7 +66,7 @@ namespace KotH.Probes.Probes
         Side Build(HeadlessWorld world, int players)
         {
             var side = new Side { World = world, Sim = world.Simulation };
-            world.LoadArena();
+            world.LoadArena(Maps.Test);
             HillMatch match = world.StartMatch();
             // A short round, so a reset to the spawn falls inside the run.
             match.WinTicks = 2 * HillMatch.TicksPerPoint;

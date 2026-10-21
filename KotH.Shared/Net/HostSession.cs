@@ -460,6 +460,7 @@ namespace KotH.Shared.Net
                 w.Int(c.NetId);
                 w.Int((int)HostTick);
                 w.Double(c.EchoTime + (now - c.EchoReceived));
+                w.Text(founder?.Map ?? "");
                 WriteState(ref w, isFounder);
                 Send(c.Peer, reliable: true);
 

@@ -37,7 +37,7 @@ namespace KotH.Probes.Probes
         public override int Run(HeadlessWorld host, int maxTicks)
         {
             world = host;
-            world.LoadArena();
+            world.LoadArena(Maps.Test);
             match = world.StartMatch();
             a = Spawn("A", SpawnA);
             b = Spawn("B", SpawnB);
@@ -328,7 +328,7 @@ namespace KotH.Probes.Probes
         void Slots()
         {
             var w = new HeadlessWorld();
-            w.LoadArena();
+            w.LoadArena(Maps.Test);
             NetWorld.SpawnDummies(w.Builder);
             var net = new HeadlessNetWorld(w);
             var players = new List<SimulationBody>();

@@ -29,6 +29,12 @@ namespace KotH.Shared.Net
     {
         SimulationSystem Simulation { get; }
 
+        /// <summary>The loaded map's name, null before one is; the host's goes to everyone who joins.</summary>
+        string Map { get; }
+
+        /// <summary>Builds the host's map on joining, before its state arrives; a world that has it already keeps it.</summary>
+        void LoadMap(string map);
+
         /// <summary>A fresh player at its slot, already in the tick; the session parks it.</summary>
         SimulationBody SpawnPlayer(int netId, int slot, string name);
 
@@ -98,6 +104,17 @@ namespace KotH.Shared.Net
         }
 
         public SimulationSystem Simulation => world.Simulation;
+
+        public string Map => builder.Map;
+
+        public void LoadMap(string map)
+        {
+            if (builder.Map == map)
+                return;
+            world.LoadArena(map);
+            if (world.Zone != null)
+                world.StartMatch();
+        }
 
         public SimulationBody SpawnPlayer(int netId, int slot, string name)
         {

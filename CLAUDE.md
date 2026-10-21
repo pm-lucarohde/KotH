@@ -36,15 +36,16 @@ Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Pr
   Szenen-Bundle liegen, und der AOT-Client stürzt beim Laden von `MainScene` ab.
 - Server: ohne Argument Echtzeit bis Strg+C, `--seconds N`, oder `--ticks N`
   (so schnell wie möglich, gibt µs/Tick, B/Tick und den exakten Endzustand aus).
-  Lasttest: `--bodies N --warmup N` mit `BenchBot`s (geseedeter Zufall), Endzustands-Hash
+  Map: `--map NAME` (Standard `Neu`). Lasttest (für `--map Test` ausgelegt): `--bodies N --warmup N` mit `BenchBot`s (geseedeter Zufall), Endzustands-Hash
   muss unter JIT und AOT gleich sein; `KOTH_TRACE=BotName`, `KOTH_FALLS=1`.
   Bots: `--bots N` (`--bot-seed N`) statt des Dummys, gibt den Endzustands-Hash aus.
   Netz: `--host [--port N] [--min-players N] [--bots N]`, `--join ADRESSE[:PORT]`, `--bot`, `--name`
   (`KotH.Server/NetPlay.cs`), loggt jede 400. Prüfsumme zum Vergleich der Prozesse.
 - Client im Netz: `KotH --host`/`--join ADRESSE[:PORT]`, `--name`, `--port`,
-  `--min-players`, `--display N` (Monitor von links). Ohne diese Argumente offline wie immer.
+  `--min-players`, `--display N` (Monitor von links), `--map NAME` (offline und Host; Gäste nehmen
+  die des Hosts). Ohne diese Argumente offline wie immer.
   Zwei Clients auf einem PC: `--host --min-players 2 --display 0` und
-  `--join 127.0.0.1 --display 1`, beides zusammen `Tools/two_clients.sh [aot|jit]` (Ton nur vom Host, der Gast hat
+  `--join 127.0.0.1 --display 1`, beides zusammen `Tools/two_clients.sh [aot|jit] [MAP]` (Ton nur vom Host, der Gast hat
   `ALSOFT_DRIVERS=null`). JIT-Client und AOT-Client spielen zusammen, wenn der
   JIT-Client mit `DOTNET_EnableAVX=0` läuft (sonst andere `BuildId`).
 - Client-Testhilfen in `KotH.Linux/KotHApp.cs`: `KOTH_SHOT` (Screenshot, F3-Anzeige an,
@@ -170,8 +171,17 @@ Quaternion `(x,y,z,w) → (−x,−y,z,w)`. Jede Spiegelstelle im Code ist komme
 ### Assets ohne GPU
 
 Kollision und Körper liegen in eigenen Prefabs **ohne Modelle**
-(`KotH.Shared/Assets/{Arena,Bodies}`), damit `HeadlessWorld` sie ohne Grafik lädt.
+(`KotH.Shared/Assets/{Maps,Bodies}`), damit `HeadlessWorld` sie ohne Grafik lädt.
 Die Client-Prefabs verschachteln sie und legen die Modelle darüber.
+
+**Maps** (Lucas Wahl, 21.10.2026): je Map ein Ordner `Maps/NAME` mit `NAMECollision.sdprefab` in
+KotH.Shared (Kollision, Marker `PlayerSpawn`, `PlayerSpawn0`–`11`, `DummySpawn`, `CaptureZone`, `Bots`)
+und `NAMEVisual.sdprefab` in KotH.Game (Modelle); beide sind Root-Assets ihres Pakets (`RootAssets` im
+`.sdpkg`, in Game Studio „Include in build as root asset“), Standard und URLs in `KotH.Shared/Hosting/Maps.cs`.
+`MainScene` ist nur der Rahmen (Kamera, Licht, Himmel, HUD, Musik, Zonenrand). Gewählt mit `--map NAME`
+(Client offline und Host, Server), Standard `Neu` (leer, nur Marker; Bots stehen ohne Navmesh still),
+die alte Arena heißt `Test`. Der Host schickt den Namen im `Welcome`, Gäste bauen die Map erst dann
+(`INetWorld.LoadMap`). Alle Proben laden fest `Maps.Test` (Unity-Referenz).
 
 **Quelle aller Assets ist Game Studio** (Lucas Entscheidung, 16.10.2026). Die
 Generatoren aus dem Umzug (`Tools/generate_*.py`, in der Git-Geschichte bis

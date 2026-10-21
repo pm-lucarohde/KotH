@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using KotH.Shared.Hosting;
 using KotH.Shared.Match;
 using KotH.Shared.Net;
 
@@ -14,6 +15,7 @@ namespace KotH.Client.Net
     ///   --name NAME                           the name the others see
     ///   --display N                           fullscreen on that monitor, 0 first
     ///   --bots N, --bot-seed N                bots alone or as host (3 by default), their seed
+    ///   --map NAME                            the map alone or as host (Maps.Default); joiners take the host's
     /// </summary>
     public sealed class LaunchOptions
     {
@@ -25,8 +27,12 @@ namespace KotH.Client.Net
         public int? Display;
         public int Bots = 3;
         public int BotSeed = 1;
+        public string Map = Maps.Default;
 
         public bool Networked => Host || JoinAddress != null;
+
+        /// <summary>Joins someone else's game, so the map comes from that host.</summary>
+        public bool Joining => !Host && JoinAddress != null;
 
         static LaunchOptions current;
 
@@ -59,6 +65,7 @@ namespace KotH.Client.Net
                 o.Bots = Math.Clamp(bots, 0, NetWorld.MaxPlayers - 1);
             if (Number(args, "--bot-seed") is { } seed)
                 o.BotSeed = seed;
+            o.Map = Text(args, "--map") ?? o.Map;
             o.Name = Text(args, "--name") ?? Environment.UserName;
             return o;
         }

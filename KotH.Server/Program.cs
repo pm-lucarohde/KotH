@@ -25,6 +25,7 @@ using Stride.Engine;
 //   --bodies N                  adds N roaming BenchBots (load test)
 //   --bots N, --bot-seed N      N bots play for the hill instead of the dummy
 //   --warmup N                  leaves the first N fast ticks out of the timing
+//   --map NAME                  the map (Maps.Default); the load test was laid out for Test
 //   --host / --join ADDRESS     a networked peer instead, see NetPlay
 
 CultureInfo.DefaultThreadCurrentCulture = CultureInfo.GetCultureInfo("de-DE");
@@ -40,8 +41,15 @@ int warmup = (int)(Option(args, "--warmup") ?? 0);
 int hillBots = (int)(Option(args, "--bots") ?? 0);
 int botSeed = (int)(Option(args, "--bot-seed") ?? 1);
 
+string map = Text(args, "--map") ?? Maps.Default;
+
 using var world = new HeadlessWorld();
-world.LoadArena();
+if (!world.Builder.HasMap(map))
+{
+    Console.WriteLine($"[server] unbekannte Map: {map}");
+    return 1;
+}
+world.LoadArena(map);
 HillMatch match = world.StartMatch();
 
 if (hillBots > 0)
@@ -73,7 +81,7 @@ for (int i = 0; i < botCount; i++)
     bot.Name = "Bot" + i;
 }
 
-Console.WriteLine($"[server] Arena geladen, {world.Simulation.Bodies.Count} Körper, {1.0 / TickClock.TickSeconds:F0} Hz");
+Console.WriteLine($"[server] Map {map} geladen, {world.Simulation.Bodies.Count} Körper, {1.0 / TickClock.TickSeconds:F0} Hz");
 
 var timing = new TickTiming((int)(fastTicks ?? 0));
 
@@ -194,11 +202,12 @@ static void ReportMatch(SimulationSystem simulation, HillMatch match)
 }
 
 static double? Option(string[] args, string name)
+    => double.TryParse(Text(args, name), NumberStyles.Float, CultureInfo.InvariantCulture, out double v) ? v : null;
+
+static string Text(string[] args, string name)
 {
     int i = Array.IndexOf(args, name);
-    return i >= 0 && i + 1 < args.Length
-        && double.TryParse(args[i + 1], NumberStyles.Float, CultureInfo.InvariantCulture, out double v)
-        ? v : null;
+    return i >= 0 && i + 1 < args.Length ? args[i + 1] : null;
 }
 
 /// <summary>Wall time per tick and allocations, reported as a running summary.</summary>

@@ -10,3 +10,6 @@ AssetFolders:
     -   Path: !dir Assets
 ResourceFolders:
     - !dir Resources
+RootAssets:
+    - 46D114C1-A654-4966-99B0-65DDD52B7B21:Maps/Test/TestVisual
+    - 4E878930-C65F-4510-AD75-AA5358104790:Maps/Neu/NeuVisual

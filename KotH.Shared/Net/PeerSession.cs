@@ -132,6 +132,9 @@ namespace KotH.Shared.Net
 
         public SimulationSystem Simulation => sim;
 
+        /// <summary>The world's map, which a host hands to everyone who joins.</summary>
+        public string Map => world.Map;
+
         /// <summary>This peer's player, 0 until the host has said who it is.</summary>
         public int LocalNetId { get; private set; }
         public bool Joined { get; private set; }
@@ -273,11 +276,18 @@ namespace KotH.Shared.Net
             int hostTick = r.Int();
             double echo = r.Double();
             RoundTripMs = Math.Max(0.0, now - echo);
+            string map = r.Text();
 
-            // A founder already has the world; anyone else takes the host's.
+            // A founder already has the world; anyone else builds the host's map and takes its state.
             int length = r.Int();
-            if (length > 0 && !TakeState(ref r, length))
-                return;
+            if (length > 0)
+            {
+                if (r.Failed)
+                    return;
+                world.LoadMap(map);
+                if (!TakeState(ref r, length))
+                    return;
+            }
 
             Joined = true;
             syncTick = hostTick + RoundTripMs / 1000.0 / SimulationSystem.TickSeconds + LeadTarget - InputDelay;

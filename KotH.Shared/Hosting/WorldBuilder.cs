@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using KotH.Shared.Bots;
 using KotH.Shared.Match;
@@ -17,7 +18,6 @@ namespace KotH.Shared.Hosting
     /// </summary>
     public sealed class WorldBuilder
     {
-        public const string ArenaUrl = "/KotH.Shared/Arena/ArenaCollision";
         public const string PlayerBodyUrl = "/KotH.Shared/Bodies/PlayerBody";
         public const string DummyBodyUrl = "/KotH.Shared/Bodies/DummyBody";
 
@@ -33,6 +33,9 @@ namespace KotH.Shared.Hosting
 
         public Scene Scene { get; }
 
+        /// <summary>The loaded map's name, null until one is loaded.</summary>
+        public string Map { get; private set; }
+
         /// <summary>The arena's capture zone, null until it is loaded or if it has none.</summary>
         public CaptureZone Zone { get; private set; }
 
@@ -44,13 +47,20 @@ namespace KotH.Shared.Hosting
 
         readonly List<Entity> arena = new List<Entity>();
 
+        public bool HasMap(string map) => !string.IsNullOrEmpty(map) && content.Exists(Maps.CollisionUrl(map));
+
         /// <summary>
-        /// Adds every collider of the arena prefab, in prefab order, and gives
-        /// each its place in the stable query order.
+        /// Adds every collider of the map's arena prefab, in prefab order, and
+        /// gives each its place in the stable query order. Once per world.
         /// </summary>
-        public void LoadArena()
+        public void LoadArena(string map)
         {
-            foreach (Entity e in content.Load<Prefab>(ArenaUrl).Instantiate())
+            if (Map != null)
+                throw new InvalidOperationException($"Die Map {Map} ist schon geladen.");
+            if (!HasMap(map))
+                throw new ArgumentException($"Unbekannte Map: {map}");
+            Map = map;
+            foreach (Entity e in content.Load<Prefab>(Maps.CollisionUrl(map)).Instantiate())
             {
                 AddStatic(e);
                 arena.Add(e);

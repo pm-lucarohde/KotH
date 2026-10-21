@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Text.RegularExpressions;
 using KotH.Probes.Harness;
+using KotH.Shared.Hosting;
 using KotH.Shared.Mathematics;
 using KotH.Shared.Physics;
 using Stride.BepuPhysics;
@@ -89,7 +90,7 @@ namespace KotH.Probes.Probes
 
         protected override void Start()
         {
-            World.LoadArena();
+            World.LoadArena(Maps.Test);
             WorldQueries q = World.Queries;
             var hits = new QueryHit[16];
             var cols = new CollidableComponent[16];

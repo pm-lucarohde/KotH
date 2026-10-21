@@ -176,7 +176,7 @@ namespace KotH.Probes.Probes
         Peer AddPeer(string name, INetTransport transport, bool founder)
         {
             var world = new HeadlessWorld();
-            world.LoadArena();
+            world.LoadArena(Maps.Test);
             NetWorld.SpawnDummies(world.Builder);
             HillMatch match = world.StartMatch();
             match.CountdownTicks = CountdownTicks;

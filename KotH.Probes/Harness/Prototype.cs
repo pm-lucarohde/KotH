@@ -19,7 +19,7 @@ namespace KotH.Probes.Harness
 
         public static Prototype Open(HeadlessWorld world)
         {
-            world.LoadArena();
+            world.LoadArena(Maps.Test);
 
             Entity playerSpawn = world.Find("PlayerSpawn");
             Entity dummySpawn = world.Find("DummySpawn");
