@@ -227,8 +227,11 @@ sich die eigene Figur in Laufrichtung; Seitwärts- und Rückwärts-Clips sieht m
 Spielern in First Person. Nur Darstellung, die Simulation sieht davon nichts.
 
 Die Handschuhe stammen aus dem Meshy-Original (`.work/gloves/glove_patch.py`, je 400 Dreiecke,
-eigenes Material `MushroomGlove` mit 512er-Textur; Figur 2729 Dreiecke). `build.sh` riggt
-deshalb `.work/rig/static_gloves/Mushroom.glb`; die Lider nehmen das letzte Material.
+eigenes Material `MushroomGlove` mit 512er-Textur; Figur 2752 Dreiecke, mit Lidern und Mund
+3172). Getauscht werden nur braune Flächen (ein Kasten riss Löcher in den Ärmel); das feine
+Stück ragt 1,5 cm in den Ärmel, wird gefüllt und per Voxel-Remesh geschlossen (innen am Rock
+war es offen und gezackt). `build.sh` riggt `.work/rig/static_gloves/Mushroom.glb` und kopiert
+dessen `MushroomGlove.png` mit; die Lider nehmen das letzte Material.
 
 In First Person hängen eigene Arme vor der Kamera (`MushroomArms`, nur Armdreiecke, gleiches
 Skelett; Clips `MushroomArms{Idle,Walk,Run}` aus `.work/rig/fp_arms.py`, Teil von `build.sh`):
