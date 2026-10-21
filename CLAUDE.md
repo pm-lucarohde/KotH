@@ -133,7 +133,10 @@ Fünf Projekte (`KotH.slnx`):
   Im Client ist `GameRoot` die `INetWorld`, `NetClient` hält die Sessions; das HUD zeigt
   den Sieg nur aus dem bestätigten Stand (`TryConfirmedMatch`). Kein Glätten von
   Korrekturen (Lucas Entscheidung).
-- `HillMatch` (Capture-Zone, `KotH.Shared/Match`) tickt am Ende von `Step()`; Punkte
+- `HillMatch` (Capture-Zone, `KotH.Shared/Match`) tickt am Ende von `Step()`. Regel (Lucas
+  Wunsch, 21.10.2026): nur das Einnehmen (3 s) braucht die Zone allein; danach bleibt sie
+  dem Halter (`MatchState.Holder`), solange er drin ist, und er punktet auch mit anderen
+  darin; geht er hinaus, ist sie frei. Probe `capture` prüft das. Punkte
   pro Körper in `BodyState`, Runde als `MatchState` im Snapshot. Nur mit
   `HeadlessWorld.StartMatch()` bzw. in `GameRoot`, Bewegungsproben laufen ohne.
   Phasen `Running`/`Over` (0/1 wie das alte Flag) und für den Mehrspieler

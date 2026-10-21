@@ -34,7 +34,11 @@ namespace KotH.Shared.Match
         /// <summary>How many bodies stood in the zone in the last tick.</summary>
         public int Inside;
 
-        /// <summary>The one body alone in the zone, null for none or several.</summary>
+        /// <summary>
+        /// Who holds the zone: the one body alone in it while it takes the
+        /// zone, then whoever took it for as long as it stays inside, even
+        /// with others in. Null for none, or several while nobody has it.
+        /// </summary>
         public SimulationBody Holder;
 
         /// <summary>
@@ -49,8 +53,9 @@ namespace KotH.Shared.Match
 
     /// <summary>
     /// King of the hill. Whoever stands in the zone alone warms up for a
-    /// few seconds and then earns a point per second; with two inside
-    /// nobody does. First to the winning points takes the round, else the
+    /// few seconds and takes it, then earns a point per second for as long
+    /// as it stays inside, whoever comes in too (Luca's rule). Two inside
+    /// during the warm-up take nobody's zone. First to the winning points takes the round, else the
     /// leader when time runs out. Ticked by SimulationSystem after combat.
     /// With MinPlayers set a round waits for enough players and counts
     /// down first; only players count, not the dummies.
@@ -212,18 +217,25 @@ namespace KotH.Shared.Match
 
             int inside = 0;
             SimulationBody one = null;
+            bool holderIn = false;
             for (int i = 0; i < count; i++)
             {
                 if (!Contains(bodies[i].Motor.Position))
                     continue;
                 inside++;
                 one = bodies[i];
+                holderIn |= bodies[i] == state.Holder;
             }
 
             state.Inside = inside;
-            state.Holder = inside == 1 ? one : null;
+            // Taken (warmed up) the zone stays its holder's while it is inside;
+            // taking it needs the zone alone.
+            bool taken = holderIn && state.Holder.AloneTicks > WarmupTicks;
+            if (!taken)
+                state.Holder = inside == 1 ? one : null;
 
-            // The warm-up starts over as soon as a body leaves or shares the zone.
+            // The warm-up starts over as soon as a body leaves or shares the zone
+            // before it is taken.
             for (int i = 0; i < count; i++)
             {
                 SimulationBody body = bodies[i];

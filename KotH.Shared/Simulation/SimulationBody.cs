@@ -34,7 +34,7 @@ namespace KotH.Shared.Simulation
         /// <summary>Points earned in this round, in ticks; see HillMatch.Points.</summary>
         [DataMemberIgnore] public int ScoreTicks { get; internal set; }
 
-        /// <summary>Ticks in a row this body has held the zone alone.</summary>
+        /// <summary>Ticks in a row this body has held the zone, alone while taking it.</summary>
         [DataMemberIgnore] public int AloneTicks { get; internal set; }
 
         [DataMemberIgnore] public bool HasSpawn { get; private set; }

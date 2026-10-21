@@ -88,23 +88,48 @@ namespace KotH.Probes.Probes
             Check(b.ScoreTicks == 0 && b.AloneTicks == 0, "B draußen bekommt nichts");
         }
 
-        /// <summary>Two inside: nobody scores, and the warm-up starts over afterwards.</summary>
+        /// <summary>
+        /// Taken, the zone stays its holder's with others inside (Luca's rule);
+        /// the holder gone, the other takes it in 3 s first; two inside while
+        /// it is being taken: nobody scores and the warm-up starts over.
+        /// </summary>
         void Shared()
         {
             int before = a.ScoreTicks;
             b.Motor.Teleport(HillB);
             Ticks(1);
-            Check(match.State.Inside == 2 && match.State.Holder == null && a.AloneTicks == 0 && b.AloneTicks == 0,
-                  $"umkämpft: drin {match.State.Inside}, allein A {a.AloneTicks} B {b.AloneTicks}");
-
+            Check(match.State.Inside == 2 && match.State.Holder == a && b.AloneTicks == 0 && a.ScoreTicks == before + 1,
+                  $"eingenommen: A hält mit B drin (drin {match.State.Inside}, Halter {Name(match.State.Holder)})");
             Ticks(200);
-            Check(a.ScoreTicks == before && b.ScoreTicks == 0, $"umkämpft keine Punkte (A {a.ScoreTicks}, B {b.ScoreTicks})");
+            Check(a.ScoreTicks == before + 201 && b.ScoreTicks == 0,
+                  $"A punktet weiter, B nicht (A +{a.ScoreTicks - before}, B {b.ScoreTicks})");
+
+            a.Motor.Teleport(SpawnA);
+            Ticks(match.WarmupTicks);
+            Check(match.State.Holder == b && b.AloneTicks == match.WarmupTicks && b.ScoreTicks == 0 && a.AloneTicks == 0,
+                  $"A draußen: B nimmt erst 3 s ein (allein {b.AloneTicks}, Punkte-Ticks {b.ScoreTicks})");
+            Ticks(1);
+            Check(b.ScoreTicks == 1, $"danach punktet B ({b.ScoreTicks})");
+
+            b.Motor.Teleport(SpawnB);
+            Ticks(1);
+            Check(match.State.Inside == 0 && match.State.Holder == null, "beide draußen: frei");
+            a.Motor.Teleport(HillA);
+            Ticks(40);
+            b.Motor.Teleport(HillB);
+            Ticks(1);
+            Check(match.State.Inside == 2 && match.State.Holder == null && a.AloneTicks == 0 && b.AloneTicks == 0,
+                  $"beim Einnehmen umkämpft: drin {match.State.Inside}, allein A {a.AloneTicks} B {b.AloneTicks}");
+            int scoreA = a.ScoreTicks, scoreB = b.ScoreTicks;
+            Ticks(200);
+            Check(a.ScoreTicks == scoreA && b.ScoreTicks == scoreB,
+                  $"umkämpft keine Punkte (A +{a.ScoreTicks - scoreA}, B +{b.ScoreTicks - scoreB})");
 
             b.Motor.Teleport(SpawnB);
             Ticks(match.WarmupTicks);
-            Check(a.ScoreTicks == before, $"nach dem Teilen wieder 3 s ohne Punkte ({a.ScoreTicks - before})");
+            Check(a.ScoreTicks == scoreA, $"nach dem Teilen wieder 3 s ohne Punkte ({a.ScoreTicks - scoreA})");
             Ticks(1);
-            Check(a.ScoreTicks == before + 1, $"danach wieder Punkte ({a.ScoreTicks - before})");
+            Check(a.ScoreTicks == scoreA + 1, $"danach wieder Punkte ({a.ScoreTicks - scoreA})");
         }
 
         /// <summary>The box against the body centre, and a jump that stays in.</summary>

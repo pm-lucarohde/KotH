@@ -19,7 +19,7 @@ namespace KotH.Shared.Match
         /// <userdoc>Breite, Höhe und Tiefe der Zone in Metern, um den Mittelpunkt des Entitys. Zählt, wo die Körpermitte steht.</userdoc>
         [Display("Größe", "Zone")] public Vector3 Size = new Vector3(12f, 3.5f, 12f);
 
-        /// <userdoc>So lange muss man allein in der Zone stehen, bevor Punkte kommen, in Sekunden. Danach gibt es einen Punkt pro Sekunde.</userdoc>
+        /// <userdoc>So lange muss man allein in der Zone stehen, um sie einzunehmen, in Sekunden. Danach gibt es einen Punkt pro Sekunde, solange man drin bleibt, auch wenn andere dazukommen.</userdoc>
         [Display("Aufwärmen", "Regeln")] public float WarmupSeconds = 3f;
 
         /// <userdoc>Wer so viele Punkte hat, gewinnt die Runde sofort.</userdoc>

@@ -16,7 +16,7 @@ namespace KotH.Shared.Simulation
         public int AttackCooldown;
         public float DamagePercent;
 
-        // King of the hill, in ticks: points earned and time alone in the zone.
+        // King of the hill, in ticks: points earned and time holding the zone.
         public int ScoreTicks;
         public int AloneTicks;
     }

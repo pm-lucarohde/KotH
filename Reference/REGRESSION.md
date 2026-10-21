@@ -449,3 +449,17 @@ unter JIT und AOT; die Hashkette bleibt `A4A9BBB937C62890`.
     - UDP-Rauchtest auf localhost (`.work/udp/smoke.sh`): Host + 3 Bots, der vierte nach
       30 s, Countdown 60 s, Runde ab 91 s, Beitritt bei 160 s abgelehnt (`Closed`), alle
       Prüfsummen gleich, 0 Desyncs, 0 Eingaben ersetzt. JIT-Host mit AOT-Gast ebenso gleich.
+
+## Einnehmen: allein nur die ersten 3 s (21.10.2026)
+
+19. **Gewollte Regeländerung (Luca).** Allein muss man nur beim Einnehmen sein. Wer die
+    Zone eingenommen hat, bleibt `Holder` und punktet, solange er drin ist, auch wenn
+    andere dazukommen; geht er hinaus, ist sie frei, und wer dann allein drin steht,
+    nimmt sie selbst in 3 s ein. Kommt während des Einnehmens jemand dazu, ist sie
+    weiter umkämpft, und das Einnehmen beginnt von vorn.
+    - Probe `capture` neu im Fall „Teilen“: A hält mit B darin (+201 Punkte-Ticks in
+      201 Ticks, B 0), A draußen: B erst nach 120 Ticks, beim Einnehmen umkämpft: keiner.
+    - Hashkette `880D0C64389C53E3` unverändert (ihr Szenario hat nie zwei in der Zone
+      nach dem Einnehmen); `determinism`, `netstate`, `netplay`, `melee`, `bots` bestehen.
+    - Bots über 12 Seeds: Punkte je Runde 4,8 statt 0,8, sonst gleich (Sprünge 13,3 statt
+      13,1, Schläge 52,9 statt 52,8, Treffer 16,4).
