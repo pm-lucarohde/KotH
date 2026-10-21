@@ -56,11 +56,11 @@ namespace KotH.Client.Player
         /// <userdoc>Schritte pro Sekunde beim geduckten Gehen.</userdoc>
         [Display("Schritte geduckt", "Animation")] public float CrouchSteps = 3f;
 
+        /// <userdoc>Höhe der Figur geduckt und beim Gleiten, als Anteil der Pose (1 = ungestaucht). Kopf und Kappe ragen über die Hülle hinaus; dort zählt kein Treffer.</userdoc>
+        [Display("Höhe geduckt", "Animation")] public float CrouchSquash = 0.75f;
+
         /// <userdoc>Breite der Figur geduckt und beim Gleiten (1 = wie stehend). Schmaler wirkt die gestauchte Figur weniger platt.</userdoc>
         [Display("Breite geduckt", "Animation")] public float CrouchWidth = 0.9f;
-
-        /// <userdoc>So viele Meter ragt die Kappe geduckt und beim Gleiten über die Hülle hinaus; weniger Stauchung, bessere Proportionen. Dort zählt kein Treffer.</userdoc>
-        [Display("Kappe über der Hülle", "Animation")] public float CrouchOverhang = 0.1f;
 
         /// <userdoc>Wie weit sich der Mund im Atemrhythmus öffnet und schließt (0,1 = um 10 % seiner Höhe).</userdoc>
         [Display("Mund", "Animation")] public float MouthBreath = 0.08f;
@@ -117,11 +117,6 @@ namespace KotH.Client.Player
         const float LandAttack = 0.06f, KickAttack = 0.05f;
         // A jump in the air shows as a sudden climb; gravity alone only slows it.
         const float KickBoost = 3f;
-
-        // How much lower than standing each clip's pose is, in metres (printed
-        // by .work/rig/rig.py). The rest of the way down to the collider's
-        // height the figure is squashed.
-        static readonly float[] PoseDrops = { 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0.207f, 0.189f, 0.209f, 0f, 0f, 0f, 0f };
 
         // Lids open: shrunk to their pivot, as no triangle at all.
         const float Hidden = 1e-4f;
@@ -242,13 +237,13 @@ namespace KotH.Client.Player
 
         void Animate(Figure f, PlayerMotor motor, TransformComponent t, float dt, float alpha)
         {
-            float drop = f.Animation != null ? Blend(f, motor, dt) : 0f;
-            // A crouched pose is lower than standing; whatever is left to the
-            // collider's height is squashed, feet kept on the collider's floor.
-            // Narrower as well and the cap a little above the collider, so it
-            // looks less flat (Luca's choice).
+            if (f.Animation != null)
+                Blend(f, motor, dt);
+            // Crouched the figure is squashed a little and narrower, feet kept
+            // on the collider's floor; head and cap stand above the collider
+            // (Luca's choice, nicer proportions than fitting it).
             float crouched = Crouched(motor);
-            float scale = (motor.Height + CrouchOverhang * crouched) / (motor.StandHeight - drop);
+            float scale = 1f - (1f - CrouchSquash) * crouched;
             float width = 1f - (1f - CrouchWidth) * crouched;
             if (f.Kicked)
                 Spores(f, t.Position - new Vector3(0f, 0.5f * motor.Height, 0f));
@@ -401,8 +396,8 @@ namespace KotH.Client.Player
             skeleton.NodeTransformations[f.Look].Transform.Rotation = Quaternion.RotationX(MathUtil.DegreesToRadians(tilt));
         }
 
-        /// <summary>Sets the clip weights; returns how much lower than standing the mixed pose is.</summary>
-        float Blend(Figure f, PlayerMotor motor, float dt)
+        /// <summary>Sets the clip weights.</summary>
+        void Blend(Figure f, PlayerMotor motor, float dt)
         {
             if (f.Plays == null)
             {
@@ -486,7 +481,6 @@ namespace KotH.Client.Player
             float kick = f.KickAge < KickAttack ? f.KickAge / KickAttack
                        : 1f - Smooth(KickAttack, MathF.Max(KickAttack + 1e-3f, KickSeconds), f.KickAge);
             kick *= stand;
-            float total = 0f, drop = 0f;
             for (int i = 0; i < Clips.Length; i++)
             {
                 f.Weights[i] += (target[i] - f.Weights[i]) * follow;
@@ -495,16 +489,12 @@ namespace KotH.Client.Player
                 float weight = i == LandIndex ? land : i == KickIndex ? kick
                              : f.Weights[i] * MathF.Max(0f, 1f - land - kick);
                 play.Weight = weight < 1e-3f ? 0f : weight;
-                // Stride mixes by weight over the sum of weights, so does the drop.
-                total += play.Weight;
-                drop += play.Weight * PoseDrops[i];
                 if (i >= WalkIndex && i < RunIndex + 4 || i == CrouchWalkIndex)
                 {
                     play.TimeFactor = 0f;
                     play.CurrentTime = TimeSpan.FromTicks((long)(f.Phase * play.Clip.Duration.Ticks));
                 }
             }
-            return total > 0f ? drop / total : 0f;
         }
 
         /// <summary>0 standing, 1 crouched; follows the collider's height, which glides between both.</summary>

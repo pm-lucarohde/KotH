@@ -203,10 +203,9 @@ und `MushroomSkyWalk` (Doppelsprung als Tritt in die Luft, Impuls wie die Landun
 Schub nach oben in der Luft, die Simulation meldet nichts). Dabei stößt die Figur gelbe Sporen aus den Füßen
 (`Assets/Effects/SporeBurst.sdprefab`, ein Stoß von 60 Partikeln im Weltraum, Textur `Spore`
 256 px mit scharfer Kante; „Sporen beim Doppelsprung“ in `PlayerVisualSystem`). Geduckt macht die Pose die Figur nur etwa 20 cm niedriger
-(Beine 35 cm); den Rest bis zur Hüllenhöhe staucht `PlayerVisualSystem` (`PoseDrops`, Werte
-gibt `rig.py` aus), lässt die Kappe 10 cm über die Hülle ragen und macht die Figur auf 90 %
-schmaler, damit sie weniger platt wirkt (Lucas Wahl, „Kappe über der Hülle“, „Breite
-geduckt“); die Füße bleiben auf dem Boden der Hülle. `PlayerVisualSystem` spielt alle zugleich
+(Beine 35 cm); `PlayerVisualSystem` staucht sie fest auf 75 % und 90 % Breite („Höhe geduckt“,
+„Breite geduckt“), Kopf und Kappe ragen etwa 30 cm über die 0,9-m-Hülle (Lucas Wahl: Proportionen
+vor Passform, dort zählt kein Treffer); die Füße bleiben auf dem Boden der Hülle. `PlayerVisualSystem` spielt alle zugleich
 und setzt die Gewichte nach Tempo und Richtung (Strides Mischen normiert auf die Summe);
 die Lauf-Clips laufen mit `TimeFactor` 0 auf einer gemeinsamen Phase aus der Strecke
 (Gehen 3,5, Rennen 6 Schritte/s). Das Spiel selbst bewegt vier Knochenarten: den Mund (`Mouth`, atmet ruhig in zwei
