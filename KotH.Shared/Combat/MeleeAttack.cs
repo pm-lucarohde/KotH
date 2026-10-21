@@ -80,6 +80,13 @@ namespace KotH.Shared.Combat
         [DataMemberIgnore] public int SwingCount { get; private set; }
 
         /// <summary>
+        /// Tick of the last swing, hit or miss: starts the figure's swing.
+        /// Not state, like DamagePercent.LastHitTick: a rollback sets it
+        /// again, and predicted input never presses.
+        /// </summary>
+        [DataMemberIgnore] public int LastSwingTick { get; set; } = int.MinValue;
+
+        /// <summary>
         /// How far the last hit landed from the eye. Diagnostics: the range
         /// limits the distance to the capsule SURFACE, and where that sits
         /// depends on how high the ray crosses the body.
@@ -116,6 +123,7 @@ namespace KotH.Shared.Combat
 
             ticksUntilReady = CooldownTicks;
             SwingCount++;
+            LastSwingTick = Entity.Get<SimulationBody>()?.Simulation?.CurrentTick ?? 0;
 
             // Same rotation the camera builds, so the ray goes exactly where
             // the crosshair points - but out of the input, not out of a

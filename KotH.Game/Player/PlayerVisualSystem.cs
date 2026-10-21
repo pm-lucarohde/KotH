@@ -25,7 +25,8 @@ namespace KotH.Client.Player
     /// seconds, set on the lid bones. The leaves of skirt and collar swing
     /// on springs in the wind of the figure's own motion, so does the leaf
     /// on the cane in its hand, and the mouth opens and shuts a little,
-    /// calm as breathing.
+    /// calm as breathing. Every swing of the melee attack swings the cane
+    /// (ArmSwing), on the figure and on the first-person arms.
     /// </summary>
     [DataContract("KotH.PlayerVisualSystem")]
     public sealed class PlayerVisualSystem : SyncScript
@@ -118,6 +119,33 @@ namespace KotH.Client.Player
         /// <userdoc>So lange dauert es danach zurück in die Haltung, in Sekunden.</userdoc>
         [Display("Zurück", "Treffer")] public float HitSettleSeconds = 0.4f;
 
+        /// <userdoc>Anteil der Schläge, die oben rechts ausholen und nach unten links schlagen; die übrigen gehen von unten links nach oben rechts.</userdoc>
+        [Display("Anteil von oben", "Schlag")] public float SwingDownShare = 0.75f;
+
+        /// <userdoc>So lange holt die Figur aus, in Sekunden. Der Treffer zählt schon beim Klick.</userdoc>
+        [Display("Ausholen", "Schlag")] public float SwingWindupSeconds = 0.07f;
+
+        /// <userdoc>So lange zieht sie den Stab durch, in Sekunden; er wird dabei schneller.</userdoc>
+        [Display("Durchziehen", "Schlag")] public float SwingStrikeSeconds = 0.12f;
+
+        /// <userdoc>So lange bleibt der Arm am Ende des Schlags, in Sekunden.</userdoc>
+        [Display("Nachschwingen", "Schlag")] public float SwingFollowSeconds = 0.05f;
+
+        /// <userdoc>So lange dauert es zurück in die Haltung, in Sekunden.</userdoc>
+        [Display("Zurück", "Schlag")] public float SwingBackSeconds = 0.25f;
+
+        /// <userdoc>Wie verschieden die Schläge sind: Ausholpunkt, Endpunkt, Bogen, Tempo und Oberkörper streuen (0 = jeder gleich, 1 = normal).</userdoc>
+        [Display("Variation", "Schlag")] public float SwingVariation = 1f;
+
+        /// <userdoc>So weit dreht der Oberkörper beim Ausholen und Durchziehen mit, in Grad; der Kopf bleibt beim Blick.</userdoc>
+        [Display("Oberkörper", "Schlag")] public float SwingTorsoDegrees = 5f;
+
+        /// <userdoc>So weit beugt sich der Oberkörper beim Durchziehen vor, in Grad.</userdoc>
+        [Display("Vorbeugen", "Schlag")] public float SwingBendDegrees = 2f;
+
+        /// <userdoc>Anteil der Oberkörperdrehung an den Armen in First Person.</userdoc>
+        [Display("Oberkörper First Person", "Schlag")] public float SwingArmsTorsoShare = 0.5f;
+
         /// <userdoc>Im Stehen dreht nur der Kopf mit dem Blick, bis zu so vielen Grad zur Seite; darüber hinaus wird der Körper mitgezogen.</userdoc>
         [Display("Kopfdrehung höchstens", "Animation")] public float HeadTurnDegrees = 40f;
 
@@ -168,6 +196,10 @@ namespace KotH.Client.Player
         AnimationComponent arms;
         PlayerMotor armsMotor;
         HeldLeaf armsLeaf;
+        ModelComponent armsModel;
+        MeleeAttack armsMelee;
+        int armsNetId, forcedSwing;
+        readonly ArmSwing armsSwing = new ArmSwing();
         PlayingAnimation[] armPlays;
         readonly float[] armWeights = new float[ArmClips.Length];
         float armPhase, lastStepPhase;
@@ -197,6 +229,8 @@ namespace KotH.Client.Player
             public Vector3 ShownAt;
             public Entity Spores;
             public HeldLeaf Held;
+            public MeleeAttack Melee;
+            public readonly ArmSwing Swing = new ArmSwing();
         }
 
         /// <summary>The leaf on a held object; its bend is a rotation vector.</summary>
@@ -243,6 +277,7 @@ namespace KotH.Client.Player
                 BlinkWait = BlinkPause(),
                 MouthClock = (float)random.NextDouble() * 30f,
                 Held = FindHeld(visual),
+                Melee = motor.Entity.Get<MeleeAttack>(),
             });
         }
 
@@ -252,6 +287,9 @@ namespace KotH.Client.Player
             arms = visual.Get<AnimationComponent>();
             armsMotor = motor;
             armsLeaf = FindHeld(visual);
+            armsModel = visual.Get<ModelComponent>();
+            armsMelee = motor.Entity.Get<MeleeAttack>();
+            armsNetId = motor.Entity.Get<SimulationBody>()?.NetId ?? 0;
             armPlays = null;
             Array.Clear(armWeights);
         }
@@ -261,6 +299,7 @@ namespace KotH.Client.Player
             arms = null;
             armsMotor = null;
             armsLeaf = null;
+            armsModel = null;
         }
 
         /// <summary>
@@ -279,6 +318,27 @@ namespace KotH.Client.Player
                     damage.LastHitTick++;
                 }
         }
+
+        /// <summary>
+        /// Every figure swings now, for KOTH_SHOT_STRIKE: only shown, the
+        /// simulation knows nothing of it. Each call draws other swings.
+        /// </summary>
+        public void SwingAll()
+        {
+            forcedSwing++;
+            SwingSettings settings = Swing();
+            foreach (Figure f in figures)
+                f.Swing.Force(f.Model?.Skeleton, f.Body?.NetId ?? 0, forcedSwing, settings, SwingPath.Figure);
+            if (armsModel != null)
+                armsSwing.Force(armsModel.Skeleton, armsNetId, forcedSwing, settings, SwingPath.Arms);
+        }
+
+        SwingSettings Swing() => new SwingSettings
+        {
+            Windup = SwingWindupSeconds, Strike = SwingStrikeSeconds, Follow = SwingFollowSeconds,
+            Back = SwingBackSeconds, DownShare = SwingDownShare, Variation = SwingVariation,
+            TorsoDegrees = SwingTorsoDegrees, BendDegrees = SwingBendDegrees,
+        };
 
         /// <summary>Every figure blinks now, for KOTH_SHOT_BLINK.</summary>
         public void BlinkAll()
@@ -337,6 +397,14 @@ namespace KotH.Client.Player
                 Animate(figures[i], motors[i], visuals[i].Transform, dt, alpha);
             if (armsLeaf != null && armsMotor != null)
                 Sway(armsLeaf, armsMotor, dt);
+            if (armsModel?.Skeleton is { } armsSkeleton)
+            {
+                // The own swing in front of the eye, with less of the torso.
+                armsSwing.Update(armsSkeleton, armsMelee, armsNetId, Swing(), SwingPath.Arms, dt);
+                if (armsSwing.RecoilNode >= 0)
+                    armsSkeleton.NodeTransformations[armsSwing.RecoilNode].Transform.Rotation =
+                        Quaternion.Slerp(Quaternion.Identity, armsSwing.Torso, SwingArmsTorsoShare);
+            }
         }
 
         void Animate(Figure f, PlayerMotor motor, TransformComponent t, float dt, float alpha)
@@ -356,6 +424,7 @@ namespace KotH.Client.Player
             t.Position.Y += 0.5f * (motor.StandHeight * scale - motor.Height);
             Blink(f, dt);
             Breathe(f, dt);
+            f.Swing.Update(f.Model?.Skeleton, f.Melee, f.Body?.NetId ?? 0, Swing(), SwingPath.Figure, dt);
             Hit(f, dt);
             LookUpDown(f, alpha);
             Leaves(f, motor, t, dt);
@@ -615,7 +684,8 @@ namespace KotH.Client.Player
             float amount = f.HitAge < rise ? Smooth(f.HitAge / rise)
                          : 1f - Smooth(Math.Clamp((f.HitAge - rise) / MathF.Max(1e-3f, HitSettleSeconds), 0f, 1f));
             f.HitHead = Quaternion.RotationAxis(f.HitAxis, MathUtil.DegreesToRadians(HitHeadDegrees * amount));
-            skeleton.NodeTransformations[f.Recoil].Transform.Rotation =
+            // The swing turns the torso a little as well; the hit tips it on top.
+            skeleton.NodeTransformations[f.Recoil].Transform.Rotation = f.Swing.Torso *
                 Quaternion.RotationAxis(f.HitAxis, MathUtil.DegreesToRadians(HitLeanDegrees * amount));
         }
 
@@ -650,9 +720,11 @@ namespace KotH.Client.Player
             float tilt = Math.Clamp(pitch * HeadFollow, -HeadMaxDegrees, HeadMaxDegrees);
             // The neck points up, its X is the figure's right: positive tips the head
             // back. The tilt comes first, then the turn about the neck, then the
-            // recoil of a hit, in the body's frame.
+            // recoil of a hit, in the body's frame; the swing's torso turn is
+            // taken back out, so the head keeps to the view.
             skeleton.NodeTransformations[f.Look].Transform.Rotation =
-                Quaternion.RotationYawPitchRoll(f.HeadYaw, MathUtil.DegreesToRadians(tilt), 0f) * f.HitHead;
+                Quaternion.RotationYawPitchRoll(f.HeadYaw, MathUtil.DegreesToRadians(tilt), 0f) * f.HitHead
+                * Quaternion.Invert(f.Swing.Torso);
         }
 
         /// <summary>Sets the clip weights.</summary>

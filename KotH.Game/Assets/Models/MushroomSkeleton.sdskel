@@ -31,8 +31,10 @@ Nodes:
     1a1a5cbd57595bcca1c03dcfdc82339d: {Name: UpperArm.L, Depth: 6, Preserve: true}
     d67f988e13b55c9aa8e5b3e2f4f12b99: {Name: LowerArm.L, Depth: 7, Preserve: true}
     c847697ed1ab561bbd13e56aec5e21e7: {Name: UpperArm.R, Depth: 6, Preserve: true}
-    ccd2113750945540b72107faffc3af33: {Name: LowerArm.R, Depth: 7, Preserve: true}
-    77ee80b89e0b5c55af83a84de6ec4f7f: {Name: Grip.R, Depth: 8, Preserve: true}
+    ad0b455b7d3056399dc4033df29dfbba: {Name: UpperArmSwing.R, Depth: 7, Preserve: true}
+    ccd2113750945540b72107faffc3af33: {Name: LowerArm.R, Depth: 8, Preserve: true}
+    ed15895a58665ed3b0aac644ca82cf54: {Name: LowerArmSwing.R, Depth: 9, Preserve: true}
+    77ee80b89e0b5c55af83a84de6ec4f7f: {Name: Grip.R, Depth: 10, Preserve: true}
     d07aa6ad1f49592a9838cc1f0ccb1243: {Name: UpperLeg.L, Depth: 3, Preserve: true}
     3d2f5968899c5a40862c929266cca186: {Name: LowerLeg.L, Depth: 4, Preserve: true}
     affbe820d9215254845fa6190758d57b: {Name: UpperLeg.R, Depth: 3, Preserve: true}

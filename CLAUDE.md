@@ -54,6 +54,7 @@ Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Pr
   `KOTH_SHOT_HIT=grad` (alle Figuren 0,1 s vor dem Bild getroffen, aus grad um den Körper: 0 vorn,
   90 rechts, 180 hinten; Figuren stehen still in einer Lobby: `--host --min-players 8`),
   `KOTH_SHOT_BLINK=1` (alle Figuren blinzeln, das Bild zeigt geschlossene Lider),
+  `KOTH_SHOT_STRIKE=s[,s…]` (alle Figuren schlagen zu diesen Zeiten mit dem Stab, nur Darstellung),
   `KOTH_SHOT_MOVE=x,y[,sprint]` (hält die Bewegungstasten, D und W sind +1),
   `KOTH_SHOT_CROUCH=s` (Ducken ab s Sekunden gehalten; aus dem Sprint ein Gleiten),
   `KOTH_SHOT_JUMP=s[,s…]` (Sprungtaste zu diesen Zeiten; Doppelsprung = zwei schnelle Drücke in der Luft),
@@ -304,6 +305,12 @@ Stab in First Person nach rechts oben zeigt (`fp_arms.py`, `CANE`, `CANE_ROLL` �
 Der Stab hat ein eigenes Skelett (`Cane`, `Leaf`, `LeafTip` ohne Vertices, alle ungedreht);
 `PlayerVisualSystem.Sway` federt `Leaf` mit den Werten der Figurblätter im Fahrtwind, gemessen an
 seinem Ansatz in der Welt (Gehen, Drehen und Armschwung zugleich). Nur Darstellung.
+
+Schlag (Lucas Wunsch): `ArmSwing` (`KotH.Game/Player/SwingMotion.cs`) dreht die Spielknochen
+`UpperArmSwing.R`/`LowerArmSwing.R` (Kinder der Clip-Knochen mit deren Gewichten, ohne Clip-Kanäle) per
+Zwei-Knochen-IK auf eine gewölbte Bahn: 75 % oben rechts → unten links, sonst umgekehrt, Variation
+deterministisch aus NetId und Schlag-Tick; Oberkörper sehr leicht über `Recoil`, Kopf zurückgedreht.
+Auslöser `MeleeAttack.LastSwingTick` (kein Zustand). Nur Optik, der Treffer zählt weiter beim Klick.
 
 ## Git
 

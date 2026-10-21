@@ -37,6 +37,7 @@ game.Run();
 /// just before it and reports how far the camera shake tilts the view,
 /// KOTH_SHOT_HIT=deg hits every figure just before it, from deg round its body (0 front, 90 right),
 /// KOTH_SHOT_BLINK=1 has every figure blink so the shot shows shut lids,
+/// KOTH_SHOT_STRIKE=s[,s2] has every figure swing its cane at these times (only shown),
 /// KOTH_SHOT_MOVE=x,y[,sprint] holds the move keys (D and W are +1),
 /// KOTH_SHOT_CROUCH=s presses crouch at s seconds and holds it (out of a sprint: a slide),
 /// KOTH_SHOT_JUMP=s[,s2] presses jump at s seconds (and again at s2: the double jump),
@@ -73,6 +74,9 @@ sealed class KotHGame : Game
         .Select(s => double.Parse(s, CultureInfo.InvariantCulture)).ToArray();
     readonly Queue<double> shotJumps = new Queue<double>(
         (Environment.GetEnvironmentVariable("KOTH_SHOT_JUMP") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(s => double.Parse(s, CultureInfo.InvariantCulture)));
+    readonly Queue<double> shotStrikes = new Queue<double>(
+        (Environment.GetEnvironmentVariable("KOTH_SHOT_STRIKE") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)
             .Select(s => double.Parse(s, CultureInfo.InvariantCulture)));
     readonly string frameLogPath = Environment.GetEnvironmentVariable("KOTH_FRAMELOG");
     Int2 windowedSize;
@@ -294,6 +298,14 @@ sealed class KotHGame : Game
         {
             struck.HitAll((float)shotHit.Value);
             shotHit = null;
+        }
+
+        // Every figure swings its cane at these times, only shown.
+        while (shotStrikes.Count > 0 && gameTime.Total.TotalSeconds >= shotStrikes.Peek() &&
+               Find<PlayerVisualSystem>() is { } swinging)
+        {
+            swinging.SwingAll();
+            shotStrikes.Dequeue();
         }
 
         // Shut at the shot: a third of the blink closes the lid.
