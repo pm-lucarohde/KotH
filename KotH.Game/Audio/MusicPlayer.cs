@@ -26,7 +26,7 @@ namespace KotH.Client.Audio
         /// <userdoc>Nach dem Spielbeginn-Track zufällig nacheinander: jeder einmal, bevor einer wiederkommt.</userdoc>
         [Display("Danach zufällig", "Musik")] public List<Sound> Playlist = new List<Sound>();
 
-        [Display("Lautstärke", "Musik")] public float Volume = 0.8f;
+        [Display("Lautstärke", "Musik")] public float Volume = 0.4f;
 
         /// <userdoc>So lange blendet ein Track in den nächsten über (Sekunden).</userdoc>
         [Display("Überblenden", "Musik")] public float FadeSeconds = 1.5f;
