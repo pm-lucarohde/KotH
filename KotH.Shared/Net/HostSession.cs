@@ -1,6 +1,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using KotH.Shared.Bots;
 using KotH.Shared.Player;
 using KotH.Shared.Simulation;
 
@@ -29,6 +30,7 @@ namespace KotH.Shared.Net
         sealed class Client
         {
             public int Peer;
+            public bool IsBot;
             public int NetId;
             public int Slot;
             public string Name;
@@ -76,6 +78,7 @@ namespace KotH.Shared.Net
         PeerSession founder;
         int nextConfirm;
         int nextNetId = NetWorld.FirstPlayerId;
+        int nextBotPeer = LocalPeer - 1;
         double now;
 
         public HostSession(INetTransport transport, double now)
@@ -87,6 +90,27 @@ namespace KotH.Shared.Net
 
         /// <summary>What the host's own peer talks through: instant, never lost.</summary>
         public INetTransport LocalTransport => link.PeerSide;
+
+        /// <summary>Where the host's bots get their inputs; needed once AddBot was called.</summary>
+        public IBotInputs Bots { get; set; }
+
+        /// <summary>
+        /// A bot joins like a player, NetId and slot included, but nobody is
+        /// on the other end: it plays at once, is never sent anything, and its
+        /// inputs come from Bots in the tick they are confirmed.
+        /// </summary>
+        public int AddBot(string name)
+        {
+            var c = new Client
+            {
+                Peer = nextBotPeer--, IsBot = true, NetId = nextNetId++, Slot = FreeSlot(),
+                Name = UniqueName(name), Phase = Phase.Playing,
+            };
+            clients[c.Peer] = c;
+            Players++;
+            pending.Add(new NetEvent { Join = true, NetId = c.NetId, Slot = c.Slot, Name = c.Name });
+            return c.NetId;
+        }
 
         /// <summary>Whether a new player may join right now; the lobby decides (N5).</summary>
         public Func<bool> CanJoin { get; set; } = () => true;
@@ -324,6 +348,11 @@ namespace KotH.Shared.Net
                 if (!(complete && t < hostTick + PeerSession.LeadTarget) && !due)
                     return;
 
+                // A bot's input needs a final state from before; never guessed.
+                foreach (Client c in clients.Values)
+                    if (c.IsBot && c.Phase != Phase.Left && t < c.LeaveTick && !Bots.TryInput(c.NetId, t, out _))
+                        return;
+
                 Finalise(t);
             }
         }
@@ -357,6 +386,12 @@ namespace KotH.Shared.Net
 
             foreach (Client c in present)
             {
+                if (c.IsBot)
+                {
+                    Bots.TryInput(c.NetId, t, out MoveInput thought);
+                    rec.Inputs.Add((c.NetId, thought));
+                    continue;
+                }
                 if (c.Inputs.Remove(t, out MoveInput input))
                     c.Last = input;
                 else
@@ -483,7 +518,7 @@ namespace KotH.Shared.Net
         {
             foreach (Client c in clients.Values)
             {
-                if (c.Phase != Phase.Playing)
+                if (c.Phase != Phase.Playing || c.IsBot)
                     continue;
 
                 // The newest ticks go out at once, with as many older ones as
@@ -502,6 +537,18 @@ namespace KotH.Shared.Net
 
                 const int Head = 1 + 4 + 8 + 4 + 4 + 4 + 1;
                 int first, fitting = 0, size = Head;
+                if (c.Peer == LocalPeer && fresh)
+                {
+                    // The own peer's line loses nothing: everything new, in order,
+                    // or after a load pause it would wait for resends, and the
+                    // bots for the final states it then lacks.
+                    for (first = c.SentThrough + 1; first <= last; first += fitting)
+                    {
+                        fitting = Math.Min(MaxRecordsPerMessage, last - first + 1);
+                        SendRecords(c, first, fitting);
+                    }
+                    continue;
+                }
                 if (overdue)
                 {
                     c.LastResend = now;
@@ -522,22 +569,7 @@ namespace KotH.Shared.Net
                     if (fitting == 0)
                         first = unacked;
                 }
-                c.LastSent = now;
-
-                outgoing.Clear();
-                var w = new Writer(outgoing);
-                w.Byte((byte)MsgType.Confirmed);
-                w.Int((int)HostTick);
-                w.Double(c.EchoTime + (now - c.EchoReceived));
-                w.Float(MinLead(c));
-                w.Int(c.NewestInput);
-                w.Int(first);
-                w.Byte((byte)fitting);
-                for (int t = first; t < first + fitting; t++)
-                    w.Bytes(records[t].Encoded);
-                c.SentThrough = Math.Max(c.SentThrough, first + fitting - 1);
-                c.BytesSent += outgoing.WrittenCount;
-                Send(c.Peer, reliable: false);
+                SendRecords(c, first, fitting);
             }
 
             // Gone players stay until every peer has their leave.
@@ -548,6 +580,26 @@ namespace KotH.Shared.Net
             if (drop != null)
                 foreach (int peer in drop)
                     clients.Remove(peer);
+        }
+
+        /// <summary>Confirmed ticks from first on, with the clock feedback, to one peer.</summary>
+        void SendRecords(Client c, int first, int fitting)
+        {
+            c.LastSent = now;
+            outgoing.Clear();
+            var w = new Writer(outgoing);
+            w.Byte((byte)MsgType.Confirmed);
+            w.Int((int)HostTick);
+            w.Double(c.EchoTime + (now - c.EchoReceived));
+            w.Float(MinLead(c));
+            w.Int(c.NewestInput);
+            w.Int(first);
+            w.Byte((byte)fitting);
+            for (int t = first; t < first + fitting; t++)
+                w.Bytes(records[t].Encoded);
+            c.SentThrough = Math.Max(c.SentThrough, first + fitting - 1);
+            c.BytesSent += outgoing.WrittenCount;
+            Send(c.Peer, reliable: false);
         }
 
         // The worst recent lead: inputs must be early even when the network jitters.

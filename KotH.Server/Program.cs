@@ -4,8 +4,11 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Threading;
 using KotH.Server;
+using KotH.Shared.Bots;
+using KotH.Shared.Combat;
 using KotH.Shared.Hosting;
 using KotH.Shared.Match;
+using KotH.Shared.Net;
 using KotH.Shared.Player;
 using KotH.Shared.Simulation;
 using Stride.Core.Mathematics;
@@ -20,6 +23,7 @@ using Stride.Engine;
 //   KotH.Server --ticks N       runs N ticks as fast as it can, then prints
 //                               the timing and every body's exact state
 //   --bodies N                  adds N roaming BenchBots (load test)
+//   --bots N, --bot-seed N      N bots play for the hill instead of the dummy
 //   --warmup N                  leaves the first N fast ticks out of the timing
 //   --host / --join ADDRESS     a networked peer instead, see NetPlay
 
@@ -33,14 +37,32 @@ double? seconds = Option(args, "--seconds");
 double? fastTicks = Option(args, "--ticks");
 int botCount = (int)(Option(args, "--bodies") ?? 0);
 int warmup = (int)(Option(args, "--warmup") ?? 0);
+int hillBots = (int)(Option(args, "--bots") ?? 0);
+int botSeed = (int)(Option(args, "--bot-seed") ?? 1);
 
 using var world = new HeadlessWorld();
 world.LoadArena();
 HillMatch match = world.StartMatch();
 
-Entity spawn = world.Find("DummySpawn");
-Entity dummy = world.SpawnBody(HeadlessWorld.DummyBodyUrl, spawn.Transform.Position, spawn.Transform.Rotation);
-dummy.Name = "Dummy";
+if (hillBots > 0)
+{
+    // As in the client alone: on the player slots, numbered like joiners.
+    var states = new LocalFinalStates(world.Simulation);
+    BotDirector director = BotDirector.Create(world.Builder, world.Simulation, states, botSeed);
+    for (int i = 0; i < hillBots; i++)
+    {
+        Entity marker = NetWorld.SlotMarker(world.Builder, i);
+        Entity bot = world.SpawnBody(HeadlessWorld.PlayerBodyUrl, marker.Transform.Position, marker.Transform.Rotation,
+                                     new BotBody(director, states, NetWorld.FirstPlayerId + 1 + i), new DamagePercent());
+        bot.Name = $"Bot {i + 1}";
+    }
+}
+else
+{
+    Entity spawn = world.Find("DummySpawn");
+    Entity dummy = world.SpawnBody(HeadlessWorld.DummyBodyUrl, spawn.Transform.Position, spawn.Transform.Rotation);
+    dummy.Name = "Dummy";
+}
 
 // A grid on the open ground behind the stairs, all facing the mountain.
 Entity playerSpawn = world.Find("PlayerSpawn");

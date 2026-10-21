@@ -3,6 +3,7 @@ using KotH.Client.Hud;
 using KotH.Client.Match;
 using KotH.Client.Net;
 using KotH.Client.Player;
+using KotH.Shared.Bots;
 using KotH.Shared.Combat;
 using KotH.Shared.Hosting;
 using KotH.Shared.Match;
@@ -23,10 +24,9 @@ namespace KotH.Client
 {
     /// <summary>
     /// Builds the playable world when the scene starts: the arena's collision,
-    /// the player and three dummies charged to 0, 50 and 100 percent, the
-    /// player and the middle dummy in the order the server and the probes
-    /// use. Started with --host or --join, the dummies come first and the
-    /// players arrive through the network session, see ClientNetWorld.
+    /// the player and the bots (--bots, three by default) that play for the
+    /// hill. Started with --host or --join, the players arrive through the
+    /// network session, the host's bots among them; see BotDirector.
     /// The scene itself only carries what is drawn.
     /// </summary>
     [DataContract("KotH.GameRoot")]
@@ -117,28 +117,32 @@ namespace KotH.Client
                 return;
             }
 
-            var reader = new PlayerInputReader();
-            Entity player = Spawn(builder, WorldBuilder.PlayerBodyUrl, "PlayerSpawn", "Player", reader);
+            var reader = new PlayerInputReader { NetId = NetWorld.FirstPlayerId };
+            Entity player = Spawn(builder, WorldBuilder.PlayerBodyUrl, "PlayerSpawn", "Player", reader, new DamagePercent());
 
-            // Side by side across the dummy marker's facing, 3 m apart, so
-            // each percent's knockback can be tried right next to the others.
-            Entity marker = builder.Find("DummySpawn");
-            Vector3 side = UMath.Mul(UMath.Rotate(marker.Transform.Rotation, UMath.Right), 3f);
-            var dummies = new[]
+            // The bots on the player slots, numbered on from the player like
+            // joiners, so they think exactly as they would on a host.
+            var states = new LocalFinalStates(simulation);
+            BotDirector director = options.Bots > 0 ? BotDirector.Create(builder, simulation, states, options.BotSeed) : null;
+            var bots = new List<Entity>();
+            for (int i = 0; i < options.Bots; i++)
             {
-                SpawnDummy(builder, marker, Vector3.Zero, 0f),
-                SpawnDummy(builder, marker, UMath.Neg(side), 50f),
-                SpawnDummy(builder, marker, side, 100f),
-            };
+                var bot = new BotBody(director, states, NetWorld.FirstPlayerId + 1 + i);
+                Entity marker = NetWorld.SlotMarker(builder, i);
+                Entity e = builder.SpawnBody(WorldBuilder.PlayerBodyUrl, marker.Transform.Position, marker.Transform.Rotation,
+                                             bot, new DamagePercent());
+                e.Name = $"Bot {i + 1}";
+                bots.Add(e);
+            }
 
             // The own figure has a render group of its own: the eyes sit in
             // its cap, so the camera skips it unless it stands back far
             // enough. Shadow views keep their own mask, the shadow stays.
             AddVisual(player).Get<ModelComponent>().RenderGroup = OwnFigureGroup;
-            foreach (Entity dummy in dummies)
+            foreach (Entity bot in bots)
             {
-                AddVisual(dummy);
-                AddLabel(dummy, null);
+                AddVisual(bot);
+                AddLabel(bot, bot.Name);
             }
             BindLocal(player, reader);
         }
@@ -146,15 +150,15 @@ namespace KotH.Client
         void StartNetworked(LaunchOptions options)
         {
             BindWorld(null);
-            foreach (Entity dummy in NetWorld.SpawnDummies(builder))
-            {
-                AddVisual(dummy);
-                AddLabel(dummy, null);
-            }
 
             // The local player's input waits for its body; until then the session samples nothing.
             net = new NetClient(options, this, () => localReader?.ReadInput() ?? default, simulation.Match);
             Services.AddService(net);
+            if (options.Host && options.Bots > 0)
+            {
+                net.AddBots(BotDirector.Create(builder, simulation, net.Session, options.BotSeed), options.Bots);
+                Log.Info($"Netzwerk: {options.Bots} Bots, Seed {options.BotSeed}");
+            }
             Log.Info($"Netzwerk: {(options.Host ? "Host" : "Gast")} als {options.Name}, Build {NetProtocol.BuildText}");
         }
 
@@ -293,15 +297,6 @@ namespace KotH.Client
                     Entity.Scene.Entities.Remove(drawn.Label);
             }
             Entity.Scene.Entities.Remove(body.Entity);
-        }
-
-        static Entity SpawnDummy(WorldBuilder builder, Entity marker, Vector3 offset, float percent)
-        {
-            Entity body = builder.SpawnBody(WorldBuilder.DummyBodyUrl,
-                UMath.Add(marker.Transform.Position, offset), marker.Transform.Rotation);
-            body.Name = $"Dummy {percent:F0} %";
-            body.Get<DamagePercent>().Restore(percent);
-            return body;
         }
 
         /// <summary>

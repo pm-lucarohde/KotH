@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.Threading;
+using KotH.Shared.Bots;
 using KotH.Shared.Hosting;
 using KotH.Shared.Match;
 using KotH.Shared.Net;
@@ -16,6 +17,7 @@ namespace KotH.Server
     ///   --host [--port N] [--min-players N]   hosts a game; its own player stands still
     ///   --join ADDRESS[:PORT]                 joins one
     ///   --bot                                 the own player roams at random instead
+    ///   --bots N, --bot-seed N                the host's bots (3 by default) and their seed
     ///   --name NAME, --seconds N              shown name; stops after N seconds
     ///
     /// Logs the round every 10 s and every 400th tick's checksum, so the
@@ -35,10 +37,11 @@ namespace KotH.Server
             double? seconds = Number(args, "--seconds");
             bool bot = Array.IndexOf(args, "--bot") >= 0;
             int minPlayers = (int)(Number(args, "--min-players") ?? HillMatch.DefaultMinPlayers);
+            int bots = Math.Clamp((int)(Number(args, "--bots") ?? 3), 0, NetWorld.MaxPlayers - 1);
+            int botSeed = (int)(Number(args, "--bot-seed") ?? 1);
 
             using var world = new HeadlessWorld();
             world.LoadArena();
-            NetWorld.SpawnDummies(world.Builder);
             HillMatch round = world.StartMatch();
             world.Simulation.Deactivate();
 
@@ -59,6 +62,15 @@ namespace KotH.Server
                 round.MinPlayers = minPlayers;
                 host.CanJoin = () => round.AcceptsJoin;
                 Console.WriteLine($"[net] Host auf Port {port}, Runde ab {minPlayers} Spielern, Build {NetProtocol.BuildText}");
+                if (bots > 0)
+                {
+                    BotDirector director = BotDirector.Create(world.Builder, world.Simulation, session, botSeed);
+                    host.Bots = director;
+                    session.KnownInputs = director;
+                    for (int i = 0; i < bots; i++)
+                        director.Add(host.AddBot($"Bot {i + 1}"));
+                    Console.WriteLine($"[net] {bots} Bots, Seed {botSeed}");
+                }
             }
             else
             {

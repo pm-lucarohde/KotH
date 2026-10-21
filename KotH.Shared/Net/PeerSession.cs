@@ -1,6 +1,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using KotH.Shared.Bots;
 using KotH.Shared.Mathematics;
 using KotH.Shared.Player;
 using KotH.Shared.Simulation;
@@ -16,7 +17,7 @@ namespace KotH.Shared.Net
     /// Keeps its clock just far enough ahead of the host that its own inputs
     /// arrive in time, and reports a checksum of every 40th final state.
     /// </summary>
-    public sealed class PeerSession
+    public sealed class PeerSession : IFinalStates
     {
         /// <summary>Ticks between sampling an input and stepping with it.</summary>
         public const int InputDelay = 1;
@@ -221,6 +222,22 @@ namespace KotH.Shared.Net
         /// 0 to 1, for drawing between them.
         /// </summary>
         public float Alpha(double now) => (float)Math.Clamp(ClockTick(now) - (sim.CurrentTick - 1), 0.0, 1.0);
+
+        /// <summary>
+        /// The state a tick started from, once no rollback can change it any
+        /// more and while it is still in the ring. What the host's bots see.
+        /// </summary>
+        public bool TryFinalState(int tick, out WorldSnapshot state)
+        {
+            state = snaps[tick % Ring];
+            return tick >= 0 && tick <= FinalTick && snapTicks[tick % Ring] == tick;
+        }
+
+        /// <summary>
+        /// Inputs known before the host confirms them: on the host, its own
+        /// bots. A guess for them would only be wrong where the answer is known.
+        /// </summary>
+        public IBotInputs KnownInputs { get; set; }
 
         /// <summary>
         /// The round as no rollback can change it any more. What the HUD
@@ -556,6 +573,9 @@ namespace KotH.Shared.Net
 
             if (id == LocalNetId && localTicks[tick % Ring] == tick)
                 return local[tick % Ring];
+
+            if (KnownInputs != null && KnownInputs.IsBot(id) && KnownInputs.TryInput(id, tick, out MoveInput thought))
+                return thought;
 
             return lastConfirmed.TryGetValue(id, out Known known) ? Guess(known, tick) : default;
         }

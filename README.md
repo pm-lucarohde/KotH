@@ -1,8 +1,8 @@
 # KotH
 
 Ein King-of-the-Hill-Spiel in der Ego-Perspektive. Wer den Gipfel hält, gewinnt.
-Der aktuelle Stand ist ein Prototyp: Arena mit Berg, Rampen und Treppen, drei
-Trainingsdummys (0 %, 50 % und 100 % Startschaden) als Fliegenpilz-Figuren, Bewegung mit Sprint,
+Der aktuelle Stand ist ein Prototyp: Arena mit Berg, Rampen und Treppen, Bots, die
+um den Gipfel kämpfen, alle als Fliegenpilz-Figuren, Bewegung mit Sprint,
 Gleiten, Ducken, gestuftem Sprung und Doppelsprung, Körperstöße zwischen
 Spielern sowie ein Nahkampfschlag. Der Schlag erhöht das Schadensprozent des
 Getroffenen und stößt ihn umso weiter weg, je höher es schon war: bei 100 %
@@ -19,10 +19,18 @@ bekommt danach einen Punkt pro Sekunde; stehen mehrere drin, ist sie umkämpft u
 keiner punktet, und das Einnehmen beginnt von vorn. Wer zuerst 150 Punkte hat,
 gewinnt; nach 20 Minuten gewinnt, wer die meisten hat, bei Gleichstand ist die
 Runde unentschieden. Nach 5 s Siegeranzeige beginnt die nächste Runde, alle stehen
-wieder an ihrem Startpunkt. Die Dummys zählen wie Gegner. Die Werte stehen an der
+wieder an ihrem Startpunkt. Die Werte stehen an der
 Komponente `CaptureZone` im Arena-Prefab und sind in Game Studio einstellbar.
 
-Im Mehrspieler wartet die Runde auf 4 Spieler (Dummys zählen dafür nicht), dann läuft
+**Bots.** Statt der früheren Trainingspuppen spielen Bots mit (offline und beim Host
+3, `--bots N`, `--bot-seed N`). Sie wollen ab Rundenbeginn auf den Gipfel, finden den
+Weg über ein Navmesh (Rampen, Treppen, Sprünge und Doppelsprünge an Kanten), sprinten,
+gleiten in Angriffe hinein und schlagen jeden, auch einander; sie zählen als Spieler.
+Ein Bot sieht die Welt 0,2 s verzögert, wie ein Mensch mit Reaktionszeit. Stärke,
+Zielfehler und Navmesh stehen an der Komponente `BotSettings` (Entity „Bots“ im
+Arena-Prefab).
+
+Im Mehrspieler wartet die Runde auf 4 Spieler (die Bots des Hosts zählen mit), dann läuft
 ein Countdown von 60 s; geht vorher einer, wird wieder gewartet. Bei 0 stehen alle an
 ihrem Startplatz (`PlayerSpawn0` bis `PlayerSpawn11`, zwei Reihen hinter dem Spawn).
 Beitreten geht beim Warten, im Countdown, nach einem Sieg und in der ersten Minute
@@ -90,7 +98,7 @@ ab, was gelegentlich passiert, das Skript einfach erneut starten.
 
 ### Server
 
-Der Server lädt Arena und Dummy ohne Fenster und ohne GPU, tickt mit 40 Hz und
+Der Server lädt Arena und Dummy (mit `--bots N` stattdessen Bots) ohne Fenster und ohne GPU, tickt mit 40 Hz und
 spielt die Runde um die Zone mit (Stand alle 10 s und am Ende).
 Es ist dieselbe Schleife, die später ein hostender Peer fährt.
 
@@ -135,7 +143,7 @@ wechseln; ein Klick fängt sie wieder. F3 zeigt Ping, Vorlauf und Rollbacks.
 Der Server kann dasselbe ohne Fenster, mit einem Bot als Spieler:
 
 ```bash
-Bin/Server/Release/KotH.Server --host --bot              # hosten
+Bin/Server/Release/KotH.Server --host --bot              # hosten, mit 3 Bots (--bots N)
 Bin/Server/Release/KotH.Server --join 127.0.0.1 --bot    # beitreten
 ```
 
@@ -145,7 +153,7 @@ Mit `KOTH_SHOT=bild.png` zeigt der Client die F3-Anzeige, speichert nach
 `KOTH_SHOT_SECONDS` (Standard 3 s) einen Screenshot und beendet sich.
 `KOTH_SHOT_YAW`, `KOTH_SHOT_PITCH` und `KOTH_SHOT_FOV` halten den Blick fest.
 `KOTH_SHOT_SHAKE=1` lässt die eigene Figur kurz vor dem Bild getroffen werden und
-meldet, wie weit die Kamera wackelt (nur im Netz, z. B. `--host --min-players 1`).
+meldet, wie weit die Kamera wackelt.
 `KOTH_SHOT_BLINK=1` lässt alle Figuren so blinzeln, dass das Bild die Lider zeigt.
 `KOTH_SHOT_MOVE=x,y[,sprint]` hält die Bewegungstasten (D und W sind +1), etwa
 `KOTH_SHOT_MOVE=0,1,sprint` mit `KOTH_SHOT_THIRD=1` für ein Bild im Rennen.

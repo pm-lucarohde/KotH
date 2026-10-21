@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using KotH.Shared.Bots;
 using KotH.Shared.Match;
 using KotH.Shared.Net;
 using KotH.Shared.Player;
@@ -38,6 +39,18 @@ namespace KotH.Client.Net
                 Session = new PeerSession(world, transport, sampleLocal, options.Name, founder: false, Now);
                 address = $"{options.JoinAddress}:{options.Port}";
             }
+        }
+
+        /// <summary>
+        /// The host's bots: they join as players and think from the host's
+        /// final states, which its own peer then predicts them with.
+        /// </summary>
+        public void AddBots(BotDirector director, int count)
+        {
+            Host.Bots = director;
+            Session.KnownInputs = director;
+            for (int i = 0; i < count; i++)
+                director.Add(Host.AddBot($"Bot {i + 1}"));
         }
 
         public HostSession Host { get; }

@@ -37,12 +37,13 @@ Probe probe = name switch
     "capture" => new CaptureProbe(),
     "netstate" => new NetStateProbe(),
     "netplay" => new NetPlayProbe(),
+    "bots" => new BotProbe { Stats = args.Length > 2 && args[1] == "stats" ? int.Parse(args[2]) : 0 },
     _ => null,
 };
 
 if (probe == null)
 {
-    Console.Error.WriteLine("Aufruf: KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|step|determinism|clock|stairrun|rampfoot|crouchedge|knockback|thirdperson|wallknock|capture|netstate|netplay>");
+    Console.Error.WriteLine("Aufruf: KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|step|determinism|clock|stairrun|rampfoot|crouchedge|knockback|thirdperson|wallknock|capture|netstate|netplay|bots>");
     return 64;
 }
 

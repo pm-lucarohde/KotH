@@ -95,6 +95,10 @@ namespace KotH.Shared.Match
 
         public MatchState State => state;
 
+        /// <summary>The middle of the zone's box and half its size, for the bots.</summary>
+        public Vector3 Center => center;
+        public Vector3 HalfSize => half;
+
         /// <summary>Players needed to start; setting it starts the round over.</summary>
         public int MinPlayers
         {

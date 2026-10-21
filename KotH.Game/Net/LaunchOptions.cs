@@ -13,6 +13,7 @@ namespace KotH.Client.Net
     ///   --join ADDRESS[:PORT]                 joins one
     ///   --name NAME                           the name the others see
     ///   --display N                           fullscreen on that monitor, 0 first
+    ///   --bots N, --bot-seed N                bots alone or as host (3 by default), their seed
     /// </summary>
     public sealed class LaunchOptions
     {
@@ -22,6 +23,8 @@ namespace KotH.Client.Net
         public string Name;
         public int MinPlayers = HillMatch.DefaultMinPlayers;
         public int? Display;
+        public int Bots = 3;
+        public int BotSeed = 1;
 
         public bool Networked => Host || JoinAddress != null;
 
@@ -52,6 +55,10 @@ namespace KotH.Client.Net
             if (Number(args, "--min-players") is { } min)
                 o.MinPlayers = Math.Clamp(min, 1, NetWorld.MaxPlayers);
             o.Display = Number(args, "--display");
+            if (Number(args, "--bots") is { } bots)
+                o.Bots = Math.Clamp(bots, 0, NetWorld.MaxPlayers - 1);
+            if (Number(args, "--bot-seed") is { } seed)
+                o.BotSeed = seed;
             o.Name = Text(args, "--name") ?? Environment.UserName;
             return o;
         }

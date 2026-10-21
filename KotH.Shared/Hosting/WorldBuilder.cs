@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using KotH.Shared.Bots;
 using KotH.Shared.Match;
 using KotH.Shared.Physics;
 using Stride.BepuPhysics;
@@ -35,6 +36,14 @@ namespace KotH.Shared.Hosting
         /// <summary>The arena's capture zone, null until it is loaded or if it has none.</summary>
         public CaptureZone Zone { get; private set; }
 
+        /// <summary>The arena's bot settings, null until it is loaded or if it has none.</summary>
+        public BotSettings Bots { get; private set; }
+
+        /// <summary>Every entity of the arena prefab, in prefab order; the bots cut their navmesh from it.</summary>
+        public IReadOnlyList<Entity> Arena => arena;
+
+        readonly List<Entity> arena = new List<Entity>();
+
         /// <summary>
         /// Adds every collider of the arena prefab, in prefab order, and gives
         /// each its place in the stable query order.
@@ -44,7 +53,9 @@ namespace KotH.Shared.Hosting
             foreach (Entity e in content.Load<Prefab>(ArenaUrl).Instantiate())
             {
                 AddStatic(e);
+                arena.Add(e);
                 Zone ??= e.Get<CaptureZone>();
+                Bots ??= e.Get<BotSettings>();
             }
         }
 
@@ -78,6 +89,13 @@ namespace KotH.Shared.Hosting
 
             return root;
         }
+
+        /// <summary>
+        /// A component of a prefab's root as authored, never put into a scene:
+        /// settings to read, such as the motor a bot's navmesh is cut for.
+        /// </summary>
+        public T Template<T>(string prefabUrl) where T : EntityComponent
+            => content.Load<Prefab>(prefabUrl).Instantiate()[0].Get<T>();
 
         /// <summary>A top-level entity by name, GameObject.Find for the arena.</summary>
         public Entity Find(string name)

@@ -38,7 +38,8 @@ Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Pr
   (so schnell wie möglich, gibt µs/Tick, B/Tick und den exakten Endzustand aus).
   Lasttest: `--bodies N --warmup N` mit `BenchBot`s (geseedeter Zufall), Endzustands-Hash
   muss unter JIT und AOT gleich sein; `KOTH_TRACE=BotName`, `KOTH_FALLS=1`.
-  Netz: `--host [--port N] [--min-players N]`, `--join ADRESSE[:PORT]`, `--bot`, `--name`
+  Bots: `--bots N` (`--bot-seed N`) statt des Dummys, gibt den Endzustands-Hash aus.
+  Netz: `--host [--port N] [--min-players N] [--bots N]`, `--join ADRESSE[:PORT]`, `--bot`, `--name`
   (`KotH.Server/NetPlay.cs`), loggt jede 400. Prüfsumme zum Vergleich der Prozesse.
 - Client im Netz: `KotH --host`/`--join ADRESSE[:PORT]`, `--name`, `--port`,
   `--min-players`, `--display N` (Monitor von links). Ohne diese Argumente offline wie immer.
@@ -49,7 +50,7 @@ Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Pr
   listet danach alle Schilder mit Text und Position), `KOTH_SHOT_YAW`/`_PITCH`/`_FOV`/
   `_SECONDS` (Standard 3 s), `KOTH_SHOT_THIRD=1`, `KOTH_SHOT_AT=x,y,z`,
   `KOTH_SHOT_SWING=1` (ein Schlag, meldet Treffer), `KOTH_SHOT_SHAKE=1` (Treffer kurz vor
-  dem Bild, meldet die Kippung; nur mit `--host`, offline fehlt `DamagePercent`),
+  dem Bild, meldet die Kippung),
   `KOTH_SHOT_BLINK=1` (alle Figuren blinzeln, das Bild zeigt geschlossene Lider),
   `KOTH_SHOT_MOVE=x,y[,sprint]` (hält die Bewegungstasten, D und W sind +1),
   `KOTH_SHOT_CROUCH=s` (Ducken ab s Sekunden gehalten; aus dem Sprint ein Gleiten),
@@ -66,7 +67,9 @@ Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Pr
 Es gibt keine Unit-Tests; geprüft wird mit **Proben** gegen die eingefrorene Unity-Referenz.
 
 ```bash
-Bin/Probes/Release/KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|step|determinism|clock|stairrun|rampfoot|crouchedge|knockback|thirdperson|wallknock|capture|netstate|netplay>
+Bin/Probes/Release/KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|step|determinism|clock|stairrun|rampfoot|crouchedge|knockback|thirdperson|wallknock|capture|netstate|netplay|bots>
+Bin/Probes/Release/KotH.Probes bots stats 12          # Bot-Kennzahlen über 12 Seeds (zum Abstimmen)
+KOTH_BOTTRACE=600 Bin/Probes/Release/KotH.Probes bots # Spur der Bots (Absicht, Manöver, Tasten) bis Tick 600
 Bin/Probes/Release/KotH.Probes determinism hashes   # Hashkette + Befehlssatz
 
 .work/tools/stride_runs.sh 3                        # alle Bewegungsproben 3x -> .work/regress/runK
@@ -96,7 +99,7 @@ Fünf Projekte (`KotH.slnx`):
   dazu `MainScene.sdscene` und die sichtbaren Prefabs.
 - **KotH.Linux** – Exe des Clients (Vulkan, AOT); `TrimmerRootAssembly` für Game und
   Shared, weil Skripte nur über die Asset-Datenbank erreichbar sind.
-- **KotH.Server** – Konsole: Arena + Dummy über `HeadlessWorld`, 40 Hz.
+- **KotH.Server** – Konsole: Arena + Dummy (oder `--bots N`) über `HeadlessWorld`, 40 Hz.
 - **KotH.Probes** – alle Proben, Harness in `Harness/` (`Ref` spiegelt Unity-Koordinaten).
 
 ### Simulation
@@ -115,7 +118,7 @@ Fünf Projekte (`KotH.slnx`):
   Desync den Zustand; `PeerSession` (auch der Host selbst über `LocalTransport`) sagt
   fremde Eingaben vorher und rollt zurück (Ring 128, höchstens 15 Ticks voraus).
   `INetTransport` mit `MemoryNetwork` für Proben; Peers legen Körper in NetId-Reihenfolge
-  an (Dummys 1–3, Spieler ab 4), sonst weicht die Abfrage-Ordnung ab. Mitspielen nur mit
+  an (Spieler ab 4; Dummys 1–3 gibt es nur noch in Proben), sonst weicht die Abfrage-Ordnung ab. Mitspielen nur mit
   gleicher `BuildId` (MVID + Befehlssatz).
 - Über UDP: `LiteNetTransport` (LiteNetLib 2.1.4). Unzuverlässige Datagramme höchstens
   `NetProtocol.MaxDatagram` (1200 B, das Speichernetz wirft darüber); der Host packt
@@ -190,6 +193,36 @@ Strides UI-Tiefenversatz unter Vulkan kippt. Zahlen im deutschen Format über
 Die Kamera wackelt bei jedem eingesteckten Treffer gleich stark (First und Third
 Person, `PlayerCamera`, „Wackeln bei Treffer“). Auslöser ist `DamagePercent.LastHitTick`,
 kein Zustand: ein Rollback behält ihn, im Netz kommt der Treffer mit der Bestätigung.
+
+### Bots
+
+Die Dummys sind ersetzt (Lucas Entscheidung, 21.10.2026): Bots (`KotH.Shared/Bots`) treten wie
+Spieler bei (NetId ab 4, Slot, Punkte, zählen für die Mindestspieler), offline und beim Host
+`--bots N` (Standard 3), `--bot-seed N`. **Nur der Host rechnet sie, aber deterministisch:**
+`BotDirector` berechnet die Eingabe für Tick t genau einmal und in Tick-Reihenfolge, nur aus dem
+endgültigen Zustand bei t − `ReactionTicks` (8 = 0,2 s, zugleich Reaktionszeit), dem Navmesh und
+dem xorshift des Bots; kein Bot-Zustand im Snapshot. Quellen: `PeerSession.TryFinalState` (Host),
+`LocalFinalStates` (offline, headless, `BotBody`). Der Host bestätigt Bot-Eingaben in `Finalise`
+(`HostSession.AddBot`, wartet lieber, als zu raten), sein eigener Peer kennt sie vorab
+(`PeerSession.KnownInputs`, nie ein Rollback ihretwegen); Gäste sagen Bots wie Spieler vorher.
+Der Host schickt seinem eigenen Peer alle neuen Ticks auf einmal (sonst wartete er nach einer
+Ladepause mit Bots auf Nachsendungen). Probe `bots`: Navmesh-Wege, Spiel mit Kennzahlen, Hashkette
+zweimal gleich, Host unabhängig vom Bildtakt, Gast ohne Desync, Ladepause; JIT und AOT gleich.
+
+- `BotNavigation`: Recast/Detour (DotRecast 2025.2.1) aus den Arena-Statics (Boxen, Dreiecke),
+  Maße aus dem `PlayerMotor` des Spieler-Prefabs; Off-Mesh-Links an offenen Kanten (Fallen, Sprung
+  bis 1,2 m, Doppelsprung bis 2,2 m, Lücke bis 3 m), per Raycast gegen die Arena geprüft.
+- `BotBrain`: Utility AI (Zone einnehmen, halten, angreifen, Rückstoß, Idle) mit Beharrlichkeit
+  und gewichtetem Zufall unter fast gleich guten Absichten; Kämpfe zählen vor allem nahe der Zone;
+  hält 2,3 m Abstand, auf der Seite weg von der nächsten Kante. Steuert wie ein Mensch: WASD
+  digital, Blick weich nachgeführt, Sprung mit gehaltener Taste, Doppelsprung als zwei Drücke,
+  Gleiten getippt oder gelandet mit gehaltener Ducktaste.
+- `ManeuverWfc`: 1D-Wave-Function-Collapse über Manöver-Slots (8 Ticks): Nachbarregeln aus dem
+  Motor (Gleiten nach Sprint oder Sprung, Doppelsprung nach Sprung, Abstände für Schlag und
+  Gleiten), Nachbarn gleicher Art ziehen stärker; im Angriff fest: Schlag, wenn das Ziel in
+  Reichweite kommt, meist mit Gleiten davor.
+- In der Bot-Logik nur Zustände aus dem Snapshot lesen, nie lebende Komponenten (außer
+  Einstellungen); Trigonometrie über `UMath`/`Math` in double, keine `System.Random`.
 
 ### Figur und Animation
 
