@@ -30,11 +30,12 @@ namespace KotH.Client.Player
             new Vector3(0.18f, 0.18f, -0.23f), new Vector3(-0.12f, -0.20f, -0.40f),
             new Vector3(0.8f, -0.3f, 0.5f));
 
-        // The first-person arms hang ahead of the eye: from the upper right
-        // of the view across to its lower left.
+        // The first-person arms: the shoulder sits 0.5 m under the eye and
+        // 0.24 m right of it, the arm reaches 0.48 m. From the right of the
+        // view, cane up, across to its lower middle.
         public static readonly SwingPath Arms = new SwingPath(
-            new Vector3(0.16f, 0.42f, -0.22f), new Vector3(-0.38f, 0.02f, -0.30f),
-            new Vector3(0.11f, 0.42f, -0.40f), new Vector3(-0.23f, 0.12f, -0.42f),
+            new Vector3(-0.04f, 0.38f, -0.30f), new Vector3(-0.33f, 0.12f, -0.32f),
+            new Vector3(-0.10f, 0.38f, -0.40f), new Vector3(-0.21f, 0.18f, -0.42f),
             new Vector3(0.8f, -0.5f, 0.3f));
     }
 
@@ -65,7 +66,8 @@ namespace KotH.Client.Player
         float upperLength, lowerLength;
         Vector3 hingeLocal;
 
-        int seen = int.MinValue;
+        int seen;
+        bool watching;
         float age = float.MaxValue;
         bool down;
         Vector3 from, high, bulgeHigh, bulgeLow, low, pole;
@@ -90,11 +92,12 @@ namespace KotH.Client.Player
         {
             if (skeleton == null || !Bind(skeleton))
                 return;
-            if (melee != null && melee.LastSwingTick != seen)
+            if (melee != null && (!watching || melee.LastSwingTick != seen))
             {
-                if (seen != int.MinValue && melee.LastSwingTick > seen)
+                if (watching && melee.LastSwingTick > seen)
                     Start(skeleton, netId, melee.LastSwingTick, settings, path);
                 seen = melee.LastSwingTick;
+                watching = true;
             }
             Step(settings, dt);
             Pose(skeleton);

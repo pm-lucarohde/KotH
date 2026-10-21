@@ -15,6 +15,8 @@ kommt auf seinen Sprung obendrauf. Wer getroffen wird, nimmt Oberkörper und Kop
 kurz weg vom Schlag, in acht Richtungen (nur Darstellung). Jede Figur trägt in der
 rechten Hand einen Bambusstab, auch an den Armen in First Person; das Blatt daran
 weht im Fahrtwind wie die Blätter am Rock (nur Darstellung, der Schlag bleibt gleich).
+Jeder Schlag schwingt den Stab: meist von oben rechts nach unten links, jeder vierte
+von unten links nach oben rechts, jedes Mal etwas anders (nur Darstellung).
 
 **Spielregel.** Oben auf dem Plateau, wo die Rampen hinaufführen, liegt die
 Capture-Zone, leuchtend umrandet. Wer allein in ihr steht, nimmt sie in 3 s ein und
@@ -161,6 +163,7 @@ Mit `KOTH_SHOT=bild.png` zeigt der Client die F3-Anzeige, speichert nach
 `KOTH_SHOT_SHAKE=1` lässt die eigene Figur kurz vor dem Bild getroffen werden und
 meldet, wie weit die Kamera wackelt.
 `KOTH_SHOT_BLINK=1` lässt alle Figuren so blinzeln, dass das Bild die Lider zeigt.
+`KOTH_SHOT_STRIKE=s[,s…]` lässt alle Figuren zu diesen Zeiten mit dem Stab schlagen (nur Darstellung).
 `KOTH_SHOT_MOVE=x,y[,sprint]` hält die Bewegungstasten (D und W sind +1), etwa
 `KOTH_SHOT_MOVE=0,1,sprint` mit `KOTH_SHOT_THIRD=1` für ein Bild im Rennen.
 `KOTH_SHOT_CROUCH=s` drückt ab s Sekunden Ducken und hält es, etwa mit
