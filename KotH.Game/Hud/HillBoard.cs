@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using KotH.Shared.Combat;
 using KotH.Shared.Match;
 using KotH.Shared.Simulation;
 using Stride.Core;
@@ -12,7 +13,8 @@ namespace KotH.Client.Hud
     /// <summary>
     /// The round on screen: own points and the time left at the top, what
     /// the zone is doing below, the warm-up as a bar, the best four at the
-    /// top right and the winner in the middle. Before a networked round the
+    /// top right, the own damage percent large at the bottom and the winner
+    /// in the middle. Before a networked round the
     /// top line waits for players or counts down instead. Presentation
     /// only: it reads the match and the bodies and never writes to either.
     /// </summary>
@@ -58,6 +60,12 @@ namespace KotH.Client.Hud
         string score = "", status = "", banner = "", countdown = "";
         Color statusColor;
         float warmup;
+
+        // The own damage percent, its text rebuilt only when it changes.
+        SimulationBody damageOf;
+        DamagePercent damage;
+        float shownDamage = float.NaN;
+        string damageText = "";
 
         public override void Start()
         {
@@ -106,6 +114,7 @@ namespace KotH.Client.Hud
             }
 
             DrawRanking(batch, screen);
+            DrawDamage(batch, screen);
 
             string notice = Notice?.Invoke();
             if (notice != null)
@@ -203,6 +212,27 @@ namespace KotH.Client.Hud
                 batch.DrawString(Font, rankLines[i], Font.Size, at, own ? OwnColor : Color.White);
                 y += size.Y;
             }
+        }
+
+        /// <summary>The own damage percent, large at the bottom centre, as over the heads of the others.</summary>
+        void DrawDamage(SpriteBatch batch, Vector2 screen)
+        {
+            if (Self != damageOf)
+            {
+                damageOf = Self;
+                damage = Self?.Entity.Get<DamagePercent>();
+                shownDamage = float.NaN;
+            }
+            if (damage == null)
+                return;
+            if (damage.Percent != shownDamage)
+            {
+                shownDamage = damage.Percent;
+                damageText = shownDamage.ToString("F1", HudRenderer.Numbers) + " %";
+            }
+            SpriteFont big = BannerFont ?? Font;
+            float height = big.MeasureString(damageText, big.Size).Y;
+            Centered(batch, big, damageText, big.Size, screen.X, screen.Y - Margin - height, Color.White);
         }
 
         /// <summary>Draws one line centred on a band; returns the y below it.</summary>
