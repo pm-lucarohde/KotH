@@ -73,7 +73,7 @@ Hierarchy:
                                             DisplayParticleRotation: false
                                             DisplayParticleScale: false
                                             DisplayParticleScaleUniform: true
-                                            RandomSize: {X: 0.06, Y: 0.13}
+                                            RandomSize: {X: 0.04, Y: 0.09}
                                         146663b8305f4e11b4acd381abf414df: !InitialPositionSeed
                                             InheritPosition: true
                                             Position: {X: 0.0, Y: 0.0, Z: 0.0}
@@ -87,8 +87,8 @@ Hierarchy:
                                             DisplayParticleRotation: true
                                             DisplayParticleScale: false
                                             DisplayParticleScaleUniform: true
-                                            PositionMin: {X: -0.15, Y: 0.0, Z: -0.15}
-                                            PositionMax: {X: 0.15, Y: 0.08, Z: 0.15}
+                                            PositionMin: {X: -0.1, Y: 0.0, Z: -0.1}
+                                            PositionMax: {X: 0.1, Y: 0.08, Z: 0.1}
                                             Interpolate: false
                                         2b6e399d783e4e119d8af372ca3936b1: !InitialVelocitySeed
                                             InheritPosition: true
@@ -103,8 +103,8 @@ Hierarchy:
                                             DisplayParticleRotation: true
                                             DisplayParticleScale: false
                                             DisplayParticleScaleUniform: true
-                                            VelocityMin: {X: -1.2, Y: -1.6, Z: -1.2}
-                                            VelocityMax: {X: 1.2, Y: -0.3, Z: 1.2}
+                                            VelocityMin: {X: -0.5, Y: -0.8, Z: -0.5}
+                                            VelocityMax: {X: 0.5, Y: -0.15, Z: 0.5}
                                     Updaters:
                                         6c6d840450874443b7980cbd04bb5625: !UpdaterGravity
                                             InheritPosition: true
@@ -118,7 +118,7 @@ Hierarchy:
                                             DisplayParticleRotation: false
                                             DisplayParticleScale: false
                                             DisplayParticleScaleUniform: false
-                                            GravitationalAcceleration: {X: 0.0, Y: -0.8, Z: 0.0}
+                                            GravitationalAcceleration: {X: 0.0, Y: -0.4, Z: 0.0}
                                         7b12d6fed82542bf97eb95ac57e1db09: !UpdaterColorOverTime
                                             InheritPosition: true
                                             Position: {X: 0.0, Y: 0.0, Z: 0.0}
