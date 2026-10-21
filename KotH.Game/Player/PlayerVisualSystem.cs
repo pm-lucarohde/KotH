@@ -99,7 +99,7 @@ namespace KotH.Client.Player
         [Display("Kopfneigung höchstens", "Animation")] public float HeadMaxDegrees = 40f;
 
         /// <userdoc>Im Stehen dreht nur der Kopf mit dem Blick, bis zu so vielen Grad zur Seite; darüber hinaus wird der Körper mitgezogen.</userdoc>
-        [Display("Kopfdrehung höchstens", "Animation")] public float HeadTurnDegrees = 45f;
+        [Display("Kopfdrehung höchstens", "Animation")] public float HeadTurnDegrees = 30f;
 
         /// <userdoc>In Bewegung dreht sich der Körper in den Blick nach, in dieser Zeit (Sekunden) etwa zu zwei Dritteln.</userdoc>
         [Display("Körper folgt Blick", "Animation")] public float BodyFollowSeconds = 0.15f;
