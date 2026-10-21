@@ -105,10 +105,10 @@ namespace KotH.Client.Player
         /// <userdoc>Stärkste Neigung des Kopfes in Grad.</userdoc>
         [Display("Kopfneigung höchstens", "Animation")] public float HeadMaxDegrees = 40f;
 
-        /// <userdoc>So weit kippt der Oberkörper nach hinten, wenn die Figur getroffen wird, in Grad.</userdoc>
+        /// <userdoc>So weit kippt der Oberkörper weg vom Schlag, wenn die Figur getroffen wird, in Grad. Die Richtung folgt dem Schlag in acht Stufen: von vorn nach hinten, von hinten nach vorn, von der Seite zur anderen Seite und schräg dazwischen.</userdoc>
         [Display("Oberkörper", "Treffer")] public float HitLeanDegrees = 12f;
 
-        /// <userdoc>So weit kippt der Kopf beim Treffer zusätzlich nach hinten, in Grad.</userdoc>
+        /// <userdoc>So weit kippt der Kopf beim Treffer zusätzlich weg vom Schlag, in Grad.</userdoc>
         [Display("Kopf", "Treffer")] public float HitHeadDegrees = 10f;
 
         /// <userdoc>So schnell ist der Treffer ganz ausgeschlagen, in Sekunden.</userdoc>
@@ -182,7 +182,9 @@ namespace KotH.Client.Player
             public int Look = -2, Mouth = -2, Recoil = -2;
             public DamagePercent Damage;
             public int SeenHit = int.MinValue;
-            public float HitAge = float.MaxValue, HitHead;
+            public float HitAge = float.MaxValue;
+            public Vector3 HitAxis = Vector3.UnitX;
+            public Quaternion HitHead = Quaternion.Identity;
             public int[] Leaves;
             public Vector2[] LeafBend, LeafRate;
             public float LeafClock, Yaw, Spin, MouthClock;
@@ -232,6 +234,23 @@ namespace KotH.Client.Player
         {
             arms = null;
             armsMotor = null;
+        }
+
+        /// <summary>
+        /// Every figure takes a hit now, for KOTH_SHOT_HIT: from fromDegrees
+        /// round its shown body, 0 the front, 90 the right, 180 behind.
+        /// </summary>
+        public void HitAll(float fromDegrees)
+        {
+            float a = MathUtil.DegreesToRadians(fromDegrees);
+            foreach (Figure f in figures)
+                if (f.Body?.Entity.Get<DamagePercent>() is { } damage)
+                {
+                    // The push points from the attacker through the body.
+                    var away = new Vector3(-MathF.Sin(a), 0f, MathF.Cos(a));
+                    damage.LastHitAway = Vector3.Transform(away, Quaternion.RotationY(f.BodyYaw));
+                    damage.LastHitTick++;
+                }
         }
 
         /// <summary>Every figure blinks now, for KOTH_SHOT_BLINK.</summary>
@@ -469,9 +488,10 @@ namespace KotH.Client.Player
         }
 
         /// <summary>
-        /// A hit tips the upper body back on the Recoil bone and the head a
-        /// little further on the neck: out fast, back slowly. Started by
-        /// DamagePercent.LastHitTick, so a rollback never starts it twice.
+        /// A hit tips the upper body away from the attacker on the Recoil bone
+        /// and the head a little further on the neck: out fast, back slowly.
+        /// Started by DamagePercent.LastHitTick, so a rollback never starts it
+        /// twice; the direction is the one of LastHitAway, in eight steps.
         /// </summary>
         void Hit(Figure f, float dt)
         {
@@ -491,7 +511,10 @@ namespace KotH.Client.Player
             if (hit != f.SeenHit)
             {
                 if (f.SeenHit != int.MinValue && hit > f.SeenHit)
+                {
                     f.HitAge = 0f;
+                    f.HitAxis = RecoilAxis(f, f.Damage.LastHitAway);
+                }
                 f.SeenHit = hit;
             }
             else if (f.HitAge < float.MaxValue)
@@ -500,11 +523,24 @@ namespace KotH.Client.Player
             float rise = MathF.Max(1e-3f, HitRiseSeconds);
             float amount = f.HitAge < rise ? Smooth(f.HitAge / rise)
                          : 1f - Smooth(Math.Clamp((f.HitAge - rise) / MathF.Max(1e-3f, HitSettleSeconds), 0f, 1f));
-            f.HitHead = HitHeadDegrees * amount;
-
-            // Recoil points up like the neck: positive about its X tips it back.
+            f.HitHead = Quaternion.RotationAxis(f.HitAxis, MathUtil.DegreesToRadians(HitHeadDegrees * amount));
             skeleton.NodeTransformations[f.Recoil].Transform.Rotation =
-                Quaternion.RotationX(MathUtil.DegreesToRadians(HitLeanDegrees * amount));
+                Quaternion.RotationAxis(f.HitAxis, MathUtil.DegreesToRadians(HitLeanDegrees * amount));
+        }
+
+        /// <summary>
+        /// The axis the recoil turns about: the push in the shown body's frame,
+        /// snapped to one of eight directions. Recoil and neck point up with X
+        /// to the figure's right, so their frames are the body's: +Z is back.
+        /// </summary>
+        static Vector3 RecoilAxis(Figure f, Vector3 away)
+        {
+            Vector3 local = Vector3.Transform(away, Quaternion.Invert(Quaternion.RotationY(f.BodyYaw)));
+            // Unknown counts as from the front: 0 tips back, pi/2 to the right.
+            float angle = local.X * local.X + local.Z * local.Z > 1e-8f ? MathF.Atan2(local.X, local.Z) : 0f;
+            angle = MathF.Round(angle / MathUtil.PiOverFour) * MathUtil.PiOverFour;
+            // Up crossed with the tip (sin, 0, cos): turning about it moves the top that way.
+            return new Vector3(MathF.Cos(angle), 0f, -MathF.Sin(angle));
         }
 
         static float Smooth(float x) => x * x * (3f - 2f * x);
@@ -520,11 +556,12 @@ namespace KotH.Client.Player
             if (f.Look < 0)
                 return;
             float pitch = f.Body.PreviousLookPitch + (f.Body.LookPitch - f.Body.PreviousLookPitch) * alpha;
-            float tilt = Math.Clamp(pitch * HeadFollow, -HeadMaxDegrees, HeadMaxDegrees) + f.HitHead;
+            float tilt = Math.Clamp(pitch * HeadFollow, -HeadMaxDegrees, HeadMaxDegrees);
             // The neck points up, its X is the figure's right: positive tips the head
-            // back. The tilt comes first, then the turn about the neck.
+            // back. The tilt comes first, then the turn about the neck, then the
+            // recoil of a hit, in the body's frame.
             skeleton.NodeTransformations[f.Look].Transform.Rotation =
-                Quaternion.RotationYawPitchRoll(f.HeadYaw, MathUtil.DegreesToRadians(tilt), 0f);
+                Quaternion.RotationYawPitchRoll(f.HeadYaw, MathUtil.DegreesToRadians(tilt), 0f) * f.HitHead;
         }
 
         /// <summary>Sets the clip weights.</summary>

@@ -139,6 +139,7 @@ namespace KotH.Shared.Combat
             HitCount++;
             LastHitDistance = hit.Distance;
             target.LastHitTick = Entity.Get<SimulationBody>()?.Simulation?.CurrentTick ?? 0;
+            target.LastHitAway = default;
 
             // The percent before this hit decides: a fresh body is not moved.
             float before = target.Percent;
@@ -154,6 +155,7 @@ namespace KotH.Shared.Combat
             away.Y = 0f;
             if (UMath.SqrMagnitude(away) < 1e-8f)
                 away = new Vector3(aim.X, 0f, aim.Z);
+            target.LastHitAway = away;
 
             // Both speeds along the line count, the same share of each from
             // CarryFromPercent on: the attacker's towards the victim adds, the

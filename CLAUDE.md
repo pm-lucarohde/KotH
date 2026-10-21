@@ -51,6 +51,8 @@ Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Pr
   `_SECONDS` (Standard 3 s), `KOTH_SHOT_THIRD=1`, `KOTH_SHOT_AT=x,y,z`,
   `KOTH_SHOT_SWING=1` (ein Schlag, meldet Treffer), `KOTH_SHOT_SHAKE=1` (Treffer kurz vor
   dem Bild, meldet die Kippung),
+  `KOTH_SHOT_HIT=grad` (alle Figuren 0,1 s vor dem Bild getroffen, aus grad um den Körper: 0 vorn,
+  90 rechts, 180 hinten; Figuren stehen still in einer Lobby: `--host --min-players 8`),
   `KOTH_SHOT_BLINK=1` (alle Figuren blinzeln, das Bild zeigt geschlossene Lider),
   `KOTH_SHOT_MOVE=x,y[,sprint]` (hält die Bewegungstasten, D und W sind +1),
   `KOTH_SHOT_CROUCH=s` (Ducken ab s Sekunden gehalten; aus dem Sprint ein Gleiten),
@@ -224,6 +226,8 @@ zweimal gleich, Host unabhängig vom Bildtakt, Gast ohne Desync, Ladepause; JIT 
   Motor (Gleiten nach Sprint oder Sprung, Doppelsprung nach Sprung, Abstände für Schlag und
   Gleiten), Nachbarn gleicher Art ziehen stärker; im Angriff fest: Schlag, wenn das Ziel in
   Reichweite kommt, meist mit Gleiten davor.
+- Bots schlagen nur, solange die Runde läuft (`Running`): in Lobby, Countdown und nach dem Sieg
+  nicht (Lucas Wunsch; Probe `bots`, Fall „Lobby“).
 - Bots nehmen Slots in der Reihenfolge `NetWorld.BotSlots` (Lücken in beiden Reihen, Lucas
   Wunsch), Spieler weiter den ersten freien.
 - In der Bot-Logik nur Zustände aus dem Snapshot lesen, nie lebende Komponenten (außer
@@ -258,9 +262,10 @@ Drehung, „Blätter“ in `PlayerVisualSystem`), die Lider
 `SimulationBody.LookPitch`, dem Nickwinkel der Eingabe, kein Zustand; im Stehen dreht er auch bis
 40° zur Seite, erst darüber zieht er den Körper mit, in Bewegung folgt der Körper dem Blick,
 „Kopfdrehung höchstens“, „Körper folgt Blick“; der Motor schaut weiter in Blickrichtung) sowie
-`Recoil` zwischen `Spine` und `Chest` (Treffer: Oberkörper 12° und Kopf 10° zusätzlich nach hinten,
-0,06 s hin, 0,4 s zurück, „Treffer“ in `PlayerVisualSystem`; Auslöser `DamagePercent.LastHitTick`
-wie beim Wackeln der Kamera). Die Clips dürfen
+`Recoil` zwischen `Spine` und `Chest` (Treffer: Oberkörper 12° und Kopf 10° zusätzlich weg vom
+Schlag, in 8 Richtungen relativ zum gezeigten Körper, Lucas Wunsch: von vorn nach hinten wie zuerst,
+von hinten nach vorn, seitlich und schräg; 0,06 s hin, 0,4 s zurück, „Treffer“ in `PlayerVisualSystem`;
+Auslöser `DamagePercent.LastHitTick`, Richtung `LastHitAway`, beides kein Zustand). Die Clips dürfen
 deshalb **keine Kanäle für Lider, Blätter, `Mouth`, `Look` und `Recoil`** haben. Erzeugt werden Modell, Clips,
 Lid-Textur und die Knotenliste des Skeletts mit `.work/rig/build.sh` (Blender headless,
 `rig.py`, entfernt diese Kanäle, kopiert nach `Resources/Models`). In Third Person dreht

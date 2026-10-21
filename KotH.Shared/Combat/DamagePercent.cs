@@ -1,5 +1,6 @@
 using KotH.Shared.Mathematics;
 using Stride.Core;
+using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Engine.Design;
 
@@ -29,6 +30,13 @@ namespace KotH.Shared.Combat
         /// in a rollback keeps its tick, so the shake does not start twice.
         /// </summary>
         [DataMemberIgnore] public int LastHitTick { get; set; } = -1;
+
+        /// <summary>
+        /// Where the last hit pushed, flat, from the attacker towards this
+        /// body; zero when unknown. For the figure's recoil only, not part
+        /// of the state, like LastHitTick.
+        /// </summary>
+        [DataMemberIgnore] public Vector3 LastHitAway { get; set; }
 
         /// <summary>
         /// Charges the body up. Returns whether the value actually moved -

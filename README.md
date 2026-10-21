@@ -12,7 +12,7 @@ beider auf der Stoßlinie: Wer heranläuft, stößt stärker; wer als Getroffene
 heranläuft, fliegt weniger weit. Bis 20 % steigt der Anteil von der Hälfte auf
 das volle Tempo. Wer gerade springt oder fällt, behält das: Der Stoß nach oben
 kommt auf seinen Sprung obendrauf. Wer getroffen wird, nimmt Oberkörper und Kopf
-kurz nach hinten (nur Darstellung).
+kurz weg vom Schlag, in acht Richtungen (nur Darstellung).
 
 **Spielregel.** Oben auf dem Plateau, wo die Rampen hinaufführen, liegt die
 Capture-Zone, leuchtend umrandet. Wer allein in ihr steht, nimmt sie in 3 s ein und
@@ -29,7 +29,7 @@ sofort wieder an seinem Startplatz; Schadensprozent und Punkte bleiben.
 3, `--bots N`, `--bot-seed N`). Sie wollen ab Rundenbeginn auf den Gipfel, finden den
 Weg über ein Navmesh (Rampen, Treppen, Sprünge und Doppelsprünge an Kanten), sprinten,
 gleiten in Angriffe hinein und schlagen jeden, auch einander; sie zählen als Spieler.
-Ein Bot sieht die Welt 0,2 s verzögert, wie ein Mensch mit Reaktionszeit. Stärke,
+In der Lobby und im Countdown schlagen Bots nicht. Ein Bot sieht die Welt 0,2 s verzögert, wie ein Mensch mit Reaktionszeit. Stärke,
 Zielfehler und Navmesh stehen an der Komponente `BotSettings` (Entity „Bots“ im
 Arena-Prefab). Die Bots starten mit Lücken in beiden Reihen (`NetWorld.BotSlots`),
 nicht dicht nebeneinander.

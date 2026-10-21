@@ -73,6 +73,8 @@ namespace KotH.Probes.Probes
             Check(first.Inputs != other.Inputs, "anderer Seed, andere Eingaben");
             Log($"[bots] Hashkette Eingaben {first.Inputs:X16}, Endzustand {first.End:X16}");
 
+            Lobby();
+
             // On a host: the same inputs however the frames fall, and a guest stays in step.
             ulong steady = Hosted(16.7, 1, guest: false, out _, out _);
             ulong ragged = Hosted(7.3, 2, guest: false, out _, out _);
@@ -254,6 +256,40 @@ namespace KotH.Probes.Probes
                 Inputs = chain, End = end, Jumps = jumps, Doubles = doubles, Slides = slides,
                 Hits = allHits, Swings = allSwings, Points = allScore, ZoneTicks = firstInZone,
             };
+        }
+
+        /// <summary>
+        /// A lobby waiting for more players, 30 s: the bots stand next to a
+        /// still body at the spawn and must never swing at it.
+        /// </summary>
+        void Lobby()
+        {
+            using var world = new HeadlessWorld();
+            world.LoadArena();
+            HillMatch match = world.StartMatch();
+            match.MinPlayers = 8;
+            var states = new LocalFinalStates(world.Simulation);
+            BotDirector director = BotDirector.Create(world.Builder, world.Simulation, states, Seed);
+
+            Entity marker = NetWorld.SlotMarker(world.Builder, 1);
+            Entity stillEntity = world.SpawnBody(HeadlessWorld.PlayerBodyUrl, marker.Transform.Position, marker.Transform.Rotation,
+                                                 new ScriptedBody { NetId = NetWorld.FirstPlayerId }, new DamagePercent());
+            var fists = new List<MeleeAttack>();
+            for (int i = 0; i < 3; i++)
+            {
+                marker = NetWorld.SlotMarker(world.Builder, NetWorld.BotSlots[i]);
+                Entity e = world.SpawnBody(HeadlessWorld.PlayerBodyUrl, marker.Transform.Position, marker.Transform.Rotation,
+                                           new BotBody(director, states, NetWorld.FirstPlayerId + 1 + i), new DamagePercent());
+                fists.Add(e.Get<MeleeAttack>());
+            }
+
+            int swings = 0;
+            for (int t = 0; t < 1200; t++)
+                world.Simulation.Tick();
+            foreach (MeleeAttack f in fists)
+                swings += f.SwingCount;
+            Log($"[bots] Lobby 30 s: Phase {match.State.Phase}, {swings} Schläge, Ziel {stillEntity.Get<DamagePercent>().Percent:F1} %");
+            Check(match.State.Phase == MatchPhase.Waiting && swings == 0, "in der Lobby schlägt kein Bot");
         }
 
         /// <summary>

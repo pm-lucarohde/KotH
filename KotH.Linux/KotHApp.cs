@@ -35,6 +35,7 @@ game.Run();
 /// the player's body there once (Stride metres), KOTH_SHOT_SWING=1 swings
 /// once a second before the shot and reports the hit, KOTH_SHOT_SHAKE=1 takes a hit
 /// just before it and reports how far the camera shake tilts the view,
+/// KOTH_SHOT_HIT=deg hits every figure just before it, from deg round its body (0 front, 90 right),
 /// KOTH_SHOT_BLINK=1 has every figure blink so the shot shows shut lids,
 /// KOTH_SHOT_MOVE=x,y[,sprint] holds the move keys (D and W are +1),
 /// KOTH_SHOT_CROUCH=s presses crouch at s seconds and holds it (out of a sprint: a slide),
@@ -60,6 +61,7 @@ sealed class KotHGame : Game
     bool shotSwing = Environment.GetEnvironmentVariable("KOTH_SHOT_SWING") == "1";
     bool shotShake = Environment.GetEnvironmentVariable("KOTH_SHOT_SHAKE") == "1";
     bool shotBlink = Environment.GetEnvironmentVariable("KOTH_SHOT_BLINK") == "1";
+    double? shotHit = Number("KOTH_SHOT_HIT");
     string shotMove = Environment.GetEnvironmentVariable("KOTH_SHOT_MOVE");
     double? shotCrouch = Number("KOTH_SHOT_CROUCH");
     readonly double[] shotTurn = Environment.GetEnvironmentVariable("KOTH_SHOT_TURN")?.Split(',')
@@ -278,6 +280,15 @@ sealed class KotHGame : Game
                 hit.LastHitTick++;
                 shotShake = false;
             }
+        }
+
+        // Every figure hit just before the shot, from one side; a frame early
+        // enough even while the start still runs at 10 fps.
+        if (shotHit.HasValue && gameTime.Total.TotalSeconds >= shotSeconds - 0.1 &&
+            Find<PlayerVisualSystem>() is { } struck)
+        {
+            struck.HitAll((float)shotHit.Value);
+            shotHit = null;
         }
 
         // Shut at the shot: a third of the blink closes the lid.

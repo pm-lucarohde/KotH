@@ -201,7 +201,9 @@ namespace KotH.Shared.Bots
                 BodyState s = view.StateAt(i);
                 Vector3 there = Ahead(s.Motor.Position, s.Motor.Velocity, Reaction * Dt);
                 float d = UMath.Magnitude(UMath.Sub(there, at));
-                if (d > settings.EngageRange || phase == MatchPhase.Over)
+                // Only a running round is fought over: no hits in the lobby,
+                // the countdown or after a win.
+                if (d > settings.EngageRange || !live)
                     continue;
 
                 // Fights are about the hill: far from it they are worth little.
@@ -216,8 +218,6 @@ namespace KotH.Shared.Bots
                     score *= 0.4f;
                 if (inZone && !theyHold && d > 4f)
                     score *= 0.5f;
-                if (!live)
-                    score *= 0.8f;
                 Offer(BotIntent.Attack, other.NetId, score);
             }
 
@@ -492,8 +492,10 @@ namespace KotH.Shared.Bots
             if (u < jumpHeldUntil)
                 input.JumpHeld = true;
 
-            // A swing only on a strike slot and only with the target in reach.
-            if (m == Maneuver.Strike && ti >= 0 && targetDistance < fists.Range - 0.2f &&
+            // A swing only on a strike slot, with the target in reach, while the
+            // round runs (a plan from before the lobby may still hold one).
+            bool live = match == null || view.Match.Phase == MatchPhase.Running;
+            if (m == Maneuver.Strike && live && ti >= 0 && targetDistance < fists.Range - 0.2f &&
                 u >= lastStrike + fists.CooldownTicks)
             {
                 input.Yaw = yaw + BotRandom.Signed(ref rng, settings.AimError);
