@@ -92,6 +92,9 @@ namespace KotH.Client.Player
         /// <userdoc>Wie sehr Drehen die Blätter mitnimmt: so viele Meter vom Körper weg wirkt die Drehung wie Fahrtwind.</userdoc>
         [Display("Drehwind", "Blätter")] public float TurnRadius = 1f;
 
+        /// <userdoc>Tempo der Arme in First Person im Verhältnis zur Figur: 0,5 = halb so viele Armschwünge wie Schritte, halb so schnelles Atmen.</userdoc>
+        [Display("Tempo Arme", "First-Person-Arme")] public float ArmsPace = 0.5f;
+
         /// <userdoc>Partikeleffekt, der beim Doppelsprung an den Füßen der Figur startet.</userdoc>
         [Display("Sporen beim Doppelsprung", "Effekte")] public Prefab SporeBurst;
 
@@ -149,6 +152,7 @@ namespace KotH.Client.Player
         PlayerMotor armsMotor;
         PlayingAnimation[] armPlays;
         readonly float[] armWeights = new float[ArmClips.Length];
+        float armPhase, lastStepPhase;
         readonly Random random = new Random();
 
         sealed class Figure
@@ -569,7 +573,7 @@ namespace KotH.Client.Player
 
         /// <summary>
         /// The first-person arms: still or in the air the idle breath, on the
-        /// move walking and running on the figure's own step phase.
+        /// move walking and running in step with the figure, ArmsPace times as fast.
         /// </summary>
         void Arms(Figure f, float moving, float run, float follow)
         {
@@ -582,6 +586,9 @@ namespace KotH.Client.Player
                     if (arms.Animations.ContainsKey(ArmClips[i]))
                         armPlays[i] = arms.Add(arms.Animations[ArmClips[i]], 0, AnimationBlendOperation.LinearBlend, 1f, 0f, AnimationRepeatMode.LoopInfinite);
             }
+            float step = f.Phase - lastStepPhase;
+            lastStepPhase = f.Phase;
+            armPhase = (armPhase + ArmsPace * (step < 0f ? step + 1f : step)) % 1f;
             Span<float> target = stackalloc float[] { 1f - moving, moving * (1f - run), moving * run };
             for (int i = 0; i < ArmClips.Length; i++)
             {
@@ -592,8 +599,10 @@ namespace KotH.Client.Player
                 if (i > 0)
                 {
                     play.TimeFactor = 0f;
-                    play.CurrentTime = TimeSpan.FromTicks((long)(f.Phase * play.Clip.Duration.Ticks));
+                    play.CurrentTime = TimeSpan.FromTicks((long)(armPhase * play.Clip.Duration.Ticks));
                 }
+                else
+                    play.TimeFactor = ArmsPace;
             }
         }
 

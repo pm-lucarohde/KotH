@@ -235,7 +235,8 @@ Skelett; Clips `MushroomArms{Idle,Walk,Run}` aus `.work/rig/fp_arms.py`, Teil vo
 `GameRoot` hängt sie 0,78 m unter die Kamera (Auge des Modells), Render-Gruppe 2, nur in First
 Person sichtbar (`PlayerCamera`), kein Schatten. `PlayerVisualSystem` spielt sie auf der
 Schrittphase der eigenen Figur; Gehen und Rennen übernehmen den Armschwung der Lauf-Clips
-(±16° bzw. ±27° aus der Schulter, Ellbogen beugt beim Vorschwingen). Haltung in `fp_arms.py`
+(halb so stark: ±8° bzw. ±14° aus der Schulter, Ellbogen beugt beim Vorschwingen) und halb so
+schnell („Tempo Arme“ 0,5: ein Armschwung auf vier Schritte, Atmen halb so schnell). Haltung in `fp_arms.py`
 (`SHOULDER`, `GLOVE`, `ELBOW`, `TWIST`; Lucas Wahl: Hände unten in den Ecken).
 
 ## Git
