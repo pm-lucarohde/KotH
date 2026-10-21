@@ -200,7 +200,9 @@ nach vorn, balanciert leicht) und `MushroomLand` (7 cm eingefedert: nach jeder L
 mindestens 0,15 s Luft ein gleich starker Impuls über alles, 0,06 s rein, weg nach 0,3 s),
 `MushroomJump` (beim Aufsteigen, nach Sanji: ein Bein gestreckt, Knie hoch, Arme an der Hüfte)
 und `MushroomSkyWalk` (Doppelsprung als Tritt in die Luft, Impuls wie die Landung; erkannt am
-Schub nach oben in der Luft, die Simulation meldet nichts). Geduckt macht die Pose die Figur nur etwa 20 cm niedriger
+Schub nach oben in der Luft, die Simulation meldet nichts). Dabei stößt die Figur gelbe Sporen aus den Füßen
+(`Assets/Effects/SporeBurst.sdprefab`, ein Stoß von 60 Partikeln im Weltraum, Textur `Spore`
+256 px mit scharfer Kante; „Sporen beim Doppelsprung“ in `PlayerVisualSystem`). Geduckt macht die Pose die Figur nur etwa 20 cm niedriger
 (Beine 35 cm); den Rest bis zur Hüllenhöhe staucht `PlayerVisualSystem` (`PoseDrops`, Werte
 gibt `rig.py` aus), lässt die Kappe 10 cm über die Hülle ragen und macht die Figur auf 90 %
 schmaler, damit sie weniger platt wirkt (Lucas Wahl, „Kappe über der Hülle“, „Breite

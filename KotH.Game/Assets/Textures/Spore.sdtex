@@ -1,0 +1,8 @@
+!Texture
+Id: 6B13AF44-CC3F-410E-88E7-F64EEB361EB6
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Effects/Spore.png
+IsCompressed: false
+Type: !ColorTextureType
+    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}

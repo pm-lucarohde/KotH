@@ -62,6 +62,7 @@ Hierarchy:
                         Id: 0F3CBBFE-76A6-50A8-B9C0-5AA9495E27D0
                     8ddde95318ac52e99340730c5af2c0b1: !KotH.PlayerVisualSystem
                         Id: 4A793E06-B832-5324-9DD1-6951AFE024D1
+                        SporeBurst: 41c6c8a0-dd0b-4bd7-ac5c-2aead21db2c3:Effects/SporeBurst
         -   Entity:
                 Id: A90F450C-B2E7-58FD-B4C5-AE3403470C24
                 Name: Camera

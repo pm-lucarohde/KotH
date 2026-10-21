@@ -8,6 +8,7 @@ using Stride.Core;
 using Stride.Core.Mathematics;
 using Stride.Core.Threading;
 using Stride.Engine;
+using Stride.Particles.Components;
 using Stride.Rendering;
 
 namespace KotH.Client.Player
@@ -88,6 +89,9 @@ namespace KotH.Client.Player
         /// <userdoc>Wie sehr Drehen die Blätter mitnimmt: so viele Meter vom Körper weg wirkt die Drehung wie Fahrtwind.</userdoc>
         [Display("Drehwind", "Blätter")] public float TurnRadius = 1f;
 
+        /// <userdoc>Partikeleffekt, der beim Doppelsprung an den Füßen der Figur startet.</userdoc>
+        [Display("Sporen beim Doppelsprung", "Effekte")] public Prefab SporeBurst;
+
         /// <userdoc>Wie weit der Kopf dem Blick nach oben und unten folgt (1 = ganz).</userdoc>
         [Display("Kopf folgt Blick", "Animation")] public float HeadFollow = 0.5f;
 
@@ -148,7 +152,8 @@ namespace KotH.Client.Player
             public int[] Leaves;
             public Vector2[] LeafBend, LeafRate;
             public float LeafClock, Yaw, Spin, MouthClock;
-            public bool HasYaw;
+            public bool HasYaw, Kicked;
+            public Entity Spores;
         }
 
         public PlayerVisualSystem()
@@ -194,6 +199,8 @@ namespace KotH.Client.Player
             motors.RemoveAt(i);
             fromRotations.RemoveAt(i);
             toRotations.RemoveAt(i);
+            if (figures[i].Spores is { } spores)
+                spores.Scene?.Entities.Remove(spores);
             figures.RemoveAt(i);
         }
 
@@ -243,12 +250,35 @@ namespace KotH.Client.Player
             float crouched = Crouched(motor);
             float scale = (motor.Height + CrouchOverhang * crouched) / (motor.StandHeight - drop);
             float width = 1f - (1f - CrouchWidth) * crouched;
+            if (f.Kicked)
+                Spores(f, t.Position - new Vector3(0f, 0.5f * motor.Height, 0f));
             t.Scale = new Vector3(width, scale, width);
             t.Position.Y += 0.5f * (motor.StandHeight * scale - motor.Height);
             Blink(f, dt);
             Breathe(f, dt);
             LookUpDown(f, alpha);
             Leaves(f, motor, t, dt);
+        }
+
+        /// <summary>
+        /// The double jump puffs spores from the feet: one effect entity per
+        /// figure, made on the first kick and restarted at the feet on every
+        /// one after. Its particles live in world space and stay behind.
+        /// </summary>
+        void Spores(Figure f, Vector3 feet)
+        {
+            f.Kicked = false;
+            if (SporeBurst == null)
+                return;
+            if (f.Spores == null)
+            {
+                f.Spores = SporeBurst.Instantiate()[0];
+                f.Spores.Transform.Position = feet;
+                Entity.Scene.Entities.Add(f.Spores);
+                return;
+            }
+            f.Spores.Transform.Position = feet;
+            f.Spores.Get<ParticleSystemComponent>()?.ParticleSystem.ResetSimulation();
         }
 
         /// <summary>
@@ -401,7 +431,10 @@ namespace KotH.Client.Player
             float falling = airborne ? Smooth(0f, 3f, -v.Y) : 0f;
             float rising = airborne ? Smooth(0f, 3f, v.Y) : 0f;
             if (airborne && f.AirTime > 0.05f && motor.KnockLeft <= 0f && v.Y - f.LastClimb > KickBoost)
+            {
                 f.KickAge = 0f;
+                f.Kicked = true;
+            }
             f.LastClimb = v.Y;
             f.KickAge += dt;
             if (airborne)
