@@ -53,7 +53,10 @@ Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Pr
   `KOTH_SHOT_BLINK=1` (alle Figuren blinzeln, das Bild zeigt geschlossene Lider),
   `KOTH_SHOT_MOVE=x,y[,sprint]` (hält die Bewegungstasten, D und W sind +1),
   `KOTH_SHOT_CROUCH=s` (Ducken ab s Sekunden gehalten; aus dem Sprint ein Gleiten),
-  `KOTH_SHOT_JUMP=s[,s…]` (Sprungtaste zu diesen Zeiten; Doppelsprung = zwei schnelle Drücke in der Luft), `KOTH_SIZE=WxH`, `KOTH_VSYNC=0|1`,
+  `KOTH_SHOT_JUMP=s[,s…]` (Sprungtaste zu diesen Zeiten; Doppelsprung = zwei schnelle Drücke in der Luft),
+  `KOTH_SHOT_TURN=grad,s[,kreis]` (Blick in First Person um grad drehen, mit `KOTH_SHOT_THIRD` erst
+  danach Third Person, Kamera um kreis Grad um die Figur; Startblick 0 lassen, `KOTH_SHOT_YAW` greift
+  erst nach dem ersten Bild), `KOTH_SIZE=WxH`, `KOTH_VSYNC=0|1`,
   `KOTH_FRAMELOG=datei`.
 - Client: kein Splash (asynchrones Laden + `WaitIdle` ohne QueueLock gab
   `VK_ERROR_DEVICE_LOST`), Renderer-Parallelität 6 (gemessen, Lucas Wahl).
@@ -214,7 +217,9 @@ davor und überbrückt die Mulde im Netz), die Blätter (`Leaf.S0`–`S5` am Roc
 am Kragen, zeigen nach oben mit dem Drehpunkt oben; Federn im Fahrtwind und im Wind der
 Drehung, „Blätter“ in `PlayerVisualSystem`), die Lider
 (Blinzeln alle 10 s, offen auf einen Punkt geschrumpft) und `Look` unter dem Kopf (folgt
-`SimulationBody.LookPitch`, dem Nickwinkel der Eingabe, kein Zustand). Die Clips dürfen
+`SimulationBody.LookPitch`, dem Nickwinkel der Eingabe, kein Zustand; im Stehen dreht er auch bis
+45° zur Seite, erst darüber zieht er den Körper mit, in Bewegung folgt der Körper dem Blick,
+„Kopfdrehung höchstens“, „Körper folgt Blick“; der Motor schaut weiter in Blickrichtung). Die Clips dürfen
 deshalb **keine Kanäle für Lider, Blätter, `Mouth` und `Look`** haben. Erzeugt werden Modell, Clips,
 Lid-Textur und die Knotenliste des Skeletts mit `.work/rig/build.sh` (Blender headless,
 `rig.py`, entfernt diese Kanäle, kopiert nach `Resources/Models`). In Third Person dreht

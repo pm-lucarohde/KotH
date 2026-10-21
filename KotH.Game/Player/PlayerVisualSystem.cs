@@ -98,6 +98,12 @@ namespace KotH.Client.Player
         /// <userdoc>Stärkste Neigung des Kopfes in Grad.</userdoc>
         [Display("Kopfneigung höchstens", "Animation")] public float HeadMaxDegrees = 40f;
 
+        /// <userdoc>Im Stehen dreht nur der Kopf mit dem Blick, bis zu so vielen Grad zur Seite; darüber hinaus wird der Körper mitgezogen.</userdoc>
+        [Display("Kopfdrehung höchstens", "Animation")] public float HeadTurnDegrees = 45f;
+
+        /// <userdoc>In Bewegung dreht sich der Körper in den Blick nach, in dieser Zeit (Sekunden) etwa zu zwei Dritteln.</userdoc>
+        [Display("Körper folgt Blick", "Animation")] public float BodyFollowSeconds = 0.15f;
+
         /// <summary>
         /// Clip names in every visual's AnimationComponent: idle, rest,
         /// walking and running forward, back, left and right, then crouched
@@ -147,7 +153,9 @@ namespace KotH.Client.Player
             public int[] Leaves;
             public Vector2[] LeafBend, LeafRate;
             public float LeafClock, Yaw, Spin, MouthClock;
-            public bool HasYaw, Kicked;
+            public bool HasYaw, Kicked, HasBody;
+            public float BodyYaw, HeadYaw;
+            public Vector3 ShownAt;
             public Entity Spores;
         }
 
@@ -237,6 +245,7 @@ namespace KotH.Client.Player
 
         void Animate(Figure f, PlayerMotor motor, TransformComponent t, float dt, float alpha)
         {
+            Turn(f, motor, t, dt);
             if (f.Animation != null)
                 Blend(f, motor, dt);
             // Crouched the figure is squashed a little and narrower, feet kept
@@ -301,7 +310,7 @@ namespace KotH.Client.Player
             }
 
             // Air against the figure, in its own frame: X right, Z back.
-            Vector3 local = Vector3.Transform(motor.Velocity, Quaternion.Invert(motor.Rotation));
+            Vector3 local = Vector3.Transform(motor.Velocity, Quaternion.Invert(t.Rotation));
             var flat = new Vector2(local.X, local.Z);
             float lift = motor.IsGrounded ? 0f : Math.Clamp(-local.Y / 12f, 0f, 1f);
             dt = MathF.Min(dt, 1f / 30f);
@@ -380,7 +389,37 @@ namespace KotH.Client.Player
                 new Vector3(1f - 0.35f * MouthBreath * wave, 1f + MouthBreath * wave, 1f);
         }
 
-        /// <summary>The neck bone tilts with the view; no clip touches it.</summary>
+        /// <summary>
+        /// The body lags behind the view: standing still only the head turns,
+        /// up to HeadTurnDegrees, beyond that the body is dragged along; moving,
+        /// the body turns into the view. The motor keeps facing the view.
+        /// </summary>
+        void Turn(Figure f, PlayerMotor motor, TransformComponent t, float dt)
+        {
+            Vector3 facing = Vector3.Transform(-Vector3.UnitZ, t.Rotation);
+            float view = MathF.Atan2(-facing.X, -facing.Z);
+            // A teleport (a respawn) faces the view at once.
+            bool jumped = Vector3.DistanceSquared(f.ShownAt, t.Position) > 4f;
+            f.ShownAt = t.Position;
+            if (!f.HasBody || jumped)
+            {
+                f.BodyYaw = view;
+                f.HasBody = true;
+            }
+            float off = view - f.BodyYaw;
+            off -= MathUtil.TwoPi * MathF.Round(off / MathUtil.TwoPi);
+            Vector3 v = motor.Velocity;
+            bool still = motor.IsGrounded && v.X * v.X + v.Z * v.Z < 0.3f * 0.3f;
+            if (!still)
+                off *= MathF.Exp(-dt / MathF.Max(1e-3f, BodyFollowSeconds));
+            float most = MathUtil.DegreesToRadians(HeadTurnDegrees);
+            off = Math.Clamp(off, -most, most);
+            f.BodyYaw = view - off;
+            f.HeadYaw = off;
+            t.Rotation = Quaternion.RotationY(f.BodyYaw);
+        }
+
+        /// <summary>The neck bone tilts and turns with the view; no clip touches it.</summary>
         void LookUpDown(Figure f, float alpha)
         {
             SkeletonUpdater skeleton = f.Model?.Skeleton;
@@ -392,8 +431,10 @@ namespace KotH.Client.Player
                 return;
             float pitch = f.Body.PreviousLookPitch + (f.Body.LookPitch - f.Body.PreviousLookPitch) * alpha;
             float tilt = Math.Clamp(pitch * HeadFollow, -HeadMaxDegrees, HeadMaxDegrees);
-            // The neck points up, its X is the figure's right: positive tips the head back.
-            skeleton.NodeTransformations[f.Look].Transform.Rotation = Quaternion.RotationX(MathUtil.DegreesToRadians(tilt));
+            // The neck points up, its X is the figure's right: positive tips the head
+            // back. The tilt comes first, then the turn about the neck.
+            skeleton.NodeTransformations[f.Look].Transform.Rotation =
+                Quaternion.RotationYawPitchRoll(f.HeadYaw, MathUtil.DegreesToRadians(tilt), 0f);
         }
 
         /// <summary>Sets the clip weights.</summary>
@@ -442,8 +483,8 @@ namespace KotH.Client.Player
             }
             f.LandAge += dt;
 
-            // Heading in the figure's own frame (it faces -Z): forward, back, left, right.
-            Vector3 local = Vector3.Transform(v, Quaternion.Invert(motor.Rotation));
+            // Heading in the shown body's frame (it faces -Z): forward, back, left, right.
+            Vector3 local = Vector3.Transform(v, Quaternion.Invert(Quaternion.RotationY(f.BodyYaw)));
             float forward = -local.Z, right = local.X;
             float sum = MathF.Max(1e-4f, MathF.Abs(forward) + MathF.Abs(right));
             Span<float> heading = stackalloc float[4];

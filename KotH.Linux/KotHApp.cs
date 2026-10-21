@@ -38,7 +38,10 @@ game.Run();
 /// KOTH_SHOT_BLINK=1 has every figure blink so the shot shows shut lids,
 /// KOTH_SHOT_MOVE=x,y[,sprint] holds the move keys (D and W are +1),
 /// KOTH_SHOT_CROUCH=s presses crouch at s seconds and holds it (out of a sprint: a slide),
-/// KOTH_SHOT_JUMP=s[,s2] presses jump at s seconds (and again at s2: the double jump), saves the back buffer as PNG after KOTH_SHOT_SECONDS (default 3), reports
+/// KOTH_SHOT_JUMP=s[,s2] presses jump at s seconds (and again at s2: the double jump),
+/// KOTH_SHOT_TURN=deg,s[,orbit] turns the held view by deg at s seconds in first person
+/// (with KOTH_SHOT_THIRD the step back comes 0.2 s later, the camera circling the
+/// figure by orbit degrees, to see head and body), saves the back buffer as PNG after KOTH_SHOT_SECONDS (default 3), reports
 /// the label font and quits. Taken from
 /// inside the game on purpose, a desktop screenshot would capture whatever
 /// else is on the screen. For performance runs: KOTH_SIZE=1920x1080 sets the
@@ -59,6 +62,8 @@ sealed class KotHGame : Game
     bool shotBlink = Environment.GetEnvironmentVariable("KOTH_SHOT_BLINK") == "1";
     string shotMove = Environment.GetEnvironmentVariable("KOTH_SHOT_MOVE");
     double? shotCrouch = Number("KOTH_SHOT_CROUCH");
+    readonly double[] shotTurn = Environment.GetEnvironmentVariable("KOTH_SHOT_TURN")?.Split(',')
+        .Select(s => double.Parse(s, CultureInfo.InvariantCulture)).ToArray();
     readonly Queue<double> shotJumps = new Queue<double>(
         (Environment.GetEnvironmentVariable("KOTH_SHOT_JUMP") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)
             .Select(s => double.Parse(s, CultureInfo.InvariantCulture)));
@@ -226,13 +231,16 @@ sealed class KotHGame : Game
 
         if (Find<PerformanceOverlay>() is { } overlay)
             overlay.Visible = true;
-        if (shotYaw.HasValue && Find<PlayerInputReader>() is { } reader)
-            reader.Look((float)shotYaw.Value, (float)shotPitch);
+        double now = gameTime.Total.TotalSeconds;
+        bool turned = shotTurn != null && now >= shotTurn[1];
+        bool orbit = turned && shotThird && shotTurn.Length > 2 && now >= shotTurn[1] + 0.2;
+        if ((shotYaw.HasValue || shotTurn != null) && Find<PlayerInputReader>() is { } reader)
+            reader.Look((float)((shotYaw ?? 0.0) + (turned ? shotTurn[0] : 0.0) + (orbit ? shotTurn[2] : 0.0)), (float)shotPitch);
         if (shotFov.HasValue && Find<CameraComponent>() is { } camera)
             camera.VerticalFieldOfView = (float)shotFov.Value;
         if (Find<PlayerInputReader>() is { } player)
         {
-            if (shotThird)
+            if (shotThird && (shotTurn == null || now >= shotTurn[1] + 0.2))
                 player.ThirdPerson = true;
             if (shotMove != null)
             {
