@@ -44,7 +44,8 @@ Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Pr
 - Client im Netz: `KotH --host`/`--join ADRESSE[:PORT]`, `--name`, `--port`,
   `--min-players`, `--display N` (Monitor von links). Ohne diese Argumente offline wie immer.
   Zwei Clients auf einem PC: `--host --min-players 2 --display 0` und
-  `--join 127.0.0.1 --display 1`, beides zusammen `Tools/two_clients.sh [aot|jit]`. JIT-Client und AOT-Client spielen zusammen, wenn der
+  `--join 127.0.0.1 --display 1`, beides zusammen `Tools/two_clients.sh [aot|jit]` (Ton nur vom Host, der Gast hat
+  `ALSOFT_DRIVERS=null`). JIT-Client und AOT-Client spielen zusammen, wenn der
   JIT-Client mit `DOTNET_EnableAVX=0` läuft (sonst andere `BuildId`).
 - Client-Testhilfen in `KotH.Linux/KotHApp.cs`: `KOTH_SHOT` (Screenshot, F3-Anzeige an,
   listet danach alle Schilder mit Text und Position), `KOTH_SHOT_YAW`/`_PITCH`/`_FOV`/
