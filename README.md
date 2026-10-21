@@ -2,7 +2,8 @@
 
 Ein King-of-the-Hill-Spiel in der Ego-Perspektive. Wer den Gipfel hält, gewinnt.
 Der aktuelle Stand ist ein Prototyp: eine Testmap mit Berg, Rampen und Treppen
-(`--map Test`; Standard ist die neue, noch leere Map `Neu`), Bots, die
+(`--map Test`; Standard ist die Map `Neu`, ein 136 m hoher Blockberg auf einer Insel
+nach einer Minecraft-Map), Bots, die
 um den Gipfel kämpfen, alle als Fliegenpilz-Figuren, Bewegung mit Sprint,
 Gleiten, Ducken, gestuftem Sprung und Doppelsprung, Körperstöße zwischen
 Spielern sowie ein Nahkampfschlag. Der Schlag erhöht das Schadensprozent des
@@ -239,6 +240,15 @@ Startplätze, Zone, Bot-Einstellungen; läuft auch ohne Grafik im Server und in 
 Proben) und `NAMEVisual` in KotH.Game (was man sieht). Eine neue Map braucht beide
 als Root-Asset (Game Studio: „Include in build as root asset“); `--map NAME` findet
 sie dann über den Ordnernamen.
+
+Der Boden der Map `Neu` kommt aus einem Skript: `python3 Tools/maps/mountain.py`
+schreibt das Modell `Resources/Models/Mountain.glb` (Vertexfarben mit Kantenschatten
+wie in Minecraft) und die Kollision `Maps/Neu/NeuTerrain.sdprefab` (Boxen in Chunks
+von 8 × 8 m), sonst nichts; Startplätze, Zone und Optik-Prefab bleiben in Game Studio.
+Es legt keine Wege an: Der Hang ist so steil, dass man sich mit Sprung und Doppelsprung
+selbst einen Weg suchen muss. Das Skript prüft, ob der Gipfel aus genug Richtungen
+erreichbar ist, und bricht sonst ab. Die Werte stehen oben im Skript (Höhe, Fuß,
+Steigung, Rauschen, Schneelinie, Bäume, Seed). Bots kommen dort noch nicht hinauf.
 
 ## Proben und Regression
 

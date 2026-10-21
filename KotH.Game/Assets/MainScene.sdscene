@@ -107,7 +107,7 @@ Hierarchy:
                         Projection: Perspective
                         VerticalFieldOfView: 85.0
                         NearClipPlane: 0.04
-                        FarClipPlane: 300.0
+                        FarClipPlane: 20000.0
                         Slot: A03721D3-C7B2-4AAB-A434-9425956E6C4C
                     480e3a3e580e5dc590788894577c0a14: !KotH.PlayerCamera
                         Id: 18A6BD5F-A220-5128-AFF9-6E26AA7C797D
@@ -132,7 +132,10 @@ Hierarchy:
                                 Filter: !LightShadowMapFilterTypePcf
                                     FilterSize: Filter5x5
                                 Size: Large
-                                DepthRange: {}
+                                DepthRange:
+                                    IsAutomatic: false
+                                    ManualMinDistance: 0.1
+                                    ManualMaxDistance: 400.0
                                 PartitionMode: !LightDirectionalShadowMap.PartitionLogarithmic {}
                                 ComputeTransmittance: false
                                 BiasParameters: {}

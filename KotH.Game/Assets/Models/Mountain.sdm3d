@@ -1,0 +1,13 @@
+!Model
+Id: DA05C6EC-7CF5-48F0-A040-AA0D947DEBAA
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Models/Mountain.glb
+PivotPosition: {X: 0.0, Y: 0.0, Z: 0.0}
+Materials:
+    950a1dd48cc9490dbeb1b1372da19868:
+        Name: Terrain
+        MaterialInstance:
+            Material: 08FD3D54-839C-4790-B4B1-2087BE4D45CC:Materials/Terrain
+            IsShadowCaster: true
+Modifiers: {}

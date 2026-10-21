@@ -15,3 +15,4 @@
 *.dll binary
 *.exe binary
 *.mp3 binary
+*.glb binary

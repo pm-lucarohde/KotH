@@ -50,8 +50,9 @@ namespace KotH.Shared.Hosting
         public bool HasMap(string map) => !string.IsNullOrEmpty(map) && content.Exists(Maps.CollisionUrl(map));
 
         /// <summary>
-        /// Adds every collider of the map's arena prefab, in prefab order, and
-        /// gives each its place in the stable query order. Once per world.
+        /// Adds every collider of the map's arena prefab, then of its generated
+        /// terrain if it has one, in prefab order, and gives each its place in
+        /// the stable query order. Once per world.
         /// </summary>
         public void LoadArena(string map)
         {
@@ -60,7 +61,14 @@ namespace KotH.Shared.Hosting
             if (!HasMap(map))
                 throw new ArgumentException($"Unbekannte Map: {map}");
             Map = map;
-            foreach (Entity e in content.Load<Prefab>(Maps.CollisionUrl(map)).Instantiate())
+            AddArena(Maps.CollisionUrl(map));
+            if (content.Exists(Maps.TerrainUrl(map)))
+                AddArena(Maps.TerrainUrl(map));
+        }
+
+        void AddArena(string url)
+        {
+            foreach (Entity e in content.Load<Prefab>(url).Instantiate())
             {
                 AddStatic(e);
                 arena.Add(e);

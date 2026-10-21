@@ -15,4 +15,35 @@ Hierarchy:
                         Position: {X: 0.0, Y: 0.0, Z: 0.0}
                         Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
                         Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children:
+                            19d1887ead3f427d894fe3bddaafc9eb: ref!! 5B67D16E-E32B-4407-B16A-9CD997169C9F
+                            8786fe8e651649dd821338af1ea73ea2: ref!! 370B95D9-9CC6-45BD-9DC9-6AF25212CC19
+        -   Entity:
+                Id: F650EF23-C9C9-429E-B840-A9424DE5C19A
+                Name: Mountain
+                Components:
+                    1b072c9f911e4a2abf8cdfb6a036539c: !TransformComponent
+                        Id: 5B67D16E-E32B-4407-B16A-9CD997169C9F
+                        Position: {X: 0.0, Y: 0.0, Z: 0.0}
+                        Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
                         Children: {}
+                    116d0b0547d749718aea3491b9a97cb9: !ModelComponent
+                        Id: 2A334ED0-C770-41F9-8096-8D339BADE8B9
+                        Model: DA05C6EC-7CF5-48F0-A040-AA0D947DEBAA:Models/Mountain
+                        Materials: {}
+        -   Entity:
+                Id: 466F1ECD-4862-4A3E-AAC0-A5FE67F87AA8
+                Name: Sea
+                Components:
+                    76df3e95c28045749366710e9518eeed: !TransformComponent
+                        Id: 370B95D9-9CC6-45BD-9DC9-6AF25212CC19
+                        Position: {X: 0.0, Y: 0.4, Z: 0.0}
+                        Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    0cee795d0cb6490892897d356e9fc025: !ModelComponent
+                        Id: 32C2B122-3647-4178-8C93-BC608BCCADEA
+                        Model: D346650D-2C36-428D-9FC5-D6D5F8A7C8AE:Models/Water
+                        Materials: {}
+                        IsShadowCaster: false

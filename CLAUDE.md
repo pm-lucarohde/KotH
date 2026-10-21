@@ -179,9 +179,22 @@ KotH.Shared (Kollision, Marker `PlayerSpawn`, `PlayerSpawn0`–`11`, `DummySpawn
 und `NAMEVisual.sdprefab` in KotH.Game (Modelle); beide sind Root-Assets ihres Pakets (`RootAssets` im
 `.sdpkg`, in Game Studio „Include in build as root asset“), Standard und URLs in `KotH.Shared/Hosting/Maps.cs`.
 `MainScene` ist nur der Rahmen (Kamera, Licht, Himmel, HUD, Musik, Zonenrand). Gewählt mit `--map NAME`
-(Client offline und Host, Server), Standard `Neu` (leer, nur Marker; Bots stehen ohne Navmesh still),
-die alte Arena heißt `Test`. Der Host schickt den Namen im `Welcome`, Gäste bauen die Map erst dann
+(Client offline und Host, Server), Standard `Neu`, die alte Arena heißt `Test`. Der Host schickt den Namen im `Welcome`, Gäste bauen die Map erst dann
 (`INetWorld.LoadMap`). Alle Proben laden fest `Maps.Test` (Unity-Referenz).
+
+**Map `Neu`** (Lucas Vorlage: Minecraft-Berg aus einem Video, 21.10.2026): Blockberg 136 m auf einer
+Insel (Fuß 68 m, Küste 90 m), Wiese, Strand, Bäume, Schnee ab etwa 55 %, Meer. Boden aus
+`Tools/maps/mountain.py` (reines Python, Seed fest): schreibt **nur** `Resources/Models/Mountain.glb`
+(Vertexfarben mit Minecraft-AO, Material `Terrain`) und `Maps/Neu/NeuTerrain.sdprefab` (Kollision,
+`Terrain_x_z` je 8 × 8 m, Boxen von y = −2 bis zur Säule; `WorldBuilder.LoadArena` lädt `NAMETerrain`
+nach dem Collision-Prefab, falls es existiert); Marker, Zone (137,75 m) und `NeuVisual` (Berg, Meer)
+sind Game Studio. **Keine vorgefertigten Wege** (Lucas Wunsch): 1×1-Säulen, etwa 2 Blöcke Steigung pro
+Meter, man sucht sich den Weg mit Sprung und Doppelsprung; das Skript prüft per Breitensuche, dass der
+Gipfel aus mindestens 9 von 12 Richtungen erreichbar ist (sonst Abbruch), und meldet den schnellsten
+Aufstieg (etwa 1,5 min). Steiler oder 2×2-Säulen: kein Weg mehr hinauf. Nach jedem Lauf Client und
+Server neu bauen. Bots kommen nicht hinauf; ihre Wegplanung zum unerreichbaren Gipfel kostet bis über
+10 ms pro Tick (offen). Sichtweite 20 km (bei 60 km verschwand die Insel ab 300 m im Meer), Meer
+120 km, Schatten fest bis 400 m.
 
 **Quelle aller Assets ist Game Studio** (Lucas Entscheidung, 16.10.2026). Die
 Generatoren aus dem Umzug (`Tools/generate_*.py`, in der Git-Geschichte bis
