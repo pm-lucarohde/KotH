@@ -1,0 +1,12 @@
+!Skeleton
+Id: 7E7AF6FE-65A9-4321-B43D-F6D9EDDA215E
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: ../../Resources/Models/Bamboo.glb
+PivotPosition: {X: 0.0, Y: 0.0, Z: 0.0}
+Nodes:
+    b4f8b233b55d51159acf3de51ee08fd9: {Name: BambooRig, Depth: 0, Preserve: true}
+    a34503a951c4579999da3f4616ced970: {Name: Bamboo, Depth: 1, Preserve: true}
+    f302d754b2bf5bda82e692590f3744a4: {Name: Cane, Depth: 1, Preserve: true}
+    de2ce705e171541f94dd6ff1cde1a910: {Name: Leaf, Depth: 2, Preserve: true}
+    acffac922b94508e9951c1526f25f62b: {Name: LeafTip, Depth: 3, Preserve: true}

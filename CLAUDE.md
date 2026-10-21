@@ -59,7 +59,9 @@ Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Pr
   `KOTH_SHOT_JUMP=s[,s…]` (Sprungtaste zu diesen Zeiten; Doppelsprung = zwei schnelle Drücke in der Luft),
   `KOTH_SHOT_TURN=grad,s[,kreis]` (Blick in First Person um grad drehen, mit `KOTH_SHOT_THIRD` erst
   danach Third Person, Kamera um kreis Grad um die Figur; Startblick 0 lassen, `KOTH_SHOT_YAW` greift
-  erst nach dem ersten Bild), `KOTH_SIZE=WxH`, `KOTH_VSYNC=0|1`,
+  erst nach dem ersten Bild), `KOTH_SHOT_VIDEO=s` (die letzten s Sekunden vor dem Bild als Rohbilder
+  mit 30 fps nach `bild.png.rgba`, BGRA, für ffmpeg `-f rawvideo -pix_fmt bgra`; ein Desktop-Mitschnitt
+  träfe den zweiten Monitor), `KOTH_SIZE=WxH`, `KOTH_VSYNC=0|1`,
   `KOTH_FRAMELOG=datei`.
 - Client: kein Splash (asynchrones Laden + `WaitIdle` ohne QueueLock gab
   `VK_ERROR_DEVICE_LOST`), Renderer-Parallelität 6 (gemessen, Lucas Wahl).
@@ -287,6 +289,17 @@ Schrittphase der eigenen Figur; Gehen und Rennen übernehmen den Armschwung der 
 (halb so stark: ±8° bzw. ±14° aus der Schulter, Ellbogen beugt beim Vorschwingen) und halb so
 schnell („Tempo Arme“ 0,5: ein Armschwung auf vier Schritte, Atmen halb so schnell). Haltung in `fp_arms.py`
 (`SHOULDER`, `GLOVE`, `ELBOW`, `TWIST`; Lucas Wahl: Hände unten in den Ecken).
+
+Jede Figur hält einen Bambusstab (Lucas Vorlage-Foto, 0,7 m, schräg nach vorn oben, ein Blatt am
+oberen Knoten): `Bamboo.glb` aus `.work/rig/bamboo.py` (Teil von `build.sh`, im Figurraum der
+Ruhelage gebaut, Textur aus dem Foto weich gemalt, Lambert). Er hängt am Knochen `Grip.R` (Mitte der
+rechten Faust, ohne Vertices, aus `rig.py`): `GameRoot.AttachHeld` hängt das „Gehaltene Objekt“ als
+Kind mit `ModelNodeLinkComponent` an Figur und FP-Arme, lokale Transformation = Inverse der Ruhelage
+des Knochens. Die Körper-Clips halten `Grip.R` in Ruhe, die FP-Clips drehen ihn einmal fest, damit der
+Stab in First Person nach rechts oben zeigt (`fp_arms.py`, `CANE`, `CANE_ROLL` −84°, Lucas Wahl).
+Der Stab hat ein eigenes Skelett (`Cane`, `Leaf`, `LeafTip` ohne Vertices, alle ungedreht);
+`PlayerVisualSystem.Sway` federt `Leaf` mit den Werten der Figurblätter im Fahrtwind, gemessen an
+seinem Ansatz in der Welt (Gehen, Drehen und Armschwung zugleich). Nur Darstellung.
 
 ## Git
 

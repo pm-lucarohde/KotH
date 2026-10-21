@@ -1,0 +1,14 @@
+!Model
+Id: 917DB35D-46E7-4412-8740-2930F052E2BF
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Models/Bamboo.glb
+PivotPosition: {X: 0.0, Y: 0.0, Z: 0.0}
+Materials:
+    d785ea4a8222478a9e963c1d44f40077:
+        Name: Bamboo
+        MaterialInstance:
+            Material: 23818B03-D748-4BE5-8AC6-D195D77A6C1D:Materials/Bamboo
+            IsShadowCaster: true
+Skeleton: 7E7AF6FE-65A9-4321-B43D-F6D9EDDA215E:Models/BambooSkeleton
+Modifiers: {}

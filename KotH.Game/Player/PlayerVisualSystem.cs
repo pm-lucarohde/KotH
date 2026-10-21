@@ -23,8 +23,9 @@ namespace KotH.Client.Player
     /// stands still, walking and running in four directions blended by
     /// speed and heading, the rest pose otherwise, and a blink every few
     /// seconds, set on the lid bones. The leaves of skirt and collar swing
-    /// on springs in the wind of the figure's own motion, and the mouth
-    /// opens and shuts a little, calm as breathing.
+    /// on springs in the wind of the figure's own motion, so does the leaf
+    /// on the cane in its hand, and the mouth opens and shuts a little,
+    /// calm as breathing.
     /// </summary>
     [DataContract("KotH.PlayerVisualSystem")]
     public sealed class PlayerVisualSystem : SyncScript
@@ -158,12 +159,15 @@ namespace KotH.Client.Player
         const int SkirtLeaves = 6, CollarLeaves = 4;
         // A spring a little under critical: stopping swings the leaves past.
         const float LeafSpring = 150f, LeafDamping = 14f;
+        // The leaf of the held cane and its tip, see .work/rig/bamboo.py.
+        const string HeldLeafBone = "Leaf", HeldLeafTip = "LeafTip";
 
         readonly List<Figure> figures = new List<Figure>();
 
         // The first-person arms of the own body, null without.
         AnimationComponent arms;
         PlayerMotor armsMotor;
+        HeldLeaf armsLeaf;
         PlayingAnimation[] armPlays;
         readonly float[] armWeights = new float[ArmClips.Length];
         float armPhase, lastStepPhase;
@@ -192,6 +196,26 @@ namespace KotH.Client.Player
             public float BodyYaw, HeadYaw;
             public Vector3 ShownAt;
             public Entity Spores;
+            public HeldLeaf Held;
+        }
+
+        /// <summary>The leaf on a held object; its bend is a rotation vector.</summary>
+        sealed class HeldLeaf
+        {
+            public ModelComponent Model;
+            public int Node = -2;
+            public Vector3 Along, Last, Velocity, Bend, Rate;
+            public bool HasLast;
+            public float Clock;
+        }
+
+        /// <summary>The leaf of the object visual holds (GameRoot.AttachHeld), null without.</summary>
+        static HeldLeaf FindHeld(Entity visual)
+        {
+            foreach (TransformComponent child in visual.Transform.Children)
+                if (child.Entity.Get<ModelNodeLinkComponent>() != null && child.Entity.Get<ModelComponent>() is { } model)
+                    return new HeldLeaf { Model = model };
+            return null;
         }
 
         public PlayerVisualSystem()
@@ -218,6 +242,7 @@ namespace KotH.Client.Player
                 // Figures side by side never blink together.
                 BlinkWait = BlinkPause(),
                 MouthClock = (float)random.NextDouble() * 30f,
+                Held = FindHeld(visual),
             });
         }
 
@@ -226,6 +251,7 @@ namespace KotH.Client.Player
         {
             arms = visual.Get<AnimationComponent>();
             armsMotor = motor;
+            armsLeaf = FindHeld(visual);
             armPlays = null;
             Array.Clear(armWeights);
         }
@@ -234,6 +260,7 @@ namespace KotH.Client.Player
         {
             arms = null;
             armsMotor = null;
+            armsLeaf = null;
         }
 
         /// <summary>
@@ -308,6 +335,8 @@ namespace KotH.Client.Player
             float dt = (float)Game.UpdateTime.Elapsed.TotalSeconds;
             for (int i = 0; i < count; i++)
                 Animate(figures[i], motors[i], visuals[i].Transform, dt, alpha);
+            if (armsLeaf != null && armsMotor != null)
+                Sway(armsLeaf, armsMotor, dt);
         }
 
         void Animate(Figure f, PlayerMotor motor, TransformComponent t, float dt, float alpha)
@@ -330,6 +359,8 @@ namespace KotH.Client.Player
             Hit(f, dt);
             LookUpDown(f, alpha);
             Leaves(f, motor, t, dt);
+            if (f.Held != null)
+                Sway(f.Held, motor, dt);
         }
 
         /// <summary>
@@ -433,6 +464,66 @@ namespace KotH.Client.Player
                     : Quaternion.Identity;
                 skeleton.NodeTransformations[node].Transform.Rotation = bend * skeleton.Nodes[node].Transform.Rotation;
             }
+        }
+
+        /// <summary>
+        /// The leaf on the held cane swings like the figure's: its tip trails
+        /// the wind of its own motion, measured where it grows, so walking,
+        /// turning and the arm's swing all move it; faster means a little
+        /// flutter and a twist. Same springs as the figure's leaves.
+        /// </summary>
+        void Sway(HeldLeaf h, PlayerMotor motor, float dt)
+        {
+            SkeletonUpdater skeleton = h.Model.Skeleton;
+            if (skeleton == null || dt <= 0f)
+                return;
+            if (h.Node == -2)
+            {
+                h.Node = Array.FindIndex(skeleton.Nodes, n => n.Name == HeldLeafBone);
+                int tip = Array.FindIndex(skeleton.Nodes, n => n.Name == HeldLeafTip);
+                if (tip >= 0)
+                    h.Along = Vector3.Normalize(skeleton.Nodes[tip].Transform.Position);
+                h.Clock = (float)random.NextDouble() * 10f;
+            }
+            if (h.Node < 0 || h.Along == Vector3.Zero)
+                return;
+            dt = MathF.Min(dt, 1f / 30f);
+            h.Clock += dt;
+
+            // Leaf and cane bones rest unturned, so the model's frame is the
+            // leaf's: where it grows, as drawn the frame before.
+            ref ModelNodeDefinition rest = ref skeleton.Nodes[h.Node];
+            Matrix world = h.Model.Entity.Transform.WorldMatrix;
+            Vector3 at = Vector3.TransformCoordinate(rest.Transform.Position, world);
+            if (h.HasLast)
+            {
+                // A respawn or a correction jumps: never faster than twice a sprint.
+                Vector3 v = (at - h.Last) / dt;
+                float limit = 2f * motor.SprintSpeed;
+                if (v.Length() > limit)
+                    v *= limit / v.Length();
+                h.Velocity += (v - h.Velocity) * (1f - MathF.Exp(-dt / 0.05f));
+            }
+            h.Last = at;
+            h.HasLast = true;
+
+            world.Decompose(out _, out Quaternion turned, out _);
+            Vector3 air = Vector3.Transform(-h.Velocity, Quaternion.Invert(turned));
+            Vector3 across = air - h.Along * Vector3.Dot(air, h.Along);
+            float speed = across.Length();
+            float pace = Math.Clamp(speed / motor.SprintSpeed, 0f, 1f);
+            // Turning about along x wind moves the tip downwind.
+            Vector3 axis = speed > 1e-3f ? Vector3.Cross(h.Along, across / speed) : Vector3.Zero;
+            float w = h.Clock * 9f;
+            float flutter = MathUtil.DegreesToRadians(LeafFlutter) * pace;
+            Vector3 target = axis * (MathUtil.DegreesToRadians(LeafSwing) * pace + flutter * MathF.Sin(w))
+                           + h.Along * flutter * 0.8f * MathF.Sin(1.3f * w + 1f);
+
+            h.Rate += (LeafSpring * (target - h.Bend) - LeafDamping * h.Rate) * dt;
+            h.Bend += h.Rate * dt;
+            float angle = h.Bend.Length();
+            Quaternion bend = angle > 1e-5f ? Quaternion.RotationAxis(h.Bend / angle, angle) : Quaternion.Identity;
+            skeleton.NodeTransformations[h.Node].Transform.Rotation = bend * rest.Transform.Rotation;
         }
 
         /// <summary>

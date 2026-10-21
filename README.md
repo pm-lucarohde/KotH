@@ -12,7 +12,9 @@ beider auf der Stoßlinie: Wer heranläuft, stößt stärker; wer als Getroffene
 heranläuft, fliegt weniger weit. Bis 20 % steigt der Anteil von der Hälfte auf
 das volle Tempo. Wer gerade springt oder fällt, behält das: Der Stoß nach oben
 kommt auf seinen Sprung obendrauf. Wer getroffen wird, nimmt Oberkörper und Kopf
-kurz weg vom Schlag, in acht Richtungen (nur Darstellung).
+kurz weg vom Schlag, in acht Richtungen (nur Darstellung). Jede Figur trägt in der
+rechten Hand einen Bambusstab, auch an den Armen in First Person; das Blatt daran
+weht im Fahrtwind wie die Blätter am Rock (nur Darstellung, der Schlag bleibt gleich).
 
 **Spielregel.** Oben auf dem Plateau, wo die Rampen hinaufführen, liegt die
 Capture-Zone, leuchtend umrandet. Wer allein in ihr steht, nimmt sie in 3 s ein und
@@ -168,6 +170,9 @@ Luft zwei schnelle Drücke, etwa `KOTH_SHOT_JUMP=2.0,2.2,2.25` mit `KOTH_SHOT_SE
 `KOTH_SHOT_TURN=grad,s[,kreis]` dreht den Blick in First Person zur Zeit s um grad; mit
 `KOTH_SHOT_THIRD=1` geht die Kamera erst danach nach hinten und kreist um kreis Grad um die Figur,
 etwa `KOTH_SHOT_TURN=30,2.0,170` für Kopf gedreht, Körper gerade, von vorn gesehen.
+`KOTH_SHOT_VIDEO=s` schreibt zusätzlich die letzten s Sekunden vor dem Bild als Rohbilder mit
+30 fps nach `bild.png.rgba` (Größe und Format stehen im Log), daraus wird ein Video mit
+`ffmpeg -f rawvideo -pix_fmt bgra -s 1280x720 -r 30 -i bild.png.rgba -pix_fmt yuv420p video.mp4`.
 
 Für Leistungsmessungen: `KOTH_SIZE=1920x1080` legt die Fenstergröße fest,
 `KOTH_VSYNC=0|1` schaltet V-Sync, und `KOTH_FRAMELOG=datei` schreibt jede

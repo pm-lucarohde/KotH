@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using KotH.Client.Hud;
 using KotH.Client.Match;
@@ -83,6 +84,12 @@ namespace KotH.Client
         /// <userdoc>Arme in First Person beim Rennen, im Takt der Schritte.</userdoc>
         [Display("Arme Rennen", "First-Person-Arme")] public AnimationClip ArmsRun;
 
+        /// <userdoc>Was jede Figur in der rechten Hand hält (der Bambusstab), auch an den Armen in First Person. In der Ruhelage der Figur modelliert; ein Knochen „Leaf“ weht wie die Blätter der Figur.</userdoc>
+        [Display("Gehaltenes Objekt", "Darstellung")] public Model HeldModel;
+
+        /// <userdoc>Knochen der Figur, dem das gehaltene Objekt folgt: Grip.R ist die Mitte der rechten Faust; in First Person dreht ihn der Arm-Clip, damit der Stab nach rechts oben zeigt.</userdoc>
+        [Display("Knochen des Objekts", "Darstellung")] public string HeldBone = "Grip.R";
+
         /// <summary>Render group of the own figure, see PlayerCamera.</summary>
         const RenderGroup OwnFigureGroup = RenderGroup.Group1;
 
@@ -138,7 +145,7 @@ namespace KotH.Client
             // The own figure has a render group of its own: the eyes sit in
             // its cap, so the camera skips it unless it stands back far
             // enough. Shadow views keep their own mask, the shadow stays.
-            AddVisual(player).Get<ModelComponent>().RenderGroup = OwnFigureGroup;
+            AddVisual(player, OwnFigureGroup);
             foreach (Entity bot in bots)
             {
                 AddVisual(bot);
@@ -211,6 +218,7 @@ namespace KotH.Client
             arms = new Entity("Arms") { model, animation };
             arms.Transform.Position = new Vector3(0f, -ArmsEye, 0f);
             camera.AddChild(arms);
+            AttachHeld(arms, ArmsGroup, false);
             visuals.RegisterArms(arms, player.Get<PlayerMotor>());
         }
 
@@ -273,11 +281,10 @@ namespace KotH.Client
                                          marker.Transform.Rotation, body, new DamagePercent());
             e.Name = name;
 
-            Entity visual = AddVisual(e);
+            Entity visual = own ? AddVisual(e, OwnFigureGroup) : AddVisual(e);
             Entity label = null;
             if (own)
             {
-                visual.Get<ModelComponent>().RenderGroup = OwnFigureGroup;
                 BindLocal(e, (PlayerInputReader)body);
             }
             else
@@ -339,9 +346,9 @@ namespace KotH.Client
             return entity;
         }
 
-        Entity AddVisual(Entity body)
+        Entity AddVisual(Entity body, RenderGroup group = RenderGroup.Group0)
         {
-            var visual = new Entity(body.Name + "Visual") { new ModelComponent(BodyModel) };
+            var visual = new Entity(body.Name + "Visual") { new ModelComponent(BodyModel) { RenderGroup = group } };
             // In the order of PlayerVisualSystem.Clips; a missing clip just never plays.
             AnimationClip[] clips = { IdleAnimation, RestAnimation, WalkForward, WalkBack, WalkLeft, WalkRight,
                                       RunForward, RunBack, RunLeft, RunRight,
@@ -355,9 +362,43 @@ namespace KotH.Client
                         animation.Animations[PlayerVisualSystem.Clips[i]] = clips[i];
                 visual.Add(animation);
             }
+            AttachHeld(visual, group, true);
             Entity.Scene.Entities.Add(visual);
             visuals.Register(visual, body.Get<PlayerMotor>());
             return visual;
+        }
+
+        /// <summary>
+        /// Hangs HeldModel on HeldBone of figure's model, as a child so it
+        /// goes with it. The object is modelled in the figure's rest pose
+        /// (.work/rig/bamboo.py): its local transform undoes the bone's rest,
+        /// so at rest it sits as modelled and then follows the bone.
+        /// </summary>
+        void AttachHeld(Entity figure, RenderGroup group, bool shadow)
+        {
+            var target = figure.Get<ModelComponent>();
+            Skeleton skeleton = target?.Model?.Skeleton;
+            int bone = skeleton == null ? -1 : Array.FindIndex(skeleton.Nodes, n => n.Name == HeldBone);
+            if (HeldModel == null || bone < 0)
+                return;
+            // The bone's rest in model space, child first (row vectors).
+            Matrix rest = Matrix.Identity;
+            for (int i = bone; i >= 0; i = skeleton.Nodes[i].ParentIndex)
+            {
+                TransformTRS node = skeleton.Nodes[i].Transform;
+                rest *= Matrix.Scaling(node.Scale) * Matrix.RotationQuaternion(node.Rotation) * Matrix.Translation(node.Position);
+            }
+            rest.Invert();
+            var held = new Entity("Held")
+            {
+                new ModelComponent(HeldModel) { RenderGroup = group, IsShadowCaster = shadow },
+                new ModelNodeLinkComponent { Target = target, NodeName = HeldBone },
+            };
+            rest.Decompose(out Vector3 scale, out Quaternion rotation, out Vector3 position);
+            held.Transform.Position = position;
+            held.Transform.Rotation = rotation;
+            held.Transform.Scale = scale;
+            figure.AddChild(held);
         }
 
         WorldBuilder builder;

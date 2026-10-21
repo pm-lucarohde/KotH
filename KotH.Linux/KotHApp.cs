@@ -42,7 +42,9 @@ game.Run();
 /// KOTH_SHOT_JUMP=s[,s2] presses jump at s seconds (and again at s2: the double jump),
 /// KOTH_SHOT_TURN=deg,s[,orbit] turns the held view by deg at s seconds in first person
 /// (with KOTH_SHOT_THIRD the step back comes 0.2 s later, the camera circling the
-/// figure by orbit degrees, to see head and body), saves the back buffer as PNG after KOTH_SHOT_SECONDS (default 3), reports
+/// figure by orbit degrees, to see head and body), KOTH_SHOT_VIDEO=s also writes the last s seconds
+/// before the shot as raw frames at 30 fps (path.rgba, size and format in the log, for ffmpeg),
+/// saves the back buffer as PNG after KOTH_SHOT_SECONDS (default 3), reports
 /// the label font and quits. Taken from
 /// inside the game on purpose, a desktop screenshot would capture whatever
 /// else is on the screen. For performance runs: KOTH_SIZE=1920x1080 sets the
@@ -64,6 +66,9 @@ sealed class KotHGame : Game
     double? shotHit = Number("KOTH_SHOT_HIT");
     string shotMove = Environment.GetEnvironmentVariable("KOTH_SHOT_MOVE");
     double? shotCrouch = Number("KOTH_SHOT_CROUCH");
+    readonly double shotVideo = Number("KOTH_SHOT_VIDEO") ?? 0.0;
+    FileStream video;
+    double videoAt = double.NaN;
     readonly double[] shotTurn = Environment.GetEnvironmentVariable("KOTH_SHOT_TURN")?.Split(',')
         .Select(s => double.Parse(s, CultureInfo.InvariantCulture)).ToArray();
     readonly Queue<double> shotJumps = new Queue<double>(
@@ -387,8 +392,11 @@ sealed class KotHGame : Game
             frameLog[frameCount++] = (float)gameTime.Elapsed.TotalMilliseconds;
         }
 
+        if (shotPath != null && shotVideo > 0.0)
+            RecordVideo(gameTime.Total.TotalSeconds);
         if (shotPath == null || gameTime.Total.TotalSeconds < shotSeconds)
             return;
+        video?.Dispose();
 
         // The back buffer's alpha is whatever the last pass left, low in
         // shadows; a viewer blends that with white. Opaque before saving.
@@ -417,6 +425,30 @@ sealed class KotHGame : Game
         }
         ReportFont();
         Exit();
+    }
+
+    /// <summary>
+    /// One frame of KOTH_SHOT_VIDEO, written once for every 1/30 s slot it
+    /// covers: a slow frame repeats, so the video keeps the game's time.
+    /// </summary>
+    void RecordVideo(double now)
+    {
+        if (double.IsNaN(videoAt))
+            videoAt = shotSeconds - shotVideo;
+        int slots = 0;
+        for (; videoAt <= now; videoAt += 1.0 / 30.0)
+            slots++;
+        if (slots == 0)
+            return;
+        using Image image = GraphicsDevice.Presenter.BackBuffer.GetDataAsImage(GraphicsContext.CommandList);
+        byte[] data = image.PixelBuffer[0].GetPixels<byte>();
+        if (video == null)
+        {
+            video = File.Create(shotPath + ".rgba");
+            Console.WriteLine($"[video] {shotPath}.rgba {image.Description.Width}x{image.Description.Height} {image.Description.Format} 30 fps");
+        }
+        for (int i = 0; i < slots; i++)
+            video.Write(data);
     }
 
     /// <summary>
