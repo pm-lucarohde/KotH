@@ -11,7 +11,7 @@ namespace KotH.Client.Audio
     /// <summary>
     /// The music: one looping piece before the round (lobby, countdown and the
     /// pause after a win), a fixed piece when a round starts and then the
-    /// playlist in shuffled order; phase changes crossfade. Follows the confirmed
+    /// playlist in shuffled order; every change crossfades. Follows the confirmed
     /// round when networked, so no rollback flips it. Presentation only.
     /// </summary>
     [DataContract("KotH.MusicPlayer")]
@@ -28,8 +28,8 @@ namespace KotH.Client.Audio
 
         [Display("Lautstärke", "Musik")] public float Volume = 0.4f;
 
-        /// <userdoc>So lange blendet ein Track in den nächsten über (Sekunden).</userdoc>
-        [Display("Überblenden", "Musik")] public float FadeSeconds = 1.5f;
+        /// <userdoc>So lange blendet ein Track in den nächsten über (Sekunden), auch wenn einer ausläuft: der nächste beginnt so lange vor dessen Ende.</userdoc>
+        [Display("Überblenden", "Musik")] public float FadeSeconds = 3.5f;
 
         [DataMemberIgnore] public HillMatch Match { get; set; }
 
@@ -40,8 +40,7 @@ namespace KotH.Client.Audio
         [DataMemberIgnore] public double TailSeconds { get; set; }
 
         // A streamed instance keeps reporting Playing after its end, so the
-        // player times the piece itself; this much after the length it is over.
-        const double EndSlack = 0.1;
+        // player times the piece itself and starts the next one a fade before.
 
         readonly Dictionary<Sound, SoundInstance> instances = new Dictionary<Sound, SoundInstance>();
         readonly List<Sound> deck = new List<Sound>();
@@ -90,8 +89,8 @@ namespace KotH.Client.Audio
                 inRound = round;
                 Switch(round ? RoundStart : Lobby, round ? "Spielbeginn" : "Vor dem Spiel");
             }
-            else if (round && current != null && !current.IsLooping && age >= length + EndSlack)
-                Switch(Draw(), "Zufall", crossfade: false);
+            else if (round && current != null && !current.IsLooping && age >= length - Math.Min(FadeSeconds, length * 0.5))
+                Switch(Draw(), "Zufall");
 
             float step = FadeSeconds > 0f ? dt / FadeSeconds : 1f;
             fadeIn = Math.Min(1f, fadeIn + step);
@@ -116,15 +115,12 @@ namespace KotH.Client.Audio
         }
 
         /// <summary>
-        /// Crossfades from what plays now to the sound, or after a piece that ran
-        /// out starts the next at once; null fades to silence.
+        /// Crossfades from what plays now to the sound; null fades to silence.
         /// </summary>
-        void Switch(Sound sound, string what, bool crossfade = true)
+        void Switch(Sound sound, string what)
         {
             fading?.Stop();
-            if (!crossfade)
-                current?.Stop();
-            fading = crossfade ? current : null;
+            fading = current;
             current = null;
             playing = sound;
             fadeIn = fading != null ? 0f : 1f;

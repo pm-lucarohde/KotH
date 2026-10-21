@@ -47,8 +47,8 @@ einer Runde. Offline beginnt die Runde sofort.
 
 Musik: Vor dem Spiel (Warten, Countdown und die Pause nach einem Sieg) läuft ein
 Lobby-Track in Schleife, bei Rundenbeginn ein fester Spielbeginn-Track, danach die
-übrigen sieben gemischt, jeder einmal, bevor einer wiederkommt. Wechsel der Phase
-blenden in 1,5 s über. Alle Tracks sind auf −15,5 LUFS normalisiert; Lautstärke und
+übrigen sieben gemischt, jeder einmal, bevor einer wiederkommt. Jeder Wechsel
+blendet in 3,5 s über. Alle Tracks sind auf −15,5 LUFS normalisiert; Lautstärke und
 Auswahl stehen in Game Studio an der Entity `Music` (`MusicPlayer`).
 
 | | |

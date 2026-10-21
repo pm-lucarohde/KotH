@@ -213,8 +213,8 @@ kein Zustand: ein Rollback behält ihn, im Netz kommt der Treffer mit der Bestä
 
 `MusicPlayer` (`KotH.Game/Audio`, Entity `Music` in `MainScene`, Lucas Wahl 21.10.2026): vor dem Spiel
 (kein Match, Warten, Countdown, Pause nach dem Sieg) der Lobby-Track in Schleife, bei `Running` der
-Spielbeginn-Track, danach die Playlist als gemischter Stapel; Phasenwechsel blenden über, ein
-ausgelaufener Track startet den nächsten sofort. Im Netz folgt er der bestätigten Runde. Gestreamte
+Spielbeginn-Track, danach die Playlist als gemischter Stapel; jeder Wechsel blendet 3,5 s über (Lucas
+Wahl), bei einem auslaufenden Track beginnt der nächste so lange vor dessen Ende. Lautstärke 0,4. Im Netz folgt er der bestätigten Runde. Gestreamte
 Tracks melden nach dem Ende weiter `Playing`, darum misst der Player die Länge selbst
 (`Sound.TotalLength`). MP3s in `Resources/Music`, auf −15,5 LUFS normalisiert (linear, `loudnorm`
 zweistufig; Originale in `.work/music/original`). Hauptmenü-Track für später: `Menu.sdsnd`.
