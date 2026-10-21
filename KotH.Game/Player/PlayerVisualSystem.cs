@@ -146,6 +146,18 @@ namespace KotH.Client.Player
         /// <userdoc>Anteil der Oberkörperdrehung an den Armen in First Person.</userdoc>
         [Display("Oberkörper First Person", "Schlag")] public float SwingArmsTorsoShare = 0.5f;
 
+        /// <userdoc>Schlägt die Figur zur Seite (Third Person), drehen sich Oberkörper und Kopf weich bis zu so vielen Grad zum Ziel, die Beine bleiben; darüber dreht der ganze Körper mit.</userdoc>
+        [Display("Drehung zum Ziel höchstens", "Schlag")] public float SwingTurnDegrees = 60f;
+
+        /// <userdoc>Anteil des Oberkörpers an dieser Drehung, den Rest dreht der Kopf.</userdoc>
+        [Display("Oberkörper an der Drehung", "Schlag")] public float SwingTurnTorsoShare = 0.5f;
+
+        /// <userdoc>So weich dreht die Figur zum Ziel: in dieser Zeit (Sekunden) etwa zu zwei Dritteln.</userdoc>
+        [Display("Eindrehen", "Schlag")] public float SwingTurnSeconds = 0.06f;
+
+        /// <userdoc>So lange dreht sie nach dem Schlag zurück in die Laufrichtung, in Sekunden.</userdoc>
+        [Display("Zurückdrehen", "Schlag")] public float SwingTurnBackSeconds = 0.3f;
+
         /// <userdoc>Im Stehen dreht nur der Kopf mit dem Blick, bis zu so vielen Grad zur Seite; darüber hinaus wird der Körper mitgezogen.</userdoc>
         [Display("Kopfdrehung höchstens", "Animation")] public float HeadTurnDegrees = 40f;
 
@@ -226,6 +238,11 @@ namespace KotH.Client.Player
             public float LeafClock, Yaw, Spin, MouthClock;
             public bool HasYaw, Kicked, HasBody;
             public float BodyYaw, HeadYaw;
+            // The turn to a swing's aim: the shown view, the aim and the torso's
+            // part of the head turn; a ramp from 0 to 1 while the swing lasts.
+            public float View, TwistAim, TwistRamp, TorsoYaw, TwistAge = float.MaxValue;
+            public int TwistSeen;
+            public bool TwistWatching;
             public Vector3 ShownAt;
             public Entity Spores;
             public HeldLeaf Held;
@@ -620,7 +637,8 @@ namespace KotH.Client.Player
         /// <summary>
         /// The body lags behind the view: standing still only the head turns,
         /// up to HeadTurnDegrees, beyond that the body is dragged along; moving,
-        /// the body turns into the view. The motor keeps facing the view.
+        /// the body turns into the view. The motor keeps facing the view. A swing
+        /// turns head and torso softly to its aim (Twist), the legs stay.
         /// </summary>
         void Turn(Figure f, PlayerMotor motor, TransformComponent t, float dt)
         {
@@ -629,23 +647,66 @@ namespace KotH.Client.Player
             // A teleport (a respawn) faces the view at once.
             bool jumped = Vector3.DistanceSquared(f.ShownAt, t.Position) > 4f;
             f.ShownAt = t.Position;
+            float twist = Twist(f, motor, dt);
             if (!f.HasBody || jumped)
             {
                 f.BodyYaw = view;
+                f.View = view;
                 f.HasBody = true;
             }
-            float off = view - f.BodyYaw;
-            off -= MathUtil.TwoPi * MathF.Round(off / MathUtil.TwoPi);
+            else
+            {
+                // A swing in third person snaps the motor to the aim: the shown
+                // view follows softly, held on the aim while the swing lasts.
+                float target = view + twist * Wrap(f.TwistAim - view);
+                float lag = SwingTurnSeconds * twist;
+                f.View += Wrap(target - f.View) * (lag > 1e-4f ? 1f - MathF.Exp(-dt / lag) : 1f);
+            }
+            float off = Wrap(f.View - f.BodyYaw);
             Vector3 v = motor.Velocity;
             bool still = motor.IsGrounded && v.X * v.X + v.Z * v.Z < 0.3f * 0.3f;
+            // Swinging, the legs keep their way; head and torso turn further.
             if (!still)
-                off *= MathF.Exp(-dt / MathF.Max(1e-3f, BodyFollowSeconds));
-            float most = MathUtil.DegreesToRadians(HeadTurnDegrees);
+                off *= MathF.Exp(-dt * (1f - twist) / MathF.Max(1e-3f, BodyFollowSeconds));
+            float most = MathUtil.DegreesToRadians(MathUtil.Lerp(HeadTurnDegrees, SwingTurnDegrees, twist));
             off = Math.Clamp(off, -most, most);
-            f.BodyYaw = view - off;
+            f.BodyYaw = f.View - off;
             f.HeadYaw = off;
+            f.TorsoYaw = off * SwingTurnTorsoShare * twist;
             t.Rotation = Quaternion.RotationY(f.BodyYaw);
         }
+
+        /// <summary>
+        /// How far a figure is turned to its last swing's aim, 0 to 1: up while
+        /// it winds up, held to the end of the follow-through, then back.
+        /// Started by MeleeAttack.LastSwingTick; the aim is the motor's yaw then.
+        /// </summary>
+        float Twist(Figure f, PlayerMotor motor, float dt)
+        {
+            if (f.Melee == null)
+                return 0f;
+            int swung = f.Melee.LastSwingTick;
+            if (!f.TwistWatching || swung != f.TwistSeen)
+            {
+                if (f.TwistWatching && swung > f.TwistSeen)
+                {
+                    Vector3 aim = Vector3.Transform(-Vector3.UnitZ, motor.Rotation);
+                    f.TwistAim = MathF.Atan2(-aim.X, -aim.Z);
+                    f.TwistAge = 0f;
+                }
+                f.TwistSeen = swung;
+                f.TwistWatching = true;
+            }
+            else if (f.TwistAge < float.MaxValue)
+                f.TwistAge += dt;
+
+            bool holding = f.TwistAge < SwingWindupSeconds + SwingStrikeSeconds + SwingFollowSeconds;
+            float step = dt / MathF.Max(1e-3f, holding ? SwingWindupSeconds : SwingTurnBackSeconds);
+            f.TwistRamp = Math.Clamp(f.TwistRamp + (holding ? step : -step), 0f, 1f);
+            return Smooth(f.TwistRamp);
+        }
+
+        static float Wrap(float angle) => angle - MathUtil.TwoPi * MathF.Round(angle / MathUtil.TwoPi);
 
         /// <summary>
         /// A hit tips the upper body away from the attacker on the Recoil bone
@@ -684,8 +745,10 @@ namespace KotH.Client.Player
             float amount = f.HitAge < rise ? Smooth(f.HitAge / rise)
                          : 1f - Smooth(Math.Clamp((f.HitAge - rise) / MathF.Max(1e-3f, HitSettleSeconds), 0f, 1f));
             f.HitHead = Quaternion.RotationAxis(f.HitAxis, MathUtil.DegreesToRadians(HitHeadDegrees * amount));
-            // The swing turns the torso a little as well; the hit tips it on top.
-            skeleton.NodeTransformations[f.Recoil].Transform.Rotation = f.Swing.Torso *
+            // The swing turns the torso to its aim and a little with the arm;
+            // the hit tips it on top.
+            skeleton.NodeTransformations[f.Recoil].Transform.Rotation =
+                Quaternion.RotationY(f.TorsoYaw) * f.Swing.Torso *
                 Quaternion.RotationAxis(f.HitAxis, MathUtil.DegreesToRadians(HitLeanDegrees * amount));
         }
 
@@ -720,10 +783,10 @@ namespace KotH.Client.Player
             float tilt = Math.Clamp(pitch * HeadFollow, -HeadMaxDegrees, HeadMaxDegrees);
             // The neck points up, its X is the figure's right: positive tips the head
             // back. The tilt comes first, then the turn about the neck, then the
-            // recoil of a hit, in the body's frame; the swing's torso turn is
+            // recoil of a hit, in the body's frame; the swing's torso turns are
             // taken back out, so the head keeps to the view.
             skeleton.NodeTransformations[f.Look].Transform.Rotation =
-                Quaternion.RotationYawPitchRoll(f.HeadYaw, MathUtil.DegreesToRadians(tilt), 0f) * f.HitHead
+                Quaternion.RotationYawPitchRoll(f.HeadYaw - f.TorsoYaw, MathUtil.DegreesToRadians(tilt), 0f) * f.HitHead
                 * Quaternion.Invert(f.Swing.Torso);
         }
 

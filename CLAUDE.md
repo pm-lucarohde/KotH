@@ -311,6 +311,10 @@ Schlag (Lucas Wunsch): `ArmSwing` (`KotH.Game/Player/SwingMotion.cs`) dreht die 
 Zwei-Knochen-IK auf eine gewölbte Bahn: 75 % oben rechts → unten links, sonst umgekehrt, Variation
 deterministisch aus NetId und Schlag-Tick; Oberkörper sehr leicht über `Recoil`, Kopf zurückgedreht.
 Auslöser `MeleeAttack.LastSwingTick` (kein Zustand). Nur Optik, der Treffer zählt weiter beim Klick.
+In Third Person dreht der Motor beim Klick sofort zum Fadenkreuz; die Figur zeigt das weich (Lucas Wunsch):
+Oberkörper und Kopf drehen bis 60° zum Ziel, die Beine bleiben in Laufrichtung, darüber dreht der
+ganze Körper mit, nach dem Durchziehen in 0,3 s zurück („Drehung zum Ziel höchstens“, `Twist` in
+`PlayerVisualSystem`). Nur Darstellung, Rückstoß kommt aus den Positionen.
 
 ## Git
 
