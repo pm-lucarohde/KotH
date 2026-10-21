@@ -1,0 +1,7 @@
+!Sound
+Id: A6CA236E-0542-4708-8A2C-6234B8506B85
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Music/alex-morgan-swing-jazz-sunny-cafe-568159.mp3
+StreamFromDisk: true
+Spatialized: false

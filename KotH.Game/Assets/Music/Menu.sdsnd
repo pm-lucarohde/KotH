@@ -1,0 +1,7 @@
+!Sound
+Id: FCCF350A-035C-4AF5-A488-A2D622F152C0
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Music/alex-morgan-jazz-fusion-piano-cocktail-bar-560074.mp3
+StreamFromDisk: true
+Spatialized: false

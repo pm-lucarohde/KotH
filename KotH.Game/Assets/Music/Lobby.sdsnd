@@ -1,0 +1,7 @@
+!Sound
+Id: BC951019-777A-4553-A647-BE1D54F2FEDD
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Music/aurec-jazz-piano-585359.mp3
+StreamFromDisk: true
+Spatialized: false

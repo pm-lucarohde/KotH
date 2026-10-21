@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using KotH.Client;
+using KotH.Client.Audio;
 using KotH.Client.Hud;
 using KotH.Client.Net;
 using KotH.Client.Player;
@@ -50,7 +51,9 @@ game.Run();
 /// inside the game on purpose, a desktop screenshot would capture whatever
 /// else is on the screen. For performance runs: KOTH_SIZE=1920x1080 sets the
 /// window, KOTH_VSYNC=0 or 1 overrides V-Sync, and KOTH_FRAMELOG=path writes
-/// every frame time in milliseconds, one per line, when the game ends.
+/// every frame time in milliseconds, one per line, when the game ends. For the music:
+/// KOTH_MUSIC_VOLUME=0..1 overrides the volume, KOTH_MUSIC_TAIL=s starts every single-play
+/// track s seconds before its end, so the changes come quickly.
 /// </summary>
 sealed class KotHGame : Game
 {
@@ -79,6 +82,9 @@ sealed class KotHGame : Game
         (Environment.GetEnvironmentVariable("KOTH_SHOT_STRIKE") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)
             .Select(s => double.Parse(s, CultureInfo.InvariantCulture)));
     readonly string frameLogPath = Environment.GetEnvironmentVariable("KOTH_FRAMELOG");
+    readonly double? musicVolume = Number("KOTH_MUSIC_VOLUME");
+    readonly double? musicTail = Number("KOTH_MUSIC_TAIL");
+    bool musicSet;
     Int2 windowedSize;
     bool confined;
 
@@ -230,6 +236,14 @@ sealed class KotHGame : Game
 
     protected override void Update(GameTime gameTime)
     {
+        // Before the scripts run, so the first piece already starts with these.
+        if (!musicSet && (musicVolume.HasValue || musicTail.HasValue) && Find<MusicPlayer>() is { } music)
+        {
+            musicSet = true;
+            music.Volume = (float)(musicVolume ?? music.Volume);
+            music.TailSeconds = musicTail ?? 0.0;
+        }
+
         base.Update(gameTime);
 
         if (KeyPresses.Pressed(Input, Keys.F11))
@@ -425,6 +439,8 @@ sealed class KotHGame : Game
 
         Console.WriteLine($"[shot] {shotPath} nach {gameTime.Total.TotalSeconds:F1} s, {gameTime.FramePerSecond:F0} fps, " +
                           $"Gier {Find<PlayerInputReader>()?.Yaw:F2}°");
+        if (Find<MusicPlayer>() is { } music)
+            Console.WriteLine($"[musik] {music.Readout}");
         if (Find<PlayerInputReader>()?.Entity.Get<KotH.Shared.Combat.MeleeAttack>() is { } melee)
             Console.WriteLine($"[swing] {melee.SwingCount} Schläge, {melee.HitCount} Treffer, " +
                               $"zuletzt {melee.LastHitDistance:F3} m");

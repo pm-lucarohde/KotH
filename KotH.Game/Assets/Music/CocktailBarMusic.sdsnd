@@ -1,0 +1,7 @@
+!Sound
+Id: 547AD933-A109-4CD2-BF72-54CB0540771D
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Music/alex-morgan-jazz-cocktail-bar-music-556247.mp3
+StreamFromDisk: true
+Spatialized: false

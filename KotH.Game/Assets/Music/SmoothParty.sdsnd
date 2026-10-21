@@ -1,0 +1,7 @@
+!Sound
+Id: 68CE7A76-F02E-46E5-AF50-E090CB5A8242
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Music/miromaxmusic-stylish-funk-smooth-party-no-copyright-620664.mp3
+StreamFromDisk: true
+Spatialized: false

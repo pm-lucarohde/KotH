@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using KotH.Client.Audio;
 using KotH.Client.Hud;
 using KotH.Client.Match;
 using KotH.Client.Net;
@@ -247,6 +248,14 @@ namespace KotH.Client
                     zone.Match = simulation.Match;
                     zone.Self = self;
                     zone.Board = board;
+                }
+            foreach (Entity e in Entity.Scene.Entities)
+                if (e.Get<MusicPlayer>() is { } music)
+                {
+                    music.Match = simulation.Match;
+                    // Bound before the client exists too: read it late, so connecting counts as the lobby.
+                    if (LaunchOptions.Current.Networked)
+                        music.ConfirmedRound = () => net != null && net.Session.TryConfirmedMatch(out MatchState m) ? m : null;
                 }
             foreach (Entity e in Entity.Scene.Entities)
                 if (e.Get<PerformanceOverlay>() is { } overlay && net != null)

@@ -30,7 +30,7 @@ cd Bin/Linux/Release && ./KotH         # aus dem Ausgabeordner starten
 Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Probes}/aot
 ```
 
-- AOT linkt in der Distrobox `aot` (clang, lld, zlib-devel); ILC stürzt gelegentlich
+- AOT linkt in der Distrobox `aot` (clang, lld, zlib-devel, libva für Strides ffmpeg); ILC stürzt gelegentlich
   ab, dann einfach erneut starten.
   Das Skript baut immer `--no-incremental`: sonst bleibt nach neuen Skriptfeldern das alte
   Szenen-Bundle liegen, und der AOT-Client stürzt beim Laden von `MainScene` ab.
@@ -63,7 +63,9 @@ Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Pr
   erst nach dem ersten Bild), `KOTH_SHOT_VIDEO=s` (die letzten s Sekunden vor dem Bild als Rohbilder
   mit 30 fps nach `bild.png.rgba`, BGRA, für ffmpeg `-f rawvideo -pix_fmt bgra`; ein Desktop-Mitschnitt
   träfe den zweiten Monitor), `KOTH_SIZE=WxH`, `KOTH_VSYNC=0|1`,
-  `KOTH_FRAMELOG=datei`.
+  `KOTH_FRAMELOG=datei`, `KOTH_MUSIC_VOLUME=0..1` (stumm testen), `KOTH_MUSIC_TAIL=s` (jeder
+  Track startet s Sekunden vor seinem Ende). Das Bild meldet `[musik]` mit Verlauf. Ton ohne
+  Lautsprecher prüfen: OpenAL-Treiber `wave` (`ALSOFT_DRIVERS=wave`, `ALSOFT_CONF` mit `[wave] file=…`).
 - Client: kein Splash (asynchrones Laden + `WaitIdle` ohne QueueLock gab
   `VK_ERROR_DEVICE_LOST`), Renderer-Parallelität 6 (gemessen, Lucas Wahl).
 
@@ -205,6 +207,16 @@ Strides UI-Tiefenversatz unter Vulkan kippt. Zahlen im deutschen Format über
 Die Kamera wackelt bei jedem eingesteckten Treffer gleich stark (First und Third
 Person, `PlayerCamera`, „Wackeln bei Treffer“). Auslöser ist `DamagePercent.LastHitTick`,
 kein Zustand: ein Rollback behält ihn, im Netz kommt der Treffer mit der Bestätigung.
+
+### Musik
+
+`MusicPlayer` (`KotH.Game/Audio`, Entity `Music` in `MainScene`, Lucas Wahl 21.10.2026): vor dem Spiel
+(kein Match, Warten, Countdown, Pause nach dem Sieg) der Lobby-Track in Schleife, bei `Running` der
+Spielbeginn-Track, danach die Playlist als gemischter Stapel; Phasenwechsel blenden über, ein
+ausgelaufener Track startet den nächsten sofort. Im Netz folgt er der bestätigten Runde. Gestreamte
+Tracks melden nach dem Ende weiter `Playing`, darum misst der Player die Länge selbst
+(`Sound.TotalLength`). MP3s in `Resources/Music`, auf −15,5 LUFS normalisiert (linear, `loudnorm`
+zweistufig; Originale in `.work/music/original`). Hauptmenü-Track für später: `Menu.sdsnd`.
 
 ### Bots
 

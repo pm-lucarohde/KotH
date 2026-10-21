@@ -1,0 +1,7 @@
+!Sound
+Id: EC8DD547-26CC-4A07-BA27-E8E83317A04D
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Music/art_roseman-fun-and-quirky-jazz-583916.mp3
+StreamFromDisk: true
+Spatialized: false

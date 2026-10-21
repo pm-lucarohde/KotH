@@ -45,6 +45,12 @@ ihrem Startplatz (`PlayerSpawn0` bis `PlayerSpawn11`, zwei Reihen hinter dem Spa
 Beitreten geht beim Warten, im Countdown, nach einem Sieg und in der ersten Minute
 einer Runde. Offline beginnt die Runde sofort.
 
+Musik: Vor dem Spiel (Warten, Countdown und die Pause nach einem Sieg) läuft ein
+Lobby-Track in Schleife, bei Rundenbeginn ein fester Spielbeginn-Track, danach die
+übrigen sieben gemischt, jeder einmal, bevor einer wiederkommt. Wechsel der Phase
+blenden in 1,5 s über. Alle Tracks sind auf −15,5 LUFS normalisiert; Lautstärke und
+Auswahl stehen in Game Studio an der Entity `Music` (`MusicPlayer`).
+
 | | |
 |---|---|
 | Engine | [Stride](https://www.stride3d.net/) 4.4 mit Bepu-Physik |
@@ -82,7 +88,7 @@ Ein Peer hostet, ein dedizierter Server ist nicht geplant.
   Ist er nicht im `PATH`: `export DOTNET_ROOT=$HOME/.dotnet PATH=$HOME/.dotnet:$PATH`.
 - Vulkan-Treiber.
 - Für die **NativeAOT-Builds**: eine Distrobox namens `aot` (Fedora 44) mit
-  `clang`, `lld` und `zlib-devel`. Der normale JIT-Build braucht sie nicht.
+  `clang`, `lld`, `zlib-devel` und `libva` (für Strides ffmpeg beim Übersetzen der Musik). Der normale JIT-Build braucht sie nicht.
 - Zum Bearbeiten von Szene, Prefabs und Tuning: **Stride Game Studio** 4.4.
   Unter Linux läuft es über Wine bzw. Proton; geöffnet wird `KotH.slnx`. Das
   Prefix braucht das Windows-SDK von .NET 11. Unter .NET 11 friert der Editor
@@ -271,3 +277,15 @@ Ausgenommen sind mitgelieferte Fremdbestandteile unter ihren eigenen Lizenzen:
 - `KotH.Game/Resources/Fonts/OpenSans-Regular.ttf`: Open Sans, Apache License 2.0
   (`KotH.Game/Resources/Fonts/LICENSE.txt`).
 - `KotH.Game/Resources/skybox_texture_*.dds`: aus der Stride-Projektvorlage, MIT.
+- `KotH.Game/Resources/Music/*.mp3`: von Pixabay unter der
+  [Pixabay Content License](https://pixabay.com/service/license-summary/), auf −15,5 LUFS normalisiert:
+  - Hauptmenü (noch nicht eingebaut): [Jazz Fusion Piano Cocktail Bar](https://pixabay.com/music/modern-jazz-jazz-fusion-piano-cocktail-bar-560074/)
+  - Vor dem Spiel: [Jazz Piano](https://pixabay.com/music/small-drama-jazz-piano-585359/)
+  - Spielbeginn: [Fun and Quirky Jazz](https://pixabay.com/music/modern-jazz-fun-and-quirky-jazz-583916/)
+  - Während des Spiels: [Jazz Cocktail Bar Music](https://pixabay.com/music/modern-jazz-jazz-cocktail-bar-music-556247/),
+    [Acid Jazz Restaurant](https://pixabay.com/music/modern-jazz-acid-jazz-restaurant-552301/),
+    [Swing Jazz Sunny Cafe](https://pixabay.com/music/modern-jazz-swing-jazz-sunny-cafe-568159/),
+    [Jazz Cocktail Bar Funk](https://pixabay.com/music/funk-jazz-cocktail-bar-funk-559987/),
+    [Stylish Funk Smooth Party](https://pixabay.com/music/funk-stylish-funk-smooth-party-no-copyright-620664/),
+    [Retro House](https://pixabay.com/music/soft-house-retro-house-201792/),
+    [Jazz Coffee Shop Music](https://pixabay.com/music/modern-jazz-jazz-coffee-shop-music-556234/)

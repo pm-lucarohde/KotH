@@ -13,7 +13,30 @@ Hierarchy:
         - ref!! 1CF3AC48-0B2B-50ED-B2FD-A700E4F2FAA4
         - ref!! 5DB33183-5007-5E05-870D-C89CB42ACC17
         - ref!! 87F189D0-5C83-4C57-8C2E-071CB60E54D2
+        - ref!! 5CE824C2-8C7F-4378-B977-50B0DB74D85A
     Parts:
+        -   Entity:
+                Id: 5CE824C2-8C7F-4378-B977-50B0DB74D85A
+                Name: Music
+                Components:
+                    692a7acb5ce846b5a6916f76adc088c5: !TransformComponent
+                        Id: 2171CE91-FC6F-452D-92A0-6171A3F9DD8C
+                        Position: {X: 0.0, Y: 0.0, Z: 0.0}
+                        Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    ab28fc9d067a455d9ed5558ee501dd1b: !KotH.MusicPlayer
+                        Id: D4BA9C2D-F29B-4529-B9F0-CA4DC65FAD3B
+                        Lobby: BC951019-777A-4553-A647-BE1D54F2FEDD:Music/Lobby
+                        RoundStart: EC8DD547-26CC-4A07-BA27-E8E83317A04D:Music/RoundStart
+                        Playlist:
+                            a5c1e23312bd438cb204939ce055f0ac: 547AD933-A109-4CD2-BF72-54CB0540771D:Music/CocktailBarMusic
+                            565d4ef7f1264aff84cb85d5cfea91ae: 6C857F84-6876-4EDE-BE16-3D9CC9A2C950:Music/AcidJazzRestaurant
+                            1f145be9c3004f8ab98f3ed0a5cdd549: A6CA236E-0542-4708-8A2C-6234B8506B85:Music/SunnyCafe
+                            c8718f3a5b744f15885900b22d097b0f: 9FA02B71-4EB2-438E-9744-39B5A720A228:Music/CocktailBarFunk
+                            5b4d69bfe8dd4491ae70740c7b977885: 68CE7A76-F02E-46E5-AF50-E090CB5A8242:Music/SmoothParty
+                            4efd120e15d14ad699f0161b19fcfab4: 0CC09FC6-91E0-4D64-A21C-06343BC4C1CE:Music/RetroHouse
+                            fe17e97740254d48ab6cd6d93feb39a9: 74434E21-A935-41AE-88F1-12CCA205CFF9:Music/CoffeeShop
         -   Entity:
                 Id: 87F189D0-5C83-4C57-8C2E-071CB60E54D2
                 Name: ZoneVisual

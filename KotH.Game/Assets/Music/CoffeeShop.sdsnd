@@ -1,0 +1,7 @@
+!Sound
+Id: 74434E21-A935-41AE-88F1-12CCA205CFF9
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Music/alex-morgan-jazz-coffee-shop-music-556234.mp3
+StreamFromDisk: true
+Spatialized: false

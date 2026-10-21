@@ -1,0 +1,7 @@
+!Sound
+Id: 6C857F84-6876-4EDE-BE16-3D9CC9A2C950
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Music/alex-morgan-acid-jazz-restaurant-552301.mp3
+StreamFromDisk: true
+Spatialized: false

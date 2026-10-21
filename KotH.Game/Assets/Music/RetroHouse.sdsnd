@@ -1,0 +1,7 @@
+!Sound
+Id: 0CC09FC6-91E0-4D64-A21C-06343BC4C1CE
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Music/wavemaster-retro-house-201792.mp3
+StreamFromDisk: true
+Spatialized: false
