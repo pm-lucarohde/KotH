@@ -196,8 +196,8 @@ gehen beim Speichern an.
 
 `HudRenderer` zeichnet das HUD per SpriteBatch nach der Szene (`IHudElement`), weil
 Strides UI-Tiefenversatz unter Vulkan kippt. Zahlen im deutschen Format über
-`HudRenderer.Numbers`. Die eigenen Schadensprozent stehen groß unten in der Mitte
-(`HillBoard`, Siegerschrift), die der anderen über ihren Köpfen (`DamageLabel`).
+`HudRenderer.Numbers`. Die eigenen Schadensprozent stehen oben rechts unter der Bestenliste
+(`HillBoard`), die der anderen über ihren Köpfen (`DamageLabel`).
 
 Die Kamera wackelt bei jedem eingesteckten Treffer gleich stark (First und Third
 Person, `PlayerCamera`, „Wackeln bei Treffer“). Auslöser ist `DamagePercent.LastHitTick`,

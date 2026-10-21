@@ -13,8 +13,8 @@ namespace KotH.Client.Hud
     /// <summary>
     /// The round on screen: own points and the time left at the top, what
     /// the zone is doing below, the warm-up as a bar, the best four at the
-    /// top right, the own damage percent large at the bottom and the winner
-    /// in the middle. Before a networked round the
+    /// top right with the own damage percent below them and the winner in
+    /// the middle. Before a networked round the
     /// top line waits for players or counts down instead. Presentation
     /// only: it reads the match and the bodies and never writes to either.
     /// </summary>
@@ -113,8 +113,7 @@ namespace KotH.Client.Hud
                            Color4.PremultiplyAlpha(OwnColor.ToColor4()));
             }
 
-            DrawRanking(batch, screen);
-            DrawDamage(batch, screen);
+            DrawDamage(batch, screen, DrawRanking(batch, screen) + Pad);
 
             string notice = Notice?.Invoke();
             if (notice != null)
@@ -200,7 +199,8 @@ namespace KotH.Client.Hud
                                             i + 1, NameOf(ranking[i]), HillMatch.Points(ranking[i].ScoreTicks)));
         }
 
-        void DrawRanking(SpriteBatch batch, Vector2 screen)
+        /// <summary>The best few at the top right; returns the y below them.</summary>
+        float DrawRanking(SpriteBatch batch, Vector2 screen)
         {
             float y = Margin;
             for (int i = 0; i < rankLines.Count; i++)
@@ -212,10 +212,11 @@ namespace KotH.Client.Hud
                 batch.DrawString(Font, rankLines[i], Font.Size, at, own ? OwnColor : Color.White);
                 y += size.Y;
             }
+            return y;
         }
 
-        /// <summary>The own damage percent, large at the bottom centre, as over the heads of the others.</summary>
-        void DrawDamage(SpriteBatch batch, Vector2 screen)
+        /// <summary>The own damage percent at the top right from y on, as over the heads of the others.</summary>
+        void DrawDamage(SpriteBatch batch, Vector2 screen, float y)
         {
             if (Self != damageOf)
             {
@@ -228,11 +229,12 @@ namespace KotH.Client.Hud
             if (damage.Percent != shownDamage)
             {
                 shownDamage = damage.Percent;
-                damageText = shownDamage.ToString("F1", HudRenderer.Numbers) + " %";
+                damageText = "Schaden " + shownDamage.ToString("F1", HudRenderer.Numbers) + " %";
             }
-            SpriteFont big = BannerFont ?? Font;
-            float height = big.MeasureString(damageText, big.Size).Y;
-            Centered(batch, big, damageText, big.Size, screen.X, screen.Y - Margin - height, Color.White);
+            Vector2 size = Font.MeasureString(damageText, Font.Size);
+            var at = new Vector2(screen.X - Margin - size.X, y);
+            batch.Draw(hud.White, new RectangleF(at.X - Pad, at.Y, size.X + 2f * Pad, size.Y), Band);
+            batch.DrawString(Font, damageText, Font.Size, at, Color.White);
         }
 
         /// <summary>Draws one line centred on a band; returns the y below it.</summary>
