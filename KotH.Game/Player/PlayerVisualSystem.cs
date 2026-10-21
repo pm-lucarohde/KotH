@@ -66,7 +66,7 @@ namespace KotH.Client.Player
         [Display("Breite geduckt", "Animation")] public float CrouchWidth = 0.9f;
 
         /// <userdoc>Wie weit sich der Mund im Atemrhythmus öffnet und schließt (0,1 = um 10 % seiner Höhe).</userdoc>
-        [Display("Mund", "Animation")] public float MouthBreath = 0.08f;
+        [Display("Mund", "Animation")] public float MouthBreath = 0.16f;
 
         /// <userdoc>Wie lange die Figur nach einer Landung einfedert, in Sekunden; jede Landung gleich stark.</userdoc>
         [Display("Einfedern", "Animation")] public float LandSeconds = 0.3f;
