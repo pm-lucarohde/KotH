@@ -218,7 +218,7 @@ am Kragen, zeigen nach oben mit dem Drehpunkt oben; Federn im Fahrtwind und im W
 Drehung, „Blätter“ in `PlayerVisualSystem`), die Lider
 (Blinzeln zufällig alle 2–10 s, offen auf einen Punkt geschrumpft) und `Look` unter dem Kopf (folgt
 `SimulationBody.LookPitch`, dem Nickwinkel der Eingabe, kein Zustand; im Stehen dreht er auch bis
-30° zur Seite, erst darüber zieht er den Körper mit, in Bewegung folgt der Körper dem Blick,
+40° zur Seite, erst darüber zieht er den Körper mit, in Bewegung folgt der Körper dem Blick,
 „Kopfdrehung höchstens“, „Körper folgt Blick“; der Motor schaut weiter in Blickrichtung). Die Clips dürfen
 deshalb **keine Kanäle für Lider, Blätter, `Mouth` und `Look`** haben. Erzeugt werden Modell, Clips,
 Lid-Textur und die Knotenliste des Skeletts mit `.work/rig/build.sh` (Blender headless,
