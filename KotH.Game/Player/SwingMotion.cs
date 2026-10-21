@@ -72,6 +72,7 @@ namespace KotH.Client.Player
         bool down;
         Vector3 from, high, bulgeHigh, bulgeLow, low, pole;
         float startWeight, pace = 1f, torso = 1f;
+        float yawNow, bendNow, startYaw, startBend;
 
         /// <summary>The hand's goal relative to the shoulder and how much it counts.</summary>
         public Vector3 Hand { get; private set; }
@@ -140,6 +141,8 @@ namespace KotH.Client.Player
             // From wherever the hand is shown now: mid-swing or the clip's own.
             from = Weight > 1e-3f ? Hand : ClipHand(skeleton);
             startWeight = Weight;
+            startYaw = yawNow;
+            startBend = bendNow;
             age = 0f;
 
             uint seed = unchecked((uint)netId * 0x9E3779B1u ^ (uint)tick * 0x85EBCA77u) | 1u;
@@ -178,14 +181,16 @@ namespace KotH.Client.Player
             float windup = MathF.Max(1e-3f, s.Windup * pace), strike = MathF.Max(1e-3f, s.Strike * pace);
             float follow = s.Follow * pace, back = MathF.Max(1e-3f, s.Back);
             float t = age;
-            // Torso phase: -1 wound up, +1 struck through.
-            float phase;
+            // Torso phase: -1 wound up, +1 struck through. A swing that comes
+            // before the last one is back starts from its turn, not from zero.
+            float phase, carried = 0f;
             if (t < windup)
             {
                 float k = Smooth(t / windup);
                 Hand = Vector3.Lerp(from, high, k);
                 Weight = startWeight + (1f - startWeight) * k;
                 phase = -k;
+                carried = 1f - k;
             }
             else if ((t -= windup) < strike)
             {
@@ -212,12 +217,15 @@ namespace KotH.Client.Player
             {
                 age = float.MaxValue;
                 Weight = 0f;
+                yawNow = bendNow = 0f;
                 Torso = Quaternion.Identity;
                 return;
             }
             // Down: wound up turned to the right, struck through to the left.
             float yaw = (down ? phase : -phase) * s.TorsoDegrees * torso * Weight;
             float bend = -MathF.Max(0f, phase) * s.BendDegrees * Weight;
+            yawNow = yaw = startYaw * carried + yaw * (1f - carried);
+            bendNow = bend = startBend * carried + bend * (1f - carried);
             Torso = Quaternion.RotationAxis(Vector3.UnitY, MathUtil.DegreesToRadians(yaw))
                   * Quaternion.RotationAxis(Vector3.UnitX, MathUtil.DegreesToRadians(bend));
         }

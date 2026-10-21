@@ -123,16 +123,16 @@ namespace KotH.Client.Player
         [Display("Anteil von oben", "Schlag")] public float SwingDownShare = 0.75f;
 
         /// <userdoc>So lange holt die Figur aus, in Sekunden. Der Treffer zählt schon beim Klick.</userdoc>
-        [Display("Ausholen", "Schlag")] public float SwingWindupSeconds = 0.14f;
+        [Display("Ausholen", "Schlag")] public float SwingWindupSeconds = 0.105f;
 
         /// <userdoc>So lange zieht sie den Stab durch, in Sekunden; er wird dabei schneller.</userdoc>
-        [Display("Durchziehen", "Schlag")] public float SwingStrikeSeconds = 0.24f;
+        [Display("Durchziehen", "Schlag")] public float SwingStrikeSeconds = 0.18f;
 
         /// <userdoc>So lange bleibt der Arm am Ende des Schlags, in Sekunden.</userdoc>
-        [Display("Nachschwingen", "Schlag")] public float SwingFollowSeconds = 0.1f;
+        [Display("Nachschwingen", "Schlag")] public float SwingFollowSeconds = 0.075f;
 
         /// <userdoc>So lange dauert es zurück in die Haltung, in Sekunden.</userdoc>
-        [Display("Zurück", "Schlag")] public float SwingBackSeconds = 0.5f;
+        [Display("Zurück", "Schlag")] public float SwingBackSeconds = 0.375f;
 
         /// <userdoc>Wie verschieden die Schläge sind: Ausholpunkt, Endpunkt, Bogen, Tempo und Oberkörper streuen (0 = jeder gleich, 1 = normal).</userdoc>
         [Display("Variation", "Schlag")] public float SwingVariation = 1f;
