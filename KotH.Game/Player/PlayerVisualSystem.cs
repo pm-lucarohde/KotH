@@ -38,8 +38,11 @@ namespace KotH.Client.Player
         readonly List<Quaternion> toRotations = new List<Quaternion>();
         int seenTick = -1;
 
-        /// <userdoc>Sekunden zwischen zwei Lidschlägen einer Figur.</userdoc>
-        [Display("Blinzelabstand", "Animation")] public float BlinkInterval = 10f;
+        /// <userdoc>Kürzeste Pause in Sekunden zwischen zwei Lidschlägen einer Figur; jede Pause wird zufällig zwischen kürzester und längster gewählt.</userdoc>
+        [Display("Blinzelabstand kürzester", "Animation")] public float BlinkMin = 2f;
+
+        /// <userdoc>Längste Pause in Sekunden zwischen zwei Lidschlägen einer Figur.</userdoc>
+        [Display("Blinzelabstand längster", "Animation")] public float BlinkMax = 10f;
 
         /// <userdoc>Wie lange ein Lidschlag dauert, zu und wieder auf.</userdoc>
         [Display("Blinzeldauer", "Animation")] public float BlinkSeconds = 0.15f;
@@ -146,7 +149,7 @@ namespace KotH.Client.Player
             public PlayingAnimation[] Plays;
             public readonly float[] Weights = new float[Clips.Length];
             public SimulationBody Body;
-            public float Phase, BlinkClock;
+            public float Phase, BlinkClock, BlinkWait;
             public float AirTime, LandAge = float.MaxValue, KickAge = float.MaxValue, LastClimb;
             public int[] Lids;
             public int Look = -2, Mouth = -2;
@@ -181,7 +184,7 @@ namespace KotH.Client.Player
                 Model = visual.Get<ModelComponent>(),
                 Body = motor.Entity.Get<SimulationBody>(),
                 // Figures side by side never blink together.
-                BlinkClock = (float)random.NextDouble() * BlinkInterval,
+                BlinkWait = BlinkPause(),
                 MouthClock = (float)random.NextDouble() * 30f,
             });
         }
@@ -190,7 +193,7 @@ namespace KotH.Client.Player
         public void BlinkAll()
         {
             foreach (Figure f in figures)
-                f.BlinkClock = BlinkInterval;
+                f.BlinkClock = f.BlinkWait;
         }
 
         public void Unregister(Entity visual)
@@ -548,6 +551,9 @@ namespace KotH.Client.Player
             return t * t * (3f - 2f * t);
         }
 
+        /// <summary>A random pause before the next blink, so no two figures keep time.</summary>
+        float BlinkPause() => BlinkMin + (float)random.NextDouble() * MathF.Max(0f, BlinkMax - BlinkMin);
+
         void Blink(Figure f, float dt)
         {
             SkeletonUpdater skeleton = f.Model?.Skeleton;
@@ -560,11 +566,15 @@ namespace KotH.Client.Player
                     f.Lids[k] = Array.FindIndex(skeleton.Nodes, n => n.Name == LidBones[k]);
             }
 
-            // Down in the first third, held a moment, up in the last half.
+            // Down in the first third, held a moment, up in the last half;
+            // then a new pause of its own length.
             f.BlinkClock += dt;
-            if (f.BlinkClock >= BlinkInterval + BlinkSeconds)
-                f.BlinkClock -= BlinkInterval;
-            float t = (f.BlinkClock - BlinkInterval) / BlinkSeconds;
+            if (f.BlinkClock >= f.BlinkWait + BlinkSeconds)
+            {
+                f.BlinkClock = 0f;
+                f.BlinkWait = BlinkPause();
+            }
+            float t = (f.BlinkClock - f.BlinkWait) / BlinkSeconds;
             float closed = t <= 0f || t >= 1f ? 0f
                          : t < 0.33f ? t / 0.33f
                          : t < 0.5f ? 1f

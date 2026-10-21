@@ -216,7 +216,7 @@ die Lauf-Clips laufen mit `TimeFactor` 0 auf einer gemeinsamen Phase aus der Str
 davor und überbrückt die Mulde im Netz), die Blätter (`Leaf.S0`–`S5` am Rock, `Leaf.C0`–`C3`
 am Kragen, zeigen nach oben mit dem Drehpunkt oben; Federn im Fahrtwind und im Wind der
 Drehung, „Blätter“ in `PlayerVisualSystem`), die Lider
-(Blinzeln alle 10 s, offen auf einen Punkt geschrumpft) und `Look` unter dem Kopf (folgt
+(Blinzeln zufällig alle 2–10 s, offen auf einen Punkt geschrumpft) und `Look` unter dem Kopf (folgt
 `SimulationBody.LookPitch`, dem Nickwinkel der Eingabe, kein Zustand; im Stehen dreht er auch bis
 30° zur Seite, erst darüber zieht er den Körper mit, in Bewegung folgt der Körper dem Blick,
 „Kopfdrehung höchstens“, „Körper folgt Blick“; der Motor schaut weiter in Blickrichtung). Die Clips dürfen
