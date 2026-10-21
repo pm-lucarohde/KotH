@@ -10,6 +10,11 @@ Materials:
         MaterialInstance:
             Material: 94D3E93A-86DB-4DF2-A874-B1ED628EF54F:Materials/Mushroom
             IsShadowCaster: true
+    f57b1c79b7524e14a77b80d2553c5714:
+        Name: MushroomGlove
+        MaterialInstance:
+            Material: 8AA7E627-B0C4-4524-BB8D-1139E3C646B8:Materials/MushroomGlove
+            IsShadowCaster: true
     1c4ed23a094d4f41a5e31e59d5d7ee25:
         Name: MushroomLid
         MaterialInstance:

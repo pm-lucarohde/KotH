@@ -120,6 +120,9 @@ namespace KotH.Client.Player
         const int CrouchIndex = 10, CrouchWalkIndex = 11, SlideIndex = 12, FallIndex = 13, LandIndex = 14;
         const int JumpIndex = 15, KickIndex = 16;
 
+        /// <summary>Clip names of the first-person arms: still, walking, running.</summary>
+        public static readonly string[] ArmClips = { "Idle", "Walk", "Run" };
+
         // A landing only counts after this long in the air: stepping down a
         // stair or snapping to the ground does not give at the knees.
         const float LandMinAir = 0.15f;
@@ -140,6 +143,12 @@ namespace KotH.Client.Player
         const float LeafSpring = 150f, LeafDamping = 14f;
 
         readonly List<Figure> figures = new List<Figure>();
+
+        // The first-person arms of the own body, null without.
+        AnimationComponent arms;
+        PlayerMotor armsMotor;
+        PlayingAnimation[] armPlays;
+        readonly float[] armWeights = new float[ArmClips.Length];
         readonly Random random = new Random();
 
         sealed class Figure
@@ -187,6 +196,21 @@ namespace KotH.Client.Player
                 BlinkWait = BlinkPause(),
                 MouthClock = (float)random.NextDouble() * 30f,
             });
+        }
+
+        /// <summary>The first-person arms play in step with motor's figure.</summary>
+        public void RegisterArms(Entity visual, PlayerMotor motor)
+        {
+            arms = visual.Get<AnimationComponent>();
+            armsMotor = motor;
+            armPlays = null;
+            Array.Clear(armWeights);
+        }
+
+        public void UnregisterArms()
+        {
+            arms = null;
+            armsMotor = null;
         }
 
         /// <summary>Every figure blinks now, for KOTH_SHOT_BLINK.</summary>
@@ -517,6 +541,8 @@ namespace KotH.Client.Player
             f.Phase = (f.Phase + speed / cycleMetres * dt) % 1f;
 
             float follow = 1f - MathF.Exp(-3f * dt / MathF.Max(1e-3f, BlendSeconds));
+            if (motor == armsMotor)
+                Arms(f, moving, run, follow);
             // The landing is a short pulse over everything else, not followed:
             // quickly in, eased out. Crouched or sliding it gives nothing.
             float land = f.LandAge < LandAttack ? f.LandAge / LandAttack
@@ -534,6 +560,36 @@ namespace KotH.Client.Player
                              : f.Weights[i] * MathF.Max(0f, 1f - land - kick);
                 play.Weight = weight < 1e-3f ? 0f : weight;
                 if (i >= WalkIndex && i < RunIndex + 4 || i == CrouchWalkIndex)
+                {
+                    play.TimeFactor = 0f;
+                    play.CurrentTime = TimeSpan.FromTicks((long)(f.Phase * play.Clip.Duration.Ticks));
+                }
+            }
+        }
+
+        /// <summary>
+        /// The first-person arms: still or in the air the idle breath, on the
+        /// move walking and running on the figure's own step phase.
+        /// </summary>
+        void Arms(Figure f, float moving, float run, float follow)
+        {
+            if (arms == null)
+                return;
+            if (armPlays == null)
+            {
+                armPlays = new PlayingAnimation[ArmClips.Length];
+                for (int i = 0; i < ArmClips.Length; i++)
+                    if (arms.Animations.ContainsKey(ArmClips[i]))
+                        armPlays[i] = arms.Add(arms.Animations[ArmClips[i]], 0, AnimationBlendOperation.LinearBlend, 1f, 0f, AnimationRepeatMode.LoopInfinite);
+            }
+            Span<float> target = stackalloc float[] { 1f - moving, moving * (1f - run), moving * run };
+            for (int i = 0; i < ArmClips.Length; i++)
+            {
+                armWeights[i] += (target[i] - armWeights[i]) * follow;
+                if (armPlays[i] is not { } play)
+                    continue;
+                play.Weight = armWeights[i] < 1e-3f ? 0f : armWeights[i];
+                if (i > 0)
                 {
                     play.TimeFactor = 0f;
                     play.CurrentTime = TimeSpan.FromTicks((long)(f.Phase * play.Clip.Duration.Ticks));

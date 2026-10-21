@@ -71,8 +71,27 @@ namespace KotH.Client
         /// <userdoc>Tritt in die Luft beim Doppelsprung (Sanjis Sky Walk); das Spiel blendet ihn kurz ein.</userdoc>
         [Display("Doppelsprung", "Animation")] public AnimationClip SkyWalkAnimation;
 
+        /// <userdoc>Nur die Arme der Pilzfigur; in First Person hängen sie vor der Kamera.</userdoc>
+        [Display("Arme in First Person", "Darstellung")] public Model ArmsModel;
+
+        /// <userdoc>Arme in First Person im Stehen und in der Luft: ruhiges Atmen.</userdoc>
+        [Display("Arme Ruhe", "First-Person-Arme")] public AnimationClip ArmsIdle;
+
+        /// <userdoc>Arme in First Person beim Gehen, im Takt der Schritte.</userdoc>
+        [Display("Arme Gehen", "First-Person-Arme")] public AnimationClip ArmsWalk;
+
+        /// <userdoc>Arme in First Person beim Rennen, im Takt der Schritte.</userdoc>
+        [Display("Arme Rennen", "First-Person-Arme")] public AnimationClip ArmsRun;
+
         /// <summary>Render group of the own figure, see PlayerCamera.</summary>
         const RenderGroup OwnFigureGroup = RenderGroup.Group1;
+
+        /// <summary>Render group of the first-person arms, see PlayerCamera.</summary>
+        const RenderGroup ArmsGroup = RenderGroup.Group2;
+
+        // The eye of the arms model over its origin (.work/rig/fp_arms.py): the
+        // arms hang this far under the camera.
+        const float ArmsEye = 0.78f;
 
         public override void Start()
         {
@@ -161,7 +180,34 @@ namespace KotH.Client
                 camera.Melee = player.Get<MeleeAttack>();
                 camera.World = simulation.World;
                 camera.OwnFigureGroup = OwnFigureGroup;
+                camera.ArmsGroup = ArmsGroup;
+                AddArms(e, player);
             }
+        }
+
+        /// <summary>
+        /// The own arms as a child of the camera, so they turn and shake with
+        /// the view; PlayerVisualSystem plays them in step with the figure.
+        /// </summary>
+        void AddArms(Entity camera, Entity player)
+        {
+            if (ArmsModel == null)
+                return;
+            if (arms != null)
+            {
+                visuals.UnregisterArms();
+                arms.Transform.Parent = null;
+            }
+            var model = new ModelComponent(ArmsModel) { RenderGroup = ArmsGroup, IsShadowCaster = false };
+            var animation = new AnimationComponent();
+            AnimationClip[] clips = { ArmsIdle, ArmsWalk, ArmsRun };
+            for (int i = 0; i < clips.Length; i++)
+                if (clips[i] != null)
+                    animation.Animations[PlayerVisualSystem.ArmClips[i]] = clips[i];
+            arms = new Entity("Arms") { model, animation };
+            arms.Transform.Position = new Vector3(0f, -ArmsEye, 0f);
+            camera.AddChild(arms);
+            visuals.RegisterArms(arms, player.Get<PlayerMotor>());
         }
 
         /// <summary>Hands the round, the zone and the own body (null for none yet) to their displays.</summary>
@@ -324,6 +370,7 @@ namespace KotH.Client
         PlayerVisualSystem visuals;
         NetClient net;
         PlayerInputReader localReader;
+        Entity arms;
         readonly Dictionary<SimulationBody, (Entity Visual, Entity Label)> shown =
             new Dictionary<SimulationBody, (Entity, Entity)>();
     }

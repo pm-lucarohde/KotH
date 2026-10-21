@@ -1,0 +1,19 @@
+!Model
+Id: 36F24701-E59F-4D58-901E-BD04F04A5A82
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Models/MushroomArms.glb
+PivotPosition: {X: 0.0, Y: 0.0, Z: 0.0}
+Materials:
+    a97d9ac62b7448509164e9a54e24c4c4:
+        Name: Mushroom
+        MaterialInstance:
+            Material: 94D3E93A-86DB-4DF2-A874-B1ED628EF54F:Materials/Mushroom
+            IsShadowCaster: false
+    7ff624b87dfc4a8386b8e3f87a492583:
+        Name: MushroomGlove
+        MaterialInstance:
+            Material: 8AA7E627-B0C4-4524-BB8D-1139E3C646B8:Materials/MushroomGlove
+            IsShadowCaster: false
+Skeleton: BD2F36A7-7DD4-4CD2-8E67-01E245ED7765:Models/MushroomSkeleton
+Modifiers: {}

@@ -55,6 +55,9 @@ namespace KotH.Client.Player
         /// <summary>Render group of the own figure, which the view skips up close.</summary>
         [DataMemberIgnore] public RenderGroup OwnFigureGroup { get; set; } = RenderGroup.Group1;
 
+        /// <summary>Render group of the first-person arms, drawn only in first person.</summary>
+        [DataMemberIgnore] public RenderGroup ArmsGroup { get; set; } = RenderGroup.Group2;
+
         CameraComponent cam;
         SceneCameraRenderer view;
 
@@ -100,7 +103,7 @@ namespace KotH.Client.Player
                 cam.NearClipPlane = ViewMath.NearPlane(Motor, cam.VerticalFieldOfView, aspect, NearClipMargin);
                 // Steps out at full distance at once; only a wall pulls it in.
                 shown = Distance;
-                ShowOwnFigure(false);
+                ShowOwnFigure(false, true);
                 Reader.AimAt(null);
                 return;
             }
@@ -112,7 +115,7 @@ namespace KotH.Client.Player
             Vector3 position = path.At(shown);
             Entity.Transform.Position = position;
             cam.NearClipPlane = ViewMath.NearPlane(Radius, cam.VerticalFieldOfView, aspect, NearClipMargin);
-            ShowOwnFigure(UMath.Magnitude(UMath.Sub(position, eye)) >= ShowFigureFrom);
+            ShowOwnFigure(UMath.Magnitude(UMath.Sub(position, eye)) >= ShowFigureFrom, false);
             Reader.AimAt(AimTarget(path.Pivot, eye, rotation));
         }
 
@@ -174,8 +177,11 @@ namespace KotH.Client.Player
             return UMath.Add(pivot, UMath.Mul(forward, s));
         }
 
-        /// <summary>The own figure is drawn only with room around the eye, else just its shadow.</summary>
-        void ShowOwnFigure(bool show)
+        /// <summary>
+        /// The own figure is drawn only with room around the eye, else just its
+        /// shadow; the arms in front of the eye only in first person.
+        /// </summary>
+        void ShowOwnFigure(bool show, bool arms)
         {
             view ??= FindView(SceneSystem.GraphicsCompositor?.Game);
             if (view == null)
@@ -183,6 +189,8 @@ namespace KotH.Client.Player
 
             var bit = (RenderGroupMask)(1u << (int)OwnFigureGroup);
             view.RenderMask = show ? view.RenderMask | bit : view.RenderMask & ~bit;
+            var armsBit = (RenderGroupMask)(1u << (int)ArmsGroup);
+            view.RenderMask = arms ? view.RenderMask | armsBit : view.RenderMask & ~armsBit;
         }
 
         /// <summary>The camera's renderer, also inside the collection the HUD wraps it in.</summary>

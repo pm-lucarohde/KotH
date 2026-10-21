@@ -226,6 +226,18 @@ Lid-Textur und die Knotenliste des Skeletts mit `.work/rig/build.sh` (Blender he
 sich die eigene Figur in Laufrichtung; Seitwärts- und Rückwärts-Clips sieht man bei
 Spielern in First Person. Nur Darstellung, die Simulation sieht davon nichts.
 
+Die Handschuhe stammen aus dem Meshy-Original (`.work/gloves/glove_patch.py`, je 400 Dreiecke,
+eigenes Material `MushroomGlove` mit 512er-Textur; Figur 2729 Dreiecke). `build.sh` riggt
+deshalb `.work/rig/static_gloves/Mushroom.glb`; die Lider nehmen das letzte Material.
+
+In First Person hängen eigene Arme vor der Kamera (`MushroomArms`, nur Armdreiecke, gleiches
+Skelett; Clips `MushroomArms{Idle,Walk,Run}` aus `.work/rig/fp_arms.py`, Teil von `build.sh`):
+`GameRoot` hängt sie 0,78 m unter die Kamera (Auge des Modells), Render-Gruppe 2, nur in First
+Person sichtbar (`PlayerCamera`), kein Schatten. `PlayerVisualSystem` spielt sie auf der
+Schrittphase der eigenen Figur; Gehen und Rennen übernehmen den Armschwung der Lauf-Clips
+(±16° bzw. ±27° aus der Schulter, Ellbogen beugt beim Vorschwingen). Haltung in `fp_arms.py`
+(`SHOULDER`, `GLOVE`, `ELBOW`, `TWIST`; Lucas Wahl: Hände unten in den Ecken).
+
 ## Git
 
 Commit-Messages auf Deutsch; nach `origin main` pushen, wenn Luca das freigibt.
