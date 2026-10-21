@@ -276,7 +276,7 @@ Spielern in First Person. Nur Darstellung, die Simulation sieht davon nichts.
 
 Die Handschuhe stammen aus dem Meshy-Original (`.work/gloves/glove_patch.py`, je 400 Dreiecke,
 eigenes Material `MushroomGlove` mit 512er-Textur; Figur 2752 Dreiecke, mit Lidern und Mund
-3172). Getauscht werden nur braune Flächen (ein Kasten riss Löcher in den Ärmel); das feine
+3172, mit der Faust 3349). Getauscht werden nur braune Flächen (ein Kasten riss Löcher in den Ärmel); das feine
 Stück ragt 1,5 cm in den Ärmel, wird gefüllt und per Voxel-Remesh geschlossen (innen am Rock
 war es offen und gezackt). `build.sh` riggt `.work/rig/static_gloves/Mushroom.glb` und kopiert
 dessen `MushroomGlove.png` mit; die Lider nehmen das letzte Material.
@@ -292,8 +292,12 @@ schnell („Tempo Arme“ 0,5: ein Armschwung auf vier Schritte, Atmen halb so s
 
 Jede Figur hält einen Bambusstab (Lucas Vorlage-Foto, 0,7 m, schräg nach vorn oben, ein Blatt am
 oberen Knoten): `Bamboo.glb` aus `.work/rig/bamboo.py` (Teil von `build.sh`, im Figurraum der
-Ruhelage gebaut, Textur aus dem Foto weich gemalt, Lambert). Er hängt am Knochen `Grip.R` (Mitte der
-rechten Faust, ohne Vertices, aus `rig.py`): `GameRoot.AttachHeld` hängt das „Gehaltene Objekt“ als
+Ruhelage gebaut, Textur aus dem Foto weich gemalt, Lambert). Die rechte Hand greift ihn (Lucas Wunsch):
+`rig.py` („Faust“, nach den Gewichten) unterteilt die Hand einmal, kippt sie im Handgelenk so, dass ihre
+Breite längs des Stabs liegt, und wickelt die Finger unter dem Stab hindurch um seine Achse, der Daumen
+bleibt (`FIST`, `CANE_PITCH` 35°, `CANE_OUT` 10°). Der Stab hängt am Knochen `Grip.R` (auf der Stabachse
+in der Faust, zeigt längs des Stabs, ohne Vertices; `bamboo.py` und `fp_arms.py` lesen die Richtung
+daraus): `GameRoot.AttachHeld` hängt das „Gehaltene Objekt“ als
 Kind mit `ModelNodeLinkComponent` an Figur und FP-Arme, lokale Transformation = Inverse der Ruhelage
 des Knochens. Die Körper-Clips halten `Grip.R` in Ruhe, die FP-Clips drehen ihn einmal fest, damit der
 Stab in First Person nach rechts oben zeigt (`fp_arms.py`, `CANE`, `CANE_ROLL` −84°, Lucas Wahl).
