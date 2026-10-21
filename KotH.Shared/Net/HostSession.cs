@@ -103,7 +103,7 @@ namespace KotH.Shared.Net
         {
             var c = new Client
             {
-                Peer = nextBotPeer--, IsBot = true, NetId = nextNetId++, Slot = FreeSlot(),
+                Peer = nextBotPeer--, IsBot = true, NetId = nextNetId++, Slot = FreeSlot(NetWorld.BotSlots),
                 Name = UniqueName(name), Phase = Phase.Playing,
             };
             clients[c.Peer] = c;
@@ -243,6 +243,21 @@ namespace KotH.Shared.Net
             clients[peer] = c;
             Players++;
             pending.Add(new NetEvent { Join = true, NetId = c.NetId, Slot = c.Slot, Name = name });
+        }
+
+        // A bot's slot: the first free one in the given order.
+        int FreeSlot(int[] order)
+        {
+            foreach (int slot in order)
+            {
+                bool taken = false;
+                foreach (Client c in clients.Values)
+                    if (c.Phase != Phase.Left && c.Slot == slot)
+                        taken = true;
+                if (!taken)
+                    return slot;
+            }
+            return FreeSlot();
         }
 
         int FreeSlot()

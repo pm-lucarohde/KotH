@@ -124,6 +124,16 @@ namespace KotH.Shared.Simulation
             HasSpawn = true;
         }
 
+        /// <summary>
+        /// Back to where it joined after falling out of the arena: the motor
+        /// only, so percent, points and the swing's cooldown carry on.
+        /// </summary>
+        public void Respawn()
+        {
+            if (HasSpawn)
+                Motor.RestoreState(spawn.Motor);
+        }
+
         /// <summary>Back to where it joined, with no points: a new round.</summary>
         public void ResetToSpawn()
         {

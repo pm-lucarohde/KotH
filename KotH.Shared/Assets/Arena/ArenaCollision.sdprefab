@@ -2137,6 +2137,7 @@ Hierarchy:
                         WinPauseSeconds: 5.0
                         CountdownSeconds: 60.0
                         JoinSeconds: 60.0
+                        RespawnBelow: -5.0
         -   Entity:
                 Id: 11C029F6-14F7-4C0F-9F81-2785E6D06D96
                 Name: PlayerSpawn0

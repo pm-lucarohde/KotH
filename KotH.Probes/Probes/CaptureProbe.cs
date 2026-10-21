@@ -55,6 +55,7 @@ namespace KotH.Probes.Probes
             Win(spawnA, spawnB);
             TimeLimit();
             Rollback();
+            OutOfArena(spawnA);
             Lobby();
             Slots();
 
@@ -222,6 +223,22 @@ namespace KotH.Probes.Probes
         /// leaves, the start from the spawns, the join window, and back to
         /// waiting after a round. Dummies (NetId 1 to 3) never count.
         /// </summary>
+        /// <summary>Off the edge of the arena: back at the spawn below -5 m, points kept.</summary>
+        void OutOfArena(in BodyState spawnA)
+        {
+            int carried = a.ScoreTicks;
+            a.Motor.Teleport(new Vector3(0f, 2f, 40f));
+            float lowest = float.MaxValue;
+            for (int i = 0; i < 80; i++)
+            {
+                Ticks(1);
+                lowest = Math.Min(lowest, a.Motor.Position.Y);
+            }
+            float off = Vector3.Distance(a.Motor.Position, spawnA.Motor.Position);
+            Check(lowest < match.RespawnBelow + 0.5f && off < 0.5f && a.ScoreTicks == carried,
+                  $"aus der Arena gefallen: zurück am Startplatz ({off:F2} m daneben), Punkte behalten");
+        }
+
         void Lobby()
         {
             match.MinPlayers = 4;

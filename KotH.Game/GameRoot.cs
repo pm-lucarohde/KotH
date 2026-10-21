@@ -128,7 +128,7 @@ namespace KotH.Client
             for (int i = 0; i < options.Bots; i++)
             {
                 var bot = new BotBody(director, states, NetWorld.FirstPlayerId + 1 + i);
-                Entity marker = NetWorld.SlotMarker(builder, i);
+                Entity marker = NetWorld.SlotMarker(builder, NetWorld.BotSlots[i]);
                 Entity e = builder.SpawnBody(WorldBuilder.PlayerBodyUrl, marker.Transform.Position, marker.Transform.Rotation,
                                              bot, new DamagePercent());
                 e.Name = $"Bot {i + 1}";

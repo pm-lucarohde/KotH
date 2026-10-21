@@ -36,5 +36,8 @@ namespace KotH.Shared.Match
 
         /// <userdoc>Im Mehrspieler: So lange nach dem Start einer Runde darf noch jemand beitreten, in Sekunden.</userdoc>
         [Display("Beitritt bis", "Mehrspieler")] public float JoinSeconds = 60f;
+
+        /// <userdoc>Wer aus der Arena fliegt und unter diese Höhe fällt, steht wieder an seinem Startplatz, in Metern. Schadensprozent und Punkte bleiben.</userdoc>
+        [Display("Respawn unter (m)", "Regeln")] public float RespawnBelow = -5f;
     }
 }

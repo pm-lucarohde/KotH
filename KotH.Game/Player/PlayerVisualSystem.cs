@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using KotH.Shared.Combat;
 using KotH.Shared.Mathematics;
 using KotH.Shared.Player;
 using KotH.Shared.Simulation;
@@ -104,6 +105,18 @@ namespace KotH.Client.Player
         /// <userdoc>Stärkste Neigung des Kopfes in Grad.</userdoc>
         [Display("Kopfneigung höchstens", "Animation")] public float HeadMaxDegrees = 40f;
 
+        /// <userdoc>So weit kippt der Oberkörper nach hinten, wenn die Figur getroffen wird, in Grad.</userdoc>
+        [Display("Oberkörper", "Treffer")] public float HitLeanDegrees = 12f;
+
+        /// <userdoc>So weit kippt der Kopf beim Treffer zusätzlich nach hinten, in Grad.</userdoc>
+        [Display("Kopf", "Treffer")] public float HitHeadDegrees = 10f;
+
+        /// <userdoc>So schnell ist der Treffer ganz ausgeschlagen, in Sekunden.</userdoc>
+        [Display("Ausschlag", "Treffer")] public float HitRiseSeconds = 0.06f;
+
+        /// <userdoc>So lange dauert es danach zurück in die Haltung, in Sekunden.</userdoc>
+        [Display("Zurück", "Treffer")] public float HitSettleSeconds = 0.4f;
+
         /// <userdoc>Im Stehen dreht nur der Kopf mit dem Blick, bis zu so vielen Grad zur Seite; darüber hinaus wird der Körper mitgezogen.</userdoc>
         [Display("Kopfdrehung höchstens", "Animation")] public float HeadTurnDegrees = 40f;
 
@@ -138,6 +151,7 @@ namespace KotH.Client.Player
         static readonly string[] LidBones = { "Lid.L", "Lid.R" };
         const string LookBone = "Look";
         const string MouthBone = "Mouth";
+        const string RecoilBone = "Recoil";
 
         // Leaf bones from .work/rig/rig.py, evenly round the body from the
         // front to the right: six on the skirt, four on the collar.
@@ -165,7 +179,10 @@ namespace KotH.Client.Player
             public float Phase, BlinkClock, BlinkWait;
             public float AirTime, LandAge = float.MaxValue, KickAge = float.MaxValue, LastClimb;
             public int[] Lids;
-            public int Look = -2, Mouth = -2;
+            public int Look = -2, Mouth = -2, Recoil = -2;
+            public DamagePercent Damage;
+            public int SeenHit = int.MinValue;
+            public float HitAge = float.MaxValue, HitHead;
             public int[] Leaves;
             public Vector2[] LeafBend, LeafRate;
             public float LeafClock, Yaw, Spin, MouthClock;
@@ -291,6 +308,7 @@ namespace KotH.Client.Player
             t.Position.Y += 0.5f * (motor.StandHeight * scale - motor.Height);
             Blink(f, dt);
             Breathe(f, dt);
+            Hit(f, dt);
             LookUpDown(f, alpha);
             Leaves(f, motor, t, dt);
         }
@@ -450,6 +468,47 @@ namespace KotH.Client.Player
             t.Rotation = Quaternion.RotationY(f.BodyYaw);
         }
 
+        /// <summary>
+        /// A hit tips the upper body back on the Recoil bone and the head a
+        /// little further on the neck: out fast, back slowly. Started by
+        /// DamagePercent.LastHitTick, so a rollback never starts it twice.
+        /// </summary>
+        void Hit(Figure f, float dt)
+        {
+            SkeletonUpdater skeleton = f.Model?.Skeleton;
+            if (skeleton == null || f.Body == null)
+                return;
+            if (f.Recoil == -2)
+            {
+                f.Recoil = Array.FindIndex(skeleton.Nodes, n => n.Name == RecoilBone);
+                f.Damage = f.Body.Entity.Get<DamagePercent>();
+            }
+            if (f.Recoil < 0 || f.Damage == null)
+                return;
+
+            // The hit already there when the figure appears is not shown.
+            int hit = f.Damage.LastHitTick;
+            if (hit != f.SeenHit)
+            {
+                if (f.SeenHit != int.MinValue && hit > f.SeenHit)
+                    f.HitAge = 0f;
+                f.SeenHit = hit;
+            }
+            else if (f.HitAge < float.MaxValue)
+                f.HitAge += dt;
+
+            float rise = MathF.Max(1e-3f, HitRiseSeconds);
+            float amount = f.HitAge < rise ? Smooth(f.HitAge / rise)
+                         : 1f - Smooth(Math.Clamp((f.HitAge - rise) / MathF.Max(1e-3f, HitSettleSeconds), 0f, 1f));
+            f.HitHead = HitHeadDegrees * amount;
+
+            // Recoil points up like the neck: positive about its X tips it back.
+            skeleton.NodeTransformations[f.Recoil].Transform.Rotation =
+                Quaternion.RotationX(MathUtil.DegreesToRadians(HitLeanDegrees * amount));
+        }
+
+        static float Smooth(float x) => x * x * (3f - 2f * x);
+
         /// <summary>The neck bone tilts and turns with the view; no clip touches it.</summary>
         void LookUpDown(Figure f, float alpha)
         {
@@ -461,7 +520,7 @@ namespace KotH.Client.Player
             if (f.Look < 0)
                 return;
             float pitch = f.Body.PreviousLookPitch + (f.Body.LookPitch - f.Body.PreviousLookPitch) * alpha;
-            float tilt = Math.Clamp(pitch * HeadFollow, -HeadMaxDegrees, HeadMaxDegrees);
+            float tilt = Math.Clamp(pitch * HeadFollow, -HeadMaxDegrees, HeadMaxDegrees) + f.HitHead;
             // The neck points up, its X is the figure's right: positive tips the head
             // back. The tilt comes first, then the turn about the neck.
             skeleton.NodeTransformations[f.Look].Transform.Rotation =

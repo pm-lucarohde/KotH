@@ -51,7 +51,7 @@ if (hillBots > 0)
     BotDirector director = BotDirector.Create(world.Builder, world.Simulation, states, botSeed);
     for (int i = 0; i < hillBots; i++)
     {
-        Entity marker = NetWorld.SlotMarker(world.Builder, i);
+        Entity marker = NetWorld.SlotMarker(world.Builder, NetWorld.BotSlots[i]);
         Entity bot = world.SpawnBody(HeadlessWorld.PlayerBodyUrl, marker.Transform.Position, marker.Transform.Rotation,
                                      new BotBody(director, states, NetWorld.FirstPlayerId + 1 + i), new DamagePercent());
         bot.Name = $"Bot {i + 1}";

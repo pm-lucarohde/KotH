@@ -74,6 +74,7 @@ namespace KotH.Shared.Match
             Quaternion r = zone.Entity.Transform.Rotation;
             inverse = new Quaternion(-r.X, -r.Y, -r.Z, r.W);
 
+            RespawnBelow = zone.RespawnBelow;
             WarmupTicks = Ticks(zone.WarmupSeconds);
             WinTicks = zone.WinPoints * TicksPerPoint;
             LimitTicks = Ticks(zone.TimeLimitMinutes * 60f);
@@ -83,6 +84,9 @@ namespace KotH.Shared.Match
         }
 
         public const int DefaultMinPlayers = 4;
+
+        /// <summary>A body that falls below this height is back at its spawn.</summary>
+        public float RespawnBelow { get; set; }
 
         public int WarmupTicks { get; set; }
         public int WinTicks { get; set; }
@@ -166,6 +170,11 @@ namespace KotH.Shared.Match
         public void Tick(IReadOnlyList<SimulationBody> bodies)
         {
             int count = bodies.Count;
+
+            // Out of the arena: back to where it joined, in every phase.
+            for (int i = 0; i < count; i++)
+                if (bodies[i].HasSpawn && bodies[i].Motor.Position.Y < RespawnBelow)
+                    bodies[i].Respawn();
 
             switch (state.Phase)
             {

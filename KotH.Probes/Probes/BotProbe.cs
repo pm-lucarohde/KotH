@@ -144,7 +144,7 @@ namespace KotH.Probes.Probes
             var bots = new List<BotBody>();
             for (int i = 0; i < 3; i++)
             {
-                Entity marker = NetWorld.SlotMarker(world.Builder, i + 1);
+                Entity marker = NetWorld.SlotMarker(world.Builder, NetWorld.BotSlots[i]);
                 var bot = new BotBody(director, states, NetWorld.FirstPlayerId + 1 + i);
                 Entity e = world.SpawnBody(HeadlessWorld.PlayerBodyUrl, marker.Transform.Position, marker.Transform.Rotation,
                                            bot, new DamagePercent());
@@ -159,7 +159,7 @@ namespace KotH.Probes.Probes
             int slides = 0, jumps = 0, doubles = 0, sprintTicks = 0;
             var maneuvers = new int[ManeuverWfc.Count];
             ulong chain = 14695981039346656037UL;
-            int firstInZone = -1, zoneTicks = 0;
+            int firstInZone = -1, zoneTicks = 0, respawns = 0;
             var buffer = new ArrayBufferWriter<byte>();
             for (int t = 0; t < PlayTicks; t++)
             {
@@ -173,6 +173,7 @@ namespace KotH.Probes.Probes
                     foreach (byte b in buffer.WrittenSpan)
                         chain = (chain ^ b) * 1099511628211UL;
                     MotorState now = bot.Motor.CaptureState(), before = was[bots.IndexOf(bot)];
+                    respawns += before.Position.Y < -1f && now.Position.Y > 0.5f ? 1 : 0;
                     slides += now.Sliding && !before.Sliding ? 1 : 0;
                     jumps += now.JumpCutPending && !before.JumpCutPending ? 1 : 0;
                     doubles += now.DoubleJumpUsed && !before.DoubleJumpUsed ? 1 : 0;
@@ -230,6 +231,11 @@ namespace KotH.Probes.Probes
                 Log($"[bots] im Motor ausgeführt: {jumps} Sprünge, {doubles} Doppelsprünge, {slides} Gleiten, " +
                     $"Sprint {sprintTicks * 100 / (PlayTicks * 3)} % der Zeit");
                 Check(doubles > 0 && slides > 0, "Bots nutzen Doppelsprung und Gleiten");
+                int lost = 0;
+                foreach (BotBody bot in bots)
+                    lost += bot.Motor.Position.Y < -1f ? 1 : 0;
+                Log($"[bots] {respawns}-mal aus der Arena gefallen und am Startplatz wieder da");
+                Check(lost == 0, $"kein Bot fällt endlos ({lost} unter der Arena)");
                 Check(firstInZone >= 0 && firstInZone < 40 * 20, "ein Bot in höchstens 20 s in der Zone");
                 Log($"[bots] Punkte zusammen {HillMatch.Points(score)}; allein zählt nur, wer die anderen hinausstößt");
                 Check(zoneTicks > PlayTicks, $"Bots stehen über ein Drittel der Zeit in der Zone ({zoneTicks * 100 / (PlayTicks * 3)} %)");

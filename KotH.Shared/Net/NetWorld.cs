@@ -75,6 +75,12 @@ namespace KotH.Shared.Net
         /// Where a player slot starts and faces: the markers PlayerSpawn0 to
         /// PlayerSpawn11 in the arena, two rows of six behind the offline spawn.
         /// </summary>
+        /// <summary>
+        /// The slots bots take, in order: wide apart first, out to both ends
+        /// of the front row, then the middle behind, and so on.
+        /// </summary>
+        public static readonly int[] BotSlots = { 0, 5, 8, 11, 2, 6, 3, 9, 1, 10, 4, 7 };
+
         public static Entity SlotMarker(WorldBuilder builder, int slot)
             => builder.Find("PlayerSpawn" + slot);
     }

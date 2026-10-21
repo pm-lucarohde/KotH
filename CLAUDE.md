@@ -134,6 +134,9 @@ Fünf Projekte (`KotH.slnx`):
   Phasen `Running`/`Over` (0/1 wie das alte Flag) und für den Mehrspieler
   `Waiting`/`Countdown`, nur mit `MinPlayers` > 0 (steht im `MatchState`, kommt also
   mit dem Zustand zum Beitretenden). Spieler sind Körper ab `NetWorld.FirstPlayerId`.
+  Respawn: Wer unter `CaptureZone.RespawnBelow` (−5 m) fällt, bekommt am Anfang von
+  `HillMatch.Tick` in jeder Phase den Motor vom Startplatz (`SimulationBody.Respawn`);
+  Prozent, Punkte und Abklingzeit bleiben (Lucas Wahl). Probe `capture` prüft das.
 - `MotorState` muss **jedes** Motorfeld enthalten; die `DeterminismProbe` prüft
   Rollback bitgenau und hat Mutationstests.
 - `TickClock` bildet Unitys Player-Loop nach (Akkumulator, max. 0,333 s pro Frame,
@@ -221,6 +224,8 @@ zweimal gleich, Host unabhängig vom Bildtakt, Gast ohne Desync, Ladepause; JIT 
   Motor (Gleiten nach Sprint oder Sprung, Doppelsprung nach Sprung, Abstände für Schlag und
   Gleiten), Nachbarn gleicher Art ziehen stärker; im Angriff fest: Schlag, wenn das Ziel in
   Reichweite kommt, meist mit Gleiten davor.
+- Bots nehmen Slots in der Reihenfolge `NetWorld.BotSlots` (Lücken in beiden Reihen, Lucas
+  Wunsch), Spieler weiter den ersten freien.
 - In der Bot-Logik nur Zustände aus dem Snapshot lesen, nie lebende Komponenten (außer
   Einstellungen); Trigonometrie über `UMath`/`Math` in double, keine `System.Random`.
 
@@ -244,7 +249,7 @@ Schub nach oben in der Luft, die Simulation meldet nichts). Dabei stößt die Fi
 vor Passform, dort zählt kein Treffer); die Füße bleiben auf dem Boden der Hülle. `PlayerVisualSystem` spielt alle zugleich
 und setzt die Gewichte nach Tempo und Richtung (Strides Mischen normiert auf die Summe);
 die Lauf-Clips laufen mit `TimeFactor` 0 auf einer gemeinsamen Phase aus der Strecke
-(Gehen 3,5, Rennen 6 Schritte/s). Das Spiel selbst bewegt vier Knochenarten: den Mund (`Mouth`, atmet ruhig in zwei
+(Gehen 3,5, Rennen 6 Schritte/s). Das Spiel selbst bewegt fünf Knochenarten: den Mund (`Mouth`, atmet ruhig in zwei
 überlagerten Wellen; eine Hautfläche deckt den gemalten Mund ab, die Mundfläche schwebt 5 mm
 davor und überbrückt die Mulde im Netz), die Blätter (`Leaf.S0`–`S5` am Rock, `Leaf.C0`–`C3`
 am Kragen, zeigen nach oben mit dem Drehpunkt oben; Federn im Fahrtwind und im Wind der
@@ -252,8 +257,11 @@ Drehung, „Blätter“ in `PlayerVisualSystem`), die Lider
 (Blinzeln zufällig alle 2–10 s, offen auf einen Punkt geschrumpft) und `Look` unter dem Kopf (folgt
 `SimulationBody.LookPitch`, dem Nickwinkel der Eingabe, kein Zustand; im Stehen dreht er auch bis
 40° zur Seite, erst darüber zieht er den Körper mit, in Bewegung folgt der Körper dem Blick,
-„Kopfdrehung höchstens“, „Körper folgt Blick“; der Motor schaut weiter in Blickrichtung). Die Clips dürfen
-deshalb **keine Kanäle für Lider, Blätter, `Mouth` und `Look`** haben. Erzeugt werden Modell, Clips,
+„Kopfdrehung höchstens“, „Körper folgt Blick“; der Motor schaut weiter in Blickrichtung) sowie
+`Recoil` zwischen `Spine` und `Chest` (Treffer: Oberkörper 12° und Kopf 10° zusätzlich nach hinten,
+0,06 s hin, 0,4 s zurück, „Treffer“ in `PlayerVisualSystem`; Auslöser `DamagePercent.LastHitTick`
+wie beim Wackeln der Kamera). Die Clips dürfen
+deshalb **keine Kanäle für Lider, Blätter, `Mouth`, `Look` und `Recoil`** haben. Erzeugt werden Modell, Clips,
 Lid-Textur und die Knotenliste des Skeletts mit `.work/rig/build.sh` (Blender headless,
 `rig.py`, entfernt diese Kanäle, kopiert nach `Resources/Models`). In Third Person dreht
 sich die eigene Figur in Laufrichtung; Seitwärts- und Rückwärts-Clips sieht man bei
