@@ -2132,7 +2132,7 @@ Hierarchy:
                         Id: E7DD5D33-F6A4-4CEC-A6EB-3684037A99C1
                         Size: {X: 12.0, Y: 3.5, Z: 12.0}
                         WarmupSeconds: 3.0
-                        WinPoints: 150
+                        WinPoints: 100
                         TimeLimitMinutes: 20.0
                         WinPauseSeconds: 5.0
                         CountdownSeconds: 60.0

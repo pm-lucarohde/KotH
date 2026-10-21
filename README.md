@@ -22,7 +22,7 @@ von unten links nach oben rechts, jedes Mal etwas anders (nur Darstellung).
 Capture-Zone, leuchtend umrandet. Wer allein in ihr steht, nimmt sie in 3 s ein und
 bekommt danach einen Punkt pro Sekunde, solange er drin bleibt, auch wenn andere
 dazukommen. Kommt während der 3 s jemand dazu, ist sie umkämpft, keiner punktet, und
-das Einnehmen beginnt von vorn; geht der Halter hinaus, ist sie wieder frei. Wer zuerst 150 Punkte hat,
+das Einnehmen beginnt von vorn; geht der Halter hinaus, ist sie wieder frei. Wer zuerst 100 Punkte hat,
 gewinnt; nach 20 Minuten gewinnt, wer die meisten hat, bei Gleichstand ist die
 Runde unentschieden. Nach 5 s Siegeranzeige beginnt die nächste Runde, alle stehen
 wieder an ihrem Startpunkt. Die Werte stehen an der

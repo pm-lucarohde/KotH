@@ -23,7 +23,7 @@ namespace KotH.Shared.Match
         [Display("Aufwärmen", "Regeln")] public float WarmupSeconds = 3f;
 
         /// <userdoc>Wer so viele Punkte hat, gewinnt die Runde sofort.</userdoc>
-        [Display("Siegpunkte", "Regeln")] public int WinPoints = 150;
+        [Display("Siegpunkte", "Regeln")] public int WinPoints = 100;
 
         /// <userdoc>Länge einer Runde in Minuten. Danach gewinnt, wer die meisten Punkte hat; bei Gleichstand ist sie unentschieden.</userdoc>
         [Display("Zeitlimit", "Regeln")] public float TimeLimitMinutes = 20f;
