@@ -9,26 +9,35 @@ namespace KotH.Client.Player
     /// Where the right hand goes in a swing, relative to the shoulder in the
     /// chest's frame (X right, Y up, Z back). The downward swing runs from
     /// High through the two bulges to Low; the upward one runs it back.
+    /// CaneHigh and CaneLow, where given, are where the cane points there:
+    /// the forearm turns about itself and the cane tips in the fist to come
+    /// as near as they can; the hand then keeps its distance from the shoulder.
     /// </summary>
     readonly struct SwingPath
     {
-        public readonly Vector3 High, Low, BulgeHigh, BulgeLow, Pole;
+        public readonly Vector3 High, Low, BulgeHigh, BulgeLow, Pole, CaneHigh, CaneLow;
 
-        public SwingPath(Vector3 high, Vector3 low, Vector3 bulgeHigh, Vector3 bulgeLow, Vector3 pole)
+        public SwingPath(Vector3 high, Vector3 low, Vector3 bulgeHigh, Vector3 bulgeLow, Vector3 pole,
+                         Vector3 caneHigh = default, Vector3 caneLow = default)
         {
             High = high;
             Low = low;
             BulgeHigh = bulgeHigh;
             BulgeLow = bulgeLow;
             Pole = pole;
+            CaneHigh = caneHigh;
+            CaneLow = caneLow;
         }
 
-        // The figure: from above the right shoulder to before the left hip,
-        // bowed out in front of the belly so the cane never cuts the body.
+        // The figure: from above the right shoulder down to before the belly,
+        // the cane from over the shoulder to the lower left. Its arm reaches
+        // only 0.48 m from a shoulder deep in the wide body: the path keeps the
+        // elbow bent, the forearm in front of the body and the elbow out.
         public static readonly SwingPath Figure = new SwingPath(
-            new Vector3(0.20f, 0.16f, 0.02f), new Vector3(-0.30f, -0.32f, -0.28f),
-            new Vector3(0.18f, 0.18f, -0.23f), new Vector3(-0.12f, -0.20f, -0.40f),
-            new Vector3(0.8f, -0.3f, 0.5f));
+            new Vector3(0.32f, 0.02f, 0.24f), new Vector3(-0.13f, -0.26f, -0.29f),
+            new Vector3(0.30f, 0.06f, -0.26f), new Vector3(0.02f, -0.16f, -0.38f),
+            new Vector3(0.6f, -0.8f, 0.0f),
+            new Vector3(0.2f, 0.8f, 0.55f), new Vector3(-0.6f, -0.5f, -0.6f));
 
         // The first-person arms: the shoulder sits 0.5 m under the eye and
         // 0.24 m right of it, the arm reaches 0.48 m. From the right of the
@@ -61,6 +70,9 @@ namespace KotH.Client.Player
         const string UpperBone = "UpperArm.R", UpperSwingBone = "UpperArmSwing.R";
         const string LowerBone = "LowerArm.R", LowerSwingBone = "LowerArmSwing.R";
         const string GripBone = "Grip.R", RecoilBone = "Recoil";
+        // Beyond this the forearm's skin wrings at the elbow, or the cane
+        // leaves the fist.
+        const float MaxTwist = 60f * MathF.PI / 180f, MaxTip = 40f * MathF.PI / 180f;
 
         int upper = -2, upperSwing, lower, lowerSwing, grip;
         float upperLength, lowerLength;
@@ -70,13 +82,19 @@ namespace KotH.Client.Player
         bool watching;
         float age = float.MaxValue;
         bool down;
-        Vector3 from, high, bulgeHigh, bulgeLow, low, pole;
+        Vector3 from, high, bulgeHigh, bulgeLow, low, pole, caneHigh, caneLow;
         float startWeight, pace = 1f, torso = 1f;
         float yawNow, bendNow, startYaw, startBend;
 
         /// <summary>The hand's goal relative to the shoulder and how much it counts.</summary>
         public Vector3 Hand { get; private set; }
         public float Weight { get; private set; }
+
+        /// <summary>Where the cane should point, zero for no wish.</summary>
+        public Vector3 Cane { get; private set; }
+
+        /// <summary>The cane's tip in the fist, in the grip bone's frame; identity at rest.</summary>
+        public Quaternion CaneTip { get; private set; } = Quaternion.Identity;
 
         /// <summary>The torso's share of the swing, already weighted; identity at rest.</summary>
         public Quaternion Torso { get; private set; } = Quaternion.Identity;
@@ -164,6 +182,14 @@ namespace KotH.Client.Player
             // The upward swing runs the same bow backwards.
             (high, bulgeHigh, bulgeLow, low) = down ? (top, bowTop, bowBottom, bottom) : (bottom, bowBottom, bowTop, top);
             pole = path.Pole;
+            if (path.CaneHigh != Vector3.Zero)
+            {
+                Vector3 caneTop = Vector3.Normalize(path.CaneHigh) + Jitter(0.15f, 0.15f, 0.15f);
+                Vector3 caneBottom = Vector3.Normalize(path.CaneLow) + Jitter(0.15f, 0.15f, 0.15f);
+                (caneHigh, caneLow) = down ? (caneTop, caneBottom) : (caneBottom, caneTop);
+            }
+            else
+                caneHigh = caneLow = Vector3.Zero;
             pace = 1f + (Next() * 2f - 1f) * 0.15f * v;
             torso = 1f + (Next() * 2f - 1f) * 0.25f * v;
             Hand = from;
@@ -188,6 +214,7 @@ namespace KotH.Client.Player
             {
                 float k = Smooth(t / windup);
                 Hand = Vector3.Lerp(from, high, k);
+                Cane = caneHigh;
                 Weight = startWeight + (1f - startWeight) * k;
                 phase = -k;
                 carried = 1f - k;
@@ -198,18 +225,24 @@ namespace KotH.Client.Player
                 float s1 = t / strike;
                 float u = s1 * s1 * (2.2f - 1.2f * s1);
                 Hand = Bezier(high, bulgeHigh, bulgeLow, low, u);
+                Cane = Vector3.Lerp(caneHigh, caneLow, u);
+                // On an arc about the shoulder: the elbow never folds midway.
+                if (Cane != Vector3.Zero && Hand.LengthSquared() > 1e-6f)
+                    Hand = Vector3.Normalize(Hand) * MathUtil.Lerp(high.Length(), low.Length(), u);
                 Weight = 1f;
                 phase = -1f + 2f * u;
             }
             else if ((t -= strike) < follow)
             {
                 Hand = low;
+                Cane = caneLow;
                 Weight = 1f;
                 phase = 1f;
             }
             else if ((t -= follow) < back)
             {
                 Hand = low;
+                Cane = caneLow;
                 Weight = 1f - Smooth(t / back);
                 phase = 1f;
             }
@@ -249,6 +282,7 @@ namespace KotH.Client.Player
         void Pose(SkeletonUpdater skeleton)
         {
             ModelNodeTransformation[] t = skeleton.NodeTransformations;
+            CaneTip = Quaternion.Identity;
             if (Weight < 1e-3f)
             {
                 t[upperSwing].Transform.Rotation = Quaternion.Identity;
@@ -294,6 +328,28 @@ namespace KotH.Client.Player
 
             Quaternion upperGoal = a * turn;
             Quaternion lowerGoal = lowerRot * Quaternion.RotationAxis(hinge, flex) * turn;
+            if (Cane.LengthSquared() > 1e-6f)
+            {
+                // Twist the forearm about itself (elbow to hand) until the
+                // cane, held at a slant in the fist, is nearest its wish.
+                Vector3 fore = Vector3.Normalize(Vector3.Transform(reached, turn) - e);
+                Vector3 cane = Vector3.Transform(Vector3.Transform(Vector3.UnitY, t[grip].Transform.Rotation), lowerGoal);
+                Vector3 c = cane - fore * Vector3.Dot(fore, cane), d = Cane - fore * Vector3.Dot(fore, Cane);
+                float twist = Math.Clamp(MathF.Atan2(Vector3.Dot(fore, Vector3.Cross(c, d)), Vector3.Dot(c, d)),
+                                         -MaxTwist, MaxTwist);
+                lowerGoal *= Quaternion.RotationAxis(fore, twist);
+
+                // What the twist leaves, the cane tips in the fist, about the grip.
+                Quaternion held = t[grip].Transform.Rotation * lowerGoal;
+                Vector3 now = Vector3.Normalize(Vector3.Transform(Vector3.UnitY, held)), wish = Vector3.Normalize(Cane);
+                Vector3 axis = Vector3.Cross(now, wish);
+                float sin = axis.Length();
+                if (sin > 1e-5f)
+                {
+                    float tip = MathF.Min(MathF.Atan2(sin, Vector3.Dot(now, wish)), MaxTip) * Weight;
+                    CaneTip = held * Quaternion.RotationAxis(axis / sin, tip) * Quaternion.Invert(held);
+                }
+            }
             Quaternion q1 = upperGoal * Quaternion.Invert(a);
             Quaternion q2 = lowerGoal * Quaternion.Invert(b * upperGoal);
             t[upperSwing].Transform.Rotation = Quaternion.Slerp(Quaternion.Identity, q1, Weight);

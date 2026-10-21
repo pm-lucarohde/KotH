@@ -255,6 +255,10 @@ namespace KotH.Client.Player
         {
             public ModelComponent Model;
             public int Node = -2;
+            // Its place on the grip bone as attached, before a swing tips it.
+            public Vector3 GripAt;
+            public Quaternion GripTurn;
+            public bool HasGrip;
             public Vector3 Along, Last, Velocity, Bend, Rate;
             public bool HasLast;
             public float Clock;
@@ -446,7 +450,10 @@ namespace KotH.Client.Player
             LookUpDown(f, alpha);
             Leaves(f, motor, t, dt);
             if (f.Held != null)
+            {
+                Tip(f.Held, f.Swing.CaneTip);
                 Sway(f.Held, motor, dt);
+            }
         }
 
         /// <summary>
@@ -558,6 +565,20 @@ namespace KotH.Client.Player
         /// turning and the arm's swing all move it; faster means a little
         /// flutter and a twist. Same springs as the figure's leaves.
         /// </summary>
+        /// <summary>Tips the held object about the grip bone's origin, the point in the fist.</summary>
+        static void Tip(HeldLeaf h, Quaternion tip)
+        {
+            TransformComponent t = h.Model.Entity.Transform;
+            if (!h.HasGrip)
+            {
+                h.GripAt = t.Position;
+                h.GripTurn = t.Rotation;
+                h.HasGrip = true;
+            }
+            t.Rotation = h.GripTurn * tip;
+            t.Position = Vector3.Transform(h.GripAt, tip);
+        }
+
         void Sway(HeldLeaf h, PlayerMotor motor, float dt)
         {
             SkeletonUpdater skeleton = h.Model.Skeleton;
