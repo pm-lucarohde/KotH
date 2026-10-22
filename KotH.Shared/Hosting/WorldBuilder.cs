@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
 using KotH.Shared.Bots;
 using KotH.Shared.Match;
 using KotH.Shared.Physics;
 using Stride.BepuPhysics;
+using Stride.BepuPhysics.Definitions.Colliders;
 using Stride.Core.Mathematics;
 using Stride.Core.Serialization.Contents;
 using Stride.Engine;
@@ -61,19 +64,50 @@ namespace KotH.Shared.Hosting
             if (!HasMap(map))
                 throw new ArgumentException($"Unbekannte Map: {map}");
             Map = map;
-            AddArena(Maps.CollisionUrl(map));
-            if (content.Exists(Maps.TerrainUrl(map)))
-                AddArena(Maps.TerrainUrl(map));
-        }
-
-        void AddArena(string url)
-        {
-            foreach (Entity e in content.Load<Prefab>(url).Instantiate())
+            foreach (Entity e in content.Load<Prefab>(Maps.CollisionUrl(map)).Instantiate())
             {
                 AddStatic(e);
                 arena.Add(e);
                 Zone ??= e.Get<CaptureZone>();
                 Bots ??= e.Get<BotSettings>();
+            }
+            AddTerrain(map);
+        }
+
+        /// <summary>
+        /// The generated ground (Tools/maps/mountain.py), if the map has one:
+        /// per chunk, in file order, one static compound of its triangles, wound
+        /// into the solid like the test arena's. Too many for a prefab.
+        /// </summary>
+        void AddTerrain(string map)
+        {
+            using Stream stream = typeof(WorldBuilder).Assembly.GetManifestResourceStream(Maps.TerrainResource(map));
+            if (stream == null)
+                return;
+            using var reader = new BinaryReader(new ZLibStream(stream, CompressionMode.Decompress));
+            if (reader.ReadUInt32() != 0x4E52544B || reader.ReadUInt32() != 1)   // "KTRN", version 1
+                throw new InvalidDataException($"{Maps.TerrainResource(map)} hat ein unbekanntes Format.");
+
+            var vertices = new Vector3[reader.ReadUInt32()];
+            for (int i = 0; i < vertices.Length; i++)
+                vertices[i] = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+
+            uint chunks = reader.ReadUInt32();
+            for (uint c = 0; c < chunks; c++)
+            {
+                int x = reader.ReadInt32(), z = reader.ReadInt32();
+                uint count = reader.ReadUInt32();
+                var compound = new CompoundCollider();
+                for (uint t = 0; t < count; t++)
+                    compound.Colliders.Add(new TriangleCollider
+                    {
+                        A = vertices[reader.ReadUInt32()],
+                        B = vertices[reader.ReadUInt32()],
+                        C = vertices[reader.ReadUInt32()],
+                    });
+                var entity = new Entity($"Terrain_{x}_{z}") { new StaticComponent { Collider = compound } };
+                AddStatic(entity);
+                arena.Add(entity);
             }
         }
 

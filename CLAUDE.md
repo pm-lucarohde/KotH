@@ -182,19 +182,28 @@ und `NAMEVisual.sdprefab` in KotH.Game (Modelle); beide sind Root-Assets ihres P
 (Client offline und Host, Server), Standard `Neu`, die alte Arena heißt `Test`. Der Host schickt den Namen im `Welcome`, Gäste bauen die Map erst dann
 (`INetWorld.LoadMap`). Alle Proben laden fest `Maps.Test` (Unity-Referenz).
 
-**Map `Neu`** (Lucas Vorlage: Minecraft-Berg aus einem Video, 21.10.2026): Blockberg 136 m auf einer
-Insel (Fuß 68 m, Küste 90 m), Wiese, Strand, Bäume, Schnee ab etwa 55 %, Meer. Boden aus
-`Tools/maps/mountain.py` (reines Python, Seed fest): schreibt **nur** `Resources/Models/Mountain.glb`
-(Vertexfarben mit Minecraft-AO, Material `Terrain`) und `Maps/Neu/NeuTerrain.sdprefab` (Kollision,
-`Terrain_x_z` je 8 × 8 m, Boxen von y = −2 bis zur Säule; `WorldBuilder.LoadArena` lädt `NAMETerrain`
-nach dem Collision-Prefab, falls es existiert); Marker, Zone (137,75 m) und `NeuVisual` (Berg, Meer)
-sind Game Studio. **Keine vorgefertigten Wege** (Lucas Wunsch): 1×1-Säulen, etwa 2 Blöcke Steigung pro
-Meter, man sucht sich den Weg mit Sprung und Doppelsprung; das Skript prüft per Breitensuche, dass der
-Gipfel aus mindestens 9 von 12 Richtungen erreichbar ist (sonst Abbruch), und meldet den schnellsten
-Aufstieg (etwa 1,5 min). Steiler oder 2×2-Säulen: kein Weg mehr hinauf. Nach jedem Lauf Client und
-Server neu bauen. Bots kommen nicht hinauf; ihre Wegplanung zum unerreichbaren Gipfel kostet bis über
-10 ms pro Tick (offen). Sichtweite 20 km (bei 60 km verschwand die Insel ab 300 m im Meer), Meer
-120 km, Schatten fest bis 400 m.
+**Map `Neu`** (Lucas Vorlage: Minecraft-Berg aus einem Video, 21.10.2026): Berg 123 m auf einer
+Insel (Fuß 95 m, Küste 117 m), Wiese, Strand, Bäume, Schnee ab etwa 55 %, Meer. Boden aus
+`Tools/maps/mountain.py` (reines Python, Seed fest): Blöcke von 1 m, abgerundet mit Surface Nets wie
+der Mod NoCubes, aber nur zu 70 % (`SMOOTH` 0,7; Lucas Wunsch: leicht abrunden, Berg flacher; auch
+Laub rund, Stämme bleiben Würfel). Schreibt **nur** `KotH.Game/Resources/Models/Mountain.glb`
+(Vertexfarben, weiche AO, Material `Terrain`), `Sea.glb` (Meer mit Loch unter der Insel, sonst
+verdeckte es aus der Ferne im Tiefenpuffer die Wiese) und `KotH.Shared/Resources/Maps/NeuTerrain.bin`
+(Kollision: dieselben Dreiecke, ins Feste gewunden, je 4 × 4 m ein Chunk, flache Oberseiten zu
+Rechtecken zusammengefasst; zlib, Magic `KTRN`). Die Datei ist **eingebettete Ressource** in
+KotH.Shared (`Maps.TerrainResource`), weil Strides `MeshCollider` ein Modell (GPU) braucht und rund
+230.000 `TriangleCollider` als Prefab-YAML zu groß wären; `WorldBuilder.AddTerrain` legt nach dem
+Collision-Prefab je Chunk ein `Terrain_x_z` mit `CompoundCollider` an. Marker, Zone (124,75 m) und
+`NeuVisual` sind Game Studio. **Keine vorgefertigten Wege** (Lucas Wunsch): Säulen 2 breit quer zum
+Hang und 1 tief (2 × 2 kam nicht hinauf), etwa 1,35 Blöcke pro Meter, man sucht sich den Weg mit
+Sprung und Doppelsprung; das Skript prüft per Breitensuche, dass der Gipfel aus mindestens 9 von 12
+Richtungen erreichbar ist (sonst Abbruch), und meldet den schnellsten Aufstieg (etwa 75 s). Ums
+Plateau läuft der Hang weich aus (Lucas Wahl: 2 m tief auf 4 m, `TOP_BLEND`/`TOP_RUN`), Grate und
+Säulen wachsen erst darunter ein (`TOP_FADE`). Spielgefühl am Berg testet Luca selbst. Nach jedem
+Lauf mit `Tools/publish_aot.sh` alles bauen (die Kollision steckt in KotH.Shared). Server mit 3 Bots
+etwa 140 µs pro Tick (Median, AOT). Bots kommen nicht hinauf; ihre Wegplanung zum unerreichbaren
+Gipfel kostet bis über 10 ms pro Tick (offen). Sichtweite 20 km (bei 60 km verschwand die Insel ab
+300 m im Meer), Meer 60 km breit, Schatten fest bis 400 m.
 
 **Quelle aller Assets ist Game Studio** (Lucas Entscheidung, 16.10.2026). Die
 Generatoren aus dem Umzug (`Tools/generate_*.py`, in der Git-Geschichte bis

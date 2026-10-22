@@ -11,4 +11,8 @@
     <PackageReference Include="DotRecast.Detour" Version="2025.2.1" />
     <PackageReference Include="Stride.AssetCompiler" Version="4.4.0" IncludeAssets="build;buildTransitive" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Generated ground (Tools/maps): triangles too many for a prefab, loaded by WorldBuilder. -->
+    <EmbeddedResource Include="Resources/Maps/*Terrain.bin" LogicalName="Maps/%(Filename)%(Extension)" />
+  </ItemGroup>
 </Project>

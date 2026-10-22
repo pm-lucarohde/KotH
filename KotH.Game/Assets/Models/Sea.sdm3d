@@ -1,0 +1,13 @@
+!Model
+Id: 354F7FF9-EE15-4E90-B590-7505A083707B
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Models/Sea.glb
+PivotPosition: {X: 0.0, Y: 0.0, Z: 0.0}
+Materials:
+    c0be8a3f57444d7bbac6f71114cd7864:
+        Name: Water
+        MaterialInstance:
+            Material: 8612FBED-D65E-4F09-8B44-AD6CD65389B4:Materials/Water
+            IsShadowCaster: false
+Modifiers: {}

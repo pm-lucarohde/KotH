@@ -44,6 +44,6 @@ Hierarchy:
                         Children: {}
                     0cee795d0cb6490892897d356e9fc025: !ModelComponent
                         Id: 32C2B122-3647-4178-8C93-BC608BCCADEA
-                        Model: D346650D-2C36-428D-9FC5-D6D5F8A7C8AE:Models/Water
+                        Model: 354F7FF9-EE15-4E90-B590-7505A083707B:Models/Sea
                         Materials: {}
                         IsShadowCaster: false

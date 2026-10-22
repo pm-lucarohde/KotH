@@ -3,7 +3,8 @@
 
 Writes only what belongs to this script, never what Game Studio edits:
   KotH.Game/Resources/Models/Mountain.glb           what is drawn (vertex colours with AO)
-  KotH.Shared/Assets/Maps/Neu/NeuTerrain.sdprefab   the collision, boxes in 8 x 8 m chunks
+  KotH.Game/Resources/Models/Sea.glb                the sea round the island
+  KotH.Shared/Resources/Maps/NeuTerrain.bin        the same triangles for the physics, embedded
   .work/maps/mountain.png                           a map from above, for a look
 
 Markers, zone and bot settings stay in NeuCollision (Game Studio); the
@@ -18,34 +19,39 @@ import heapq
 import random
 import struct
 import sys
-import uuid
 import zlib
 from collections import deque
 
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 
 SEED = 7
-HALF = 106                 # cells from the centre to the edge of the grid
-ISLAND = 90.0              # coast radius, varied by COAST
+HALF = 133                 # cells from the centre to the edge of the grid
+ISLAND = 117.0             # coast radius, varied by COAST
 COAST = 4.0
 BEACH = 5.0                # sand this far in from the coast
-MOUNTAIN = 68.0            # foot of the mountain, varied by FOOT
+MOUNTAIN = 95.0            # foot of the mountain, varied by FOOT
 FOOT = 4.0
 GRASS_Y = 2                # top of the meadow
 SAND_Y = 1
-SUMMIT_Y = 136             # top of the summit plateau (Luca: less steep than 190 m so a way up
-                           # can be found anywhere, then 15 % lower; foot shrunk with it)
+SUMMIT_Y = 123             # top of the summit plateau (Luca: 190 m, then less steep and lower,
+                           # halfway between 136 m on a 90 m foot and 110 m on 100 m)
 PLATEAU = 4                # plateau: 2 * PLATEAU + 2 cells across, centred on the origin
-PROFILE = 1.1              # height = (1 - r / foot) ^ PROFILE: about two blocks per metre,
-                           # a little steeper towards the top; steeper, and no way leads up
+TOP_BLEND = 2.0            # the slope eases into the plateau over this many metres down
+TOP_RUN = 4.0              # and this many metres across (Luca: 2 m and 4 m)
+TOP_FADE = 12.0            # ridges and columns grow in over this many metres below the plateau
+PROFILE = 1.1              # height = (1 - r / foot) ^ PROFILE: about 1.35 blocks per metre,
+                           # a little steeper on top
 RIDGES = 9.0               # depth of the ridges running down the slope
 RIDGE_SPACING = 3.0        # metres between ridges around the mountain
 RIDGE_LENGTH = 13.0        # metres a ridge runs down before it changes
-COLUMN = 1                 # the slope's columns are this many blocks across (2: hardly a way up)
-COLUMNS = 3.0              # fine columns between the ridges, as in the video
+COLUMN = 2                 # the slope's columns are this many blocks wide round the mountain
+COLUMN_DOWN = 1            # and this many deep down it (Luca: tops to stand on; 2 x 2 is too steep
+                           # to climb unless the mountain is as flat as at 110 m)
+COLUMNS = 2.0              # fine columns between the ridges, as in the video
 COLUMN_SPACING = 1.3
 COLUMN_LENGTH = 5.0
 BUMPS = 4.0                # larger lumps
+JITTER = 0.15              # share of columns a block higher or lower at random (more: spikier)
 SNOWLINE = 0.55            # share of the summit height, varied by SNOW_NOISE
 SNOW_NOISE = 9.0
 CAPS = 8.0                 # snow caps on tops this far below the snow line
@@ -55,9 +61,10 @@ MIN_SECTORS = 9            # the summit must be reached from this many of them
 TREES = 36
 SPAWN_GAP = 7.0            # first spawn row this far out from the foot in the south
 TREE_GAP = 7.0
-CHUNK = 8
-FLOOR = -2                 # columns reach down to here
+CHUNK = 4                  # collision chunks, metres across
+UNDER = -1                 # the coast is drawn down to here, under the sea
 WATER_Y = 0.4
+SEA_REACH = 30000.0        # the sea's half width, beyond the camera's far plane
 
 # Colours in sRGB; the glb carries them linear.
 STONE = (0.55, 0.51, 0.45)
@@ -67,10 +74,10 @@ DIRT = (0.47, 0.35, 0.23)
 SAND = (0.86, 0.81, 0.60)
 WOOD = (0.42, 0.31, 0.18)
 LEAVES = (0.24, 0.42, 0.16)
-AO = (0.52, 0.68, 0.84, 1.0)   # brightness by unoccluded neighbours, as in Minecraft
+AO_STEP = 0.16             # darker per solid block over half of a corner's eight (Minecraft's steps)
+SMOOTH = 0.7               # Surface Nets strength: 0 cubes, 1 as round as NoCubes (more eats the tops)
+SLOPE_LIMIT = 50.0         # the player motor's, to report how much ground one stands on
 
-PREFAB_ID = '6E1D3F0A-8B52-4C1D-9A47-2F3E5D6C7B81'
-NAMESPACE = uuid.UUID('9b0f4f63-3b3a-4e47-8a8e-6b3f7c2d1e5a')
 
 
 def lattice(seed, *k):
@@ -140,21 +147,43 @@ class Terrain:
                 elif max(abs(x + 0.5), abs(z + 0.5)) <= PLATEAU + 0.5:
                     self.height[x, z] = SUMMIT_Y
                 else:
-                    # The slope is shaped per COLUMN x COLUMN group: every top a body can stand on.
-                    gx, gz = x // COLUMN * COLUMN, z // COLUMN * COLUMN
-                    r, a = self.polar(gx + (COLUMN - 1) / 2, gz + (COLUMN - 1) / 2)
-                    t = min(1.0, max(0.0, r - PLATEAU - 1) / (foot - PLATEAU - 1))
-                    h = GRASS_Y + (SUMMIT_Y - GRASS_Y) * (1 - t) ** PROFILE
+                    # The slope is shaped per group of cells, COLUMN wide round the mountain
+                    # and COLUMN_DOWN deep down it: wide tops to stand on, short steps up.
+                    if abs(z + 0.5) >= abs(x + 0.5):
+                        w, d = COLUMN, COLUMN_DOWN
+                    else:
+                        w, d = COLUMN_DOWN, COLUMN
+                    gx, gz = x // w * w, z // d * d
+                    r, a = self.polar(gx + (w - 1) / 2, gz + (d - 1) / 2)
+                    # Measured from the square plateau's edge, so the slope meets it all round.
+                    edge = PLATEAU + 1
+                    cx, cz = gx + w / 2, gz + d / 2
+                    d = math.hypot(max(0.0, abs(cx) - edge), max(0.0, abs(cz) - edge))
+                    # The first TOP_RUN metres drop TOP_BLEND metres on a cubic that starts
+                    # flat and meets the main profile with its slope; ridges fade in below.
+                    rest, run = SUMMIT_Y - GRASS_Y - TOP_BLEND, foot - edge - TOP_RUN
+                    if d < TOP_RUN:
+                        t, u = 0.0, d / TOP_RUN
+                        b = rest * PROFILE * TOP_RUN / run - 2 * TOP_BLEND
+                        below = max(0.0, (TOP_BLEND - b) * u * u + b * u * u * u)
+                    else:
+                        t = min(1.0, (d - TOP_RUN) / run)
+                        below = TOP_BLEND + rest * (1 - (1 - t) ** PROFILE)
+                    fade = min(1.0, below / TOP_FADE)
+                    fade = fade * fade * (3 - 2 * fade)
+                    h = SUMMIT_Y - below
                     # Ridges: around the mountain short, down the slope long.
                     around = a * foot / RIDGE_SPACING
                     cells = max(1, round(2 * math.pi * foot / RIDGE_SPACING))
                     rough = 0.6 + 0.4 * (1 - t)
-                    h += RIDGES * rough * noise(s + 3, around, r / RIDGE_LENGTH, wrap=cells)
+                    lumps = RIDGES * rough * noise(s + 3, around, r / RIDGE_LENGTH, wrap=cells)
                     fine = max(1, round(2 * math.pi * foot / COLUMN_SPACING))
-                    h += COLUMNS * noise(s + 10, a * foot / COLUMN_SPACING, r / COLUMN_LENGTH, wrap=fine)
-                    h += BUMPS * noise(s + 4, gx / 11.0, gz / 11.0)
-                    h += (-1, 0, 0, 0, 1)[int(lattice(s + 11, gx, gz) * 5)]
-                    self.height[x, z] = max(GRASS_Y, min(SUMMIT_Y - 1, round(h)))
+                    lumps += COLUMNS * noise(s + 10, a * foot / COLUMN_SPACING, r / COLUMN_LENGTH, wrap=fine)
+                    lumps += BUMPS * noise(s + 4, gx / 11.0, gz / 11.0)
+                    jitter = lattice(s + 11, gx, gz)
+                    lumps += -1 if jitter < JITTER / 2 else 1 if jitter > 1 - JITTER / 2 else 0
+                    # Bumps never climb back up past half the depth: no towers by the plateau.
+                    self.height[x, z] = max(GRASS_Y, min(SUMMIT_Y, round(h + min(below / 2, fade * lumps))))
         self.fill_slots()
         self.drain_traps()
         self.paint()
@@ -275,12 +304,6 @@ class Terrain:
                         if (x + dx, y, z + dz) not in self.wood:
                             self.trees.add((x + dx, y, z + dz))
 
-    def solid(self, x, y, z):
-        h = self.height.get((x, z))
-        if h is not None and FLOOR <= y < h:
-            return True
-        return (x, y, z) in self.wood or (x, y, z) in self.trees
-
 
 def climbable(t, starts, limit, near=None):
     """Breadth-first over the columns: up 'limit' blocks at most (one: a
@@ -347,43 +370,13 @@ def check_climb(t):
 
 # ---------- the mesh ----------
 
-def linear(c):
-    return tuple(v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4 for v in c)
+# What a block is; None is air. Trunks stay cubes, the rest is smoothed.
+GROUND, FOLIAGE, TRUNK = 0, 1, 2
 
-
-class Mesh:
-    def __init__(self):
-        self.pos, self.nrm, self.col, self.idx = [], [], [], []
-
-    def quad(self, corners, normal, colours):
-        """Four corners counter-clockwise seen from the normal's side."""
-        base = len(self.pos)
-        for p, c in zip(corners, colours):
-            self.pos.append(p)
-            self.nrm.append(normal)
-            self.col.append(c)
-        # Split along the brighter diagonal, as Minecraft does against AO seams.
-        if colours[0][0] + colours[2][0] >= colours[1][0] + colours[3][0]:
-            self.idx += [base, base + 1, base + 2, base, base + 2, base + 3]
-        else:
-            self.idx += [base, base + 1, base + 3, base + 1, base + 2, base + 3]
-
-
-def corner_ao(t, face, ux, uy, uz, vx, vy, vz, su, sv):
-    """Minecraft's vertex AO: the two side blocks and the corner block in
-    front of the face; both sides set is fully dark."""
-    fx, fy, fz = face
-    s1 = t.solid(fx + su * ux, fy + su * uy, fz + su * uz)
-    s2 = t.solid(fx + sv * vx, fy + sv * vy, fz + sv * vz)
-    c = t.solid(fx + su * ux + sv * vx, fy + su * uy + sv * vy, fz + su * uz + sv * vz)
-    return 0 if s1 and s2 else 3 - (s1 + s2 + c)
-
-
-def shade(colour, tint, ao):
-    lin = linear(colour)
-    k = tint * AO[ao]
-    return (lin[0] * k, lin[1] * k, lin[2] * k, 1.0)
-
+# The dual cell round a block corner: its 8 blocks (i, j, k in 0, 1 from the
+# corner's lower side) and the 12 edges between blocks next to each other.
+CELL = [(i, j, k) for i in (0, 1) for j in (0, 1) for k in (0, 1)]
+EDGES = [(a, b) for a in CELL for b in CELL if a < b and sum(abs(a[n] - b[n]) for n in range(3)) == 1]
 
 # The six directions with their face plane: normal, then the two edge axes
 # u and v so that u x v = normal (corners counter-clockwise from outside).
@@ -397,144 +390,248 @@ FACES = {
 }
 
 
-def block_face(t, mesh, x, y, z, n, colour, tint):
-    """One face of block (x, y, z) towards n, with AO at every corner."""
-    u, v = FACES[n]
-    face = (x + n[0], y + n[1], z + n[2])
-    # The face's corners in the block's unit cube, counter-clockwise.
-    centre = (x + 0.5 + 0.5 * n[0], y + 0.5 + 0.5 * n[1], z + 0.5 + 0.5 * n[2])
-    corners, colours = [], []
-    for su, sv in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
-        p = tuple(centre[i] + 0.5 * su * u[i] + 0.5 * sv * v[i] for i in range(3))
-        ao = corner_ao(t, face, *u, *v, su, sv)
-        corners.append(p)
-        colours.append(shade(colour, tint, ao))
-    mesh.quad(corners, n, colours)
-    return [c[0] for c in colours]
+def linear(c):
+    return tuple(v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4 for v in c)
 
 
-def block_tint(t, x, y, z):
-    """Each rock or snow block a little lighter or darker, so the blocks read."""
-    tint = t.tint[x, z]
-    return tint if tint == 1.0 else tint * (0.92 + 0.08 * lattice(t.seed + 12, x, y, z))
-
-
-def build_mesh(t):
-    mesh = Mesh()
-    # Tops: flat open ground merges into rectangles, everything else per block.
-    plain = {}
-    for (x, z), h in t.height.items():
-        top, side = t.material[x, z]
-        aos = [corner_ao(t, (x, h, z), 0, 0, 1, 1, 0, 0, su, sv) for su, sv in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
-        if t.tint[x, z] == 1.0 and aos == [3, 3, 3, 3]:
-            plain[x, z] = (h, top)
-        else:
-            block_face(t, mesh, x, h - 1, z, (0, 1, 0), top, block_tint(t, x, h - 1, z))
-    done = set()
-    for x, z in sorted(plain):
-        if (x, z) in done:
-            continue
-        key = plain[x, z]
-        w = 1
-        while (x + w, z) in plain and (x + w, z) not in done and plain[x + w, z] == key:
-            w += 1
-        d = 1
-        while all((x + i, z + d) in plain and (x + i, z + d) not in done and plain[x + i, z + d] == key for i in range(w)):
-            d += 1
-        for i in range(w):
-            for j in range(d):
-                done.add((x + i, z + j))
-        h, colour = key
-        c = shade(colour, 1.0, 3)
-        mesh.quad([(x, h, z), (x, h, z + d), (x + w, h, z + d), (x + w, h, z)], (0, 1, 0), [c] * 4)
-
-    # Sides: per column and direction a strip from the neighbour's top up;
-    # runs of blocks without any shading merge into one quad.
-    for (x, z), h in t.height.items():
-        top, side = t.material[x, z]
-        tint = t.tint[x, z]
-        for n in ((1, 0, 0), (-1, 0, 0), (0, 0, 1), (0, 0, -1)):
-            nb = t.height.get((x + n[0], z + n[2]), FLOOR)
-            low = max(nb, -1)
-            run = None
-            for y in range(low, h):
-                if t.solid(x + n[0], y, z + n[2]):
-                    run = flush(mesh, run, x, z, n)
-                    continue
-                u, v = FACES[n]
-                face = (x + n[0], y, z + n[2])
-                aos = [corner_ao(t, face, *u, *v, su, sv) for su, sv in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
-                # Grass columns show dirt with the grass colour on their top block.
-                colour = top if (side == DIRT and y == h - 1) else side
-                # Rock and snow show every block, as in the video; earth merges.
-                if aos == [3, 3, 3, 3] and colour == side and side in (DIRT, SAND):
-                    if run is None:
-                        run = [y, y + 1, shade(side, tint, 3)]
-                    else:
-                        run[1] = y + 1
-                    continue
-                run = flush(mesh, run, x, z, n)
-                block_face(t, mesh, x, y, z, n, colour, block_tint(t, x, y, z))
-            flush(mesh, run, x, z, n)
-
-    # Trees: every open face of every block.
-    for (x, y, z) in sorted(t.wood | t.trees):
-        colour = WOOD if (x, y, z) in t.wood else LEAVES
-        for n in FACES:
-            if not t.solid(x + n[0], y + n[1], z + n[2]):
-                block_face(t, mesh, x, y, z, n, colour, 1.0)
-    return mesh
-
-
-def flush(mesh, run, x, z, n):
-    """Closes a merged run of plain side blocks as one quad."""
-    if run is None:
-        return None
-    y0, y1, c = run
-    u, v = FACES[n]
-    cx, cz = x + 0.5 + 0.5 * n[0], z + 0.5 + 0.5 * n[2]
-    corners = []
-    for su, sv in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
-        px = cx + 0.5 * su * u[0] + 0.5 * sv * v[0]
-        pz = cz + 0.5 * su * u[2] + 0.5 * sv * v[2]
-        ty = su * u[1] + sv * v[1]
-        corners.append((px, y1 if ty > 0 else y0, pz))
-    mesh.quad(corners, n, [c] * 4)
+def block(t, x, y, z):
+    h = t.height.get((x, z))
+    if h is not None and y < h:
+        return GROUND
+    if (x, y, z) in t.wood:
+        return TRUNK
+    if (x, y, z) in t.trees:
+        return FOLIAGE
     return None
 
 
-def write_glb(mesh, path):
-    """A glTF binary: one mesh, one primitive, material "Terrain"."""
+class Mesh:
+    """Surface Nets as in NoCubes: every block face between solid and air
+    is a quad, but its corners move off the block corners towards the mean
+    of the surface crossings round them, by SMOOTH (0: cubes, 1: NoCubes).
+    Corners are shared per kind of block, so ground and leaves never blend."""
+
+    def __init__(self, t):
+        self.t = t
+        self.pos, self.nrm, self.col, self.idx = [], [], [], []
+        self.keys = []         # per vertex (corner, kind)
+        self.index = {}
+        self.offsets = {}
+        self.tris = []         # vertex triples wound into the solid, for the collision
+        self.flat = {}         # (x, z) -> y of ground tops that stayed flat, merged for the collision
+
+    def kinds(self, X, Y, Z):
+        return {c: block(self.t, X - 1 + c[0], Y - 1 + c[1], Z - 1 + c[2]) for c in CELL}
+
+    def offset(self, X, Y, Z):
+        """The mean of the crossings on the dual cell's edges (their middles,
+        the density is solid or not) from corner (X, Y, Z); none by a trunk."""
+        key = (X, Y, Z)
+        if key not in self.offsets:
+            kinds = self.kinds(X, Y, Z)
+            sx = sy = sz = n = 0
+            if TRUNK not in kinds.values():
+                for a, b in EDGES:
+                    if (kinds[a] is None) != (kinds[b] is None):
+                        sx += (a[0] + b[0]) / 2 - 0.5
+                        sy += (a[1] + b[1]) / 2 - 0.5
+                        sz += (a[2] + b[2]) / 2 - 0.5
+                        n += 1
+            self.offsets[key] = (sx / n, sy / n, sz / n) if n else (0.0, 0.0, 0.0)
+        return self.offsets[key]
+
+    def vertex(self, corner, kind):
+        key = (corner, kind)
+        if key not in self.index:
+            o = self.offset(*corner)
+            self.index[key] = len(self.pos)
+            self.pos.append(tuple(corner[n] + SMOOTH * o[n] for n in range(3)))
+            self.nrm.append([0.0, 0.0, 0.0])
+            self.keys.append(key)
+        return self.index[key]
+
+    def face(self, x, y, z, n, kind):
+        """The face of block (x, y, z) towards n, split along the shorter diagonal."""
+        u, v = FACES[n]
+        centre = (x + 0.5 + 0.5 * n[0], y + 0.5 + 0.5 * n[1], z + 0.5 + 0.5 * n[2])
+        q = []
+        for su, sv in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
+            corner = tuple(round(centre[i] + 0.5 * su * u[i] + 0.5 * sv * v[i]) for i in range(3))
+            q.append(self.vertex(corner, kind))
+        p = [self.pos[i] for i in q]
+        if dist(p[0], p[2]) <= dist(p[1], p[3]):
+            tris = ((q[0], q[1], q[2]), (q[0], q[2], q[3]))
+        else:
+            tris = ((q[0], q[1], q[3]), (q[1], q[2], q[3]))
+        # A top that stayed a flat unit square merges with its like for the physics.
+        flat = n == (0, 1, 0) and kind == GROUND and all(self.offsets[k[0]] == (0.0, 0.0, 0.0) for k in (self.keys[i] for i in q))
+        if flat:
+            self.flat[x, z] = y + 1
+        for a, b, c in tris:
+            # Area-weighted normals, shared by every face round a vertex.
+            nx, ny, nz = cross(sub(self.pos[b], self.pos[a]), sub(self.pos[c], self.pos[a]))
+            for vi in (a, b, c):
+                self.nrm[vi][0] += nx
+                self.nrm[vi][1] += ny
+                self.nrm[vi][2] += nz
+            self.idx += [a, b, c]
+            if not flat:
+                self.tris.append((a, c, b))
+
+    def merge_flat(self):
+        """Flat tops of equal height as rectangles within a collision chunk,
+        two triangles each: far fewer for a body to touch on open ground."""
+        done = set()
+        for (x, z) in sorted(self.flat):
+            if (x, z) in done:
+                continue
+            y = self.flat[x, z]
+            cx, cz = x // CHUNK, z // CHUNK
+
+            def same(c):
+                return self.flat.get(c) == y and c not in done and (c[0] // CHUNK, c[1] // CHUNK) == (cx, cz)
+            w = 1
+            while same((x + w, z)):
+                w += 1
+            d = 1
+            while all(same((x + i, z + d)) for i in range(w)):
+                d += 1
+            for i in range(w):
+                for j in range(d):
+                    done.add((x + i, z + j))
+            corners = [self.loose((x, y, z)), self.loose((x, y, z + d)), self.loose((x + w, y, z + d)), self.loose((x + w, y, z))]
+            self.tris += [(corners[0], corners[2], corners[1]), (corners[0], corners[3], corners[2])]
+
+    def loose(self, p):
+        """A vertex only the collision uses (corners of merged rectangles)."""
+        self.pos.append(tuple(float(v) for v in p))
+        self.nrm.append([0.0, 0.0, 0.0])
+        self.keys.append(None)
+        return len(self.pos) - 1
+
+    def finish(self):
+        """Normals to unit length, then the colour of every vertex."""
+        for i, key in enumerate(self.keys):
+            if key is None:
+                self.col.append((0.0, 0.0, 0.0, 1.0))
+                self.nrm[i] = (0.0, 1.0, 0.0)
+                continue
+            corner, kind = key
+            n = self.nrm[i]
+            length = math.sqrt(n[0] ** 2 + n[1] ** 2 + n[2] ** 2) or 1.0
+            self.nrm[i] = (n[0] / length, n[1] / length, n[2] / length)
+            self.col.append(self.colour(corner, kind, self.nrm[i]))
+
+    def colour(self, corner, kind, normal):
+        t = self.t
+        X, Y, Z = corner
+        tint = 1.0
+        if kind == TRUNK:
+            colour = WOOD
+        elif kind == FOLIAGE:
+            colour = LEAVES
+        else:
+            # The column whose top is at this corner, else the highest wall.
+            columns = [(t.height.get((X - 1 + i, Z - 1 + k), -99), (X - 1 + i, Z - 1 + k)) for i in (0, 1) for k in (0, 1)]
+            tops = [c for h, c in columns if h == Y]
+            column = tops[0] if tops else max(columns)[1]
+            top, side = t.material[column]
+            # Top colour where the ground faces up, the side's on steep parts, blended between.
+            w = min(1.0, max(0.0, (normal[1] - 0.45) / 0.4))
+            w = w * w * (3 - 2 * w)
+            colour = tuple(side[n] + (top[n] - side[n]) * w for n in range(3))
+            if top in (STONE, SNOW):
+                tint = 0.93 + 0.07 * lattice(t.seed + 12, X, Y, Z) + 0.04 * noise(t.seed + 8, X / 5.0, Z / 5.0)
+        # Soft AO as with smooth lighting: darker the more of the cell is solid.
+        solid = sum(1 for k in self.kinds(X, Y, Z).values() if k is not None)
+        k = tint * (1.0 - AO_STEP * max(0, solid - 4))
+        lin = linear(colour)
+        return (lin[0] * k, lin[1] * k, lin[2] * k, 1.0)
+
+
+def sub(a, b):
+    return (a[0] - b[0], a[1] - b[1], a[2] - b[2])
+
+
+def cross(a, b):
+    return (a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0])
+
+
+def dist(a, b):
+    return math.sqrt(sum((a[i] - b[i]) ** 2 for i in range(3)))
+
+
+def build_mesh(t):
+    mesh = Mesh(t)
+    # Ground: the top of every column and its sides down to a lower
+    # neighbour, or to one block under the sea at the coast.
+    for (x, z) in sorted(t.height):
+        h = t.height[x, z]
+        if block(t, x, h, z) is None:
+            mesh.face(x, h - 1, z, (0, 1, 0), GROUND)
+        for n in ((1, 0, 0), (-1, 0, 0), (0, 0, 1), (0, 0, -1)):
+            nb = t.height.get((x + n[0], z + n[2]), UNDER)
+            for y in range(max(nb, UNDER), h):
+                if block(t, x + n[0], y, z + n[2]) is None:
+                    mesh.face(x, y, z, n, GROUND)
+    # Trees: every open face of every block.
+    for (x, y, z) in sorted(t.wood | t.trees):
+        kind = block(t, x, y, z)
+        for n in FACES:
+            if block(t, x + n[0], y + n[1], z + n[2]) is None:
+                mesh.face(x, y, z, n, kind)
+    mesh.merge_flat()
+    mesh.finish()
+    return mesh
+
+
+def slopes(mesh):
+    """Share of the ground's area (seen from above) flatter than the motor's
+    slope limit, where one stands without sliding."""
+    flat = total = 0.0
+    for a, c, b in mesh.tris:
+        nx, ny, nz = cross(sub(mesh.pos[b], mesh.pos[a]), sub(mesh.pos[c], mesh.pos[a]))
+        length = math.sqrt(nx * nx + ny * ny + nz * nz)
+        if length == 0 or ny <= 0:
+            continue
+        total += ny / 2
+        if ny / length > math.cos(math.radians(SLOPE_LIMIT)):
+            flat += ny / 2
+    return flat / total
+
+
+def write_glb(path, name, pos, nrm, idx, col=None):
+    """A glTF binary: one mesh, one primitive, its material called 'name'
+    (the model asset maps it); vertex colours if given."""
     def pack(fmt, rows):
         return b''.join(struct.pack(fmt, *r) for r in rows)
-    pos = pack('<3f', mesh.pos)
-    nrm = pack('<3f', mesh.nrm)
-    col = pack('<4f', mesh.col)
-    idx = struct.pack('<%dI' % len(mesh.idx), *mesh.idx)
-    blobs = [pos, nrm, col, idx]
+    blobs = [pack('<3f', pos), pack('<3f', nrm)] + ([pack('<4f', col)] if col else [])
+    blobs.append(struct.pack('<%dI' % len(idx), *idx))
     views, offset = [], 0
     for i, b in enumerate(blobs):
         views.append({'buffer': 0, 'byteOffset': offset, 'byteLength': len(b),
-                      'target': 34963 if i == 3 else 34962})
+                      'target': 34963 if i == len(blobs) - 1 else 34962})
         offset += len(b)
-    lo = [min(p[i] for p in mesh.pos) for i in range(3)]
-    hi = [max(p[i] for p in mesh.pos) for i in range(3)]
-    n = len(mesh.pos)
+    n = len(pos)
+    accessors = [
+        {'bufferView': 0, 'componentType': 5126, 'count': n, 'type': 'VEC3',
+         'min': [min(p[i] for p in pos) for i in range(3)], 'max': [max(p[i] for p in pos) for i in range(3)]},
+        {'bufferView': 1, 'componentType': 5126, 'count': n, 'type': 'VEC3'},
+    ]
+    attributes = {'POSITION': 0, 'NORMAL': 1}
+    if col:
+        attributes['COLOR_0'] = 2
+        accessors.append({'bufferView': 2, 'componentType': 5126, 'count': n, 'type': 'VEC4'})
+    accessors.append({'bufferView': len(blobs) - 1, 'componentType': 5125, 'count': len(idx), 'type': 'SCALAR'})
     gltf = {
         'asset': {'version': '2.0', 'generator': 'KotH Tools/maps/mountain.py'},
         'scene': 0, 'scenes': [{'nodes': [0]}],
-        'nodes': [{'name': 'Mountain', 'mesh': 0}],
-        'meshes': [{'name': 'Mountain', 'primitives': [{
-            'attributes': {'POSITION': 0, 'NORMAL': 1, 'COLOR_0': 2}, 'indices': 3, 'material': 0}]}],
-        'materials': [{'name': 'Terrain', 'pbrMetallicRoughness': {'metallicFactor': 0.0, 'roughnessFactor': 0.9}}],
+        'nodes': [{'name': name, 'mesh': 0}],
+        'meshes': [{'name': name, 'primitives': [{'attributes': attributes, 'indices': len(accessors) - 1, 'material': 0}]}],
+        'materials': [{'name': name, 'pbrMetallicRoughness': {'metallicFactor': 0.0, 'roughnessFactor': 0.9}}],
         'buffers': [{'byteLength': offset}],
         'bufferViews': views,
-        'accessors': [
-            {'bufferView': 0, 'componentType': 5126, 'count': n, 'type': 'VEC3', 'min': lo, 'max': hi},
-            {'bufferView': 1, 'componentType': 5126, 'count': n, 'type': 'VEC3'},
-            {'bufferView': 2, 'componentType': 5126, 'count': n, 'type': 'VEC4'},
-            {'bufferView': 3, 'componentType': 5125, 'count': len(mesh.idx), 'type': 'SCALAR'},
-        ],
+        'accessors': accessors,
     }
     import json
     js = json.dumps(gltf, separators=(',', ':')).encode()
@@ -548,107 +645,57 @@ def write_glb(mesh, path):
         f.write(struct.pack('<I4s', len(body), b'BIN\0') + body)
 
 
+def sea(t):
+    """The sea round the island and out to SEA_REACH, with a hole where the
+    island stands: overlapping it, the far depth buffer lost the meadow under
+    the water. Flat at the entity's height (NeuVisual puts it at WATER_Y)."""
+    pos, idx = [], []
+
+    def rect(x0, z0, x1, z1):
+        b = len(pos)
+        pos.extend([(x0, 0.0, z0), (x0, 0.0, z1), (x1, 0.0, z1), (x1, 0.0, z0)])
+        idx.extend([b, b + 1, b + 2, b, b + 2, b + 3])
+    for z in range(-HALF, HALF):
+        x = -HALF
+        while x < HALF:
+            if (x, z) in t.height:
+                x += 1
+                continue
+            end = x
+            while end < HALF and (end, z) not in t.height:
+                end += 1
+            rect(x, z, end, z + 1)
+            x = end
+    far = SEA_REACH
+    rect(-far, -far, far, -HALF)
+    rect(-far, HALF, far, far)
+    rect(-far, -HALF, -HALF, HALF)
+    rect(HALF, -HALF, far, HALF)
+    return pos, [(0.0, 1.0, 0.0)] * len(pos), idx
+
+
 # ---------- the collision ----------
 
-def boxes(t):
-    """Per chunk: columns of equal height merged into rectangles, from FLOOR
-    to the top, then the trees layer by layer."""
+def write_collision(mesh, path):
+    """The drawn triangles for the physics, compressed: the vertices, then
+    per CHUNK x CHUNK chunk (by centroid, in order) its triangles as vertex
+    triples wound into the solid, as Bepu's triangles take them. The game
+    puts each chunk into one static compound (WorldBuilder)."""
     chunks = {}
-    for (x, z), h in t.height.items():
-        chunks.setdefault((x // CHUNK, z // CHUNK), {})[x, z] = h
-    trees = {}
-    for (x, y, z) in t.wood | t.trees:
-        trees.setdefault((x // CHUNK, z // CHUNK), set()).add((x, y, z))
-    out = {}
-    for key in sorted(set(chunks) | set(trees)):
-        cells = chunks.get(key, {})
-        rects = []
-        done = set()
-        for x, z in sorted(cells):
-            if (x, z) in done:
-                continue
-            h = cells[x, z]
-            w = 1
-            while (x + w, z) in cells and (x + w, z) not in done and cells[x + w, z] == h:
-                w += 1
-            d = 1
-            while all((x + i, z + d) in cells and (x + i, z + d) not in done and cells[x + i, z + d] == h for i in range(w)):
-                d += 1
-            for i in range(w):
-                for j in range(d):
-                    done.add((x + i, z + j))
-            rects.append((x, FLOOR, z, w, h - FLOOR, d))
-        blocks = trees.get(key, set())
-        layer_done = set()
-        for (x, y, z) in sorted(blocks, key=lambda b: (b[1], b[0], b[2])):
-            if (x, y, z) in layer_done:
-                continue
-            w = 1
-            while (x + w, y, z) in blocks and (x + w, y, z) not in layer_done:
-                w += 1
-            d = 1
-            while all((x + i, y, z + d) in blocks and (x + i, y, z + d) not in layer_done for i in range(w)):
-                d += 1
-            for i in range(w):
-                for j in range(d):
-                    layer_done.add((x + i, y, z + j))
-            rects.append((x, y, z, w, 1, d))
-        out[key] = rects
-    return out
-
-
-def guid(name):
-    return str(uuid.uuid5(NAMESPACE, name)).upper()
-
-
-def hexid(name):
-    return uuid.uuid5(NAMESPACE, name).hex
-
-
-def num(v):
-    return repr(float(v))
-
-
-def write_prefab(chunks, path):
-    parts, roots = [], []
-    for (cx, cz), rects in chunks.items():
-        name = 'Terrain_%d_%d' % (cx, cz)
-        eid = guid(name)
-        roots.append(eid)
-        ox, oz = cx * CHUNK, cz * CHUNK
-        lines = [
-            '        -   Entity:',
-            '                Id: %s' % eid,
-            '                Name: %s' % name,
-            '                Components:',
-            '                    %s: !TransformComponent' % hexid(name + '/t'),
-            '                        Id: %s' % guid(name + '/transform'),
-            '                        Position: {X: %s, Y: 0.0, Z: %s}' % (num(ox), num(oz)),
-            '                        Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}',
-            '                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}',
-            '                        Children: {}',
-            '                    %s: !Stride.BepuPhysics.StaticComponent,Stride.BepuPhysics' % hexid(name + '/s'),
-            '                        Id: %s' % guid(name + '/static'),
-            '                        Collider: !Stride.BepuPhysics.Definitions.Colliders.CompoundCollider,Stride.BepuPhysics',
-            '                            Colliders:',
-        ]
-        for i, (x, y, z, w, h, d) in enumerate(rects):
-            lines += [
-                '                                %s: !Stride.BepuPhysics.Definitions.Colliders.BoxCollider,Stride.BepuPhysics' % hexid('%s/%d' % (name, i)),
-                '                                    Mass: 1.0',
-                '                                    PositionLocal: {X: %s, Y: %s, Z: %s}' % (num(x - ox + w / 2), num(y + h / 2), num(z - oz + d / 2)),
-                '                                    RotationLocal: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}',
-                '                                    Size: {X: %s, Y: %s, Z: %s}' % (num(w), num(h), num(d)),
-            ]
-        lines += [
-            '                        CollisionGroup: {}',
-            '                        ContactEventHandler: null',
-        ]
-        parts.append('\n'.join(lines) + '\n')
-    head = ['!PrefabAsset', 'Id: %s' % PREFAB_ID, 'SerializedVersion: {Stride: 3.1.0.1}', 'Tags: []',
-            'Hierarchy:', '    RootParts:'] + ['        - ref!! %s' % r for r in roots] + ['    Parts:']
-    with open(path, 'w') as f:
-        f.write('\n'.join(head) + '\n' + ''.join(parts))
+    for tri in mesh.tris:
+        cx = sum(mesh.pos[i][0] for i in tri) / 3
+        cz = sum(mesh.pos[i][2] for i in tri) / 3
+        chunks.setdefault((math.floor(cx / CHUNK), math.floor(cz / CHUNK)), []).append(tri)
+    out = [struct.pack('<4sII', b'KTRN', 1, len(mesh.pos))]
+    out += [struct.pack('<3f', *p) for p in mesh.pos]
+    out.append(struct.pack('<I', len(chunks)))
+    for key in sorted(chunks):
+        tris = chunks[key]
+        out.append(struct.pack('<iiI', key[0], key[1], len(tris)))
+        out += [struct.pack('<3I', *tri) for tri in tris]
+    with open(path, 'wb') as f:
+        f.write(zlib.compress(b''.join(out), 9))
+    return chunks
 
 
 # ---------- the picture from above ----------
@@ -701,14 +748,18 @@ def main():
 
     mesh = build_mesh(t)
     glb = os.path.join(ROOT, 'KotH.Game/Resources/Models/Mountain.glb')
-    write_glb(mesh, glb)
+    write_glb(glb, 'Terrain', mesh.pos, mesh.nrm, mesh.idx, mesh.col)
+    write_glb(os.path.join(ROOT, 'KotH.Game/Resources/Models/Sea.glb'), 'Water', *sea(t))
     print('Mountain.glb: %d Dreiecke, %d Ecken, %.1f MB' % (len(mesh.idx) // 3, len(mesh.pos), os.path.getsize(glb) / 1e6))
 
-    chunks = boxes(t)
-    prefab = os.path.join(ROOT, 'KotH.Shared/Assets/Maps/Neu/NeuTerrain.sdprefab')
-    write_prefab(chunks, prefab)
-    counts = [len(r) for r in chunks.values()]
-    print('NeuTerrain: %d Chunks, %d Boxen, höchstens %d je Chunk' % (len(chunks), sum(counts), max(counts)))
+    print('Begehbar (flacher als %.0f Grad): %.0f %% der Bodenfläche' % (SLOPE_LIMIT, slopes(mesh) * 100))
+
+    data = os.path.join(ROOT, 'KotH.Shared/Resources/Maps/NeuTerrain.bin')
+    os.makedirs(os.path.dirname(data), exist_ok=True)
+    chunks = write_collision(mesh, data)
+    counts = [len(c) for c in chunks.values()]
+    print('NeuTerrain.bin: %d Chunks, %d Dreiecke, höchstens %d je Chunk, %.1f MB'
+          % (len(chunks), sum(counts), max(counts), os.path.getsize(data) / 1e6))
 
     os.makedirs(os.path.join(ROOT, '.work/maps'), exist_ok=True)
     write_png(t, os.path.join(ROOT, '.work/maps/mountain.png'))

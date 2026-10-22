@@ -4,7 +4,8 @@ namespace KotH.Shared.Hosting
     /// The maps by name: each is a folder Maps/NAME with NAMECollision in
     /// KotH.Shared (colliders, markers, zone, bot settings; loads headless)
     /// and NAMEVisual in KotH.Game (what is drawn). Both must be root assets.
-    /// A generated map adds NAMETerrain beside them, owned by its script.
+    /// A generated map adds its ground as Resources/Maps/NAMETerrain.bin,
+    /// owned by its script and embedded in KotH.Shared.
     /// </summary>
     public static class Maps
     {
@@ -17,7 +18,7 @@ namespace KotH.Shared.Hosting
         public static string CollisionUrl(string map) => $"/KotH.Shared/Maps/{map}/{map}Collision";
 
         /// <summary>Generated ground (Tools/maps), loaded after the collision prefab if the map has one.</summary>
-        public static string TerrainUrl(string map) => $"/KotH.Shared/Maps/{map}/{map}Terrain";
+        public static string TerrainResource(string map) => $"Maps/{map}Terrain.bin";
 
         public static string VisualUrl(string map) => $"Maps/{map}/{map}Visual";
     }

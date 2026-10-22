@@ -2,8 +2,8 @@
 
 Ein King-of-the-Hill-Spiel in der Ego-Perspektive. Wer den Gipfel hält, gewinnt.
 Der aktuelle Stand ist ein Prototyp: eine Testmap mit Berg, Rampen und Treppen
-(`--map Test`; Standard ist die Map `Neu`, ein 136 m hoher Blockberg auf einer Insel
-nach einer Minecraft-Map), Bots, die
+(`--map Test`; Standard ist die Map `Neu`, ein 123 m hoher Berg auf einer Insel
+nach einer Minecraft-Map, mit abgerundeten Blöcken wie im Mod NoCubes), Bots, die
 um den Gipfel kämpfen, alle als Fliegenpilz-Figuren, Bewegung mit Sprint,
 Gleiten, Ducken, gestuftem Sprung und Doppelsprung, Körperstöße zwischen
 Spielern sowie ein Nahkampfschlag. Der Schlag erhöht das Schadensprozent des
@@ -242,13 +242,17 @@ als Root-Asset (Game Studio: „Include in build as root asset“); `--map NAME`
 sie dann über den Ordnernamen.
 
 Der Boden der Map `Neu` kommt aus einem Skript: `python3 Tools/maps/mountain.py`
-schreibt das Modell `Resources/Models/Mountain.glb` (Vertexfarben mit Kantenschatten
-wie in Minecraft) und die Kollision `Maps/Neu/NeuTerrain.sdprefab` (Boxen in Chunks
-von 8 × 8 m), sonst nichts; Startplätze, Zone und Optik-Prefab bleiben in Game Studio.
-Es legt keine Wege an: Der Hang ist so steil, dass man sich mit Sprung und Doppelsprung
-selbst einen Weg suchen muss. Das Skript prüft, ob der Gipfel aus genug Richtungen
+baut den Berg aus 1-m-Blöcken und rundet ihn wie der Minecraft-Mod NoCubes mit Surface
+Nets ab, nur schwächer (`SMOOTH`). Es schreibt das Modell `Resources/Models/Mountain.glb`
+(Vertexfarben mit weichen Kantenschatten), das Meer `Resources/Models/Sea.glb` (mit
+Loch unter der Insel) und die Kollision `KotH.Shared/Resources/Maps/NeuTerrain.bin`
+(dieselben Dreiecke wie das Modell, in Chunks von 4 × 4 m, als Ressource in
+KotH.Shared eingebettet), sonst nichts; Startplätze, Zone und Optik-Prefab bleiben in
+Game Studio. Es legt keine Wege an: Man sucht sich mit Sprung und Doppelsprung selbst
+einen Weg über die Säulen. Das Skript prüft, ob der Gipfel aus genug Richtungen
 erreichbar ist, und bricht sonst ab. Die Werte stehen oben im Skript (Höhe, Fuß,
-Steigung, Rauschen, Schneelinie, Bäume, Seed). Bots kommen dort noch nicht hinauf.
+Steigung, Säulen, Rundung, Übergang ins Plateau, Schneelinie, Bäume, Seed). Nach jedem
+Lauf alles neu bauen. Bots kommen dort noch nicht hinauf.
 
 ## Proben und Regression
 
