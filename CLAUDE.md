@@ -91,7 +91,7 @@ Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall 
 - Zone: Einnehmen 3 s allein; danach bleibt sie dem Halter, solange er drin ist, er punktet auch mit anderen darin.
   Punkte in `BodyState`, Runde als `MatchState` im Snapshot. Nur mit `HeadlessWorld.StartMatch()`/`GameRoot`.
 - Phasen `Running`/`Over`, im Mehrspieler zusätzlich `Waiting`/`Countdown` (`MinPlayers` > 0). Spieler ab
-  `NetWorld.FirstPlayerId`. Respawn unter `RespawnBelow` (Mitte; Test −5 m, Neu 1 m), jede Phase; Prozent, Punkte bleiben.
+  `NetWorld.FirstPlayerId`. Respawn unter `RespawnBelow` (Mitte; Test −5 m, Neu 0 m), jede Phase; Prozent, Punkte bleiben.
 - Startplätze (Lucas Wunsch): mit Ring an der `CaptureZone` (Neu 101–110 m, Abstand 6 m) zufällig rundum, Blick zur
   Zone, beim Rundenstart, Beitritt in eine laufende Runde und jedem Respawn in `Running`/`Over`; Lobby, Countdown und
   Test: Marker. 50 % neben einen Gesetzten (6–30 m). Zufall aus `MatchState.Seed` (Host würfelt), Tick, NetId.
