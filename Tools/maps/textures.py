@@ -26,6 +26,7 @@ SMALL = SIZE // 2           # leaves and bark: 2 m per repeat (PaintedTriplanar)
 K = SIZE / 1024
 EDGE = 1.0 * K              # blur of an edge: soft, but the shape stays clear
 SEED = 22
+LEAVES_PER_LAYER = 110     # three layers; with the canopy's inner shells the crown is closed
 
 
 def mix(a, b, t):
@@ -355,12 +356,14 @@ def rock(rng):
 
 def leaves(rng):
     size = SMALL
-    img = Image.new('RGBA', (size, size), (40, 96, 36, 255))
+    # Only the leaves: the ground between is clear (cut off by the material),
+    # its colour the dark rim's, so filtering leaves no bright fringe.
+    img = Image.new('RGBA', (size, size), (40, 96, 36, 0))
     # Overlapping leaves like those round the mushroom's collar: dark rim, body
     # with a lit half, a dark middle vein and side veins.
     for layer_no in range(3):
         lay, d = layer(size)
-        for _ in range(85):
+        for _ in range(LEAVES_PER_LAYER):
             x, y = rng.uniform(0, size), rng.uniform(0, size)
             length = rng.uniform(48, 72) * K
             width = length * rng.uniform(0.38, 0.48)
@@ -389,7 +392,7 @@ def leaves(rng):
                         d.line([at(s, 0, ox, oy), at(s + length * 0.12, side * width * 0.28, ox, oy)], fill=vein + (220,), width=max(1, int(K)))
             wrap(draw, size, x, y, 60 * K)
         img.alpha_composite(blur(lay, EDGE))
-    return img.convert('RGB')
+    return img
 
 
 def bark(rng):

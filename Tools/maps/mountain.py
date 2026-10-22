@@ -85,6 +85,9 @@ TRUNK_RADIUS = 0.5         # trunks are round (Luca), as thick as the block was
 TRUNK_FOOT = 0.55          # and this thick at the ground, widening over TRUNK_FLARE like roots
 TRUNK_FLARE = 0.5
 TRUNK_SIDES = 16
+# The leaves are cut out of their texture (Luca); copies of the crown this far
+# in, this much darker, fill it behind the gaps. Only drawn, not in the collision.
+LEAF_SHELLS = ((0.3, 0.8), (0.6, 0.62))
 
 
 
@@ -790,14 +793,25 @@ def write_glb(path, parts):
 
 
 def parts(mesh):
-    """The mesh split by kind of block, each with only its own vertices."""
+    """The mesh split by kind of block, each with only its own vertices; the
+    leaves with their inner shells (LEAF_SHELLS)."""
     out = []
     for kind, name in ((GROUND, 'Terrain'), (FOLIAGE, 'Leaves'), (TRUNK, 'Bark')):
         faces = [mesh.idx[i:i + 3] for i in range(0, len(mesh.idx), 3) if mesh.keys[mesh.idx[i]][1] == kind]
         used = sorted({v for f in faces for v in f})
         new = {v: i for i, v in enumerate(used)}
-        out.append((name, [mesh.pos[v] for v in used], [mesh.nrm[v] for v in used],
-                    [new[v] for f in faces for v in f], [mesh.col[v] for v in used], [mesh.uv[v] for v in used]))
+        pos, nrm = [mesh.pos[v] for v in used], [mesh.nrm[v] for v in used]
+        idx, col, uv = [new[v] for f in faces for v in f], [mesh.col[v] for v in used], [mesh.uv[v] for v in used]
+        if kind == FOLIAGE:
+            n = len(used)
+            for depth, dark in LEAF_SHELLS:
+                base = len(pos)
+                pos += [tuple(pos[i][k] - depth * nrm[i][k] for k in range(3)) for i in range(n)]
+                nrm += nrm[:n]
+                col += col[:n]
+                uv += [(uv[i][0] * dark, uv[i][1]) for i in range(n)]
+                idx += [base + i for i in idx[:len(faces) * 3]]
+        out.append((name, pos, nrm, idx, col, uv))
     return out
 
 

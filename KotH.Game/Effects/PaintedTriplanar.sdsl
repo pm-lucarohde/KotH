@@ -1,6 +1,7 @@
 /// <summary>
 /// One painted texture projected from three sides (triplanar), for leaves and
-/// bark; TEXCOORD0.x is the shade (soft AO).
+/// bark; TEXCOORD0.x is the shade (soft AO). The alpha is the texture's: the
+/// leaves' material cuts off the clear ground between the leaves.
 /// </summary>
 shader PaintedTriplanar<LinkType PaintKey>
     : ComputeColor, PositionStream4, NormalStream, Texturing
@@ -25,6 +26,6 @@ shader PaintedTriplanar<LinkType PaintKey>
         float4 c = b.x * Paint.SampleBias(AnisotropicRepeatSampler, float2(p.z, -p.y), Bias)
                  + b.y * Paint.SampleBias(AnisotropicRepeatSampler, p.xz, Bias)
                  + b.z * Paint.SampleBias(AnisotropicRepeatSampler, float2(p.x, -p.y), Bias);
-        return float4(c.rgb * shade, 1.0);
+        return float4(c.rgb * shade, c.a);
     }
 };
