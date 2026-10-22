@@ -803,6 +803,8 @@ def parts(mesh):
         pos, nrm = [mesh.pos[v] for v in used], [mesh.nrm[v] for v in used]
         idx, col, uv = [new[v] for f in faces for v in f], [mesh.col[v] for v in used], [mesh.uv[v] for v in used]
         if kind == FOLIAGE:
+            # TEXCOORD_0.y = 1: PaintedTriplanar lets these leaves move in the wind.
+            uv = [(u[0], 1.0) for u in uv]
             n = len(used)
             for depth, dark in LEAF_SHELLS:
                 base = len(pos)
