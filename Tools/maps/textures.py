@@ -341,10 +341,13 @@ def rock(rng):
         c = rng.choice([(132, 122, 110), (196, 186, 170), (170, 160, 146)])
         specs.append((rng.uniform(0, SIZE), rng.uniform(0, SIZE), rng.uniform(8, 20) * K, c, 0.75, 7))
     stones(img, rng, specs, 0.62)
+    # Lichen: a third of the first patches (Luca: too many, twice), one
+    # yellow, one green. The draw that once picked the tone stays, so the
+    # patches keep their places.
     lay, d = layer(SIZE)
-    for _ in range(6):
+    for c in ((196, 186, 92), (150, 172, 84)):
         cx, cy = rng.uniform(0, SIZE), rng.uniform(0, SIZE)
-        c = rng.choice([(196, 186, 92), (150, 172, 84), (214, 150, 70)])
+        rng.choice(range(3))
         for _ in range(rng.randint(5, 10)):
             x, y, r = cx + rng.uniform(-36, 36) * K, cy + rng.uniform(-24, 24) * K, rng.uniform(5, 12) * K
 
