@@ -35,6 +35,9 @@ namespace KotH.Shared.Bots
         /// <userdoc>Bonus für die Absicht, die gerade läuft, damit ein Bot nicht hin und her springt.</userdoc>
         [Display("Beharrlichkeit", "Entscheiden")] public float Persistence = 0.3f;
 
+        /// <userdoc>So lange bleibt ein Bot bei Rundenbeginn stehen, bevor er losläuft, in Sekunden.</userdoc>
+        [Display("Warten bei Rundenbeginn (s)", "Entscheiden")] public float StartWait = 3f;
+
         /// <userdoc>Ticks pro Manöver einer Folge (Sprint, Sprung, Schlag …).</userdoc>
         [Display("Manöverlänge (Ticks)", "Manöver")] public int SlotTicks = 8;
 

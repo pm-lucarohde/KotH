@@ -125,7 +125,7 @@ Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall 
   Überblendung 3,5 s, Lautstärke 0,4, im Netz nach bestätigter Runde; misst die Länge selbst (`Sound.TotalLength`).
 
 ### Bots (`KotH.Shared/Bots`)
-- Treten wie Spieler bei (NetId ab 4, Slots nach `NetWorld.BotSlots`), offline/Host `--bots N` (Standard 3).
+- Treten wie Spieler bei (NetId ab 4, Slots nach `NetWorld.BotSlots`), offline/Host `--bots N` (Standard 3), stehen bei Rundenbeginn 3 s (`StartWait`).
   **Nur der Host rechnet sie, deterministisch:** `BotDirector` berechnet Tick t einmal, in Reihenfolge, nur aus dem
   endgültigen Zustand bei t − 8 (`ReactionTicks`), dem Raster und dem xorshift; kein Bot-Zustand im Snapshot. Host
   bestätigt sie in `Finalise` (`AddBot`), sein Peer kennt sie vorab (`KnownInputs`), Gäste sagen sie vorher.

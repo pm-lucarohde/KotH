@@ -170,6 +170,12 @@ namespace KotH.Shared.Bots
             bool airborne = !me.Motor.Grounded || u - lastJump < 20;
             MatchPhase phase = match != null ? view.Match.Phase : MatchPhase.Running;
 
+            // The round has just begun: stand a moment before setting off
+            // (Lucas Wunsch). What is seen is Reaction ticks old, the round is not.
+            if (match != null && phase == MatchPhase.Running &&
+                view.Match.RoundTicks + Reaction < (int)MathF.Round(settings.StartWait / Dt))
+                return Remember(u, new MoveInput { Yaw = yaw, Pitch = pitch });
+
             if (u >= nextThink)
             {
                 nextThink = u + Math.Max(1, settings.ThinkTicks);
