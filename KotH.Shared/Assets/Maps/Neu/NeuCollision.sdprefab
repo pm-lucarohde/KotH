@@ -60,7 +60,7 @@ Hierarchy:
                         WinPauseSeconds: 5.0
                         CountdownSeconds: 60.0
                         JoinSeconds: 60.0
-                        RespawnBelow: -5.0
+                        RespawnBelow: 1.0
                         SpawnRingInner: 101.0
                         SpawnRingOuter: 110.0
                         SpawnSpacing: 6.0
