@@ -108,7 +108,7 @@ Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall 
   `TEXCOORD_0.x` = AO), `Sea.glb` und `NeuTerrain.bin` (Kollision, eingebettet, 4-m-Chunks, `WorldBuilder.AddTerrain`).
   Surface Nets 70 %, Säulen 2 × 1, ohne Wege, Gipfel aus ≥ 9/12 Richtungen; Stämme rund (Gras/Laub darüber nur optisch,
   kein Boden im Stamm). Danach `publish_aot.sh`. Sichtweite ≤ 20 km. Klettergefühl testet Luca selbst.
-- Texturen: `Tools/maps/textures.py` (gemalt, comichaft, wenig Details), Shader `TerrainTriplanar`/`PaintedTriplanar`
+- Texturen: `Tools/maps/textures.py` (gemalt, comichaft, wenig Details), Shader `TerrainTriplanar`/`PaintedTriplanar`/`LeafSplat`
   in `KotH.Game/Effects`. Fallen: kein `Texture2D` als Generic (`LinkType` + `[Link]` in `rgroup PerMaterial`),
   verschachteltes `ComputeColorParameterTexture`; Import legt namensgleiche Materialien zusammen.
 

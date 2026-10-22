@@ -1,0 +1,118 @@
+/// <summary>
+/// Leaves laid one by one on the crown (Luca: first the shape, then the
+/// texture): every leaf has a place in the world, lies flat on the surface
+/// there and is cut out by its own outline, so nothing stretches on slanted
+/// faces. The atlas only gives its colours. TEXCOORD0.x is the shade (soft AO);
+/// the alpha says leaf or gap, the material cuts the gaps off.
+/// </summary>
+shader LeafSplat<LinkType PaintKey>
+    : ComputeColor, PositionStream4, NormalStream, Texturing
+{
+    // Leaves sit at random in cubes of Cell metres, PerCell to a cube. A leaf
+    // shows where the surface passes within Depth of its middle; Cell must stay
+    // above the reach of the longest leaf, sqrt((LengthMax/2)^2 + Depth^2),
+    // as only the neighbouring cubes are searched.
+    static const float Cell = 0.2;
+    static const int PerCell = 3;
+    static const float Depth = 0.12;
+    static const float LengthMin = 0.2;
+    static const float LengthMax = 0.3;
+    // The outline as textures.py paints it: width over length, length in the
+    // atlas quarter (LEAF_WIDTH, LEAF_FILL).
+    static const float Width = 0.43;
+    static const float Fill = 0.94;
+    // Wind: metres the leaves move, as a slow sway of whole patches and a
+    // quicker flutter of single leaves, never in step from place to place.
+    static const float SwayReach = 0.03;
+    static const float FlutterReach = 0.008;
+    // Share of the first draft's pace (Luca: 40 % slower, twice).
+    static const float WindPace = 0.36;
+    static const float Pi = 3.14159265;
+
+    float3 Wind(float3 q, float t)
+    {
+        float gust = 0.65 + 0.35 * sin(t * 0.37 + q.x * 0.11 + q.z * 0.07);
+        float3 sway = float3(sin(t * 1.9 + q.x * 2.3 + q.y * 1.7),
+                             0.5 * sin(t * 1.4 + q.y * 2.1 + q.z * 1.3),
+                             sin(t * 1.6 + q.z * 2.6 - q.x * 1.1));
+        float3 flutter = float3(sin(t * 7.3 + q.y * 9.1 + q.z * 6.7),
+                                sin(t * 6.1 + q.x * 8.3 - q.z * 7.9),
+                                sin(t * 8.2 + q.x * 7.1 + q.y * 9.7));
+        return gust * (SwayReach * sway + FlutterReach * flutter);
+    }
+
+    // Three values in [0, 1) for a point, the same every frame (Hoskins).
+    float3 Hash3(float3 p)
+    {
+        p = frac(p * float3(0.1031, 0.1030, 0.0973));
+        p += dot(p, p.yxz + 33.33);
+        return frac((p.xxy + p.yxx) * p.zyx);
+    }
+
+    rgroup PerMaterial
+    {
+        [Link("PaintKey")] stage Texture2D Paint;
+    }
+
+    override float4 Compute()
+    {
+        float3 n = normalize(streams.normalWS);
+        float3 q = streams.PositionWS.xyz;
+        float3 p = q + Wind(q, Global.Time * WindPace);
+        float3 home = floor(p / Cell);
+        float reach = (LengthMax * 0.5) * (LengthMax * 0.5) + Depth * Depth;
+
+        // The outermost leaf over this point wins; those under it show in
+        // its gaps, darker.
+        float top = -1000.0;
+        float2 uv = 0;
+        float3 along = 0;
+        float3 across = 0;
+        float3 pick = 0;
+        for (int i = -1; i <= 1; i++)
+        for (int j = -1; j <= 1; j++)
+        for (int k = -1; k <= 1; k++)
+        for (int s = 0; s < PerCell; s++)
+        {
+            float3 id = home + float3(i, j, k);
+            float3 d = p - (id + Hash3(id + s * float3(17.3, 31.7, 7.9))) * Cell;
+            float rise = -dot(d, n);
+            if (dot(d, d) > reach || abs(rise) > Depth || rise < top)
+                continue;
+            float3 r = Hash3(id * 1.37 + s * 11.1 + 4.2) * 2.0 - 1.0;
+            float3 t1 = r - n * dot(r, n);
+            if (dot(t1, t1) < 0.0001)
+                continue;
+            t1 = normalize(t1);
+            float3 t2 = cross(n, t1);
+            float3 v = Hash3(id * 0.73 + s * 5.9 + 9.6);
+            float size = lerp(LengthMin, LengthMax, v.x);
+            float2 u = float2(dot(d, t1), dot(d, t2)) / size;
+            if (abs(u.x) >= 0.5)
+                continue;
+            if (abs(u.y) >= 0.5 * Width * pow(max(sin(Pi * (u.x + 0.5)), 0.0), 0.8))
+                continue;
+            top = rise;
+            uv = u;
+            along = t1 / size;
+            across = t2 / size;
+            pick = v;
+        }
+        if (top < -Depth)
+            return float4(0, 0, 0, 0);
+
+        // Into the leaf's quarter of the atlas; the slopes come from the
+        // surface, so a neighbouring pixel on another leaf picks no blurry mip.
+        float variant = floor(pick.y * 4.0);
+        float2 corner = float2(fmod(variant, 2.0), floor(variant / 2.0)) * 0.5;
+        float2 atlas = corner + (0.5 + uv * Fill) * 0.5;
+        float3 px = ddx(p);
+        float3 py = ddy(p);
+        float2 gx = float2(dot(px, along), dot(px, across)) * Fill * 0.5;
+        float2 gy = float2(dot(py, along), dot(py, across)) * Fill * 0.5;
+        float3 c = Paint.SampleGrad(AnisotropicRepeatSampler, atlas, gx, gy).rgb;
+        float under = lerp(0.72, 1.0, saturate((top + Depth) / (2.0 * Depth)));
+        float tint = lerp(0.9, 1.1, pick.z);
+        return float4(c * streams.TexCoord.x * under * tint, 1.0);
+    }
+};

@@ -8,7 +8,7 @@ Attributes:
             Value: 0.1
     Diffuse: !MaterialDiffuseMapFeature
         DiffuseMap: !ComputeShaderClassColor
-            MixinReference: PaintedTriplanar
+            MixinReference: LeafSplat
             Generics:
                 2e926745c8dd4b5094f6a5208e00148c~PaintKey: !ComputeColorParameterTexture
                     Texture:

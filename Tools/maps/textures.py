@@ -5,7 +5,8 @@ brush strokes inside every shape, like Mushroom.png (Luca, 22.10.2026: "not
 washed out", then "a touch softer and more like a comic").
 
 Writes tileable PNGs to KotH.Game/Resources/Textures/Terrain (grass, dirt,
-sand, snow, rock for TerrainTriplanar; leaves and bark for PaintedTriplanar;
+sand, snow, rock for TerrainTriplanar; bark for PaintedTriplanar, single
+leaves for LeafSplat;
 the sea is one plain colour, Luca's wish). Needs Pillow; seeded, so every run
 paints the same.
 Sizes below are in pixels of a 1024 texture and scaled by K.
@@ -26,7 +27,8 @@ SMALL = SIZE // 2           # leaves and bark: 2 m per repeat (PaintedTriplanar)
 K = SIZE / 1024
 EDGE = 1.0 * K              # blur of an edge: soft, but the shape stays clear
 SEED = 22
-LEAVES_PER_LAYER = 110     # three layers; with the canopy's inner shells the crown is closed
+LEAF_FILL = 0.94           # a leaf's length in its quarter of the atlas (LeafSplat.sdsl: Fill)
+LEAF_WIDTH = 0.43          # its width over its length (LeafSplat.sdsl: Width)
 
 
 def mix(a, b, t):
@@ -355,43 +357,42 @@ def rock(rng):
 
 
 def leaves(rng):
+    """Four single leaves in a 2 x 2 atlas, one per quarter, lying along x.
+    LeafSplat places every leaf on the crown and cuts its outline itself
+    (LEAF_WIDTH, the same curve), so it only takes the colours from here."""
     size = SMALL
-    # Only the leaves: the ground between is clear (cut off by the material),
-    # its colour the dark rim's, so filtering leaves no bright fringe.
+    quarter = size // 2
+    # The ground between is clear, its colour the dark rim's, so filtering
+    # leaves no bright fringe.
     img = Image.new('RGBA', (size, size), (40, 96, 36, 0))
-    # Overlapping leaves like those round the mushroom's collar: dark rim, body
-    # with a lit half, a dark middle vein and side veins.
-    for layer_no in range(3):
-        lay, d = layer(size)
-        for _ in range(LEAVES_PER_LAYER):
-            x, y = rng.uniform(0, size), rng.uniform(0, size)
-            length = rng.uniform(48, 72) * K
-            width = length * rng.uniform(0.38, 0.48)
-            turn = rng.uniform(0, 2 * math.pi)
-            body = mix((58, 128, 46), (110, 178, 66), rng.random() * 0.5 + layer_no * 0.25)
-            vein = shade(body, 0.62)
-            half = []
-            for k in range(25):
-                t = k / 24
-                half.append((t * length, width * 0.5 * math.sin(math.pi * t) ** 0.8))
-            outline = half + [(px, -py) for px, py in reversed(half)]
-            ct, st = math.cos(turn), math.sin(turn)
+    lay, d = layer(size)
+    length = quarter * LEAF_FILL
+    width = length * LEAF_WIDTH
+    half = []
+    for k in range(49):
+        t = k / 48
+        half.append((t * length, width * 0.5 * math.sin(math.pi * t) ** 0.8))
+    outline = half + [(px, -py) for px, py in reversed(half)]
+    # Like the leaves round the mushroom's collar: dark rim, body with a lit
+    # half, a dark middle vein and side veins.
+    for n in range(4):
+        ox = (n % 2) * quarter + (quarter - length) / 2
+        oy = (n // 2) * quarter + quarter / 2
+        body = mix((58, 128, 46), (110, 178, 66), n / 3 * 0.8 + rng.random() * 0.2)
+        vein = shade(body, 0.62)
 
-            def at(px, py, ox, oy):
-                return (ox + px * ct - py * st, oy + px * st + py * ct)
-
-            def draw(ox, oy, outline=outline, half=half, body=body, vein=vein, length=length, width=width):
-                d.polygon([at(px, py, ox, oy) for px, py in outline], fill=shade(body, 0.55) + (255,))
-                d.polygon([at(px * 0.94 + length * 0.03, py * 0.82, ox, oy) for px, py in outline], fill=body + (255,))
-                d.polygon([at(px * 0.94 + length * 0.03, py * 0.82, ox, oy) for px, py in half] + [at(length * 0.97, 0, ox, oy)],
-                          fill=shade(body, 1.18) + (255,))
-                d.line([at(length * 0.06, 0, ox, oy), at(length * 0.9, 0, ox, oy)], fill=vein + (255,), width=max(1, int(1.5 * K)))
-                for k in range(1, 4):
-                    s = length * (0.2 + 0.2 * k)
-                    for side in (1, -1):
-                        d.line([at(s, 0, ox, oy), at(s + length * 0.12, side * width * 0.28, ox, oy)], fill=vein + (220,), width=max(1, int(K)))
-            wrap(draw, size, x, y, 60 * K)
-        img.alpha_composite(blur(lay, EDGE))
+        def at(px, py):
+            return (ox + px, oy + py)
+        d.polygon([at(px, py) for px, py in outline], fill=shade(body, 0.55) + (255,))
+        d.polygon([at(px * 0.94 + length * 0.03, py * 0.82) for px, py in outline], fill=body + (255,))
+        d.polygon([at(px * 0.94 + length * 0.03, py * 0.82) for px, py in half] + [at(length * 0.97, 0)],
+                  fill=shade(body, 1.18) + (255,))
+        d.line([at(length * 0.06, 0), at(length * 0.9, 0)], fill=vein + (255,), width=max(1, int(6 * K)))
+        for k in range(1, 4):
+            s = length * (0.12 + 0.2 * k)
+            for side in (1, -1):
+                d.line([at(s, 0), at(s + length * 0.1, side * width * 0.24)], fill=vein + (220,), width=max(1, int(4 * K)))
+    img.alpha_composite(blur(lay, EDGE * 3))
     return img
 
 
