@@ -41,8 +41,10 @@ namespace KotH.Client.Audio
 
         // A streamed instance keeps reporting Playing after its end, so the
         // player times the piece itself and starts the next one a fade before.
+        // Every start gets a new instance: a streamed one played again after
+        // Stop replayed old buffers for seconds (the lobby over the second
+        // round's start).
 
-        readonly Dictionary<Sound, SoundInstance> instances = new Dictionary<Sound, SoundInstance>();
         readonly List<Sound> deck = new List<Sound>();
         readonly Random random = new Random();
 
@@ -102,7 +104,7 @@ namespace KotH.Client.Audio
                 fading.Volume = Volume * (1f - fadeIn);
                 if (fadeIn >= 1f)
                 {
-                    fading.Stop();
+                    Release(fading);
                     fading = null;
                 }
             }
@@ -120,7 +122,7 @@ namespace KotH.Client.Audio
         /// </summary>
         void Switch(Sound sound, string what)
         {
-            fading?.Stop();
+            Release(fading);
             fading = current;
             current = null;
             playing = sound;
@@ -129,12 +131,7 @@ namespace KotH.Client.Audio
             if (sound == null)
                 return;
 
-            if (!instances.TryGetValue(sound, out SoundInstance instance))
-                instances[sound] = instance = sound.CreateInstance();
-            // The same piece fading out and in again: restart it in place.
-            if (instance == fading)
-                fading = null;
-            instance.Stop();
+            SoundInstance instance = sound.CreateInstance();
             instance.IsLooping = sound == Lobby;
             instance.Volume = Volume * fadeIn;
             length = sound.TotalLength.TotalSeconds;
@@ -179,13 +176,17 @@ namespace KotH.Client.Audio
 
         void StopAll()
         {
-            foreach (SoundInstance instance in instances.Values)
-            {
-                instance.Stop();
-                instance.Dispose();
-            }
-            instances.Clear();
+            Release(current);
+            Release(fading);
             current = fading = null;
+        }
+
+        static void Release(SoundInstance instance)
+        {
+            if (instance == null)
+                return;
+            instance.Stop();
+            instance.Dispose();
         }
     }
 }
