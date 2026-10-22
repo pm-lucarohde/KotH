@@ -41,12 +41,21 @@ shader LeafSplat<LinkType PaintKey>
         return gust * (SwayReach * sway + FlutterReach * flutter);
     }
 
-    // Three values in [0, 1) for a point, the same every frame (Hoskins).
-    float3 Hash3(float3 p)
+    // Three values in [0, 1) for a cube and a leaf in it (PCG3D). Whole
+    // numbers only: the depth prepass is compiled apart from the colour pass,
+    // and a float hash rounded there a hair differently moved whole leaves,
+    // which left the clear colour showing through.
+    float3 Hash3(int3 cube, uint leaf)
     {
-        p = frac(p * float3(0.1031, 0.1030, 0.0973));
-        p += dot(p, p.yxz + 33.33);
-        return frac((p.xxy + p.yxx) * p.zyx);
+        uint3 v = uint3(cube) * 1664525u + 1013904223u + leaf * uint3(2654435761u, 2246822519u, 3266489917u);
+        v.x += v.y * v.z;
+        v.y += v.z * v.x;
+        v.z += v.x * v.y;
+        v ^= v >> 16u;
+        v.x += v.y * v.z;
+        v.y += v.z * v.x;
+        v.z += v.x * v.y;
+        return float3(v >> 8u) * (1.0 / 16777216.0);
     }
 
     rgroup PerMaterial
@@ -59,7 +68,10 @@ shader LeafSplat<LinkType PaintKey>
         float3 n = normalize(streams.normalWS);
         float3 q = streams.PositionWS.xyz;
         float3 p = q + Wind(q, Global.Time * WindPace);
-        float3 home = floor(p / Cell);
+        // Slopes first, while every pixel of the quad still runs.
+        float3 px = ddx(p);
+        float3 py = ddy(p);
+        int3 home = int3(floor(p / Cell));
         float reach = (LengthMax * 0.5) * (LengthMax * 0.5) + Depth * Depth;
 
         // The outermost leaf over this point wins; those under it show in
@@ -74,18 +86,18 @@ shader LeafSplat<LinkType PaintKey>
         for (int k = -1; k <= 1; k++)
         for (int s = 0; s < PerCell; s++)
         {
-            float3 id = home + float3(i, j, k);
-            float3 d = p - (id + Hash3(id + s * float3(17.3, 31.7, 7.9))) * Cell;
+            int3 id = home + int3(i, j, k);
+            float3 d = p - (float3(id) + Hash3(id, 3 * s)) * Cell;
             float rise = -dot(d, n);
             if (dot(d, d) > reach || abs(rise) > Depth || rise < top)
                 continue;
-            float3 r = Hash3(id * 1.37 + s * 11.1 + 4.2) * 2.0 - 1.0;
+            float3 r = Hash3(id, 3 * s + 1) * 2.0 - 1.0;
             float3 t1 = r - n * dot(r, n);
             if (dot(t1, t1) < 0.0001)
                 continue;
             t1 = normalize(t1);
             float3 t2 = cross(n, t1);
-            float3 v = Hash3(id * 0.73 + s * 5.9 + 9.6);
+            float3 v = Hash3(id, 3 * s + 2);
             float size = lerp(LengthMin, LengthMax, v.x);
             float2 u = float2(dot(d, t1), dot(d, t2)) / size;
             if (abs(u.x) >= 0.5)
@@ -98,21 +110,16 @@ shader LeafSplat<LinkType PaintKey>
             across = t2 / size;
             pick = v;
         }
-        if (top < -Depth)
-            return float4(0, 0, 0, 0);
-
         // Into the leaf's quarter of the atlas; the slopes come from the
         // surface, so a neighbouring pixel on another leaf picks no blurry mip.
         float variant = floor(pick.y * 4.0);
         float2 corner = float2(fmod(variant, 2.0), floor(variant / 2.0)) * 0.5;
         float2 atlas = corner + (0.5 + uv * Fill) * 0.5;
-        float3 px = ddx(p);
-        float3 py = ddy(p);
         float2 gx = float2(dot(px, along), dot(px, across)) * Fill * 0.5;
         float2 gy = float2(dot(py, along), dot(py, across)) * Fill * 0.5;
         float3 c = Paint.SampleGrad(AnisotropicRepeatSampler, atlas, gx, gy).rgb;
         float under = lerp(0.72, 1.0, saturate((top + Depth) / (2.0 * Depth)));
         float tint = lerp(0.9, 1.1, pick.z);
-        return float4(c * streams.TexCoord.x * under * tint, 1.0);
+        return float4(c * streams.TexCoord.x * under * tint, top < -Depth ? 0.0 : 1.0);
     }
 };
