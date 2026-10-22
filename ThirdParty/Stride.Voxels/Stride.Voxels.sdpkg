@@ -1,0 +1,11 @@
+!Package
+SerializedVersion: {Assets: 3.1.0.0}
+Meta:
+    Name: Stride.Voxels
+    Version: 4.4.0
+    Authors: []
+    Owners: []
+    Dependencies: null
+AssetFolders:
+    -   Path: !dir Voxels
+AssetNamespace: Stride.Voxels
