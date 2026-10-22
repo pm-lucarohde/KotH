@@ -33,7 +33,7 @@ game.Run();
 /// back. Plus test aids. With KOTH_SHOT set to a path it shows the
 /// F3 readout, holds the view at KOTH_SHOT_YAW / _PITCH / _FOV if given,
 /// KOTH_SHOT_THIRD=1 steps back into third person, KOTH_SHOT_AT=x,y,z puts
-/// the player's body there once (Stride metres), KOTH_SHOT_SWING=1 swings
+/// the player's body there, again whenever the round places it (Stride metres), KOTH_SHOT_SWING=1 swings
 /// once a second before the shot and reports the hit, KOTH_SHOT_SHAKE=1 takes a hit
 /// just before it and reports how far the camera shake tilts the view,
 /// KOTH_SHOT_HIT=deg hits every figure just before it, from deg round its body (0 front, 90 right),
@@ -64,6 +64,7 @@ sealed class KotHGame : Game
     readonly double? shotFov = Number("KOTH_SHOT_FOV");
     readonly bool shotThird = Environment.GetEnvironmentVariable("KOTH_SHOT_THIRD") == "1";
     Vector3? shotAt = Point("KOTH_SHOT_AT");
+    int shotPlaced = -1;
     bool shotSwing = Environment.GetEnvironmentVariable("KOTH_SHOT_SWING") == "1";
     bool shotShake = Environment.GetEnvironmentVariable("KOTH_SHOT_SHAKE") == "1";
     bool shotBlink = Environment.GetEnvironmentVariable("KOTH_SHOT_BLINK") == "1";
@@ -275,10 +276,12 @@ sealed class KotHGame : Game
                             parts.Length > 2 && parts[2] == "sprint");
                 shotMove = null;
             }
-            if (shotAt.HasValue && player.Entity.Get<KotH.Shared.Player.PlayerMotor>() is { } motor)
+            // Also after the round has put everyone at its start (Neu: at random).
+            if (shotAt.HasValue && player.PlacedTick != shotPlaced &&
+                player.Entity.Get<KotH.Shared.Player.PlayerMotor>() is { } motor)
             {
                 motor.Teleport(shotAt.Value);
-                shotAt = null;
+                shotPlaced = player.PlacedTick;
             }
             if (shotCrouch.HasValue && gameTime.Total.TotalSeconds >= shotCrouch.Value)
             {

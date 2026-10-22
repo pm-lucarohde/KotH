@@ -81,6 +81,10 @@ LEAVES = (0.24, 0.42, 0.16)
 AO_STEP = 0.16             # darker per solid block over half of a corner's eight (Minecraft's steps)
 SMOOTH = 0.7               # Surface Nets strength: 0 cubes, 1 as round as NoCubes (more eats the tops)
 SLOPE_LIMIT = 50.0         # the player motor's, to report how much ground one stands on
+TRUNK_RADIUS = 0.5         # trunks are round (Luca), as thick as the block was
+TRUNK_FOOT = 0.55          # and this thick at the ground, widening over TRUNK_FLARE like roots
+TRUNK_FLARE = 0.5
+TRUNK_SIDES = 16
 
 
 
@@ -374,7 +378,9 @@ def check_climb(t):
 
 # ---------- the mesh ----------
 
-# What a block is; None is air. Trunks stay cubes, the rest is smoothed.
+# What a block is; None is air. Trunks are drawn round (round_trunk); the
+# ground and leaves close over their blocks only to the eye, so the
+# collision has no floor inside a trunk for the bots' grid.
 GROUND, FOLIAGE, TRUNK = 0, 1, 2
 
 # The dual cell round a block corner: its 8 blocks (i, j, k in 0, 1 from the
@@ -422,6 +428,7 @@ class Mesh:
         self.index = {}
         self.offsets = {}
         self.tris = []         # vertex triples wound into the solid, for the collision
+        self.unsolid = set()   # triangles (by number) only to be seen, not in the collision
 
     def kinds(self, X, Y, Z):
         return {c: block(self.t, X - 1 + c[0], Y - 1 + c[1], Z - 1 + c[2]) for c in CELL}
@@ -453,7 +460,7 @@ class Mesh:
             self.keys.append(key)
         return self.index[key]
 
-    def face(self, x, y, z, n, kind):
+    def face(self, x, y, z, n, kind, solid=True):
         """The face of block (x, y, z) towards n, split along the shorter diagonal."""
         u, v = FACES[n]
         centre = (x + 0.5 + 0.5 * n[0], y + 0.5 + 0.5 * n[1], z + 0.5 + 0.5 * n[2])
@@ -473,6 +480,8 @@ class Mesh:
                 self.nrm[vi][0] += nx
                 self.nrm[vi][1] += ny
                 self.nrm[vi][2] += nz
+            if not solid:
+                self.unsolid.add(len(self.idx) // 3)
             self.idx += [a, b, c]
 
     def finish(self):
@@ -524,22 +533,73 @@ def build_mesh(t):
     # neighbour, or to one block under the sea at the coast.
     for (x, z) in sorted(t.height):
         h = t.height[x, z]
-        if block(t, x, h, z) is None:
-            mesh.face(x, h - 1, z, (0, 1, 0), GROUND)
+        if block(t, x, h, z) in (None, TRUNK):
+            mesh.face(x, h - 1, z, (0, 1, 0), GROUND, block(t, x, h, z) is None)
         for n in ((1, 0, 0), (-1, 0, 0), (0, 0, 1), (0, 0, -1)):
             nb = t.height.get((x + n[0], z + n[2]), UNDER)
             for y in range(max(nb, UNDER), h):
                 if block(t, x + n[0], y, z + n[2]) is None:
                     mesh.face(x, y, z, n, GROUND)
-    # Trees: every open face of every block.
-    for (x, y, z) in sorted(t.wood | t.trees):
-        kind = block(t, x, y, z)
+    # Leaves: every open face of every block.
+    for (x, y, z) in sorted(t.trees):
         for n in FACES:
             if block(t, x + n[0], y + n[1], z + n[2]) is None:
-                mesh.face(x, y, z, n, kind)
+                mesh.face(x, y, z, n, FOLIAGE)
+    columns = {}
+    for (x, y, z) in t.wood:
+        columns.setdefault((x, z), []).append(y)
+    for (x, z) in sorted(columns):
+        # Open from the ground up to the first block with leaves all round.
+        base = top = min(columns[x, z])
+        while any(block(t, x + dx, top, z + dz) is None for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+            top += 1
+        mesh.face(x, top, z, (0, -1, 0), FOLIAGE, False)
+        columns[x, z] = (base, top)
     mesh.finish()
+    for (x, z) in sorted(columns):
+        round_trunk(mesh, x, z, *columns[x, z])
     simplify(mesh)
     return mesh
+
+
+def round_trunk(mesh, x, z, base, top):
+    """A round trunk of TRUNK_SIDES from under the ground at base into the
+    leaves at top, widened at the foot like roots. Shaded as the blocks'
+    corners were: darker where ground or leaves meet it."""
+    cx, cz = x + 0.5, z + 0.5
+    dark = 1.0 - AO_STEP
+    heights = [(base - 0.3, TRUNK_FOOT, dark), (base, TRUNK_FOOT, dark)]
+    for s in (0.25, 0.55, 1.0):
+        # Spreads fastest at the ground and runs smoothly into the round.
+        w = (1.0 - s) ** 2
+        heights.append((base + TRUNK_FLARE * s, w * TRUNK_FOOT + (1 - w) * TRUNK_RADIUS, 1.0 - AO_STEP * w))
+    heights += [(top - 0.5, TRUNK_RADIUS, 1.0), (top, TRUNK_RADIUS, dark), (top + 0.3, TRUNK_RADIUS, dark)]
+    first = len(mesh.pos)
+    for y, r, shade in heights:
+        for k in range(TRUNK_SIDES):
+            a = 2 * math.pi * k / TRUNK_SIDES
+            mesh.pos.append((cx + r * math.cos(a), y, cz + r * math.sin(a)))
+            mesh.nrm.append([0.0, 0.0, 0.0])
+            mesh.col.append((0.0, 0.0, 0.0, 0.0))
+            mesh.uv.append((shade, 0.0))
+            mesh.keys.append((None, TRUNK))
+    for ring in range(len(heights) - 1):
+        for k in range(TRUNK_SIDES):
+            a = first + ring * TRUNK_SIDES + k
+            b = first + ring * TRUNK_SIDES + (k + 1) % TRUNK_SIDES
+            # Wound as the blocks' faces: counter-clockwise from outside.
+            for tri in ((a, b + TRUNK_SIDES, b), (a, a + TRUNK_SIDES, b + TRUNK_SIDES)):
+                p = [mesh.pos[i] for i in tri]
+                nx, ny, nz = cross(sub(p[1], p[0]), sub(p[2], p[0]))
+                for i in tri:
+                    mesh.nrm[i][0] += nx
+                    mesh.nrm[i][1] += ny
+                    mesh.nrm[i][2] += nz
+                mesh.idx += tri
+    for i in range(first, len(mesh.pos)):
+        n = mesh.nrm[i]
+        length = math.sqrt(n[0] ** 2 + n[1] ** 2 + n[2] ** 2) or 1.0
+        mesh.nrm[i] = (n[0] / length, n[1] / length, n[2] / length)
 
 
 def quadric(a, b, c):
@@ -581,6 +641,9 @@ def simplify(mesh):
     for (a, b), n in edges.items():
         if n != 2:
             border.update((a, b))
+    # Faces only to be seen keep their corners: no collision face shrinks under them.
+    for f in mesh.unsolid:
+        border.update(faces[f])
     alive = [True] * len(faces)
     gone = [False] * len(pos)
     version = [0] * len(pos)
@@ -653,7 +716,7 @@ def simplify(mesh):
     mesh.nrm = [nrm[i] for i in keep]
     mesh.keys = [mesh.keys[i] for i in keep]
     mesh.idx = [new[w] for f, face in enumerate(faces) if alive[f] for w in face]
-    mesh.tris = [(new[a], new[c], new[b]) for f, (a, b, c) in enumerate(faces) if alive[f]]
+    mesh.tris = [(new[a], new[c], new[b]) for f, (a, b, c) in enumerate(faces) if alive[f] and f not in mesh.unsolid]
 
 
 def slopes(mesh):
