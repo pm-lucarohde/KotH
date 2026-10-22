@@ -62,7 +62,10 @@ TREES = 36
 SPAWN_GAP = 7.0            # first spawn row this far out from the foot in the south
 TREE_GAP = 7.0
 CHUNK = 4                  # collision chunks, metres across
-UNDER = -1                 # the coast is drawn down to here, under the sea
+UNDER = 0                  # the coast is drawn down to here, just under the sea
+SIMPLIFY = 0.02            # the simplified mesh stays this close (metres) to every original face
+SIMPLIFY_COLOUR = 0.03     # and merges only vertices this close in colour (linear, per channel)
+SIMPLIFY_NORMAL = 0.95     # and with vertex normals at least this parallel
 WATER_Y = 0.4
 SEA_REACH = 30000.0        # the sea's half width, beyond the camera's far plane
 
@@ -418,7 +421,6 @@ class Mesh:
         self.index = {}
         self.offsets = {}
         self.tris = []         # vertex triples wound into the solid, for the collision
-        self.flat = {}         # (x, z) -> y of ground tops that stayed flat, merged for the collision
 
     def kinds(self, X, Y, Z):
         return {c: block(self.t, X - 1 + c[0], Y - 1 + c[1], Z - 1 + c[2]) for c in CELL}
@@ -463,10 +465,6 @@ class Mesh:
             tris = ((q[0], q[1], q[2]), (q[0], q[2], q[3]))
         else:
             tris = ((q[0], q[1], q[3]), (q[1], q[2], q[3]))
-        # A top that stayed a flat unit square merges with its like for the physics.
-        flat = n == (0, 1, 0) and kind == GROUND and all(self.offsets[k[0]] == (0.0, 0.0, 0.0) for k in (self.keys[i] for i in q))
-        if flat:
-            self.flat[x, z] = y + 1
         for a, b, c in tris:
             # Area-weighted normals, shared by every face round a vertex.
             nx, ny, nz = cross(sub(self.pos[b], self.pos[a]), sub(self.pos[c], self.pos[a]))
@@ -475,48 +473,10 @@ class Mesh:
                 self.nrm[vi][1] += ny
                 self.nrm[vi][2] += nz
             self.idx += [a, b, c]
-            if not flat:
-                self.tris.append((a, c, b))
-
-    def merge_flat(self):
-        """Flat tops of equal height as rectangles within a collision chunk,
-        two triangles each: far fewer for a body to touch on open ground."""
-        done = set()
-        for (x, z) in sorted(self.flat):
-            if (x, z) in done:
-                continue
-            y = self.flat[x, z]
-            cx, cz = x // CHUNK, z // CHUNK
-
-            def same(c):
-                return self.flat.get(c) == y and c not in done and (c[0] // CHUNK, c[1] // CHUNK) == (cx, cz)
-            w = 1
-            while same((x + w, z)):
-                w += 1
-            d = 1
-            while all(same((x + i, z + d)) for i in range(w)):
-                d += 1
-            for i in range(w):
-                for j in range(d):
-                    done.add((x + i, z + j))
-            corners = [self.loose((x, y, z)), self.loose((x, y, z + d)), self.loose((x + w, y, z + d)), self.loose((x + w, y, z))]
-            self.tris += [(corners[0], corners[2], corners[1]), (corners[0], corners[3], corners[2])]
-
-    def loose(self, p):
-        """A vertex only the collision uses (corners of merged rectangles)."""
-        self.pos.append(tuple(float(v) for v in p))
-        self.nrm.append([0.0, 0.0, 0.0])
-        self.keys.append(None)
-        return len(self.pos) - 1
 
     def finish(self):
         """Normals to unit length, then the colour of every vertex."""
-        for i, key in enumerate(self.keys):
-            if key is None:
-                self.col.append((0.0, 0.0, 0.0, 1.0))
-                self.nrm[i] = (0.0, 1.0, 0.0)
-                continue
-            corner, kind = key
+        for i, (corner, kind) in enumerate(self.keys):
             n = self.nrm[i]
             length = math.sqrt(n[0] ** 2 + n[1] ** 2 + n[2] ** 2) or 1.0
             self.nrm[i] = (n[0] / length, n[1] / length, n[2] / length)
@@ -580,9 +540,121 @@ def build_mesh(t):
         for n in FACES:
             if block(t, x + n[0], y + n[1], z + n[2]) is None:
                 mesh.face(x, y, z, n, kind)
-    mesh.merge_flat()
     mesh.finish()
+    simplify(mesh)
     return mesh
+
+
+def quadric(a, b, c):
+    """The plane through a, b, c as the ten terms of its error quadric."""
+    n = cross(sub(b, a), sub(c, a))
+    length = math.sqrt(n[0] * n[0] + n[1] * n[1] + n[2] * n[2])
+    if length == 0:
+        return [0.0] * 10
+    x, y, z = n[0] / length, n[1] / length, n[2] / length
+    d = -(x * a[0] + y * a[1] + z * a[2])
+    return [x * x, x * y, x * z, x * d, y * y, y * z, y * d, z * z, z * d, d * d]
+
+
+def error(q, p):
+    x, y, z = p
+    return (q[0] * x * x + 2 * q[1] * x * y + 2 * q[2] * x * z + 2 * q[3] * x + q[4] * y * y
+            + 2 * q[5] * y * z + 2 * q[6] * y + q[7] * z * z + 2 * q[8] * z + q[9])
+
+
+def simplify(mesh):
+    """Fewer triangles where they change nothing: half-edge collapses (a
+    vertex moves onto a neighbour, so every kept vertex keeps its place,
+    colour and normal) by the planes they bend, while every original face
+    stays within SIMPLIFY. Borders stay; the collision gets the same faces."""
+    pos, col, nrm = mesh.pos, mesh.col, mesh.nrm
+    faces = [mesh.idx[i:i + 3] for i in range(0, len(mesh.idx), 3)]
+    around = [set() for _ in pos]
+    quad = [[0.0] * 10 for _ in pos]
+    edges = {}
+    for f, (a, b, c) in enumerate(faces):
+        q = quadric(pos[a], pos[b], pos[c])
+        for v in (a, b, c):
+            around[v].add(f)
+            quad[v] = [quad[v][k] + q[k] for k in range(10)]
+        for e in ((a, b), (b, c), (c, a)):
+            key = (min(e), max(e))
+            edges[key] = edges.get(key, 0) + 1
+    border = set()
+    for (a, b), n in edges.items():
+        if n != 2:
+            border.update((a, b))
+    alive = [True] * len(faces)
+    gone = [False] * len(pos)
+    version = [0] * len(pos)
+    limit = SIMPLIFY * SIMPLIFY
+    heap = []
+
+    def neighbours(v):
+        return {w for f in around[v] for w in faces[f]} - {v}
+
+    def similar(u, v):
+        return (max(abs(col[u][k] - col[v][k]) for k in range(3)) <= SIMPLIFY_COLOUR
+                and sum(nrm[u][k] * nrm[v][k] for k in range(3)) >= SIMPLIFY_NORMAL)
+
+    def offer(u, v):
+        # u goes only if it matches every neighbour: then no stretched face
+        # carries a far colour or normal over where it was.
+        if u in border or not all(similar(u, w) for w in neighbours(u)):
+            return
+        cost = error([quad[u][k] + quad[v][k] for k in range(10)], pos[v])
+        if cost <= limit:
+            heapq.heappush(heap, (cost, u, v, version[u], version[v]))
+
+    for a, b in sorted(edges):
+        offer(a, b)
+        offer(b, a)
+    while heap:
+        cost, u, v, vu, vv = heapq.heappop(heap)
+        if gone[u] or gone[v] or version[u] != vu or version[v] != vv:
+            continue
+        shared = [f for f in around[u] if v in faces[f]]
+        if len(shared) != 2 or len(neighbours(u) & neighbours(v)) != 2:
+            continue
+        # No face round u may fold over or shrink to nothing when u moves to v.
+        ok = True
+        for f in around[u]:
+            if v in faces[f]:
+                continue
+            old = [pos[w] for w in faces[f]]
+            new = [pos[v] if w == u else pos[w] for w in faces[f]]
+            n0 = cross(sub(old[1], old[0]), sub(old[2], old[0]))
+            n1 = cross(sub(new[1], new[0]), sub(new[2], new[0]))
+            l0 = math.sqrt(sum(k * k for k in n0))
+            l1 = math.sqrt(sum(k * k for k in n1))
+            if l1 < 1e-6 or sum(n0[k] * n1[k] for k in range(3)) < 0.5 * l0 * l1:
+                ok = False
+                break
+        if not ok:
+            continue
+        for f in shared:
+            alive[f] = False
+            for w in faces[f]:
+                around[w].discard(f)
+        for f in around[u]:
+            faces[f] = [v if w == u else w for w in faces[f]]
+            around[v].add(f)
+        around[u] = set()
+        gone[u] = True
+        quad[v] = [quad[u][k] + quad[v][k] for k in range(10)]
+        version[v] += 1
+        for w in sorted(neighbours(v)):
+            offer(v, w)
+            offer(w, v)
+    # Only the vertices still in use, in their old order.
+    keep = sorted({w for f, face in enumerate(faces) if alive[f] for w in face})
+    new = {old: i for i, old in enumerate(keep)}
+    mesh.pos = [pos[i] for i in keep]
+    mesh.col = [col[i] for i in keep]
+    mesh.nrm = [nrm[i] for i in keep]
+    mesh.keys = [mesh.keys[i] for i in keep]
+    mesh.idx = [new[w] for f, face in enumerate(faces) if alive[f] for w in face]
+    mesh.tris = [(new[a], new[c], new[b]) for f, (a, b, c) in enumerate(faces) if alive[f]]
 
 
 def slopes(mesh):

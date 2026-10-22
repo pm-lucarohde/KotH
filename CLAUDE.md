@@ -189,8 +189,11 @@ der Mod NoCubes, aber nur zu 70 % (`SMOOTH` 0,7; Lucas Wunsch: leicht abrunden, 
 Laub rund, Stämme bleiben Würfel). Schreibt **nur** `KotH.Game/Resources/Models/Mountain.glb`
 (Vertexfarben, weiche AO, Material `Terrain`), `Sea.glb` (Meer mit Loch unter der Insel, sonst
 verdeckte es aus der Ferne im Tiefenpuffer die Wiese) und `KotH.Shared/Resources/Maps/NeuTerrain.bin`
-(Kollision: dieselben Dreiecke, ins Feste gewunden, je 4 × 4 m ein Chunk, flache Oberseiten zu
-Rechtecken zusammengefasst; zlib, Magic `KTRN`). Die Datei ist **eingebettete Ressource** in
+(Kollision: dieselben Dreiecke, ins Feste gewunden, je 4 × 4 m ein Chunk; zlib, Magic `KTRN`).
+Vorher vereinfacht `simplify` das Netz (Lucas Wunsch, 22.10.2026): Halbkanten-Kollaps nach Fehlerquadrik,
+eine Ecke fällt nur, wenn sie zu allen Nachbarn in Farbe und Normale passt (`SIMPLIFY*`); das fasst
+vor allem ebene Flächen zusammen (248.000 → 224.000 Dreiecke, ohne sichtbaren Unterschied). Mehr geht
+nur mit sichtbarem Verlust: die Säulen sind echtes Detail. Client auf dem Berg etwa 1 ms pro Bild. Die Datei ist **eingebettete Ressource** in
 KotH.Shared (`Maps.TerrainResource`), weil Strides `MeshCollider` ein Modell (GPU) braucht und rund
 230.000 `TriangleCollider` als Prefab-YAML zu groß wären; `WorldBuilder.AddTerrain` legt nach dem
 Collision-Prefab je Chunk ein `Terrain_x_z` mit `CompoundCollider` an. Marker, Zone (124,75 m) und

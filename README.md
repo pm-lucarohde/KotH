@@ -246,7 +246,7 @@ baut den Berg aus 1-m-Blöcken und rundet ihn wie der Minecraft-Mod NoCubes mit 
 Nets ab, nur schwächer (`SMOOTH`). Es schreibt das Modell `Resources/Models/Mountain.glb`
 (Vertexfarben mit weichen Kantenschatten), das Meer `Resources/Models/Sea.glb` (mit
 Loch unter der Insel) und die Kollision `KotH.Shared/Resources/Maps/NeuTerrain.bin`
-(dieselben Dreiecke wie das Modell, in Chunks von 4 × 4 m, als Ressource in
+(dieselben Dreiecke wie das Modell, ebene Flächen vorher zusammengefasst, in Chunks von 4 × 4 m, als Ressource in
 KotH.Shared eingebettet), sonst nichts; Startplätze, Zone und Optik-Prefab bleiben in
 Game Studio. Es legt keine Wege an: Man sucht sich mit Sprung und Doppelsprung selbst
 einen Weg über die Säulen. Das Skript prüft, ob der Gipfel aus genug Richtungen
