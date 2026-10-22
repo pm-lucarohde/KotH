@@ -15,8 +15,8 @@ shader PaintedTriplanar<LinkType PaintKey>
     // quicker flutter of single leaves, never in step from place to place.
     static const float SwayReach = 0.03;
     static const float FlutterReach = 0.008;
-    // Share of the first draft's pace (Luca: 60 %).
-    static const float WindPace = 0.6;
+    // Share of the first draft's pace (Luca: 40 % slower, twice).
+    static const float WindPace = 0.36;
 
     float3 Wind(float3 q, float t)
     {
