@@ -2279,8 +2279,7 @@ Hierarchy:
                         Persistence: 0.3
                         SlotTicks: 8
                         SlotsPerPlan: 8
-                        CellSize: 0.15
-                        CellHeight: 0.05
+                        CellSize: 0.5
                         JumpUp: 1.2
                         DoubleJumpUp: 2.2
                         GapMax: 3.0

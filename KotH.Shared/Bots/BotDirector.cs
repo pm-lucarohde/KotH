@@ -3,8 +3,12 @@ using System.Collections.Generic;
 using KotH.Shared.Combat;
 using KotH.Shared.Hosting;
 using KotH.Shared.Match;
+using KotH.Shared.Mathematics;
+using KotH.Shared.Net;
 using KotH.Shared.Player;
 using KotH.Shared.Simulation;
+using Stride.Core.Mathematics;
+using Stride.Engine;
 
 namespace KotH.Shared.Bots
 {
@@ -59,7 +63,7 @@ namespace KotH.Shared.Bots
         }
 
         /// <summary>
-        /// The navmesh and the bodies' settings out of the arena and the
+        /// The climbing grid and the bodies' settings out of the arena and the
         /// player prefab, the same way for the game, the server and probes.
         /// </summary>
         public static BotDirector Create(WorldBuilder builder, SimulationSystem simulation, IFinalStates states, int seed)
@@ -67,8 +71,25 @@ namespace KotH.Shared.Bots
             BotSettings settings = builder.Bots ?? new BotSettings();
             PlayerMotor motor = builder.Template<PlayerMotor>(WorldBuilder.PlayerBodyUrl);
             MeleeAttack fists = builder.Template<MeleeAttack>(WorldBuilder.PlayerBodyUrl) ?? new MeleeAttack();
-            BotNavigation nav = BotNavigation.Build(builder.Arena, motor, simulation.World, settings);
+            HillMatch zone = simulation.Match ?? (builder.Zone != null ? new HillMatch(builder.Zone) : null);
+            BotNavigation nav = BotNavigation.Build(builder.Arena, motor, settings, zone, seed, SpawnMiddle(builder));
             return new BotDirector(nav, settings, simulation.Match, motor, fists, states, seed);
+        }
+
+        // Where the players start, on average: the route variants fan out from there.
+        static Vector3 SpawnMiddle(WorldBuilder builder)
+        {
+            Vector3 sum = Vector3.Zero;
+            int n = 0;
+            for (int slot = 0; slot < NetWorld.BotSlots.Length; slot++)
+            {
+                Entity marker = NetWorld.SlotMarker(builder, slot);
+                if (marker == null)
+                    continue;
+                sum = UMath.Add(sum, marker.Transform.Position);
+                n++;
+            }
+            return n > 0 ? UMath.Mul(sum, 1f / n) : Vector3.Zero;
         }
 
         public BotNavigation Navigation { get; }
@@ -80,7 +101,7 @@ namespace KotH.Shared.Bots
         {
             bots[netId] = new Bot
             {
-                Brain = new BotBrain(netId, BotRandom.Seed(seed, netId), Navigation, settings, match, motor, fists),
+                Brain = new BotBrain(netId, BotRandom.Seed(seed, netId), bots.Count + seed, Navigation, settings, match, motor, fists),
             };
         }
 

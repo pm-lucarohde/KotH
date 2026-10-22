@@ -79,6 +79,8 @@ Es gibt keine Unit-Tests; geprüft wird mit **Proben** gegen die eingefrorene Un
 Bin/Probes/Release/KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|step|determinism|clock|stairrun|rampfoot|crouchedge|knockback|thirdperson|wallknock|capture|netstate|netplay|bots>
 Bin/Probes/Release/KotH.Probes bots stats 12          # Bot-Kennzahlen über 12 Seeds (zum Abstimmen)
 KOTH_BOTTRACE=600 Bin/Probes/Release/KotH.Probes bots # Spur der Bots (Absicht, Manöver, Tasten) bis Tick 600
+Bin/Probes/Release/KotH.Probes bots climb 12          # 3 Bots auf den Berg der Map Neu, Mittel ≤ 140 s
+Bin/Probes/Release/KotH.Probes bots jumplab 200       # Sprunglabor: Sprünge des Rasters am echten Motor
 Bin/Probes/Release/KotH.Probes determinism hashes   # Hashkette + Befehlssatz
 
 .work/tools/stride_runs.sh 3                        # alle Bewegungsproben 3x -> .work/regress/runK
@@ -180,7 +182,8 @@ und `NAMEVisual.sdprefab` in KotH.Game (Modelle); beide sind Root-Assets ihres P
 `.sdpkg`, in Game Studio „Include in build as root asset“), Standard und URLs in `KotH.Shared/Hosting/Maps.cs`.
 `MainScene` ist nur der Rahmen (Kamera, Licht, Himmel, HUD, Musik, Zonenrand). Gewählt mit `--map NAME`
 (Client offline und Host, Server), Standard `Neu`, die alte Arena heißt `Test`. Der Host schickt den Namen im `Welcome`, Gäste bauen die Map erst dann
-(`INetWorld.LoadMap`). Alle Proben laden fest `Maps.Test` (Unity-Referenz).
+(`INetWorld.LoadMap`). Alle Proben laden fest `Maps.Test` (Unity-Referenz), außer `bots climb` und
+`bots jumplab` (Map `Neu`).
 
 **Map `Neu`** (Lucas Vorlage: Minecraft-Berg aus einem Video, 21.10.2026): Berg 123 m auf einer
 Insel (Fuß 95 m, Küste 117 m), Wiese, Strand, Bäume, Schnee ab etwa 55 %, Meer. Boden aus
@@ -206,8 +209,8 @@ Richtungen erreichbar ist (sonst Abbruch), und meldet den schnellsten Aufstieg (
 Plateau läuft der Hang weich aus (Lucas Wahl: 2 m tief auf 4 m, `TOP_BLEND`/`TOP_RUN`), Grate und
 Säulen wachsen erst darunter ein (`TOP_FADE`). Spielgefühl am Berg testet Luca selbst. Nach jedem
 Lauf mit `Tools/publish_aot.sh` alles bauen (die Kollision steckt in KotH.Shared). Server mit 3 Bots
-etwa 140 µs pro Tick (Median, AOT). Bots kommen nicht hinauf; ihre Wegplanung zum unerreichbaren
-Gipfel kostet bis über 10 ms pro Tick (offen). Sichtweite 20 km (bei 60 km verschwand die Insel ab
+etwa 55 µs pro Tick (Median, AOT, höchstens etwa 1 ms); Bots brauchen im Mittel etwa 100 s hinauf
+(Probe `bots climb`). Sichtweite 20 km (bei 60 km verschwand die Insel ab
 300 m im Meer), Meer 60 km breit, Schatten fest bis 400 m.
 
 **Texturen der Map `Neu`** (Lucas Wahl, 22.10.2026: durchgehend gemalt im Stil der Pilzfiguren, weich und
@@ -274,18 +277,42 @@ Die Dummys sind ersetzt (Lucas Entscheidung, 21.10.2026): Bots (`KotH.Shared/Bot
 Spieler bei (NetId ab 4, Slot, Punkte, zählen für die Mindestspieler), offline und beim Host
 `--bots N` (Standard 3), `--bot-seed N`. **Nur der Host rechnet sie, aber deterministisch:**
 `BotDirector` berechnet die Eingabe für Tick t genau einmal und in Tick-Reihenfolge, nur aus dem
-endgültigen Zustand bei t − `ReactionTicks` (8 = 0,2 s, zugleich Reaktionszeit), dem Navmesh und
+endgültigen Zustand bei t − `ReactionTicks` (8 = 0,2 s, zugleich Reaktionszeit), dem Kletterraster und
 dem xorshift des Bots; kein Bot-Zustand im Snapshot. Quellen: `PeerSession.TryFinalState` (Host),
 `LocalFinalStates` (offline, headless, `BotBody`). Der Host bestätigt Bot-Eingaben in `Finalise`
 (`HostSession.AddBot`, wartet lieber, als zu raten), sein eigener Peer kennt sie vorab
 (`PeerSession.KnownInputs`, nie ein Rollback ihretwegen); Gäste sagen Bots wie Spieler vorher.
 Der Host schickt seinem eigenen Peer alle neuen Ticks auf einmal (sonst wartete er nach einer
-Ladepause mit Bots auf Nachsendungen). Probe `bots`: Navmesh-Wege, Spiel mit Kennzahlen, Hashkette
+Ladepause mit Bots auf Nachsendungen). Probe `bots`: Wege im Raster, Spiel mit Kennzahlen, Hashkette
 zweimal gleich, Host unabhängig vom Bildtakt, Gast ohne Desync, Ladepause; JIT und AOT gleich.
+Probe `bots climb N` (Map Neu): Zeit jedes Bots bis zum ersten Schritt in die Zone, gemittelt über die drei und die Seeds, höchstens 140 s (Lucas Maß), dazu Streuung
+der Routen, Sprungquote, Güte der Eigenvorhersage, µs pro Tick; `KOTH_BOTTRACE`, `KOTH_BOTTRACE_BOT=n`,
+`KOTH_HOPLOG=n` (jeder Sprung), `KOTH_BOTPATH=datei` (Wege als CSV, Draufsicht mit `.work/bots/routes.py`).
 
-- `BotNavigation`: Recast/Detour (DotRecast 2025.2.1) aus den Arena-Statics (Boxen, Dreiecke),
-  Maße aus dem `PlayerMotor` des Spieler-Prefabs; Off-Mesh-Links an offenen Kanten (Fallen, Sprung
-  bis 1,2 m, Doppelsprung bis 2,2 m, Lücke bis 3 m), per Raycast gegen die Arena geprüft.
+- `BotNavigation` über `ClimbGrid` (Lucas Wahl statt DotRecast, 22.10.2026; Recast schnitt um jede Kante
+  den Körperradius weg, die 2 × 1 m großen Säulenoberseiten verschwanden): die Dreiecke der Arena-Statics
+  (Boxen nach außen, Dreiecke ins Feste gewunden) selbst gerastert, Spalten von 0,5 m, je bis 4 Böden mit
+  1,8 m Luft darüber, Maße aus dem `PlayerMotor` des Spieler-Prefabs. Züge: Gehen zu 8 Nachbarn
+  (0,45 m hinauf, 0,6 m hinab), Links in 16 Richtungen (Fallen, Sprung bis 1,2 m, Doppelsprung bis 2,2 m,
+  Lücke bis 3 m), Kosten in Sekunden. Dijkstra rückwärts von der Zone gibt ein Zeitfeld, dazu
+  `RouteVariants` Wegvarianten (jede bevorzugt eine eigene Seite, ±40° um die Peilung der Spawns, plus
+  Rauschen; ein Bot nimmt seine, wenn sie höchstens `RouteDetour` langsamer ist). Heap nach
+  (Kosten, Index), also deterministisch. Zur Zone plant der Bot mit RTAA* (A* über höchstens 300 Böden,
+  Schätzung = Feld + Gelerntes, danach werden die besuchten Böden angehoben); was er lernt (`Memory`:
+  Strafen auf gescheiterte Sprünge, Aufschläge auf Böden ohne Fortschritt) gehört nur ihm. Andere
+  Ziele: A* über höchstens 4000 Böden. Bauzeit auf Neu etwa 1,1 s, auf Test 0,1 s.
+- `JumpPilot`: jeder Sprung zur Zone läuft über ein kleines Modell des Motors (Tasten, Sprintzustand,
+  Luftsteuerung, Sprung, Doppelsprung, runde Unterseite auf den Flächen des Rasters). Am Boden fliegt
+  der Bot den Sprung jeden Tick im Modell und springt erst, wenn er auf der Oberseite landet (einfach,
+  sonst doppelt), und erst, wenn er sich selbst wieder am Boden sieht (eine Landung lenkt das Tempo
+  ungesehen um); sonst geht er auf die Absprungstelle zu oder tritt für Anlauf zurück. In der Luft
+  wählt er die Tasten, die ihn ohne Lippenkontakt auf die Mitte der Oberseite bringen, den zweiten
+  Druck, sobald er die Füße weit genug über die Lippe hebt. Seine eigene Lage sagt er aus dem Zustand
+  t − D und den eigenen Tasten seither im Modell vorher. Klappt ein Sprung nicht, bekommt der Link
+  eine Strafe (3 s). Sprunglabor: `bots jumplab`.
+- Kampf auf dem Weg (Lucas Wahl): weiter als 15 m unter der Zone greift ein Bot niemanden an, er
+  schlägt nur im Vorbeigehen zu, wer in Reichweite und höchstens 60° neben seinem Blick steht; darüber
+  wie gehabt.
 - `BotBrain`: Utility AI (Zone einnehmen, halten, angreifen, Rückstoß, Idle) mit Beharrlichkeit
   und gewichtetem Zufall unter fast gleich guten Absichten; Kämpfe zählen vor allem nahe der Zone;
   hält 2,3 m Abstand, auf der Seite weg von der nächsten Kante. Steuert wie ein Mensch: WASD

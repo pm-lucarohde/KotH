@@ -34,6 +34,7 @@ namespace KotH.Shared.Bots
         };
 
         readonly int netId;
+        readonly int route;          // the route variant this bot would like, before checking it
         readonly BotNavigation nav;
         readonly BotSettings settings;
         readonly HillMatch match;
@@ -62,11 +63,31 @@ namespace KotH.Shared.Bots
         Vector3 spot;                // where in the zone this bot stands
         bool hasSpot;
         Vector3 goal;
+        int variant = -1;            // the route variant it takes, chosen at its first way to the zone
+        bool climbing;               // on the way up to the zone: the pilot steers
+        bool farBelow;               // and still far below it: no fights
+        LinkKind flight;             // the jump under way while climbing, None on the ground
+        Vector3 landing;
+        readonly JumpPilot pilot;
+        JumpPilot.Hop hop;           // the jump being flown or prepared
+        JumpPilot.Attempt attempt;
+        bool hopping;
+        int hopStart, verifyAt = -1;
+        int fromFloor, toFloor;      // the floors of that jump
+        Vector3 landed;              // the last jump's, checked once the bot sees itself down
+        int landedFrom, landedTo;
+        float landedTime;
+        readonly MoveInput[] past = new MoveInput[64];
+        readonly int[] pastTick = new int[64];
+        readonly ClimbGrid.Memory memory = new ClimbGrid.Memory();
+        float bestTime = float.MaxValue;
+        int bestTick;
 
-        public BotBrain(int netId, uint seed, BotNavigation nav, BotSettings settings, HillMatch match,
+        public BotBrain(int netId, uint seed, int route, BotNavigation nav, BotSettings settings, HillMatch match,
                         PlayerMotor body, MeleeAttack fists)
         {
             this.netId = netId;
+            this.route = (route % 1024 + 1024) % 1024;
             rng = seed;
             this.nav = nav;
             this.settings = settings;
@@ -75,6 +96,7 @@ namespace KotH.Shared.Bots
             this.fists = fists;
             wfc = new ManeuverWfc(Math.Max(2, settings.SlotsPerPlan), Math.Max(1, settings.SlotTicks), fists.CooldownTicks);
             allowed = new ushort[wfc.Slots];
+            pilot = new JumpPilot(nav.Grid, body);
         }
 
         public int NetId => netId;
@@ -82,6 +104,21 @@ namespace KotH.Shared.Bots
         public int Target => target;
         public Vector3 Goal => goal;
         public Maneuver Running => running;
+        public int Variant => variant;
+        public bool Climbing => climbing;
+        public LinkKind Flight => flight;
+        public Vector3 Landing => landing;
+        public int Lessons => memory.Lessons;
+
+        /// <summary>Jumps climbing so far, those that landed where they should, and those given up before take-off; for probes.</summary>
+        public int Hops, HopsLanded, HopsGivenUp;
+
+        /// <summary>Told of every jump climbing and how it went; for probes.</summary>
+        public Action<string> HopLog;
+
+        /// <summary>Where the bot thought it was in the last tick it climbed; for probes.</summary>
+        public JumpPilot.Body Predicted;
+        public IReadOnlyList<Corner> Corners => corners;
 
         int Reaction => Math.Max(3, settings.ReactionTicks);
 
@@ -118,13 +155,29 @@ namespace KotH.Shared.Bots
                 BotIntent was = intent;
                 int wasTarget = target;
                 Think(view, self, at, phase, knocked);
-                if (!nav.Plan(feet, goal, corners))
+                // Up the hill along the own route; inside the zone to the own spot.
+                bool toZone = match != null && intent != BotIntent.Attack && intent != BotIntent.Idle && !match.Contains(at);
+                if (toZone && variant < 0)
+                    variant = nav.ChooseVariant(feet, route, settings.RouteDetour);
+                if (toZone)
+                    Progress(u, feet);
+                if (!(toZone ? nav.PlanToZone(feet, variant, memory, corners) : nav.Plan(feet, goal, corners)))
                     corners.Clear();
+                climbing = toZone;
+                farBelow = toZone && match.Center.Y - match.HalfSize.Y - feet.Y > ClimbBelow;
                 if (intent != was || target != wasTarget || u - planStart >= plan.Length * Slot || (knocked && intent != BotIntent.Recover))
                     Replan(u, view, at, airborne);
             }
             if (u - planStart >= plan.Length * Slot)
                 Replan(u, view, at, airborne);
+
+            if (climbing)
+            {
+                running = Maneuver.Sprint;
+                return Remember(u, Passing(u, view, self, me, phase, Climb(u, me)));
+            }
+            flight = LinkKind.None;
+            hopping = false;
 
             int slot = (u - planStart) / Slot;
             Maneuver m = plan[Math.Min(slot, plan.Length - 1)];
@@ -132,7 +185,7 @@ namespace KotH.Shared.Bots
             if (slotStart)
                 running = m;
 
-            return Steer(u, view, me, at, feet, m, slotStart, airborne);
+            return Remember(u, Steer(u, view, me, at, feet, m, slotStart, airborne));
         }
 
         int Slot => Math.Max(1, settings.SlotTicks);
@@ -182,6 +235,8 @@ namespace KotH.Shared.Bots
 
             bool live = phase == MatchPhase.Running;
             bool inZone = match != null && match.Contains(at);
+            // Far below the zone a bot climbs and chases nobody (Luca's rule).
+            bool below = match != null && !inZone && match.Center.Y - match.HalfSize.Y - Feet(at).Y > ClimbBelow;
             SimulationBody holder = view.Match.Holder;
 
             if (knocked)
@@ -203,7 +258,7 @@ namespace KotH.Shared.Bots
                 float d = UMath.Magnitude(UMath.Sub(there, at));
                 // Only a running round is fought over: no hits in the lobby,
                 // the countdown or after a win.
-                if (d > settings.EngageRange || !live)
+                if (d > settings.EngageRange || !live || below)
                     continue;
 
                 // Fights are about the hill: far from it they are worth little.
@@ -339,6 +394,244 @@ namespace KotH.Shared.Bots
 
             plan = wfc.Collapse(allowed, running, Weights[(int)intent], ref rng);
             planStart = u;
+        }
+
+        // Seconds a failed jump adds to it, and that a floor without progress adds to its way.
+        const float FailedJump = 3f;
+        const float NoProgress = 2f;
+        const int ProgressTicks = 160;
+
+        /// <summary>
+        /// Learns on the way up, besides what each search teaches: a floor
+        /// counts as further away when the time to the zone has not dropped
+        /// for a while.
+        /// </summary>
+        void Progress(int u, Vector3 feet)
+        {
+            float left = nav.Grid.TimeToZone(feet, variant);
+            if (left < bestTime - 0.5f)
+            {
+                bestTime = left;
+                bestTick = u;
+            }
+            else if (u - bestTick > ProgressTicks)
+            {
+                nav.Grid.Stuck(feet, NoProgress, memory);
+                bestTime = left;
+                bestTick = u;
+            }
+        }
+
+        MoveInput Remember(int u, MoveInput input)
+        {
+            past[u % past.Length] = input;
+            pastTick[u % past.Length] = u;
+            return input;
+        }
+
+        // Further below the zone than this, a bot climbing does not fight.
+        const float ClimbBelow = 15f;
+
+        // A hop is flown from this far before its take-off corner; given up after so many ticks on the ground.
+        const float RunUp = 2f;
+        const int HopPatience = 120;
+
+        /// <summary>
+        /// Where the own body is now: the seen state carried forward over the
+        /// reaction time with the bot's own keys since, in the pilot's model
+        /// of the motor, as a body knows its own steps.
+        /// </summary>
+        JumpPilot.Body Predict(int u, in MotorState m)
+        {
+            JumpPilot.Body b = pilot.From(m, body.StandHeight);
+            for (int k = u - Reaction; k < u; k++)
+                if (k >= 0 && pastTick[k % past.Length] == k)
+                    pilot.Step(ref b, past[k % past.Length]);
+            return b;
+        }
+
+        /// <summary>
+        /// Climbing: the way and nothing else. Walks from corner to corner;
+        /// a jump on the way is the pilot's (JumpPilot): it takes off when
+        /// its model lands the jump on the top and steers the flight there.
+        /// A jump that does not end up there costs this bot more next time.
+        /// </summary>
+        MoveInput Climb(int u, in BodyState me)
+        {
+            JumpPilot.Body b = Predict(u, me.Motor);
+            var feet = new Vector3(b.X, b.Y, b.Z);
+            Predicted = b;
+            if (verifyAt >= 0 && u >= verifyAt && (me.Motor.Grounded || u >= verifyAt + 40))
+                Verify(u, Feet(me.Motor.Position));
+
+            if (flight != LinkKind.None)
+            {
+                if (b.Grounded && u - lastJump > 3 || u - lastJump > 60)
+                {
+                    flight = LinkKind.None;
+                    hopping = false;
+                    verifyAt = u + Reaction + 1;
+                    landed = landing;
+                    landedFrom = fromFloor;
+                    landedTo = toFloor;
+                    landedTime = nav.Grid.TimeToZone(landing, variant);
+                }
+                else
+                {
+                    Face(UMath.Atan2(-hop.DX, -hop.DZ) * (180f / MathF.PI));
+                    return pilot.Drive(hop, b, yaw, ref attempt);
+                }
+            }
+
+            for (int c = 1; c + 1 < corners.Count; c++)
+            {
+                Corner k = corners[c];
+                if (k.Link != LinkKind.Jump && k.Link != LinkKind.DoubleJump)
+                    continue;
+                if (Flat(feet, k.Position) > RunUp)
+                    break;
+                Corner land = corners[c + 1];
+                if (!hopping || fromFloor != k.Floor || toFloor != land.Floor)
+                {
+                    fromFloor = k.Floor;
+                    toFloor = land.Floor;
+                    hopping = pilot.Prepare(k.Position, land.Position, out hop);
+                    attempt = default;
+                    hopStart = u;
+                    if (!hopping)
+                    {
+                        nav.Grid.Punish(fromFloor, toFloor, FailedJump * 3f, memory);
+                        break;
+                    }
+                }
+                if (u - hopStart > HopPatience)
+                {
+                    // No take-off that lands: let the way go round it.
+                    HopsGivenUp++;
+                    nav.Grid.Punish(fromFloor, toFloor, FailedJump, memory);
+                    hopping = false;
+                    break;
+                }
+                Face(UMath.Atan2(-hop.DX, -hop.DZ) * (180f / MathF.PI));
+                MoveInput input = pilot.Drive(hop, b, yaw, ref attempt);
+                if (input.JumpPresses == 1)
+                {
+                    // A jump still unchecked is judged by where this one starts.
+                    if (verifyAt >= 0)
+                        Verify(u, feet);
+                    lastJump = u;
+                    Hops++;
+                    HopLog?.Invoke(FormattableString.Invariant(
+                        $"{u} Bot {netId}: Absprung {(attempt.Twice ? "doppelt" : "einfach")} bei {b.X:F2} {b.Y:F2} {b.Z:F2} v {b.VX:F1} {b.VZ:F1}, ab {hop.From.X:F2} {hop.From.Y:F2} {hop.From.Z:F2} Richtung {hop.DX:F2} {hop.DZ:F2}, Kante {hop.Edge:F1} Lippe {hop.Lip:F1} Ziel {hop.Target:F1} Ende {hop.End:F1} Anstieg {hop.Rise:F2} nötig {hop.Need:F2}"));
+                    flight = k.Link;
+                    landing = land.Position;
+                }
+                return input;
+            }
+            return Walk(u, me, feet);
+        }
+
+        // Whether the last jump came down where it should; a miss costs it more next time.
+        void Verify(int u, Vector3 seen)
+        {
+            // Down on the top, or anywhere at least as close to the zone.
+            bool missed = seen.Y < landed.Y - 0.3f ||
+                          Flat(seen, landed) > 0.8f && nav.Grid.TimeToZone(seen, variant) > landedTime + 0.5f;
+            if (missed)
+                nav.Grid.Punish(landedFrom, landedTo, FailedJump, memory);
+            HopsLanded += missed ? 0 : 1;
+            HopLog?.Invoke(FormattableString.Invariant(
+                $"{u} Bot {netId}: {(missed ? "DANEBEN" : "gut")} sieht {seen.X:F2} {seen.Y:F2} {seen.Z:F2}, Ziel {landed.X:F2} {landed.Y:F2} {landed.Z:F2}"));
+            verifyAt = -1;
+        }
+
+        /// <summary>
+        /// Climbing far below the zone a bot swings only at whoever is right
+        /// in front of it, within reach and at most 60° off its view: a flick
+        /// for that one tick, its way and its view stay as they are.
+        /// </summary>
+        MoveInput Passing(int u, WorldSnapshot view, int self, in BodyState me, MatchPhase phase, MoveInput input)
+        {
+            if (!farBelow || phase != MatchPhase.Running || input.JumpPresses > 0 || u < lastStrike + fists.CooldownTicks)
+                return input;
+            Vector3 eye = Ahead(me.Motor.EyePosition, me.Motor.Velocity, Reaction * Dt);
+            float best = fists.Range - 0.2f;
+            int pick = -1;
+            Vector3 aim = Vector3.Zero;
+            for (int i = 0; i < view.Count; i++)
+            {
+                if (i == self || view.BodyAt(i).NetId == 0)
+                    continue;
+                BodyState s = view.StateAt(i);
+                Vector3 d = UMath.Sub(Ahead(s.Motor.BodyCenter, s.Motor.Velocity, Reaction * Dt), eye);
+                float flat = UMath.Sqrt(d.X * d.X + d.Z * d.Z);
+                float off = MathF.IEEERemainder(UMath.Atan2(-d.X, -d.Z) * (180f / MathF.PI) - yaw, 360f);
+                if (flat < best && UMath.Abs(off) < 60f)
+                {
+                    best = flat;
+                    pick = i;
+                    aim = d;
+                }
+            }
+            if (pick < 0)
+                return input;
+            float flatAim = UMath.Sqrt(aim.X * aim.X + aim.Z * aim.Z);
+            input.Yaw = UMath.Atan2(-aim.X, -aim.Z) * (180f / MathF.PI) + BotRandom.Signed(ref rng, settings.AimError);
+            input.Pitch = UMath.Clamp(UMath.Atan2(aim.Y, flatAim) * (180f / MathF.PI) + BotRandom.Signed(ref rng, settings.AimError), -89f, 89f);
+            input.AttackPresses = 1;
+            lastStrike = u;
+            return input;
+        }
+
+        // Turns the view towards a yaw like a hand on a mouse; pitch back to level.
+        void Face(float wantYaw)
+        {
+            float turn = MathF.IEEERemainder(wantYaw - yaw, 360f);
+            yaw = MathF.IEEERemainder(yaw + UMath.Clamp(turn * Ease, -settings.TurnRate, settings.TurnRate), 360f);
+            pitch += UMath.Clamp((0f - pitch) * Ease, -settings.TurnRate, settings.TurnRate);
+        }
+
+        // Between jumps: on to the next corner, sprinting where it is far.
+        MoveInput Walk(int u, in BodyState me, Vector3 feet)
+        {
+            Vector3 toward = goal;
+            bool sprint = false;
+            for (int c = 1; c < corners.Count; c++)
+            {
+                float d = Flat(feet, corners[c].Position);
+                if (d > 0.4f || c == corners.Count - 1)
+                {
+                    toward = corners[c].Position;
+                    sprint = d > 2f;
+                    break;
+                }
+            }
+            var input = new MoveInput { Sprint = sprint };
+            Vector3 way = new Vector3(toward.X - feet.X, 0f, toward.Z - feet.Z);
+            float distance = UMath.Magnitude(way);
+            float moveYaw = distance > 1e-3f ? UMath.Atan2(-way.X, -way.Z) * (180f / MathF.PI) : yaw;
+            Face(moveYaw);
+            input.Yaw = yaw;
+            input.Pitch = pitch;
+            Vector2 local = Vector2.Zero;
+            if (distance > 0.05f)
+            {
+                float rel = (moveYaw - yaw) * (MathF.PI / 180f);
+                local = new Vector2(-UMath.Sin(rel), UMath.Cos(rel));
+            }
+
+            // Stuck against something the grid does not know: hop.
+            float speed = UMath.Magnitude(new Vector3(me.Motor.Velocity.X, 0f, me.Motor.Velocity.Z));
+            stuckTicks = distance > 0.3f && speed < 0.5f ? stuckTicks + 1 : 0;
+            if (stuckTicks > 30 && me.Motor.Grounded && u - lastJump >= 20)
+            {
+                Jump(u, ref input, me.Motor.Sliding);
+                stuckTicks = 0;
+            }
+            if (u < jumpHeldUntil)
+                input.JumpHeld = true;
+            input.Move = new Vector2(Key(local.X), Key(local.Y));
+            return input;
         }
 
         /// <summary>The maneuver of this tick as keys: where to go, where to look, what to press.</summary>

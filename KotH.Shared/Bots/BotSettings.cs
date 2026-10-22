@@ -5,7 +5,7 @@ using Stride.Engine.Design;
 namespace KotH.Shared.Bots
 {
     /// <summary>
-    /// How the bots play and how their navmesh is cut. Sits on an entity of
+    /// How the bots play and how their climbing grid is cut. Sits on an entity of
     /// the arena prefab, so it loads headless with the arena; an arena
     /// without one plays with these defaults.
     /// </summary>
@@ -41,19 +41,22 @@ namespace KotH.Shared.Bots
         /// <userdoc>So viele Manöver plant die Wave Function Collapse auf einmal.</userdoc>
         [Display("Manöver pro Folge", "Manöver")] public int SlotsPerPlan = 8;
 
-        /// <userdoc>Rastergröße des Navmesh waagerecht, in Metern. Kleiner ist genauer und langsamer zu bauen.</userdoc>
-        [Display("Zellgröße (m)", "Navmesh")] public float CellSize = 0.15f;
+        /// <userdoc>Rastergröße des Kletterrasters, in Metern. Kleiner ist genauer und langsamer zu bauen.</userdoc>
+        [Display("Zellgröße (m)", "Kletterraster")] public float CellSize = 0.5f;
 
-        /// <userdoc>Rastergröße des Navmesh senkrecht, in Metern.</userdoc>
-        [Display("Zellhöhe (m)", "Navmesh")] public float CellHeight = 0.05f;
+        /// <userdoc>So viele eigene Wege zur Zone gibt es; jeder Bot nimmt einen anderen. 0: alle den schnellsten.</userdoc>
+        [Display("Wegvarianten", "Kletterraster")] public int RouteVariants = 4;
+
+        /// <userdoc>So viel langsamer als der schnellste darf ein eigener Weg höchstens sein (0,25 = 25 %).</userdoc>
+        [Display("Umweg höchstens", "Kletterraster")] public float RouteDetour = 0.25f;
 
         /// <userdoc>Höher als das springt ein Bot nur mit Doppelsprung, in Metern.</userdoc>
-        [Display("Sprung bis (m)", "Navmesh")] public float JumpUp = 1.2f;
+        [Display("Sprung bis (m)", "Kletterraster")] public float JumpUp = 1.2f;
 
         /// <userdoc>Höher als das versucht ein Bot gar nicht hinaufzuspringen, in Metern.</userdoc>
-        [Display("Doppelsprung bis (m)", "Navmesh")] public float DoubleJumpUp = 2.2f;
+        [Display("Doppelsprung bis (m)", "Kletterraster")] public float DoubleJumpUp = 2.2f;
 
         /// <userdoc>Weiter springt ein Bot nicht über eine Lücke, in Metern.</userdoc>
-        [Display("Lücke bis (m)", "Navmesh")] public float GapMax = 3f;
+        [Display("Lücke bis (m)", "Kletterraster")] public float GapMax = 3f;
     }
 }

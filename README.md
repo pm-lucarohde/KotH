@@ -34,11 +34,15 @@ sofort wieder an seinem Startplatz; Schadensprozent und Punkte bleiben.
 
 **Bots.** Statt der früheren Trainingspuppen spielen Bots mit (offline und beim Host
 3, `--bots N`, `--bot-seed N`). Sie wollen ab Rundenbeginn auf den Gipfel, finden den
-Weg über ein Navmesh (Rampen, Treppen, Sprünge und Doppelsprünge an Kanten), sprinten,
-gleiten in Angriffe hinein und schlagen jeden, auch einander; sie zählen als Spieler.
-In der Lobby und im Countdown schlagen Bots nicht. Ein Bot sieht die Welt 0,2 s verzögert, wie ein Mensch mit Reaktionszeit. Stärke,
-Zielfehler und Navmesh stehen an der Komponente `BotSettings` (Entity „Bots“ im
-Collision-Prefab der Map). Die Bots starten mit Lücken in beiden Reihen (`NetWorld.BotSlots`),
+Weg über ein eigenes Kletterraster (Gehen, Fallen, Sprung, Doppelsprung, Lücken), jeder auf
+einer eigenen Route, und lernen aus Sprüngen, die nicht klappen. Jeden Sprung rechnen sie
+vorher in einem kleinen Modell des Motors durch und lenken in der Luft auf die Oberseite.
+Auf den Berg der Map `Neu` brauchen drei Bots im Mittel etwa 1:40. Weiter als 15 m unter dem
+Gipfel klettern sie nur und schlagen höchstens im Vorbeigehen zu, wer direkt vor ihnen steht;
+oben sprinten sie, gleiten in Angriffe hinein und schlagen jeden, auch einander; sie zählen als
+Spieler. In der Lobby und im Countdown schlagen Bots nicht. Ein Bot sieht die Welt 0,2 s
+verzögert, wie ein Mensch mit Reaktionszeit. Stärke, Zielfehler und Raster stehen an der
+Komponente `BotSettings` (Entity „Bots“ im Collision-Prefab der Map). Die Bots starten mit Lücken in beiden Reihen (`NetWorld.BotSlots`),
 nicht dicht nebeneinander.
 
 Im Mehrspieler wartet die Runde auf 4 Spieler (die Bots des Hosts zählen mit), dann läuft
@@ -252,7 +256,7 @@ Game Studio. Es legt keine Wege an: Man sucht sich mit Sprung und Doppelsprung s
 einen Weg über die Säulen. Das Skript prüft, ob der Gipfel aus genug Richtungen
 erreichbar ist, und bricht sonst ab. Die Werte stehen oben im Skript (Höhe, Fuß,
 Steigung, Säulen, Rundung, Übergang ins Plateau, Schneelinie, Bäume, Seed). Nach jedem
-Lauf alles neu bauen. Bots kommen dort noch nicht hinauf.
+Lauf alles neu bauen.
 
 Die Texturen der Map `Neu` malt `python3 Tools/maps/textures.py` (braucht Pillow) nach
 `KotH.Game/Resources/Textures/Terrain`: weich und comichaft wie die Pilzfiguren, nahtlos

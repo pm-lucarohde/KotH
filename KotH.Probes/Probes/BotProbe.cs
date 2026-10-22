@@ -15,13 +15,13 @@ using Stride.Engine;
 namespace KotH.Probes.Probes
 {
     /// <summary>
-    /// The bots, headless: the navmesh reaches the hill over every ramp,
+    /// The bots, headless: the climbing grid reaches the hill over every ramp,
     /// three bots and a body standing on the hill play a round, the bots get
     /// up, score and hit it, and a second run with the same seed gives the
     /// same inputs bit for bit. Prints the hash for JIT against AOT. New, no
     /// Unity reference.
     /// </summary>
-    public sealed class BotProbe : Probe
+    public sealed partial class BotProbe : Probe
     {
         protected override string Tag => "bots";
 
@@ -41,6 +41,10 @@ namespace KotH.Probes.Probes
 
         public override int Run(HeadlessWorld world, int maxTicks)
         {
+            if (Climb > 0)
+                return Climbs(Climb);
+            if (Lab > 0)
+                return Labs(Lab);
             if (Stats > 0)
             {
                 var sum = new Result();
@@ -92,15 +96,10 @@ namespace KotH.Probes.Probes
 
         void Navmesh(BotNavigation nav, double ms)
         {
-            int drops = 0, jumps = 0, doubles = 0;
-            foreach ((Vector3 _, Vector3 _, LinkKind kind) in nav.Links)
-            {
-                drops += kind == LinkKind.Drop ? 1 : 0;
-                jumps += kind == LinkKind.Jump ? 1 : 0;
-                doubles += kind == LinkKind.DoubleJump ? 1 : 0;
-            }
-            Log($"[bots] Navmesh {nav.PolyCount} Polygone in {ms:F0} ms, Links: {drops} Fallen, {jumps} Sprung, {doubles} Doppelsprung");
-            Check(nav.PolyCount > 20 && drops > 10, "Navmesh mit Kanten zum Herunterfallen");
+            ClimbGrid g = nav.Grid;
+            Log($"[bots] Kletterraster {g.FloorCount} Böden in {ms:F0} ms, Züge: {g.Drops} Fallen, {g.Jumps} Sprung, " +
+                $"{g.DoubleJumps} Doppelsprung, {g.Gaps} Lücke, {g.Variants} Wegvarianten");
+            Check(g.FloorCount > 20 && g.Drops > 10, "Raster mit Kanten zum Herunterfallen");
 
             var corners = new List<Corner>();
             foreach (Vector3 start in Starts)

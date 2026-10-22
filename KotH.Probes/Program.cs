@@ -37,7 +37,12 @@ Probe probe = name switch
     "capture" => new CaptureProbe(),
     "netstate" => new NetStateProbe(),
     "netplay" => new NetPlayProbe(),
-    "bots" => new BotProbe { Stats = args.Length > 2 && args[1] == "stats" ? int.Parse(args[2]) : 0 },
+    "bots" => new BotProbe
+    {
+        Stats = args.Length > 2 && args[1] == "stats" ? int.Parse(args[2]) : 0,
+        Climb = args.Length > 1 && args[1] == "climb" ? (args.Length > 2 ? int.Parse(args[2]) : 1) : 0,
+        Lab = args.Length > 1 && args[1] == "jumplab" ? (args.Length > 2 ? int.Parse(args[2]) : 200) : 0,
+    },
     _ => null,
 };
 
