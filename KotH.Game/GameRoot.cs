@@ -240,6 +240,7 @@ namespace KotH.Client
                 visuals.UnregisterArms();
                 arms.Transform.Parent = null;
             }
+            ArmsInFront.Install(SceneSystem, ArmsGroup);
             var model = new ModelComponent(ArmsModel) { RenderGroup = ArmsGroup, IsShadowCaster = false };
             var animation = new AnimationComponent();
             AnimationClip[] clips = { ArmsIdle, ArmsWalk, ArmsRun };

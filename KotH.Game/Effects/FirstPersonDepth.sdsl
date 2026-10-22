@@ -1,0 +1,18 @@
+/// <summary>
+/// Squeezes the depth of the first-person arms and stick to the front of the
+/// depth range, so they draw over a wall they reach into, lit and shaded as
+/// before (ArmsInFront mixes it in for the arms' render group only).
+/// </summary>
+shader FirstPersonDepth : TransformationBase
+{
+    // Share of the depth range the arms keep: in front of anything farther
+    // than about a millimetre past the near plane, still fine enough inside.
+    static const float Squeeze = 0.01;
+
+    stage override float4 ComputeShadingPosition(float4 world)
+    {
+        float4 p = base.ComputeShadingPosition(world);
+        p.z *= Squeeze;
+        return p;
+    }
+};

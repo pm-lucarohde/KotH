@@ -143,7 +143,7 @@ Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall 
 ### Figur und Animation (nur Darstellung)
 - Pilzfigur `Mushroom.glb` mit 17 Clips; `PlayerVisualSystem` mischt sie nach Tempo und Richtung, Lauf-Clips auf
   gemeinsamer Phase aus der Strecke; geduckt fest auf 75 % Höhe, 90 % Breite. Gebaut mit `.work/rig/build.sh`
-  (Blender: `rig.py`, `fp_arms.py`, `bamboo.py`). FP-Arme `MushroomArms`, Render-Gruppe 2, ohne Schatten.
+  (Blender: `rig.py`, `fp_arms.py`, `bamboo.py`). FP-Arme `MushroomArms`, Render-Gruppe 2, ohne Schatten, immer vorn (`ArmsInFront`).
 - Das Spiel bewegt `Mouth`, `Leaf.*`, Lider, `Look`, `Recoil`, `UpperArmSwing.R`/`LowerArmSwing.R`: **Clips dürfen
   dafür keine Kanäle haben.** Auslöser `LastHitTick`, `LastHitAway`, `LastSwingTick`, `LookPitch` sind kein Zustand.
 - Bambusstab an `Grip.R` (`GameRoot.AttachHeld`), Blatt federt (`Sway`); Schlag `ArmSwing` (Zwei-Knochen-IK); in
