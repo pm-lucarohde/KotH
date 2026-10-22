@@ -61,6 +61,9 @@ namespace Stride.Rendering.Voxels
 
         protected IVoxelStorageTexture storageTex;
 
+        /// <summary>KotH patch: the texture this layout writes.</summary>
+        public IVoxelStorageTexture StorageTexture => storageTex;
+
         virtual public int PrepareLocalStorage(VoxelStorageContext context, IVoxelStorage storage)
         {
             return StorageMethod.PrepareLocalStorage(context, storage, 4, LayoutCount);

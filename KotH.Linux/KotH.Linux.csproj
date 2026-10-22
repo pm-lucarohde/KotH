@@ -17,5 +17,6 @@
          which the trimmer cannot see: without these the scene fails to load. -->
     <TrimmerRootAssembly Include="KotH.Game" />
     <TrimmerRootAssembly Include="KotH.Shared" />
+    <TrimmerRootAssembly Include="Stride.Voxels" />
   </ItemGroup>
 </Project>

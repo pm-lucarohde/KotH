@@ -66,6 +66,30 @@ namespace Stride.Rendering.Voxels
                     renderVoxelVolumeData.Add(pair.Key, processedVolume);
                 }
 
+                // KotH patch: a volume not voxelised this frame keeps its voxels
+                // and passes as they are; no views, culling or shadow maps for it.
+                // With dynamic groups only those are voxelised, round where they are.
+                bool dynamic = !dataVolume.Voxelize && processedVolume.Prepared && dataVolume.DynamicGroups != 0;
+                if (!dataVolume.Voxelize && processedVolume.Prepared && !dynamic)
+                {
+                    processedVolume.Voxelize = false;
+                    processedVolume.Dynamic = false;
+                    continue;
+                }
+                processedVolume.Dynamic = dynamic;
+                processedVolume.DynamicGroups = dataVolume.DynamicGroups;
+                processedVolume.DynamicBounds.Clear();
+                if (dynamic)
+                {
+                    foreach (var renderObject in Context.VisibilityGroup.RenderObjects)
+                    {
+                        if (!renderObject.Enabled || ((1u << (int)renderObject.RenderGroup) & (uint)dataVolume.DynamicGroups) == 0)
+                            continue;
+                        var box = renderObject.BoundingBox;
+                        processedVolume.DynamicBounds.Add(new BoundingBox(box.Center - box.Extent, box.Center + box.Extent));
+                    }
+                }
+
 
                 //Setup matrix
                 Vector3 matScale = dataVolume.VolumeSize;
@@ -104,7 +128,7 @@ namespace Stride.Rendering.Voxels
                 processedVolume.VoxelizationMethod = dataVolume.VoxelizationMethod;
                 processedVolume.VoxelVisualization = dataVolume.VoxelVisualization;
                 processedVolume.VisualizationAttribute = dataVolume.VisualizationAttribute;
-                processedVolume.Voxelize = dataVolume.Voxelize;
+                processedVolume.Voxelize = dataVolume.Voxelize || dynamic; // KotH patch
                 processedVolume.OutputAttributes = dataVolume.Attributes;
 
                 processedVolume.Attributes.Clear();
@@ -175,6 +199,8 @@ namespace Stride.Rendering.Voxels
                     throw new ArgumentOutOfRangeException(processedVolume.groupedPasses.Count.ToString() + " Render Stages required for voxelization, only " + VoxelStages.Count.ToString() + " provided.");
                 }
 
+                processedVolume.Prepared = true; // KotH patch
+
                 //Finish preparing the passes, collecting views and setting up shader sources and shadows
                 for (int group = 0; group < processedVolume.groupedPasses.Count; group++)
                 {
@@ -183,11 +209,16 @@ namespace Stride.Rendering.Voxels
                         pass.renderStage = VoxelStages[group];
                         pass.source = pass.storer.GetVoxelizationShader(pass, processedVolume);
                         pass.view.RenderStages.Add(pass.renderStage);
+                        pass.view.CullingMask = dynamic ? dataVolume.DynamicGroups : dataVolume.StaticGroups; // KotH patch
 
                         Context.RenderSystem.Views.Add(pass.view);
                         Context.VisibilityGroup.TryCollect(pass.view);
 
-                        if (pass.requireShadows)
+                        // KotH patch: dynamic passes light with the camera's view and its shadow
+                        // maps (drawn after the voxels, so last frame's) instead of drawing the
+                        // whole map into shadow maps of their own every frame.
+                        pass.view.LightingView = dynamic ? Context.RenderView : null;
+                        if (pass.requireShadows && !dynamic)
                         {
                             ShadowMapRenderer?.RenderViewsWithShadows.Add(pass.view);
                         }
@@ -215,13 +246,17 @@ namespace Stride.Rendering.Voxels
 
                     VoxelStorageContext storageContext = processedVolume.StorageContext;
 
+                    // KotH patch: the boxes the moving groups were written to go back to the kept voxels.
+                    if (processedVolume.Dynamic)
+                        processedVolume.Storage.RestoreDynamic(context, processedVolume);
+
                     using (drawContext.QueryManager.BeginProfile(Color.Black, PassesVoxelizationProfilingKey))
                     {
                         foreach (VoxelizationPass pass in processedVolume.passList.passes)
                         {
                             RenderView voxelizeRenderView = pass.view;
 
-                            if (pass.requireShadows)
+                            if (pass.requireShadows && !processedVolume.Dynamic) // KotH patch
                             {
                                 //Render Shadow Maps
                                 RenderView oldView = drawContext.RenderContext.RenderView;
@@ -246,6 +281,15 @@ namespace Stride.Rendering.Voxels
                         }
                     }
 
+                    // KotH patch: moving groups are written into their boxes only; the
+                    // mipmaps keep the full voxelisation, which is kept as it is.
+                    if (processedVolume.Dynamic)
+                    {
+                        using (drawContext.QueryManager.BeginProfile(Color.Black, BufferProcessingVoxelizationProfilingKey))
+                            processedVolume.Storage.PostProcessDynamic(storageContext, context, processedVolume);
+                        continue;
+                    }
+
                     //Fill and write to voxel volume
                     using (drawContext.QueryManager.BeginProfile(Color.Black, BufferProcessingVoxelizationProfilingKey))
                     {
@@ -263,6 +307,10 @@ namespace Stride.Rendering.Voxels
                             }
                         }
                     }
+
+                    // KotH patch: what dynamic frames restore their boxes from.
+                    if (processedVolume.DynamicGroups != 0)
+                        processedVolume.Storage.KeepStatic(context, processedVolume);
                 }
             }
         }

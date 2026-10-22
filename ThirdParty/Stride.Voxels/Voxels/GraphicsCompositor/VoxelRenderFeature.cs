@@ -51,6 +51,8 @@ namespace Stride.Rendering.Voxels
             foreach (var processedVolumeKeyValue in renderVoxelVolumeData)
             {
                 var processedVolume = processedVolumeKeyValue.Value;
+                if (!processedVolume.Voxelize)
+                    continue; // KotH patch: kept voxels, no voxelisation views this frame
 
                 foreach (VoxelizationPass pass in processedVolume.passList.passes)
                 {
@@ -99,6 +101,8 @@ namespace Stride.Rendering.Voxels
             foreach (var processedVolumeKeyValue in renderVoxelVolumeData)
             {
                 var processedVolume = processedVolumeKeyValue.Value;
+                if (!processedVolume.Voxelize)
+                    continue; // KotH patch: kept voxels, no voxelisation views this frame
                 foreach (VoxelizationPass pass in processedVolume.passList.passes)
                 {
                     var viewFeature = pass.view.Features[RootRenderFeature.Index];

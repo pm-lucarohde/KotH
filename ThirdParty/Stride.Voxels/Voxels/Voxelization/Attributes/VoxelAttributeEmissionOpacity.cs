@@ -77,6 +77,8 @@ namespace Stride.Rendering.Voxels
             VoxelLayout.PostProcess(drawContext, LightFalloff);
         }
 
+        public override IVoxelStorageTexture OutputTexture => (VoxelLayout as VoxelLayoutBase)?.StorageTexture; // KotH patch
+
 
 
 

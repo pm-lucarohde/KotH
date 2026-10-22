@@ -17,6 +17,8 @@ namespace Stride.Rendering.Voxels
         public Vector3 VolumeTranslation;
         public float AproxVoxelSize;
         public bool Voxelize;
+        public RenderGroupMask StaticGroups; // KotH patch
+        public RenderGroupMask DynamicGroups;
 
         public bool VoxelGridSnapping;
         public bool VisualizeVoxels;
@@ -48,6 +50,14 @@ namespace Stride.Rendering.Voxels
     public class ProcessedVoxelVolume
     {
         public bool Voxelize;
+        /// <summary>KotH patch: set up by a voxelisation, so it can be traced without one.</summary>
+        public bool Prepared;
+        /// <summary>KotH patch: this frame only the dynamic groups are voxelised, in their boxes.</summary>
+        public bool Dynamic;
+        /// <summary>KotH patch: the volume's dynamic groups, none if nothing moves.</summary>
+        public RenderGroupMask DynamicGroups;
+        /// <summary>KotH patch: world bounds of what the dynamic groups draw this frame.</summary>
+        public List<BoundingBox> DynamicBounds = new List<BoundingBox>();
         public bool VisualizeVoxels;
         public VoxelAttribute VisualizationAttribute;
         public IVoxelVisualization VoxelVisualization;

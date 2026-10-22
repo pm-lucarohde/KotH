@@ -33,6 +33,13 @@ namespace Stride.Engine.Processors
             VisibilityGroup.Tags.Set(VoxelRenderFeature.CurrentProcessedVoxelVolumes, processedVoxelVolumes);
         }
 
+        protected override void OnEntityComponentRemoved(Entity entity, VoxelVolumeComponent component, VoxelVolumeComponent data)
+        {
+            base.OnEntityComponentRemoved(entity, component, data);
+            renderVoxelVolumes.Remove(component);
+            processedVoxelVolumes.Remove(component);
+        }
+
         public override void Draw(RenderContext context)
         {
             RegenerateVoxelVolumes();
@@ -53,24 +60,32 @@ namespace Stride.Engine.Processors
 
         private void RegenerateVoxelVolumes()
         {
-            renderVoxelVolumes.Clear();
-            processedVoxelVolumes.Clear();
+            // KotH patch: the volumes live on from frame to frame instead of
+            // being made anew (garbage every frame, and a volume that is not
+            // voxelised again must keep what the last voxelisation set up).
             foreach (var pair in ComponentDatas)
             {
                 if (!pair.Key.Enabled)
+                {
+                    renderVoxelVolumes.Remove(pair.Key);
+                    processedVoxelVolumes.Remove(pair.Key);
                     continue;
+                }
 
                 var volume = pair.Key;
 
-                DataVoxelVolume data;
+                if (!renderVoxelVolumes.TryGetValue(volume, out DataVoxelVolume data))
                     renderVoxelVolumes.Add(volume, data = new DataVoxelVolume());
-                processedVoxelVolumes.Add(volume, new ProcessedVoxelVolume());
+                if (!processedVoxelVolumes.ContainsKey(volume))
+                    processedVoxelVolumes.Add(volume, new ProcessedVoxelVolume());
 
                 data.VolumeTranslation = volume.Entity.Transform.WorldMatrix.TranslationVector;
                 data.VolumeSize = new Vector3(volume.VoxelVolumeSize);
 
 
                 data.Voxelize = volume.Voxelize;
+                data.StaticGroups = volume.StaticGroups;
+                data.DynamicGroups = volume.DynamicGroups;
                 data.AproxVoxelSize = volume.AproximateVoxelSize;
 
                 data.VoxelGridSnapping = volume.VoxelGridSnapping;

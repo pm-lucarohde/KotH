@@ -37,6 +37,14 @@ RenderStages:
         Name: GBuffer
         EffectSlotName: GBuffer
         SortMode: !FrontToBackSortMode {}
+    54e148fa49ca18c6b30f86e89ec95388:
+        Id: FFA492D9-B8A2-4D74-ABE8-D82C542FC526
+        Name: VoxelizationPassFirst
+        EffectSlotName: Voxelizer
+    eb9689239718d7dab8a56c2ce49b59d3:
+        Id: BA28C12C-261F-45E6-BD4E-02CF38141F06
+        Name: VoxelizationPassSecond
+        EffectSlotName: Voxelizer2
 RenderFeatures:
     d8fb80b0e7995140a46bca8dc36ee8a2: !Stride.Rendering.MeshRenderFeature,Stride.Rendering
         RenderStageSelectors:
@@ -56,6 +64,16 @@ RenderFeatures:
             106341b76db9fcda6a033dad16aa708b: !Stride.Rendering.MeshTransparentRenderStageSelector,Stride.Rendering
                 OpaqueRenderStage: ref!! EFF5EBE0-9211-442E-BE87-B98D8F1B9D59
                 EffectName: StrideForwardShadingEffect.ZPrepass
+            1cd2eaa455053c4bb2b0e1b2c156cb3a: !Stride.Rendering.MeshTransparentRenderStageSelector,Stride.Rendering
+                RenderGroup: Group0, Group1, Group3
+                OpaqueRenderStage: ref!! FFA492D9-B8A2-4D74-ABE8-D82C542FC526
+                TransparentRenderStage: ref!! FFA492D9-B8A2-4D74-ABE8-D82C542FC526
+                EffectName: StrideForwardShadingEffectVXGI.VoxelizeToFragmentsEffect
+            3a8978fa14c861d9a85751a80428226a: !Stride.Rendering.MeshTransparentRenderStageSelector,Stride.Rendering
+                RenderGroup: Group0, Group1, Group3
+                OpaqueRenderStage: ref!! BA28C12C-261F-45E6-BD4E-02CF38141F06
+                TransparentRenderStage: ref!! BA28C12C-261F-45E6-BD4E-02CF38141F06
+                EffectName: StrideForwardShadingEffectVXGI.VoxelizeToFragmentsEffect
         PipelineProcessors:
             d70f5aee0616e4ab25081ceaf643290c: !Stride.Rendering.MeshPipelineProcessor,Stride.Rendering
                 TransparentRenderStage: ref!! 6539832E-7F51-447C-AC7D-1B2049315B8A
@@ -67,6 +85,10 @@ RenderFeatures:
             ae4336b0a9514e8488e8e0ccbcef25f4: !Stride.Rendering.ShadowMeshPipelineProcessor,Stride.Rendering
                 ShadowMapRenderStage: ref!! E6C3DA39-E2E9-4D79-BABA-0B2D5D9A24B8
                 DepthClipping: true
+            371dd885d403a507d2e779f9d9f0c277: !Stride.Rendering.Voxels.VoxelPipelineProcessor,Stride.Voxels
+                VoxelRenderStage:
+                    ec88b51356d469c565289d94b1a68908: ref!! FFA492D9-B8A2-4D74-ABE8-D82C542FC526
+                    991d03d23b97ee4e131f40890c642eeb: ref!! BA28C12C-261F-45E6-BD4E-02CF38141F06
         RenderFeatures:
             86b959cbdf51a1438d4973177c77c627: !Stride.Rendering.TransformRenderFeature,Stride.Rendering {}
             8e0351fee9883922648a11016224b195: !Stride.Rendering.SkinningRenderFeature,Stride.Rendering {}
@@ -81,6 +103,7 @@ RenderFeatures:
                     79582329a9cf466e960f8920f579de9b: !Stride.Rendering.Lights.LightPointGroupRenderer,Stride.Rendering {}
                     cf0c6bd4198b4cc4aaaab5b54870bdfd: !Stride.Rendering.Lights.LightSpotGroupRenderer,Stride.Rendering {}
                     451af18f3f5c4187cf3fe5f33feb46b1: !Stride.Rendering.LightProbes.LightProbeRenderer,Stride.Rendering {}
+                    e658234519ffb99a3f45f76c2ac5a918: !Stride.Rendering.Voxels.VoxelGI.LightVoxelRenderer,Stride.Voxels {}
                 ShadowMapRenderer: !Stride.Rendering.Shadows.ShadowMapRenderer,Stride.Rendering
                     Renderers:
                         7c3d3d4c86834c3551bacde2527b3836: !Stride.Rendering.Shadows.LightDirectionalShadowMapRenderer,Stride.Rendering
@@ -92,6 +115,7 @@ RenderFeatures:
                         d59ef45dd99e49d3af3887763d153aa7: !Stride.Rendering.Shadows.LightPointShadowMapRendererCubeMap,Stride.Rendering
                             ShadowCasterRenderStage: ref!! E6C3DA39-E2E9-4D79-BABA-0B2D5D9A24B8
             42be209952db58294c9f06c58809b8ca: !Stride.Rendering.InstancingRenderFeature,Stride.Rendering {}
+            2731c76697c106b6878b9c989a1b6527: !Stride.Rendering.Voxels.VoxelRenderFeature,Stride.Voxels {}
     28e9bf54a5adbe063f59fb17acb2723e: !Stride.Rendering.Sprites.SpriteRenderFeature,Stride.Rendering
         RenderStageSelectors:
             d74665cff080638a2439c4422e542d85: !Stride.Rendering.Sprites.SpriteTransparentRenderStageSelector,Stride.Rendering
@@ -116,7 +140,7 @@ RenderFeatures:
                 EffectName: null
         PipelineProcessors: {}
 SharedRenderers:
-    60459475d3a3adaf2d1ba5d99913ca75: !Stride.Rendering.Compositing.ForwardRenderer,Stride.Engine
+    60459475d3a3adaf2d1ba5d99913ca75: !Stride.Rendering.Voxels.ForwardRendererVoxels,Stride.Voxels
         Id: 605029B2-6F36-4431-B934-B8035BFCA6CB
         Clear:
             Id: DA25171A-116E-49C7-93D1-197E4135AFEC
@@ -137,6 +161,11 @@ SharedRenderers:
             Overlays: {}
         MSAALevel: None
         MSAAResolver: {}
+        VoxelRenderer: !Stride.Rendering.Voxels.VoxelRenderer,Stride.Voxels
+            VoxelStages:
+                ebc6da9e9cc380a03b62962f06cf721e: ref!! FFA492D9-B8A2-4D74-ABE8-D82C542FC526
+                357b97f2667196c0f2740c021ab0a92e: ref!! BA28C12C-261F-45E6-BD4E-02CF38141F06
+        VoxelVisualization: {}
     d5b2e71c088247e21556decdce138d96: !Stride.Rendering.Compositing.ForwardRenderer,Stride.Engine
         Id: 3DC300C6-4E08-457F-BC26-05E9FF8BBA56
         Clear:
@@ -199,7 +228,7 @@ Game: !Stride.Rendering.Compositing.SceneCameraRenderer,Stride.Engine
     Child: !Stride.Rendering.Compositing.SceneRendererCollection,Stride.Rendering
         Id: 155BA910-ED64-4A3E-9B5F-AE318ECDA315
         Children:
-            d39c5ddbf8b7d5ca02bafb6496b1cc3c: !Stride.Rendering.Compositing.ForwardRenderer,Stride.Engine ref!! 605029B2-6F36-4431-B934-B8035BFCA6CB
+            d39c5ddbf8b7d5ca02bafb6496b1cc3c: !Stride.Rendering.Voxels.ForwardRendererVoxels,Stride.Voxels ref!! 605029B2-6F36-4431-B934-B8035BFCA6CB
             01d338078e9b21121ead0868932613dd: !Stride.Rendering.Compositing.DebugRenderer,Stride.Rendering ref!! C73EAA0C-430F-47B0-A52C-57D554D9DA56
 SingleView: !Stride.Rendering.Compositing.ForwardRenderer,Stride.Engine ref!! 3DC300C6-4E08-457F-BC26-05E9FF8BBA56
-Editor: !Stride.Rendering.Compositing.ForwardRenderer,Stride.Engine ref!! 605029B2-6F36-4431-B934-B8035BFCA6CB
+Editor: !Stride.Rendering.Voxels.ForwardRendererVoxels,Stride.Voxels ref!! 605029B2-6F36-4431-B934-B8035BFCA6CB

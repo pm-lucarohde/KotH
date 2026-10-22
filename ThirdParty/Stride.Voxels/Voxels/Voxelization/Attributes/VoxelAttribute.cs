@@ -22,6 +22,9 @@ namespace Stride.Rendering.Voxels
         public abstract void CollectAttributes(List<AttributeStream> attributes, VoxelizationStage stage, bool output);
 
         public virtual  bool RequiresColumns() => false;
+
+        /// <summary>KotH patch: the texture written as output, if any.</summary>
+        public virtual IVoxelStorageTexture OutputTexture => null;
         public abstract void PostProcess(RenderDrawContext drawContext);
 
         //Writing

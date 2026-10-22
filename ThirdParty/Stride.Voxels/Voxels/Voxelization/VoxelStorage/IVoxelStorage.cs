@@ -16,5 +16,12 @@ namespace Stride.Rendering.Voxels
         void UpdateTexture(VoxelStorageContext context, ref IVoxelStorageTexture texture, Stride.Graphics.PixelFormat pixelFormat, int layoutSize);
         void UpdateTempStorage(VoxelStorageContext context);
         void PostProcess(VoxelStorageContext context, RenderDrawContext drawContext, ProcessedVoxelVolume data);
+
+        // KotH patch: dynamic groups. A full voxelisation is kept; each frame the boxes
+        // the moving groups were written to are restored from it, then they are written
+        // into the boxes round where they are now.
+        void KeepStatic(RenderDrawContext drawContext, ProcessedVoxelVolume data) { }
+        void RestoreDynamic(RenderDrawContext drawContext, ProcessedVoxelVolume data) { }
+        void PostProcessDynamic(VoxelStorageContext context, RenderDrawContext drawContext, ProcessedVoxelVolume data) => PostProcess(context, drawContext, data);
     }
 }

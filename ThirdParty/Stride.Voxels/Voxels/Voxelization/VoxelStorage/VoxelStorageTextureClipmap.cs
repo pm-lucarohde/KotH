@@ -23,6 +23,31 @@ namespace Stride.Rendering.Voxels
         public Stride.Graphics.Texture MipMaps = null;
         public Stride.Graphics.Texture[] TempMipMaps = null;
 
+        // KotH patch: the clipmaps as the last full voxelisation left them.
+        public Stride.Graphics.Texture StaticClipMaps = null;
+
+        /// <summary>KotH patch: keeps the clipmaps as they are now.</summary>
+        public void KeepStatic(CommandList commandList)
+        {
+            var size = new Vector3(ClipMaps.Width, ClipMaps.Height, ClipMaps.Depth);
+            if (VoxelUtils.DisposeTextureBySpecs(StaticClipMaps, size, ClipMaps.Format))
+                StaticClipMaps = Stride.Graphics.Texture.New3D(ClipMaps.GraphicsDevice, ClipMaps.Width, ClipMaps.Height, ClipMaps.Depth, false, ClipMaps.Format, TextureFlags.ShaderResource);
+            commandList.Copy(ClipMaps, StaticClipMaps);
+        }
+
+        /// <summary>KotH patch: puts the kept voxels back into one box (max exclusive) of one clipmap.</summary>
+        public void Restore(CommandList commandList, int clip, Int3 min, Int3 max)
+        {
+            if (StaticClipMaps == null)
+                return;
+            for (int axis = 0; axis < LayoutSize; axis++)
+            {
+                int y = (clip * LayoutSize + axis) * (int)ClipMapResolution.Y;
+                commandList.CopyRegion(StaticClipMaps, 0, new ResourceRegion(min.X, y + min.Y, min.Z, max.X, y + max.Y, max.Z),
+                    ClipMaps, 0, min.X, y + min.Y, min.Z);
+            }
+        }
+
         public Vector4[] PerMapOffsetScale = new Vector4[20];
         public Vector4[] PerMapOffsetScaleCurrent = new Vector4[20];
         public Vector3[] MippingOffset = new Vector3[20];

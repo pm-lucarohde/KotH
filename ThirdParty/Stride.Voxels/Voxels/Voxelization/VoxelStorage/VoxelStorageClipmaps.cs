@@ -269,20 +269,13 @@ namespace Stride.Rendering.Voxels
             return new Int3(groupsX, groupsY, 1);
         }
 
-        public void PostProcess(VoxelStorageContext storageContext, RenderDrawContext drawContext, ProcessedVoxelVolume data)
+        /// <summary>
+        /// Sets everything but the dispatch on the writer from fragments to texture;
+        /// columns are needed when an attribute reads its neighbours.
+        /// </summary>
+        bool ApplyWriterParameters(ProcessedVoxelVolume data, Stride.Rendering.ComputeEffect.ComputeEffectShader independentWriter,
+            Stride.Rendering.ComputeEffect.ComputeEffectShader columnsWriter, out Stride.Rendering.ComputeEffect.ComputeEffectShader writer)
         {
-            if (Math.Max(Math.Max(ClipMapResolution.X, ClipMapResolution.Y), ClipMapResolution.Z) < 32)
-                return;
-            if (FragmentsBuffer == null)
-                return;
-            var context = drawContext.RenderContext;
-            if (ClearBuffer == null)
-            {
-                ClearBuffer = new Stride.Rendering.ComputeEffect.ComputeEffectShader(context) { ShaderSourceName = "ClearBuffer" };
-                BufferToTexture = new Stride.Rendering.ComputeEffect.ComputeEffectShader(context) { ShaderSourceName = "BufferToTextureEffect" };
-                BufferToTextureColumns = new Stride.Rendering.ComputeEffect.ComputeEffectShader(context) { ShaderSourceName = "BufferToTextureColumnsEffect" };
-            }
-
             bool VoxelsAreIndependent = true;
 
             List<VoxelAttribute> IndirectVoxels = new List<VoxelAttribute>();
@@ -315,7 +308,10 @@ namespace Stride.Rendering.Voxels
                 }
             }
 
-            var BufferWriter = VoxelsAreIndependent ? BufferToTexture : BufferToTextureColumns;
+            var BufferWriter = VoxelsAreIndependent ? independentWriter : columnsWriter;
+            writer = BufferWriter;
+            if (BufferWriter == null)
+                return false;
 
             for (int i = 0; i < IndirectVoxels.Count; i++)
             {
@@ -333,17 +329,10 @@ namespace Stride.Rendering.Voxels
             }
 
 
-            int processYSize = VoxelsAreIndependent ? (int)ClipMapResolution.Y : 1;
-            processYSize *= (UpdatesPerFrame == UpdateMethods.SingleClipmap) ? 1 : ClipMapCount;
-
-            BufferWriter.ThreadGroupCounts = VoxelsAreIndependent ? new Int3(32, 32, 32) : new Int3(32, 1, 32);
-            BufferWriter.ThreadNumbers = new Int3((int)ClipMapResolution.X / BufferWriter.ThreadGroupCounts.X, processYSize / BufferWriter.ThreadGroupCounts.Y, (int)ClipMapResolution.Z / BufferWriter.ThreadGroupCounts.Z);
-
             BufferWriter.Parameters.Set(BufferToTextureKeys.VoxelFragments, FragmentsBuffer);
             BufferWriter.Parameters.Set(BufferToTextureKeys.clipMapResolution, ClipMapResolution);
             BufferWriter.Parameters.Set(BufferToTextureKeys.storageUints, storageUints);
 
-            BufferWriter.Parameters.Set(BufferToTextureKeys.clipOffset, (uint)(UpdatesPerFrame == UpdateMethods.SingleClipmap ? ClipMapCurrent : 0));
 
 
             //Modifiers are stored within attributes, yet need to be able to query their results. 
@@ -376,6 +365,33 @@ namespace Stride.Rendering.Voxels
             BufferWriter.Parameters.Set(BufferToTextureKeys.IndirectReadAndStoreMacro, IndirectReadAndStoreMacro);
             BufferWriter.Parameters.Set(BufferToTextureKeys.IndirectStoreMacro, IndirectStoreMacro);
 
+            return VoxelsAreIndependent;
+        }
+
+        public void PostProcess(VoxelStorageContext storageContext, RenderDrawContext drawContext, ProcessedVoxelVolume data)
+        {
+            if (Math.Max(Math.Max(ClipMapResolution.X, ClipMapResolution.Y), ClipMapResolution.Z) < 32)
+                return;
+            if (FragmentsBuffer == null)
+                return;
+            var context = drawContext.RenderContext;
+            if (ClearBuffer == null)
+            {
+                ClearBuffer = new Stride.Rendering.ComputeEffect.ComputeEffectShader(context) { ShaderSourceName = "ClearBuffer" };
+                BufferToTexture = new Stride.Rendering.ComputeEffect.ComputeEffectShader(context) { ShaderSourceName = "BufferToTextureEffect" };
+                BufferToTextureColumns = new Stride.Rendering.ComputeEffect.ComputeEffectShader(context) { ShaderSourceName = "BufferToTextureColumnsEffect" };
+            }
+
+            bool VoxelsAreIndependent = ApplyWriterParameters(data, BufferToTexture, BufferToTextureColumns, out var BufferWriter);
+
+            int processYSize = VoxelsAreIndependent ? (int)ClipMapResolution.Y : 1;
+            processYSize *= (UpdatesPerFrame == UpdateMethods.SingleClipmap) ? 1 : ClipMapCount;
+
+            BufferWriter.ThreadGroupCounts = VoxelsAreIndependent ? new Int3(32, 32, 32) : new Int3(32, 1, 32);
+            BufferWriter.ThreadNumbers = new Int3((int)ClipMapResolution.X / BufferWriter.ThreadGroupCounts.X, processYSize / BufferWriter.ThreadGroupCounts.Y, (int)ClipMapResolution.Z / BufferWriter.ThreadGroupCounts.Z);
+
+            BufferWriter.Parameters.Set(BufferToTextureKeys.clipOffset, (uint)(UpdatesPerFrame == UpdateMethods.SingleClipmap ? ClipMapCurrent : 0));
+
             ((RendererBase)BufferWriter).Draw(drawContext);
 
 
@@ -402,6 +418,95 @@ namespace Stride.Rendering.Voxels
                 ClearBuffer.Parameters.Set(ClearBufferKeys.count, clipMapElements);
             }
             ((RendererBase)ClearBuffer).Draw(drawContext);
+        }
+
+        // KotH patch: dynamic groups (see IVoxelStorage). Boxes are in voxels of one
+        // clipmap, max exclusive; those written last frame are restored first.
+        // Two voxels of margin take in what the rasteriser spreads past the bounds.
+        const int BoxMargin = 2;
+        const int BoxThreads = 4;
+        readonly List<(int Clip, Int3 Min, Int3 Max)> writtenBoxes = new List<(int, Int3, Int3)>();
+        readonly List<(int Clip, Int3 Min, Int3 Max)> boxes = new List<(int, Int3, Int3)>();
+        Stride.Rendering.ComputeEffect.ComputeEffectShader BufferToTextureBox;
+
+        static IEnumerable<VoxelStorageTextureClipmap> OutputTextures(ProcessedVoxelVolume data)
+        {
+            foreach (var attr in data.Attributes)
+                if (attr.Output && attr.Attribute.OutputTexture is VoxelStorageTextureClipmap texture)
+                    yield return texture;
+        }
+
+        public void KeepStatic(RenderDrawContext drawContext, ProcessedVoxelVolume data)
+        {
+            foreach (var texture in OutputTextures(data))
+                texture.KeepStatic(drawContext.CommandList);
+            writtenBoxes.Clear();
+        }
+
+        public void RestoreDynamic(RenderDrawContext drawContext, ProcessedVoxelVolume data)
+        {
+            foreach (var texture in OutputTextures(data))
+                foreach (var box in writtenBoxes)
+                    texture.Restore(drawContext.CommandList, box.Clip, box.Min, box.Max);
+            writtenBoxes.Clear();
+        }
+
+        /// <summary>The bounds in voxels of every clipmap, overlapping boxes merged.</summary>
+        void CollectBoxes(List<BoundingBox> bounds)
+        {
+            boxes.Clear();
+            var resolution = new Int3((int)ClipMapResolution.X, (int)ClipMapResolution.Y, (int)ClipMapResolution.Z);
+            for (int clip = 0; clip < ClipMapCount; clip++)
+            {
+                Vector4 offsetScale = PerMapOffsetScale[clip];
+                int first = boxes.Count;
+                foreach (var bound in bounds)
+                {
+                    Vector3 low = (bound.Minimum * offsetScale.W + offsetScale.XYZ()) * ClipMapResolution;
+                    Vector3 high = (bound.Maximum * offsetScale.W + offsetScale.XYZ()) * ClipMapResolution;
+                    var min = Int3.Max(new Int3((int)MathF.Floor(low.X), (int)MathF.Floor(low.Y), (int)MathF.Floor(low.Z)) - new Int3(BoxMargin), Int3.Zero);
+                    var max = Int3.Min(new Int3((int)MathF.Floor(high.X), (int)MathF.Floor(high.Y), (int)MathF.Floor(high.Z)) + new Int3(BoxMargin + 1), resolution);
+                    if (min.X < max.X && min.Y < max.Y && min.Z < max.Z)
+                        boxes.Add((clip, min, max));
+                }
+                for (bool merged = true; merged;)
+                {
+                    merged = false;
+                    for (int i = first; i < boxes.Count && !merged; i++)
+                        for (int j = i + 1; j < boxes.Count && !merged; j++)
+                        {
+                            var a = boxes[i];
+                            var b = boxes[j];
+                            if (a.Min.X > b.Max.X || b.Min.X > a.Max.X || a.Min.Y > b.Max.Y || b.Min.Y > a.Max.Y || a.Min.Z > b.Max.Z || b.Min.Z > a.Max.Z)
+                                continue;
+                            boxes[i] = (clip, Int3.Min(a.Min, b.Min), Int3.Max(a.Max, b.Max));
+                            boxes.RemoveAt(j);
+                            merged = true;
+                        }
+                }
+            }
+        }
+
+        public void PostProcessDynamic(VoxelStorageContext storageContext, RenderDrawContext drawContext, ProcessedVoxelVolume data)
+        {
+            if (FragmentsBuffer == null)
+                return;
+            BufferToTextureBox ??= new Stride.Rendering.ComputeEffect.ComputeEffectShader(drawContext.RenderContext) { ShaderSourceName = "BufferToTextureBoxEffect" };
+            // Attributes reading their neighbours would need whole columns.
+            if (!ApplyWriterParameters(data, BufferToTextureBox, null, out var writer))
+                return;
+            writer.ThreadNumbers = new Int3(BoxThreads);
+            CollectBoxes(data.DynamicBounds);
+            foreach (var box in boxes)
+            {
+                Int3 size = box.Max - box.Min;
+                writer.ThreadGroupCounts = new Int3((size.X + BoxThreads - 1) / BoxThreads, (size.Y + BoxThreads - 1) / BoxThreads, (size.Z + BoxThreads - 1) / BoxThreads);
+                writer.Parameters.Set(BufferToTextureKeys.clipOffset, (uint)box.Clip);
+                writer.Parameters.Set(BufferToTextureBoxKeys.boxMin, box.Min);
+                writer.Parameters.Set(BufferToTextureBoxKeys.boxSize, size);
+                ((RendererBase)writer).Draw(drawContext);
+            }
+            writtenBoxes.AddRange(boxes);
         }
     }
 }

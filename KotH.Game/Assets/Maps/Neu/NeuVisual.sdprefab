@@ -18,6 +18,7 @@ Hierarchy:
                         Children:
                             19d1887ead3f427d894fe3bddaafc9eb: ref!! 5B67D16E-E32B-4407-B16A-9CD997169C9F
                             8786fe8e651649dd821338af1ea73ea2: ref!! 370B95D9-9CC6-45BD-9DC9-6AF25212CC19
+                            f5ade132945441499f45dd1b07a98340: ref!! 96A5DA75-D378-489D-A9D7-5C573DA398AD
         -   Entity:
                 Id: F650EF23-C9C9-429E-B840-A9424DE5C19A
                 Name: Mountain
@@ -32,6 +33,7 @@ Hierarchy:
                         Id: 2A334ED0-C770-41F9-8096-8D339BADE8B9
                         Model: DA05C6EC-7CF5-48F0-A040-AA0D947DEBAA:Models/Mountain
                         Materials: {}
+                        RenderGroup: Group3
         -   Entity:
                 Id: 466F1ECD-4862-4A3E-AAC0-A5FE67F87AA8
                 Name: Sea
@@ -46,4 +48,45 @@ Hierarchy:
                         Id: 32C2B122-3647-4178-8C93-BC608BCCADEA
                         Model: 354F7FF9-EE15-4E90-B590-7505A083707B:Models/Sea
                         Materials: {}
+                        RenderGroup: Group3
                         IsShadowCaster: false
+        -   Entity:
+                Id: 170C787B-9EB8-4BF4-99D9-603836268AE3
+                Name: GI
+                Components:
+                    1238e170110f40ad91757acbd57013dc: !TransformComponent
+                        Id: 96A5DA75-D378-489D-A9D7-5C573DA398AD
+                        Position: {X: 0.0, Y: 60.0, Z: 0.0}
+                        Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    3225572fa48646459086e74487db7903: !Stride.Rendering.Voxels.VoxelVolumeComponent,Stride.Voxels
+                        Id: F1116E2A-A920-4171-8E1F-51F272BD8B1C
+                        Voxelize: false
+                        VoxelizationMethod: !Stride.Rendering.Voxels.VoxelizationMethodDominantAxis,Stride.Voxels {}
+                        Storage: !Stride.Rendering.Voxels.VoxelStorageClipmaps,Stride.Voxels
+                            ClipResolution: x256
+                            UpdatesPerFrame: AllClipmapsGeometryShader
+                            DownsampleFinerClipMaps: true
+                        Attributes:
+                            8f74299767584bc78db6ad46001a69d0: !Stride.Rendering.Voxels.VoxelAttributeEmissionOpacity,Stride.Voxels
+                                VoxelLayout: !Stride.Rendering.Voxels.VoxelLayoutIsotropic,Stride.Voxels {}
+                                Modifiers: {}
+                        VoxelVolumeSize: 256.0
+                        AproximateVoxelSize: 0.5
+                        VoxelGridSnapping: true
+                        StaticGroups: Group3
+                        DynamicGroups: Group0, Group1
+                        VisualizeVoxels: false
+                        VisualizeIndex: 0
+                    359c49e86db947b9a2cd20b54e536145: !LightComponent
+                        Id: BC729965-6940-4B9C-B670-9E0814D87308
+                        Type: !Stride.Rendering.Voxels.VoxelGI.LightVoxel,Stride.Voxels
+                            Volume: ref!! F1116E2A-A920-4171-8E1F-51F272BD8B1C
+                            AttributeIndex: 0
+                            BounceIntensityScale: 0.0
+                            SpecularIntensityScale: 0.0
+                        Intensity: 1.0
+                    181c5876b5ee47fcbff815b4eaddc043: !KotH.Client.Rendering.BakeVoxels,KotH.Game
+                        Id: 67A44407-BA71-4576-BE7A-FB5CEF0F40EA
+                        Frames: 2

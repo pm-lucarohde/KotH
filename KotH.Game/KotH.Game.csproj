@@ -12,5 +12,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\KotH.Shared\KotH.Shared.csproj" />
+    <ProjectReference Include="..\ThirdParty\Stride.Voxels\Stride.Voxels.csproj" />
   </ItemGroup>
 </Project>

@@ -32,8 +32,7 @@ Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Pr
 - Testhilfen (`KotHApp.cs`): `KOTH_SHOT=bild.png` (nach `_SECONDS`, F3 an, listet Schilder), `_YAW`/`_PITCH`/`_FOV`,
   `_THIRD`, `_AT=x,y,z`, `_SWING`, `_SHAKE`, `_HIT=grad`, `_BLINK`, `_STRIKE=s,…`, `_MOVE=x,y[,sprint]`, `_CROUCH=s`,
   `_JUMP=s,…`, `_TURN=grad,s[,kreis]`, `_VIDEO=s` (BGRA 30 fps nach `bild.png.rgba`); `KOTH_SIZE`, `KOTH_VSYNC`,
-  `KOTH_FRAMELOG`, `KOTH_MUSIC_VOLUME` (stumm testen), `KOTH_MUSIC_TAIL`; Ton prüfen mit `ALSOFT_DRIVERS=wave`.
-  Kein Splash (gab `VK_ERROR_DEVICE_LOST`), Renderer-Parallelität 6.
+  `KOTH_FRAMELOG`, `KOTH_MUSIC_VOLUME` (stumm), `KOTH_MUSIC_TAIL`, Ton `ALSOFT_DRIVERS=wave`. Kein Splash, 6 Render-Threads.
 
 ## Tests: Proben und Regression
 
@@ -61,7 +60,7 @@ python3 Tools/regress.py $R/run1,$R/run2,$R/run3 .work/regress/run1   # Zahlen i
 
 Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall identisch), **KotH.Game**
 (Client-Logik, `MainScene`, sichtbare Prefabs), **KotH.Linux** (Exe; `TrimmerRootAssembly` für Game und Shared),
-**KotH.Server** (`HeadlessWorld`, 40 Hz), **KotH.Probes** (Harness in `Harness/`, `Ref` spiegelt Unity-Koordinaten).
+**KotH.Server** (`HeadlessWorld`, 40 Hz), **KotH.Probes** (`Harness/`, `Ref` = Unity-Koordinaten), **ThirdParty/Stride.Voxels**.
 
 ### Simulation
 - `SimulationSystem` ist der einzige Taktgeber. `Step()`: Kontakte → `Motor.Simulate` für alle (eigene Pose) →
@@ -72,9 +71,8 @@ Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall 
 - `UMath` rechnet Unitys Formeln Operation für Operation; in der Simulation nie Strides Helfer (`Normalize` rundet
   anders). `WorldQueries`: Bepu mit PhysX-Semantik (Startüberlappung = Abstand 0, Strahl aus dem Inneren sieht
   nichts, stabile Sortierung); Körperhüllen sind Statics auf Layer 6 (`Hittable`). Nie aus `TransformComponent` lesen.
-- Klemmen (Lucas Wahl): Kapsel am Steilhang in einem Schacht schmaler als sie (steil ≥ 0,25 s, nicht am Boden,
-  `wedged`, < 0,4 m/s) → `PlayerMotor.EscapeJam` hebt sie 0,1–0,8 m und 0,3/0,6 m zur Seite (nie senkrecht), Tempo 0.
-  Greift in Regression und Bewegungsproben nie; ohne Zustandsfeld.
+- Klemmen (Lucas Wahl): Kapsel steil ≥ 0,25 s in einem Schacht schmaler als sie, nicht am Boden, `wedged`, < 0,4 m/s
+  → `PlayerMotor.EscapeJam`: 0,1–0,8 m hoch, 0,3/0,6 m seitlich, Tempo 0; nie in Regression/Proben, ohne Zustandsfeld.
 - Koordinaten: Stride (−Z vorn); Unity → Stride `z → −z`, Gier → −Gier, Quaternion `(x,y,z,w) → (−x,−y,z,w)`.
 
 ### Netz
@@ -118,11 +116,13 @@ Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall 
 - Startoptionen `NUGET_PACKAGES=Z:/home/lr/.local/share/stride-winefix/packages MSBUILDDISABLENODEREUSE=1
   UseSharedCompilation=false %command%` (`Stride.Core` mit PR #3600). Prefix-`.nuget` = Symlink: nie Dateien ersetzen.
 
-### Client: HUD, Kamera, Musik
+### Client: HUD, Kamera, Musik, Licht
 - `HudRenderer` zeichnet per SpriteBatch nach der Szene (Strides UI kippt unter Vulkan); Zahlen über
   `HudRenderer.Numbers`. Eigene Prozent oben rechts, die anderen über den Köpfen. Kamera wackelt bei jedem Treffer.
 - `MusicPlayer` (Entity `Music`): Lobby-Track bis `Running`, dann Spielbeginn-Track und gemischte Playlist,
   Überblendung 3,5 s, Lautstärke 0,2, im Netz nach bestätigter Runde; misst die Länge selbst (`Sound.TotalLength`).
+- Licht: VXGI aus `ThirdParty/Stride.Voxels` (gepatcht, siehe README dort), Profil 11; je Map Entity `GI`, fest 256 m:
+  Map (Gruppe 3) einmal gebacken (`BakeVoxels`), Figuren (0/1) jeden Frame nur in ihren Kästen. Messen: `.work/gi/`.
 
 ### Bots (`KotH.Shared/Bots`)
 - Treten wie Spieler bei (NetId ab 4, Slots nach `NetWorld.BotSlots`), offline/Host `--bots N` (Standard 3), stehen bei Rundenbeginn 3 s (`StartWait`).

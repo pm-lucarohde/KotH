@@ -182,7 +182,8 @@ namespace Stride.Rendering.Voxels.VoxelGI
                 var intensityBounceScale = lightVoxel.BounceIntensityScale;
                 var specularIntensity = lightVoxel.SpecularIntensityScale * intensity;
 
-                VoxelViewContext viewContext = new VoxelViewContext(processedVolume.passList, viewIndex);
+                // KotH patch: kept passes hold last voxelisation's views, whose index may be any view's now.
+                VoxelViewContext viewContext = processedVolume.Voxelize ? new VoxelViewContext(processedVolume.passList, viewIndex) : new VoxelViewContext(false);
                 if (viewContext.IsVoxelView)
                 {
                     intensity *= intensityBounceScale / 3.141592f;

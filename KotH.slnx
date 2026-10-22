@@ -4,4 +4,5 @@
   <Project Path="KotH.Probes/KotH.Probes.csproj" />
   <Project Path="KotH.Server/KotH.Server.csproj" />
   <Project Path="KotH.Shared/KotH.Shared.csproj" />
+  <Project Path="ThirdParty/Stride.Voxels/Stride.Voxels.csproj" />
 </Solution>

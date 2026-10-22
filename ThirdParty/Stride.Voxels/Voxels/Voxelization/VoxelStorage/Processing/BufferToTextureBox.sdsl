@@ -1,0 +1,56 @@
+// KotH patch: BufferToTexture for one box of one clipmap (clipOffset), for groups
+// voxelised every frame over a kept voxelisation. Cells without fragments keep
+// what the texture holds; the fragments read are cleared for the next frame.
+namespace Stride.Rendering.Voxels
+{
+    shader BufferToTextureBox : BufferToTexture
+    {
+        stage int3 boxMin;
+        stage int3 boxSize;
+
+        #ifndef IndirectStoreMacro
+            #define IndirectStoreMacro
+            #define IndirectReadAndStoreMacro
+        #endif
+
+        override void Compute()
+        {
+            int3 local = (int3)streams.DispatchThreadId.xyz;
+            if (any(local >= boxSize))
+                return;
+
+            int3 clipMapResolutionI = (int3)clipMapResolution;
+            uint3 pos = (uint3)(boxMin + local);
+            uint clipIndex = clipOffset;
+
+            streams.PositionVXPS = pos;
+            streams.VoxelVolumeSize = clipMapResolutionI;
+
+            uint wStride = clipMapResolutionI.x * clipMapResolutionI.y * clipMapResolutionI.z;
+            uint VoxelFragmentsIndex = clipIndex * wStride + pos.x + pos.y * clipMapResolutionI.x + pos.z * clipMapResolutionI.x * clipMapResolutionI.y;
+            VoxelFragmentsIndex *= (uint)storageUints;
+
+            uint yStride = clipMapResolutionI.x * (uint)storageUints;
+            uint initialVoxelFragmentsIndex = VoxelFragmentsIndex;
+
+            uint used = 0;
+            for (uint u = 0; u < (uint)storageUints; u++)
+                used |= VoxelFragments[initialVoxelFragmentsIndex + u];
+            if (used == 0)
+                return;
+
+            foreach (var attr in AttributesTemp)
+                attr.InitializeDummy();
+            foreach (var attr in AttributesIndirect)
+                attr.InitializeDummy();
+
+            IndirectReadAndStoreMacro
+
+            foreach (var attr in AttributesIndirect)
+                attr.DirectWrite(streams.PositionVXPS, clipIndex, (int)clipMapResolutionI.y);
+
+            for (uint c = 0; c < (uint)storageUints; c++)
+                VoxelFragments[initialVoxelFragmentsIndex + c] = 0;
+        }
+    };
+}

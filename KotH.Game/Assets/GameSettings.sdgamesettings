@@ -13,7 +13,7 @@ Defaults:
         DefaultBackBufferWidth: 2560
         DefaultBackBufferHeight: 1440
         AdaptBackBufferToScreen: false
-        DefaultGraphicsProfile: Level_10_0
+        DefaultGraphicsProfile: Level_11_0
         ColorSpace: Linear
         DisplayOrientation: Default
     - !Stride.Streaming.StreamingSettings,Stride.Rendering

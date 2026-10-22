@@ -56,6 +56,21 @@ namespace Stride.Rendering.Voxels
         [DataMember(50)]
         public bool VoxelGridSnapping { get; set; } = true;
 
+        /// <summary>
+        /// KotH patch: the render groups drawn into the voxels while
+        /// <see cref="Voxelize"/> is on (what does not move).
+        /// </summary>
+        [DataMember(52)]
+        public RenderGroupMask StaticGroups { get; set; } = RenderGroupMask.All;
+
+        /// <summary>
+        /// KotH patch: the render groups voxelised again every frame while
+        /// <see cref="Voxelize"/> is off: only the boxes round them change,
+        /// the rest keeps the last full voxelisation. None: nothing moves.
+        /// </summary>
+        [DataMember(54)]
+        public RenderGroupMask DynamicGroups { get; set; }
+
         [DataMember(60)]
         [Display(category: "Visualization/Debug")]
         public bool VisualizeVoxels { get; set; } = false;
