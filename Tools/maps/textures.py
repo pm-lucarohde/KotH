@@ -341,21 +341,7 @@ def rock(rng):
         c = rng.choice([(132, 122, 110), (196, 186, 170), (170, 160, 146)])
         specs.append((rng.uniform(0, SIZE), rng.uniform(0, SIZE), rng.uniform(8, 20) * K, c, 0.75, 7))
     stones(img, rng, specs, 0.62)
-    # Lichen: a third of the first patches (Luca: too many, twice), one
-    # yellow, one green. The draw that once picked the tone stays, so the
-    # patches keep their places.
-    lay, d = layer(SIZE)
-    for c in ((196, 186, 92), (150, 172, 84)):
-        cx, cy = rng.uniform(0, SIZE), rng.uniform(0, SIZE)
-        rng.choice(range(3))
-        for _ in range(rng.randint(5, 10)):
-            x, y, r = cx + rng.uniform(-36, 36) * K, cy + rng.uniform(-24, 24) * K, rng.uniform(5, 12) * K
-
-            def draw(sx, sy, r=r, c=c):
-                d.ellipse((sx - r, sy - r, sx + r, sy + r), fill=shade(c, 0.75) + (230,))
-                d.ellipse((sx - r * 0.8, sy - r * 0.85, sx + r * 0.7, sy + r * 0.6), fill=c + (240,))
-            wrap(draw, SIZE, x, y, r + 2)
-    img.alpha_composite(blur(lay, EDGE))
+    # The lichen is laid on by TerrainTriplanar, so it never stretches.
     return img.convert('RGB')
 
 

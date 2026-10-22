@@ -6,7 +6,7 @@
 /// the alpha says leaf or gap, the material cuts the gaps off.
 /// </summary>
 shader LeafSplat<LinkType PaintKey>
-    : ComputeColor, PositionStream4, NormalStream, Texturing
+    : ComputeColor, PositionStream4, NormalStream, Texturing, CellHash
 {
     // Leaves sit at random in cubes of Cell metres, PerCell to a cube. A leaf
     // shows where the surface passes within Depth of its middle; Cell must stay
@@ -39,23 +39,6 @@ shader LeafSplat<LinkType PaintKey>
                                 sin(t * 6.1 + q.x * 8.3 - q.z * 7.9),
                                 sin(t * 8.2 + q.x * 7.1 + q.y * 9.7));
         return gust * (SwayReach * sway + FlutterReach * flutter);
-    }
-
-    // Three values in [0, 1) for a cube and a leaf in it (PCG3D). Whole
-    // numbers only: the depth prepass is compiled apart from the colour pass,
-    // and a float hash rounded there a hair differently moved whole leaves,
-    // which left the clear colour showing through.
-    float3 Hash3(int3 cube, uint leaf)
-    {
-        uint3 v = uint3(cube) * 1664525u + 1013904223u + leaf * uint3(2654435761u, 2246822519u, 3266489917u);
-        v.x += v.y * v.z;
-        v.y += v.z * v.x;
-        v.z += v.x * v.y;
-        v ^= v >> 16u;
-        v.x += v.y * v.z;
-        v.y += v.z * v.x;
-        v.z += v.x * v.y;
-        return float3(v >> 8u) * (1.0 / 16777216.0);
     }
 
     rgroup PerMaterial

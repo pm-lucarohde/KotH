@@ -2,15 +2,25 @@
 /// Painted ground of a map, projected from three sides (triplanar): the top
 /// texture where the ground faces up, the side texture on slopes and walls.
 /// COLOR0 weighs the surfaces (grass, sand, snow, snow cap; the rest is rock),
-/// TEXCOORD0.x is the shade (soft AO).
+/// TEXCOORD0.x is the shade (soft AO). The lichen on the rock is laid on
+/// spot by spot, like LeafSplat's leaves, so it never stretches.
 /// </summary>
 shader TerrainTriplanar<LinkType GrassKey, LinkType DirtKey, LinkType SandKey, LinkType SnowKey, LinkType RockKey>
-    : ComputeColor, PositionStream4, NormalStream, Texturing
+    : ComputeColor, PositionStream4, NormalStream, Texturing, CellHash
 {
     // Metres per repeat of the textures.
     static const float TileSize = 4.0;
     // A quarter mip level sharper than the hardware picks: painted edges stay clear.
     static const float Bias = -0.25;
+    // Lichen (Luca: first the shape, then the colour): a group of round spots
+    // in a cube of LichenCell metres, shown where the surface passes within
+    // LichenDepth of its middle, about two groups in 16 m² as the texture had.
+    static const float LichenCell = 1.25;
+    static const float LichenDepth = 0.12;
+    static const float LichenSpread = 0.12;
+    static const float LichenRadiusMin = 0.02;
+    static const float LichenRadiusMax = 0.047;
+    static const int LichenSpots = 10;
 
     rgroup PerMaterial
     {
@@ -23,13 +33,55 @@ shader TerrainTriplanar<LinkType GrassKey, LinkType DirtKey, LinkType SandKey, L
 
     stage stream float4 TerrainWeights : COLOR0;
 
+    // The lichen over a point, premultiplied: half the groups yellow, half
+    // green, each spot a dark rim round a lighter core set a little upward.
+    float4 Lichen(float3 p, float3 n, float blur)
+    {
+        float3 up = float3(0, 1, 0) - n * n.y;
+        int3 home = int3(floor(p / LichenCell));
+        float reach = LichenSpread * 1.75 + LichenRadiusMax;
+        float4 c = 0;
+        for (int i = -1; i <= 1; i++)
+        for (int j = -1; j <= 1; j++)
+        for (int k = -1; k <= 1; k++)
+        {
+            int3 id = home + int3(i, j, k);
+            float3 d = p - (float3(id) + Hash3(id, 0u)) * LichenCell;
+            float h = dot(d, n);
+            float3 q = d - n * h;
+            if (abs(h) > LichenDepth || dot(q, q) > reach * reach)
+                continue;
+            float3 g = Hash3(id, 1u);
+            float3 lit = g.y < 0.5 ? float3(0.552, 0.491, 0.107) : float3(0.305, 0.4125, 0.0887);
+            int count = 5 + int(g.x * 6.0);
+            for (int s = 0; s < LichenSpots; s++)
+            {
+                if (s >= count)
+                    break;
+                float3 r = Hash3(id, 2u + uint(s));
+                float3 o = (r * 2.0 - 1.0) * LichenSpread;
+                o -= n * dot(o, n);
+                float radius = lerp(LichenRadiusMin, LichenRadiusMax, Hash3(id, 20u + uint(s)).x);
+                float3 e = q - o;
+                float rim = saturate((radius - length(e)) / blur + 0.5);
+                float core = saturate((0.75 * radius - length(e - up * (0.125 * radius))) / blur + 0.5);
+                // The rim is the core's colour a quarter darker in sRGB.
+                float a = rim * 0.92;
+                c = c * (1.0 - a) + float4(lit * lerp(0.53, 1.0, core), 1.0) * a;
+            }
+        }
+        return c;
+    }
+
     override float4 Compute()
     {
         float shade = streams.TexCoord.x;
         float4 w = streams.TerrainWeights;
         float rock = saturate(1.0 - w.x - w.y - w.z - w.w);
         float3 n = normalize(streams.normalWS);
-        float3 p = streams.PositionWS.xyz / TileSize;
+        float3 q = streams.PositionWS.xyz;
+        float3 p = q / TileSize;
+        float blur = max(max(length(ddx(q)), length(ddy(q))), 0.004);
 
         // Projections along x, y and z, weighted towards the one the face looks along.
         // A steep power keeps the blend zone narrow (no double images on slopes).
@@ -43,6 +95,11 @@ shader TerrainTriplanar<LinkType GrassKey, LinkType DirtKey, LinkType SandKey, L
         float4 sand = b.x * Sand.SampleBias(AnisotropicRepeatSampler, ux, Bias) + b.y * Sand.SampleBias(AnisotropicRepeatSampler, uy, Bias) + b.z * Sand.SampleBias(AnisotropicRepeatSampler, uz, Bias);
         float4 snow = b.x * Snow.SampleBias(AnisotropicRepeatSampler, ux, Bias) + b.y * Snow.SampleBias(AnisotropicRepeatSampler, uy, Bias) + b.z * Snow.SampleBias(AnisotropicRepeatSampler, uz, Bias);
         float4 stone = b.x * Rock.SampleBias(AnisotropicRepeatSampler, ux, Bias) + b.y * Rock.SampleBias(AnisotropicRepeatSampler, uy, Bias) + b.z * Rock.SampleBias(AnisotropicRepeatSampler, uz, Bias);
+        if (rock + w.w > 0.0)
+        {
+            float4 lichen = Lichen(q, n, blur);
+            stone.rgb = stone.rgb * (1.0 - lichen.a) + lichen.rgb;
+        }
         float4 grass = Grass.SampleBias(AnisotropicRepeatSampler, uy, Bias);
 
         float4 side = w.x * dirt + w.y * sand + w.z * snow + (w.w + rock) * stone;
