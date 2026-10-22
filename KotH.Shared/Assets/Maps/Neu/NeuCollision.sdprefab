@@ -61,6 +61,9 @@ Hierarchy:
                         CountdownSeconds: 60.0
                         JoinSeconds: 60.0
                         RespawnBelow: -5.0
+                        SpawnRingInner: 101.0
+                        SpawnRingOuter: 110.0
+                        SpawnSpacing: 6.0
         -   Entity:
                 Id: 8CEEAFED-0DF1-40B1-9F3F-4A1B4696C2E3
                 Name: PlayerSpawn0

@@ -241,7 +241,7 @@ namespace KotH.Probes.Probes
             Check(!StateCodec.Read(bad, id => a.ById.GetValueOrDefault(id), scratch), "unbekannte NetId abgelehnt");
 
             bad = (byte[])good.Clone();
-            bad[16 + 21 + 5 + 30] ^= 0x40;   // a byte of the first body's velocity
+            bad[StateCodec.HeadBytes + StateCodec.MatchBytes + 34] ^= 0x40;   // a byte of the first body's velocity
             Check(StateCodec.Read(bad, id => a.ById.GetValueOrDefault(id), scratch), "gekipptes Byte gelesen");
             a.Sim.Restore(scratch);
             Check(Hash(Encode(a)) != Hash(good), "gekipptes Byte ändert den Zustand");

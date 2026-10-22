@@ -63,7 +63,7 @@ namespace KotH.Shared.Bots
 
         readonly float x0, z0, cell;
         readonly int nx, nz;
-        readonly float stepUp, jumpUp, doubleUp, gapMax, standHeight;
+        readonly float stepUp, jumpUp, doubleUp, gapMax, standHeight, radius;
 
         // Surfaces per column, top down; facing 1 floor-flat up, 0 steep up, -1 down.
         int[] surfStart;
@@ -128,6 +128,7 @@ namespace KotH.Shared.Bots
             this.nz = nz;
             stepUp = motor.StandStepOffset;
             standHeight = motor.StandHeight;
+            radius = motor.BodyRadius;
             jumpUp = s.JumpUp;
             doubleUp = s.DoubleJumpUp;
             gapMax = s.GapMax;
@@ -318,6 +319,25 @@ namespace KotH.Shared.Bots
             return float.MinValue;
         }
 
+        // Whether a column holds anything solid between two heights: a top
+        // inside, or only tops above (rays start inside a solid and see
+        // nothing, so a pillar shows its top alone). A top above with
+        // ground below the band is an overhang over open air.
+        bool Solid(int col, float low, float high)
+        {
+            bool above = false;
+            for (int i = surfStart[col]; i < surfStart[col + 1]; i++)
+            {
+                if (surfY[i] > high)
+                {
+                    above = true;
+                    continue;
+                }
+                return surfY[i] > low;
+            }
+            return above;
+        }
+
         // ---------- the moves ----------
 
         int Walk(int f, int d)
@@ -401,7 +421,7 @@ namespace KotH.Shared.Bots
                                 Highest(beyond, floorY[further] + standHeight) <= floorY[further] + 0.05f)
                                 up = further;
                             float rise = floorY[up] - y;
-                            if (headroom[f] >= rise + 1.9f)
+                            if (headroom[f] >= rise + 1.9f && Corridor(fx, fz, d, out_ + 0.25f, floorY[up] + 0.1f))
                             {
                                 bool single = rise <= jumpUp;
                                 float cost = (single ? 0.65f : 1f) + UMath.Max(0f, out_ - 1f) / Run + (out_ < MinRun ? 0.4f : 0f);
@@ -416,7 +436,7 @@ namespace KotH.Shared.Bots
                         {
                             dropped = true;
                             int low = HighestFloor(col, y - WalkDown);
-                            if (low >= 0)
+                            if (low >= 0 && Corridor(fx, fz, d, out_, y + stepUp))
                                 Add(f, low, LinkKind.Drop, out_ / Run + UMath.Sqrt(2f * (y - floorY[low]) / 20f) + 0.15f, LinkDrop);
                         }
                         obstacle = UMath.Max(obstacle, top);
@@ -439,6 +459,21 @@ namespace KotH.Shared.Bots
             var fill = (int[])revStart.Clone();
             for (int l = 0; l < linkTo.Length; l++)
                 revLink[fill[linkTo[l]]++] = l;
+
+            // The body is wider than the line: beside it, as far as the
+            // landing, nothing may stand above the top it lands on.
+            bool Corridor(float x, float z, int d, float length, float limit)
+            {
+                float side = radius - 0.05f;
+                for (float t = 0.25f; t <= length + 1e-3f; t += 0.25f)
+                    for (int sgn = -1; sgn <= 1; sgn += 2)
+                    {
+                        int col = ColumnAt(x + UX[d] * t - UZ[d] * side * sgn, z + UZ[d] * t + UX[d] * side * sgn);
+                        if (col >= 0 && Solid(col, limit, limit + standHeight))
+                            return false;
+                    }
+                return true;
+            }
 
             void Add(int a, int b, LinkKind kind, float cost, int counter)
             {
@@ -589,10 +624,21 @@ namespace KotH.Shared.Bots
 
         // ---------- queries ----------
 
-        /// <summary>The floor under the feet, else the nearest within 1,5 m aside and 3 m up or down.</summary>
+        /// <summary>
+        /// The floor under the feet, else the nearest within 1,5 m aside and
+        /// 3 m up or down. Feet level with a floor the body reaches over win:
+        /// a body on the lip of a step stands on the step, even with its
+        /// centre already over the column below.
+        /// </summary>
         public int FloorAt(Vector3 feet)
         {
             int col = ColumnAt(feet.X, feet.Z);
+            int level = col >= 0 ? FloorIn(col, feet.Y, Level, Level) : -1;
+            if (level >= 0)
+                return level;
+            level = LevelBeside(feet);
+            if (level >= 0)
+                return level;
             if (col >= 0)
             {
                 int f = FloorIn(col, feet.Y, 0.8f, 1.2f);
@@ -621,6 +667,38 @@ namespace KotH.Shared.Bots
                             bestD = dd;
                             best = f;
                         }
+                    }
+                }
+            return best;
+        }
+
+        // Feet this close to a floor's height stand on it.
+        const float Level = 0.25f;
+
+        // A floor at the feet's height in a neighbouring column that the body
+        // reaches over, the closest aside; -1 for none.
+        int LevelBeside(Vector3 feet)
+        {
+            int best = -1;
+            float bestD = float.MaxValue;
+            float reach = radius + cell * 0.5f;
+            int cx = (int)MathF.Floor((feet.X - x0) / cell), cz = (int)MathF.Floor((feet.Z - z0) / cell);
+            for (int iz = cz - 1; iz <= cz + 1; iz++)
+                for (int ix = cx - 1; ix <= cx + 1; ix++)
+                {
+                    if (ix < 0 || iz < 0 || ix >= nx || iz >= nz)
+                        continue;
+                    int c = iz * nx + ix;
+                    int f = FloorIn(c, feet.Y, Level, Level);
+                    if (f < 0)
+                        continue;
+                    float dx = UMath.Max(UMath.Abs(CentreX(c) - feet.X) - cell * 0.5f, 0f);
+                    float dz = UMath.Max(UMath.Abs(CentreZ(c) - feet.Z) - cell * 0.5f, 0f);
+                    float d = dx * dx + dz * dz;
+                    if (d < bestD && d <= (reach - cell * 0.5f) * (reach - cell * 0.5f))
+                    {
+                        bestD = d;
+                        best = f;
                     }
                 }
             return best;
@@ -726,14 +804,46 @@ namespace KotH.Shared.Bots
             return best;
         }
 
-        /// <summary>A move that went wrong costs this bot that much more from now on.</summary>
+        /// <summary>
+        /// A move that went wrong costs this bot that much more from now on,
+        /// and so does every move like it: from a floor beside its start to
+        /// one beside its end. Cells are finer than a body, and a jump that
+        /// does not fit fails from the next cell just the same.
+        /// </summary>
         public void Punish(int f, int g, float seconds, Memory m)
         {
             if (f < 0 || g < 0)
                 return;
-            long key = (long)f << 32 | (uint)g;
-            m.Penalty[key] = PenaltyOf(m, f, g) + seconds;
+            int col = floorCol[f], cx = col % nx, cz = col / nx;
+            float gx = CentreX(floorCol[g]), gz = CentreZ(floorCol[g]);
+            for (int iz = cz - 1; iz <= cz + 1; iz++)
+                for (int ix = cx - 1; ix <= cx + 1; ix++)
+                {
+                    if (ix < 0 || iz < 0 || ix >= nx || iz >= nz)
+                        continue;
+                    int c = iz * nx + ix;
+                    for (int f2 = floorStart[c]; f2 < floorStart[c + 1]; f2++)
+                    {
+                        if (UMath.Abs(floorY[f2] - floorY[f]) > Alike)
+                            continue;
+                        for (int i = 0, n = MoveCount(f2); i < n; i++)
+                        {
+                            int g2 = Move(f2, i, out _, out _);
+                            if (g2 < 0 || UMath.Abs(floorY[g2] - floorY[g]) > Alike)
+                                continue;
+                            float dx = CentreX(floorCol[g2]) - gx, dz = CentreZ(floorCol[g2]) - gz;
+                            if (dx * dx + dz * dz > AlikeReach * AlikeReach)
+                                continue;
+                            long key = (long)f2 << 32 | (uint)g2;
+                            m.Penalty[key] = PenaltyOf(m, f2, g2) + seconds;
+                        }
+                    }
+                }
         }
+
+        // How close a move's ends must be to count as the same move.
+        const float Alike = 0.5f;
+        const float AlikeReach = 0.75f;
 
         /// <summary>A floor where the bot got nowhere counts as that much further from the zone.</summary>
         public void Stuck(Vector3 feet, float seconds, Memory m)

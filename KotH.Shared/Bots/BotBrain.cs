@@ -55,6 +55,9 @@ namespace KotH.Shared.Bots
         Maneuver running = Maneuver.Walk;
         int nextThink;
         bool started;
+        Vector3 lastSeen;            // own position in the last view, to notice being put elsewhere
+        Vector3 jamAt;               // where it hangs off the ground without moving, and how long
+        int jamTicks;
         float yaw, pitch;
         int jumpHeldUntil = -1, doubleJumpAt = -1, lastJump = -1000, lastStrike = -1000;
         int stuckTicks;
@@ -72,7 +75,7 @@ namespace KotH.Shared.Bots
         JumpPilot.Hop hop;           // the jump being flown or prepared
         JumpPilot.Attempt attempt;
         bool hopping;
-        int hopStart, verifyAt = -1;
+        int hopStart, hopSeen = int.MinValue / 2, verifyAt = -1;
         int fromFloor, toFloor;      // the floors of that jump
         Vector3 landed;              // the last jump's, checked once the bot sees itself down
         int landedFrom, landedTo;
@@ -133,11 +136,24 @@ namespace KotH.Shared.Bots
                 return new MoveInput { Yaw = yaw, Pitch = pitch };
 
             BodyState me = view.StateAt(self);
+            // Put somewhere new by the round (a respawn, the next round): start the way over.
+            if (started && Flat(me.Motor.Position, lastSeen) > 5f)
+            {
+                started = false;
+                variant = -1;
+                corners.Clear();
+                flight = LinkKind.None;
+                hopping = false;
+                verifyAt = -1;
+                bestTime = float.MaxValue;
+            }
+            lastSeen = me.Motor.Position;
             if (!started)
             {
                 started = true;
                 yaw = UMath.YawOf(me.Motor.Rotation);
                 nextThink = u;
+                bestTick = u;
             }
 
             // Everything seen is Reaction ticks old; carried forward on its speed.
@@ -458,6 +474,18 @@ namespace KotH.Shared.Bots
         /// </summary>
         MoveInput Climb(int u, in BodyState me)
         {
+            // Jammed off the ground (a body can wedge between steep faces and
+            // cannot jump there): wiggle, a quarter turn every half second.
+            bool jammed = !me.Motor.Grounded && Flat(me.Motor.Position, jamAt) < 0.05f && UMath.Abs(me.Motor.Position.Y - jamAt.Y) < 0.05f;
+            jamTicks = jammed ? jamTicks + 1 : 0;
+            if (!jammed)
+                jamAt = me.Motor.Position;
+            if (jamTicks > 40)
+            {
+                flight = LinkKind.None;
+                hopping = false;
+                return new MoveInput { Yaw = yaw + 90f * ((jamTicks - 40) / 20), Pitch = pitch, Move = new Vector2(0f, 1f) };
+            }
             JumpPilot.Body b = Predict(u, me.Motor);
             var feet = new Vector3(b.X, b.Y, b.Z);
             Predicted = b;
@@ -495,9 +523,13 @@ namespace KotH.Shared.Bots
                 {
                     fromFloor = k.Floor;
                     toFloor = land.Floor;
+                    Vector3 was = hop.From;
                     hopping = pilot.Prepare(k.Position, land.Position, out hop);
                     attempt = default;
-                    hopStart = u;
+                    // Swapping between take-offs side by side without a jump is
+                    // the same try: its patience goes on, or it never runs out.
+                    if (!(u - hopSeen <= 40 && lastJump < hopStart && Flat(was, k.Position) < 1f))
+                        hopStart = u;
                     if (!hopping)
                     {
                         nav.Grid.Punish(fromFloor, toFloor, FailedJump * 3f, memory);
@@ -510,8 +542,10 @@ namespace KotH.Shared.Bots
                     HopsGivenUp++;
                     nav.Grid.Punish(fromFloor, toFloor, FailedJump, memory);
                     hopping = false;
+                    hopStart = u;
                     break;
                 }
+                hopSeen = u;
                 Face(UMath.Atan2(-hop.DX, -hop.DZ) * (180f / MathF.PI));
                 MoveInput input = pilot.Drive(hop, b, yaw, ref attempt);
                 if (input.JumpPresses == 1)

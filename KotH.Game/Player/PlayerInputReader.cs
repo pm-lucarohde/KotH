@@ -39,6 +39,7 @@ namespace KotH.Client.Player
         float pitch;
         float bodyYaw;
         bool thirdPerson;
+        int facedTick = -1;
 
         // Third person: the point under the crosshair, from the camera's last
         // frame, and the pitch a swing this tick goes out at.
@@ -175,6 +176,13 @@ namespace KotH.Client.Player
 
         public override MoveInput ReadInput()
         {
+            // Put somewhere new by the round: look where the round says, at the hill.
+            if (PlacedTick != facedTick)
+            {
+                facedTick = PlacedTick;
+                yaw = bodyYaw = PlacedYaw;
+                pitch = 0f;
+            }
             Vector2 wish = move;
             sentPitch = pitch;
             if (!thirdPerson)

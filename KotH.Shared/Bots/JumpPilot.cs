@@ -21,6 +21,7 @@ namespace KotH.Shared.Bots
             public Vector3 From;         // feet on the take-off floor
             public float DX, DZ;         // unit, along the jump
             public float Edge;           // metres along to where the own level ends, MaxValue for a step
+            public float Back;           // how far back (negative) the body can stand on the own level
             public float Lip;            // to where the top starts
             public float Target;         // where the feet should come down
             public float End;            // where the top ends
@@ -108,6 +109,14 @@ namespace KotH.Shared.Bots
             }
             if (hop.Lip == float.MaxValue)
                 return false;
+            // Behind the take-off: room for a run-up only while the own level goes on.
+            hop.Back = -1.5f;
+            for (float s = -0.1f; s >= -1.5f; s -= 0.1f)
+                if (UMath.Abs(TopAt(hop, s, above)) > 0.35f)
+                {
+                    hop.Back = s + radius + 0.05f;
+                    break;
+                }
             hop.End = hop.Lip + 3f;
             for (float s = hop.Lip + 0.1f; s <= hop.Lip + 3f; s += 0.1f)
             {
@@ -446,9 +455,11 @@ namespace KotH.Shared.Bots
             MoveInput input = Approach(hop, b, yaw, a.Backing, out float s);
             float stop = UMath.Min(hop.Lip - radius - 0.05f, hop.Edge - 0.1f);
             float speed = UMath.Sqrt(b.VX * b.VX + b.VZ * b.VZ);
-            if (!a.Backing && s >= stop - 0.1f && speed < 0.5f)
+            // Back for a run-up, as far as the own level lets it.
+            float back = UMath.Max(stop - 1f, hop.Back);
+            if (!a.Backing && s >= stop - 0.1f && speed < 0.5f && back < stop - 0.3f)
                 a.Backing = true;
-            else if (a.Backing && s <= stop - 0.95f)
+            else if (a.Backing && s <= back + 0.05f)
                 a.Backing = false;
             return input;
         }
@@ -464,7 +475,7 @@ namespace KotH.Shared.Bots
             s = ox * h.DX + oz * h.DZ;
             float w = -ox * h.DZ + oz * h.DX;
             float stop = UMath.Min(h.Lip - radius - 0.05f, h.Edge - 0.1f);
-            float goal = backing ? stop - 1f : stop;
+            float goal = backing ? UMath.Max(stop - 1f, h.Back) : stop;
             float along = Want(goal - s, 0.25f, groundDec * 0.8f);
             along = UMath.Clamp(along, -walk, walk);
             float aside = Want(-w, 0.2f, groundDec * 0.8f);

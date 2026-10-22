@@ -1,7 +1,9 @@
 using KotH.Shared.Combat;
+using KotH.Shared.Mathematics;
 using KotH.Shared.Physics;
 using KotH.Shared.Player;
 using Stride.Core;
+using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Engine.Design;
 
@@ -38,6 +40,31 @@ namespace KotH.Shared.Simulation
         [DataMemberIgnore] public int AloneTicks { get; internal set; }
 
         [DataMemberIgnore] public bool HasSpawn { get; private set; }
+
+        /// <summary>
+        /// The tick a round last put this body somewhere new, and the yaw it
+        /// faces there, for the view to turn to. Not state, like
+        /// DamagePercent.LastHitTick: a resimulation sets them alike.
+        /// </summary>
+        [DataMemberIgnore] public int PlacedTick { get; private set; } = -1;
+        [DataMemberIgnore] public float PlacedYaw { get; private set; }
+
+        /// <summary>Puts the body down as it stood when it joined, but at a new place and facing yaw.</summary>
+        public void PlaceAt(Vector3 position, float yaw)
+        {
+            MotorState s = spawn.Motor;
+            Vector3 shift = UMath.Sub(position, s.Position);
+            s.Position = position;
+            s.EyePosition = UMath.Add(s.EyePosition, shift);
+            s.PreviousEyePosition = UMath.Add(s.PreviousEyePosition, shift);
+            s.BodyCenter = UMath.Add(s.BodyCenter, shift);
+            s.PreviousBodyCenter = UMath.Add(s.PreviousBodyCenter, shift);
+            s.Rotation = UMath.EulerYaw(yaw);
+            Motor.RestoreState(s);
+            Motor.Teleport(position);
+            PlacedTick = Simulation?.CurrentTick ?? 0;
+            PlacedYaw = yaw;
+        }
 
         /// <summary>Where a new round puts this body; see MarkSpawn.</summary>
         [DataMemberIgnore] public BodyState SpawnState => spawn;

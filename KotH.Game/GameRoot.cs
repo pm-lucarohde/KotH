@@ -185,7 +185,7 @@ namespace KotH.Client
                 return;
             builder.LoadArena(map);
             if (builder.Zone != null)
-                simulation.Match = new HillMatch(builder.Zone);
+                simulation.Match = new HillMatch(builder.Zone) { Seed = (uint)Random.Shared.Next() };  // a guest takes the host's
             string url = Maps.VisualUrl(map);
             if (Content.Exists(url))
                 foreach (Entity e in Content.Load<Prefab>(url).Instantiate())

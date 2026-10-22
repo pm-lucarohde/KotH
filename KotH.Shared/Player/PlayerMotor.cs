@@ -737,6 +737,9 @@ namespace KotH.Shared.Player
             Vector3 step = UMath.Sub(position, beforeMove);
             lastStepSpeed = UMath.Magnitude(step) / dt;
 
+            if (Jammed())
+                EscapeJam();
+
             eyePosition = CurrentEyeWorldPosition();
             bodyCenter = CurrentBodyCenter();
 
@@ -1342,6 +1345,70 @@ namespace KotH.Shared.Player
             // A quarter of what was asked: sliding along a wall still makes
             // progress, a capsule stuck on an edge makes almost none.
             wedged = UMath.Magnitude(moved) < asked * 0.25f;
+        }
+
+        // A capsule caught in a shaft narrower than itself on steep ground
+        // reads steep forever, slides nowhere and no key frees it. Only that:
+        // steep for a quarter second, refused, and still this tick.
+        const float JamSteepTime = 0.25f;
+        const float JamSpeed = 0.4f;
+        const float JamLiftStep = 0.1f;
+        const int JamLifts = 8;
+
+        // Downhill first, then turning away from it to either side in turn.
+        static readonly Vector2[] JamTurns =
+        {
+            new Vector2(1f, 0f), new Vector2(0.70710677f, 0.70710677f), new Vector2(0.70710677f, -0.70710677f),
+            new Vector2(0f, 1f), new Vector2(0f, -1f),
+            new Vector2(-0.70710677f, 0.70710677f), new Vector2(-0.70710677f, -0.70710677f), new Vector2(-1f, 0f),
+        };
+
+        bool Jammed() => onSteepGround && !grounded && wedged
+                      && steepTime >= JamSteepTime && lastStepSpeed < JamSpeed;
+
+        /// <summary>
+        /// Lifts the jammed capsule to the nearest pose where it fits whole:
+        /// 0,1 to 0,8 m up and 0,3 or 0,6 m aside, in eight directions,
+        /// downhill first. Never straight up: the body would fall back into
+        /// the same groove. Speed goes, the fall from there is an ordinary
+        /// one. Nothing fits, nothing moves.
+        /// </summary>
+        void EscapeJam()
+        {
+            Vector3 n = new Vector3(groundNormal.X, 0f, groundNormal.Z);
+            float nl = UMath.Magnitude(n);
+            n = nl > 0.01f ? UMath.Mul(n, 1f / nl) : UMath.Rotate(rotation, UMath.Forward);
+            var p = new Vector3(-n.Z, 0f, n.X);
+
+            for (int lift = 1; lift <= JamLifts; lift++)
+            {
+                float up = lift * JamLiftStep;
+                for (int reach = 1; reach <= 2; reach++)
+                {
+                    float side = reach * 0.3f;
+                    for (int d = 0; d < JamTurns.Length; d++)
+                    {
+                        Vector3 dir = UMath.Add(UMath.Mul(n, JamTurns[d].X), UMath.Mul(p, JamTurns[d].Y));
+                        Vector3 to = UMath.Add(position, UMath.Add(UMath.Mul(dir, side), UMath.Mul(UMath.Up, up)));
+                        if (!Fits(to))
+                            continue;
+                        position = to;
+                        velocity = Vector3.Zero;
+                        knock = Vector3.Zero;
+                        return;
+                    }
+                }
+            }
+        }
+
+        /// <summary>Does the current shape fit whole, at full radius, at this position?</summary>
+        bool Fits(Vector3 at)
+        {
+            float radius = BodyRadius;
+            Vector3 feet = UMath.Add(at, UMath.Mul(UMath.Up, CenterY - currentHeight * 0.5f));
+            Vector3 bottom = UMath.Add(feet, UMath.Mul(UMath.Up, radius));
+            Vector3 top = UMath.Add(feet, UMath.Mul(UMath.Up, currentHeight - radius));
+            return world.OverlapCapsule(bottom, top, radius, WorldMask, headroomHits) == 0;
         }
 
         /// <summary>

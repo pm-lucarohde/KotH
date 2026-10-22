@@ -37,7 +37,16 @@ namespace KotH.Shared.Match
         /// <userdoc>Im Mehrspieler: So lange nach dem Start einer Runde darf noch jemand beitreten, in Sekunden.</userdoc>
         [Display("Beitritt bis", "Mehrspieler")] public float JoinSeconds = 60f;
 
-        /// <userdoc>Wer aus der Arena fliegt und unter diese Höhe fällt, steht wieder an seinem Startplatz, in Metern. Schadensprozent und Punkte bleiben.</userdoc>
+        /// <userdoc>Wer aus der Arena fliegt und unter diese Höhe fällt, steht wieder an seinem Startplatz (mit Ring: an einem neuen Platz im Ring), in Metern. Schadensprozent und Punkte bleiben.</userdoc>
         [Display("Respawn unter (m)", "Regeln")] public float RespawnBelow = -5f;
+
+        /// <userdoc>Bei Rundenbeginn und nach jedem Respawn steht jeder an einem zufälligen Platz in diesem Ring um die Zone, Blick zur Zone: innerer Abstand von ihrer Mitte, waagerecht, in Metern. Außen 0: feste Startplätze.</userdoc>
+        [Display("Ring innen (m)", "Startplätze")] public float SpawnRingInner = 0f;
+
+        /// <userdoc>Äußerer Abstand des Rings von der Mitte der Zone, in Metern. 0 schaltet den Ring ab, dann gelten die Startplätze.</userdoc>
+        [Display("Ring außen (m)", "Startplätze")] public float SpawnRingOuter = 0f;
+
+        /// <userdoc>So weit stehen zwei Spieler im Ring mindestens auseinander, in Metern.</userdoc>
+        [Display("Abstand", "Startplätze")] public float SpawnSpacing = 6f;
     }
 }

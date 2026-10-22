@@ -24,6 +24,7 @@ namespace KotH.Probes.Probes
         static readonly float[] Heights = { 20f, 50f, 90f };
         readonly int[] HopStats = new int[3], Predictions = new int[2];
         double PredictionError;
+        float StartSpacing = float.MaxValue, StartFacing;
         readonly int[] PredClass = new int[4];
         readonly double[] PredClassErr = new double[4], PredClassErrY = new double[4];
 
@@ -42,9 +43,10 @@ namespace KotH.Probes.Probes
             float sumMean = 0f, worstMean = 0f, worstBot = 0f, sumSpread = 0f;
             int spreads = 0, missing = 0;
             var ticks = new List<double>();
+            int first = int.Parse(Environment.GetEnvironmentVariable("KOTH_CLIMB_FIRST") ?? "1");
             for (int k = 1; k <= seeds; k++)
             {
-                int seed = 1000 + k;
+                int seed = 1000 + first - 1 + k;
                 float[] times = ClimbRound(seed, path, ticks, out float spread, out string extra);
                 float mean = 0f;
                 var parts = new List<string>();
@@ -80,9 +82,59 @@ namespace KotH.Probes.Probes
             for (int c = 0; c < 4; c++)
                 Log($"[klettern]   echt/Modell {names[c]}: {PredClass[c]} Ticks, {PredClassErr[c] * 100 / Math.Max(1, PredClass[c]):F1} cm, davon Höhe {PredClassErrY[c] * 100 / Math.Max(1, PredClass[c]):F1} cm");
             Log($"[klettern] Tick mit 3 Bots: Median {Pick(0.5):F0} µs, 99 % {Pick(0.99):F0} µs, höchstens {Pick(1.0):F0} µs");
-            bool passed = missing == 0 && average <= ClimbGoal;
+            Log($"[klettern] Startplätze: engster Abstand {StartSpacing:F1} m, Blick höchstens {StartFacing:F1}° neben der Zone");
+            bool passed = missing == 0 && average <= ClimbGoal && StartSpacing >= 6f && StartFacing < 1f;
             Log(passed ? "[klettern] BESTANDEN" : "[klettern] NICHT BESTANDEN");
             return passed ? 0 : 1;
+        }
+
+        // A body jammed on steep ground: does any input get it out? Each
+        // trial starts from the same motor state; the bots stand still.
+        void JamTrials(HeadlessWorld world, BotBody bot, MotorState jammed)
+        {
+            Log(FormattableString.Invariant($"[klemmt] bei {jammed.Position.X:F2} {jammed.Position.Y:F2} {jammed.Position.Z:F2}, Tempo {jammed.Velocity.X:F2} {jammed.Velocity.Y:F2} {jammed.Velocity.Z:F2}, Normale {jammed.GroundNormal.X:F2} {jammed.GroundNormal.Y:F2} {jammed.GroundNormal.Z:F2}"));
+            string[] names = { "nichts", "Sprung", "Doppelsprung", "Ducken", "Ducken + Sprung" };
+            for (int mode = 0; mode < names.Length; mode++)
+                for (int d = -1; d < 8; d++)
+                {
+                    bot.Motor.RestoreState(jammed);
+                    bot.Motor.Teleport(jammed.Position);
+                    for (int t = 0; t < 80; t++)
+                    {
+                        var input = new MoveInput { Yaw = d * 45f, Move = d < 0 ? Vector2.Zero : new Vector2(0f, 1f) };
+                        if (mode == 1 || mode == 4) { input.JumpPresses = (byte)(t % 8 == 0 ? 1 : 0); input.JumpHeld = true; }
+                        if (mode == 2) input.JumpPresses = (byte)(t % 8 == 0 ? 3 : 0);
+                        if (mode >= 3) input.Crouch = true;
+                        bot.Motor.Simulate(input, KotH.Shared.Simulation.SimulationSystem.TickSeconds);
+                        bot.Motor.Publish();
+                        bot.Motor.SyncHull();
+                    }
+                    Vector3 p = bot.Motor.Position;
+                    float moved = (p - jammed.Position).Length();
+                    if (moved > 0.3f)
+                        Log(FormattableString.Invariant($"[klemmt]   frei mit {names[mode]}, Richtung {(d < 0 ? "keine" : $"{d * 45}°")}: {moved:F2} m weiter, y {p.Y:F2}"));
+                }
+            var queries = bot.Motor.World;
+            foreach (float up in new[] { 0.1f, 0.4f, 0.9f, 1.5f })
+            {
+                var parts = new List<string>();
+                for (int d = 0; d < 8; d++)
+                {
+                    float a = d * MathF.PI / 4f;
+                    var dir = new Vector3(MathF.Cos(a), 0f, MathF.Sin(a));
+                    var from = new Vector3(jammed.Position.X, jammed.Position.Y - 0.9f + up, jammed.Position.Z);
+                    parts.Add(queries.Raycast(from, dir, 3f, KotH.Shared.Physics.WorldQueries.WorldMask, out var hit)
+                        ? FormattableString.Invariant($"{d * 45}°:{hit.Distance:F2}({hit.Normal.X:F1},{hit.Normal.Y:F1},{hit.Normal.Z:F1})")
+                        : $"{d * 45}°:-");
+                }
+                Log(FormattableString.Invariant($"[klemmt] Fuß+{up:F1}: {string.Join(" ", parts)}"));
+            }
+            var below = new Vector3(jammed.Position.X, jammed.Position.Y, jammed.Position.Z);
+            if (queries.Raycast(below, new Vector3(0f, -1f, 0f), 5f, KotH.Shared.Physics.WorldQueries.WorldMask, out var down))
+                Log(FormattableString.Invariant($"[klemmt] unten {down.Distance:F2} ({down.Normal.X:F2},{down.Normal.Y:F2},{down.Normal.Z:F2})"));
+            Log("[klemmt] Versuche fertig");
+            bot.Motor.RestoreState(jammed);
+            bot.Motor.Teleport(jammed.Position);
         }
 
         // One round; times in seconds, -1 for a bot that never got up. The
@@ -93,6 +145,7 @@ namespace KotH.Probes.Probes
             using var world = new HeadlessWorld();
             world.LoadArena(Maps.Default);
             HillMatch match = world.StartMatch();
+            match.Seed = (uint)seed;
             var states = new LocalFinalStates(world.Simulation);
             long started = Stopwatch.GetTimestamp();
             BotDirector director = BotDirector.Create(world.Builder, world.Simulation, states, seed);
@@ -129,6 +182,10 @@ namespace KotH.Probes.Probes
             int traceBot = int.Parse(Environment.GetEnvironmentVariable("KOTH_BOTTRACE_BOT") ?? "0");
             int left = bots.Count;
             var before = new MotorState[bots.Count];
+            bool jamTest = Environment.GetEnvironmentVariable("KOTH_JAMTEST") != null, jamDone = false;
+            var jamFor = new int[bots.Count];
+            var starts = new List<MotorState>();
+            var faced = new List<float>();
             for (int t = 0; t < ClimbTicks && left > 0; t++)
             {
                 for (int i = 0; i < bots.Count; i++)
@@ -159,6 +216,16 @@ namespace KotH.Probes.Probes
                         times[i] = (t + 1) / 40f;
                         left--;
                     }
+                    if (jamTest && !jamDone && t > 400)
+                    {
+                        MotorState js = bots[i].Motor.CaptureState();
+                        jamFor[i] = js.Wedged && js.OnSteepGround && !js.Grounded ? jamFor[i] + 1 : 0;
+                        if (jamFor[i] > 200)
+                        {
+                            JamTrials(world, bots[i], js);
+                            jamDone = true;
+                        }
+                    }
                     BotBrain mind = director.BrainOf(bots[i].NetId);
                     if (mind.Climbing)
                     {
@@ -174,6 +241,11 @@ namespace KotH.Probes.Probes
                         PredClassErr[cls] += MathF.Sqrt(ex * ex + ey * ey + ez * ez);
                         PredClassErrY[cls] += MathF.Abs(ey);
                     }
+                    if (t == 0)
+                    {
+                        starts.Add(bots[i].Motor.CaptureState());
+                        faced.Add(bots[i].PlacedTick == 0 ? bots[i].PlacedYaw : float.NaN);
+                    }
                     if (t % 10 == 0)
                         path?.WriteLine(FormattableString.Invariant($"{seed},{t},{i + 1},{p.X:F2},{p.Y:F2},{p.Z:F2}"));
                     if (trace && t < traceUntil && (traceBot == 0 || traceBot == i + 1))
@@ -183,7 +255,7 @@ namespace KotH.Probes.Probes
                         string next = br.Corners.Count > 1 ? $"{br.Corners[1].Position.X:F1} {br.Corners[1].Position.Y:F1} {br.Corners[1].Position.Z:F1} {br.Corners[1].Link}" : "-";
                         string after = br.Corners.Count > 2 ? $"{br.Corners[2].Position.X:F1} {br.Corners[2].Position.Y:F1} {br.Corners[2].Position.Z:F1} {br.Corners[2].Link}" : "-";
                         Log($"[spur] {t} Bot {i + 1} {br.Intent} {(br.Climbing ? "K" : br.Running.ToString())} {br.Flight} v{br.Variant} fuß {p.X:F2} {p.Y - 0.9f:F2} {p.Z:F2} " +
-                            $"tempo {m.Velocity.X:F1} {m.Velocity.Y:F1} {m.Velocity.Z:F1} boden {(m.Grounded ? 1 : 0)} " +
+                            $"tempo {m.Velocity.X:F1} {m.Velocity.Y:F1} {m.Velocity.Z:F1} boden {(m.Grounded ? 1 : 0)}{(m.OnSteepGround ? " steil" : "")}{(m.TouchingGround ? " berührt" : "")}{(m.Wedged ? " klemmt" : "")} n {m.GroundNormal.X:F2} {m.GroundNormal.Y:F2} {m.GroundNormal.Z:F2} " +
                             $"ecke1 {next} ecke2 {after} feld {director.Navigation.Grid.TimeToZone(new Vector3(p.X, p.Y - 0.9f, p.Z), br.Variant):F1} lehren {br.Lessons} hops {br.Hops}/{br.HopsLanded} weg {string.Join(";", System.Linq.Enumerable.Select(br.Corners, c => FormattableString.Invariant($"{c.Position.X:F2},{c.Position.Y:F2},{c.Position.Z:F2},{c.Link}")))} land {br.Landing.X:F1} {br.Landing.Y:F1} {br.Landing.Z:F1}");
                     }
                 }
@@ -212,7 +284,25 @@ namespace KotH.Probes.Probes
             var highest = new List<string>();
             for (int i = 0; i < bots.Count; i++)
                 highest.Add($"{bots[i].Motor.Position.Y:F0}");
-            extra = $"Navigation {buildMs:F0} ms, {falls} Stürze, {respawns} Respawns, Höhe am Ende {string.Join("/", highest)} m";
+            // Where the round put them: round the hill, apart, facing it.
+            var where = new List<string>();
+            float closest = float.MaxValue, worstFacing = 0f;
+            for (int a = 0; a < starts.Count; a++)
+            {
+                Vector3 p = starts[a].Position;
+                where.Add($"{MathF.Atan2(p.Z, p.X) * (180f / MathF.PI):F0}°/{MathF.Sqrt(p.X * p.X + p.Z * p.Z):F0} m");
+                float facing = float.IsNaN(faced[a]) ? 999f : faced[a];
+                float want = MathF.Atan2(p.X, p.Z) * (180f / MathF.PI);
+                worstFacing = MathF.Max(worstFacing, MathF.Abs(MathF.IEEERemainder(facing - want, 360f)));
+                for (int b = a + 1; b < starts.Count; b++)
+                {
+                    Vector3 q = starts[b].Position;
+                    closest = MathF.Min(closest, MathF.Sqrt((p.X - q.X) * (p.X - q.X) + (p.Z - q.Z) * (p.Z - q.Z)));
+                }
+            }
+            StartSpacing = MathF.Min(StartSpacing, closest);
+            StartFacing = MathF.Max(StartFacing, worstFacing);
+            extra = $"Start {string.Join(", ", where)}; Navigation {buildMs:F0} ms, {falls} Stürze, {respawns} Respawns, Höhe am Ende {string.Join("/", highest)} m";
             return times;
         }
     }

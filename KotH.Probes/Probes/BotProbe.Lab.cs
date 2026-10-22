@@ -54,6 +54,59 @@ namespace KotH.Probes.Probes
                 world.Simulation.Tick();
             MotorState rest = body.Motor.CaptureState();
 
+            // The ground around a spot: top surface and the ceiling above the feet, every 0,5 m.
+            if (Environment.GetEnvironmentVariable("KOTH_LAB_LOOK") is string look)
+            {
+                float[] c = look.Split(',').Select(v => float.Parse(v, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+                var q = body.Motor.World;
+                for (float dz = 3f; dz >= -3f; dz -= 0.5f)
+                {
+                    var row = new List<string>();
+                    for (float dx = -3f; dx <= 3f; dx += 0.5f)
+                    {
+                        var top = new Vector3(c[0] + dx, c[1] + 8f, c[2] + dz);
+                        float y = q.Raycast(top, new Vector3(0f, -1f, 0f), 16f, KotH.Shared.Physics.WorldQueries.WorldMask, out var hit) ? top.Y - hit.Distance - c[1] : -99f;
+                        var foot = new Vector3(c[0] + dx, c[1] + 0.2f, c[2] + dz);
+                        string roof = q.Raycast(foot, new Vector3(0f, 1f, 0f), 6f, KotH.Shared.Physics.WorldQueries.WorldMask, out var ceil) ? FormattableString.Invariant($"^{ceil.Distance + 0.2f:F1}") : "";
+                        row.Add(FormattableString.Invariant($"{y,5:F1}{roof,-5}"));
+                    }
+                    Log(FormattableString.Invariant($"[labor] z{dz,5:F1}: {string.Join(" ", row)}"));
+                }
+                return 0;
+            }
+
+            // A spot where a bot got stuck: can a body there get free with the keys?
+            if (Environment.GetEnvironmentVariable("KOTH_LAB_STUCK") is string spot)
+            {
+                string[] xyz = spot.Split(',');
+                var at = new Vector3(float.Parse(xyz[0], System.Globalization.CultureInfo.InvariantCulture),
+                                     float.Parse(xyz[1], System.Globalization.CultureInfo.InvariantCulture),
+                                     float.Parse(xyz[2], System.Globalization.CultureInfo.InvariantCulture));
+                for (int d = 0; d < 8; d++)
+                    foreach (bool jump in new[] { false, true })
+                    {
+                        MotorState s0 = rest;
+                        s0.Position = at;
+                        s0.Velocity = Vector3.Zero;
+                        body.Motor.RestoreState(s0);
+                        body.Motor.Teleport(at);
+                        for (int t = 0; t < 40; t++)
+                        {
+                            body.Input = default;
+                            world.Simulation.Tick();
+                        }
+                        Vector3 settled = body.Motor.Position;
+                        for (int t = 0; t < 80; t++)
+                        {
+                            body.Input = new MoveInput { Yaw = d * 45f, Move = new Vector2(0f, 1f), JumpPresses = (byte)(jump && t % 10 == 0 ? 1 : 0), JumpHeld = jump };
+                            world.Simulation.Tick();
+                        }
+                        MotorState m = body.Motor.CaptureState();
+                        Log(FormattableString.Invariant($"[labor] klemmt bei {settled.X:F2} {settled.Y:F2} {settled.Z:F2}: Richtung {d * 45}°{(jump ? " mit Sprung" : "")} -> {m.Position.X:F2} {m.Position.Y:F2} {m.Position.Z:F2}, Boden {m.Grounded}, steil {m.OnSteepGround}"));
+                    }
+                return 0;
+            }
+
             var ways = new List<Way>
             {
                 new Way { Name = "Pilot, sieht sofort", Pilot = 1 },

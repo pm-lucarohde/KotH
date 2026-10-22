@@ -51,6 +51,7 @@ if (!world.Builder.HasMap(map))
 }
 world.LoadArena(map);
 HillMatch match = world.StartMatch();
+match.Seed = (uint)botSeed;
 
 if (hillBots > 0)
 {

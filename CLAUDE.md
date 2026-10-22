@@ -1,419 +1,149 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-KotH ist ein King-of-the-Hill-Spiel, umgezogen von Unity 6000.3 auf **Stride 4.4**,
-**.NET 11 RC2** (`global.json` pinnt das SDK), **Vulkan** und **NativeAOT** unter Linux.
-Das Unity-Projekt ist entfernt (letzter Stand in der Git-Geschichte: `577ed3f`); als
-Messreferenz bleibt `Reference/unity/` mit eingefrorenen Läufen und Dumps.
-Später soll Peer-to-Peer kommen (ein Peer hostet), keine dedizierten Server.
+KotH: King-of-the-Hill-Spiel, umgezogen von Unity 6000.3 auf **Stride 4.4**, **.NET 11 RC2** (`global.json`),
+**Vulkan**, **NativeAOT**, Linux. Unity ist entfernt (Git bis `577ed3f`); Messreferenz bleibt `Reference/unity/`.
+Später Peer-to-Peer (ein Peer hostet), keine dedizierten Server. Herleitungen und Verlauf stehen in der Memory.
 
 ## Konventionen
 
-- Antworten und Logs, `Display`-Texte, Tooltips (`/// <userdoc>`) auf **Deutsch**;
-  Klassen- und Objektnamen englisch.
+- Antworten, Logs, `Display`-Texte, Tooltips (`/// <userdoc>`) **deutsch**; Klassen- und Objektnamen englisch.
 - Code-Kommentare **englisch, höchstens 5 Zeilen pro Block** (XML-Doc zählt nicht).
-- Bei Architektur- und Strukturfragen nachfragen statt annehmen.
-- Die Logik muss sich verhalten wie in Unity: keine Regression, Determinismus bitgenau.
-- Restpunkte nicht ungefragt angehen. `Bildschirmfoto_*.png` und
-  `mono_crash.*` im Wurzelordner nicht anfassen.
-- Laufende Spielprozesse per PID beenden, nie `pkill -f KotH…` (trifft die eigene Shell).
+- Bei Architektur- und Strukturfragen nachfragen statt annehmen. Restpunkte nicht ungefragt angehen.
+- Logik wie in Unity: keine Regression, Determinismus bitgenau. `Bildschirmfoto_*.png`, `mono_crash.*` nicht anfassen.
+- Spielprozesse per PID beenden, nie `pkill -f KotH…`. Git: Messages deutsch, `origin main` pushen nach Lucas Freigabe.
 
 ## Bauen und starten
 
 ```bash
-dotnet build KotH.Linux -c Release     # Client (JIT) -> Bin/Linux/Release/KotH
-dotnet build KotH.Server -c Release    # Server       -> Bin/Server/Release/KotH.Server
-dotnet build KotH.Probes -c Release    # Proben       -> Bin/Probes/Release/KotH.Probes
+dotnet build KotH.Linux -c Release     # ebenso KotH.Server, KotH.Probes -> Bin/{Linux,Server,Probes}/Release
 cd Bin/Linux/Release && ./KotH         # aus dem Ausgabeordner starten
-
 Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Probes}/aot
 ```
 
-- AOT linkt in der Distrobox `aot` (clang, lld, zlib-devel, libva für Strides ffmpeg); ILC stürzt gelegentlich
-  ab, dann einfach erneut starten.
-  Das Skript baut immer `--no-incremental`: sonst bleibt nach neuen Skriptfeldern das alte
-  Szenen-Bundle liegen, und der AOT-Client stürzt beim Laden von `MainScene` ab.
-- Server: ohne Argument Echtzeit bis Strg+C, `--seconds N`, oder `--ticks N`
-  (so schnell wie möglich, gibt µs/Tick, B/Tick und den exakten Endzustand aus).
-  Map: `--map NAME` (Standard `Neu`). Lasttest (für `--map Test` ausgelegt): `--bodies N --warmup N` mit `BenchBot`s (geseedeter Zufall), Endzustands-Hash
-  muss unter JIT und AOT gleich sein; `KOTH_TRACE=BotName`, `KOTH_FALLS=1`.
-  Bots: `--bots N` (`--bot-seed N`) statt des Dummys, gibt den Endzustands-Hash aus.
-  Netz: `--host [--port N] [--min-players N] [--bots N]`, `--join ADRESSE[:PORT]`, `--bot`, `--name`
-  (`KotH.Server/NetPlay.cs`), loggt jede 400. Prüfsumme zum Vergleich der Prozesse.
-- Client im Netz: `KotH --host`/`--join ADRESSE[:PORT]`, `--name`, `--port`,
-  `--min-players`, `--display N` (Monitor von links), `--map NAME` (offline und Host; Gäste nehmen
-  die des Hosts). Ohne diese Argumente offline wie immer.
-  Zwei Clients auf einem PC: `--host --min-players 2 --display 0` und
-  `--join 127.0.0.1 --display 1`, beides zusammen `Tools/two_clients.sh [aot|jit] [MAP]` (Ton nur vom Host, der Gast hat
-  `ALSOFT_DRIVERS=null`). JIT-Client und AOT-Client spielen zusammen, wenn der
-  JIT-Client mit `DOTNET_EnableAVX=0` läuft (sonst andere `BuildId`).
-- Client-Testhilfen in `KotH.Linux/KotHApp.cs`: `KOTH_SHOT` (Screenshot, F3-Anzeige an,
-  listet danach alle Schilder mit Text und Position), `KOTH_SHOT_YAW`/`_PITCH`/`_FOV`/
-  `_SECONDS` (Standard 3 s), `KOTH_SHOT_THIRD=1`, `KOTH_SHOT_AT=x,y,z`,
-  `KOTH_SHOT_SWING=1` (ein Schlag, meldet Treffer), `KOTH_SHOT_SHAKE=1` (Treffer kurz vor
-  dem Bild, meldet die Kippung),
-  `KOTH_SHOT_HIT=grad` (alle Figuren 0,1 s vor dem Bild getroffen, aus grad um den Körper: 0 vorn,
-  90 rechts, 180 hinten; Figuren stehen still in einer Lobby: `--host --min-players 8`),
-  `KOTH_SHOT_BLINK=1` (alle Figuren blinzeln, das Bild zeigt geschlossene Lider),
-  `KOTH_SHOT_STRIKE=s[,s…]` (alle Figuren schlagen zu diesen Zeiten mit dem Stab, nur Darstellung),
-  `KOTH_SHOT_MOVE=x,y[,sprint]` (hält die Bewegungstasten, D und W sind +1),
-  `KOTH_SHOT_CROUCH=s` (Ducken ab s Sekunden gehalten; aus dem Sprint ein Gleiten),
-  `KOTH_SHOT_JUMP=s[,s…]` (Sprungtaste zu diesen Zeiten; Doppelsprung = zwei schnelle Drücke in der Luft),
-  `KOTH_SHOT_TURN=grad,s[,kreis]` (Blick in First Person um grad drehen, mit `KOTH_SHOT_THIRD` erst
-  danach Third Person, Kamera um kreis Grad um die Figur; Startblick 0 lassen, `KOTH_SHOT_YAW` greift
-  erst nach dem ersten Bild), `KOTH_SHOT_VIDEO=s` (die letzten s Sekunden vor dem Bild als Rohbilder
-  mit 30 fps nach `bild.png.rgba`, BGRA, für ffmpeg `-f rawvideo -pix_fmt bgra`; ein Desktop-Mitschnitt
-  träfe den zweiten Monitor), `KOTH_SIZE=WxH`, `KOTH_VSYNC=0|1`,
-  `KOTH_FRAMELOG=datei`, `KOTH_MUSIC_VOLUME=0..1` (stumm testen), `KOTH_MUSIC_TAIL=s` (jeder
-  Track startet s Sekunden vor seinem Ende). Das Bild meldet `[musik]` mit Verlauf. Ton ohne
-  Lautsprecher prüfen: OpenAL-Treiber `wave` (`ALSOFT_DRIVERS=wave`, `ALSOFT_CONF` mit `[wave] file=…`).
-- Client: kein Splash (asynchrones Laden + `WaitIdle` ohne QueueLock gab
-  `VK_ERROR_DEVICE_LOST`), Renderer-Parallelität 6 (gemessen, Lucas Wahl).
+- AOT linkt in der Distrobox `aot` (clang, lld, zlib-devel, libva); ILC stürzt manchmal ab, dann neu starten.
+  Immer `--no-incremental`, sonst bleibt nach neuen Skriptfeldern das alte Szenen-Bundle und der Client stürzt.
+- Server: Echtzeit bis Strg+C, `--seconds N` oder `--ticks N` (so schnell wie möglich, µs/Tick, B/Tick,
+  exakter Endzustand); `--map NAME` (Standard `Neu`); `--bots N --bot-seed N`; Lasttest `--bodies N --warmup N`
+  (für `--map Test`, `BenchBot`s); `KOTH_TRACE=BotName`, `KOTH_FALLS=1`. Endzustands-Hash JIT = AOT.
+  Netz: `--host [--port N] [--min-players N] [--bots N]`, `--join ADRESSE[:PORT]`, `--bot`, `--name` (`NetPlay.cs`).
+- Client: ohne Argumente offline; `--host`/`--join`, `--name`, `--port`, `--min-players`, `--display N` (Monitor
+  von links), `--map NAME` (Gäste nehmen die des Hosts). Zwei Clients: `Tools/two_clients.sh [aot|jit] [MAP]` (nicht
+  selbst starten). JIT und AOT spielen zusammen, wenn JIT mit `DOTNET_EnableAVX=0` läuft (`BuildId`).
+- Testhilfen (`KotHApp.cs`): `KOTH_SHOT=bild.png` (nach `_SECONDS`, F3 an, listet Schilder), `_YAW`/`_PITCH`/`_FOV`,
+  `_THIRD`, `_AT=x,y,z`, `_SWING`, `_SHAKE`, `_HIT=grad`, `_BLINK`, `_STRIKE=s,…`, `_MOVE=x,y[,sprint]`, `_CROUCH=s`,
+  `_JUMP=s,…`, `_TURN=grad,s[,kreis]`, `_VIDEO=s` (BGRA 30 fps nach `bild.png.rgba`); `KOTH_SIZE`, `KOTH_VSYNC`,
+  `KOTH_FRAMELOG`, `KOTH_MUSIC_VOLUME` (stumm testen), `KOTH_MUSIC_TAIL`; Ton prüfen mit `ALSOFT_DRIVERS=wave`.
+  Kein Splash (gab `VK_ERROR_DEVICE_LOST`), Renderer-Parallelität 6.
 
 ## Tests: Proben und Regression
 
-Es gibt keine Unit-Tests; geprüft wird mit **Proben** gegen die eingefrorene Unity-Referenz.
+Keine Unit-Tests; Proben gegen die eingefrorene Unity-Referenz. Exit-Code 0 = bestanden.
 
 ```bash
-Bin/Probes/Release/KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|step|determinism|clock|stairrun|rampfoot|crouchedge|knockback|thirdperson|wallknock|capture|netstate|netplay|bots>
-Bin/Probes/Release/KotH.Probes bots stats 12          # Bot-Kennzahlen über 12 Seeds (zum Abstimmen)
-KOTH_BOTTRACE=600 Bin/Probes/Release/KotH.Probes bots # Spur der Bots (Absicht, Manöver, Tasten) bis Tick 600
-Bin/Probes/Release/KotH.Probes bots climb 12          # 3 Bots auf den Berg der Map Neu, Mittel ≤ 140 s
-Bin/Probes/Release/KotH.Probes bots jumplab 200       # Sprunglabor: Sprünge des Rasters am echten Motor
-Bin/Probes/Release/KotH.Probes determinism hashes   # Hashkette + Befehlssatz
-
-.work/tools/stride_runs.sh 3                        # alle Bewegungsproben 3x -> .work/regress/runK
-R=Reference/unity/runs
-python3 Tools/verdict.py $R/run1,$R/run2,$R/run3 .work/regress/run1   # Urteile gleich?
-python3 Tools/regress.py $R/run1,$R/run2,$R/run3 .work/regress/run1   # Zahlen in 5 mm / 1 %?
+Bin/Probes/Release/KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|step|
+  determinism|clock|stairrun|rampfoot|crouchedge|knockback|thirdperson|wallknock|capture|netstate|netplay|bots>
+Bin/Probes/Release/KotH.Probes determinism hashes   # Hashkette 880D0C64389C53E3, JIT = AOT
+Bin/Probes/Release/KotH.Probes bots climb 12        # Berg (Neu), Mittel ≤ 140 s; auch bots stats 12, bots jumplab 200
+.work/tools/climb_many.sh ORDNER 8 13 && .work/tools/climb_many.py ORDNER   # 104 Seeds, jeder Bot einzeln
+.work/tools/stride_runs.sh 3; R=Reference/unity/runs
+python3 Tools/verdict.py $R/run1,$R/run2,$R/run3 .work/regress/run1   # Urteile (95, davon 94 gleich)
+python3 Tools/regress.py $R/run1,$R/run2,$R/run3 .work/regress/run1   # Zahlen in 5 mm / 1 %
 ```
 
-- Exit-Code 0 heißt bestanden. Ziel: alle Urteile gleich (94/94), bekannte
-  Abweichungen mit Ursache stehen in `Reference/REGRESSION.md`, ebenso die gewollten
-  Änderungen gegenüber Unity (deren Probenfälle haben keine Unity-Referenz,
-  `stairrun`, `rampfoot`, `crouchedge`, `thirdperson`, `wallknock`, `capture`, `netstate` und `netplay` laufen
-  außerhalb von `stride_runs.sh`).
-- **JIT-Läufe brauchen `DOTNET_EnableAVX=0`**, sonst weichen die Floats von den
-  AOT-Builds ab (`IlcInstructionSet=x86-64-v2` in `Directory.Build.props`, Lucas
-  Entscheidung). Die Hashkette muss unter AOT und JIT gleich sein.
-- Regression nur dann messen, wenn eine Änderung den Messpfad berührt.
-- `.work/` (nicht versioniert) hält Werkzeuge und Messreihen; `/tmp` ist flüchtig.
+- **JIT-Läufe nur mit `DOTNET_EnableAVX=0`** (AOT fest `x86-64-v2`, Lucas Entscheidung).
+- Abweichungen und gewollte Änderungen in `Reference/REGRESSION.md`; ohne Unity-Referenz: `stairrun`, `rampfoot`,
+  `crouchedge`, `thirdperson`, `wallknock`, `capture`, `netstate`, `netplay`. `.work/` hält Werkzeuge (`/tmp` flüchtig).
+- Regression nur messen, wenn die Änderung den Messpfad berührt. Bots auf dem Berg mit mindestens 100 Runs prüfen.
+- Spuren: `KOTH_BOTTRACE=tick` (`_BOT=n`), `KOTH_HOPLOG=n`, `KOTH_BOTPATH=datei` (Draufsicht `.work/bots/routes.py`),
+  `KOTH_CLIMB_FIRST=k`, `KOTH_JAMTEST=1`; Labor `KOTH_LAB_LOOK=x,y,z`, `KOTH_LAB_STUCK=x,y,z`.
 
 ## Architektur
 
-Fünf Projekte (`KotH.slnx`):
-
-- **KotH.Shared** – die gesamte Simulation, ohne Grafik. Läuft im Client, im Server
-  und in den Proben identisch.
-- **KotH.Game** – Client-Logik: `SimulationDriver`, Eingabe, Kamera, Darstellung, HUD,
-  dazu `MainScene.sdscene` und die sichtbaren Prefabs.
-- **KotH.Linux** – Exe des Clients (Vulkan, AOT); `TrimmerRootAssembly` für Game und
-  Shared, weil Skripte nur über die Asset-Datenbank erreichbar sind.
-- **KotH.Server** – Konsole: Arena + Dummy (oder `--bots N`) über `HeadlessWorld`, 40 Hz.
-- **KotH.Probes** – alle Proben, Harness in `Harness/` (`Ref` spiegelt Unity-Koordinaten).
+Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall identisch), **KotH.Game**
+(Client-Logik, `MainScene`, sichtbare Prefabs), **KotH.Linux** (Exe; `TrimmerRootAssembly` für Game und Shared),
+**KotH.Server** (`HeadlessWorld`, 40 Hz), **KotH.Probes** (Harness in `Harness/`, `Ref` spiegelt Unity-Koordinaten).
 
 ### Simulation
+- `SimulationSystem` ist der einzige Taktgeber. `Step()`: Kontakte → `Motor.Simulate` für alle (eigene Pose) →
+  `SeparateBodies` → `Publish` → `SyncHull` → Kampf → `HillMatch`. `Capture`/`Restore`/`Resimulate` mit
+  `WorldSnapshot`; kein statischer Zustand; `Restore` stellt auch Körperliste und Reihenfolge her.
+- `MotorState` muss **jedes** Motorfeld enthalten (`Pack = 1`); `DeterminismProbe` prüft bitgenau mit Mutationstests.
+- `TickClock` = Unitys Player-Loop (max. 0,333 s/Frame, `dt = 0.025f`); Darstellung interpoliert, wirkt nie zurück.
+- `UMath` rechnet Unitys Formeln Operation für Operation; in der Simulation nie Strides Helfer (`Normalize` rundet
+  anders). `WorldQueries`: Bepu mit PhysX-Semantik (Startüberlappung = Abstand 0, Strahl aus dem Inneren sieht
+  nichts, stabile Sortierung); Körperhüllen sind Statics auf Layer 6 (`Hittable`). Nie aus `TransformComponent` lesen.
+- Klemmen (Lucas Wahl): Kapsel am Steilhang in einem Schacht schmaler als sie (steil ≥ 0,25 s, nicht am Boden,
+  `wedged`, < 0,4 m/s) → `PlayerMotor.EscapeJam` hebt sie 0,1–0,8 m und 0,3/0,6 m zur Seite (nie senkrecht), Tempo 0.
+  Greift in Regression und Bewegungsproben nie; ohne Zustandsfeld.
+- Koordinaten: Stride (−Z vorn); Unity → Stride `z → −z`, Gier → −Gier, Quaternion `(x,y,z,w) → (−x,−y,z,w)`.
 
-- `SimulationSystem` ist der einzige Taktgeber: Körper ticken nie selbst.
-  `Tick()` sammelt alle Eingaben, `Step()` läuft in festen Phasen: Kontakte →
-  `Motor.Simulate` für alle (auf der eigenen Pose, noch unsichtbar) → `SeparateBodies`
-  → `Publish` → `SyncHull` → Kampf. `Capture`/`Restore`/`Resimulate` mit
-  `WorldSnapshot` sind die Rollback-Grundlage. Kein statischer Zustand: Körperliste und
-  Tickzähler gehören dem System, mehrere Welten laufen in einem Prozess.
-  `Restore` stellt auch Mitgliedschaft und Reihenfolge der Körperliste her (unbekannte
-  Körper werden geparkt). Netcode in `KotH.Shared/Net`: `StateCodec` (Snapshot als Bytes,
-  `MotorState`/`BodyState` mit `Pack = 1`), Körper heißen dort nach `NetId`.
-- Netcode-Kern (Rollback im Stern, Lucas Entscheidung): `HostSession` bestätigt Ticks
-  (Eingaben, Beitritte, Abgänge), vergleicht Prüfsummen alle 40 Ticks und schickt bei
-  Desync den Zustand; `PeerSession` (auch der Host selbst über `LocalTransport`) sagt
-  fremde Eingaben vorher und rollt zurück (Ring 128, höchstens 15 Ticks voraus).
-  `INetTransport` mit `MemoryNetwork` für Proben; Peers legen Körper in NetId-Reihenfolge
-  an (Spieler ab 4; Dummys 1–3 gibt es nur noch in Proben), sonst weicht die Abfrage-Ordnung ab. Mitspielen nur mit
-  gleicher `BuildId` (MVID + Befehlssatz).
-- Über UDP: `LiteNetTransport` (LiteNetLib 2.1.4). Unzuverlässige Datagramme höchstens
-  `NetProtocol.MaxDatagram` (1200 B, das Speichernetz wirft darüber); der Host packt
-  bestätigte Ticks vom neuesten rückwärts und wiederholt ab dem ältesten unquittierten
-  erst, wenn die Quittung überfällig ist. Der Host klemmt Eingaben (`Sanitize`), der Peer
-  seine eigenen genauso. Wartet ein Peer (15 Ticks voraus), bleibt seine Uhr stehen.
-  Im Client ist `GameRoot` die `INetWorld`, `NetClient` hält die Sessions; das HUD zeigt
-  den Sieg nur aus dem bestätigten Stand (`TryConfirmedMatch`). Kein Glätten von
-  Korrekturen (Lucas Entscheidung).
-- `HillMatch` (Capture-Zone, `KotH.Shared/Match`) tickt am Ende von `Step()`. Regel (Lucas
-  Wunsch, 21.10.2026): nur das Einnehmen (3 s) braucht die Zone allein; danach bleibt sie
-  dem Halter (`MatchState.Holder`), solange er drin ist, und er punktet auch mit anderen
-  darin; geht er hinaus, ist sie frei. Probe `capture` prüft das. Punkte
-  pro Körper in `BodyState`, Runde als `MatchState` im Snapshot. Nur mit
-  `HeadlessWorld.StartMatch()` bzw. in `GameRoot`, Bewegungsproben laufen ohne.
-  Phasen `Running`/`Over` (0/1 wie das alte Flag) und für den Mehrspieler
-  `Waiting`/`Countdown`, nur mit `MinPlayers` > 0 (steht im `MatchState`, kommt also
-  mit dem Zustand zum Beitretenden). Spieler sind Körper ab `NetWorld.FirstPlayerId`.
-  Respawn: Wer unter `CaptureZone.RespawnBelow` (−5 m) fällt, bekommt am Anfang von
-  `HillMatch.Tick` in jeder Phase den Motor vom Startplatz (`SimulationBody.Respawn`);
-  Prozent, Punkte und Abklingzeit bleiben (Lucas Wahl). Probe `capture` prüft das.
-- `MotorState` muss **jedes** Motorfeld enthalten; die `DeterminismProbe` prüft
-  Rollback bitgenau und hat Mutationstests.
-- `TickClock` bildet Unitys Player-Loop nach (Akkumulator, max. 0,333 s pro Frame,
-  `dt = 0.025f`); `ClockProbe` misst das gegen `Reference/unity/dump/clock.txt`.
-  Die Darstellung interpoliert über `TickInterpolation.Alpha` und wirkt nie zurück.
-- `UMath` rechnet Unitys Mathf/Vector3/Quaternion-Formeln Operation für Operation nach;
-  Strides eigene Helfer runden anders (z. B. `Normalize`). In der Simulation `UMath`
-  verwenden.
-- `WorldQueries` beantwortet die Abfragen mit Bepu, aber mit PhysX-Semantik
-  (Startüberlappung = Abstand 0 mit Normale gegen den Sweep, Strahl aus dem Inneren
-  sieht nichts, stabile Sortierung). Körperhüllen sind Statics auf Layer 6
-  (`Hittable`), die `SyncHull` per Teleport setzt.
-- Simulationswerte nie aus dem `TransformComponent` zurücklesen.
+### Netz
+- Rollback im Stern (Lucas Entscheidung): `HostSession` bestätigt Ticks (Eingaben, Beitritte, Abgänge), vergleicht
+  Prüfsummen alle 40 Ticks, schickt bei Desync den Zustand; `PeerSession` (auch der Host über `LocalTransport`)
+  sagt fremde Eingaben vorher und rollt zurück (Ring 128, höchstens 15 Ticks voraus, dann steht die Uhr).
+- `StateCodec` (Snapshot als Bytes, Version 3), Körper nach `NetId` (Spieler ab 4, Dummys 1–3 nur in Proben), in
+  NetId-Reihenfolge angelegt. Mitspielen nur mit gleicher `BuildId` (MVID + Befehlssatz).
+- UDP über LiteNetLib 2.1.4, Datagramme ≤ `NetProtocol.MaxDatagram` (1200 B); Host und Peer klemmen Eingaben
+  (`Sanitize`). Im Client ist `GameRoot` die `INetWorld`, `NetClient` hält die Sessions; HUD zeigt den Sieg nur
+  bestätigt (`TryConfirmedMatch`). Korrekturen nie glätten (Lucas Entscheidung).
 
-### Koordinaten
+### Runde (`HillMatch`, `KotH.Shared/Match`)
+- Zone: Einnehmen 3 s allein; danach bleibt sie dem Halter, solange er drin ist, er punktet auch mit anderen darin.
+  Punkte in `BodyState`, Runde als `MatchState` im Snapshot. Nur mit `HeadlessWorld.StartMatch()`/`GameRoot`.
+- Phasen `Running`/`Over`, im Mehrspieler zusätzlich `Waiting`/`Countdown` (`MinPlayers` > 0). Spieler ab
+  `NetWorld.FirstPlayerId`. Respawn unter −5 m (`RespawnBelow`) in jeder Phase; Prozent und Punkte bleiben.
+- Startplätze (Lucas Wunsch): mit Ring an der `CaptureZone` (Neu 101–110 m, Abstand 6 m) zufällig rundum, Blick zur
+  Zone, beim Rundenstart, Beitritt in eine laufende Runde und jedem Respawn in `Running`/`Over`; Lobby, Countdown und
+  Test: Marker. 50 % neben einen Gesetzten (6–30 m). Zufall aus `MatchState.Seed` (Host würfelt), Tick, NetId.
+  `SimulationBody.PlaceAt`; `PlacedTick`/`PlacedYaw` (kein Zustand) drehen den Blick im Client mit. Probe `capture`.
 
-Stride-Konvention (−Z vorn). Unity → Stride exakt: `z → −z`, Gier → −Gier,
-Quaternion `(x,y,z,w) → (−x,−y,z,w)`. Jede Spiegelstelle im Code ist kommentiert.
-
-### Assets ohne GPU
-
-Kollision und Körper liegen in eigenen Prefabs **ohne Modelle**
-(`KotH.Shared/Assets/{Maps,Bodies}`), damit `HeadlessWorld` sie ohne Grafik lädt.
-Die Client-Prefabs verschachteln sie und legen die Modelle darüber.
-
-**Maps** (Lucas Wahl, 21.10.2026): je Map ein Ordner `Maps/NAME` mit `NAMECollision.sdprefab` in
-KotH.Shared (Kollision, Marker `PlayerSpawn`, `PlayerSpawn0`–`11`, `DummySpawn`, `CaptureZone`, `Bots`)
-und `NAMEVisual.sdprefab` in KotH.Game (Modelle); beide sind Root-Assets ihres Pakets (`RootAssets` im
-`.sdpkg`, in Game Studio „Include in build as root asset“), Standard und URLs in `KotH.Shared/Hosting/Maps.cs`.
-`MainScene` ist nur der Rahmen (Kamera, Licht, Himmel, HUD, Musik, Zonenrand). Gewählt mit `--map NAME`
-(Client offline und Host, Server), Standard `Neu`, die alte Arena heißt `Test`. Der Host schickt den Namen im `Welcome`, Gäste bauen die Map erst dann
-(`INetWorld.LoadMap`). Alle Proben laden fest `Maps.Test` (Unity-Referenz), außer `bots climb` und
-`bots jumplab` (Map `Neu`).
-
-**Map `Neu`** (Lucas Vorlage: Minecraft-Berg aus einem Video, 21.10.2026): Berg 123 m auf einer
-Insel (Fuß 95 m, Küste 117 m), Wiese, Strand, Bäume, Schnee ab etwa 55 %, Meer. Boden aus
-`Tools/maps/mountain.py` (reines Python, Seed fest): Blöcke von 1 m, abgerundet mit Surface Nets wie
-der Mod NoCubes, aber nur zu 70 % (`SMOOTH` 0,7; Lucas Wunsch: leicht abrunden, Berg flacher; auch
-Laub rund, Stämme bleiben Würfel). Schreibt **nur** `KotH.Game/Resources/Models/Mountain.glb`
-(drei Teile mit eigenem Material: `Terrain`, `Leaves`, `Bark`; je Ecke `COLOR_0` = Gewichte Gras,
-Sand, Schnee, Schneekappe, der Rest ist Fels, und `TEXCOORD_0.x` = weiche AO), `Sea.glb` (Meer mit Loch
-unter der Insel, sonst verdeckte es aus der Ferne im Tiefenpuffer die Wiese) und `KotH.Shared/Resources/Maps/NeuTerrain.bin`
-(Kollision: dieselben Dreiecke, ins Feste gewunden, je 4 × 4 m ein Chunk; zlib, Magic `KTRN`).
-Die Datei ist **eingebettete Ressource** in
-KotH.Shared (`Maps.TerrainResource`), weil Strides `MeshCollider` ein Modell (GPU) braucht und rund
-230.000 `TriangleCollider` als Prefab-YAML zu groß wären; `WorldBuilder.AddTerrain` legt nach dem
-Collision-Prefab je Chunk ein `Terrain_x_z` mit `CompoundCollider` an. Vorher vereinfacht `simplify` das Netz
-(Lucas Wunsch, 22.10.2026): Halbkanten-Kollaps nach Fehlerquadrik, eine Ecke fällt nur, wenn sie zu
-allen Nachbarn in Farbe und Normale passt (`SIMPLIFY*`); das fasst vor allem ebene Flächen zusammen
-(248.000 → 224.000 Dreiecke, ohne sichtbaren Unterschied). Mehr geht nur mit sichtbarem Verlust, die
-Säulen sind echtes Detail; der Client braucht auf dem Berg etwa 1 ms pro Bild. Marker, Zone (124,75 m) und
-`NeuVisual` sind Game Studio. **Keine vorgefertigten Wege** (Lucas Wunsch): Säulen 2 breit quer zum
-Hang und 1 tief (2 × 2 kam nicht hinauf), etwa 1,35 Blöcke pro Meter, man sucht sich den Weg mit
-Sprung und Doppelsprung; das Skript prüft per Breitensuche, dass der Gipfel aus mindestens 9 von 12
-Richtungen erreichbar ist (sonst Abbruch), und meldet den schnellsten Aufstieg (etwa 75 s). Ums
-Plateau läuft der Hang weich aus (Lucas Wahl: 2 m tief auf 4 m, `TOP_BLEND`/`TOP_RUN`), Grate und
-Säulen wachsen erst darunter ein (`TOP_FADE`). Spielgefühl am Berg testet Luca selbst. Nach jedem
-Lauf mit `Tools/publish_aot.sh` alles bauen (die Kollision steckt in KotH.Shared). Server mit 3 Bots
-etwa 55 µs pro Tick (Median, AOT, höchstens etwa 1 ms); Bots brauchen im Mittel etwa 100 s hinauf
-(Probe `bots climb`). Sichtweite 20 km (bei 60 km verschwand die Insel ab
-300 m im Meer), Meer 60 km breit, Schatten fest bis 400 m.
-
-**Texturen der Map `Neu`** (Lucas Wahl, 22.10.2026: durchgehend gemalt im Stil der Pilzfiguren, weich und
-comichaft, wenig Details): `Tools/maps/textures.py` (Pillow, Seed fest) malt kachelbare PNGs nach
-`KotH.Game/Resources/Textures/Terrain` (Gras, Erde, Sand, Schnee, Fels 2048 px auf 4 m; Laub, Rinde
-1024 px auf 2 m), Gras mit Comic-Büscheln. Eigene Shader in `KotH.Game/Effects` (Ordner im `.sdpkg`):
-`TerrainTriplanar` legt die Texturen von drei Seiten auf (oben Gras, Sand, Schnee; an Hängen Erde, Fels,
-Schnee), Übergänge weich nach den Vertex-Gewichten (Lucas Wahl), `PaintedTriplanar` für Laub und Rinde.
-Das Meer ist einfarbig türkis (Material `Water`, keine Textur). Fallen: Strides neuer Shader-Compiler
-nimmt kein `Texture2D` als Generic (`NotImplementedException`), darum `LinkType`-Generics und
-`[Link("GrassKey")] stage Texture2D` in `rgroup PerMaterial`, im Material `ComputeShaderClassColor` mit
-`!ComputeColorParameterTexture` (darin verschachtelt `Texture:` → `Texture:`). Strides Import legt
-Materialien zusammen, die sich nur im Namen unterscheiden: `write_glb` gibt jedem eine eigene Rauheit.
-
-**Quelle aller Assets ist Game Studio** (Lucas Entscheidung, 16.10.2026). Die
-Generatoren aus dem Umzug (`Tools/generate_*.py`, in der Git-Geschichte bis
-`577ed3f`) sind entfernt; nicht wiederbeleben, sie überschrieben jede Änderung
-aus Game Studio.
-
-Der `GraphicsCompositor` hat bewusst **keinen `Archetype`**: Game Studio setzt
-sonst nicht markierte Werte auf den Archetyp zurück, und Tonemapping und Bloom
-gehen beim Speichern an.
+### Maps und Assets
+- **Game Studio ist die Quelle aller Assets** (Lucas Entscheidung); die alten `Tools/generate_*.py` nicht
+  wiederbeleben. `GraphicsCompositor` bewusst ohne `Archetype` (sonst gehen Tonemapping und Bloom an).
+- Kollision und Körper in Prefabs **ohne Modelle** (`KotH.Shared/Assets/{Maps,Bodies}`), Client legt Modelle darüber.
+- Je Map `Maps/NAME`: `NAMECollision` (Shared: Kollision, `PlayerSpawn0`–`11`, `DummySpawn`, `CaptureZone`, `Bots`)
+  und `NAMEVisual` (Game), beide Root-Assets; URLs in `Hosting/Maps.cs`. `MainScene` ist nur der Rahmen. Host
+  schickt den Namen im `Welcome` (`INetWorld.LoadMap`). Proben laden `Maps.Test`, außer `bots climb`/`jumplab`.
+- **Neu** (Minecraft-Berg, 123 m): `Tools/maps/mountain.py` schreibt **nur** `Mountain.glb` (`COLOR_0` = Oberflächen,
+  `TEXCOORD_0.x` = AO), `Sea.glb` und `NeuTerrain.bin` (Kollision, eingebettet, 4-m-Chunks, `WorldBuilder.AddTerrain`).
+  Surface Nets zu 70 %, Säulen 2 × 1, keine vorgefertigten Wege, Gipfel aus ≥ 9/12 Richtungen erreichbar. Danach alles
+  mit `publish_aot.sh` bauen. Sichtweite höchstens 20 km. Klettergefühl testet Luca selbst.
+- Texturen: `Tools/maps/textures.py` (gemalt, comichaft, wenig Details), Shader `TerrainTriplanar`/`PaintedTriplanar`
+  in `KotH.Game/Effects`. Fallen: kein `Texture2D` als Generic (`LinkType` + `[Link]` in `rgroup PerMaterial`),
+  verschachteltes `ComputeColorParameterTexture`; Import legt namensgleiche Materialien zusammen.
 
 ### Game Studio (Wine/Proton)
+- Steam-Verknüpfung „Stride Game Studio 4.4.0“, Prefix `compatdata/2392464373`, GE-Proton11-6, Windows-SDK .NET 11,
+  Projekt `Z:\var\home\lr\KotH\KotH.slnx`; aus der Shell nur mit `env -u DOTNET_ROOT`. Speichern schreibt CRLF.
+- Startoptionen `NUGET_PACKAGES=Z:/home/lr/.local/share/stride-winefix/packages MSBUILDDISABLENODEREUSE=1
+  UseSharedCompilation=false %command%` (`Stride.Core` mit PR #3600). Prefix-`.nuget` = Symlink: nie Dateien ersetzen.
 
-- Steam-Verknüpfung „Stride Game Studio 4.4.0“, Prefix `compatdata/2392464373`,
-  GE-Proton11-6; darin das Windows-SDK .NET 11 RC2. Projekt: `Z:\var\home\lr\KotH\KotH.slnx`.
-  Game Studio startet sich für das net11-Projekt selbst auf .NET 11 neu.
-- Startoptionen: `NUGET_PACKAGES=Z:/home/lr/.local/share/stride-winefix/packages
-  MSBUILDDISABLENODEREUSE=1 UseSharedCompilation=false %command%`.
-- Unter .NET 11 hilft `stride-wine-gcfix` nicht mehr gegen den GC-Hänger
-  (stride#3599). Der Editor lädt deshalb `Stride.Core` 4.4.0 + Lucas PR #3600 aus
-  `~/.local/share/stride-winefix/packages` (Symlinks auf `~/.nuget/packages`,
-  nur `stride.core/4.4.0` ist eine Kopie). Das `.nuget` im Prefix ist ein Symlink
-  auf `~/.nuget`: dort nie Dateien ersetzen, das trifft die Linux-Builds.
-- Aus der Shell nur mit `env -u DOTNET_ROOT` starten, sonst sucht der Windows-Host
-  die Laufzeit im Linux-.NET.
-- Speichern schreibt CRLF; `.gitattributes` normalisiert auf LF.
+### Client: HUD, Kamera, Musik
+- `HudRenderer` zeichnet per SpriteBatch nach der Szene (Strides UI kippt unter Vulkan); Zahlen über
+  `HudRenderer.Numbers`. Eigene Prozent oben rechts, die anderen über den Köpfen. Kamera wackelt bei jedem Treffer.
+- `MusicPlayer` (Entity `Music`): Lobby-Track bis `Running`, dann Spielbeginn-Track und gemischte Playlist,
+  Überblendung 3,5 s, Lautstärke 0,4, im Netz nach bestätigter Runde; misst die Länge selbst (`Sound.TotalLength`).
 
-### Client-HUD
+### Bots (`KotH.Shared/Bots`)
+- Treten wie Spieler bei (NetId ab 4, Slots nach `NetWorld.BotSlots`), offline/Host `--bots N` (Standard 3).
+  **Nur der Host rechnet sie, deterministisch:** `BotDirector` berechnet Tick t einmal, in Reihenfolge, nur aus dem
+  endgültigen Zustand bei t − 8 (`ReactionTicks`), dem Raster und dem xorshift; kein Bot-Zustand im Snapshot. Host
+  bestätigt sie in `Finalise` (`AddBot`), sein Peer kennt sie vorab (`KnownInputs`), Gäste sagen sie vorher.
+- `ClimbGrid` (statt DotRecast): Spalten 0,5 m, bis 4 Böden mit 1,8 m Luft; Gehen, Fallen, Sprung, Doppelsprung,
+  Lücke, Kosten in Sekunden; Sprünge und Abstiege brauchen einen Korridor so breit wie der Körper, `FloorAt` nimmt den
+  Boden auf Fußhöhe. Zeitfeld per Dijkstra, Wegvarianten je Bot; zur Zone RTAA*, sonst A*. `Memory` (Strafen auf
+  Fehlsprünge und ähnliche Züge, Aufschläge ohne Fortschritt) gehört dem Bot.
+- `JumpPilot` fliegt jeden Sprung vorher im Motormodell und springt erst, wenn er landet und sich am Boden sieht.
+  `BotBrain`: Utility AI, steuert wie ein Mensch (WASD digital, Blick weich), `ManeuverWfc` für Manöver. Mehr als
+  15 m unter der Zone nur Schlag im Vorbeigehen; geschlagen wird nur in `Running`.
+- Nur Snapshot-Zustände lesen, nie lebende Komponenten (außer Einstellungen); Trigonometrie über `UMath`/`Math` in
+  double, keine `System.Random`. Stand: 312/312 Bots oben, Mittel 89 s, höchstens 178 s.
 
-`HudRenderer` zeichnet das HUD per SpriteBatch nach der Szene (`IHudElement`), weil
-Strides UI-Tiefenversatz unter Vulkan kippt. Zahlen im deutschen Format über
-`HudRenderer.Numbers`. Die eigenen Schadensprozent stehen oben rechts unter der Bestenliste
-(`HillBoard`), die der anderen über ihren Köpfen (`DamageLabel`).
-
-Die Kamera wackelt bei jedem eingesteckten Treffer gleich stark (First und Third
-Person, `PlayerCamera`, „Wackeln bei Treffer“). Auslöser ist `DamagePercent.LastHitTick`,
-kein Zustand: ein Rollback behält ihn, im Netz kommt der Treffer mit der Bestätigung.
-
-### Musik
-
-`MusicPlayer` (`KotH.Game/Audio`, Entity `Music` in `MainScene`, Lucas Wahl 21.10.2026): vor dem Spiel
-(kein Match, Warten, Countdown, Pause nach dem Sieg) der Lobby-Track in Schleife, bei `Running` der
-Spielbeginn-Track, danach die Playlist als gemischter Stapel; jeder Wechsel blendet 3,5 s über (Lucas
-Wahl), bei einem auslaufenden Track beginnt der nächste so lange vor dessen Ende. Lautstärke 0,4. Im Netz folgt er der bestätigten Runde. Gestreamte
-Tracks melden nach dem Ende weiter `Playing`, darum misst der Player die Länge selbst
-(`Sound.TotalLength`). MP3s in `Resources/Music`, auf −15,5 LUFS normalisiert (linear, `loudnorm`
-zweistufig; Originale in `.work/music/original`). Hauptmenü-Track für später: `Menu.sdsnd`.
-
-### Bots
-
-Die Dummys sind ersetzt (Lucas Entscheidung, 21.10.2026): Bots (`KotH.Shared/Bots`) treten wie
-Spieler bei (NetId ab 4, Slot, Punkte, zählen für die Mindestspieler), offline und beim Host
-`--bots N` (Standard 3), `--bot-seed N`. **Nur der Host rechnet sie, aber deterministisch:**
-`BotDirector` berechnet die Eingabe für Tick t genau einmal und in Tick-Reihenfolge, nur aus dem
-endgültigen Zustand bei t − `ReactionTicks` (8 = 0,2 s, zugleich Reaktionszeit), dem Kletterraster und
-dem xorshift des Bots; kein Bot-Zustand im Snapshot. Quellen: `PeerSession.TryFinalState` (Host),
-`LocalFinalStates` (offline, headless, `BotBody`). Der Host bestätigt Bot-Eingaben in `Finalise`
-(`HostSession.AddBot`, wartet lieber, als zu raten), sein eigener Peer kennt sie vorab
-(`PeerSession.KnownInputs`, nie ein Rollback ihretwegen); Gäste sagen Bots wie Spieler vorher.
-Der Host schickt seinem eigenen Peer alle neuen Ticks auf einmal (sonst wartete er nach einer
-Ladepause mit Bots auf Nachsendungen). Probe `bots`: Wege im Raster, Spiel mit Kennzahlen, Hashkette
-zweimal gleich, Host unabhängig vom Bildtakt, Gast ohne Desync, Ladepause; JIT und AOT gleich.
-Probe `bots climb N` (Map Neu): Zeit jedes Bots bis zum ersten Schritt in die Zone, gemittelt über die drei und die Seeds, höchstens 140 s (Lucas Maß), dazu Streuung
-der Routen, Sprungquote, Güte der Eigenvorhersage, µs pro Tick; `KOTH_BOTTRACE`, `KOTH_BOTTRACE_BOT=n`,
-`KOTH_HOPLOG=n` (jeder Sprung), `KOTH_BOTPATH=datei` (Wege als CSV, Draufsicht mit `.work/bots/routes.py`).
-
-- `BotNavigation` über `ClimbGrid` (Lucas Wahl statt DotRecast, 22.10.2026; Recast schnitt um jede Kante
-  den Körperradius weg, die 2 × 1 m großen Säulenoberseiten verschwanden): die Dreiecke der Arena-Statics
-  (Boxen nach außen, Dreiecke ins Feste gewunden) selbst gerastert, Spalten von 0,5 m, je bis 4 Böden mit
-  1,8 m Luft darüber, Maße aus dem `PlayerMotor` des Spieler-Prefabs. Züge: Gehen zu 8 Nachbarn
-  (0,45 m hinauf, 0,6 m hinab), Links in 16 Richtungen (Fallen, Sprung bis 1,2 m, Doppelsprung bis 2,2 m,
-  Lücke bis 3 m), Kosten in Sekunden. Dijkstra rückwärts von der Zone gibt ein Zeitfeld, dazu
-  `RouteVariants` Wegvarianten (jede bevorzugt eine eigene Seite, ±40° um die Peilung der Spawns, plus
-  Rauschen; ein Bot nimmt seine, wenn sie höchstens `RouteDetour` langsamer ist). Heap nach
-  (Kosten, Index), also deterministisch. Zur Zone plant der Bot mit RTAA* (A* über höchstens 300 Böden,
-  Schätzung = Feld + Gelerntes, danach werden die besuchten Böden angehoben); was er lernt (`Memory`:
-  Strafen auf gescheiterte Sprünge, Aufschläge auf Böden ohne Fortschritt) gehört nur ihm. Andere
-  Ziele: A* über höchstens 4000 Böden. Bauzeit auf Neu etwa 1,1 s, auf Test 0,1 s.
-- `JumpPilot`: jeder Sprung zur Zone läuft über ein kleines Modell des Motors (Tasten, Sprintzustand,
-  Luftsteuerung, Sprung, Doppelsprung, runde Unterseite auf den Flächen des Rasters). Am Boden fliegt
-  der Bot den Sprung jeden Tick im Modell und springt erst, wenn er auf der Oberseite landet (einfach,
-  sonst doppelt), und erst, wenn er sich selbst wieder am Boden sieht (eine Landung lenkt das Tempo
-  ungesehen um); sonst geht er auf die Absprungstelle zu oder tritt für Anlauf zurück. In der Luft
-  wählt er die Tasten, die ihn ohne Lippenkontakt auf die Mitte der Oberseite bringen, den zweiten
-  Druck, sobald er die Füße weit genug über die Lippe hebt. Seine eigene Lage sagt er aus dem Zustand
-  t − D und den eigenen Tasten seither im Modell vorher. Klappt ein Sprung nicht, bekommt der Link
-  eine Strafe (3 s). Sprunglabor: `bots jumplab`.
-- Kampf auf dem Weg (Lucas Wahl): weiter als 15 m unter der Zone greift ein Bot niemanden an, er
-  schlägt nur im Vorbeigehen zu, wer in Reichweite und höchstens 60° neben seinem Blick steht; darüber
-  wie gehabt.
-- `BotBrain`: Utility AI (Zone einnehmen, halten, angreifen, Rückstoß, Idle) mit Beharrlichkeit
-  und gewichtetem Zufall unter fast gleich guten Absichten; Kämpfe zählen vor allem nahe der Zone;
-  hält 2,3 m Abstand, auf der Seite weg von der nächsten Kante. Steuert wie ein Mensch: WASD
-  digital, Blick weich nachgeführt, Sprung mit gehaltener Taste, Doppelsprung als zwei Drücke,
-  Gleiten getippt oder gelandet mit gehaltener Ducktaste.
-- `ManeuverWfc`: 1D-Wave-Function-Collapse über Manöver-Slots (8 Ticks): Nachbarregeln aus dem
-  Motor (Gleiten nach Sprint oder Sprung, Doppelsprung nach Sprung, Abstände für Schlag und
-  Gleiten), Nachbarn gleicher Art ziehen stärker; im Angriff fest: Schlag, wenn das Ziel in
-  Reichweite kommt, meist mit Gleiten davor.
-- Bots schlagen nur, solange die Runde läuft (`Running`): in Lobby, Countdown und nach dem Sieg
-  nicht (Lucas Wunsch; Probe `bots`, Fall „Lobby“).
-- Bots nehmen Slots in der Reihenfolge `NetWorld.BotSlots` (Lücken in beiden Reihen, Lucas
-  Wunsch), Spieler weiter den ersten freien.
-- In der Bot-Logik nur Zustände aus dem Snapshot lesen, nie lebende Komponenten (außer
-  Einstellungen); Trigonometrie über `UMath`/`Math` in double, keine `System.Random`.
-
-### Figur und Animation
-
-Die Pilzfigur (`Mushroom.glb`) hat ein Skelett (`MushroomSkeleton.sdskel`, mit Ellenbogen
-und Knien) und 17 Clips: `MushroomIdle` (Atmen 4 s, Wiegen 8 s), `MushroomRest`
-(Grundhaltung: Luft, Rutschen am Steilhang), Gehen/Rennen je vorwärts, rückwärts,
-links, rechts (Gang nach Sanji, Lucas Wunsch), `MushroomCrouch` (Hocke mit Atmen, auch in
-der Luft), `MushroomCrouchWalk` (ein Clip für alle Richtungen, 3 Schritte/s) und
-`MushroomSlide` (Sanji-Grätsche), `MushroomFall` (nur abwärts, Arme schräg zur Seite und
-nach vorn, balanciert leicht) und `MushroomLand` (7 cm eingefedert: nach jeder Landung nach
-mindestens 0,15 s Luft ein gleich starker Impuls über alles, 0,06 s rein, weg nach 0,3 s),
-`MushroomJump` (beim Aufsteigen, nach Sanji: ein Bein gestreckt, Knie hoch, Arme an der Hüfte)
-und `MushroomSkyWalk` (Doppelsprung als Tritt in die Luft, Impuls wie die Landung; erkannt am
-Schub nach oben in der Luft, die Simulation meldet nichts). Dabei stößt die Figur gelbe Sporen aus den Füßen
-(`Assets/Effects/SporeBurst.sdprefab`, ein Stoß von 60 Partikeln im Weltraum, Textur `Spore`
-256 px mit scharfer Kante; „Sporen beim Doppelsprung“ in `PlayerVisualSystem`). Geduckt macht die Pose die Figur nur etwa 20 cm niedriger
-(Beine 35 cm); `PlayerVisualSystem` staucht sie fest auf 75 % und 90 % Breite („Höhe geduckt“,
-„Breite geduckt“), Kopf und Kappe ragen etwa 30 cm über die 0,9-m-Hülle (Lucas Wahl: Proportionen
-vor Passform, dort zählt kein Treffer); die Füße bleiben auf dem Boden der Hülle. `PlayerVisualSystem` spielt alle zugleich
-und setzt die Gewichte nach Tempo und Richtung (Strides Mischen normiert auf die Summe);
-die Lauf-Clips laufen mit `TimeFactor` 0 auf einer gemeinsamen Phase aus der Strecke
-(Gehen 3,5, Rennen 6 Schritte/s). Das Spiel selbst bewegt fünf Knochenarten: den Mund (`Mouth`, atmet ruhig in zwei
-überlagerten Wellen; eine Hautfläche deckt den gemalten Mund ab, die Mundfläche schwebt 5 mm
-davor und überbrückt die Mulde im Netz), die Blätter (`Leaf.S0`–`S5` am Rock, `Leaf.C0`–`C3`
-am Kragen, zeigen nach oben mit dem Drehpunkt oben; Federn im Fahrtwind und im Wind der
-Drehung, „Blätter“ in `PlayerVisualSystem`), die Lider
-(Blinzeln zufällig alle 2–10 s, offen auf einen Punkt geschrumpft) und `Look` unter dem Kopf (folgt
-`SimulationBody.LookPitch`, dem Nickwinkel der Eingabe, kein Zustand; im Stehen dreht er auch bis
-40° zur Seite, erst darüber zieht er den Körper mit, in Bewegung folgt der Körper dem Blick,
-„Kopfdrehung höchstens“, „Körper folgt Blick“; der Motor schaut weiter in Blickrichtung) sowie
-`Recoil` zwischen `Spine` und `Chest` (Treffer: Oberkörper 12° und Kopf 10° zusätzlich weg vom
-Schlag, in 8 Richtungen relativ zum gezeigten Körper, Lucas Wunsch: von vorn nach hinten wie zuerst,
-von hinten nach vorn, seitlich und schräg; 0,06 s hin, 0,4 s zurück, „Treffer“ in `PlayerVisualSystem`;
-Auslöser `DamagePercent.LastHitTick`, Richtung `LastHitAway`, beides kein Zustand). Die Clips dürfen
-deshalb **keine Kanäle für Lider, Blätter, `Mouth`, `Look` und `Recoil`** haben. Erzeugt werden Modell, Clips,
-Lid-Textur und die Knotenliste des Skeletts mit `.work/rig/build.sh` (Blender headless,
-`rig.py`, entfernt diese Kanäle, kopiert nach `Resources/Models`). In Third Person dreht
-sich die eigene Figur in Laufrichtung; Seitwärts- und Rückwärts-Clips sieht man bei
-Spielern in First Person. Nur Darstellung, die Simulation sieht davon nichts.
-
-Die Handschuhe stammen aus dem Meshy-Original (`.work/gloves/glove_patch.py`, je 400 Dreiecke,
-eigenes Material `MushroomGlove` mit 512er-Textur; Figur 2752 Dreiecke, mit Lidern und Mund
-3172, mit der Faust 3349). Getauscht werden nur braune Flächen (ein Kasten riss Löcher in den Ärmel); das feine
-Stück ragt 1,5 cm in den Ärmel, wird gefüllt und per Voxel-Remesh geschlossen (innen am Rock
-war es offen und gezackt). `build.sh` riggt `.work/rig/static_gloves/Mushroom.glb` und kopiert
-dessen `MushroomGlove.png` mit; die Lider nehmen das letzte Material.
-
-In First Person hängen eigene Arme vor der Kamera (`MushroomArms`, nur Armdreiecke, gleiches
-Skelett; Clips `MushroomArms{Idle,Walk,Run}` aus `.work/rig/fp_arms.py`, Teil von `build.sh`):
-`GameRoot` hängt sie 0,78 m unter die Kamera (Auge des Modells), Render-Gruppe 2, nur in First
-Person sichtbar (`PlayerCamera`), kein Schatten. `PlayerVisualSystem` spielt sie auf der
-Schrittphase der eigenen Figur; Gehen und Rennen übernehmen den Armschwung der Lauf-Clips
-(halb so stark: ±8° bzw. ±14° aus der Schulter, Ellbogen beugt beim Vorschwingen) und halb so
-schnell („Tempo Arme“ 0,5: ein Armschwung auf vier Schritte, Atmen halb so schnell). Haltung in `fp_arms.py`
-(`SHOULDER`, `GLOVE`, `ELBOW`, `TWIST`; Lucas Wahl: Hände unten in den Ecken).
-
-Jede Figur hält einen Bambusstab (Lucas Vorlage-Foto, 0,7 m, schräg nach vorn oben, ein Blatt am
-oberen Knoten): `Bamboo.glb` aus `.work/rig/bamboo.py` (Teil von `build.sh`, im Figurraum der
-Ruhelage gebaut, Textur aus dem Foto weich gemalt, Lambert). Die rechte Hand greift ihn (Lucas Wunsch):
-`rig.py` („Faust“, nach den Gewichten) unterteilt die Hand einmal, kippt sie im Handgelenk so, dass ihre
-Breite längs des Stabs liegt, und wickelt die Finger unter dem Stab hindurch um seine Achse, der Daumen
-bleibt (`FIST`, `CANE_PITCH` 35°, `CANE_OUT` 10°). Der Stab hängt am Knochen `Grip.R` (auf der Stabachse
-in der Faust, zeigt längs des Stabs, ohne Vertices; `bamboo.py` und `fp_arms.py` lesen die Richtung
-daraus): `GameRoot.AttachHeld` hängt das „Gehaltene Objekt“ als
-Kind mit `ModelNodeLinkComponent` an Figur und FP-Arme, lokale Transformation = Inverse der Ruhelage
-des Knochens. Die Körper-Clips halten `Grip.R` in Ruhe, die FP-Clips drehen ihn einmal fest, damit der
-Stab in First Person nach rechts oben zeigt (`fp_arms.py`, `CANE`, `CANE_ROLL` −84°, Lucas Wahl).
-Der Stab hat ein eigenes Skelett (`Cane`, `Leaf`, `LeafTip` ohne Vertices, alle ungedreht);
-`PlayerVisualSystem.Sway` federt `Leaf` mit den Werten der Figurblätter im Fahrtwind, gemessen an
-seinem Ansatz in der Welt (Gehen, Drehen und Armschwung zugleich). Nur Darstellung.
-
-Schlag (Lucas Wunsch): `ArmSwing` (`KotH.Game/Player/SwingMotion.cs`) dreht die Spielknochen
-`UpperArmSwing.R`/`LowerArmSwing.R` (Kinder der Clip-Knochen mit deren Gewichten, ohne Clip-Kanäle) per
-Zwei-Knochen-IK auf eine gewölbte Bahn: 75 % oben rechts → unten links, sonst umgekehrt, Variation
-deterministisch aus NetId und Schlag-Tick; Oberkörper sehr leicht über `Recoil`, Kopf zurückgedreht.
-Auslöser `MeleeAttack.LastSwingTick` (kein Zustand). Nur Optik, der Treffer zählt weiter beim Klick.
-Bei der Figur (nicht in First Person) liegt die Bahn auf einem Bogen etwa 0,41 m um die Schulter, vor dem
-Rumpf (der Arm reicht nur 0,48 m, Unterarm 34 cm, Oberarm 14 cm; näher knickt der Ellbogen, weiter oben
-reißt die starre Schulternaht). Damit der Stab von über der Schulter nach links unten zeigt, dreht sich
-der Unterarm bis ±60° um sich selbst, den Rest kippt der Stab bis 40° in der Faust (`ArmSwing.CaneTip`,
-lokale Lage des gehaltenen Objekts am `Grip.R`).
-In Third Person dreht der Motor beim Klick sofort zum Fadenkreuz; die Figur zeigt das weich (Lucas Wunsch):
-Oberkörper und Kopf drehen bis 60° zum Ziel, die Beine bleiben in Laufrichtung, darüber dreht der
-ganze Körper mit, nach dem Durchziehen in 0,3 s zurück („Drehung zum Ziel höchstens“, `Twist` in
-`PlayerVisualSystem`). Nur Darstellung, Rückstoß kommt aus den Positionen.
-
-## Git
-
-Commit-Messages auf Deutsch; nach `origin main` pushen, wenn Luca das freigibt.
+### Figur und Animation (nur Darstellung)
+- Pilzfigur `Mushroom.glb` mit 17 Clips; `PlayerVisualSystem` mischt sie nach Tempo und Richtung, Lauf-Clips auf
+  gemeinsamer Phase aus der Strecke; geduckt fest auf 75 % Höhe, 90 % Breite. Gebaut mit `.work/rig/build.sh`
+  (Blender: `rig.py`, `fp_arms.py`, `bamboo.py`). FP-Arme `MushroomArms`, Render-Gruppe 2, ohne Schatten.
+- Das Spiel bewegt `Mouth`, `Leaf.*`, Lider, `Look`, `Recoil`, `UpperArmSwing.R`/`LowerArmSwing.R`: **Clips dürfen
+  dafür keine Kanäle haben.** Auslöser `LastHitTick`, `LastHitAway`, `LastSwingTick`, `LookPitch` sind kein Zustand.
+- Bambusstab an `Grip.R` (`GameRoot.AttachHeld`), Blatt federt (`Sway`); Schlag `ArmSwing` (Zwei-Knochen-IK); in
+  Third Person dreht der Oberkörper bis 60° zum Ziel (`Twist`). Keine Umrisslinien.

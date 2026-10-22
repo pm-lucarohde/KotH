@@ -52,7 +52,7 @@ namespace KotH.Server
                     return 1;
                 }
                 world.LoadArena(map);
-                world.StartMatch();
+                world.StartMatch().Seed = (uint)Random.Shared.Next();
             }
             world.Simulation.Deactivate();
 
