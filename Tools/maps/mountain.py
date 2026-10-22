@@ -67,6 +67,7 @@ SIMPLIFY = 0.02            # the simplified mesh stays this close (metres) to ev
 SIMPLIFY_COLOUR = 0.03     # and merges only vertices this close in colour (linear, per channel)
 SIMPLIFY_NORMAL = 0.95     # and with vertex normals at least this parallel
 WATER_Y = 0.4
+SEA_UNDER = 0.4            # the sea reaches this far in under the coast, past its rounded wall
 SEA_REACH = 30000.0        # the sea's half width, beyond the camera's far plane
 
 # Colours in sRGB; the glb carries them linear.
@@ -738,6 +739,24 @@ def sea(t):
                 end += 1
             rect(x, z, end, z + 1)
             x = end
+    # Rounding pulls the coast wall in at the waterline: the sea reaches in
+    # under it, else one saw past the wall into the void.
+    i = SEA_UNDER
+    for (x, z) in sorted(t.height):
+        def sea_at(dx, dz):
+            return (x + dx, z + dz) not in t.height
+        if sea_at(-1, 0):
+            rect(x, z, x + i, z + 1)
+        if sea_at(1, 0):
+            rect(x + 1 - i, z, x + 1, z + 1)
+        if sea_at(0, -1):
+            rect(x, z, x + 1, z + i)
+        if sea_at(0, 1):
+            rect(x, z + 1 - i, x + 1, z + 1)
+        for dx, dz in ((-1, -1), (1, -1), (-1, 1), (1, 1)):
+            if sea_at(dx, dz) and not sea_at(dx, 0) and not sea_at(0, dz):
+                cx, cz = x + (0 if dx < 0 else 1 - i), z + (0 if dz < 0 else 1 - i)
+                rect(cx, cz, cx + i, cz + i)
     far = SEA_REACH
     rect(-far, -far, far, -HALF)
     rect(-far, HALF, far, far)
