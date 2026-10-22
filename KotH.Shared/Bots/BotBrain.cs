@@ -59,6 +59,9 @@ namespace KotH.Shared.Bots
         Vector3 jamAt;               // where it hangs off the ground without moving, and how long
         int jamTicks;
         float yaw, pitch;
+        float yawRate, pitchRate;    // the hand on the mouse is still moving
+        float eyeAbove = 1.6f;       // eye over the feet, as last seen
+        Vector2 walkKeys;            // the keys held while walking
         int jumpHeldUntil = -1, doubleJumpAt = -1, lastJump = -1000, lastStrike = -1000;
         int stuckTicks;
         int slideTap = -1;
@@ -109,6 +112,8 @@ namespace KotH.Shared.Bots
         public Maneuver Running => running;
         public int Variant => variant;
         public bool Climbing => climbing;
+        /// <summary>Near a jump or in it, for probes.</summary>
+        public bool Hopping => hopping || flight != LinkKind.None;
         public LinkKind Flight => flight;
         public Vector3 Landing => landing;
         public int Lessons => memory.Lessons;
@@ -438,8 +443,12 @@ namespace KotH.Shared.Bots
             }
         }
 
+        /// <summary>The keys of the last tick, for probes.</summary>
+        public MoveInput LastInput { get; private set; }
+
         MoveInput Remember(int u, MoveInput input)
         {
+            LastInput = input;
             past[u % past.Length] = input;
             pastTick[u % past.Length] = u;
             return input;
@@ -489,6 +498,7 @@ namespace KotH.Shared.Bots
             JumpPilot.Body b = Predict(u, me.Motor);
             var feet = new Vector3(b.X, b.Y, b.Z);
             Predicted = b;
+            eyeAbove = me.Motor.EyePosition.Y - Feet(me.Motor.Position).Y;
             if (verifyAt >= 0 && u >= verifyAt && (me.Motor.Grounded || u >= verifyAt + 40))
                 Verify(u, Feet(me.Motor.Position));
 
@@ -506,8 +516,10 @@ namespace KotH.Shared.Bots
                 }
                 else
                 {
-                    Face(UMath.Atan2(-hop.DX, -hop.DZ) * (180f / MathF.PI));
-                    return pilot.Drive(hop, b, yaw, ref attempt);
+                    LookAt(u, b, landing, UMath.Atan2(-hop.DX, -hop.DZ) * (180f / MathF.PI));
+                    MoveInput flying = pilot.Drive(hop, b, yaw, ref attempt);
+                    flying.Pitch = pitch;
+                    return flying;
                 }
             }
 
@@ -546,8 +558,9 @@ namespace KotH.Shared.Bots
                     break;
                 }
                 hopSeen = u;
-                Face(UMath.Atan2(-hop.DX, -hop.DZ) * (180f / MathF.PI));
+                LookAt(u, b, land.Position, UMath.Atan2(-hop.DX, -hop.DZ) * (180f / MathF.PI));
                 MoveInput input = pilot.Drive(hop, b, yaw, ref attempt);
+                input.Pitch = pitch;
                 if (input.JumpPresses == 1)
                 {
                     // A jump still unchecked is judged by where this one starts.
@@ -617,42 +630,53 @@ namespace KotH.Shared.Bots
             return input;
         }
 
-        // Turns the view towards a yaw like a hand on a mouse; pitch back to level.
-        void Face(float wantYaw)
+        // A yaw to turn to, the eyes on a spot: up at a top, down at the way.
+        void LookAt(int u, in JumpPilot.Body b, Vector3 spot, float wantYaw)
         {
-            float turn = MathF.IEEERemainder(wantYaw - yaw, 360f);
-            yaw = MathF.IEEERemainder(yaw + UMath.Clamp(turn * Ease, -settings.TurnRate, settings.TurnRate), 360f);
-            pitch += UMath.Clamp((0f - pitch) * Ease, -settings.TurnRate, settings.TurnRate);
+            float dx = spot.X - b.X, dz = spot.Z - b.Z;
+            float far = UMath.Max(UMath.Sqrt(dx * dx + dz * dz), 2f);
+            float wantPitch = UMath.Atan2(spot.Y + 0.3f - (b.Y + eyeAbove), far) * (180f / MathF.PI);
+            Look(u, wantYaw, UMath.Clamp(wantPitch, -35f, 35f), settings.TurnRate);
         }
 
-        // Between jumps: on to the next corner, sprinting where it is far.
+        // How fast the hand takes up a new turn rate, per tick.
+        const float Grip = 0.6f;
+
+        /// <summary>
+        /// The view as a hand moves a mouse: it speeds up into a turn, slows
+        /// into the target, overshoots a little and never rests perfectly
+        /// still (a slow wander of a degree or two). At most maxRate a tick.
+        /// </summary>
+        void Look(int u, float wantYaw, float wantPitch, float maxRate)
+        {
+            double t = u * Dt, phase = netId * 1.618;
+            float wanderYaw = (float)(1.2 * Math.Sin(t * 0.9 + phase) + 0.6 * Math.Sin(t * 2.3 + phase * 1.7));
+            float wanderPitch = (float)(1.0 * Math.Sin(t * 0.7 + phase * 2.1) + 0.5 * Math.Sin(t * 1.9 + phase * 0.6));
+            float turn = MathF.IEEERemainder(wantYaw + wanderYaw - yaw, 360f);
+            yawRate += (UMath.Clamp(turn * Ease, -maxRate, maxRate) - yawRate) * Grip;
+            yaw = MathF.IEEERemainder(yaw + yawRate, 360f);
+            float nod = UMath.Clamp(wantPitch + wanderPitch, -60f, 60f) - pitch;
+            pitchRate += (UMath.Clamp(nod * Ease, -maxRate, maxRate) - pitchRate) * Grip;
+            pitch += pitchRate;
+        }
+
+        // How far ahead on the way a walking bot aims, metres.
+        const float Pursuit = 1.8f;
+
+        // Between jumps: towards a point a little ahead on the way, not from
+        // corner to corner, sprinting where it is far.
         MoveInput Walk(int u, in BodyState me, Vector3 feet)
         {
-            Vector3 toward = goal;
-            bool sprint = false;
-            for (int c = 1; c < corners.Count; c++)
-            {
-                float d = Flat(feet, corners[c].Position);
-                if (d > 0.4f || c == corners.Count - 1)
-                {
-                    toward = corners[c].Position;
-                    sprint = d > 2f;
-                    break;
-                }
-            }
-            var input = new MoveInput { Sprint = sprint };
+            Vector3 toward = PursuitPoint(feet, out float open);
+            var input = new MoveInput { Sprint = open > 2f };
             Vector3 way = new Vector3(toward.X - feet.X, 0f, toward.Z - feet.Z);
             float distance = UMath.Magnitude(way);
             float moveYaw = distance > 1e-3f ? UMath.Atan2(-way.X, -way.Z) * (180f / MathF.PI) : yaw;
-            Face(moveYaw);
+            var b = new JumpPilot.Body { X = feet.X, Y = feet.Y, Z = feet.Z };
+            LookAt(u, b, new Vector3(toward.X, toward.Y - 0.3f, toward.Z), moveYaw);
             input.Yaw = yaw;
             input.Pitch = pitch;
-            Vector2 local = Vector2.Zero;
-            if (distance > 0.05f)
-            {
-                float rel = (moveYaw - yaw) * (MathF.PI / 180f);
-                local = new Vector2(-UMath.Sin(rel), UMath.Cos(rel));
-            }
+            walkKeys = JumpPilot.Keys(moveYaw - yaw, distance > 0.15f, walkKeys);
 
             // Stuck against something the grid does not know: hop.
             float speed = UMath.Magnitude(new Vector3(me.Motor.Velocity.X, 0f, me.Motor.Velocity.Z));
@@ -664,9 +688,41 @@ namespace KotH.Shared.Bots
             }
             if (u < jumpHeldUntil)
                 input.JumpHeld = true;
-            input.Move = new Vector2(Key(local.X), Key(local.Y));
+            input.Move = walkKeys;
             return input;
         }
+
+        // The point Pursuit metres on along the corners from the feet, never
+        // past a corner where a jump starts; open is the way to that corner.
+        Vector3 PursuitPoint(Vector3 feet, out float open)
+        {
+            open = 0f;
+            Vector3 at = feet;
+            for (int c = 1; c < corners.Count; c++)
+            {
+                open += Flat(at, corners[c].Position);
+                at = corners[c].Position;
+                if (Takeoff(corners[c].Link))
+                    break;
+            }
+            at = feet;
+            float left = Pursuit;
+            for (int c = 1; c < corners.Count; c++)
+            {
+                Vector3 next = corners[c].Position;
+                float d = Flat(at, next);
+                if (d >= left)
+                    return new Vector3(at.X + (next.X - at.X) * left / d, next.Y, at.Z + (next.Z - at.Z) * left / d);
+                left -= d;
+                at = next;
+                if (Takeoff(corners[c].Link))
+                    break;
+            }
+            return corners.Count > 1 ? at : goal;
+        }
+
+        // A link the pilot jumps; a drop is walked off.
+        static bool Takeoff(LinkKind link) => link == LinkKind.Jump || link == LinkKind.DoubleJump;
 
         /// <summary>The maneuver of this tick as keys: where to go, where to look, what to press.</summary>
         MoveInput Steer(int u, WorldSnapshot view, in BodyState me, Vector3 at, Vector3 feet, Maneuver m,

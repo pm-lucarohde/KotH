@@ -23,6 +23,11 @@ namespace KotH.Probes.Probes
         const float ClimbGoal = 140f;
         static readonly float[] Heights = { 20f, 50f, 90f };
         readonly int[] HopStats = new int[3], Predictions = new int[2];
+
+        // How human the climbing looks, summed over all bots and rounds: ground ticks,
+        // key changes, reversals, strafing ticks, standing ticks, air ticks, yaw sum,
+        // yaw wobbles, yaw snaps, pitch sum.
+        readonly double[] Nat = new double[18];
         double PredictionError;
         float StartSpacing = float.MaxValue, StartFacing;
         readonly int[] PredClass = new int[4];
@@ -76,6 +81,11 @@ namespace KotH.Probes.Probes
                 $"langsamster Seed {worstMean:F0} s, langsamster Bot {worstBot:F0} s, {missing} nicht oben, " +
                 $"Streuung der Routen {(spreads > 0 ? sumSpread / spreads : 0f):F0}°");
             Log($"[klettern] Sprünge gelandet: {HopStats[1]} von {HopStats[0]}, {HopStats[2]} aufgegeben vor dem Absprung");
+            double ground = Math.Max(1, Nat[0]), all = Math.Max(1, Nat[0] + Nat[5]);
+            Log($"[klettern] Am Boden: {Nat[1] / ground * 40:F2} Tastenwechsel/s, {Nat[2] / ground * 2400:F1} Umkehrungen/min, " +
+                $"davon beim Sprung {Nat[10] / Math.Max(1, Nat[11]) * 40:F2}/s in {Nat[11] / ground * 100:F0} % der Zeit (Flugsteuerung am Boden {Nat[12] / Math.Max(1, Nat[13]) * 40:F2}/s in {Nat[13] / ground * 100:F0} %), seitwärts {Nat[3] / ground * 100:F0} %, steht {Nat[4] / ground * 100:F0} %; Blick: {Nat[6] / all:F2}°/Tick, " +
+                $"{Nat[7] / all * 2400:F1} Richtungswechsel/min, {Nat[8] / all * 2400:F1} Rucke über 15°/min, Nicken Ø {Nat[9] / all:F1}°");
+            Log($"[klettern] Hin und her: {Nat[17] / Math.Max(1, Nat[0]) * 2400:F1}/min am Boden; Laufen gegen Blick: über 35° in {Nat[15] / Math.Max(1, Nat[14]) * 100:F0} %, über 80° (seitwärts, rückwärts) in {Nat[16] / Math.Max(1, Nat[14]) * 100:F0} % der Bodenticks in Bewegung");
             Log($"[klettern] Vorhersage: Boden falsch in {Predictions[1] * 100.0 / Math.Max(1, Predictions[0]):F1} % der Ticks, " +
                 $"Lage im Mittel {PredictionError * 100.0 / Math.Max(1, Predictions[0]):F1} cm daneben");
             string[] names = { "Boden/Boden", "Boden/Luft", "Luft/Boden", "Luft/Luft" };
@@ -86,6 +96,65 @@ namespace KotH.Probes.Probes
             bool passed = missing == 0 && average <= ClimbGoal && StartSpacing >= 6f && StartFacing < 1f;
             Log(passed ? "[klettern] BESTANDEN" : "[klettern] NICHT BESTANDEN");
             return passed ? 0 : 1;
+        }
+
+        // One tick of one climbing bot into Nat: keys on the ground, the view always.
+        void Naturalness(int i, int t, MoveInput input, MotorState m, Vector2[] lastMove, float[] lastYaw, float[] lastTurn,
+                         int[,] axisSign, int[,] axisTick, bool hop, bool flying, Vector2[,] flatHistory, int[] lastBack)
+        {
+            if (m.Grounded)
+            {
+                Nat[0]++;
+                if (input.Move != lastMove[i])
+                    Nat[1]++;
+                if (input.Move != lastMove[i] && hop)
+                    Nat[10]++;
+                Nat[11] += hop ? 1 : 0;
+                if (input.Move != lastMove[i] && flying)
+                    Nat[12]++;
+                Nat[13] += flying ? 1 : 0;
+                for (int a = 0; a < 2; a++)
+                {
+                    int sign = Math.Sign(a == 0 ? input.Move.X : input.Move.Y);
+                    if (sign == 0)
+                        continue;
+                    if (axisSign[i, a] == -sign && t - axisTick[i, a] <= 8)
+                        Nat[2]++;
+                    axisSign[i, a] = sign;
+                    axisTick[i, a] = t;
+                }
+                Nat[3] += input.Move.X != 0f ? 1 : 0;
+                float flat = MathF.Sqrt(m.Velocity.X * m.Velocity.X + m.Velocity.Z * m.Velocity.Z);
+                Nat[4] += flat < 0.3f ? 1 : 0;
+                // Visible back and forth: the way turned round within 0,15 s.
+                var v = new Vector2(m.Velocity.X, m.Velocity.Z);
+                Vector2 then = flatHistory[i, t % 8];
+                if (v.Length() > 0.6f && then.Length() > 0.6f && Vector2.Dot(v, then) < -0.3f * v.Length() * then.Length() && t - lastBack[i] >= 6)
+                {
+                    Nat[17]++;
+                    lastBack[i] = t;
+                }
+                flatHistory[i, (t + 2) % 8] = v;
+                if (flat > 1f)
+                {
+                    // What the walk clips show: the way against where the body faces.
+                    float off = MathF.Abs(MathF.IEEERemainder(MathF.Atan2(-m.Velocity.X, -m.Velocity.Z) * (180f / MathF.PI) - input.Yaw, 360f));
+                    Nat[14]++;
+                    Nat[15] += off > 35f ? 1 : 0;
+                    Nat[16] += off > 80f ? 1 : 0;
+                }
+            }
+            else
+                Nat[5]++;
+            lastMove[i] = input.Move;
+            float turn = MathF.IEEERemainder(input.Yaw - lastYaw[i], 360f);
+            Nat[6] += MathF.Abs(turn);
+            if (MathF.Abs(turn) > 0.3f && MathF.Abs(lastTurn[i]) > 0.3f && MathF.Sign(turn) != MathF.Sign(lastTurn[i]))
+                Nat[7]++;
+            Nat[8] += MathF.Abs(turn) > 15f ? 1 : 0;
+            Nat[9] += MathF.Abs(input.Pitch);
+            lastYaw[i] = input.Yaw;
+            lastTurn[i] = turn;
         }
 
         // A body jammed on steep ground: does any input get it out? Each
@@ -184,6 +253,13 @@ namespace KotH.Probes.Probes
             var before = new MotorState[bots.Count];
             bool jamTest = Environment.GetEnvironmentVariable("KOTH_JAMTEST") != null, jamDone = false;
             var jamFor = new int[bots.Count];
+            var lastMove = new Vector2[bots.Count];
+            var lastYaw = new float[bots.Count];
+            var lastTurn = new float[bots.Count];
+            var axisSign = new int[bots.Count, 2];
+            var axisTick = new int[bots.Count, 2];
+            var flatHistory = new Vector2[bots.Count, 8];
+            var lastBack = new int[bots.Count];
             var starts = new List<MotorState>();
             var faced = new List<float>();
             for (int t = 0; t < ClimbTicks && left > 0; t++)
@@ -227,6 +303,8 @@ namespace KotH.Probes.Probes
                         }
                     }
                     BotBrain mind = director.BrainOf(bots[i].NetId);
+                    if (mind.Climbing && times[i] < 0f && t > 0)
+                        Naturalness(i, t, mind.LastInput, bots[i].Motor.CaptureState(), lastMove, lastYaw, lastTurn, axisSign, axisTick, mind.Hopping, mind.Flight != LinkKind.None, flatHistory, lastBack);
                     if (mind.Climbing)
                     {
                         MotorState real = before[i];
@@ -254,7 +332,7 @@ namespace KotH.Probes.Probes
                         var m = bots[i].Motor.CaptureState();
                         string next = br.Corners.Count > 1 ? $"{br.Corners[1].Position.X:F1} {br.Corners[1].Position.Y:F1} {br.Corners[1].Position.Z:F1} {br.Corners[1].Link}" : "-";
                         string after = br.Corners.Count > 2 ? $"{br.Corners[2].Position.X:F1} {br.Corners[2].Position.Y:F1} {br.Corners[2].Position.Z:F1} {br.Corners[2].Link}" : "-";
-                        Log($"[spur] {t} Bot {i + 1} {br.Intent} {(br.Climbing ? "K" : br.Running.ToString())} {br.Flight} v{br.Variant} fuß {p.X:F2} {p.Y - 0.9f:F2} {p.Z:F2} " +
+                        Log($"[spur] {t} Bot {i + 1} {br.Intent} {(br.Climbing ? "K" : br.Running.ToString())} {br.Flight} v{br.Variant} tasten {br.LastInput.Move.X:F0},{br.LastInput.Move.Y:F0} gier {br.LastInput.Yaw:F0} fuß {p.X:F2} {p.Y - 0.9f:F2} {p.Z:F2} " +
                             $"tempo {m.Velocity.X:F1} {m.Velocity.Y:F1} {m.Velocity.Z:F1} boden {(m.Grounded ? 1 : 0)}{(m.OnSteepGround ? " steil" : "")}{(m.TouchingGround ? " berührt" : "")}{(m.Wedged ? " klemmt" : "")} n {m.GroundNormal.X:F2} {m.GroundNormal.Y:F2} {m.GroundNormal.Z:F2} " +
                             $"ecke1 {next} ecke2 {after} feld {director.Navigation.Grid.TimeToZone(new Vector3(p.X, p.Y - 0.9f, p.Z), br.Variant):F1} lehren {br.Lessons} hops {br.Hops}/{br.HopsLanded} weg {string.Join(";", System.Linq.Enumerable.Select(br.Corners, c => FormattableString.Invariant($"{c.Position.X:F2},{c.Position.Y:F2},{c.Position.Z:F2},{c.Link}")))} land {br.Landing.X:F1} {br.Landing.Y:F1} {br.Landing.Z:F1}");
                     }

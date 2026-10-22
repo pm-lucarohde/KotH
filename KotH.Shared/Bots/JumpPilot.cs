@@ -422,6 +422,7 @@ namespace KotH.Shared.Bots
         public struct Attempt
         {
             public bool Flying, Backing, Twice;
+            public Vector2 Keys;         // the WASD held on the ground
         }
 
         /// <summary>
@@ -452,7 +453,7 @@ namespace KotH.Shared.Bots
                     return jump;
                 }
             }
-            MoveInput input = Approach(hop, b, yaw, a.Backing, out float s);
+            MoveInput input = Approach(hop, b, yaw, ref a, out float s);
             float stop = UMath.Min(hop.Lip - radius - 0.05f, hop.Edge - 0.1f);
             float speed = UMath.Sqrt(b.VX * b.VX + b.VZ * b.VZ);
             // Back for a run-up, as far as the own level lets it.
@@ -467,35 +468,86 @@ namespace KotH.Shared.Bots
         /// <summary>
         /// The keys on the ground towards a hop's take-off: onto its line,
         /// then along it at walking speed up to the lip (or the edge).
-        /// Backing, to a run-up of a metre first.
+        /// Backing, to a run-up of a metre first. Held keys stay while they
+        /// do nearly as well, and a key never flips straight to its opposite
+        /// unless the edge is near: a thumb does not twitch every tick.
         /// </summary>
-        public MoveInput Approach(in Hop h, in Body b, float yaw, bool backing, out float s)
+        public MoveInput Approach(in Hop h, in Body b, float yaw, ref Attempt a, out float s)
         {
             float ox = b.X - h.From.X, oz = b.Z - h.From.Z;
             s = ox * h.DX + oz * h.DZ;
             float w = -ox * h.DZ + oz * h.DX;
             float stop = UMath.Min(h.Lip - radius - 0.05f, h.Edge - 0.1f);
-            float goal = backing ? UMath.Max(stop - 1f, h.Back) : stop;
+            // Just down and not yet seen standing: let go and catch the landing.
+            if (!b.Settled && s < stop - 0.3f)
+            {
+                a.Keys = Vector2.Zero;
+                return new MoveInput { Yaw = yaw };
+            }
+            float goal = a.Backing ? UMath.Max(stop - 1f, h.Back) : stop;
             float along = Want(goal - s, 0.25f, groundDec * 0.8f);
             along = UMath.Clamp(along, -walk, walk);
-            float aside = Want(-w, 0.2f, groundDec * 0.8f);
+            float aside = UMath.Abs(w) < AsideSlack ? 0f : Want(-w, 0.2f, groundDec * 0.8f);
             float tx = h.DX * along - h.DZ * aside, tz = h.DZ * along + h.DX * aside;
 
-            var input = new MoveInput { Yaw = yaw };
+            Vector2 move = Vector2.Zero;
             Body probe = b;
-            float best = float.MaxValue;
+            float best = float.MaxValue, kept = float.MaxValue;
             for (int my = -1; my <= 1; my++)
                 for (int mx = -1; mx <= 1; mx++)
                 {
-                    Accelerate(ref probe, yaw, new Vector2(mx, my), false, out float vx, out float vz);
-                    float ex = vx - tx, ez = vz - tz, e = ex * ex + ez * ez;
+                    var keys = new Vector2(mx, my);
+                    Accelerate(ref probe, yaw, keys, false, out float vx, out float vz);
+                    float ex = vx - tx, ez = vz - tz, e = UMath.Sqrt(ex * ex + ez * ez);
+                    if (keys == a.Keys)
+                        kept = e;
                     if (e < best - 1e-6f)
                     {
                         best = e;
-                        input.Move = new Vector2(mx, my);
+                        move = keys;
                     }
                 }
-            return input;
+            if (kept <= best + KeySlack)
+                move = a.Keys;
+            else if (s < h.Edge - 0.4f)
+            {
+                // Through nothing first, never straight from one key to its opposite.
+                if (move.X == -a.Keys.X)
+                    move.X = 0f;
+                if (move.Y == -a.Keys.Y)
+                    move.Y = 0f;
+            }
+            a.Keys = move;
+            return new MoveInput { Yaw = yaw, Move = move };
         }
+
+        // Metres off the line not worth a step aside, and m/s of speed a held
+        // key may miss by before it changes.
+        const float AsideSlack = 0.1f;
+        const float KeySlack = 0.6f;
+
+        /// <summary>
+        /// WASD for a direction relative to the view (degrees, left positive),
+        /// as a thumb holds them: one of eight, kept until the wanted
+        /// direction is clearly another, nothing when not going.
+        /// </summary>
+        public static Vector2 Keys(float rel, bool go, Vector2 held)
+        {
+            if (!go)
+                return Vector2.Zero;
+            if (held != Vector2.Zero)
+            {
+                float heldRel = UMath.Atan2(-held.X, held.Y) * (180f / MathF.PI);
+                if (UMath.Abs(MathF.IEEERemainder(rel - heldRel, 360f)) < 22.5f + KeyHysteresis)
+                    return held;
+            }
+            int n = (int)MathF.Round(MathF.IEEERemainder(rel, 360f) / 45f);
+            float r = n * 45f * (MathF.PI / 180f);
+            float x = -UMath.Sin(r), y = UMath.Cos(r);
+            return new Vector2(x > 0.5f ? 1f : x < -0.5f ? -1f : 0f, y > 0.5f ? 1f : y < -0.5f ? -1f : 0f);
+        }
+
+        const float KeyHysteresis = 12f;
+
     }
 }

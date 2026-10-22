@@ -43,7 +43,7 @@ Keine Unit-Tests; Proben gegen die eingefrorene Unity-Referenz. Exit-Code 0 = be
 Bin/Probes/Release/KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|step|
   determinism|clock|stairrun|rampfoot|crouchedge|knockback|thirdperson|wallknock|capture|netstate|netplay|bots>
 Bin/Probes/Release/KotH.Probes determinism hashes   # Hashkette 880D0C64389C53E3, JIT = AOT
-Bin/Probes/Release/KotH.Probes bots climb 12        # Berg (Neu), Mittel ≤ 140 s; auch bots stats 12, bots jumplab 200
+Bin/Probes/Release/KotH.Probes bots climb 12        # Berg (Neu), Mittel ≤ 140 s, Zappeln/Blick; bots stats 12, jumplab
 .work/tools/climb_many.sh ORDNER 8 13 && .work/tools/climb_many.py ORDNER   # 104 Seeds, jeder Bot einzeln
 .work/tools/stride_runs.sh 3; R=Reference/unity/runs
 python3 Tools/verdict.py $R/run1,$R/run2,$R/run3 .work/regress/run1   # Urteile (95, davon 94 gleich)
@@ -133,11 +133,12 @@ Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall 
   Lücke, Kosten in Sekunden; Sprünge und Abstiege brauchen einen Korridor so breit wie der Körper, `FloorAt` nimmt den
   Boden auf Fußhöhe. Zeitfeld per Dijkstra, Wegvarianten je Bot; zur Zone RTAA*, sonst A*. `Memory` (Strafen auf
   Fehlsprünge und ähnliche Züge, Aufschläge ohne Fortschritt) gehört dem Bot.
-- `JumpPilot` fliegt jeden Sprung vorher im Motormodell und springt erst, wenn er landet und sich am Boden sieht.
-  `BotBrain`: Utility AI, steuert wie ein Mensch (WASD digital, Blick weich), `ManeuverWfc` für Manöver. Mehr als
-  15 m unter der Zone nur Schlag im Vorbeigehen; geschlagen wird nur in `Running`.
+- `JumpPilot` fliegt jeden Sprung vorher im Motormodell, springt erst, wenn er landet und sich am Boden sieht; nach
+  der Landung lässt er los, bis er sich sieht, gehaltene Tasten bleiben, keine Umkehr ohne Pause (Lucas Wunsch: kein
+  Zappeln). Blick wie eine Hand an der Maus (Trägheit, leichte Unruhe, nickt zum Weg oder zur Stufe), Gehen peilt
+  1,8 m voraus. `BotBrain`: Utility AI, `ManeuverWfc`; weit unter der Zone nur Schlag im Vorbeigehen, nur in `Running`.
 - Nur Snapshot-Zustände lesen, nie lebende Komponenten (außer Einstellungen); Trigonometrie über `UMath`/`Math` in
-  double, keine `System.Random`. Stand: 312/312 Bots oben, Mittel 89 s, höchstens 178 s.
+  double, keine `System.Random`. Stand: 312/312 Bots oben, Mittel 85 s, höchstens 150 s.
 
 ### Figur und Animation (nur Darstellung)
 - Pilzfigur `Mushroom.glb` mit 17 Clips; `PlayerVisualSystem` mischt sie nach Tempo und Richtung, Lauf-Clips auf

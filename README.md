@@ -20,7 +20,8 @@ schaut zum Gipfel. In Lobby und Countdown und auf `Test` gelten die festen Start
 
 **Bots.** Offline und beim Host spielen 3 Bots mit (`--bots N`, `--bot-seed N`), als Spieler gezählt.
 Sie klettern über ein eigenes Kletterraster, jeder auf seiner Route, rechnen jeden Sprung in einem
-Modell des Motors vor und lernen aus Fehlsprüngen. Auf den Berg brauchen sie im Mittel etwa 1:30.
+Modell des Motors vor, lernen aus Fehlsprüngen und steuern wie ein Mensch (fangen sich nach der Landung,
+kein Zappeln, Blick mit Trägheit). Auf den Berg brauchen sie im Mittel etwa 1:25.
 Weit unter dem Gipfel schlagen sie nur im Vorbeigehen, oben kämpfen sie; in Lobby und Countdown nie.
 Sie sehen die Welt 0,2 s verzögert. Einstellungen an `BotSettings` (Entity „Bots“ der Map).
 
