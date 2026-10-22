@@ -1,0 +1,8 @@
+!Texture
+Id: DF3281F5-5E0A-40D9-8A11-E697814EC766
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../../Resources/Textures/Terrain/Bark.png
+IsCompressed: false
+Type: !ColorTextureType
+    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}

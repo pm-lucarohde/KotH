@@ -1,0 +1,8 @@
+!Texture
+Id: 4EC32F13-40E9-4C98-A918-19A038F98745
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../../Resources/Textures/Terrain/Rock.png
+IsCompressed: false
+Type: !ColorTextureType
+    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}

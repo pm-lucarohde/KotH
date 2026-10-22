@@ -254,6 +254,13 @@ erreichbar ist, und bricht sonst ab. Die Werte stehen oben im Skript (Höhe, Fu�
 Steigung, Säulen, Rundung, Übergang ins Plateau, Schneelinie, Bäume, Seed). Nach jedem
 Lauf alles neu bauen. Bots kommen dort noch nicht hinauf.
 
+Die Texturen der Map `Neu` malt `python3 Tools/maps/textures.py` (braucht Pillow) nach
+`KotH.Game/Resources/Textures/Terrain`: weich und comichaft wie die Pilzfiguren, nahtlos
+kachelbar. Die Shader `TerrainTriplanar` und `PaintedTriplanar` in `KotH.Game/Effects` legen
+sie von drei Seiten auf Boden, Laub und Rinde; welche Oberfläche wo liegt, steht in den
+Ecken des Modells. In Game Studio hängen die Texturen in den Materialien `Terrain`,
+`Leaves` und `Bark`, das Meer (`Water`) ist einfarbig.
+
 ## Proben und Regression
 
 Es gibt keine Unit-Tests. Geprüft wird mit **Proben**, die den Motor mit

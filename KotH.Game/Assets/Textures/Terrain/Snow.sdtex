@@ -1,0 +1,8 @@
+!Texture
+Id: A60C374C-E49D-480D-B0BD-339B365D6655
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../../Resources/Textures/Terrain/Snow.png
+IsCompressed: false
+Type: !ColorTextureType
+    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}

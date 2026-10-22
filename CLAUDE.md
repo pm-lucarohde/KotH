@@ -187,8 +187,9 @@ Insel (Fuß 95 m, Küste 117 m), Wiese, Strand, Bäume, Schnee ab etwa 55 %, Mee
 `Tools/maps/mountain.py` (reines Python, Seed fest): Blöcke von 1 m, abgerundet mit Surface Nets wie
 der Mod NoCubes, aber nur zu 70 % (`SMOOTH` 0,7; Lucas Wunsch: leicht abrunden, Berg flacher; auch
 Laub rund, Stämme bleiben Würfel). Schreibt **nur** `KotH.Game/Resources/Models/Mountain.glb`
-(Vertexfarben, weiche AO, Material `Terrain`), `Sea.glb` (Meer mit Loch unter der Insel, sonst
-verdeckte es aus der Ferne im Tiefenpuffer die Wiese) und `KotH.Shared/Resources/Maps/NeuTerrain.bin`
+(drei Teile mit eigenem Material: `Terrain`, `Leaves`, `Bark`; je Ecke `COLOR_0` = Gewichte Gras,
+Sand, Schnee, Schneekappe, der Rest ist Fels, und `TEXCOORD_0.x` = weiche AO), `Sea.glb` (Meer mit Loch
+unter der Insel, sonst verdeckte es aus der Ferne im Tiefenpuffer die Wiese) und `KotH.Shared/Resources/Maps/NeuTerrain.bin`
 (Kollision: dieselben Dreiecke, ins Feste gewunden, je 4 × 4 m ein Chunk; zlib, Magic `KTRN`).
 Die Datei ist **eingebettete Ressource** in
 KotH.Shared (`Maps.TerrainResource`), weil Strides `MeshCollider` ein Modell (GPU) braucht und rund
@@ -208,6 +209,18 @@ Lauf mit `Tools/publish_aot.sh` alles bauen (die Kollision steckt in KotH.Shared
 etwa 140 µs pro Tick (Median, AOT). Bots kommen nicht hinauf; ihre Wegplanung zum unerreichbaren
 Gipfel kostet bis über 10 ms pro Tick (offen). Sichtweite 20 km (bei 60 km verschwand die Insel ab
 300 m im Meer), Meer 60 km breit, Schatten fest bis 400 m.
+
+**Texturen der Map `Neu`** (Lucas Wahl, 22.10.2026: durchgehend gemalt im Stil der Pilzfiguren, weich und
+comichaft, wenig Details): `Tools/maps/textures.py` (Pillow, Seed fest) malt kachelbare PNGs nach
+`KotH.Game/Resources/Textures/Terrain` (Gras, Erde, Sand, Schnee, Fels 2048 px auf 4 m; Laub, Rinde
+1024 px auf 2 m), Gras mit Comic-Büscheln. Eigene Shader in `KotH.Game/Effects` (Ordner im `.sdpkg`):
+`TerrainTriplanar` legt die Texturen von drei Seiten auf (oben Gras, Sand, Schnee; an Hängen Erde, Fels,
+Schnee), Übergänge weich nach den Vertex-Gewichten (Lucas Wahl), `PaintedTriplanar` für Laub und Rinde.
+Das Meer ist einfarbig türkis (Material `Water`, keine Textur). Fallen: Strides neuer Shader-Compiler
+nimmt kein `Texture2D` als Generic (`NotImplementedException`), darum `LinkType`-Generics und
+`[Link("GrassKey")] stage Texture2D` in `rgroup PerMaterial`, im Material `ComputeShaderClassColor` mit
+`!ComputeColorParameterTexture` (darin verschachtelt `Texture:` → `Texture:`). Strides Import legt
+Materialien zusammen, die sich nur im Namen unterscheiden: `write_glb` gibt jedem eine eigene Rauheit.
 
 **Quelle aller Assets ist Game Studio** (Lucas Entscheidung, 16.10.2026). Die
 Generatoren aus dem Umzug (`Tools/generate_*.py`, in der Git-Geschichte bis

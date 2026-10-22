@@ -1,0 +1,8 @@
+!Texture
+Id: 2F65787A-909A-48AD-BD17-DC8735864220
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../../Resources/Textures/Terrain/Sand.png
+IsCompressed: false
+Type: !ColorTextureType
+    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}

@@ -10,4 +10,14 @@ Materials:
         MaterialInstance:
             Material: 08FD3D54-839C-4790-B4B1-2087BE4D45CC:Materials/Terrain
             IsShadowCaster: true
+    e1a4cd31537243feaa37d1655aefee84:
+        Name: Leaves
+        MaterialInstance:
+            Material: B1025513-FAA8-447E-9F14-4A811DE2B837:Materials/Leaves
+            IsShadowCaster: true
+    e11bc9f86049475eb71de22934b3a3c6:
+        Name: Bark
+        MaterialInstance:
+            Material: 96A66F9A-15A0-4DFC-86F7-A47229FD80D2:Materials/Bark
+            IsShadowCaster: true
 Modifiers: {}

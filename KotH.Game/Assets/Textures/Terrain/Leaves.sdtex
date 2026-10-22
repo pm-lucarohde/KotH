@@ -1,0 +1,8 @@
+!Texture
+Id: C3FAD864-FEED-4056-ADB8-6691B2A73927
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../../Resources/Textures/Terrain/Leaves.png
+IsCompressed: false
+Type: !ColorTextureType
+    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}

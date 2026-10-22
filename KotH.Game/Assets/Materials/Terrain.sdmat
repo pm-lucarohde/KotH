@@ -7,8 +7,25 @@ Attributes:
         GlossinessMap: !ComputeFloat
             Value: 0.1
     Diffuse: !MaterialDiffuseMapFeature
-        DiffuseMap: !ComputeVertexStreamColor
-            Stream: !ColorVertexStreamDefinition {}
+        DiffuseMap: !ComputeShaderClassColor
+            MixinReference: TerrainTriplanar
+            Generics:
+                897a48f488074e5b8ac748c4c79e4b8f~GrassKey: !ComputeColorParameterTexture
+                    Texture:
+                        Texture: 367D81A6-44FF-47D2-BE97-AC4F8CEC1D41:Textures/Terrain/Grass
+                bf9b4af7334e45b58142685f9b5dad36~DirtKey: !ComputeColorParameterTexture
+                    Texture:
+                        Texture: 9B82F2BA-7CAE-4B2D-973B-414ACC0465D2:Textures/Terrain/Dirt
+                f574075839ee4298a94e09483909fcc8~SandKey: !ComputeColorParameterTexture
+                    Texture:
+                        Texture: 2F65787A-909A-48AD-BD17-DC8735864220:Textures/Terrain/Sand
+                82877a9f8aac4c6891077a725319cf9b~SnowKey: !ComputeColorParameterTexture
+                    Texture:
+                        Texture: A60C374C-E49D-480D-B0BD-339B365D6655:Textures/Terrain/Snow
+                d6430e7b5722403e93179768db92feae~RockKey: !ComputeColorParameterTexture
+                    Texture:
+                        Texture: 4EC32F13-40E9-4C98-A918-19A038F98745:Textures/Terrain/Rock
+            CompositionNodes: {}
     DiffuseModel: !MaterialDiffuseLambertModelFeature {}
     Specular: !MaterialMetalnessMapFeature
         MetalnessMap: !ComputeFloat

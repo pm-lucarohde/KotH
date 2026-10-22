@@ -1,0 +1,30 @@
+/// <summary>
+/// One painted texture projected from three sides (triplanar), for leaves and
+/// bark; TEXCOORD0.x is the shade (soft AO).
+/// </summary>
+shader PaintedTriplanar<LinkType PaintKey>
+    : ComputeColor, PositionStream4, NormalStream, Texturing
+{
+    // Metres per repeat of the texture.
+    static const float TileSize = 2.0;
+    // A quarter mip level sharper, as in TerrainTriplanar.
+    static const float Bias = -0.25;
+
+    rgroup PerMaterial
+    {
+        [Link("PaintKey")] stage Texture2D Paint;
+    }
+
+    override float4 Compute()
+    {
+        float shade = streams.TexCoord.x;
+        float3 n = normalize(streams.normalWS);
+        float3 p = streams.PositionWS.xyz / TileSize;
+        float3 b = pow(abs(n), 8.0);
+        b /= b.x + b.y + b.z;
+        float4 c = b.x * Paint.SampleBias(AnisotropicRepeatSampler, float2(p.z, -p.y), Bias)
+                 + b.y * Paint.SampleBias(AnisotropicRepeatSampler, p.xz, Bias)
+                 + b.z * Paint.SampleBias(AnisotropicRepeatSampler, float2(p.x, -p.y), Bias);
+        return float4(c.rgb * shade, 1.0);
+    }
+};

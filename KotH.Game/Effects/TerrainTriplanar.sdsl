@@ -1,0 +1,54 @@
+/// <summary>
+/// Painted ground of a map, projected from three sides (triplanar): the top
+/// texture where the ground faces up, the side texture on slopes and walls.
+/// COLOR0 weighs the surfaces (grass, sand, snow, snow cap; the rest is rock),
+/// TEXCOORD0.x is the shade (soft AO).
+/// </summary>
+shader TerrainTriplanar<LinkType GrassKey, LinkType DirtKey, LinkType SandKey, LinkType SnowKey, LinkType RockKey>
+    : ComputeColor, PositionStream4, NormalStream, Texturing
+{
+    // Metres per repeat of the textures.
+    static const float TileSize = 4.0;
+    // A quarter mip level sharper than the hardware picks: painted edges stay clear.
+    static const float Bias = -0.25;
+
+    rgroup PerMaterial
+    {
+        [Link("GrassKey")] stage Texture2D Grass;
+        [Link("DirtKey")] stage Texture2D Dirt;
+        [Link("SandKey")] stage Texture2D Sand;
+        [Link("SnowKey")] stage Texture2D Snow;
+        [Link("RockKey")] stage Texture2D Rock;
+    }
+
+    stage stream float4 TerrainWeights : COLOR0;
+
+    override float4 Compute()
+    {
+        float shade = streams.TexCoord.x;
+        float4 w = streams.TerrainWeights;
+        float rock = saturate(1.0 - w.x - w.y - w.z - w.w);
+        float3 n = normalize(streams.normalWS);
+        float3 p = streams.PositionWS.xyz / TileSize;
+
+        // Projections along x, y and z, weighted towards the one the face looks along.
+        // A steep power keeps the blend zone narrow (no double images on slopes).
+        float3 b = pow(abs(n), 8.0);
+        b /= b.x + b.y + b.z;
+        float2 ux = float2(p.z, -p.y);
+        float2 uy = p.xz;
+        float2 uz = float2(p.x, -p.y);
+
+        float4 dirt = b.x * Dirt.SampleBias(AnisotropicRepeatSampler, ux, Bias) + b.y * Dirt.SampleBias(AnisotropicRepeatSampler, uy, Bias) + b.z * Dirt.SampleBias(AnisotropicRepeatSampler, uz, Bias);
+        float4 sand = b.x * Sand.SampleBias(AnisotropicRepeatSampler, ux, Bias) + b.y * Sand.SampleBias(AnisotropicRepeatSampler, uy, Bias) + b.z * Sand.SampleBias(AnisotropicRepeatSampler, uz, Bias);
+        float4 snow = b.x * Snow.SampleBias(AnisotropicRepeatSampler, ux, Bias) + b.y * Snow.SampleBias(AnisotropicRepeatSampler, uy, Bias) + b.z * Snow.SampleBias(AnisotropicRepeatSampler, uz, Bias);
+        float4 stone = b.x * Rock.SampleBias(AnisotropicRepeatSampler, ux, Bias) + b.y * Rock.SampleBias(AnisotropicRepeatSampler, uy, Bias) + b.z * Rock.SampleBias(AnisotropicRepeatSampler, uz, Bias);
+        float4 grass = Grass.SampleBias(AnisotropicRepeatSampler, uy, Bias);
+
+        float4 side = w.x * dirt + w.y * sand + w.z * snow + (w.w + rock) * stone;
+        float4 top = w.x * grass + w.y * sand + (w.z + w.w) * snow + rock * stone;
+        float up = smoothstep(0.45, 0.85, n.y);
+        float4 c = lerp(side, top, up);
+        return float4(c.rgb * shade, 1.0);
+    }
+};

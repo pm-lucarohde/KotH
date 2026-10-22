@@ -64,7 +64,7 @@ TREE_GAP = 7.0
 CHUNK = 4                  # collision chunks, metres across
 UNDER = 0                  # the coast is drawn down to here, just under the sea
 SIMPLIFY = 0.02            # the simplified mesh stays this close (metres) to every original face
-SIMPLIFY_COLOUR = 0.03     # and merges only vertices this close in colour (linear, per channel)
+SIMPLIFY_COLOUR = 0.03     # and merges only vertices this close in paint weights and shade
 SIMPLIFY_NORMAL = 0.95     # and with vertex normals at least this parallel
 WATER_Y = 0.4
 SEA_UNDER = 0.4            # the sea reaches this far in under the coast, past its rounded wall
@@ -394,8 +394,8 @@ FACES = {
 }
 
 
-def linear(c):
-    return tuple(v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4 for v in c)
+# The ground's surfaces in the order of TerrainTriplanar's weights; rock is the rest.
+PAINTS = [(GRASS, DIRT), (SAND, SAND), (SNOW, SNOW), (SNOW, STONE), (STONE, STONE)]
 
 
 def block(t, x, y, z):
@@ -417,7 +417,7 @@ class Mesh:
 
     def __init__(self, t):
         self.t = t
-        self.pos, self.nrm, self.col, self.idx = [], [], [], []
+        self.pos, self.nrm, self.col, self.uv, self.idx = [], [], [], [], []
         self.keys = []         # per vertex (corner, kind)
         self.index = {}
         self.offsets = {}
@@ -476,38 +476,34 @@ class Mesh:
             self.idx += [a, b, c]
 
     def finish(self):
-        """Normals to unit length, then the colour of every vertex."""
+        """Normals to unit length, then what the shader paints at every vertex."""
         for i, (corner, kind) in enumerate(self.keys):
             n = self.nrm[i]
             length = math.sqrt(n[0] ** 2 + n[1] ** 2 + n[2] ** 2) or 1.0
             self.nrm[i] = (n[0] / length, n[1] / length, n[2] / length)
-            self.col.append(self.colour(corner, kind, self.nrm[i]))
+            weights, shade = self.paint(corner, kind)
+            self.col.append(weights)
+            self.uv.append((shade, 0.0))
 
-    def colour(self, corner, kind, normal):
+    def paint(self, corner, kind):
+        """The ground's weights for TerrainTriplanar (COLOR_0: grass, sand,
+        snow, snow cap; the rest is rock) and the shade (TEXCOORD_0.x)."""
         t = self.t
         X, Y, Z = corner
         tint = 1.0
-        if kind == TRUNK:
-            colour = WOOD
-        elif kind == FOLIAGE:
-            colour = LEAVES
-        else:
+        weights = (0.0, 0.0, 0.0, 0.0)
+        if kind == GROUND:
             # The column whose top is at this corner, else the highest wall.
             columns = [(t.height.get((X - 1 + i, Z - 1 + k), -99), (X - 1 + i, Z - 1 + k)) for i in (0, 1) for k in (0, 1)]
             tops = [c for h, c in columns if h == Y]
             column = tops[0] if tops else max(columns)[1]
-            top, side = t.material[column]
-            # Top colour where the ground faces up, the side's on steep parts, blended between.
-            w = min(1.0, max(0.0, (normal[1] - 0.45) / 0.4))
-            w = w * w * (3 - 2 * w)
-            colour = tuple(side[n] + (top[n] - side[n]) * w for n in range(3))
-            if top in (STONE, SNOW):
-                tint = 0.93 + 0.07 * lattice(t.seed + 12, X, Y, Z) + 0.04 * noise(t.seed + 8, X / 5.0, Z / 5.0)
+            surface = PAINTS.index(t.material[column])
+            weights = tuple(1.0 if n == surface else 0.0 for n in range(4))
+            if t.material[column][0] in (STONE, SNOW):
+                tint = 0.95 + 0.05 * lattice(t.seed + 12, X, Y, Z) + 0.03 * noise(t.seed + 8, X / 5.0, Z / 5.0)
         # Soft AO as with smooth lighting: darker the more of the cell is solid.
         solid = sum(1 for k in self.kinds(X, Y, Z).values() if k is not None)
-        k = tint * (1.0 - AO_STEP * max(0, solid - 4))
-        lin = linear(colour)
-        return (lin[0] * k, lin[1] * k, lin[2] * k, 1.0)
+        return weights, tint * (1.0 - AO_STEP * max(0, solid - 4))
 
 
 def sub(a, b):
@@ -568,7 +564,7 @@ def simplify(mesh):
     vertex moves onto a neighbour, so every kept vertex keeps its place,
     colour and normal) by the planes they bend, while every original face
     stays within SIMPLIFY. Borders stay; the collision gets the same faces."""
-    pos, col, nrm = mesh.pos, mesh.col, mesh.nrm
+    pos, col, nrm, uv = mesh.pos, mesh.col, mesh.nrm, mesh.uv
     faces = [mesh.idx[i:i + 3] for i in range(0, len(mesh.idx), 3)]
     around = [set() for _ in pos]
     quad = [[0.0] * 10 for _ in pos]
@@ -595,7 +591,8 @@ def simplify(mesh):
         return {w for f in around[v] for w in faces[f]} - {v}
 
     def similar(u, v):
-        return (max(abs(col[u][k] - col[v][k]) for k in range(3)) <= SIMPLIFY_COLOUR
+        return (max(abs(col[u][k] - col[v][k]) for k in range(4)) <= SIMPLIFY_COLOUR
+                and abs(uv[u][0] - uv[v][0]) <= SIMPLIFY_COLOUR
                 and sum(nrm[u][k] * nrm[v][k] for k in range(3)) >= SIMPLIFY_NORMAL)
 
     def offer(u, v):
@@ -652,6 +649,7 @@ def simplify(mesh):
     new = {old: i for i, old in enumerate(keep)}
     mesh.pos = [pos[i] for i in keep]
     mesh.col = [col[i] for i in keep]
+    mesh.uv = [uv[i] for i in keep]
     mesh.nrm = [nrm[i] for i in keep]
     mesh.keys = [mesh.keys[i] for i in keep]
     mesh.idx = [new[w] for f, face in enumerate(faces) if alive[f] for w in face]
@@ -673,35 +671,45 @@ def slopes(mesh):
     return flat / total
 
 
-def write_glb(path, name, pos, nrm, idx, col=None):
-    """A glTF binary: one mesh, one primitive, its material called 'name'
-    (the model asset maps it); vertex colours if given."""
+def write_glb(path, parts):
+    """A glTF binary: one mesh with a primitive per part (material name, positions,
+    normals, indices, COLOR_0 or None, TEXCOORD_0 or None); the model asset maps
+    the materials by name."""
     def pack(fmt, rows):
         return b''.join(struct.pack(fmt, *r) for r in rows)
-    blobs = [pack('<3f', pos), pack('<3f', nrm)] + ([pack('<4f', col)] if col else [])
-    blobs.append(struct.pack('<%dI' % len(idx), *idx))
-    views, offset = [], 0
-    for i, b in enumerate(blobs):
-        views.append({'buffer': 0, 'byteOffset': offset, 'byteLength': len(b),
-                      'target': 34963 if i == len(blobs) - 1 else 34962})
-        offset += len(b)
-    n = len(pos)
-    accessors = [
-        {'bufferView': 0, 'componentType': 5126, 'count': n, 'type': 'VEC3',
-         'min': [min(p[i] for p in pos) for i in range(3)], 'max': [max(p[i] for p in pos) for i in range(3)]},
-        {'bufferView': 1, 'componentType': 5126, 'count': n, 'type': 'VEC3'},
-    ]
-    attributes = {'POSITION': 0, 'NORMAL': 1}
-    if col:
-        attributes['COLOR_0'] = 2
-        accessors.append({'bufferView': 2, 'componentType': 5126, 'count': n, 'type': 'VEC4'})
-    accessors.append({'bufferView': len(blobs) - 1, 'componentType': 5125, 'count': len(idx), 'type': 'SCALAR'})
+    blobs, views, accessors, primitives, materials = [], [], [], [], []
+    offset = 0
+
+    def add(blob, target, accessor):
+        nonlocal offset
+        views.append({'buffer': 0, 'byteOffset': offset, 'byteLength': len(blob), 'target': target})
+        blobs.append(blob)
+        offset += len(blob)
+        accessor['bufferView'] = len(views) - 1
+        accessors.append(accessor)
+        return len(accessors) - 1
+    for name, pos, nrm, idx, col, uv in parts:
+        n = len(pos)
+        attributes = {
+            'POSITION': add(pack('<3f', pos), 34962, {'componentType': 5126, 'count': n, 'type': 'VEC3',
+                            'min': [min(p[i] for p in pos) for i in range(3)], 'max': [max(p[i] for p in pos) for i in range(3)]}),
+            'NORMAL': add(pack('<3f', nrm), 34962, {'componentType': 5126, 'count': n, 'type': 'VEC3'}),
+        }
+        if col:
+            attributes['COLOR_0'] = add(pack('<4f', col), 34962, {'componentType': 5126, 'count': n, 'type': 'VEC4'})
+        if uv:
+            attributes['TEXCOORD_0'] = add(pack('<2f', uv), 34962, {'componentType': 5126, 'count': n, 'type': 'VEC2'})
+        indices = add(struct.pack('<%dI' % len(idx), *idx), 34963, {'componentType': 5125, 'count': len(idx), 'type': 'SCALAR'})
+        primitives.append({'attributes': attributes, 'indices': indices, 'material': len(materials)})
+        # Stride's import merges materials that differ only by name: tell them apart.
+        materials.append({'name': name, 'pbrMetallicRoughness': {'metallicFactor': 0.0, 'roughnessFactor': 0.9 - 0.01 * len(materials)}})
+    name = os.path.splitext(os.path.basename(path))[0]
     gltf = {
         'asset': {'version': '2.0', 'generator': 'KotH Tools/maps/mountain.py'},
         'scene': 0, 'scenes': [{'nodes': [0]}],
         'nodes': [{'name': name, 'mesh': 0}],
-        'meshes': [{'name': name, 'primitives': [{'attributes': attributes, 'indices': len(accessors) - 1, 'material': 0}]}],
-        'materials': [{'name': name, 'pbrMetallicRoughness': {'metallicFactor': 0.0, 'roughnessFactor': 0.9}}],
+        'meshes': [{'name': name, 'primitives': primitives}],
+        'materials': materials,
         'buffers': [{'byteLength': offset}],
         'bufferViews': views,
         'accessors': accessors,
@@ -716,6 +724,18 @@ def write_glb(path, name, pos, nrm, idx, col=None):
         f.write(struct.pack('<4sII', b'glTF', 2, total))
         f.write(struct.pack('<I4s', len(js), b'JSON') + js)
         f.write(struct.pack('<I4s', len(body), b'BIN\0') + body)
+
+
+def parts(mesh):
+    """The mesh split by kind of block, each with only its own vertices."""
+    out = []
+    for kind, name in ((GROUND, 'Terrain'), (FOLIAGE, 'Leaves'), (TRUNK, 'Bark')):
+        faces = [mesh.idx[i:i + 3] for i in range(0, len(mesh.idx), 3) if mesh.keys[mesh.idx[i]][1] == kind]
+        used = sorted({v for f in faces for v in f})
+        new = {v: i for i, v in enumerate(used)}
+        out.append((name, [mesh.pos[v] for v in used], [mesh.nrm[v] for v in used],
+                    [new[v] for f in faces for v in f], [mesh.col[v] for v in used], [mesh.uv[v] for v in used]))
+    return out
 
 
 def sea(t):
@@ -762,7 +782,7 @@ def sea(t):
     rect(-far, HALF, far, far)
     rect(-far, -HALF, -HALF, HALF)
     rect(HALF, -HALF, far, HALF)
-    return pos, [(0.0, 1.0, 0.0)] * len(pos), idx
+    return 'Water', pos, [(0.0, 1.0, 0.0)] * len(pos), idx, None, None
 
 
 # ---------- the collision ----------
@@ -839,8 +859,8 @@ def main():
 
     mesh = build_mesh(t)
     glb = os.path.join(ROOT, 'KotH.Game/Resources/Models/Mountain.glb')
-    write_glb(glb, 'Terrain', mesh.pos, mesh.nrm, mesh.idx, mesh.col)
-    write_glb(os.path.join(ROOT, 'KotH.Game/Resources/Models/Sea.glb'), 'Water', *sea(t))
+    write_glb(glb, parts(mesh))
+    write_glb(os.path.join(ROOT, 'KotH.Game/Resources/Models/Sea.glb'), [sea(t)])
     print('Mountain.glb: %d Dreiecke, %d Ecken, %.1f MB' % (len(mesh.idx) // 3, len(mesh.pos), os.path.getsize(glb) / 1e6))
 
     print('Begehbar (flacher als %.0f Grad): %.0f %% der Bodenfläche' % (SLOPE_LIMIT, slopes(mesh) * 100))

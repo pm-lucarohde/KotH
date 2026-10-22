@@ -8,7 +8,7 @@ Attributes:
             Value: 0.75
     Diffuse: !MaterialDiffuseMapFeature
         DiffuseMap: !ComputeColor
-            Value: {R: 0.13, G: 0.36, B: 0.66, A: 1.0}
+            Value: {R: 0.1, G: 0.52, B: 0.64, A: 1.0}
     DiffuseModel: !MaterialDiffuseLambertModelFeature {}
     Specular: !MaterialMetalnessMapFeature
         MetalnessMap: !ComputeFloat
