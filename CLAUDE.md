@@ -122,7 +122,7 @@ Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall 
 - `MusicPlayer` (Entity `Music`): Lobby-Track bis `Running`, dann Spielbeginn-Track und gemischte Playlist,
   Überblendung 3,5 s, Lautstärke 0,2, im Netz nach bestätigter Runde; misst die Länge selbst (`Sound.TotalLength`).
 - Licht: VXGI aus `ThirdParty/Stride.Voxels` (gepatcht, README), Profil 11; je Map `GI` (256 m, Bricks 0,125 m, GI 0,27,
-  Himmel `LightVoxel.Sky`): Map (Gruppe 3) gebacken; Figuren nicht voxelisiert, je 6 Kapseln an Knochen (`FigureOccluders`).
+  Himmel `LightVoxel.Sky`): Map (Gruppe 3) gebacken, Figuren als 6 Kapseln (`FigureOccluders`); Sonne PSSM 0,1, PCSS 1°.
 
 ### Bots (`KotH.Shared/Bots`)
 - Treten wie Spieler bei (NetId ab 4, Slots nach `NetWorld.BotSlots`), offline/Host `--bots N` (Standard 3), stehen bei Rundenbeginn 3 s (`StartWait`).

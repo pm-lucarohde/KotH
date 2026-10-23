@@ -1,12 +1,14 @@
 /// <summary>
-/// Stride's directional shadow receiver with the bias measured per cascade and
-/// a receiver plane depth bias. Stride subtracts DepthBias as a share of the
-/// cascade's depth range (a few centimetres near, metres far), offsets along the
-/// normal by atlas texels and compares all PCF taps with the pixel's own depth,
-/// so a sloped face shadows itself inside the kernel and steps at every edge.
-/// Here each tap follows the triangle's plane; DepthBias is in metres and
-/// NormalOffsetScale adds a depth bias in texels of the cascade sampled.
-/// Filters 5x5 like Stride's PCF (the scene's shadow filter must be PCF 5x5).
+/// Stride's directional shadow receiver with the bias measured per cascade,
+/// a receiver plane depth bias and soft shadows like PCSS. Stride subtracts
+/// DepthBias as a share of the cascade's depth range (a few centimetres near,
+/// metres far), offsets along the normal by atlas texels and compares all PCF
+/// taps with the pixel's own depth, so a sloped face shadows itself inside the
+/// kernel and steps at every edge. Here each tap follows the triangle's plane;
+/// DepthBias is in metres and NormalOffsetScale adds a depth bias in texels of
+/// the cascade sampled. The blockers within 4 texels set the penumbra
+/// (SunTangent per metre between blocker and receiver, at most 4 texels),
+/// filtered over a disk. The scene's shadow filter must be PCF (size unused).
 /// </summary>
 shader CascadeShadowReceiver<int TCascadeCount,
                              int TLightCount,
@@ -16,6 +18,12 @@ shader CascadeShadowReceiver<int TCascadeCount,
                              bool TComputeTransmittance> :
     ShadowMapReceiverDirectional<TCascadeCount, TLightCount, TBlendCascades, TDepthRangeAuto, TCascadeDebug, TComputeTransmittance>
 {
+    cbuffer PerView.Lighting
+    {
+        float4 CascadeRects[TCascadeCount * TLightCount];   // atlas uv: left, top, right, bottom
+        float SunTangent;     // penumbra metres per metre between blocker and receiver
+    };
+
     stream float3 shadowFacetNormalWS;
 
     // Called once before the cascade branches, where derivatives are still defined:
@@ -28,7 +36,8 @@ shader CascadeShadowReceiver<int TCascadeCount,
 
     override float ComputeShadowFromCascade(float3 shadowPositionWS, int cascadeIndex, int lightIndex)
     {
-        float4x4 toUV = WorldToShadowCascadeUV[cascadeIndex + lightIndex * TCascadeCount];
+        int index = cascadeIndex + lightIndex * TCascadeCount;
+        float4x4 toUV = WorldToShadowCascadeUV[index];
         float3 axisU = float3(toUV._11, toUV._21, toUV._31);
         float3 axisV = float3(toUV._12, toUV._22, toUV._32);
         float3 axisZ = float3(toUV._13, toUV._23, toUV._33);
@@ -50,35 +59,60 @@ shader CascadeShadowReceiver<int TCascadeCount,
         float limit = 10.0 * depthPerMetre / uvPerMetre;
         float2 gradient = clamp(-nuv / (abs(nz) > 1e-12 ? nz : 1e-12), -limit, limit);
 
-        return FilterPlane(shadowPosition.xyz, gradient);
+        // Taps stay half a texel inside this cascade's rectangle of the atlas.
+        float4 rect = CascadeRects[index] + float4(0.5 * ShadowMapTextureTexelSize, -0.5 * ShadowMapTextureTexelSize);
+        float gap = BlockerGap(shadowPosition.xyz, gradient, rect);
+        if (gap < 0.0)
+            return gap < -1.5 ? 0.0 : 1.0;
+        float radius = clamp(gap / depthPerMetre * SunTangent / texel, 1.5, 4.0);
+        return FilterDisk(shadowPosition.xyz, gradient, radius, rect);
     }
 
-    // Stride's 5x5 PCF kernel (ShadowMapFilterPcf, MIT), each tap at the plane's depth.
-    float FilterPlane(float3 position, float2 gradient)
+    // Mean depth from the blockers to the receiver's plane over 4x4 gathers, every
+    // texel within 4 of the pixel; -1 when nothing blocks, -2 when all do.
+    float BlockerGap(float3 position, float2 gradient, float4 rect)
     {
-        float2 uv = position.xy * ShadowMapTextureSize;
-        float2 corner = floor(uv + 0.5);
-        float2 st = uv + 0.5 - corner;
-        corner = (corner - 0.5) * ShadowMapTextureTexelSize;
+        float2 step = 2.0 * ShadowMapTextureTexelSize;
+        float2 halfTexel = 0.5 * ShadowMapTextureTexelSize;
+        float4 corners = float4(dot(float2(-halfTexel.x, halfTexel.y), gradient), dot(halfTexel, gradient),
+                                dot(float2(halfTexel.x, -halfTexel.y), gradient), dot(-halfTexel, gradient));
+        float sum = 0;
+        float count = 0;
+        for (int j = 0; j < 4; j++)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                // Snapped to a texel corner, so the gather takes the four texels round it.
+                float2 uv = clamp(position.xy + (float2(i, j) - 1.5) * step, rect.xy + halfTexel, rect.zw - halfTexel);
+                uv = (floor(uv * ShadowMapTextureSize - 0.5) + 1.0) * ShadowMapTextureTexelSize;
+                float4 stored = ShadowMapTexture.GatherRed(PointSampler, uv);
+                float4 receiver = position.z + dot(uv - position.xy, gradient) + corners;
+                float4 blocked = stored < receiver ? 1.0 : 0.0;
+                sum += dot(blocked, receiver - stored);
+                count += dot(blocked, 1.0);
+            }
+        }
+        return count == 0 ? -1.0 : count == 64 ? -2.0 : sum / count;
+    }
 
-        float2 w0 = 4 - 3 * st;
-        float2 w1 = 7;
-        float2 w2 = 1 + 3 * st;
-        float2 o0 = (3 - 2 * st) / w0 - 2;
-        float2 o1 = (3 + st) / w1;
-        float2 o2 = st / w2 + 2;
-
+    // 32 bilinear comparisons on a Vogel disk of the radius (texels), weighted
+    // towards the centre like a tent, so the penumbra fades without a rim.
+    float FilterDisk(float3 position, float2 gradient, float radius, float4 rect)
+    {
+        float2 scale = radius * ShadowMapTextureTexelSize;
         float shadow = 0;
-        shadow += w0.x * w0.y * Tap(corner + float2(o0.x, o0.y) * ShadowMapTextureTexelSize, position, gradient);
-        shadow += w1.x * w0.y * Tap(corner + float2(o1.x, o0.y) * ShadowMapTextureTexelSize, position, gradient);
-        shadow += w2.x * w0.y * Tap(corner + float2(o2.x, o0.y) * ShadowMapTextureTexelSize, position, gradient);
-        shadow += w0.x * w1.y * Tap(corner + float2(o0.x, o1.y) * ShadowMapTextureTexelSize, position, gradient);
-        shadow += w1.x * w1.y * Tap(corner + float2(o1.x, o1.y) * ShadowMapTextureTexelSize, position, gradient);
-        shadow += w2.x * w1.y * Tap(corner + float2(o2.x, o1.y) * ShadowMapTextureTexelSize, position, gradient);
-        shadow += w0.x * w2.y * Tap(corner + float2(o0.x, o2.y) * ShadowMapTextureTexelSize, position, gradient);
-        shadow += w1.x * w2.y * Tap(corner + float2(o1.x, o2.y) * ShadowMapTextureTexelSize, position, gradient);
-        shadow += w2.x * w2.y * Tap(corner + float2(o2.x, o2.y) * ShadowMapTextureTexelSize, position, gradient);
-        return shadow / 144.0;
+        float total = 0;
+        for (int k = 0; k < 32; k++)
+        {
+            float r2 = (k + 0.5) / 32.0;
+            float a = k * 2.39996;
+            float2 d = sqrt(r2) * float2(cos(a), sin(a));
+            float weight = 1.0 - 0.75 * r2;
+            float2 uv = clamp(position.xy + d * scale, rect.xy, rect.zw);
+            shadow += weight * Tap(uv, position, gradient);
+            total += weight;
+        }
+        return shadow / total;
     }
 
     float Tap(float2 tapUV, float3 position, float2 gradient)

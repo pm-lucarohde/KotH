@@ -136,7 +136,8 @@ Hierarchy:
                                     IsAutomatic: false
                                     ManualMinDistance: 0.1
                                     ManualMaxDistance: 400.0
-                                PartitionMode: !LightDirectionalShadowMap.PartitionLogarithmic {}
+                                PartitionMode: !LightDirectionalShadowMap.PartitionLogarithmic
+                                    PSSMFactor: 0.1
                                 ComputeTransmittance: false
                                 BiasParameters:
                                     DepthBias: 0.005
