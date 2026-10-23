@@ -72,3 +72,16 @@ ist, kosinusgewichtet ohne Horizontschnitt, ausgeblendet bis `OccluderFade` (4) 
 wie auf ihrer Oberfläche. Nicht in Voxel-Views. Genauere Formeln (Horizontschnitt nach Quilez, Integral entlang der
 Achse) sahen kaum anders aus und kosteten mehr. Kosten (JIT, 1440p, 12 Figuren × 6 Kapseln im Gedränge) ~0,5 ms,
 Figuren weit weg ~0,1–0,2 ms; die Voxel-Figuren kosteten mit Bots im Bild ~2 ms.
+
+## Lightmap (neu)
+
+`LightVoxel.LightmapSize` (Neu: 4096): Meshes mit zweitem UV-Set (`TEXCOORD1`, für den Berg aus `Tools/maps/MapUV`)
+bekommen das Voxel-Licht einmal gebacken. `BakeVoxels` fragt nach dem Voxel-Backen über die Tags des
+`RenderContext` (`ForwardRendererVoxels.LightmapRequestKey`); der Renderer zeichnet die Stufe `LightmapBake`
+(`LightmapBakeEffect`: Position = UV, beide Seiten, `IsFrontFace` fest, sonst kippt Stride die Normale gespiegelter
+Karten) mit einer View, die wie die Kamera beleuchtet ist, ohne Kapseln, nach RGBA16F (Licht, offener Himmelsanteil),
+füllt leere Texel in 4 Schritten (`LightmapDilate`) und gibt sie frei, wenn alle Bake-Effekte kompiliert und 3 Runden
+gezeichnet sind. `LightmapRenderFeature` setzt über `ExtensionPostVertexStageShader` Position bzw. `KOTH_LIGHTMAP`:
+Dann liest `LightVoxelShader` die Lightmap, die Kapseln kommen live dazu. Bild wie live (1–2/255), GI auf der Map
+statt ~1,3 ms noch ~0,15 ms (1440p); Figuren, Blätter, Meer rechnen weiter live. Ein Pass in 50/80 % Auflösung
+für den Rest war wieder langsamer als voll.

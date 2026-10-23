@@ -1,0 +1,8 @@
+<Project>
+  <!-- Build output under .work, set before the SDK reads it; the rest as for every KotH project. -->
+  <PropertyGroup>
+    <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)../../../.work/mapuv/obj/</BaseIntermediateOutputPath>
+    <BaseOutputPath>$(MSBuildThisFileDirectory)../../../.work/mapuv/bin/</BaseOutputPath>
+  </PropertyGroup>
+  <Import Project="$(MSBuildThisFileDirectory)../../../Directory.Build.props" />
+</Project>

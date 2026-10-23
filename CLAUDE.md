@@ -27,7 +27,7 @@ Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Pr
   (für `--map Test`, `BenchBot`s); `KOTH_TRACE=BotName`, `KOTH_FALLS=1`. Endzustands-Hash JIT = AOT.
   Netz: `--host [--port N] [--min-players N] [--bots N]`, `--join ADRESSE[:PORT]`, `--bot`, `--name` (`NetPlay.cs`).
 - Client: ohne Argumente offline; `--host`/`--join`, `--name`, `--port`, `--min-players`, `--display N` (Monitor
-  von links), `--map NAME` (Gäste nehmen die des Hosts). Zwei Clients: `Tools/two_clients.sh [aot|jit] [MAP]` (nicht
+  von links), `--map NAME` (Gäste nehmen die des Hosts), `--fps N` (Grenze, sonst frei). Zwei Clients: `Tools/two_clients.sh [aot|jit] [MAP]` (nicht
   selbst starten). JIT und AOT spielen zusammen, wenn JIT mit `DOTNET_EnableAVX=0` läuft (`BuildId`).
 - Testhilfen (`KotHApp.cs`, Zeiten ab Ende des Ladebilds): `KOTH_SHOT=bild.png` (nach `_SECONDS`, F3 an), `_YAW`/`_PITCH`/`_FOV`,
   `_THIRD`, `_AT=x,y,z`, `_FACE=grad`, `_SWING`, `_SHAKE`, `_HIT=grad`, `_BLINK`, `_STRIKE=s,…`, `_MOVE=x,y[,sprint]`, `_CROUCH=s`,
@@ -105,7 +105,7 @@ Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall 
 - **Neu** (Minecraft-Berg, 123 m): `Tools/maps/mountain.py` schreibt **nur** `Mountain.glb` (`COLOR_0` = Oberflächen,
   `TEXCOORD_0.x` = AO), `Sea.glb` und `NeuTerrain.bin` (Kollision, eingebettet, 4-m-Chunks, `WorldBuilder.AddTerrain`).
   Surface Nets 70 %, Säulen 2 × 1, ohne Wege, Gipfel aus ≥ 9/12 Richtungen; Stämme rund (Gras/Laub darüber nur optisch,
-  kein Boden im Stamm). Danach `publish_aot.sh`. Sichtweite ≤ 20 km. Klettergefühl testet Luca selbst.
+  kein Boden im Stamm). Danach `Tools/maps/MapUV` (Lightmap-UVs, `dotnet run`), `publish_aot.sh`. Sichtweite ≤ 20 km.
 - Texturen: `Tools/maps/textures.py` (gemalt, comichaft, wenig Details), Shader `TerrainTriplanar` (Flechten als Tupfen)/`PaintedTriplanar`/`LeafSplat`/`CellHash`
   in `KotH.Game/Effects`. Fallen: kein `Texture2D` als Generic (`LinkType` + `[Link]` in `rgroup PerMaterial`),
   verschachteltes `ComputeColorParameterTexture`; Import legt namensgleiche Materialien zusammen.
@@ -121,8 +121,8 @@ Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall 
   `HudRenderer.Numbers`. Prozent oben rechts/über Köpfen, Kamera wackelt bei Treffern. `LoadScreen`: schwarz bis GI gebacken.
 - `MusicPlayer` (Entity `Music`): Lobby-Track bis `Running`, dann Spielbeginn-Track und gemischte Playlist,
   Überblendung 3,5 s, Lautstärke 0,2, im Netz nach bestätigter Runde; misst die Länge selbst (`Sound.TotalLength`).
-- Licht: VXGI aus `ThirdParty/Stride.Voxels` (gepatcht, README), Profil 11; je Map `GI` (256 m, Bricks 0,125 m, GI 0,27,
-  Himmel `LightVoxel.Sky`): Map (Gruppe 3) gebacken, Figuren als 6 Kapseln (`FigureOccluders`); Sonne PSSM 0,1, PCSS 1°.
+- Licht: VXGI (`ThirdParty/Stride.Voxels`, gepatcht, README), Profil 11; je Map `GI` (256 m, Bricks 0,125 m, GI 0,27,
+  `LightVoxel.Sky`), Map-Licht beim Laden in Lightmap 4096², Figuren 6 Kapseln; Sonne PSSM 0,1, PCSS 2° bis 8 Texel.
 
 ### Bots (`KotH.Shared/Bots`)
 - Treten wie Spieler bei (NetId ab 4, Slots nach `NetWorld.BotSlots`), offline/Host `--bots N` (Standard 3), stehen bei Rundenbeginn 3 s (`StartWait`).

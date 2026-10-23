@@ -45,6 +45,10 @@ RenderStages:
         Id: BA28C12C-261F-45E6-BD4E-02CF38141F06
         Name: VoxelizationPassSecond
         EffectSlotName: Voxelizer2
+    6741c476a498466b8fb2a512fe27e9f6:
+        Id: D4E16DEC-2414-4600-990C-7A659A19D905
+        Name: LightmapBake
+        EffectSlotName: LightmapBake
 RenderFeatures:
     d8fb80b0e7995140a46bca8dc36ee8a2: !Stride.Rendering.MeshRenderFeature,Stride.Rendering
         RenderStageSelectors:
@@ -61,6 +65,10 @@ RenderFeatures:
             f5533b1249b942df8a8aba311cd79532: !Stride.Rendering.Shadows.ShadowMapRenderStageSelector,Stride.Rendering
                 ShadowMapRenderStage: ref!! E6C3DA39-E2E9-4D79-BABA-0B2D5D9A24B8
                 EffectName: StrideForwardShadingEffect.ShadowMapCasterCubeMap
+            63d3168ddb4143bdb5ae26beddad48ce: !Stride.Rendering.MeshTransparentRenderStageSelector,Stride.Rendering
+                RenderGroup: Group3
+                OpaqueRenderStage: ref!! D4E16DEC-2414-4600-990C-7A659A19D905
+                EffectName: LightmapBakeEffect
             106341b76db9fcda6a033dad16aa708b: !Stride.Rendering.MeshTransparentRenderStageSelector,Stride.Rendering
                 OpaqueRenderStage: ref!! EFF5EBE0-9211-442E-BE87-B98D8F1B9D59
                 EffectName: StrideForwardShadingEffect.ZPrepass
@@ -108,6 +116,8 @@ RenderFeatures:
                     Renderers:
                         7c3d3d4c86834c3551bacde2527b3836: !KotH.Client.Rendering.CascadeShadowMapRenderer,KotH.Game
                             ShadowCasterRenderStage: ref!! 78C668F8-9DE2-4D2A-83CE-AAE987C047E7
+                            SunAngle: 2.0
+                            MaxPenumbra: 8.0
                         1c204b09435636256a3fcfd6f9ddb347: !Stride.Rendering.Shadows.LightSpotShadowMapRenderer,Stride.Rendering
                             ShadowCasterRenderStage: ref!! 78C668F8-9DE2-4D2A-83CE-AAE987C047E7
                         7c8c69ce27034b4c8bbcab0bcdfe954b: !Stride.Rendering.Shadows.LightPointShadowMapRendererParaboloid,Stride.Rendering
@@ -161,6 +171,7 @@ SharedRenderers:
             Overlays: {}
         MSAALevel: None
         MSAAResolver: {}
+        LightmapBakeRenderStage: ref!! D4E16DEC-2414-4600-990C-7A659A19D905
         VoxelRenderer: !Stride.Rendering.Voxels.VoxelRenderer,Stride.Voxels
             VoxelStages:
                 ebc6da9e9cc380a03b62962f06cf721e: ref!! FFA492D9-B8A2-4D74-ABE8-D82C542FC526

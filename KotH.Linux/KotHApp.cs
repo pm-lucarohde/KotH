@@ -51,7 +51,8 @@ game.Run();
 /// the label font and quits. Taken from
 /// inside the game on purpose, a desktop screenshot would capture whatever
 /// else is on the screen. For performance runs: KOTH_SIZE=1920x1080 sets the
-/// window, KOTH_VSYNC=0 or 1 overrides V-Sync, and KOTH_FRAMELOG=path writes
+/// window, KOTH_VSYNC=0 or 1 overrides V-Sync, KOTH_FPS=N caps the frame rate
+/// like --fps, and KOTH_FRAMELOG=path writes
 /// every frame time in milliseconds, one per line, when the game ends. For the music:
 /// KOTH_MUSIC_VOLUME=0..1 overrides the volume, KOTH_MUSIC_TAIL=s starts every single-play
 /// track s seconds before its end, so the changes come quickly. KOTH_HEADLESS=1 never shows
@@ -132,6 +133,15 @@ sealed class KotHGame : Game
             TreatNotFocusedLikeMinimized = false;
             InactiveSleepTime = TimeSpan.Zero;
         }
+
+        // At most --fps N (or KOTH_FPS) frames per second, unlimited without; the
+        // last millisecond is spun, so the frames come evenly. Hidden, it counts as minimised.
+        if ((LaunchOptions.Current.Fps ?? (int?)Number("KOTH_FPS")) is { } fps && fps > 0)
+            foreach (var rate in headless ? [WindowMinimumUpdateRate, MinimizedMinimumUpdateRate] : new[] { WindowMinimumUpdateRate })
+            {
+                rate.SetMaxFrequency(fps);
+                rate.SetToPreciseAuto();
+            }
     }
 
     protected override void PrepareContext()

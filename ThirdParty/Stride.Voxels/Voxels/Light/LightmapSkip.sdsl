@@ -1,0 +1,9 @@
+// KotH patch: a mesh without a second UV set draws nothing in the lightmap bake:
+// every vertex lies beyond the far plane.
+shader LightmapSkip : TransformationBase
+{
+    stage override float4 ComputeShadingPosition(float4 world)
+    {
+        return float4(0.0, 0.0, 2.0, 1.0);
+    }
+};

@@ -22,6 +22,7 @@ shader CascadeShadowReceiver<int TCascadeCount,
     {
         float4 CascadeRects[TCascadeCount * TLightCount];   // atlas uv: left, top, right, bottom
         float SunTangent;     // penumbra metres per metre between blocker and receiver
+        float MaxPenumbra;    // widest penumbra radius in texels, also the blocker search's reach
     };
 
     stream float3 shadowFacetNormalWS;
@@ -64,15 +65,15 @@ shader CascadeShadowReceiver<int TCascadeCount,
         float gap = BlockerGap(shadowPosition.xyz, gradient, rect);
         if (gap < 0.0)
             return gap < -1.5 ? 0.0 : 1.0;
-        float radius = clamp(gap / depthPerMetre * SunTangent / texel, 1.5, 4.0);
+        float radius = clamp(gap / depthPerMetre * SunTangent / texel, 1.5, MaxPenumbra);
         return FilterDisk(shadowPosition.xyz, gradient, radius, rect);
     }
 
-    // Mean depth from the blockers to the receiver's plane over 4x4 gathers, every
-    // texel within 4 of the pixel; -1 when nothing blocks, -2 when all do.
+    // Mean depth from the blockers to the receiver's plane over 4x4 gathers reaching
+    // MaxPenumbra texels round the pixel (every texel at 4); -1 when nothing blocks, -2 when all do.
     float BlockerGap(float3 position, float2 gradient, float4 rect)
     {
-        float2 step = 2.0 * ShadowMapTextureTexelSize;
+        float2 step = 0.5 * MaxPenumbra * ShadowMapTextureTexelSize;
         float2 halfTexel = 0.5 * ShadowMapTextureTexelSize;
         float4 corners = float4(dot(float2(-halfTexel.x, halfTexel.y), gradient), dot(halfTexel, gradient),
                                 dot(float2(halfTexel.x, -halfTexel.y), gradient), dot(-halfTexel, gradient));

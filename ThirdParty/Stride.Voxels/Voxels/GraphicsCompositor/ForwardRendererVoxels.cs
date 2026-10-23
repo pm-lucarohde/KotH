@@ -19,6 +19,7 @@ using Stride.Rendering.SubsurfaceScattering;
 using Stride.VirtualReality;
 using Stride.Rendering.Compositing;
 using Stride.Rendering.Voxels.Debug;
+using Stride.Rendering.Voxels.VoxelGI;
 
 namespace Stride.Rendering.Voxels
 {
@@ -34,24 +35,134 @@ namespace Stride.Rendering.Voxels
 
         public VoxelDebug VoxelVisualization { get; set; }
 
+        /// <summary>
+        /// KotH patch: draws the meshes with a second UV set into the voxel light's lightmap
+        /// (<c>LightmapBakeEffect</c>) once it is asked for (<see cref="LightmapRequestKey"/>).
+        /// </summary>
+        /// <userdoc>Stufe, in der das Voxel-Licht einmal in die Lightmap gebacken wird.</userdoc>
+        public RenderStage LightmapBakeRenderStage { get; set; }
+
+        /// <summary>KotH patch: the voxel light whose lightmap is to be baked, in the render context's tags.</summary>
+        public static readonly PropertyKey<LightVoxel> LightmapRequestKey = new PropertyKey<LightVoxel>("LightmapRequest", typeof(ForwardRendererVoxels));
+
+        // Rounds drawn before the lightmap counts as baked: effects compile on their own time.
+        const int BakeRounds = 3;
+        const int DilateSteps = 4;
+
+        /// <summary>KotH patch: which meshes read the lightmap (null without a bake stage).</summary>
+        public LightmapRenderFeature Lightmaps => lightmaps;
+
+        LightmapRenderFeature lightmaps;
+        RenderView bakeView;
+        LightVoxel baking;
+        Texture lightmap;
+        int bakeRounds;
+        ImageEffectShader dilate;
+
         protected override void InitializeCore()
         {
-            ShadowMapRenderer_notPrivate = Context.RenderSystem.RenderFeatures.OfType<MeshRenderFeature>().FirstOrDefault()?.RenderFeatures.OfType<ForwardLightingRenderFeature>().FirstOrDefault()?.ShadowMapRenderer;
+            var meshes = Context.RenderSystem.RenderFeatures.OfType<MeshRenderFeature>().FirstOrDefault();
+            ShadowMapRenderer_notPrivate = meshes?.RenderFeatures.OfType<ForwardLightingRenderFeature>().FirstOrDefault()?.ShadowMapRenderer;
             base.InitializeCore();
+            if (meshes != null && LightmapBakeRenderStage != null)
+            {
+                lightmaps = new LightmapRenderFeature { MainStage = OpaqueRenderStage, BakeStage = LightmapBakeRenderStage };
+                meshes.RenderFeatures.Add(lightmaps);
+                meshes.PipelineProcessors.Add(new LightmapBakePipelineProcessor { BakeStage = LightmapBakeRenderStage });
+                dilate = ToLoadAndUnload(new ImageEffectShader("LightmapDilate"));
+            }
         }
+
+        protected override void CollectStages(RenderContext context)
+        {
+            base.CollectStages(context);
+            if (LightmapBakeRenderStage != null)
+                LightmapBakeRenderStage.Output = new RenderOutputDescription(PixelFormat.R16G16B16A16_Float);
+        }
+
+        protected override void Destroy()
+        {
+            lightmap?.Dispose();
+            base.Destroy();
+        }
+
         protected override void CollectCore(RenderContext context)
         {
             VoxelRenderer?.Collect(Context, ShadowMapRenderer_notPrivate);
+            CollectLightmapBake(context);
             base.CollectCore(context);
         }
+
+        // KotH patch: a view over the lightmap, lit like the camera's, with every mesh in it.
+        void CollectLightmapBake(RenderContext context)
+        {
+            var light = context.Tags.Get(LightmapRequestKey);
+            if (lightmaps == null || light == null || light.LightmapSize <= 0 || light.Lightmap != null)
+            {
+                baking = null;
+                return;
+            }
+            if (baking != light)
+            {
+                baking = light;
+                bakeRounds = 0;
+                lightmaps.Ready = false;
+            }
+            bakeView ??= new RenderView { CullingMode = CameraCullingMode.None };
+            bakeView.ViewSize = new Vector2(light.LightmapSize);
+            bakeView.LightingView = context.RenderView;
+            bakeView.RenderStages.Clear();
+            bakeView.RenderStages.Add(LightmapBakeRenderStage);
+            Context.RenderSystem.Views.Add(bakeView);
+            Context.VisibilityGroup.TryCollect(bakeView);
+        }
+
         protected override void DrawCore(RenderContext context, RenderDrawContext drawContext)
         {
             using (drawContext.PushRenderTargetsAndRestore())
             {
                 VoxelRenderer?.Draw(drawContext, ShadowMapRenderer_notPrivate);
             }
+            if (baking != null)
+                DrawLightmapBake(drawContext);
 
             base.DrawCore(context, drawContext);
+        }
+
+        // KotH patch: texels nothing covers are marked (alpha -1) and grown over
+        // from their neighbours; the result goes to the light once every mesh's
+        // bake effect has been compiled for a few rounds.
+        void DrawLightmapBake(RenderDrawContext drawContext)
+        {
+            int size = baking.LightmapSize;
+            if (lightmap == null || lightmap.Width != size)
+            {
+                lightmap?.Dispose();
+                lightmap = Texture.New2D(Context.GraphicsDevice, size, size, PixelFormat.R16G16B16A16_Float, TextureFlags.RenderTarget | TextureFlags.ShaderResource);
+            }
+            var spare = Context.Allocator.GetTemporaryTexture2D(size, size, PixelFormat.R16G16B16A16_Float);
+            using (drawContext.PushRenderTargetsAndRestore())
+            {
+                var commandList = drawContext.CommandList;
+                commandList.Clear(lightmap, new Color4(0, 0, 0, -1));
+                commandList.SetRenderTargetAndViewport(null, lightmap);
+                Context.RenderSystem.Draw(drawContext, bakeView, LightmapBakeRenderStage);
+                for (int i = 0; i < DilateSteps; i++)
+                {
+                    dilate.SetInput(0, i % 2 == 0 ? lightmap : spare);
+                    dilate.SetOutput(i % 2 == 0 ? spare : lightmap);
+                    dilate.Draw(drawContext);
+                }
+            }
+            Context.Allocator.ReleaseReference(spare);
+
+            if (lightmaps.Meshes > 0 && lightmaps.BakeEffectsCompiled == lightmaps.Meshes && ++bakeRounds >= BakeRounds)
+            {
+                baking.Lightmap = lightmap;
+                lightmaps.Ready = true;
+                Context.Tags.Remove(LightmapRequestKey);
+                baking = null;
+            }
         }
 
         protected override void DrawView(RenderContext context, RenderDrawContext drawContext, int eyeIndex, int eyeCount)

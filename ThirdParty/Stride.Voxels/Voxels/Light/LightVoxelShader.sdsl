@@ -6,7 +6,7 @@ namespace Stride.Rendering.Voxels.VoxelGI
     /// <summary>
     /// Defines a Voxel environment light
     /// </summary>
-    shader LightVoxelShader : Camera, Texturing, EnvironmentLight, MaterialPixelShadingStream, NormalStream, PositionStream4, Transformation
+    shader LightVoxelShader : Camera, Texturing, EnvironmentLight, MaterialPixelShadingStream, NormalStream, PositionStream4, Transformation, LightmapBakeStream
     {
         cbuffer PerView.Lighting
         {
@@ -31,6 +31,7 @@ namespace Stride.Rendering.Voxels.VoxelGI
         rgroup PerView.Lighting
         {
             TextureCube SkyCubeMap;
+            Texture2D Lightmap;     // KotH patch: baked for meshes with a second UV set (KOTH_LIGHTMAP)
         }
 
         compose VoxelMarchSet diffuseMarcher;
@@ -41,6 +42,30 @@ namespace Stride.Rendering.Voxels.VoxelGI
             base.PrepareEnvironmentLight();
             float3 normal = streams.normalWS.xyz;
             float4 sky = float4(normal, 1.0);
+#ifdef KOTH_LIGHTMAP
+            // KotH patch: the baked voxel light; the figures' capsules on top.
+            float4 baked = Lightmap.SampleLevel(LinearSampler, streams.TexCoord1, 0);
+            streams.envLightDiffuseColor = baked.rgb;
+            sky.w = baked.a;
+            if (OccluderGroupCount > 0)
+                streams.envLightDiffuseColor *= CapsuleVisibility(streams.PositionWS, normal);
+#else
+            LiveEnvironmentLight(normal, sky);
+#endif
+#ifdef KOTH_LIGHTMAP_BAKE
+            streams.bakedLight = float4(streams.envLightDiffuseColor, sky.w);
+#endif
+            if (SkySpecularIntensity > 0.0)
+            {
+                float3 r = reflect(-streams.viewWS, normal);
+                float mip = sqrt(streams.alphaRoughness) * SkyMipCount;
+                streams.envLightSpecularColor += SkyCubeMap.SampleLevel(LinearSampler, float3(r.xy, -r.z), mip).rgb * SkySpecularIntensity * sky.w;
+            }
+        }
+
+        // The voxel light and the sky, live (KotH patches); the lightmap bake leaves out the capsules.
+        void LiveEnvironmentLight(float3 normal, inout float4 sky)
+        {
             if (Intensity > 0.0)
             {
                 float3 worldPos = streams.PositionWS;
@@ -61,14 +86,10 @@ namespace Stride.Rendering.Voxels.VoxelGI
                 float3 bent = sky.xyz * rsqrt(max(dot(sky.xyz, sky.xyz), 1e-8));
                 streams.envLightDiffuseColor += SkyIrradiance(float3(bent.xy, -bent.z)) * SkyIntensity * sky.w;
             }
+#ifndef KOTH_LIGHTMAP_BAKE
             if (OccluderGroupCount > 0)
                 streams.envLightDiffuseColor *= CapsuleVisibility(streams.PositionWS, normal);
-            if (SkySpecularIntensity > 0.0)
-            {
-                float3 r = reflect(-streams.viewWS, normal);
-                float mip = sqrt(streams.alphaRoughness) * SkyMipCount;
-                streams.envLightSpecularColor += SkyCubeMap.SampleLevel(LinearSampler, float3(r.xy, -r.z), mip).rgb * SkySpecularIntensity * sky.w;
-            }
+#endif
         }
 
         // KotH patch: light left after the capsules near p, their shares multiplied.

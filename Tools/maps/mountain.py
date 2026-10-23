@@ -12,6 +12,7 @@ script prints where the summit and the meadow are. Blocks are 1 m: one
 block up is a jump, two a double jump, three a wall. Pure Python, seeded.
 
   python3 Tools/maps/mountain.py [--seed N]
+  dotnet run --project Tools/maps/MapUV -c Release   then: the lightmap UVs (TEXCOORD_1)
 """
 import math
 import os

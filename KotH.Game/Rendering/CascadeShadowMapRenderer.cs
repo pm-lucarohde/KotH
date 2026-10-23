@@ -2,6 +2,7 @@ using System;
 using Stride.Core;
 using Stride.Core.Mathematics;
 using Stride.Rendering;
+using Stride.Rendering.Lights;
 using Stride.Rendering.Shadows;
 using Stride.Shaders;
 
@@ -20,11 +21,25 @@ namespace KotH.Client.Rendering
     {
         static readonly ValueParameterKey<Vector4> CascadeRects = ParameterKeys.NewValue<Vector4>(default, "CascadeShadowReceiver.CascadeRects");
         static readonly ValueParameterKey<float> SunTangent = ParameterKeys.NewValue<float>(default, "CascadeShadowReceiver.SunTangent");
+        static readonly ValueParameterKey<float> MaxPenumbraKey = ParameterKeys.NewValue<float>(default, "CascadeShadowReceiver.MaxPenumbra");
 
         /// <summary>Angular radius of the sun in degrees: the penumbra per metre between blocker and receiver.</summary>
         /// <userdoc>Scheinbarer Radius der Sonne in Grad: Je größer, desto breiter der Halbschatten pro Meter Abstand zum Werfer.</userdoc>
         [DataMember(100)]
         public float SunAngle { get; set; } = 1.0f;
+
+        /// <summary>Widest penumbra radius in shadow map texels; the blockers are searched as far.</summary>
+        /// <userdoc>Größter Radius des Halbschattens in Texeln der Schattenkarte; so weit wird auch nach Werfern gesucht.</userdoc>
+        [DataMember(110)]
+        public float MaxPenumbra { get; set; } = 4.0f;
+
+        /// <summary>Share of Stride's size for each cascade's map (1 = as Stride picks it).</summary>
+        /// <userdoc>Anteil der von Stride gewählten Größe jeder Kaskade (1 = unverändert); kleiner ist günstiger und weicher.</userdoc>
+        [DataMember(120)]
+        public float Resolution { get; set; } = 1.0f;
+
+        public override LightShadowMapTexture CreateShadowMapTexture(RenderView renderView, RenderLight renderLight, IDirectLight light, int shadowMapSize)
+            => base.CreateShadowMapTexture(renderView, renderLight, light, Math.Max(16, (int)MathF.Round(shadowMapSize * Resolution)));
 
         public override ILightShadowMapShaderGroupData CreateShaderGroupData(LightShadowType shadowType)
             => new Receiver(this, (LightShadowMapShaderGroupDataBase)base.CreateShaderGroupData(shadowType),
@@ -36,6 +51,7 @@ namespace KotH.Client.Rendering
             Vector4[] rects = [];
             ValueParameterKey<Vector4> rectsKey;
             ValueParameterKey<float> tangentKey;
+            ValueParameterKey<float> penumbraKey;
 
             public void ApplyShader(ShaderMixinSource mixin) => inner.ApplyShader(mixin);
 
@@ -44,6 +60,7 @@ namespace KotH.Client.Rendering
                 inner.UpdateLayout(compositionName);
                 rectsKey = CascadeRects.ComposeWith(compositionName);
                 tangentKey = SunTangent.ComposeWith(compositionName);
+                penumbraKey = MaxPenumbraKey.ComposeWith(compositionName);
             }
 
             public void UpdateLightCount(int lightLastCount, int lightCurrentCount)
@@ -66,6 +83,7 @@ namespace KotH.Client.Rendering
                 }
                 parameters.Set(rectsKey, rects.Length, ref rects[0]);
                 parameters.Set(tangentKey, MathF.Tan(MathUtil.DegreesToRadians(owner.SunAngle)));
+                parameters.Set(penumbraKey, owner.MaxPenumbra);
             }
 
             public void ApplyDrawParameters(RenderDrawContext context, ParameterCollection parameters,

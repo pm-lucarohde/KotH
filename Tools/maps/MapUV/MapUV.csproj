@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Tools/maps/MapUV: the lightmap UVs for Mountain.glb (see Program.cs). -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- MIT, pure C# (github.com/ProwlEngine/Anthology). -->
+    <PackageReference Include="Prowl.Unwrapper" Version="3.7.2" />
+  </ItemGroup>
+</Project>

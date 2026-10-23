@@ -94,6 +94,7 @@ namespace Stride.Rendering.Voxels.VoxelGI
             private ValueParameterKey<int> occluderGroupCountKey;
             private ValueParameterKey<int> occluderGroupSizeKey;
             private ValueParameterKey<float> occluderFadeKey;
+            private ObjectParameterKey<Texture> lightmapKey; // KotH patch
 
             private PermutationParameterKey<ShaderSource> diffuseMarcherKey;
             private PermutationParameterKey<ShaderSource> specularMarcherKey;
@@ -158,6 +159,7 @@ namespace Stride.Rendering.Voxels.VoxelGI
                 occluderGroupCountKey = LightVoxelShaderKeys.OccluderGroupCount.ComposeWith(compositionName);
                 occluderGroupSizeKey = LightVoxelShaderKeys.OccluderGroupSize.ComposeWith(compositionName);
                 occluderFadeKey = LightVoxelShaderKeys.OccluderFade.ComposeWith(compositionName);
+                lightmapKey = LightVoxelShaderKeys.Lightmap.ComposeWith(compositionName);
 
                 diffuseMarcherKey = LightVoxelShaderKeys.diffuseMarcher.ComposeWith(compositionName);
                 specularMarcherKey = LightVoxelShaderKeys.specularMarcher.ComposeWith(compositionName);
@@ -236,6 +238,10 @@ namespace Stride.Rendering.Voxels.VoxelGI
                     parameters.Set(occluderGroupsKey, groups, ref lightVoxel.OccluderGroups[0]);
                     parameters.Set(occludersKey, 2 * groups * groupSize, ref lightVoxel.Occluders[0]);
                 }
+
+                // KotH patch: the baked light for meshes with a second UV set.
+                if (lightVoxel.Lightmap != null)
+                    parameters.Set(lightmapKey, lightVoxel.Lightmap);
 
                 if (traceAttribute != null)
                 {

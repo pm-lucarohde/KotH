@@ -1,0 +1,14 @@
+// KotH patch: the lightmap bake writes the voxel light and the open sky fraction
+// instead of the shaded colour; the direct lights' work is unused and dropped.
+shader LightmapBakeOutput : ShadingBase, LightmapBakeStream
+{
+    stage override void PSMain()
+    {
+        // Nothing to take where no voxel light writes it (a map without one).
+        streams.bakedLight = float4(0, 0, 0, 1);
+        // UV charts may be mirrored: never flip the normal as for a back face.
+        streams.IsFrontFace = true;
+        base.PSMain();
+        streams.ColorTarget = streams.bakedLight;
+    }
+};

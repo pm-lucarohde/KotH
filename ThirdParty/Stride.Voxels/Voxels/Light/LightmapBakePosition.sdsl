@@ -1,0 +1,9 @@
+// KotH patch: draws a mesh where its second UV set lies in the lightmap, both sides,
+// so the voxel light is written once per texel of its surface (LightmapBakeEffect).
+shader LightmapBakePosition : TransformationBase, Texturing
+{
+    stage override float4 ComputeShadingPosition(float4 world)
+    {
+        return float4(streams.TexCoord1.x * 2.0 - 1.0, 1.0 - streams.TexCoord1.y * 2.0, 0.5, 1.0);
+    }
+};

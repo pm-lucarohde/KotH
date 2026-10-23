@@ -16,6 +16,7 @@ namespace KotH.Client.Net
     ///   --display N                           fullscreen on that monitor, 0 first
     ///   --bots N, --bot-seed N                bots alone or as host (3 by default), their seed
     ///   --map NAME                            the map alone or as host (Maps.Default); joiners take the host's
+    ///   --fps N                               at most N frames per second (unlimited without)
     /// </summary>
     public sealed class LaunchOptions
     {
@@ -28,6 +29,7 @@ namespace KotH.Client.Net
         public int Bots = 3;
         public int BotSeed = 1;
         public string Map = Maps.Default;
+        public int? Fps;
 
         public bool Networked => Host || JoinAddress != null;
 
@@ -66,6 +68,7 @@ namespace KotH.Client.Net
             if (Number(args, "--bot-seed") is { } seed)
                 o.BotSeed = seed;
             o.Map = Text(args, "--map") ?? o.Map;
+            o.Fps = Number(args, "--fps");
             o.Name = Text(args, "--name") ?? Environment.UserName;
             return o;
         }

@@ -1,6 +1,8 @@
 using KotH.Client.Hud;
 using Stride.Engine;
+using Stride.Rendering;
 using Stride.Rendering.Voxels;
+using Stride.Rendering.Voxels.VoxelGI;
 
 namespace KotH.Client.Rendering
 {
@@ -8,7 +10,8 @@ namespace KotH.Client.Rendering
     /// Voxelises the map in full once, in the first frames after it is
     /// loaded, then keeps those voxels: map and sun never change. The figures
     /// are not voxelised (FigureOccluders hands them over as capsules).
-    /// Tells the LoadScreen once they are in.
+    /// Then has the voxel light baked into its lightmap, if it has one, and
+    /// tells the LoadScreen once that is in.
     /// </summary>
     /// <userdoc>Voxelisiert die Map einmal nach dem Laden; die Figuren kommen als Kapseln dazu.</userdoc>
     public sealed class BakeVoxels : SyncScript
@@ -27,7 +30,7 @@ namespace KotH.Client.Rendering
             if (volume.Storage is VoxelStorageSparse sparse)
             {
                 volume.Voxelize = !sparse.Baked;
-                if (sparse.Baked)
+                if (sparse.Baked && LightmapBaked())
                     Services.GetService<LoadScreen>()?.Baked();
                 return;
             }
@@ -37,6 +40,15 @@ namespace KotH.Client.Rendering
                 return;
             }
             volume.Voxelize = ++done <= Frames;
+        }
+
+        // Asks the renderer for the voxel light's lightmap until it is there (none wanted: at once).
+        bool LightmapBaked()
+        {
+            if (Entity.Get<LightComponent>()?.Type is not LightVoxel light || light.LightmapSize <= 0 || light.Lightmap != null)
+                return true;
+            RenderContext.GetShared(Services).Tags.Set(ForwardRendererVoxels.LightmapRequestKey, light);
+            return false;
         }
     }
 }

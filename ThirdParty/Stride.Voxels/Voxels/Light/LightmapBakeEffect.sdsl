@@ -1,0 +1,13 @@
+// KotH patch: the voxel light without the figures' capsules, written into the
+// lightmap texel of each surface point (ForwardRendererVoxels.LightmapBakeRenderStage).
+using Stride.Rendering;
+
+namespace Stride.Rendering.Voxels.VoxelGI
+{
+    effect LightmapBakeEffect
+    {
+        mixin macro KOTH_LIGHTMAP_BAKE = 1;
+        mixin StrideForwardShadingEffect;
+        mixin LightmapBakeOutput;
+    };
+}

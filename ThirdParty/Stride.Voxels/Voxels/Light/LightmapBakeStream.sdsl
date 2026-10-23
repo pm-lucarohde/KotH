@@ -1,0 +1,5 @@
+// KotH patch: what the lightmap bake keeps of the voxel light per texel.
+shader LightmapBakeStream
+{
+    stage stream float4 bakedLight;  // diffuse environment light, open sky fraction
+};

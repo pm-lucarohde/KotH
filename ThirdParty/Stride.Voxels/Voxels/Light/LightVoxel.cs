@@ -2,6 +2,7 @@
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 
 using Stride.Core;
+using Stride.Graphics;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Rendering.Lights;
@@ -43,6 +44,20 @@ namespace Stride.Rendering.Voxels.VoxelGI
         /// </userdoc>
         [DataMember(70)]
         public float SkyIntensity { get; set; } = 1.0f;
+
+        /// <summary>
+        /// KotH patch: side in texels of the lightmap the light is baked into, once, for
+        /// meshes with a second UV set (0 = none, they are lit live like the rest).
+        /// </summary>
+        /// <userdoc>
+        /// Kantenlänge der Lightmap in Texeln: Meshes mit zweitem UV-Set bekommen das Licht einmal gebacken statt jeden Frame (0 = aus).
+        /// </userdoc>
+        [DataMember(80)]
+        public int LightmapSize { get; set; }
+
+        /// <summary>KotH patch: the baked lightmap (set by ForwardRendererVoxels), null until then.</summary>
+        [DataMemberIgnore]
+        public Texture Lightmap { get; set; }
 
         /// <summary>KotH patch: most groups and capsules per group in <see cref="Occluders"/>.</summary>
         public const int MaxOccluderGroups = 12, MaxOccludersPerGroup = 8;
