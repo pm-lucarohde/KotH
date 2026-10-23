@@ -25,9 +25,18 @@ namespace KotH.Shared.Bots
         /// </summary>
         public sealed class Memory
         {
-            internal readonly Dictionary<int, float> Extra = new Dictionary<int, float>();
+            internal float[] Extra;          // by floor, 0 for none; sized on first use
+            internal int Extras;
             internal readonly Dictionary<long, float> Penalty = new Dictionary<long, float>();
-            public int Lessons => Extra.Count + Penalty.Count;
+            internal bool[] Punished;        // floors with a penalty on a move out of them
+            public int Lessons => Extras + Penalty.Count;
+
+            internal void Learn(int f, float extra)
+            {
+                if (Extra[f] == 0f)
+                    Extras++;
+                Extra[f] = extra;
+            }
         }
 
         /// <summary>A triangle of the arena, wound so its normal points out of the solid.</summary>
@@ -77,12 +86,20 @@ namespace KotH.Shared.Bots
         float[] headroom;
         byte[] edges;                       // bit per side (+x, -x, +z, -z): a fall of over a metre
 
+        // Walks by floor and direction (f * 8 + d), worked out once: the floor
+        // reached, -1 for none, and its cost.
+        int[] walkTo;
+        float[] walkCost;
+
         // Moves other than walking, by floor, and the same reversed.
         int[] linkStart, linkFrom, linkTo, revStart, revLink;
         LinkKind[] linkKind;
         float[] linkCost;
 
         float[][] time;                     // seconds to the zone; [0] plain, then the variants
+        float[][] factor;                   // each variant's cost factor by floor (none for the plain one)
+        int[][] nextFloor;                  // the plain field's next floor by variant, filled as asked; -2 unknown
+        float[][] nextCost;
         uint[] noiseSeed;
         float[] side;                       // each variant's favourite bearing round the zone, radians
         Vector3 hub;                        // the zone's middle
@@ -158,6 +175,7 @@ namespace KotH.Shared.Bots
             var grid = new ClimbGrid(minX, minZ, cell, nx, nz, motor, s);
             grid.Rasterize(tris, MathF.Cos(motor.SlopeLimit * (MathF.PI / 180f)));
             grid.FindFloors();
+            grid.FindWalks();
             grid.FindLinks();
             grid.Fields(zone, Math.Max(0, s.RouteVariants), seed, start);
             return grid;
@@ -362,6 +380,20 @@ namespace KotH.Shared.Bots
             return UMath.Sqrt(flat * flat + up * up) / Run;
         }
 
+        // Every walk of every floor, so the searches only look them up.
+        void FindWalks()
+        {
+            walkTo = new int[floorY.Length * 8];
+            walkCost = new float[floorY.Length * 8];
+            for (int f = 0; f < floorY.Length; f++)
+                for (int d = 0; d < 8; d++)
+                {
+                    int g = Walk(f, d);
+                    walkTo[f * 8 + d] = g;
+                    walkCost[f * 8 + d] = g >= 0 ? WalkCost(f, g, d) : 0f;
+                }
+        }
+
         /// <summary>
         /// Looks out from every floor in 16 directions, a quarter metre at a
         /// time. Where the own level ends: the first lower column is a drop,
@@ -523,10 +555,10 @@ namespace KotH.Shared.Bots
         // A variant's cost: dearer the further a floor lies round the zone
         // from the variant's side (not near the zone, where all ways meet),
         // and a little noise for lines of its own.
-        float Factor(int v, int f)
+        float Factor(int v, int f) => v == 0 ? 1f : factor[v][f];
+
+        float FactorOf(int v, int f)
         {
-            if (v == 0)
-                return 1f;
             float px = CentreX(floorCol[f]), pz = CentreZ(floorCol[f]);
             float dx = px - hub.X, dz = pz - hub.Z;
             float r = UMath.Sqrt(dx * dx + dz * dz);
@@ -563,6 +595,9 @@ namespace KotH.Shared.Bots
         void Fields(HillMatch zone, int variants, int seed, Vector3 start)
         {
             time = new float[variants + 1][];
+            factor = new float[variants + 1][];
+            nextFloor = new int[variants + 1][];
+            nextCost = new float[variants + 1][];
             noiseSeed = new uint[variants + 1];
             side = new float[variants + 1];
             hub = zone?.Center ?? Vector3.Zero;
@@ -573,6 +608,12 @@ namespace KotH.Shared.Bots
                 float fan = variants > 1 ? (v - 1) / (float)(variants - 1) * 2f - 1f : 0f;
                 float jitter = ((Mix(noiseSeed[v]) >> 8) * (1f / 16777216f) - 0.5f) * 0.3f;
                 side[v] = bearing + (fan * Spread * (MathF.PI / 180f)) + jitter;
+                if (v > 0)
+                {
+                    float[] k = factor[v] = new float[floorY.Length];
+                    for (int f = 0; f < floorY.Length; f++)
+                        k[f] = FactorOf(v, f);
+                }
                 float[] t = time[v] = new float[floorY.Length];
                 Array.Fill(t, float.MaxValue);
                 if (zone == null)
@@ -596,8 +637,8 @@ namespace KotH.Shared.Bots
                         if (back < 0)
                             continue;
                         for (int p = floorStart[back]; p < floorStart[back + 1]; p++)
-                            if (Walk(p, d) == g)
-                                Relax(t, p, at + WalkCost(p, g, d) * Factor(v, p));
+                            if (walkTo[p * 8 + d] == g)
+                                Relax(t, p, at + walkCost[p * 8 + d] * Factor(v, p));
                     }
                     for (int r = revStart[g]; r < revStart[g + 1]; r++)
                     {
@@ -764,9 +805,8 @@ namespace KotH.Shared.Bots
             if (i < 8)
             {
                 kind = LinkKind.None;
-                int g = Walk(f, i);
-                cost = g >= 0 ? WalkCost(f, g, i) : 0f;
-                return g;
+                cost = walkCost[f * 8 + i];
+                return walkTo[f * 8 + i];
             }
             int l = linkStart[f] + i - 8;
             kind = linkKind[l];
@@ -774,10 +814,17 @@ namespace KotH.Shared.Bots
             return linkTo[l];
         }
 
-        static float ExtraOf(Memory m, int f) => m != null && m.Extra.TryGetValue(f, out float e) ? e : 0f;
+        static float ExtraOf(Memory m, int f) => m != null ? m.Extra[f] : 0f;
 
         static float PenaltyOf(Memory m, int f, int g)
-            => m != null && m.Penalty.TryGetValue((long)f << 32 | (uint)g, out float p) ? p : 0f;
+            => m != null && m.Punished[f] && m.Penalty.TryGetValue((long)f << 32 | (uint)g, out float p) ? p : 0f;
+
+        // A bot's memory gets its tables the first time this grid uses it.
+        void Size(Memory m)
+        {
+            m.Extra ??= new float[floorY.Length];
+            m.Punished ??= new bool[floorY.Length];
+        }
 
         // The next floor down a variant's plain field: the cheapest move plus
         // the time left from there, always strictly closer.
@@ -814,6 +861,7 @@ namespace KotH.Shared.Bots
         {
             if (f < 0 || g < 0)
                 return;
+            Size(m);
             int col = floorCol[f], cx = col % nx, cz = col / nx;
             float gx = CentreX(floorCol[g]), gz = CentreZ(floorCol[g]);
             for (int iz = cz - 1; iz <= cz + 1; iz++)
@@ -836,6 +884,7 @@ namespace KotH.Shared.Bots
                                 continue;
                             long key = (long)f2 << 32 | (uint)g2;
                             m.Penalty[key] = PenaltyOf(m, f2, g2) + seconds;
+                            m.Punished[f2] = true;
                         }
                     }
                 }
@@ -849,8 +898,9 @@ namespace KotH.Shared.Bots
         public void Stuck(Vector3 feet, float seconds, Memory m)
         {
             int f = FloorAt(feet);
+            Size(m);
             if (f >= 0)
-                m.Extra[f] = ExtraOf(m, f) + seconds;
+                m.Learn(f, ExtraOf(m, f) + seconds);
         }
 
         public bool SameFloor(Vector3 feet, int floor) => floor >= 0 && FloorAt(feet) == floor;
@@ -869,9 +919,20 @@ namespace KotH.Shared.Bots
             best = time[0][f];
             int v = Math.Clamp(variant, 0, Variants);
             float sum = 0f;
+            int[] next = nextFloor[v];
+            float[] nextPlain = nextCost[v];
+            if (next == null)
+            {
+                next = nextFloor[v] = new int[floorY.Length];
+                nextPlain = nextCost[v] = new float[floorY.Length];
+                Array.Fill(next, -2);
+            }
             for (int k = 0; k < 100000 && time[v][f] > 0f; k++)
             {
-                f = Next(f, v, out float plain);
+                if (next[f] == -2)
+                    next[f] = Next(f, v, out nextPlain[f]);
+                float plain = nextPlain[f];
+                f = next[f];
                 if (f < 0)
                     return false;
                 sum += plain;
@@ -896,6 +957,8 @@ namespace KotH.Shared.Bots
             if (start < 0 || t[start] == float.MaxValue)
                 return false;
             EnsureSearch();
+            if (memory != null)
+                Size(memory);
             generation++;
             float H(int f) => t[f] + ExtraOf(memory, f);
 
@@ -940,7 +1003,7 @@ namespace KotH.Shared.Bots
                 {
                     float lifted = bestF - gScore[f];
                     if (lifted > H(f) + 0.01f)
-                        memory.Extra[f] = lifted - t[f];
+                        memory.Learn(f, lifted - t[f]);
                 }
 
             chain.Clear();

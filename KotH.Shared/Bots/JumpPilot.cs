@@ -161,6 +161,13 @@ namespace KotH.Shared.Bots
         void Accelerate(ref Body b, float yaw, Vector2 move, bool wantsSprint, out float vx, out float vz)
         {
             Axes(yaw, out float fx, out float fz, out float rx, out float rz);
+            Accelerate(ref b, fx, fz, rx, rz, move, wantsSprint, out vx, out vz);
+        }
+
+        // The same with the view's axes already worked out, for trying all keys at one yaw.
+        void Accelerate(ref Body b, float fx, float fz, float rx, float rz, Vector2 move, bool wantsSprint,
+                        out float vx, out float vz)
+        {
             move = UMath.ClampMagnitude(move, 1f);
             bool has = move.X * move.X + move.Y * move.Y > 0.0001f;
             bool sprinting = b.Sprinting || wantsSprint;
@@ -373,10 +380,11 @@ namespace KotH.Shared.Bots
             var input = new MoveInput { Yaw = yaw };
             Body probe = b;
             float best = float.MaxValue;
+            Axes(yaw, out float fx, out float fz, out float rx, out float rz);
             for (int my = -1; my <= 1; my++)
                 for (int mx = -1; mx <= 1; mx++)
                 {
-                    Accelerate(ref probe, yaw, new Vector2(mx, my), false, out float vx, out float vz);
+                    Accelerate(ref probe, fx, fz, rx, rz, new Vector2(mx, my), false, out float vx, out float vz);
                     float ex = vx - tx, ez = vz - tz, e = ex * ex + ez * ez;
                     if (e < best - 1e-6f)
                     {
@@ -493,11 +501,12 @@ namespace KotH.Shared.Bots
             Vector2 move = Vector2.Zero;
             Body probe = b;
             float best = float.MaxValue, kept = float.MaxValue;
+            Axes(yaw, out float fx, out float fz, out float rx, out float rz);
             for (int my = -1; my <= 1; my++)
                 for (int mx = -1; mx <= 1; mx++)
                 {
                     var keys = new Vector2(mx, my);
-                    Accelerate(ref probe, yaw, keys, false, out float vx, out float vz);
+                    Accelerate(ref probe, fx, fz, rx, rz, keys, false, out float vx, out float vz);
                     float ex = vx - tx, ez = vz - tz, e = UMath.Sqrt(ex * ex + ez * ez);
                     if (keys == a.Keys)
                         kept = e;
