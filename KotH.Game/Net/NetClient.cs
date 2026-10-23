@@ -36,7 +36,7 @@ namespace KotH.Client.Net
             else
             {
                 transport = LiteNetTransport.Join(options.JoinAddress, options.Port);
-                Session = new PeerSession(world, transport, sampleLocal, options.Name, founder: false, Now);
+                Session = new PeerSession(world, transport, sampleLocal, options.Name, founder: false, Now, join: false);
                 address = $"{options.JoinAddress}:{options.Port}";
             }
         }
@@ -75,7 +75,7 @@ namespace KotH.Client.Net
                 RejectReason.Full => "Abgelehnt: das Spiel ist voll",
                 RejectReason.Closed => "Abgelehnt: die Runde läuft schon zu lange",
                 _ => Session.HostLost ? "Der Host ist weg, das Spiel ist vorbei"
-                   : !Session.Joined ? $"Verbinde mit {address} …"
+                   : !Session.Joined ? $"Verbinde mit {address} ..."
                    : null,
             };
 

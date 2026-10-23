@@ -292,7 +292,7 @@ sealed class KotHGame : Game
 
         if (Find<PerformanceOverlay>() is { } overlay)
             overlay.Visible = true;
-        double now = gameTime.Total.TotalSeconds;
+        double now = TestSeconds(gameTime);
         bool turned = shotTurn != null && now >= shotTurn[1];
         bool orbit = turned && shotThird && shotTurn.Length > 2 && now >= shotTurn[1] + 0.2;
         if ((shotYaw.HasValue || shotTurn != null) && Find<PlayerInputReader>() is { } reader)
@@ -321,24 +321,24 @@ sealed class KotHGame : Game
                     motor.Teleport(shotAt.Value);
                 shotPlaced = player.PlacedTick;
             }
-            if (shotCrouch.HasValue && gameTime.Total.TotalSeconds >= shotCrouch.Value)
+            if (shotCrouch.HasValue && TestSeconds(gameTime) >= shotCrouch.Value)
             {
                 player.HoldCrouch();
                 shotCrouch = null;
             }
-            while (shotJumps.Count > 0 && gameTime.Total.TotalSeconds >= shotJumps.Peek())
+            while (shotJumps.Count > 0 && TestSeconds(gameTime) >= shotJumps.Peek())
             {
                 player.Jump();
                 shotJumps.Dequeue();
             }
-            if (shotSwing && gameTime.Total.TotalSeconds >= shotSeconds - 1.0)
+            if (shotSwing && TestSeconds(gameTime) >= shotSeconds - 1.0)
             {
                 player.Swing();
                 shotSwing = false;
             }
 
             // A hit taken just before the shot, as the camera sees one: a new tick.
-            if (shotShake && gameTime.Total.TotalSeconds >= shotSeconds - 0.05 &&
+            if (shotShake && TestSeconds(gameTime) >= shotSeconds - 0.05 &&
                 player.Entity.Get<KotH.Shared.Combat.DamagePercent>() is { } hit)
             {
                 hit.LastHitTick++;
@@ -348,7 +348,7 @@ sealed class KotHGame : Game
 
         // Every figure hit just before the shot, from one side; a frame early
         // enough even while the start still runs at 10 fps.
-        if (shotHit.HasValue && gameTime.Total.TotalSeconds >= shotSeconds - 0.1 &&
+        if (shotHit.HasValue && TestSeconds(gameTime) >= shotSeconds - 0.1 &&
             Find<PlayerVisualSystem>() is { } struck)
         {
             struck.HitAll((float)shotHit.Value);
@@ -356,7 +356,7 @@ sealed class KotHGame : Game
         }
 
         // Every figure swings its cane at these times, only shown.
-        while (shotStrikes.Count > 0 && gameTime.Total.TotalSeconds >= shotStrikes.Peek() &&
+        while (shotStrikes.Count > 0 && TestSeconds(gameTime) >= shotStrikes.Peek() &&
                Find<PlayerVisualSystem>() is { } swinging)
         {
             swinging.SwingAll();
@@ -365,7 +365,7 @@ sealed class KotHGame : Game
 
         // Shut at the shot: a third of the blink closes the lid.
         if (shotBlink && Find<PlayerVisualSystem>() is { } visuals &&
-            gameTime.Total.TotalSeconds >= shotSeconds - visuals.BlinkSeconds * 0.4)
+            TestSeconds(gameTime) >= shotSeconds - visuals.BlinkSeconds * 0.4)
         {
             visuals.BlinkAll();
             shotBlink = false;
@@ -460,8 +460,8 @@ sealed class KotHGame : Game
         }
 
         if (shotPath != null && shotVideo > 0.0)
-            RecordVideo(gameTime.Total.TotalSeconds);
-        if (shotPath == null || gameTime.Total.TotalSeconds < shotSeconds)
+            RecordVideo(TestSeconds(gameTime));
+        if (shotPath == null || TestSeconds(gameTime) < shotSeconds)
             return;
         video?.Dispose();
 
@@ -478,7 +478,7 @@ sealed class KotHGame : Game
             image.Save(f, ImageFileType.Png);
         }
 
-        Console.WriteLine($"[shot] {shotPath} nach {gameTime.Total.TotalSeconds:F1} s, {gameTime.FramePerSecond:F0} fps, " +
+        Console.WriteLine($"[shot] {shotPath} nach {TestSeconds(gameTime):F1} s, {gameTime.FramePerSecond:F0} fps, " +
                           $"Gier {Find<PlayerInputReader>()?.Yaw:F2}°");
         if (Find<MusicPlayer>() is { } music)
             Console.WriteLine($"[musik] {music.Readout}");
@@ -500,6 +500,17 @@ sealed class KotHGame : Game
     /// One frame of KOTH_SHOT_VIDEO, written once for every 1/30 s slot it
     /// covers: a slow frame repeats, so the video keeps the game's time.
     /// </summary>
+    // The test helpers count from the moment the load screen is gone, as a
+    // player's time starts then; -1 while it still covers the screen.
+    double coverLifted = double.NaN;
+
+    double TestSeconds(GameTime time)
+    {
+        if (double.IsNaN(coverLifted) && Services.GetService<LoadScreen>() is not { Covers: true })
+            coverLifted = time.Total.TotalSeconds;
+        return double.IsNaN(coverLifted) ? -1.0 : time.Total.TotalSeconds - coverLifted;
+    }
+
     void RecordVideo(double now)
     {
         if (double.IsNaN(videoAt))

@@ -93,9 +93,11 @@ namespace KotH.Shared.Net
         /// <summary>
         /// A peer that joins: says hello and waits for the host's state. A
         /// founder is the host's own peer, whose world is the start of the game.
+        /// With join false a guest only asks for the map first and joins with
+        /// Join once it has loaded it, so it never stands in the game half ready.
         /// </summary>
         public PeerSession(INetWorld world, INetTransport transport, Func<MoveInput> sampleLocal,
-                           string name, bool founder, double now)
+                           string name, bool founder, double now, bool join = true)
         {
             this.world = world;
             sim = world.Simulation;
@@ -121,6 +123,24 @@ namespace KotH.Shared.Net
                 syncTime = now;
             }
 
+            if (join)
+            {
+                Join(now);
+                return;
+            }
+            var w = new Writer(outgoing);
+            outgoing.Clear();
+            w.Byte((byte)MsgType.Ask);
+            w.Bytes(NetProtocol.BuildId);
+            transport.Send(0, outgoing.WrittenSpan, reliable: true);
+        }
+
+        /// <summary>Asks the host to let this peer in; once, at once unless asked not to.</summary>
+        public void Join(double now)
+        {
+            if (joining)
+                return;
+            joining = true;
             var w = new Writer(outgoing);
             outgoing.Clear();
             w.Byte((byte)MsgType.Hello);
@@ -129,6 +149,11 @@ namespace KotH.Shared.Net
             w.Text(name);
             transport.Send(0, outgoing.WrittenSpan, reliable: true);
         }
+
+        bool joining;
+
+        /// <summary>The host has said which map, and it is loaded; see Join.</summary>
+        public bool MapKnown { get; private set; }
 
         public SimulationSystem Simulation => sim;
 
@@ -267,6 +292,14 @@ namespace KotH.Shared.Net
             {
                 case MsgType.Welcome: Welcome(ref r, now); break;
                 case MsgType.Reject: Rejected = (RejectReason)r.Byte(); break;
+                case MsgType.Map:
+                    string map = r.Text();
+                    if (!r.Failed)
+                    {
+                        world.LoadMap(map);
+                        MapKnown = true;
+                    }
+                    break;
                 case MsgType.Confirmed: Confirm(ref r, now); break;
                 case MsgType.Repair: Repair(ref r, now); break;
             }

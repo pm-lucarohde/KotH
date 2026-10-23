@@ -29,7 +29,7 @@ Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Pr
 - Client: ohne Argumente offline; `--host`/`--join`, `--name`, `--port`, `--min-players`, `--display N` (Monitor
   von links), `--map NAME` (Gäste nehmen die des Hosts). Zwei Clients: `Tools/two_clients.sh [aot|jit] [MAP]` (nicht
   selbst starten). JIT und AOT spielen zusammen, wenn JIT mit `DOTNET_EnableAVX=0` läuft (`BuildId`).
-- Testhilfen (`KotHApp.cs`): `KOTH_SHOT=bild.png` (nach `_SECONDS`, F3 an, listet Schilder), `_YAW`/`_PITCH`/`_FOV`,
+- Testhilfen (`KotHApp.cs`, Zeiten ab Ende des Ladebilds): `KOTH_SHOT=bild.png` (nach `_SECONDS`, F3 an), `_YAW`/`_PITCH`/`_FOV`,
   `_THIRD`, `_AT=x,y,z`, `_FACE=grad`, `_SWING`, `_SHAKE`, `_HIT=grad`, `_BLINK`, `_STRIKE=s,…`, `_MOVE=x,y[,sprint]`, `_CROUCH=s`,
   `_JUMP=s,…`, `_TURN=grad,s[,kreis]`, `_VIDEO=s` (30 fps nach `bild.png.rgba`, Format im Log); `KOTH_HEADLESS=1` (ohne Fenster),
   `KOTH_SIZE`, `KOTH_VSYNC`, `KOTH_FRAMELOG`, `KOTH_BOT_THREAD`, `KOTH_MUSIC_VOLUME` (stumm), `KOTH_MUSIC_TAIL`, Ton `ALSOFT_DRIVERS=wave`. Kein Splash, 6 Render-Threads.
@@ -82,8 +82,8 @@ Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall 
 - `StateCodec` (Snapshot als Bytes, Version 3), Körper nach `NetId` (Spieler ab 4, Dummys 1–3 nur in Proben), in
   NetId-Reihenfolge angelegt. Mitspielen nur mit gleicher `BuildId` (MVID + Befehlssatz).
 - UDP über LiteNetLib 2.1.4, Datagramme ≤ `NetProtocol.MaxDatagram` (1200 B); Host und Peer klemmen Eingaben
-  (`Sanitize`). Im Client ist `GameRoot` die `INetWorld`, `NetClient` hält die Sessions; HUD zeigt den Sieg nur
-  bestätigt (`TryConfirmedMatch`). Korrekturen nie glätten (Lucas Entscheidung).
+  (`Sanitize`). Client: `GameRoot` ist die `INetWorld`, `NetClient` hält die Sessions; HUD zeigt den Sieg nur bestätigt
+  (`TryConfirmedMatch`); Korrekturen nie glätten. Gast `Ask` → `Map`, lädt, dann `Hello` (`Join`); Host öffnet nach dem Laden.
 
 ### Runde (`HillMatch`, `KotH.Shared/Match`)
 - Zone: Einnehmen 3 s allein; danach bleibt sie dem Halter, solange er drin ist, er punktet auch mit anderen darin.
@@ -118,7 +118,7 @@ Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall 
 
 ### Client: HUD, Kamera, Musik, Licht
 - `HudRenderer` zeichnet per SpriteBatch nach der Szene (Strides UI kippt unter Vulkan); Zahlen über
-  `HudRenderer.Numbers`. Eigene Prozent oben rechts, die anderen über den Köpfen. Kamera wackelt bei jedem Treffer.
+  `HudRenderer.Numbers`. Prozent oben rechts/über Köpfen, Kamera wackelt bei Treffern. `LoadScreen`: schwarz bis GI gebacken.
 - `MusicPlayer` (Entity `Music`): Lobby-Track bis `Running`, dann Spielbeginn-Track und gemischte Playlist,
   Überblendung 3,5 s, Lautstärke 0,2, im Netz nach bestätigter Runde; misst die Länge selbst (`Sound.TotalLength`).
 - Licht: VXGI aus `ThirdParty/Stride.Voxels` (gepatcht, README), Profil 11; je Map `GI` (256 m, Bricks 0,125 m, GI 0,27,

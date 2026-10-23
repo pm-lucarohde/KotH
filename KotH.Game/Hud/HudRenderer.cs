@@ -16,6 +16,12 @@ namespace KotH.Client.Hud
         void Draw(SpriteBatch batch, Vector2 screen);
     }
 
+    /// <summary>Drawn alone over the whole screen while it covers it, such as while loading.</summary>
+    public interface IHudCover : IHudElement
+    {
+        bool Covers { get; }
+    }
+
     /// <summary>
     /// Draws the screen HUD with one sprite batch after the scene, in exactly
     /// the order elements were added and without depth. Stride's UI orders
@@ -57,12 +63,16 @@ namespace KotH.Client.Hud
             return hud;
         }
 
+        /// <summary>While it covers the screen, nothing else of the HUD is drawn.</summary>
+        public IHudCover Cover { get; set; }
+
         public void Add(IHudElement element) => elements.Add(element);
         public void Remove(IHudElement element) => elements.Remove(element);
 
         protected override void DrawCore(RenderContext context, RenderDrawContext drawContext)
         {
-            if (elements.Count == 0)
+            bool covered = Cover is { Covers: true };
+            if (elements.Count == 0 && !covered)
                 return;
 
             batch ??= new SpriteBatch(drawContext.GraphicsDevice);
@@ -73,8 +83,11 @@ namespace KotH.Client.Hud
 
             batch.Begin(drawContext.GraphicsContext, SpriteSortMode.Deferred, BlendStates.AlphaBlend,
                         drawContext.GraphicsDevice.SamplerStates.LinearClamp, DepthStencilStates.None);
-            for (int i = 0; i < elements.Count; i++)
-                elements[i].Draw(batch, screen);
+            if (covered)
+                Cover.Draw(batch, screen);
+            else
+                for (int i = 0; i < elements.Count; i++)
+                    elements[i].Draw(batch, screen);
             batch.End();
         }
 

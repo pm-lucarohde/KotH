@@ -1,3 +1,4 @@
+using KotH.Client.Hud;
 using KotH.Client.Net;
 using KotH.Client.Player;
 using KotH.Shared.Bots;
@@ -45,12 +46,17 @@ namespace KotH.Client
             bool grabbed = UpdateCursor();
             LocalInput?.Collect(Input, Captured && !grabbed);
 
+            // Alone, the round starts once the load screen is gone; networked
+            // the session starts then (GameRoot), and until then nothing ticks.
+            LoadScreen cover = Services.GetService<LoadScreen>();
+            cover?.Update(Game.UpdateTime.Elapsed.TotalSeconds);
+
             if (Services.GetService<NetClient>() is { } net)
             {
                 net.Update();
                 TickInterpolation.Alpha = net.Alpha;
             }
-            else
+            else if (!LaunchOptions.Current.Networked && cover is not { Covers: true })
             {
                 int due = clock.Advance(Game.UpdateTime.Elapsed.TotalSeconds);
                 for (int i = 0; i < due; i++)

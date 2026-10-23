@@ -198,6 +198,11 @@ namespace KotH.Shared.Net
                 Hello(peer, ref r);
                 return;
             }
+            if (type == MsgType.Ask)
+            {
+                Ask(peer, ref r);
+                return;
+            }
             if (!clients.TryGetValue(peer, out Client c) || c.Phase == Phase.Left)
                 return;
 
@@ -212,27 +217,43 @@ namespace KotH.Shared.Net
             }
         }
 
+        // A peer about to join asks for the map first: it loads it before its Hello.
+        void Ask(int peer, ref Reader r)
+        {
+            ReadOnlySpan<byte> build = r.Bytes(NetProtocol.BuildId.Length);
+            if (r.Failed || clients.ContainsKey(peer) || Refused(peer, build))
+                return;
+            outgoing.Clear();
+            var w = new Writer(outgoing);
+            w.Byte((byte)MsgType.Map);
+            w.Text(founder?.Map ?? "");
+            Send(peer, reliable: true);
+        }
+
+        // Rejects a peer of another build, into a full game or a closed round; true then.
+        bool Refused(int peer, ReadOnlySpan<byte> build)
+        {
+            RejectReason? why = !build.SequenceEqual(NetProtocol.BuildId) ? RejectReason.Version
+                              : Players >= NetWorld.MaxPlayers ? RejectReason.Full
+                              : !CanJoin() ? RejectReason.Closed
+                              : null;
+            if (why == null)
+                return false;
+            outgoing.Clear();
+            var w = new Writer(outgoing);
+            w.Byte((byte)MsgType.Reject);
+            w.Byte((byte)why.Value);
+            Send(peer, reliable: true);
+            return true;
+        }
+
         void Hello(int peer, ref Reader r)
         {
             ReadOnlySpan<byte> build = r.Bytes(NetProtocol.BuildId.Length);
             double sent = r.Double();
             string name = r.Text();
-            if (r.Failed || clients.ContainsKey(peer))
+            if (r.Failed || clients.ContainsKey(peer) || Refused(peer, build))
                 return;
-
-            RejectReason? why = !build.SequenceEqual(NetProtocol.BuildId) ? RejectReason.Version
-                              : Players >= NetWorld.MaxPlayers ? RejectReason.Full
-                              : !CanJoin() ? RejectReason.Closed
-                              : null;
-            if (why != null)
-            {
-                outgoing.Clear();
-                var w = new Writer(outgoing);
-                w.Byte((byte)MsgType.Reject);
-                w.Byte((byte)why.Value);
-                Send(peer, reliable: true);
-                return;
-            }
 
             name = UniqueName(string.IsNullOrWhiteSpace(name) ? "Spieler" : name.Trim());
             var c = new Client

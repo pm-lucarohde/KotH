@@ -1,3 +1,4 @@
+using KotH.Client.Hud;
 using Stride.Engine;
 using Stride.Rendering.Voxels;
 
@@ -7,6 +8,7 @@ namespace KotH.Client.Rendering
     /// Voxelises the map in full once, in the first frames after it is
     /// loaded, then keeps those voxels: map and sun never change. The figures
     /// are not voxelised (FigureOccluders hands them over as capsules).
+    /// Tells the LoadScreen once they are in.
     /// </summary>
     /// <userdoc>Voxelisiert die Map einmal nach dem Laden; die Figuren kommen als Kapseln dazu.</userdoc>
     public sealed class BakeVoxels : SyncScript
@@ -25,10 +27,15 @@ namespace KotH.Client.Rendering
             if (volume.Storage is VoxelStorageSparse sparse)
             {
                 volume.Voxelize = !sparse.Baked;
+                if (sparse.Baked)
+                    Services.GetService<LoadScreen>()?.Baked();
                 return;
             }
             if (done > Frames)
+            {
+                Services.GetService<LoadScreen>()?.Baked();
                 return;
+            }
             volume.Voxelize = ++done <= Frames;
         }
     }

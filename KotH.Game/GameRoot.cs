@@ -117,6 +117,7 @@ namespace KotH.Client
             visuals = Entity.Get<PlayerVisualSystem>();
 
             LaunchOptions options = LaunchOptions.Current;
+            CoverWhileLoading();
             if (!options.Joining)
             {
                 string map = options.Map;
@@ -127,9 +128,18 @@ namespace KotH.Client
                 }
                 LoadMap(map);
             }
+            if (options.Host)
+            {
+                // The game opens once the host has loaded.
+                cover.Loaded += () => StartNetworked(options);
+                return;
+            }
             if (options.Networked)
             {
+                // A guest asks for the map, loads it and only then joins.
                 StartNetworked(options);
+                cover.Loaded += () => net.Session.Join(net.Now);
+                cover.Hold = () => !net.Session.Joined;
                 return;
             }
 
@@ -186,6 +196,7 @@ namespace KotH.Client
         {
             if (builder.Map == map)
                 return;
+            cover?.Begin();
             builder.LoadArena(map);
             if (builder.Zone != null)
                 simulation.Match = new HillMatch(builder.Zone) { Seed = (uint)Random.Shared.Next() };  // a guest takes the host's
@@ -207,6 +218,21 @@ namespace KotH.Client
         {
             net?.Dispose();
             botDirector?.Dispose();
+        }
+
+        /// <summary>
+        /// Black until the map's lighting is baked: the first seconds stutter
+        /// (shaders, the bake). Before a map it says what the connection says.
+        /// </summary>
+        void CoverWhileLoading()
+        {
+            HudRenderer hud = HudRenderer.Of(this);
+            cover = new LoadScreen(hud) { Text = () => net?.Notice };
+            foreach (Entity e in Entity.Scene.Entities)
+                if (e.Get<HillBoard>() is { } board)
+                    cover.Font = board.Font;
+            hud.Cover = cover;
+            Services.AddService(cover);
         }
 
         /// <summary>
@@ -465,6 +491,7 @@ namespace KotH.Client
         PlayerVisualSystem visuals;
         NetClient net;
         BotDirector botDirector;
+        LoadScreen cover;
         PlayerInputReader localReader;
         Entity arms;
         readonly Dictionary<SimulationBody, (Entity Visual, Entity Label)> shown =

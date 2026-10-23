@@ -31,6 +31,7 @@ namespace KotH.Probes.Probes
         const double LateJoinMs = 20000.0, LeaveMs = 30000.0, DamageMs = 35000.0, WrongBuildMs = 40000.0, TooLateMs = 45000.0;
         const int CountdownTicks = 400, JoinTicks = 800;
         const int EarlyPeers = 6, LatePeers = 4;
+        const double LoadMs = 1000.0;    // how long a late peer takes to load the map before its Hello
         const int Seed = 20261021;
 
         sealed class Peer
@@ -44,6 +45,8 @@ namespace KotH.Probes.Probes
             public int HoldTicks;
             public float Turn;
             public bool Gone;
+            public bool Asking;          // asked for the map, joins once it has "loaded" it
+            public double? MapAt;
             public readonly Dictionary<int, ulong> Hashes = new Dictionary<int, ulong>();
 
             // Every report, also a tick reported again after a repair.
@@ -93,7 +96,8 @@ namespace KotH.Probes.Probes
                     bool bad = joins.Count == 0;
                     double latency = bad ? 140.0 : 15.0 + rng.NextDouble() * 60.0;
                     net.Connect(hostEnd, end, latency, bad ? 70.0 : latency * 0.15, bad ? 0.10 : 0.05);
-                    Peer p = AddPeer($"P{peers.Count}", end, founder: false);
+                    // The late ones join as the client does: map first, Hello once loaded.
+                    Peer p = AddPeer($"P{peers.Count}", end, founder: false, ask: net.Now >= LateJoinMs);
                     p.Endpoint = end;
                     Log($"[netplay] {p.Name} verbindet bei {net.Now / 1000:F1} s, {latency:F0} ms einfach");
                 }
@@ -141,6 +145,11 @@ namespace KotH.Probes.Probes
                 {
                     if (p.Gone)
                         continue;
+                    if (p.Asking && p.Session.MapKnown && (p.MapAt ??= net.Now) + LoadMs <= net.Now)
+                    {
+                        p.Session.Join(net.Now);
+                        p.Asking = false;
+                    }
                     long t0 = Stopwatch.GetTimestamp();
                     p.Session.Update(net.Now);
                     p.WorstUpdateMs = Math.Max(p.WorstUpdateMs, Stopwatch.GetElapsedTime(t0).TotalMilliseconds);
@@ -173,7 +182,7 @@ namespace KotH.Probes.Probes
             return failures == 0 ? 0 : 1;
         }
 
-        Peer AddPeer(string name, INetTransport transport, bool founder)
+        Peer AddPeer(string name, INetTransport transport, bool founder, bool ask = false)
         {
             var world = new HeadlessWorld();
             world.LoadArena(Maps.Test);
@@ -183,8 +192,8 @@ namespace KotH.Probes.Probes
             match.JoinTicks = JoinTicks;
             world.Simulation.Deactivate();
 
-            var p = new Peer { Name = name, World = world, Bot = new Random(Seed + peers.Count * 7919) };
-            p.Session = new PeerSession(new HeadlessNetWorld(world), transport, () => BotInput(p), name, founder, net.Now);
+            var p = new Peer { Name = name, World = world, Bot = new Random(Seed + peers.Count * 7919), Asking = ask };
+            p.Session = new PeerSession(new HeadlessNetWorld(world), transport, () => BotInput(p), name, founder, net.Now, join: !ask);
             if (int.TryParse(Environment.GetEnvironmentVariable("KOTH_TURN_AHEAD"), out int ahead))
                 p.Session.TurnAhead = ahead;
             p.Session.Checksum += (tick, hash) =>
@@ -375,7 +384,7 @@ namespace KotH.Probes.Probes
                     $"vom Host {host.BytesSentTo(p.Session.LocalNetId) / 1024.0 / (EndMs + SettleMs) * 1000:F1} KiB/s");
             }
 
-            Check(joined == peers.Count, $"alle {peers.Count} beigetreten, auch die späten");
+            Check(joined == peers.Count, $"alle {peers.Count} beigetreten, auch die späten (erst Map, dann Hello)");
             Check(rollbacks > 100, $"{rollbacks} Rollbacks, die Vorhersage lag also oft daneben");
             Check(deepest <= PeerSession.MaxPredict, $"tiefster Rollback {deepest} Ticks, höchstens {PeerSession.MaxPredict}");
             Log($"[netplay] Warten gesamt {stalls}, schlimmstes Update {worst:F1} ms");
