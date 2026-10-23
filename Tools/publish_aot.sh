@@ -17,10 +17,14 @@ for t in $targets; do
     *) echo "unbekannt: $t" >&2; exit 64 ;;
   esac
   echo "== $proj -> $out"
+  # The effect cache outlives the build: Stride compiles shaders on first use
+  # and keys them by content, so a fresh build need not compile them all again.
+  if [ -d "$out/cache" ]; then rm -rf "$out.cache"; mv "$out/cache" "$out.cache"; fi
   rm -rf "$out"
   distrobox enter aot -- bash -c "export DOTNET_ROOT=\$HOME/.dotnet PATH=\$HOME/.dotnet:\$PATH DOTNET_CLI_TELEMETRY_OPTOUT=1
     cd '$PWD' && dotnet build $proj -c Release -r linux-x64 -p:PublishAot=true --no-incremental -v q -nologo \
       && dotnet publish $proj -c Release -r linux-x64 -p:PublishAot=true -o $out -v q -nologo" \
     | grep -E 'error|warning (IL|AOT)|->' || true
   test -x "$out/${proj/KotH.Linux/KotH}" || { echo "$proj: kein Binary" >&2; exit 1; }
+  if [ -d "$out.cache" ]; then mv "$out.cache" "$out/cache"; fi
 done

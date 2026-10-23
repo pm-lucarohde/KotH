@@ -20,8 +20,8 @@ cd Bin/Linux/Release && ./KotH         # aus dem Ausgabeordner starten
 Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Probes}/aot
 ```
 
-- AOT linkt in der Distrobox `aot` (clang, lld, zlib-devel, libva); ILC stürzt manchmal ab, dann neu starten.
-  Immer `--no-incremental`, sonst bleibt nach neuen Skriptfeldern das alte Szenen-Bundle und der Client stürzt.
+- AOT linkt in der Distrobox `aot` (clang, lld, zlib-devel, libva); ILC stürzt manchmal ab, dann neu starten. Immer
+  `--no-incremental` (sonst altes Szenen-Bundle, Client stürzt). Shader-Cache `aot/cache` überlebt den Build.
 - Server: Echtzeit bis Strg+C, `--seconds N` oder `--ticks N` (so schnell wie möglich, µs/Tick, B/Tick,
   exakter Endzustand); `--map NAME` (Standard `Neu`); `--bots N --bot-seed N`; Lasttest `--bodies N --warmup N`
   (für `--map Test`, `BenchBot`s); `KOTH_TRACE=BotName`, `KOTH_FALLS=1`. Endzustands-Hash JIT = AOT.
