@@ -140,6 +140,7 @@ namespace KotH.Client
             // joiners, so they think exactly as they would on a host.
             var states = new LocalFinalStates(simulation);
             BotDirector director = options.Bots > 0 ? BotDirector.Create(builder, simulation, states, options.BotSeed) : null;
+            WorkAhead(director);
             var bots = new List<Entity>();
             for (int i = 0; i < options.Bots; i++)
             {
@@ -172,7 +173,9 @@ namespace KotH.Client
             Services.AddService(net);
             if (options.Host && options.Bots > 0)
             {
-                net.AddBots(BotDirector.Create(builder, simulation, net.Session, options.BotSeed), options.Bots);
+                BotDirector director = BotDirector.Create(builder, simulation, net.Session, options.BotSeed);
+                net.AddBots(director, options.Bots);
+                WorkAhead(director);
                 Log.Info($"Netzwerk: {options.Bots} Bots, Seed {options.BotSeed}");
             }
             Log.Info($"Netzwerk: {(options.Host ? "Host" : "Gast")} als {options.Name}, Build {NetProtocol.BuildText}");
@@ -203,6 +206,22 @@ namespace KotH.Client
         public override void Cancel()
         {
             net?.Dispose();
+            botDirector?.Dispose();
+        }
+
+        /// <summary>
+        /// The bots' inputs worked out ahead of their ticks, off the frame: on
+        /// a thread of their own, with KOTH_BOT_THREAD=0 a little each frame
+        /// instead. SimulationDriver pumps the director it finds here.
+        /// </summary>
+        void WorkAhead(BotDirector director)
+        {
+            if (director == null)
+                return;
+            botDirector = director;
+            Services.AddService(director);
+            if (Environment.GetEnvironmentVariable("KOTH_BOT_THREAD") != "0")
+                director.StartWorker();
         }
 
         /// <summary>The camera, the HUD and the input on the local player's body.</summary>
@@ -445,6 +464,7 @@ namespace KotH.Client
         SimulationSystem simulation;
         PlayerVisualSystem visuals;
         NetClient net;
+        BotDirector botDirector;
         PlayerInputReader localReader;
         Entity arms;
         readonly Dictionary<SimulationBody, (Entity Visual, Entity Label)> shown =

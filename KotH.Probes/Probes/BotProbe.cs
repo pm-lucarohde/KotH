@@ -75,6 +75,11 @@ namespace KotH.Probes.Probes
             Check(first.Inputs == second.Inputs && first.End == second.End,
                   $"gleicher Seed, gleiche Eingaben ({first.Inputs:X16} / {second.Inputs:X16})");
             Check(first.Inputs != other.Inputs, "anderer Seed, andere Eingaben");
+            // Worked out ahead, on a thread or a little each frame: the same bits.
+            Result threaded = Play(Seed, ahead: 1), pumped = Play(Seed, ahead: 2);
+            Check(threaded.Inputs == first.Inputs && threaded.End == first.End &&
+                  pumped.Inputs == first.Inputs && pumped.End == first.End,
+                  $"voraus gerechnet gleich ({threaded.Inputs:X16} Thread, {pumped.Inputs:X16} Pump)");
             Log($"[bots] Hashkette Eingaben {first.Inputs:X16}, Endzustand {first.End:X16}");
 
             Lobby();
@@ -83,6 +88,10 @@ namespace KotH.Probes.Probes
             ulong steady = Hosted(16.7, 1, guest: false, out _, out _);
             ulong ragged = Hosted(7.3, 2, guest: false, out _, out _);
             Check(steady == ragged, $"Host-Bots unabhängig vom Bildtakt ({steady:X16} / {ragged:X16})");
+            ulong hostThread = Hosted(16.7, 1, guest: false, out _, out _, ahead: 1);
+            ulong hostPump = Hosted(7.3, 2, guest: false, out _, out _, ahead: 2);
+            Check(hostThread == steady && hostPump == steady,
+                  $"Host-Bots voraus gerechnet gleich ({hostThread:X16} Thread, {hostPump:X16} Pump)");
             Hosted(16.7, 3, guest: true, out PeerSession founder, out PeerSession guest);
             Hosted(16.7, 4, guest: false, out PeerSession paused, out _, pause: 3000.0);
             Check(paused.Stalls < 200 && Math.Abs(paused.Lead - PeerSession.LeadTarget) <= 1.0,
@@ -129,13 +138,16 @@ namespace KotH.Probes.Probes
         /// get up there, take points and hit the body; their inputs go into
         /// a hash chain, tick by tick.
         /// </summary>
-        Result Play(int seed)
+        // ahead: 0 as the server does, 1 on the bots' own thread, 2 a little each tick (Pump).
+        Result Play(int seed, int ahead = 0)
         {
             using var world = new HeadlessWorld();
             world.LoadArena(Maps.Test);
             HillMatch match = world.StartMatch();
             var states = new LocalFinalStates(world.Simulation);
             BotDirector director = BotDirector.Create(world.Builder, world.Simulation, states, seed);
+            if (ahead == 1)
+                director.StartWorker();
 
             var still = new ScriptedBody { NetId = NetWorld.FirstPlayerId };
             Entity stillEntity = world.SpawnBody(HeadlessWorld.PlayerBodyUrl, new Vector3(2f, 5.95f, -14f), Quaternion.Identity,
@@ -165,6 +177,8 @@ namespace KotH.Probes.Probes
             for (int t = 0; t < PlayTicks; t++)
             {
                 world.Simulation.Tick();
+                if (ahead > 0)
+                    director.Pump(0.05);
                 foreach (BotBody bot in bots)
                 {
                     director.TryInput(bot.NetId, world.Simulation.CurrentTick - 1, out MoveInput input);
@@ -198,6 +212,12 @@ namespace KotH.Probes.Probes
                 }
             }
 
+            director.Dispose();
+            if (ahead > 0)
+            {
+                int share = director.StepsAhead * 100 / Math.Max(1, director.StepsAhead + director.StepsAsked);
+                Check(share >= 90, $"{(ahead == 1 ? "Thread" : "Pump")} rechnet {share} % der Schritte voraus");
+            }
             var snap = new WorldSnapshot();
             world.Simulation.Capture(snap);
             buffer.Clear();
@@ -295,9 +315,10 @@ namespace KotH.Probes.Probes
         /// A host with bots over the memory network, 40 s. Returns the hash
         /// chain of the bot inputs the host confirmed. With a guest, checks
         /// the checksums agree and the host never had to roll back: its own
-        /// player and the guest stand still, and the bots it knows.
+        /// player and the guest stand still, and the bots it knows. ahead as in Play.
         /// </summary>
-        ulong Hosted(double frameMs, int netSeed, bool guest, out PeerSession founder, out PeerSession visitor, double pause = 0.0)
+        ulong Hosted(double frameMs, int netSeed, bool guest, out PeerSession founder, out PeerSession visitor, double pause = 0.0,
+                     int ahead = 0)
         {
             var net = new MemoryNetwork(netSeed);
             MemoryNetwork.Endpoint hostEnd = net.CreateEndpoint();
@@ -321,6 +342,8 @@ namespace KotH.Probes.Probes
             BotDirector director = BotDirector.Create(home.Builder, home.Simulation, founder, Seed);
             host.Bots = director;
             founder.KnownInputs = director;
+            if (ahead == 1)
+                director.StartWorker();
             var ids = new List<int>();
             for (int i = 0; i < (guest ? 2 : 3); i++)
             {
@@ -349,6 +372,8 @@ namespace KotH.Probes.Probes
                 host.Update(net.Now);
                 founder.Update(net.Now);
                 visitor?.Update(net.Now);
+                if (ahead > 0)
+                    director.Pump(0.05);
                 for (; hashed < host.NextConfirm; hashed++)
                     foreach (int id in ids)
                     {
@@ -382,6 +407,12 @@ namespace KotH.Probes.Probes
                     }
                 Check(compared > 20 && differ == 0 && host.Desyncs == 0, $"Gast und Host gleich ({compared} Prüfsummen, {differ} verschieden)");
                 Check(founder.Rollbacks == 0, $"Host kennt seine Bots, kein Rollback ({founder.Rollbacks})");
+            }
+            director.Dispose();
+            if (ahead > 0)
+            {
+                int share = director.StepsAhead * 100 / Math.Max(1, director.StepsAhead + director.StepsAsked);
+                Check(share >= 90, $"Host: {(ahead == 1 ? "Thread" : "Pump")} rechnet {share} % der Schritte voraus");
             }
             foreach (HeadlessWorld w in worlds)
                 w.Dispose();

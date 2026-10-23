@@ -236,6 +236,8 @@ namespace KotH.Shared.Net
             return tick >= 0 && tick <= FinalTick && snapTicks[tick % Ring] == tick;
         }
 
+        public int NewestFinal => FinalTick;
+
         /// <summary>
         /// Inputs known before the host confirms them: on the host, its own
         /// bots. A guess for them would only be wrong where the answer is known.

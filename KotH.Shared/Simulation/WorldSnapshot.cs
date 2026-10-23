@@ -39,5 +39,15 @@ namespace KotH.Shared.Simulation
             bodies.Clear();
             states.Clear();
         }
+
+        /// <summary>Makes this a copy of another: the same bodies, their states and the round.</summary>
+        public void CopyFrom(WorldSnapshot other)
+        {
+            Clear();
+            bodies.AddRange(other.bodies);
+            states.AddRange(other.states);
+            Tick = other.Tick;
+            Match = other.Match;
+        }
     }
 }

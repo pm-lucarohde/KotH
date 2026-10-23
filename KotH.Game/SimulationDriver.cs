@@ -1,5 +1,6 @@
 using KotH.Client.Net;
 using KotH.Client.Player;
+using KotH.Shared.Bots;
 using KotH.Shared.Simulation;
 using Stride.Core;
 using Stride.Engine;
@@ -48,15 +49,21 @@ namespace KotH.Client
             {
                 net.Update();
                 TickInterpolation.Alpha = net.Alpha;
-                return;
+            }
+            else
+            {
+                int due = clock.Advance(Game.UpdateTime.Elapsed.TotalSeconds);
+                for (int i = 0; i < due; i++)
+                    system.Tick();
+                TickInterpolation.Alpha = clock.Alpha;
             }
 
-            int due = clock.Advance(Game.UpdateTime.Elapsed.TotalSeconds);
-            for (int i = 0; i < due; i++)
-                system.Tick();
-
-            TickInterpolation.Alpha = clock.Alpha;
+            // After the ticks: the states they made final go to the bots.
+            Services.GetService<BotDirector>()?.Pump(BotBudget);
         }
+
+        // Milliseconds a frame may spend on the bots without their own thread.
+        const double BotBudget = 0.25;
 
         /// <summary>
         /// First Escape frees the mouse, a second one quits; two presses, so

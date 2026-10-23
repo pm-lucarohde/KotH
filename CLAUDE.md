@@ -32,7 +32,7 @@ Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Pr
 - Testhilfen (`KotHApp.cs`): `KOTH_SHOT=bild.png` (nach `_SECONDS`, F3 an, listet Schilder), `_YAW`/`_PITCH`/`_FOV`,
   `_THIRD`, `_AT=x,y,z`, `_FACE=grad`, `_SWING`, `_SHAKE`, `_HIT=grad`, `_BLINK`, `_STRIKE=s,…`, `_MOVE=x,y[,sprint]`, `_CROUCH=s`,
   `_JUMP=s,…`, `_TURN=grad,s[,kreis]`, `_VIDEO=s` (30 fps nach `bild.png.rgba`, Format im Log); `KOTH_HEADLESS=1` (ohne Fenster),
-  `KOTH_SIZE`, `KOTH_VSYNC`, `KOTH_FRAMELOG`, `KOTH_MUSIC_VOLUME` (stumm), `KOTH_MUSIC_TAIL`, Ton `ALSOFT_DRIVERS=wave`. Kein Splash, 6 Render-Threads.
+  `KOTH_SIZE`, `KOTH_VSYNC`, `KOTH_FRAMELOG`, `KOTH_BOT_THREAD`, `KOTH_MUSIC_VOLUME` (stumm), `KOTH_MUSIC_TAIL`, Ton `ALSOFT_DRIVERS=wave`. Kein Splash, 6 Render-Threads.
 
 ## Tests: Proben und Regression
 
@@ -127,8 +127,8 @@ Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall 
 ### Bots (`KotH.Shared/Bots`)
 - Treten wie Spieler bei (NetId ab 4, Slots nach `NetWorld.BotSlots`), offline/Host `--bots N` (Standard 3), stehen bei Rundenbeginn 3 s (`StartWait`).
   **Nur der Host rechnet sie, deterministisch:** `BotDirector` berechnet Tick t einmal, in Reihenfolge, nur aus dem
-  endgültigen Zustand bei t − 8 (`ReactionTicks`), dem Raster und dem xorshift; kein Bot-Zustand im Snapshot. Host
-  bestätigt sie in `Finalise` (`AddBot`), sein Peer kennt sie vorab (`KnownInputs`), Gäste sagen sie vorher.
+  endgültigen Zustand bei t − 8 (`ReactionTicks`), Raster und xorshift; kein Bot-Zustand im Snapshot; im Client voraus auf
+  eigenem Thread (`KOTH_BOT_THREAD=0`: je Frame 0,25 ms). Host bestätigt sie in `Finalise`, sein Peer kennt sie (`KnownInputs`).
 - `ClimbGrid` (statt DotRecast): Spalten 0,5 m, bis 4 Böden mit 1,8 m Luft; Gehen, Fallen, Sprung, Doppelsprung,
   Lücke, Kosten in Sekunden; Sprünge und Abstiege brauchen einen Korridor so breit wie der Körper, `FloorAt` nimmt den
   Boden auf Fußhöhe. Zeitfeld per Dijkstra, Wegvarianten je Bot; zur Zone RTAA*, sonst A*. `Memory` (Strafen auf

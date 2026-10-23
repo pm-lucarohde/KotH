@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Threading;
 using KotH.Shared.Combat;
 using KotH.Shared.Hosting;
 using KotH.Shared.Match;
@@ -16,6 +18,9 @@ namespace KotH.Shared.Bots
     public interface IFinalStates
     {
         bool TryFinalState(int tick, out WorldSnapshot state);
+
+        /// <summary>The newest tick whose starting state is final; -1 before any.</summary>
+        int NewestFinal { get; }
     }
 
     /// <summary>Inputs known before they are confirmed: the host's bots.</summary>
@@ -30,15 +35,21 @@ namespace KotH.Shared.Bots
     /// tick order, from the final state ReactionTicks before, and kept: the
     /// host confirms it, the host's own peer predicts with it, and asking
     /// again, even after a rollback, gives the same bits.
+    /// Since a state is final that long before its bots' inputs are due,
+    /// they can be worked out ahead: on a thread of their own (StartWorker)
+    /// or a little each frame (Pump), from copies of the final states. What
+    /// is not ready when asked is worked out then, as without either.
     /// </summary>
-    public sealed class BotDirector : IBotInputs
+    public sealed class BotDirector : IBotInputs, IDisposable
     {
         const int Memo = 256;
+        const int Views = 64;
 
         sealed class Bot
         {
             public BotBrain Brain;
-            public int Last = -1;
+            public bool Asked;           // asked once: from then on it may be worked out ahead
+            public int Last = -1;        // the newest tick worked out; written under the gate
             public readonly MoveInput[] Inputs = new MoveInput[Memo];
         }
 
@@ -50,6 +61,18 @@ namespace KotH.Shared.Bots
         readonly MeleeAttack fists;
         readonly int seed;
 
+        // Working ahead. One step at a time under the gate: the brains share
+        // the grid's search. The views are the director's own copies, filled
+        // by the game's thread only, never where a bot still needs one.
+        readonly object gate = new object();
+        Bot[] roster = Array.Empty<Bot>();
+        readonly WorldSnapshot[] views = new WorldSnapshot[Views];
+        readonly int[] viewTicks = new int[Views];
+        int fed = -1;
+        Thread worker;
+        AutoResetEvent wake;
+        volatile bool stopping;
+
         public BotDirector(BotNavigation navigation, BotSettings settings, HillMatch match,
                            PlayerMotor motor, MeleeAttack fists, IFinalStates states, int seed)
         {
@@ -60,6 +83,11 @@ namespace KotH.Shared.Bots
             this.fists = fists;
             this.states = states;
             this.seed = seed;
+            for (int i = 0; i < Views; i++)
+            {
+                views[i] = new WorldSnapshot();
+                viewTicks[i] = -1;
+            }
         }
 
         /// <summary>
@@ -97,12 +125,23 @@ namespace KotH.Shared.Bots
         public int Seed => seed;
         public int Count => bots.Count;
 
+        /// <summary>Steps worked out ahead, and those only when asked; for probes.</summary>
+        public int StepsAhead { get; private set; }
+        public int StepsAsked { get; private set; }
+
+        int Reaction => Math.Max(3, settings.ReactionTicks);
+
         public void Add(int netId)
         {
-            bots[netId] = new Bot
+            var bot = new Bot
             {
                 Brain = new BotBrain(netId, BotRandom.Seed(seed, netId), bots.Count + seed, Navigation, settings, match, motor, fists),
             };
+            lock (gate)
+            {
+                bots[netId] = bot;
+                roster = new List<Bot>(bots.Values).ToArray();
+            }
         }
 
         public bool IsBot(int netId) => bots.ContainsKey(netId);
@@ -119,27 +158,145 @@ namespace KotH.Shared.Bots
             input = default;
             if (!bots.TryGetValue(netId, out Bot bot))
                 return false;
-            if (bot.Last < 0)
-                bot.Last = tick - 1;
-            if (tick <= bot.Last)
+            // Worked out ahead already: no need to wait for the gate.
+            int last = Volatile.Read(ref bot.Last);
+            if (bot.Asked && tick <= last)
             {
-                if (tick <= bot.Last - Memo)
+                if (tick <= last - Memo)
                     return false;
                 input = bot.Inputs[tick % Memo];
                 return true;
             }
 
-            int reaction = Math.Max(3, settings.ReactionTicks);
-            for (int u = bot.Last + 1; u <= tick; u++)
+            lock (gate)
             {
-                WorldSnapshot view = null;
-                if (u - reaction >= 0 && !states.TryFinalState(u - reaction, out view))
-                    return false;
-                bot.Inputs[u % Memo] = Net.NetProtocol.Sanitize(bot.Brain.Step(u, view));
-                bot.Last = u;
+                if (!bot.Asked)
+                {
+                    bot.Asked = true;
+                    bot.Last = tick - 1;
+                }
+                if (tick <= bot.Last)
+                {
+                    if (tick <= bot.Last - Memo)
+                        return false;
+                    input = bot.Inputs[tick % Memo];
+                    return true;
+                }
+
+                int reaction = Reaction;
+                for (int u = bot.Last + 1; u <= tick; u++)
+                {
+                    WorldSnapshot view = null;
+                    if (u - reaction >= 0 && !states.TryFinalState(u - reaction, out view))
+                        return false;
+                    bot.Inputs[u % Memo] = Net.NetProtocol.Sanitize(bot.Brain.Step(u, view));
+                    Volatile.Write(ref bot.Last, u);
+                    StepsAsked++;
+                }
+                input = bot.Inputs[tick % Memo];
+                return true;
             }
-            input = bot.Inputs[tick % Memo];
-            return true;
+        }
+
+        /// <summary>
+        /// Once per frame on the game's thread, after its ticks: hands the
+        /// newly final states on, then wakes the worker, or without one works
+        /// ahead itself for up to budget milliseconds (at least one step).
+        /// </summary>
+        public void Pump(double budget)
+        {
+            if (Feed() && worker != null)
+                wake.Set();
+            if (worker == null)
+                Advance(Stopwatch.GetTimestamp() + (long)(budget * Stopwatch.Frequency / 1000.0));
+        }
+
+        /// <summary>Works the bots out ahead on a thread of their own from now on.</summary>
+        public void StartWorker()
+        {
+            if (worker != null)
+                return;
+            wake = new AutoResetEvent(false);
+            worker = new Thread(() =>
+            {
+                while (!stopping)
+                {
+                    wake.WaitOne();
+                    Advance(long.MaxValue);
+                }
+            })
+            { Name = "KotH Bots", IsBackground = true };
+            worker.Start();
+        }
+
+        public void Dispose()
+        {
+            if (worker == null)
+                return;
+            stopping = true;
+            wake.Set();
+            worker.Join();
+            worker = null;
+            wake.Dispose();
+        }
+
+        // Copies the states final since the last call, oldest first, as far
+        // as no bot still needs the slot each one goes to; true if any came.
+        bool Feed()
+        {
+            int newest = states.NewestFinal;
+            int needed = int.MaxValue;
+            foreach (Bot b in roster)
+                if (b.Asked)
+                    needed = Math.Min(needed, Volatile.Read(ref b.Last) + 1 - Reaction);
+            bool any = false;
+            for (int k = Math.Max(fed + 1, newest - Views + 1); k <= newest && k - Views < needed; k++)
+            {
+                int slot = k % Views;
+                Volatile.Write(ref viewTicks[slot], -1);
+                if (states.TryFinalState(k, out WorldSnapshot state))
+                {
+                    views[slot].CopyFrom(state);
+                    Volatile.Write(ref viewTicks[slot], k);
+                }
+                Volatile.Write(ref fed, k);
+                any = true;
+            }
+            return any;
+        }
+
+        // Steps the bot furthest behind whose view is in hand, one tick at a
+        // time, until none can go on or the deadline (a Stopwatch timestamp) passes.
+        void Advance(long deadline)
+        {
+            int reaction = Reaction;
+            while (!stopping)
+            {
+                lock (gate)
+                {
+                    int limit = Volatile.Read(ref fed) + reaction;
+                    Bot next = null;
+                    WorldSnapshot nextView = null;
+                    foreach (Bot b in roster)
+                    {
+                        if (!b.Asked || b.Last >= limit || next != null && b.Last >= next.Last)
+                            continue;
+                        int k = b.Last + 1 - reaction;
+                        if (k >= 0 && Volatile.Read(ref viewTicks[k % Views]) != k)
+                            continue;
+                        next = b;
+                        nextView = k >= 0 ? views[k % Views] : null;
+                    }
+                    if (next == null)
+                        return;
+                    int u = next.Last + 1;
+                    next.Inputs[u % Memo] = Net.NetProtocol.Sanitize(next.Brain.Step(u, nextView));
+                    Volatile.Write(ref next.Last, u);
+                    StepsAhead++;
+                }
+                if (Stopwatch.GetTimestamp() >= deadline)
+                    return;
+            }
         }
     }
 
@@ -183,6 +340,8 @@ namespace KotH.Shared.Bots
             state = snaps[tick % Ring];
             return tick >= 0 && ticks[tick % Ring] == tick;
         }
+
+        public int NewestFinal => recorded;
     }
 
     /// <summary>
