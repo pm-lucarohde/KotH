@@ -36,6 +36,10 @@ namespace Stride.Rendering.Voxels
 
         public List<RenderStage> VoxelStages { get; set; } = new List<RenderStage>();
 
+        /// <summary>KotH patch: how far a cone reaches, in finest voxels: its 7th step samples 64 voxels out,
+        /// trilinear over texels 64 voxels wide.</summary>
+        const float ConeReachVoxels = 128;
+
         public Dictionary<VoxelVolumeComponent, ProcessedVoxelVolume> GetProcessedVolumes()
         {
             return renderVoxelVolumeData;
@@ -81,11 +85,18 @@ namespace Stride.Rendering.Voxels
                 processedVolume.DynamicBounds.Clear();
                 if (dynamic)
                 {
+                    // KotH patch: only what the view's cones can reach: boxes grown by the
+                    // cones' reach (ConeReachVoxels) against the camera's frustum.
+                    var frustum = new BoundingFrustum(ref Context.RenderView.ViewProjection);
+                    var reach = new Vector3(dataVolume.AproxVoxelSize * ConeReachVoxels);
                     foreach (var renderObject in Context.VisibilityGroup.RenderObjects)
                     {
                         if (!renderObject.Enabled || ((1u << (int)renderObject.RenderGroup) & (uint)dataVolume.DynamicGroups) == 0)
                             continue;
                         var box = renderObject.BoundingBox;
+                        var grown = new BoundingBoxExt { Center = box.Center, Extent = box.Extent + reach };
+                        if (!VisibilityGroup.FrustumContainsBox(ref frustum, ref grown, false))
+                            continue;
                         processedVolume.DynamicBounds.Add(new BoundingBox(box.Center - box.Extent, box.Center + box.Extent));
                     }
                 }

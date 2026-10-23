@@ -121,8 +121,8 @@ Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall 
   `HudRenderer.Numbers`. Eigene Prozent oben rechts, die anderen über den Köpfen. Kamera wackelt bei jedem Treffer.
 - `MusicPlayer` (Entity `Music`): Lobby-Track bis `Running`, dann Spielbeginn-Track und gemischte Playlist,
   Überblendung 3,5 s, Lautstärke 0,2, im Netz nach bestätigter Runde; misst die Länge selbst (`Sound.TotalLength`).
-- Licht: VXGI aus `ThirdParty/Stride.Voxels` (gepatcht, README), Profil 11; je Map `GI` (256 m, Bricks zu 0,125 m, GI 0,27,
-  Himmel über `LightVoxel.Sky`): Map (Gruppe 3) gebacken, Figuren (0/1) je Frame, Gruppe 4 ohne GI. `.work/gi/`.
+- Licht: VXGI aus `ThirdParty/Stride.Voxels` (gepatcht, README), Profil 11; je Map `GI` (256 m, Bricks 0,125 m, GI 0,27,
+  Himmel `LightVoxel.Sky`): Map (Gruppe 3) gebacken, Figuren (0/1) je Frame nur nahe der Sicht (+16 m), Gruppe 4 ohne GI.
 
 ### Bots (`KotH.Shared/Bots`)
 - Treten wie Spieler bei (NetId ab 4, Slots nach `NetWorld.BotSlots`), offline/Host `--bots N` (Standard 3), stehen bei Rundenbeginn 3 s (`StartWait`).

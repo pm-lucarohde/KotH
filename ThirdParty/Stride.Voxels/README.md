@@ -44,7 +44,8 @@ Atlas in drei Stufen (0,125/0,25/0,5 m) plus ein dichtes 1-m-Volumen mit Hardwar
 - **Dynamisch:** Zellen um die Figuren (+4 Voxel) bekommen je Frame eigene Plätze (bis 1024), `SparseEdit` kopiert
   den gebackenen Brick hinein und setzt die Seiten nach dem Frame zurück. Jede Figur wird in einem eigenen Fenster
   von 64³ Voxeln voxelisiert (ein Fenster über das ganze Volumen kostete ~3 ms, auch ohne Figuren darin). Die Mips
-  des dichten Volumens bleiben gebacken.
+  des dichten Volumens bleiben gebacken. `VoxelRenderer.Collect` nimmt nur Figuren, deren Box, um die Kegelreichweite
+  (128 Voxel = 16 m) vergrößert, das Kamera-Frustum schneidet (spart bis ~0,5 ms, Bild gleich).
 - Unter Vulkan: `ClearReadWrite(Buffer)` fehlt (Compute `ClearBuffer`), typisierte Puffer höchstens 2²⁷ Elemente.
 - Kosten (AOT, 1440p, RTX 3070): rund 1,2 ms mehr als 0,5-m-Clipmaps, davon Figuren ~0,45 ms; Kegel `Steps` 7.
   GI in reduzierter Auflösung (eigener Pass, hochgerechnet) war langsamer: Der Pass kostet pro Pixel etwa das
