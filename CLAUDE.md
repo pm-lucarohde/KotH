@@ -105,7 +105,7 @@ Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall 
 - **Neu** (Minecraft-Berg, 123 m): `Tools/maps/mountain.py` schreibt **nur** `Mountain.glb` (`COLOR_0` = Oberflächen,
   `TEXCOORD_0.x` = AO), `Sea.glb` und `NeuTerrain.bin` (Kollision, eingebettet, 4-m-Chunks, `WorldBuilder.AddTerrain`).
   Surface Nets 70 %, Säulen 2 × 1, ohne Wege, Gipfel aus ≥ 9/12 Richtungen; Stämme rund (Gras/Laub darüber nur optisch,
-  kein Boden im Stamm). Danach `Tools/maps/MapUV` (Lightmap-UVs, `dotnet run`), `publish_aot.sh`. Sichtweite ≤ 20 km.
+  kein Boden im Stamm). Danach `Tools/maps/MapUV` (Lightmap-UVs für Berg und Meer, `dotnet run`), `publish_aot.sh`. Sichtweite ≤ 20 km.
 - Texturen: `Tools/maps/textures.py` (gemalt, comichaft, wenig Details), Shader `TerrainTriplanar` (Flechten als Tupfen)/`PaintedTriplanar`/`LeafSplat`/`CellHash`
   in `KotH.Game/Effects`. Fallen: kein `Texture2D` als Generic (`LinkType` + `[Link]` in `rgroup PerMaterial`),
   verschachteltes `ComputeColorParameterTexture`; Import legt namensgleiche Materialien zusammen.
@@ -122,7 +122,7 @@ Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall 
 - `MusicPlayer` (Entity `Music`): Lobby-Track bis `Running`, dann Spielbeginn-Track und gemischte Playlist,
   Überblendung 3,5 s, Lautstärke 0,2, im Netz nach bestätigter Runde; misst die Länge selbst (`Sound.TotalLength`).
 - Licht: VXGI (`ThirdParty/Stride.Voxels`, README), Profil 11; je Map `GI` (256 m, Bricks 0,125 m, GI 0,27, `LightVoxel.Sky`); Map-Licht
-  und -Sonne (Blätterschatten stehen still) in Lightmap 4096², Map-Schatten einmal `StaticSunShadowRenderer`, Kaskaden nur Figuren (6 Kapseln).
+  und -Sonne (auch Meer; Blätterschatten stehen still) in Lightmap 4096², Map-Schatten einmal `StaticSunShadowRenderer`, Kaskaden nur Figuren (6 Kapseln).
 
 ### Bots (`KotH.Shared/Bots`)
 - Treten wie Spieler bei (NetId ab 4, Slots nach `NetWorld.BotSlots`), offline/Host `--bots N` (Standard 3), stehen bei Rundenbeginn 3 s (`StartWait`).
