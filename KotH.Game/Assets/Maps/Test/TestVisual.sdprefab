@@ -16,6 +16,7 @@ Hierarchy:
                         Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
                         Scale: {X: 1.0, Y: 1.0, Z: 1.0}
                         Children: 
+                            9e707cdd976648d39fddd2e53d5dda8d: ref!! 5B89A7CC-9B5E-419C-8290-92A8D7E35D81
                             9d333e90c58d55ce9e7f634f126fbedc: ref!! 671C62F9-D658-5A1C-BC37-3ABBCE475798
                             5d8b543123d9513fba156b10597f302a: ref!! 9EF0F1E7-C27F-51A9-BA29-339D3E2B7647
                             8fad9b66cdd45962b6f1e33dfa84a68f: ref!! 9488EFB3-7EBE-5CF1-9BA4-889FFF357605
@@ -61,6 +62,7 @@ Hierarchy:
                         Id: D38D62FC-F835-5E68-8F0A-7B9735E4B398
                         Model: 6A7BDA55-6C5B-5C38-8590-D9EF312E33B3:Models/PropCube
                         Materials: {}
+                        RenderGroup: Group3
         -   Entity:
                 Id: 1DAC3EF4-89DC-5AFF-999F-00B093783F31
                 Name: Steps30_1
@@ -75,6 +77,7 @@ Hierarchy:
                         Id: 6480812C-84E5-53A1-AFA0-E71E4D9BA7A7
                         Model: 6A7BDA55-6C5B-5C38-8590-D9EF312E33B3:Models/PropCube
                         Materials: {}
+                        RenderGroup: Group3
         -   Entity:
                 Id: 0D68D10F-7DE6-5E5D-B8ED-8F5F033A2F66
                 Name: Steps40_0
@@ -89,6 +92,7 @@ Hierarchy:
                         Id: EBAEAE8B-79B9-55B5-BCC3-7C3C478EE3C5
                         Model: 6A7BDA55-6C5B-5C38-8590-D9EF312E33B3:Models/PropCube
                         Materials: {}
+                        RenderGroup: Group3
         -   Entity:
                 Id: 4C1ACC63-B1B6-5CA1-9081-BF4B4348CAA9
                 Name: Plateau
@@ -103,6 +107,7 @@ Hierarchy:
                         Id: 2A837681-03DC-5B38-B86C-24747557007A
                         Model: 971327A3-557E-59DE-8121-1E0097D44E8E:Models/RockCube
                         Materials: {}
+                        RenderGroup: Group3
         -   Entity:
                 Id: 7E0D7CE8-0779-5D3C-BD66-7300FE2645CB
                 Name: Steps30_0
@@ -117,6 +122,7 @@ Hierarchy:
                         Id: 119585B0-7E36-5013-9887-4FE3137038DA
                         Model: 6A7BDA55-6C5B-5C38-8590-D9EF312E33B3:Models/PropCube
                         Materials: {}
+                        RenderGroup: Group3
         -   Entity:
                 Id: 58199368-7770-53A0-BAFA-6CBAE40BC798
                 Name: Steps20_2
@@ -131,6 +137,7 @@ Hierarchy:
                         Id: C01DA805-A2E8-5461-ADDB-00E9EF6BCB6D
                         Model: 6A7BDA55-6C5B-5C38-8590-D9EF312E33B3:Models/PropCube
                         Materials: {}
+                        RenderGroup: Group3
         -   Entity:
                 Id: FC2BE920-C645-5137-A56D-A596907670AC
                 Name: Steps50_2
@@ -145,6 +152,7 @@ Hierarchy:
                         Id: 23F3164C-73B3-53E7-9461-8432570BF2D2
                         Model: 6A7BDA55-6C5B-5C38-8590-D9EF312E33B3:Models/PropCube
                         Materials: {}
+                        RenderGroup: Group3
         -   Entity:
                 Id: D59FA4C5-E088-5355-9C1D-FFC26AE86DE0
                 Name: Steps40_1
@@ -159,6 +167,7 @@ Hierarchy:
                         Id: 8515D16F-2ECD-504E-B78C-A73D2F70939D
                         Model: 6A7BDA55-6C5B-5C38-8590-D9EF312E33B3:Models/PropCube
                         Materials: {}
+                        RenderGroup: Group3
         -   Entity:
                 Id: BABBC131-F985-5C5A-A9A0-656EF43AB428
                 Name: Ramp45
@@ -173,6 +182,7 @@ Hierarchy:
                         Id: F95378EC-21C3-5197-935C-EC05D0B7E3FC
                         Model: 971327A3-557E-59DE-8121-1E0097D44E8E:Models/RockCube
                         Materials: {}
+                        RenderGroup: Group3
         -   Entity:
                 Id: FCCA82FB-62FD-56D0-9257-FA1C0B92FD23
                 Name: Steps30_2
@@ -187,6 +197,7 @@ Hierarchy:
                         Id: 46AD6B08-55A7-5055-9E8B-FE41C0525C4C
                         Model: 6A7BDA55-6C5B-5C38-8590-D9EF312E33B3:Models/PropCube
                         Materials: {}
+                        RenderGroup: Group3
         -   Entity:
                 Id: 69DF5C17-A284-5E2E-AA3C-7F8B99DFF48B
                 Name: Steps20_3
@@ -201,6 +212,7 @@ Hierarchy:
                         Id: E18BF882-6917-55F9-A6FE-3B39A910BBD7
                         Model: 6A7BDA55-6C5B-5C38-8590-D9EF312E33B3:Models/PropCube
                         Materials: {}
+                        RenderGroup: Group3
         -   Entity:
                 Id: 419C6090-41F6-5F72-B372-2C3AAE6826CA
                 Name: Ramp55
@@ -215,6 +227,7 @@ Hierarchy:
                         Id: 8FC0E457-EC19-5B76-B0B4-85FD6F2A5F46
                         Model: 971327A3-557E-59DE-8121-1E0097D44E8E:Models/RockCube
                         Materials: {}
+                        RenderGroup: Group3
         -   Entity:
                 Id: 1896737E-0CCD-51EF-B6CD-B6C383E4D19C
                 Name: Steps40_3
@@ -229,6 +242,7 @@ Hierarchy:
                         Id: EF44F30B-527E-5643-8BAB-5403FD8AF593
                         Model: 6A7BDA55-6C5B-5C38-8590-D9EF312E33B3:Models/PropCube
                         Materials: {}
+                        RenderGroup: Group3
         -   Entity:
                 Id: 1C075F92-1B2D-5A96-BD22-9A9F3ED367D2
                 Name: Steps40_2
@@ -243,6 +257,7 @@ Hierarchy:
                         Id: A12898E0-25DE-5B94-A238-E9181F770FB7
                         Model: 6A7BDA55-6C5B-5C38-8590-D9EF312E33B3:Models/PropCube
                         Materials: {}
+                        RenderGroup: Group3
         -   Entity:
                 Id: 3B5D4579-5025-55C3-929F-1F289BDEAC9B
                 Name: Steps50_3
@@ -257,6 +272,7 @@ Hierarchy:
                         Id: E204CE1B-D3E5-569C-B2EB-B452329A50E2
                         Model: 6A7BDA55-6C5B-5C38-8590-D9EF312E33B3:Models/PropCube
                         Materials: {}
+                        RenderGroup: Group3
         -   Entity:
                 Id: ADFE8D8A-BA6F-5E6F-B8A0-ACA887857FEA
                 Name: Steps30_3
@@ -271,6 +287,7 @@ Hierarchy:
                         Id: 2708FB41-B8C4-5BCC-B71B-BD71789FCB94
                         Model: 6A7BDA55-6C5B-5C38-8590-D9EF312E33B3:Models/PropCube
                         Materials: {}
+                        RenderGroup: Group3
         -   Entity:
                 Id: 87901FB6-4990-5856-8948-4D669F2399B1
                 Name: Steps20_1
@@ -285,6 +302,7 @@ Hierarchy:
                         Id: 2714859E-86AA-5C61-84EE-00E4B5240E4B
                         Model: 6A7BDA55-6C5B-5C38-8590-D9EF312E33B3:Models/PropCube
                         Materials: {}
+                        RenderGroup: Group3
         -   Entity:
                 Id: 09EAC78F-5491-5640-95CC-3F3ECBA609ED
                 Name: CrouchTest
@@ -299,6 +317,7 @@ Hierarchy:
                         Id: CDCE64E1-9186-53A0-9412-2132513E17CE
                         Model: 6A7BDA55-6C5B-5C38-8590-D9EF312E33B3:Models/PropCube
                         Materials: {}
+                        RenderGroup: Group3
         -   Entity:
                 Id: A1565853-965A-5CA9-B711-C2CC787EC04B
                 Name: Steps50_4
@@ -313,6 +332,7 @@ Hierarchy:
                         Id: 48479091-C860-51BB-976D-3547E157C9B0
                         Model: 6A7BDA55-6C5B-5C38-8590-D9EF312E33B3:Models/PropCube
                         Materials: {}
+                        RenderGroup: Group3
         -   Entity:
                 Id: 524B5026-5227-597F-A30D-31E30827457E
                 Name: Steps20_0
@@ -327,6 +347,7 @@ Hierarchy:
                         Id: EDDC48CE-1B4F-570A-AFAB-F5C5B2956EA8
                         Model: 6A7BDA55-6C5B-5C38-8590-D9EF312E33B3:Models/PropCube
                         Materials: {}
+                        RenderGroup: Group3
         -   Entity:
                 Id: 6ED94D7D-5437-5727-8F34-D8AB47A5AF6F
                 Name: Steps40_5
@@ -341,6 +362,7 @@ Hierarchy:
                         Id: E2DCB96B-1E9E-5E59-A7F9-603543DE4E75
                         Model: 6A7BDA55-6C5B-5C38-8590-D9EF312E33B3:Models/PropCube
                         Materials: {}
+                        RenderGroup: Group3
         -   Entity:
                 Id: 437DB23D-074B-5198-9896-6830925B8E9E
                 Name: Steps50_1
@@ -355,6 +377,7 @@ Hierarchy:
                         Id: 183FF2BD-231D-5972-865C-FE911DC5AC15
                         Model: 6A7BDA55-6C5B-5C38-8590-D9EF312E33B3:Models/PropCube
                         Materials: {}
+                        RenderGroup: Group3
         -   Entity:
                 Id: C9F58BCB-4828-53DB-BD73-5E0820E9F48E
                 Name: Ramp35
@@ -369,6 +392,7 @@ Hierarchy:
                         Id: 482F1C63-92A4-5B19-8876-3E2E41894F1B
                         Model: 971327A3-557E-59DE-8121-1E0097D44E8E:Models/RockCube
                         Materials: {}
+                        RenderGroup: Group3
         -   Entity:
                 Id: 1172FF8E-51AD-5829-9222-B357F564C6BE
                 Name: Steps20_5
@@ -383,6 +407,7 @@ Hierarchy:
                         Id: F4B49823-7FF0-595B-8F1A-CCCD8E79D605
                         Model: 6A7BDA55-6C5B-5C38-8590-D9EF312E33B3:Models/PropCube
                         Materials: {}
+                        RenderGroup: Group3
         -   Entity:
                 Id: F38AF5C0-B137-566B-B3CF-B5804748BB8A
                 Name: Ramp20
@@ -397,6 +422,7 @@ Hierarchy:
                         Id: C9E87CBC-B7BF-57ED-BA8F-1B882AE2C54A
                         Model: 971327A3-557E-59DE-8121-1E0097D44E8E:Models/RockCube
                         Materials: {}
+                        RenderGroup: Group3
         -   Entity:
                 Id: 40A03E9C-C5F5-541F-9769-85BAD382D844
                 Name: Steps40_4
@@ -411,6 +437,7 @@ Hierarchy:
                         Id: 55FD0B01-C9B1-5ACB-89B1-7590D1AF7DF7
                         Model: 6A7BDA55-6C5B-5C38-8590-D9EF312E33B3:Models/PropCube
                         Materials: {}
+                        RenderGroup: Group3
         -   Entity:
                 Id: CEAA9E47-656A-5256-B3B5-792456B3428E
                 Name: Steps20_4
@@ -425,6 +452,7 @@ Hierarchy:
                         Id: 6865056A-4075-5E89-ACE8-F028C2A7B000
                         Model: 6A7BDA55-6C5B-5C38-8590-D9EF312E33B3:Models/PropCube
                         Materials: {}
+                        RenderGroup: Group3
         -   Entity:
                 Id: B953FC20-48E4-5C58-B8C9-DD3F1B875D1C
                 Name: Steps30_4
@@ -439,6 +467,7 @@ Hierarchy:
                         Id: 26C51C8B-C88A-5CBE-8185-3168B652A6B5
                         Model: 6A7BDA55-6C5B-5C38-8590-D9EF312E33B3:Models/PropCube
                         Materials: {}
+                        RenderGroup: Group3
         -   Entity:
                 Id: AD627332-BEB1-5C4B-B29B-4ACACBF9AB29
                 Name: Steps50_5
@@ -453,6 +482,7 @@ Hierarchy:
                         Id: D6B94BEA-5FCE-5C2B-A2F3-4357F3F5F4DD
                         Model: 6A7BDA55-6C5B-5C38-8590-D9EF312E33B3:Models/PropCube
                         Materials: {}
+                        RenderGroup: Group3
         -   Entity:
                 Id: 743CD8EF-A5CA-56CE-90E2-684E6B7E91F8
                 Name: Steps50_0
@@ -467,6 +497,7 @@ Hierarchy:
                         Id: 22F6B55A-4D54-557A-9405-907FAA77254B
                         Model: 6A7BDA55-6C5B-5C38-8590-D9EF312E33B3:Models/PropCube
                         Materials: {}
+                        RenderGroup: Group3
         -   Entity:
                 Id: 25DA7E21-D1C3-566C-9F8C-555FCEBB44D9
                 Name: Ground
@@ -481,3 +512,48 @@ Hierarchy:
                         Id: E401E4BF-332C-52EB-BBC8-D0D1AEA446D2
                         Model: A9F134EA-0F3F-5A15-BF14-33D9AE82DA47:Models/Ground
                         Materials: {}
+                        RenderGroup: Group3
+        -   Entity:
+                Id: FCAF910B-5C7A-499E-8B66-5091293F043A
+                Name: GI
+                Components:
+                    cfda1cb96310435ab0cc976488bb6a45: !TransformComponent
+                        Id: 5B89A7CC-9B5E-419C-8290-92A8D7E35D81
+                        Position: {X: 0.0, Y: 60.0, Z: 0.0}
+                        Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    7a117766dc6240668970c7b0df3facec: !Stride.Rendering.Voxels.VoxelVolumeComponent,Stride.Voxels
+                        Id: 4C27E4A5-A7D8-49D3-81AF-669BCD65DE6B
+                        Voxelize: false
+                        VoxelizationMethod: !Stride.Rendering.Voxels.VoxelizationMethodDominantAxis,Stride.Voxels {}
+                        Storage: !Stride.Rendering.Voxels.VoxelStorageSparse,Stride.Voxels {}
+                        Attributes:
+                            997cd52493ce4cd898f661ab47229798: !Stride.Rendering.Voxels.VoxelAttributeEmissionOpacity,Stride.Voxels
+                                VoxelLayout: !Stride.Rendering.Voxels.VoxelLayoutIsotropic,Stride.Voxels
+                                    StorageFormat: RGBA8
+                                    maxBrightness: 2.0
+                                Modifiers: {}
+                        VoxelVolumeSize: 256.0
+                        AproximateVoxelSize: 0.125
+                        VoxelGridSnapping: true
+                        StaticGroups: Group3
+                        DynamicGroups: Group0, Group1
+                        VisualizeVoxels: false
+                        VisualizeIndex: 0
+                    94bb7f9220f946019da47f3726e2feab: !LightComponent
+                        Id: FE85354D-CFED-47F5-9B6E-3510A7094F03
+                        Type: !Stride.Rendering.Voxels.VoxelGI.LightVoxel,Stride.Voxels
+                            Volume: ref!! 4C27E4A5-A7D8-49D3-81AF-669BCD65DE6B
+                            AttributeIndex: 0
+                            DiffuseMarcher: !Stride.Rendering.Voxels.VoxelMarchSetHemisphere6,Stride.Voxels
+                                Marcher: !Stride.Rendering.Voxels.VoxelMarchConePerMipmap,Stride.Voxels
+                                    Steps: 7
+                            BounceIntensityScale: 0.0
+                            SpecularIntensityScale: 0.0
+                            Sky: F9A75D1E-7197-4A46-90CF-5A7F970DCDCA:Skybox
+                            SkyIntensity: 0.26
+                        Intensity: 0.27
+                    c697179cfcf44a36ae2fc55565562def: !KotH.Client.Rendering.BakeVoxels,KotH.Game
+                        Id: 9F409850-C035-4E6B-B737-6EE175A1E7B2
+                        Frames: 2

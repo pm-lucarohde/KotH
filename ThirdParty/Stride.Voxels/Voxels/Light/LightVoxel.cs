@@ -1,10 +1,11 @@
-// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net) and Sean Boettger <sean@whypenguins.com>
+﻿// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net) and Sean Boettger <sean@whypenguins.com>
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 
 using Stride.Core;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Rendering.Lights;
+using Stride.Rendering.Skyboxes;
 
 namespace Stride.Rendering.Voxels.VoxelGI
 {
@@ -29,6 +30,19 @@ namespace Stride.Rendering.Voxels.VoxelGI
         public float BounceIntensityScale { get; set; }
         [DataMember(50)]
         public float SpecularIntensityScale { get; set; }
+
+        // KotH patch: sky light that only reaches where the cones get out.
+        /// <userdoc>
+        /// Skybox, deren Licht durch die Lücken der Kegel fällt (diffus und gespiegelt), statt eines eigenen Skybox-Lichts.
+        /// </userdoc>
+        [DataMember(60)]
+        public Skybox Sky { get; set; }
+
+        /// <userdoc>
+        /// Stärke des Himmelslichts, unabhängig von der Intensität des Lichts.
+        /// </userdoc>
+        [DataMember(70)]
+        public float SkyIntensity { get; set; } = 1.0f;
 
         public bool Update(RenderLight light)
         {

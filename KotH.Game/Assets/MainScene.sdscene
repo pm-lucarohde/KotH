@@ -156,11 +156,6 @@ Hierarchy:
                         Id: F22FCA71-C8F9-4653-8466-CE6945A2DAB3
                         Texture: C8F1566C-4832-4943-B46D-E72AD417E250:Skybox texture
                         Intensity: 0.35
-                    5733ca1e623fcf399f389e2b0e7c54ec: !LightComponent
-                        Id: 1FACD078-5BD4-4D10-B178-959F2F56BDCE
-                        Type: !LightSkybox
-                            Skybox: F9A75D1E-7197-4A46-90CF-5A7F970DCDCA:Skybox
-                        Intensity: 0.26
         -   Entity:
                 Id: 1CF3AC48-0B2B-50ED-B2FD-A700E4F2FAA4
                 Name: Hud

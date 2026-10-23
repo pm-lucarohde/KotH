@@ -12,7 +12,7 @@ namespace KotH.Client.Rendering
     /// <userdoc>Voxelisiert die Map einmal nach dem Laden; danach nur noch die Figuren.</userdoc>
     public sealed class BakeVoxels : SyncScript
     {
-        /// <summary>Frames voxelised in full.</summary>
+        /// <summary>Frames voxelised in full (clipmaps; sparse bricks say when they are done).</summary>
         /// <userdoc>So viele Frames wird die ganze Map voxelisiert.</userdoc>
         public int Frames { get; set; } = 2;
 
@@ -20,7 +20,15 @@ namespace KotH.Client.Rendering
 
         public override void Update()
         {
-            if (done > Frames || Entity.Get<VoxelVolumeComponent>() is not { } volume)
+            if (Entity.Get<VoxelVolumeComponent>() is not { } volume)
+                return;
+            // Sparse bricks bake over as many frames as they need.
+            if (volume.Storage is VoxelStorageSparse sparse)
+            {
+                volume.Voxelize = !sparse.Baked;
+                return;
+            }
+            if (done > Frames)
                 return;
             volume.Voxelize = ++done <= Frames;
         }

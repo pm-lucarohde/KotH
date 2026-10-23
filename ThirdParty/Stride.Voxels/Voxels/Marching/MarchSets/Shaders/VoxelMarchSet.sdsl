@@ -3,4 +3,12 @@
 shader VoxelMarchSet
 {
     float4 March(float3 rayPos, float3 rayDir){ return float4(0, 0, 0, 0); }
+
+    // KotH patch: also how much sky the cones see; sky.xyz = open directions summed
+    // (bent normal), sky.w = open fraction. Sets without it see the whole sky.
+    float4 MarchSky(float3 rayPos, float3 rayDir, out float4 sky)
+    {
+        sky = float4(rayDir, 1.0);
+        return March(rayPos, rayDir);
+    }
 };

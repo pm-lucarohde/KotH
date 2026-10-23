@@ -9,6 +9,12 @@ shader VoxelMarchSetHemisphere6 : VoxelMarchSet, ShaderBase
     compose VoxelMarchMethod Marcher;
     override float4 March(float3 rayPos, float3 rayDir)
     {
+        float4 sky;
+        return MarchSky(rayPos, rayDir, sky);
+    }
+
+    override float4 MarchSky(float3 rayPos, float3 rayDir, out float4 sky)
+    {
         float3 tan = normalize(cross(rayDir, normalize(float3(1, 1, 1))));
         float3 bitan = cross(tan, rayDir);
         float3x3 tangentMatrix = float3x3(tan, bitan, rayDir);
@@ -16,6 +22,7 @@ shader VoxelMarchSetHemisphere6 : VoxelMarchSet, ShaderBase
         float3 startPos = rayPos + rayDir * Marcher.StepSize() * offset;
 
         float4 reflLighting = float4(0, 0, 0, 0);
+        sky = float4(0, 0, 0, 0);
         
         //Dot products of rays
         float central = 1.0;
@@ -24,24 +31,22 @@ shader VoxelMarchSetHemisphere6 : VoxelMarchSet, ShaderBase
         central /= sum;
         outer /= sum;
 
-        rayDir = mul(float3(0, 0, 1), tangentMatrix);
-        reflLighting += Marcher.March(startPos, rayDir) * central;
-
-        rayDir = mul(normalize(float3(0.85, 0.278, 0.445)), tangentMatrix);
-        reflLighting += Marcher.March(startPos, rayDir) * outer;
-
-        rayDir = mul(normalize(float3(0.527, -0.723, 0.445)), tangentMatrix);
-        reflLighting += Marcher.March(startPos, rayDir) * outer;
-
-        rayDir = mul(normalize(float3(-0.526, -0.724, 0.445)), tangentMatrix);
-        reflLighting += Marcher.March(startPos, rayDir) * outer;
-
-        rayDir = mul(normalize(float3(-0.851, 0.277, 0.445)), tangentMatrix);
-        reflLighting += Marcher.March(startPos, rayDir) * outer;
-
-        rayDir = mul(normalize(float3(0.895, 0.445, 0.445)), tangentMatrix);
-        reflLighting += Marcher.March(startPos, rayDir) * outer;
+        Cone(startPos, mul(float3(0, 0, 1), tangentMatrix), central, reflLighting, sky);
+        Cone(startPos, mul(normalize(float3(0.85, 0.278, 0.445)), tangentMatrix), outer, reflLighting, sky);
+        Cone(startPos, mul(normalize(float3(0.527, -0.723, 0.445)), tangentMatrix), outer, reflLighting, sky);
+        Cone(startPos, mul(normalize(float3(-0.526, -0.724, 0.445)), tangentMatrix), outer, reflLighting, sky);
+        Cone(startPos, mul(normalize(float3(-0.851, 0.277, 0.445)), tangentMatrix), outer, reflLighting, sky);
+        // KotH patch: was (0.895, 0.445, 0.445), next to the first; the ring's fifth is at 90 degrees.
+        Cone(startPos, mul(normalize(float3(0.0, 0.895, 0.445)), tangentMatrix), outer, reflLighting, sky);
 
         return reflLighting;
+    }
+
+    void Cone(float3 startPos, float3 rayDir, float weight, inout float4 light, inout float4 sky)
+    {
+        float4 cone = Marcher.March(startPos, rayDir);
+        light += cone * weight;
+        float open = saturate(1.0 - cone.a) * weight;
+        sky += float4(rayDir * open, open);
     }
 };

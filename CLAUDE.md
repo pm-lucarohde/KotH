@@ -31,8 +31,8 @@ Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Pr
   selbst starten). JIT und AOT spielen zusammen, wenn JIT mit `DOTNET_EnableAVX=0` läuft (`BuildId`).
 - Testhilfen (`KotHApp.cs`): `KOTH_SHOT=bild.png` (nach `_SECONDS`, F3 an, listet Schilder), `_YAW`/`_PITCH`/`_FOV`,
   `_THIRD`, `_AT=x,y,z`, `_SWING`, `_SHAKE`, `_HIT=grad`, `_BLINK`, `_STRIKE=s,…`, `_MOVE=x,y[,sprint]`, `_CROUCH=s`,
-  `_JUMP=s,…`, `_TURN=grad,s[,kreis]`, `_VIDEO=s` (BGRA 30 fps nach `bild.png.rgba`); `KOTH_SIZE`, `KOTH_VSYNC`,
-  `KOTH_FRAMELOG`, `KOTH_MUSIC_VOLUME` (stumm), `KOTH_MUSIC_TAIL`, Ton `ALSOFT_DRIVERS=wave`. Kein Splash, 6 Render-Threads.
+  `_JUMP=s,…`, `_TURN=grad,s[,kreis]`, `_VIDEO=s` (BGRA 30 fps nach `bild.png.rgba`); `KOTH_HEADLESS=1` (ohne Fenster),
+  `KOTH_SIZE`, `KOTH_VSYNC`, `KOTH_FRAMELOG`, `KOTH_MUSIC_VOLUME` (stumm), `KOTH_MUSIC_TAIL`, Ton `ALSOFT_DRIVERS=wave`. Kein Splash, 6 Render-Threads.
 
 ## Tests: Proben und Regression
 
@@ -121,8 +121,8 @@ Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall 
   `HudRenderer.Numbers`. Eigene Prozent oben rechts, die anderen über den Köpfen. Kamera wackelt bei jedem Treffer.
 - `MusicPlayer` (Entity `Music`): Lobby-Track bis `Running`, dann Spielbeginn-Track und gemischte Playlist,
   Überblendung 3,5 s, Lautstärke 0,2, im Netz nach bestätigter Runde; misst die Länge selbst (`Sound.TotalLength`).
-- Licht: VXGI aus `ThirdParty/Stride.Voxels` (gepatcht, siehe README dort), Profil 11; je Map Entity `GI`, fest 256 m:
-  Map (Gruppe 3) einmal gebacken (`BakeVoxels`), Figuren (0/1) jeden Frame nur in ihren Kästen. Messen: `.work/gi/`.
+- Licht: VXGI aus `ThirdParty/Stride.Voxels` (gepatcht, README), Profil 11; je Map `GI` (256 m, Bricks zu 0,125 m, GI 0,27,
+  Himmel über `LightVoxel.Sky`): Map (Gruppe 3) gebacken, Figuren (0/1) je Frame, Gruppe 4 ohne GI. `.work/gi/`.
 
 ### Bots (`KotH.Shared/Bots`)
 - Treten wie Spieler bei (NetId ab 4, Slots nach `NetWorld.BotSlots`), offline/Host `--bots N` (Standard 3), stehen bei Rundenbeginn 3 s (`StartWait`).

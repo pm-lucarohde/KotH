@@ -1,0 +1,48 @@
+// KotH patch: the pages of the cells round the moving groups, each frame. Edits
+// hold pairs (cell packed 8 bits per axis, value): value 0 puts the baked page
+// back, otherwise the cell now reads slot value - 1. With Copy = 1, one thread per
+// texel of such a slot copies the baked brick into it (or clears it), so the moving
+// groups are written over the map's voxels and the baked bricks stay as they are.
+namespace Stride.Rendering.Voxels
+{
+    shader SparseEdit : ComputeShaderBase, SparseBricks
+    {
+        stage RWTexture3D<uint> Pages;
+        stage Texture3D<uint> StaticPages;
+        stage RWBuffer<uint> SlotCells;
+        stage RWBuffer<uint> Edits;
+        stage RWTexture3D<float4> Atlas;
+        stage int3 atlasBricks;
+        stage uint editCount;
+        stage uint rowLength;
+        stage uint Copy;
+
+        override void Compute()
+        {
+            uint id = streams.DispatchThreadId.x + streams.DispatchThreadId.y * rowLength;
+            uint edit = Copy != 0 ? id / 729 : id;
+            if (edit >= editCount)
+                return;
+
+            int3 cell = UnpackCell(Edits[edit * 2]);
+            uint value = Edits[edit * 2 + 1];
+            uint baked = StaticPages.Load(int4(cell, 0)).x;
+            if (Copy == 0)
+            {
+                Pages[cell] = value != 0 ? value : baked;
+                if (value != 0)
+                    SlotCells[value - 1] = Edits[edit * 2];
+                return;
+            }
+            if (value == 0)
+                return;
+
+            uint t = id - edit * 729;
+            int3 texel = int3(t % 9, (t / 9) % 9, t / 81);
+            float4 voxel = 0;
+            if (baked != 0)
+                voxel = Atlas[BrickOrigin(baked - 1, atlasBricks, 9) + texel];
+            Atlas[BrickOrigin(value - 1, atlasBricks, 9) + texel] = voxel;
+        }
+    };
+}

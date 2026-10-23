@@ -1,0 +1,14 @@
+// KotH patch: SparseMip with the attribute's mipmapper.
+namespace Stride.Rendering.Voxels
+{
+    partial effect SparseMipEffect
+    {
+        using params Voxel2x2x2MipmapKeys;
+
+        mixin SparseMip;
+        if (Voxel2x2x2MipmapKeys.mipmapper!=null)
+        {
+            mixin compose mipmapper = Voxel2x2x2MipmapKeys.mipmapper;
+        }
+    };
+}

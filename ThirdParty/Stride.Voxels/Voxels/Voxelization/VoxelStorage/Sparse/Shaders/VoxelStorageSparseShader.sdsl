@@ -1,0 +1,93 @@
+// KotH patch: voxelisation into sparse bricks (VoxelStorageSparse). The view
+// (viewScale/viewOffset: the whole volume, or a box round a moving group) is
+// rasterised; a fragment lands in the brick (8^3 voxels) of its cell.
+// With SparseMark it only marks the cell as used (marks bound); otherwise it is
+// written to the fragments of the cell's slot (pages bound), if that slot is in
+// the slab done this frame.
+shader VoxelStorageSparseShader : VoxelStorageShader, Texturing, ShaderBaseStream, Transformation
+{
+    cbuffer PerView.VoxelizerStorer
+    {
+        float3 volumeResolution;
+        float3 volumeScale;
+        float3 volumeOffset;
+        float3 viewScale;
+        float3 viewOffset;
+        float storageUints;
+        float slabStart;
+        float slabCount;
+    }
+    rgroup PerView.VoxelizerStorer
+    {
+        RWBuffer<uint> fragmentsBuffer;
+        RWBuffer<uint> marks;
+        Texture3D<uint> pages;
+    }
+    compose VoxelAttribute AttributesTemp[];
+    compose VoxelAttribute AttributesDirect[];
+    compose VoxelAttribute AttributesIndirect[];
+
+    #ifndef IndirectStoreMacro
+        #define IndirectStoreMacro
+    #endif
+
+    override bool MightStoreFragments()
+    {
+        float3 texPos = streams.PositionWS.xyz * viewScale + viewOffset;
+        return dot(texPos - saturate(texPos), float3(1, 1, 1)) == 0;
+    }
+    override void StoreFragments()
+    {
+        float3 texPos = streams.PositionWS.xyz * volumeScale + volumeOffset;
+
+        streams.PositionVXS = texPos;
+        streams.VoxelVolumeSize = volumeResolution;
+        streams.PositionVXPS = min(int3(floor(saturate(texPos) * volumeResolution)), int3(volumeResolution) - 1);
+
+        int3 voxel = streams.PositionVXPS;
+        int3 cell = voxel / 8;
+
+        #ifdef SparseMark
+            // Bit s (s a set of axes, bit 0 the empty set) is set if a voxel lies in
+            // the lower half of the cell along all axes of s: filtering at x2 and x4
+            // reaches it from the brick below along those axes (see SparseMarks).
+            int3 lower = (int3)(voxel - cell * 8 < 4);
+            uint low = (uint)(lower.x | (lower.y << 1) | (lower.z << 2));
+            uint bits = 0;
+            for (uint set = 0; set < 8; set++)
+                if ((set & low) == set)
+                    bits |= 1u << set;
+            int3 cells = int3(volumeResolution) / 8;
+            InterlockedOr(marks[cell.x + cells.x * (cell.y + cells.y * cell.z)], bits);
+        #else
+            uint page = pages.Load(int4(cell, 0)).x;
+            uint slot = page - 1 - (uint)slabStart;
+            if (page == 0 || slot >= (uint)slabCount)
+                return;
+
+            int3 local = voxel - cell * 8;
+            uint writeindex = (slot * 512 + (uint)(local.x + local.y * 8 + local.z * 64)) * (uint)storageUints;
+
+            foreach (var attr in AttributesTemp)
+            {
+                attr.InitializeFromStreams();
+            }
+            foreach (var attr in AttributesDirect)
+            {
+                attr.InitializeFromStreams();
+            }
+            foreach (var attr in AttributesIndirect)
+            {
+                attr.InitializeFromStreams();
+            }
+
+            IndirectStoreMacro
+        #endif
+    }
+    override void PrepareVertex()
+    {
+        method.PrepareVertex();
+        streams.ShadingPosition.xyz = mul(float4(streams.PositionWS.xyz * viewScale + viewOffset, 1), Transformation.View).xyz;
+        streams.ShadingPosition.xyz = streams.ShadingPosition.xyz * 2 - 1;
+    }
+};

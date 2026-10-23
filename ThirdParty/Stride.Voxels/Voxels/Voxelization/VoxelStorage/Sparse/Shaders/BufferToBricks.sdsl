@@ -1,0 +1,78 @@
+// KotH patch: BufferToTexture for VoxelStorageSparse. One thread per voxel of the
+// bricks in this slab: a voxel with fragments goes to its brick and, if it is the
+// first along an axis, to the +1 border of the brick below. The fragments read
+// are cleared; Counter counts the voxels written (the bake waits until it holds).
+namespace Stride.Rendering.Voxels
+{
+    shader BufferToBricks : BufferToTexture, SparseBricks
+    {
+        stage Texture3D<uint> Pages;
+        stage RWBuffer<uint> SlotCells;
+        stage RWBuffer<uint> Counter;
+        stage uint slabStart;
+        stage uint slabCount;
+        stage uint rowLength;
+        stage int3 atlasBricks;
+
+        #ifndef IndirectStoreMacro
+            #define IndirectStoreMacro
+            #define IndirectReadAndStoreMacro
+        #endif
+
+        override void Compute()
+        {
+            uint id = streams.DispatchThreadId.x + streams.DispatchThreadId.y * rowLength;
+            uint brick = id / 512;
+            if (brick >= slabCount)
+                return;
+
+            uint v = id - brick * 512;
+            int3 local = int3(v % 8, (v / 8) % 8, v / 64);
+            uint slot = slabStart + brick;
+
+            uint VoxelFragmentsIndex = id * (uint)storageUints;
+            uint yStride = 8 * (uint)storageUints;
+            uint initialVoxelFragmentsIndex = VoxelFragmentsIndex;
+
+            uint used = 0;
+            for (uint u = 0; u < (uint)storageUints; u++)
+                used |= VoxelFragments[initialVoxelFragmentsIndex + u];
+            if (used == 0)
+                return;
+
+            int3 cell = UnpackCell(SlotCells[slot]);
+            streams.PositionVXPS = cell * 8 + local;
+            streams.VoxelVolumeSize = float3(8, 8, 8);
+
+            foreach (var attr in AttributesTemp)
+                attr.InitializeDummy();
+            foreach (var attr in AttributesIndirect)
+                attr.InitializeDummy();
+
+            IndirectReadAndStoreMacro
+
+            int3 origin = BrickOrigin(slot, atlasBricks, 9);
+            foreach (var attr in AttributesIndirect)
+                attr.DirectWrite((uint3)(origin + local), 0, 0);
+
+            for (int e = 1; e < 8; e++)
+            {
+                int3 step = int3(e & 1, (e >> 1) & 1, e >> 2);
+                int3 below = cell - step;
+                uint page = 0;
+                if (all(step * local == 0) && all(below >= 0))
+                    page = Pages.Load(int4(below, 0)).x;
+                if (page != 0)
+                {
+                    int3 border = BrickOrigin(page - 1, atlasBricks, 9) + local + step * 8;
+                    foreach (var attr in AttributesIndirect)
+                        attr.DirectWrite((uint3)border, 0, 0);
+                }
+            }
+
+            for (uint c = 0; c < (uint)storageUints; c++)
+                VoxelFragments[initialVoxelFragmentsIndex + c] = 0;
+            InterlockedAdd(Counter[0], 1);
+        }
+    };
+}

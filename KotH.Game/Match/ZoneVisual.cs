@@ -33,6 +33,9 @@ namespace KotH.Client.Match
         // A hair above the zone's floor, which lies on the plateau's top.
         const float Lift = 0.002f;
 
+        /// <summary>Drawn, but in none of the voxel GI's groups: the rails never move and give no GI.</summary>
+        const RenderGroup RailGroup = RenderGroup.Group4;
+
         bool built;
         ZoneLook shown = (ZoneLook)(-1);
 
@@ -76,7 +79,7 @@ namespace KotH.Client.Match
         void Part(Vector3 at, Vector3 scale)
         {
             // Light, not a solid: nothing of the zone throws a shadow.
-            var model = new ModelComponent(Cube) { IsShadowCaster = false };
+            var model = new ModelComponent(Cube) { IsShadowCaster = false, RenderGroup = RailGroup };
             var part = new Entity("ZonePart") { model };
             part.Transform.Position = at;
             part.Transform.Scale = scale;

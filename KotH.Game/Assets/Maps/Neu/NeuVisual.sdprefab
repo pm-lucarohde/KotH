@@ -64,16 +64,15 @@ Hierarchy:
                         Id: F1116E2A-A920-4171-8E1F-51F272BD8B1C
                         Voxelize: false
                         VoxelizationMethod: !Stride.Rendering.Voxels.VoxelizationMethodDominantAxis,Stride.Voxels {}
-                        Storage: !Stride.Rendering.Voxels.VoxelStorageClipmaps,Stride.Voxels
-                            ClipResolution: x256
-                            UpdatesPerFrame: AllClipmapsGeometryShader
-                            DownsampleFinerClipMaps: true
+                        Storage: !Stride.Rendering.Voxels.VoxelStorageSparse,Stride.Voxels {}
                         Attributes:
                             8f74299767584bc78db6ad46001a69d0: !Stride.Rendering.Voxels.VoxelAttributeEmissionOpacity,Stride.Voxels
-                                VoxelLayout: !Stride.Rendering.Voxels.VoxelLayoutIsotropic,Stride.Voxels {}
+                                VoxelLayout: !Stride.Rendering.Voxels.VoxelLayoutIsotropic,Stride.Voxels
+                                    StorageFormat: RGBA8
+                                    maxBrightness: 2.0
                                 Modifiers: {}
                         VoxelVolumeSize: 256.0
-                        AproximateVoxelSize: 0.5
+                        AproximateVoxelSize: 0.125
                         VoxelGridSnapping: true
                         StaticGroups: Group3
                         DynamicGroups: Group0, Group1
@@ -84,9 +83,14 @@ Hierarchy:
                         Type: !Stride.Rendering.Voxels.VoxelGI.LightVoxel,Stride.Voxels
                             Volume: ref!! F1116E2A-A920-4171-8E1F-51F272BD8B1C
                             AttributeIndex: 0
+                            DiffuseMarcher: !Stride.Rendering.Voxels.VoxelMarchSetHemisphere6,Stride.Voxels
+                                Marcher: !Stride.Rendering.Voxels.VoxelMarchConePerMipmap,Stride.Voxels
+                                    Steps: 7
                             BounceIntensityScale: 0.0
                             SpecularIntensityScale: 0.0
-                        Intensity: 1.0
+                            Sky: F9A75D1E-7197-4A46-90CF-5A7F970DCDCA:Skybox
+                            SkyIntensity: 0.26
+                        Intensity: 0.27
                     181c5876b5ee47fcbff815b4eaddc043: !KotH.Client.Rendering.BakeVoxels,KotH.Game
                         Id: 67A44407-BA71-4576-BE7A-FB5CEF0F40EA
                         Frames: 2

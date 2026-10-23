@@ -1,4 +1,4 @@
-// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net) and Sean Boettger <sean@whypenguins.com>
+﻿// Copyright (c) .NET Foundation and Contributors (https://dotnetfoundation.org/ & https://stride3d.net) and Sean Boettger <sean@whypenguins.com>
 // Distributed under the MIT license. See the LICENSE.md file in the project root for more information.
 
 using System;
@@ -83,6 +83,11 @@ namespace Stride.Rendering.Voxels.VoxelGI
         {
             private ValueParameterKey<float> intensityKey;
             private ValueParameterKey<float> specularIntensityKey;
+            private ValueParameterKey<float> skyIntensityKey;
+            private ValueParameterKey<float> skySpecularIntensityKey;
+            private ValueParameterKey<float> skyMipCountKey;
+            private ValueParameterKey<Color3> skyColorsKey;
+            private ObjectParameterKey<Texture> skyCubeMapKey;
 
             private PermutationParameterKey<ShaderSource> diffuseMarcherKey;
             private PermutationParameterKey<ShaderSource> specularMarcherKey;
@@ -137,6 +142,11 @@ namespace Stride.Rendering.Voxels.VoxelGI
 
                 intensityKey = LightVoxelShaderKeys.Intensity.ComposeWith(compositionName);
                 specularIntensityKey = LightVoxelShaderKeys.SpecularIntensity.ComposeWith(compositionName);
+                skyIntensityKey = LightVoxelShaderKeys.SkyIntensity.ComposeWith(compositionName);
+                skySpecularIntensityKey = LightVoxelShaderKeys.SkySpecularIntensity.ComposeWith(compositionName);
+                skyMipCountKey = LightVoxelShaderKeys.SkyMipCount.ComposeWith(compositionName);
+                skyColorsKey = LightVoxelShaderKeys.SkyColors.ComposeWith(compositionName);
+                skyCubeMapKey = LightVoxelShaderKeys.SkyCubeMap.ComposeWith(compositionName);
 
                 diffuseMarcherKey = LightVoxelShaderKeys.diffuseMarcher.ComposeWith(compositionName);
                 specularMarcherKey = LightVoxelShaderKeys.specularMarcher.ComposeWith(compositionName);
@@ -192,6 +202,17 @@ namespace Stride.Rendering.Voxels.VoxelGI
 
                 parameters.Set(intensityKey, intensity);
                 parameters.Set(specularIntensityKey, specularIntensity);
+
+                // KotH patch: voxels take the sky unoccluded (no cones there) and no reflection.
+                var sky = lightVoxel.Sky;
+                var skyCube = sky?.SpecularLightingParameters.Get(SkyboxKeys.CubeMap);
+                var skyIntensity = sky != null ? lightVoxel.SkyIntensity : 0.0f;
+                parameters.Set(skyIntensityKey, skyIntensity);
+                parameters.Set(skySpecularIntensityKey, viewContext.IsVoxelView || skyCube == null ? 0.0f : skyIntensity);
+                parameters.Set(skyMipCountKey, skyCube?.MipLevelCount ?? 0);
+                parameters.Set(skyCubeMapKey, skyCube);
+                if (sky != null)
+                    sky.DiffuseLightingParameters.CopyTo(SphericalHarmonicsEnvironmentColorKeys.SphericalColors, parameters, skyColorsKey);
 
                 if (traceAttribute != null)
                 {

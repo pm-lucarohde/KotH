@@ -12,6 +12,17 @@ namespace Stride.Rendering.Voxels.VoxelGI
         {
             float Intensity;
             float SpecularIntensity;
+            // KotH patch: the skybox, lit through the cones' gaps.
+            float SkyIntensity;
+            float SkySpecularIntensity;
+            float SkyMipCount;
+            [Color]
+            float3 SkyColors[9];
+        }
+
+        rgroup PerView.Lighting
+        {
+            TextureCube SkyCubeMap;
         }
 
         compose VoxelMarchSet diffuseMarcher;
@@ -20,26 +31,49 @@ namespace Stride.Rendering.Voxels.VoxelGI
         override void PrepareEnvironmentLight()
         {
             base.PrepareEnvironmentLight();
+            float3 normal = streams.normalWS.xyz;
+            float4 sky = float4(normal, 1.0);
             if (Intensity > 0.0)
             {
                 float3 worldPos = streams.PositionWS;
 
-                float3 tan = normalize(cross(streams.normalWS.xyz, normalize(float3(1, 1, 1))));
-                float3 bitan = cross(tan, streams.normalWS.xyz);
-                float3x3 tangentMatrix = float3x3(tan, bitan, streams.normalWS.xyz);
+                float3 startPos = worldPos + normal * specularMarcher.StepSizeRadius(1.0);
 
-                float4 reflLighting = float4(0, 0, 0, 0);
-
-                float3 startPos = worldPos + streams.normalWS.xyz * specularMarcher.StepSizeRadius(1.0);
-
-                reflLighting = diffuseMarcher.March(worldPos, streams.normalWS.xyz);
+                float4 reflLighting = diffuseMarcher.MarchSky(worldPos, normal, sky);
 
                 streams.envLightDiffuseColor = reflLighting.rgb * Intensity;
                 if (SpecularIntensity > 0.0)
-                    streams.envLightSpecularColor = specularMarcher.MarchRadius(startPos, reflect(-streams.viewWS, streams.normalWS), sqrt(streams.alphaRoughness)).rgb * SpecularIntensity;
-                else
-                    streams.envLightSpecularColor = float4(0,0,0,0);
+                    streams.envLightSpecularColor = specularMarcher.MarchRadius(startPos, reflect(-streams.viewWS, normal), sqrt(streams.alphaRoughness)).rgb * SpecularIntensity;
             }
+
+            // KotH patch: diffuse sky from the SH along the bent normal, specular from the
+            // prefiltered cubemap; both scaled by the open fraction. Skybox space flips z.
+            if (SkyIntensity > 0.0)
+            {
+                float3 bent = sky.xyz * rsqrt(max(dot(sky.xyz, sky.xyz), 1e-8));
+                streams.envLightDiffuseColor += SkyIrradiance(float3(bent.xy, -bent.z)) * SkyIntensity * sky.w;
+            }
+            if (SkySpecularIntensity > 0.0)
+            {
+                float3 r = reflect(-streams.viewWS, normal);
+                float mip = sqrt(streams.alphaRoughness) * SkyMipCount;
+                streams.envLightSpecularColor += SkyCubeMap.SampleLevel(LinearSampler, float3(r.xy, -r.z), mip).rgb * SkySpecularIntensity * sky.w;
+            }
+        }
+
+        // Same basis as SphericalHarmonicsUtils<3> (coefficients carry the constants).
+        float3 SkyIrradiance(float3 d)
+        {
+            float3 color = SkyColors[0];
+            color += SkyColors[1] * d.y;
+            color += SkyColors[2] * d.z;
+            color += SkyColors[3] * d.x;
+            color += SkyColors[4] * d.y * d.x;
+            color += SkyColors[5] * d.y * d.z;
+            color += SkyColors[6] * (3.0 * d.z * d.z - 1.0);
+            color += SkyColors[7] * d.x * d.z;
+            color += SkyColors[8] * (d.x * d.x - d.y * d.y);
+            return color;
         }
     };
 }

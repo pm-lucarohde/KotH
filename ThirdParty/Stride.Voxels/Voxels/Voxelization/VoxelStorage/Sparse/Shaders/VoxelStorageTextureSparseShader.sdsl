@@ -1,0 +1,119 @@
+// KotH patch: sampling VoxelStorageSparse. Mips 0-2 (voxel size, x2, x4) come from
+// the brick atlases: the brick holding the lower corner of the trilinear footprint
+// is filtered in hardware, its +1 border covers the rest. From mip 3 on (one voxel
+// per brick) the dense volume and its mipmaps.
+shader VoxelStorageTextureSparseShader<float voxelSizeT> : VoxelStorageTextureShader, Texturing, SparseBricks
+{
+    cbuffer PerView.Lighting
+    {
+        float3 volumeMin;
+        float3 cellCount;
+        float3 atlasBricks;
+        float3 atlasSize0;
+        float3 atlasSize1;
+        float3 atlasSize2;
+    }
+    rgroup PerView.Lighting
+    {
+        Texture3D<uint> pages;
+        Texture3D atlas0;
+        Texture3D atlas1;
+        Texture3D atlas2;
+        Texture3D dense;
+    }
+
+    stage SamplerState LinearClampSampler3D
+    {
+        Filter = MIN_MAG_MIP_LINEAR;
+        AddressU = Clamp;
+        AddressV = Clamp;
+        AddressW = Clamp;
+    };
+    stage SamplerState LinearBorderSampler3D
+    {
+        Filter = MIN_MAG_MIP_LINEAR;
+        AddressU = Border;
+        AddressV = Border;
+        AddressW = Border;
+    };
+
+    override float VoxelSize()
+    {
+        return voxelSizeT;
+    }
+
+    float4 FilterLevel(int level, float3 texel)
+    {
+        if (level == 0)
+            return atlas0.SampleLevel(LinearClampSampler3D, texel / atlasSize0, 0);
+        if (level == 1)
+            return atlas1.SampleLevel(LinearClampSampler3D, texel / atlasSize1, 0);
+        return atlas2.SampleLevel(LinearClampSampler3D, texel / atlasSize2, 0);
+    }
+
+    uint PageOf(int3 brick)
+    {
+        if (any(brick < 0) || any(brick >= (int3)cellCount))
+            return 0;
+        return pages.Load(int4(brick, 0)).x;
+    }
+
+    float4 SampleBricks(float3 pos, int level)
+    {
+        int side = 8 >> level;
+        float3 g = (pos - volumeMin) / (voxelSizeT * (1 << level)) - 0.5;
+        float3 corner = floor(g);
+        float3 f = g - corner;
+        int3 c = (int3)corner;
+        int3 brick = (int3)floor(corner / side);
+        int3 local = c - brick * side;
+
+        // An empty brick here means an empty footprint: the bricks the footprint
+        // reaches from below get one even without voxels of their own (SparseMarks).
+        uint page = PageOf(brick);
+        if (page == 0)
+            return 0;
+        return FilterLevel(level, BrickOrigin(page - 1, (int3)atlasBricks, side + 1) + local + f + 0.5);
+    }
+
+    float4 SampleDense(float3 pos, float mip)
+    {
+        return dense.SampleLevel(LinearBorderSampler3D, (pos - volumeMin) / (voxelSizeT * 8 * cellCount), mip);
+    }
+
+    float4 SampleMip(float3 pos, float mipmap)
+    {
+        if (mipmap >= 3)
+            return SampleDense(pos, mipmap - 3);
+        return SampleBricks(pos, (int)mipmap);
+    }
+
+    override float4 SampleRaw(float3 pos, float mipmap, int textureID, int axis)
+    {
+        return SampleMip(pos, mipmap);
+    }
+
+    override float4 SampleNearestMip(float3 pos, float diameter, int axis)
+    {
+        return SampleByMipNearestMip(pos, log2(max(1, diameter / voxelSizeT)), axis);
+    }
+
+    override float4 SampleByMipNearestMip(float3 pos, float mipmap, int axis)
+    {
+        return SampleMip(pos, floor(mipmap));
+    }
+
+    override float4 Sample(float3 pos, float diameter, int axis)
+    {
+        float mipmap = log2(max(1, diameter / voxelSizeT));
+        if (mipmap >= 3)
+            return SampleDense(pos, mipmap - 3);
+
+        float mipBase = floor(mipmap);
+        float4 fine = SampleBricks(pos, (int)mipBase);
+        if (mipmap == mipBase)
+            return fine;
+        float4 coarse = mipBase + 1 >= 3 ? SampleDense(pos, 0) : SampleBricks(pos, (int)mipBase + 1);
+        return lerp(fine, coarse, mipmap - mipBase);
+    }
+};

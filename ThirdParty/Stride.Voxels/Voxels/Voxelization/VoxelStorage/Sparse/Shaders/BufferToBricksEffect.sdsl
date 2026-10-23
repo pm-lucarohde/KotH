@@ -1,0 +1,27 @@
+// KotH patch: BufferToTextureEffect with BufferToBricks.
+namespace Stride.Rendering.Voxels
+{
+    partial effect BufferToBricksEffect
+    {
+        using params BufferToTextureKeys;
+
+        mixin BufferToBricks;
+        if (BufferToTextureKeys.AttributesIndirect!=null)
+        {
+            foreach (var attr in BufferToTextureKeys.AttributesIndirect)
+            {
+                mixin compose AttributesIndirect += (attr);
+            }
+        }
+        if (BufferToTextureKeys.AttributesTemp!=null)
+        {
+            foreach (var attr in BufferToTextureKeys.AttributesTemp)
+            {
+                mixin compose AttributesTemp += (attr);
+            }
+        }
+
+        mixin macro BufferToTextureKeys.IndirectReadAndStoreMacro;
+        mixin macro BufferToTextureKeys.IndirectStoreMacro;
+    };
+}

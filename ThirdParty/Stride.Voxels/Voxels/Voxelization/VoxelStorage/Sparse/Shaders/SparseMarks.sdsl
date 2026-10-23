@@ -1,0 +1,53 @@
+// KotH patch: Dilate = 1 marks the cells below a marked one (bit 8) that the
+// trilinear footprint of a coarser level can come from (bits 1-7 of the mark,
+// see VoxelStorageSparseShader). Then counts the marked cells (Allocate = 0) or
+// gives each a slot in the brick atlas (Allocate = 1): its page then holds
+// slot + 1 and SlotCells the cell of each slot, packed 8 bits per axis. Marks
+// are a buffer: the shader compiler has no atomics on texels.
+namespace Stride.Rendering.Voxels
+{
+    shader SparseMarks : ComputeShaderBase
+    {
+        stage RWBuffer<uint> Marks;
+        stage RWTexture3D<uint> Pages;
+        stage RWBuffer<uint> SlotCells;
+        stage int3 cellCount;
+        stage RWBuffer<uint> Counter;
+        stage uint Allocate;
+        stage uint Dilate;
+
+        override void Compute()
+        {
+            int3 cell = (int3)streams.DispatchThreadId;
+            if (any(cell >= cellCount))
+                return;
+            uint mark = Marks[Index(cell)];
+            if (mark == 0)
+                return;
+
+            if (Dilate != 0)
+            {
+                for (uint set = 1; set < 8; set++)
+                {
+                    int3 below = cell - int3(set & 1, (set >> 1) & 1, set >> 2);
+                    if ((mark & (1u << set)) != 0 && all(below >= 0))
+                        InterlockedOr(Marks[Index(below)], 256u);
+                }
+                return;
+            }
+
+            uint slot;
+            InterlockedAdd(Counter[0], 1, slot);
+            if (Allocate != 0)
+            {
+                Pages[cell] = slot + 1;
+                SlotCells[slot] = (uint)(cell.x | (cell.y << 8) | (cell.z << 16));
+            }
+        }
+
+        uint Index(int3 cell)
+        {
+            return (uint)(cell.x + cellCount.x * (cell.y + cellCount.y * cell.z));
+        }
+    };
+}

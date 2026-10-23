@@ -1,0 +1,20 @@
+// KotH patch: helpers for the brick atlas of VoxelStorageSparse. A slot's brick
+// sits in the atlas at (slot % x, slot / x % y, slot / (x * y)), each `side`
+// texels wide: the brick's voxels plus one more along +x, +y and +z, the first
+// voxels of the bricks next to it, so trilinear filtering stays in one brick.
+namespace Stride.Rendering.Voxels
+{
+    shader SparseBricks
+    {
+        int3 BrickOrigin(uint slot, int3 atlasBricks, uint side)
+        {
+            uint3 bricks = (uint3)atlasBricks;
+            return (int3)(uint3(slot % bricks.x, (slot / bricks.x) % bricks.y, slot / (bricks.x * bricks.y)) * side);
+        }
+
+        int3 UnpackCell(uint packed)
+        {
+            return int3(packed & 255, (packed >> 8) & 255, packed >> 16);
+        }
+    };
+}

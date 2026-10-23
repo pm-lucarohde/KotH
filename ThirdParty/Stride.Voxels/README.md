@@ -28,3 +28,35 @@ Frame nur noch:
 
 Die Mipmaps der gröbsten Clipmap bleiben gebacken: Weite Kegel sehen die dynamischen Gruppen nicht.
 Braucht `UpdatesPerFrame = AllClipmapsGeometryShader` (alle Clipmaps je Frame) und Attribute ohne Spalten-Modifikatoren.
+
+## Dünn besetzter Speicher (neu, `Voxelization/VoxelStorage/Sparse`)
+
+`VoxelStorageSparse` hält das ganze Volumen (256 m) in 0,125 m, nur wo etwas ist: Zellen von 1 m = Bricks aus 8³
+Voxeln (9³ mit Rand +x/+y/+z, damit trilinear in einem Brick bleibt), Seitentabelle `pages` (R32_UInt, Platz + 1),
+Atlas in drei Stufen (0,125/0,25/0,5 m) plus ein dichtes 1-m-Volumen mit Hardware-Mips. Neu: 220.000 Bricks (Spiel gesamt ~1,4 GB VRAM).
+
+- **Backen** über mehrere Frames (Effekte kompilieren asynchron; jeder Schritt wiederholt sich, bis die
+  zurückgelesene Zahl zweimal gleich ist): Zellen markieren (`InterlockedOr` in einen Puffer), die Zellen darunter
+  anlegen, in die gröbere Filterfüße reichen, Plätze vergeben, Fragmente in Scheiben ≤ 2²⁷ Elemente schreiben
+  (`BufferToBricks`), dann Stufen und dichtes Volumen (`SparseMip`). `BakeVoxels` hört auf `Baked`.
+- **Lesen** (`VoxelStorageTextureSparseShader`): Brick über die untere Ecke des Filterfußes, Seite 0 = leer; ab
+  Mip 3 das dichte Volumen.
+- **Dynamisch:** Zellen um die Figuren (+4 Voxel) bekommen je Frame eigene Plätze (bis 1024), `SparseEdit` kopiert
+  den gebackenen Brick hinein und setzt die Seiten nach dem Frame zurück. Jede Figur wird in einem eigenen Fenster
+  von 64³ Voxeln voxelisiert (ein Fenster über das ganze Volumen kostete ~3 ms, auch ohne Figuren darin). Die Mips
+  des dichten Volumens bleiben gebacken.
+- Unter Vulkan: `ClearReadWrite(Buffer)` fehlt (Compute `ClearBuffer`), typisierte Puffer höchstens 2²⁷ Elemente.
+- Kosten (AOT, 1440p, RTX 3070): rund 1,2 ms mehr als 0,5-m-Clipmaps, davon Figuren ~0,45 ms; Kegel `Steps` 7.
+  GI in reduzierter Auflösung (eigener Pass, hochgerechnet) war langsamer: Der Pass kostet pro Pixel etwa das
+  Doppelte des Abtastens im Forward-Pass.
+
+## Himmelslicht durch die Kegel (neu)
+
+`LightVoxelShader` kannte keinen Himmel: Ein Kegel ins Freie brachte 0. Jetzt gibt es `LightVoxel.Sky` (Skybox) und
+`SkyIntensity`. `VoxelMarchSet.MarchSky` liefert neben dem Licht, wie viel Himmel die Kegel sehen (offene Richtungen
+aufsummiert = Bent Normal, offener Anteil). Diffus: die SH der Skybox entlang der Bent Normal, mal Anteil; gespiegelt:
+die vorgefilterte Cubemap in Reflexionsrichtung, mal Anteil. Damit ersetzt das Voxel-Licht ein eigenes Skybox-Licht.
+In Voxel-Views (Voxelisieren) kommt der Himmel unverdeckt und ohne Spiegelung.
+
+`VoxelMarchSetHemisphere6`: Der sechste Kegel zeigte auf `(0.895, 0.445, 0.445)`, fast wie der zweite; der Ring
+braucht `(0, 0.895, 0.445)`.
