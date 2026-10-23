@@ -110,10 +110,10 @@ sealed class KotHGame : Game
         ConsoleLogMode = ConsoleLogMode.Always;
         ConsoleLogLevel = LogMessageType.Warning;
 
-        // Waits for the display's refresh (Luca's choice). The Unity build
-        // does too: its default quality level "Ultra" has vSyncCount 1.
+        // Renders as fast as it can, without waiting for the display's
+        // refresh (Luca's choice, earlier it waited like Unity's "Ultra").
         GraphicsDeviceManager.SynchronizeWithVerticalRetrace =
-            Number("KOTH_VSYNC") is not { } vsync || vsync != 0.0;
+            Number("KOTH_VSYNC") is { } vsync && vsync != 0.0;
 
         if (frameLogPath != null)
             frameLog = new float[600 * 2000];
