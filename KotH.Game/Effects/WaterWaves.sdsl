@@ -1,0 +1,50 @@
+/// <summary>
+/// Waves on the sea drawn into the light only, like the wind in LeafSplat:
+/// a few sine waves over the world position and Global.Time tilt the normal
+/// (the sea is flat and has no tangents, so the shading normal is set here;
+/// without a normal map Stride keeps it) and lift the crests a little.
+/// Each wave fades where a pixel covers a good part of it, so the far sea
+/// lies calm instead of glittering.
+/// </summary>
+shader WaterWaves : ComputeColor, PositionStream4, NormalStream
+{
+    // The old material colour (0.1, 0.52, 0.64) in sRGB, here linear.
+    static const float3 Deep = float3(0.01, 0.233, 0.367);
+    static const float CrestLift = 0.08;
+    // Slower than real deep water (comic, Luca's taste); share of sqrt(g / k).
+    static const float Pace = 0.5;
+
+    // One wave: direction, length (metres) and height (metres); adds its
+    // height and slope at p and t, faded by the pixel's footprint.
+    void Wave(float2 p, float t, float2 dir, float length, float height, float footprint,
+              inout float h, inout float2 slope)
+    {
+        float k = 6.2831853 / length;
+        float fade = saturate(2.0 - 4.0 * footprint / length);
+        float phase = k * dot(dir, p) - Pace * sqrt(9.81 * k) * t;
+        h += fade * height * sin(phase);
+        slope += fade * height * k * cos(phase) * dir;
+    }
+
+    override float4 Compute()
+    {
+        float2 p = streams.PositionWS.xz;
+        float2 dp = fwidth(p);
+        float footprint = max(dp.x, dp.y);
+        float t = Global.Time;
+
+        // A slow wobble bends the crests, so no wave runs straight for long.
+        float2 q = p + 1.5 * float2(sin(p.y * 0.21 + t * 0.13), sin(p.x * 0.17 - t * 0.11));
+        float h = 0;
+        float2 slope = 0;
+        Wave(q, t, float2(0.94, 0.34), 13.0, 0.10, footprint, h, slope);
+        Wave(q, t, float2(0.57, -0.82), 7.7, 0.05, footprint, h, slope);
+        Wave(q, t, float2(-0.26, 0.97), 4.9, 0.03, footprint, h, slope);
+        Wave(q, t, float2(0.99, -0.14), 3.1, 0.016, footprint, h, slope);
+        Wave(q, t, float2(-0.71, -0.70), 2.1, 0.010, footprint, h, slope);
+        Wave(q, t, float2(0.80, 0.60), 1.3, 0.006, footprint, h, slope);
+
+        streams.normalWS = normalize(float3(-slope.x, 1.0, -slope.y));
+        return float4(Deep * (1.0 + CrestLift * h / 0.19), 1.0);
+    }
+};

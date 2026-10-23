@@ -31,7 +31,7 @@ Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Pr
   selbst starten). JIT und AOT spielen zusammen, wenn JIT mit `DOTNET_EnableAVX=0` läuft (`BuildId`).
 - Testhilfen (`KotHApp.cs`): `KOTH_SHOT=bild.png` (nach `_SECONDS`, F3 an, listet Schilder), `_YAW`/`_PITCH`/`_FOV`,
   `_THIRD`, `_AT=x,y,z`, `_FACE=grad`, `_SWING`, `_SHAKE`, `_HIT=grad`, `_BLINK`, `_STRIKE=s,…`, `_MOVE=x,y[,sprint]`, `_CROUCH=s`,
-  `_JUMP=s,…`, `_TURN=grad,s[,kreis]`, `_VIDEO=s` (BGRA 30 fps nach `bild.png.rgba`); `KOTH_HEADLESS=1` (ohne Fenster),
+  `_JUMP=s,…`, `_TURN=grad,s[,kreis]`, `_VIDEO=s` (30 fps nach `bild.png.rgba`, Format im Log); `KOTH_HEADLESS=1` (ohne Fenster),
   `KOTH_SIZE`, `KOTH_VSYNC`, `KOTH_FRAMELOG`, `KOTH_MUSIC_VOLUME` (stumm), `KOTH_MUSIC_TAIL`, Ton `ALSOFT_DRIVERS=wave`. Kein Splash, 6 Render-Threads.
 
 ## Tests: Proben und Regression
