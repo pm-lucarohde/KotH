@@ -18,6 +18,14 @@ namespace Stride.Rendering.Voxels.VoxelGI
             float SkyMipCount;
             [Color]
             float3 SkyColors[9];
+            // KotH patch: capsules the voxels do not hold (the figures), in groups of
+            // OccluderGroupSize behind a sphere (centre, reach); each capsule two
+            // entries: end a and radius, end b. They darken the bounce and the sky.
+            float4 OccluderGroups[12];
+            float4 Occluders[192];
+            int OccluderGroupCount;
+            int OccluderGroupSize;
+            float OccluderFade;
         }
 
         rgroup PerView.Lighting
@@ -53,12 +61,54 @@ namespace Stride.Rendering.Voxels.VoxelGI
                 float3 bent = sky.xyz * rsqrt(max(dot(sky.xyz, sky.xyz), 1e-8));
                 streams.envLightDiffuseColor += SkyIrradiance(float3(bent.xy, -bent.z)) * SkyIntensity * sky.w;
             }
+            if (OccluderGroupCount > 0)
+                streams.envLightDiffuseColor *= CapsuleVisibility(streams.PositionWS, normal);
             if (SkySpecularIntensity > 0.0)
             {
                 float3 r = reflect(-streams.viewWS, normal);
                 float mip = sqrt(streams.alphaRoughness) * SkyMipCount;
                 streams.envLightSpecularColor += SkyCubeMap.SampleLevel(LinearSampler, float3(r.xy, -r.z), mip).rgb * SkySpecularIntensity * sky.w;
             }
+        }
+
+        // KotH patch: light left after the capsules near p, their shares multiplied.
+        float CapsuleVisibility(float3 p, float3 n)
+        {
+            float visible = 1.0;
+            for (int g = 0; g < OccluderGroupCount; g++)
+            {
+                float4 group = OccluderGroups[g];
+                float3 gd = group.xyz - p;
+                if (dot(gd, gd) > group.w * group.w)
+                    continue;
+                for (int k = 0; k < OccluderGroupSize; k++)
+                {
+                    int i = 2 * (g * OccluderGroupSize + k);
+                    float4 a = Occluders[i];
+                    float3 b = Occluders[i + 1].xyz;
+                    if (a.w > 0.0)
+                        visible *= 1.0 - CapsuleOcclusion(p, n, a.xyz, b, a.w);
+                }
+            }
+            return visible;
+        }
+
+        // Cosine-weighted share of the hemisphere over n that a capsule hides, as the
+        // sphere on its axis nearest to p, without the horizon cut; faded out up to
+        // OccluderFade radii. A point inside counts as on its surface: the figure's
+        // own faces look away from the axis, the ground under it gets dark.
+        float CapsuleOcclusion(float3 p, float3 n, float3 a, float3 b, float r)
+        {
+            float3 ab = b - a;
+            float t = saturate(dot(p - a, ab) / max(dot(ab, ab), 1e-8));
+            float3 d = a + ab * t - p;
+            float l = length(d);
+            float reach = OccluderFade * r;
+            if (l >= reach)
+                return 0.0;
+            float near = max(l, r);
+            float occ = saturate(dot(n, d) / max(l, 1e-4)) * r * r / (near * near);
+            return occ * saturate((reach - l) / (0.4 * reach));
         }
 
         // Same basis as SphericalHarmonicsUtils<3> (coefficients carry the constants).

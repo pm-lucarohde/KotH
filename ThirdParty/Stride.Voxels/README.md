@@ -61,3 +61,14 @@ In Voxel-Views (Voxelisieren) kommt der Himmel unverdeckt und ohne Spiegelung.
 
 `VoxelMarchSetHemisphere6`: Der sechste Kegel zeigte auf `(0.895, 0.445, 0.445)`, fast wie der zweite; der Ring
 braucht `(0, 0.895, 0.445)`.
+
+## Kapseln für Figuren (neu)
+
+KotH voxelisiert die Figuren nicht mehr (`DynamicGroups` leer; der Weg oben bleibt im Code). Stattdessen füllt das
+Spiel je Frame `LightVoxel.Occluders`: bis 12 Gruppen (Figuren) zu je bis 8 Kapseln (Enden, Radius), jede Gruppe
+hinter einer Kugel, die ihre Reichweite umfasst. `LightVoxelShader.CapsuleVisibility` multipliziert das diffuse Licht
+(Kegel und Himmel) mit dem, was die Kapseln übrig lassen: je Kapsel die Kugel auf der Achse, die dem Punkt am nächsten
+ist, kosinusgewichtet ohne Horizontschnitt, ausgeblendet bis `OccluderFade` (4) Radien; ein Punkt in einer Kapsel zählt
+wie auf ihrer Oberfläche. Nicht in Voxel-Views. Genauere Formeln (Horizontschnitt nach Quilez, Integral entlang der
+Achse) sahen kaum anders aus und kosteten mehr. Kosten (JIT, 1440p, 12 Figuren × 6 Kapseln im Gedränge) ~0,5 ms,
+Figuren weit weg ~0,1–0,2 ms; die Voxel-Figuren kosteten mit Bots im Bild ~2 ms.

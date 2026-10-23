@@ -30,7 +30,7 @@ Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Pr
   von links), `--map NAME` (Gäste nehmen die des Hosts). Zwei Clients: `Tools/two_clients.sh [aot|jit] [MAP]` (nicht
   selbst starten). JIT und AOT spielen zusammen, wenn JIT mit `DOTNET_EnableAVX=0` läuft (`BuildId`).
 - Testhilfen (`KotHApp.cs`): `KOTH_SHOT=bild.png` (nach `_SECONDS`, F3 an, listet Schilder), `_YAW`/`_PITCH`/`_FOV`,
-  `_THIRD`, `_AT=x,y,z`, `_SWING`, `_SHAKE`, `_HIT=grad`, `_BLINK`, `_STRIKE=s,…`, `_MOVE=x,y[,sprint]`, `_CROUCH=s`,
+  `_THIRD`, `_AT=x,y,z`, `_FACE=grad`, `_SWING`, `_SHAKE`, `_HIT=grad`, `_BLINK`, `_STRIKE=s,…`, `_MOVE=x,y[,sprint]`, `_CROUCH=s`,
   `_JUMP=s,…`, `_TURN=grad,s[,kreis]`, `_VIDEO=s` (BGRA 30 fps nach `bild.png.rgba`); `KOTH_HEADLESS=1` (ohne Fenster),
   `KOTH_SIZE`, `KOTH_VSYNC`, `KOTH_FRAMELOG`, `KOTH_MUSIC_VOLUME` (stumm), `KOTH_MUSIC_TAIL`, Ton `ALSOFT_DRIVERS=wave`. Kein Splash, 6 Render-Threads.
 
@@ -122,7 +122,7 @@ Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall 
 - `MusicPlayer` (Entity `Music`): Lobby-Track bis `Running`, dann Spielbeginn-Track und gemischte Playlist,
   Überblendung 3,5 s, Lautstärke 0,2, im Netz nach bestätigter Runde; misst die Länge selbst (`Sound.TotalLength`).
 - Licht: VXGI aus `ThirdParty/Stride.Voxels` (gepatcht, README), Profil 11; je Map `GI` (256 m, Bricks 0,125 m, GI 0,27,
-  Himmel `LightVoxel.Sky`): Map (Gruppe 3) gebacken, Figuren (0/1) je Frame nur nahe der Sicht (+16 m), Gruppe 4 ohne GI.
+  Himmel `LightVoxel.Sky`): Map (Gruppe 3) gebacken; Figuren nicht voxelisiert, je 6 Kapseln an Knochen (`FigureOccluders`).
 
 ### Bots (`KotH.Shared/Bots`)
 - Treten wie Spieler bei (NetId ab 4, Slots nach `NetWorld.BotSlots`), offline/Host `--bots N` (Standard 3), stehen bei Rundenbeginn 3 s (`StartWait`).

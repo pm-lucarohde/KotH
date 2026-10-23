@@ -44,6 +44,34 @@ namespace Stride.Rendering.Voxels.VoxelGI
         [DataMember(70)]
         public float SkyIntensity { get; set; } = 1.0f;
 
+        /// <summary>KotH patch: most groups and capsules per group in <see cref="Occluders"/>.</summary>
+        public const int MaxOccluderGroups = 12, MaxOccludersPerGroup = 8;
+
+        /// <summary>
+        /// KotH patch: capsules not in the voxels (figures) that darken the bounce and the
+        /// sky, filled every frame: group g, capsule k at 2 (g * OccluderGroupSize + k), end a
+        /// with the radius in w (0 = none), then end b; a group's sphere (centre, reach) in
+        /// <see cref="OccluderGroups"/>.
+        /// </summary>
+        [DataMemberIgnore]
+        public Vector4[] Occluders { get; } = new Vector4[2 * MaxOccluderGroups * MaxOccludersPerGroup];
+
+        /// <summary>KotH patch: the sphere round each group's capsules and their reach.</summary>
+        [DataMemberIgnore]
+        public Vector4[] OccluderGroups { get; } = new Vector4[MaxOccluderGroups];
+
+        /// <summary>KotH patch: groups used.</summary>
+        [DataMemberIgnore]
+        public int OccluderGroupCount { get; set; }
+
+        /// <summary>KotH patch: capsules per group.</summary>
+        [DataMemberIgnore]
+        public int OccluderGroupSize { get; set; }
+
+        /// <summary>KotH patch: a capsule reaches this many radii from its axis, fading out.</summary>
+        [DataMemberIgnore]
+        public float OccluderFade { get; set; } = 4.0f;
+
         public bool Update(RenderLight light)
         {
             return true;

@@ -32,6 +32,9 @@ namespace KotH.Client.Player
     public sealed class PlayerVisualSystem : SyncScript
     {
         readonly List<Entity> visuals = new List<Entity>();
+
+        /// <summary>The figures' root entities, centred on their bodies.</summary>
+        public IReadOnlyList<Entity> Figures => visuals;
         readonly List<PlayerMotor> motors = new List<PlayerMotor>();
 
         // The rotations of the last two ticks per body: the motor keeps only

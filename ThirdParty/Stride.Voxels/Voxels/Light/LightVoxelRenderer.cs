@@ -88,6 +88,12 @@ namespace Stride.Rendering.Voxels.VoxelGI
             private ValueParameterKey<float> skyMipCountKey;
             private ValueParameterKey<Color3> skyColorsKey;
             private ObjectParameterKey<Texture> skyCubeMapKey;
+            // KotH patch: capsules for what the voxels do not hold.
+            private ValueParameterKey<Vector4> occludersKey;
+            private ValueParameterKey<Vector4> occluderGroupsKey;
+            private ValueParameterKey<int> occluderGroupCountKey;
+            private ValueParameterKey<int> occluderGroupSizeKey;
+            private ValueParameterKey<float> occluderFadeKey;
 
             private PermutationParameterKey<ShaderSource> diffuseMarcherKey;
             private PermutationParameterKey<ShaderSource> specularMarcherKey;
@@ -147,6 +153,11 @@ namespace Stride.Rendering.Voxels.VoxelGI
                 skyMipCountKey = LightVoxelShaderKeys.SkyMipCount.ComposeWith(compositionName);
                 skyColorsKey = LightVoxelShaderKeys.SkyColors.ComposeWith(compositionName);
                 skyCubeMapKey = LightVoxelShaderKeys.SkyCubeMap.ComposeWith(compositionName);
+                occludersKey = LightVoxelShaderKeys.Occluders.ComposeWith(compositionName);
+                occluderGroupsKey = LightVoxelShaderKeys.OccluderGroups.ComposeWith(compositionName);
+                occluderGroupCountKey = LightVoxelShaderKeys.OccluderGroupCount.ComposeWith(compositionName);
+                occluderGroupSizeKey = LightVoxelShaderKeys.OccluderGroupSize.ComposeWith(compositionName);
+                occluderFadeKey = LightVoxelShaderKeys.OccluderFade.ComposeWith(compositionName);
 
                 diffuseMarcherKey = LightVoxelShaderKeys.diffuseMarcher.ComposeWith(compositionName);
                 specularMarcherKey = LightVoxelShaderKeys.specularMarcher.ComposeWith(compositionName);
@@ -213,6 +224,18 @@ namespace Stride.Rendering.Voxels.VoxelGI
                 parameters.Set(skyCubeMapKey, skyCube);
                 if (sky != null)
                     sky.DiffuseLightingParameters.CopyTo(SphericalHarmonicsEnvironmentColorKeys.SphericalColors, parameters, skyColorsKey);
+
+                // KotH patch: the capsules darken only what the camera sees, never the voxels.
+                int groupSize = Math.Clamp(lightVoxel.OccluderGroupSize, 0, LightVoxel.MaxOccludersPerGroup);
+                int groups = viewContext.IsVoxelView || groupSize == 0 ? 0 : Math.Clamp(lightVoxel.OccluderGroupCount, 0, LightVoxel.MaxOccluderGroups);
+                parameters.Set(occluderGroupCountKey, groups);
+                parameters.Set(occluderGroupSizeKey, groupSize);
+                parameters.Set(occluderFadeKey, lightVoxel.OccluderFade);
+                if (groups > 0)
+                {
+                    parameters.Set(occluderGroupsKey, groups, ref lightVoxel.OccluderGroups[0]);
+                    parameters.Set(occludersKey, 2 * groups * groupSize, ref lightVoxel.Occluders[0]);
+                }
 
                 if (traceAttribute != null)
                 {

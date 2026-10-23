@@ -538,7 +538,6 @@ Hierarchy:
                         AproximateVoxelSize: 0.125
                         VoxelGridSnapping: true
                         StaticGroups: Group3
-                        DynamicGroups: Group0, Group1
                         VisualizeVoxels: false
                         VisualizeIndex: 0
                     94bb7f9220f946019da47f3726e2feab: !LightComponent
@@ -557,3 +556,5 @@ Hierarchy:
                     c697179cfcf44a36ae2fc55565562def: !KotH.Client.Rendering.BakeVoxels,KotH.Game
                         Id: 9F409850-C035-4E6B-B737-6EE175A1E7B2
                         Frames: 2
+                    8672322e9d2f4baeb1d1a8bfcf2752dc: !KotH.Client.Rendering.FigureOccluders,KotH.Game
+                        Id: 929122D0-58DF-45E9-B89D-0B262E8363BE

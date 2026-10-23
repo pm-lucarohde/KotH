@@ -5,11 +5,10 @@ namespace KotH.Client.Rendering
 {
     /// <summary>
     /// Voxelises the map in full once, in the first frames after it is
-    /// loaded, then keeps those voxels: map and sun never change. From then
-    /// on the volume's dynamic groups (the figures) are voxelised again every
-    /// frame, only in the boxes round them (Luca's choice).
+    /// loaded, then keeps those voxels: map and sun never change. The figures
+    /// are not voxelised (FigureOccluders hands them over as capsules).
     /// </summary>
-    /// <userdoc>Voxelisiert die Map einmal nach dem Laden; danach nur noch die Figuren.</userdoc>
+    /// <userdoc>Voxelisiert die Map einmal nach dem Laden; die Figuren kommen als Kapseln dazu.</userdoc>
     public sealed class BakeVoxels : SyncScript
     {
         /// <summary>Frames voxelised in full (clipmaps; sparse bricks say when they are done).</summary>
