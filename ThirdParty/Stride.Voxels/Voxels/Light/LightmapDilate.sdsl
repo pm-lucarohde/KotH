@@ -1,13 +1,14 @@
 // KotH patch: one step of growing the baked lightmap into its empty texels (alpha
-// below 0), the mean of the written ones round it, so bilinear filtering at the
-// charts' edges and thin triangles' gaps reads light, never black.
+// or green below 0: both lightmaps are cleared so, light and sun never are), the
+// mean of the written ones round it, so bilinear filtering at the charts' edges
+// and thin triangles' gaps reads light, never black.
 shader LightmapDilate : ImageEffectShader
 {
     stage override float4 Shading()
     {
         int2 p = (int2)streams.ShadingPosition.xy;
         float4 c = Texture0.Load(int3(p, 0));
-        if (c.a >= 0.0)
+        if (min(c.a, c.g) >= 0.0)
             return c;
         float4 sum = 0;
         float count = 0;
@@ -16,7 +17,7 @@ shader LightmapDilate : ImageEffectShader
             for (int x = -1; x <= 1; x++)
             {
                 float4 s = Texture0.Load(int3(p + int2(x, y), 0));
-                if (s.a >= 0.0)
+                if (min(s.a, s.g) >= 0.0)
                 {
                     sum += s;
                     count += 1.0;

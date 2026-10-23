@@ -49,6 +49,11 @@ RenderStages:
         Id: D4E16DEC-2414-4600-990C-7A659A19D905
         Name: LightmapBake
         EffectSlotName: LightmapBake
+    9c3e5a1d2b7f4e608a1c4d2e7b9f0a13:
+        Id: 5A7C2E31-8B44-4F0B-9D7E-3C1F6A2B9E05
+        Name: StaticShadowCaster
+        EffectSlotName: ShadowMapCaster
+        SortMode: !FrontToBackSortMode {}
 RenderFeatures:
     d8fb80b0e7995140a46bca8dc36ee8a2: !Stride.Rendering.MeshRenderFeature,Stride.Rendering
         RenderStageSelectors:
@@ -56,8 +61,9 @@ RenderFeatures:
                 OpaqueRenderStage: ref!! C506DDAF-4593-4B9A-A80B-666DDD4768FF
                 TransparentRenderStage: ref!! 6539832E-7F51-447C-AC7D-1B2049315B8A
                 EffectName: StrideForwardShadingEffect
-            6f7224048750e7260ea87c444f74b32c: !Stride.Rendering.Shadows.ShadowMapRenderStageSelector,Stride.Rendering
+            6f7224048750e7260ea87c444f74b32c: !KotH.Client.Rendering.SunShadowStageSelector,KotH.Game
                 ShadowMapRenderStage: ref!! 78C668F8-9DE2-4D2A-83CE-AAE987C047E7
+                StaticRenderStage: ref!! 5A7C2E31-8B44-4F0B-9D7E-3C1F6A2B9E05
                 EffectName: StrideForwardShadingEffect.ShadowMapCaster
             b60663d7cb46417a94341a39c3bc1a12: !Stride.Rendering.Shadows.ShadowMapRenderStageSelector,Stride.Rendering
                 ShadowMapRenderStage: ref!! 1F31213D-28E4-4091-9DF0-03CEEB4436C0
@@ -87,6 +93,8 @@ RenderFeatures:
                 TransparentRenderStage: ref!! 6539832E-7F51-447C-AC7D-1B2049315B8A
             26c899b17f88c21ab13bf60a7220ccd1: !Stride.Rendering.ShadowMeshPipelineProcessor,Stride.Rendering
                 ShadowMapRenderStage: ref!! 78C668F8-9DE2-4D2A-83CE-AAE987C047E7
+            4b8e2f6a1c9d4e3f8a7b6c5d4e3f2a1b: !Stride.Rendering.ShadowMeshPipelineProcessor,Stride.Rendering
+                ShadowMapRenderStage: ref!! 5A7C2E31-8B44-4F0B-9D7E-3C1F6A2B9E05
             ff51170a7d1a4761b73ef6a5c9f0cba2: !Stride.Rendering.ShadowMeshPipelineProcessor,Stride.Rendering
                 ShadowMapRenderStage: ref!! 1F31213D-28E4-4091-9DF0-03CEEB4436C0
                 DepthClipping: true
@@ -239,6 +247,10 @@ Game: !Stride.Rendering.Compositing.SceneCameraRenderer,Stride.Engine
     Child: !Stride.Rendering.Compositing.SceneRendererCollection,Stride.Rendering
         Id: 155BA910-ED64-4A3E-9B5F-AE318ECDA315
         Children:
+            7e2d9b4c3a1f4d6e9b8c7a6f5e4d3c2b: !KotH.Client.Rendering.StaticSunShadowRenderer,KotH.Game
+                Id: 2F6B8D1E-4C7A-4E9B-A3D5-8C1E7F2A9B46
+                StaticRenderStage: ref!! 5A7C2E31-8B44-4F0B-9D7E-3C1F6A2B9E05
+                Size: 4096
             d39c5ddbf8b7d5ca02bafb6496b1cc3c: !Stride.Rendering.Voxels.ForwardRendererVoxels,Stride.Voxels ref!! 605029B2-6F36-4431-B934-B8035BFCA6CB
             01d338078e9b21121ead0868932613dd: !Stride.Rendering.Compositing.DebugRenderer,Stride.Rendering ref!! C73EAA0C-430F-47B0-A52C-57D554D9DA56
 SingleView: !Stride.Rendering.Compositing.ForwardRenderer,Stride.Engine ref!! 3DC300C6-4E08-457F-BC26-05E9FF8BBA56

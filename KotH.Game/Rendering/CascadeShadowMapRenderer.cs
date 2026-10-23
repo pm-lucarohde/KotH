@@ -1,6 +1,7 @@
 using System;
 using Stride.Core;
 using Stride.Core.Mathematics;
+using Stride.Graphics;
 using Stride.Rendering;
 using Stride.Rendering.Lights;
 using Stride.Rendering.Shadows;
@@ -14,7 +15,9 @@ namespace KotH.Client.Rendering
     /// cascade and PCF taps along the receiver's plane, instead of one share of
     /// every cascade's range (stripes near, shadows cut off from the feet farther
     /// away) and lines at the ground's edges inside soft shadows. Penumbrae widen
-    /// with the distance to the blocker (PCSS).
+    /// with the distance to the blocker (PCSS). The map casts once into the static
+    /// map of <see cref="StaticSunShadowRenderer"/>, which the receivers multiply in
+    /// (lightmapped meshes baked per texel), so the cascades hold only the figures.
     /// </summary>
     [DataContract("CascadeShadowMapRenderer")]
     public sealed class CascadeShadowMapRenderer : LightDirectionalShadowMapRenderer
@@ -22,6 +25,10 @@ namespace KotH.Client.Rendering
         static readonly ValueParameterKey<Vector4> CascadeRects = ParameterKeys.NewValue<Vector4>(default, "CascadeShadowReceiver.CascadeRects");
         static readonly ValueParameterKey<float> SunTangent = ParameterKeys.NewValue<float>(default, "CascadeShadowReceiver.SunTangent");
         static readonly ValueParameterKey<float> MaxPenumbraKey = ParameterKeys.NewValue<float>(default, "CascadeShadowReceiver.MaxPenumbra");
+        static readonly ValueParameterKey<Matrix> WorldToStaticUV = ParameterKeys.NewValue<Matrix>(default, "CascadeShadowReceiver.WorldToStaticUV");
+        static readonly ValueParameterKey<Vector2> StaticTexelSize = ParameterKeys.NewValue<Vector2>(default, "CascadeShadowReceiver.StaticTexelSize");
+        static readonly ObjectParameterKey<Texture> StaticShadowMap = ParameterKeys.NewObject<Texture>(null, "CascadeShadowReceiver.StaticShadowMap");
+        static readonly ObjectParameterKey<Texture> SunLightmap = ParameterKeys.NewObject<Texture>(null, "CascadeShadowReceiver.SunLightmap");
 
         /// <summary>Angular radius of the sun in degrees: the penumbra per metre between blocker and receiver.</summary>
         /// <userdoc>Scheinbarer Radius der Sonne in Grad: Je größer, desto breiter der Halbschatten pro Meter Abstand zum Werfer.</userdoc>
@@ -52,6 +59,10 @@ namespace KotH.Client.Rendering
             ValueParameterKey<Vector4> rectsKey;
             ValueParameterKey<float> tangentKey;
             ValueParameterKey<float> penumbraKey;
+            ValueParameterKey<Matrix> staticUVKey;
+            ValueParameterKey<Vector2> staticTexelKey;
+            ObjectParameterKey<Texture> staticMapKey;
+            ObjectParameterKey<Texture> sunLightmapKey;
 
             public void ApplyShader(ShaderMixinSource mixin) => inner.ApplyShader(mixin);
 
@@ -61,6 +72,10 @@ namespace KotH.Client.Rendering
                 rectsKey = CascadeRects.ComposeWith(compositionName);
                 tangentKey = SunTangent.ComposeWith(compositionName);
                 penumbraKey = MaxPenumbraKey.ComposeWith(compositionName);
+                staticUVKey = WorldToStaticUV.ComposeWith(compositionName);
+                staticTexelKey = StaticTexelSize.ComposeWith(compositionName);
+                staticMapKey = StaticShadowMap.ComposeWith(compositionName);
+                sunLightmapKey = SunLightmap.ComposeWith(compositionName);
             }
 
             public void UpdateLightCount(int lightLastCount, int lightCurrentCount)
@@ -84,6 +99,15 @@ namespace KotH.Client.Rendering
                 parameters.Set(rectsKey, rects.Length, ref rects[0]);
                 parameters.Set(tangentKey, MathF.Tan(MathUtil.DegreesToRadians(owner.SunAngle)));
                 parameters.Set(penumbraKey, owner.MaxPenumbra);
+
+                // The static map once it is complete; until then (or never) the cascade atlas stands in, unread.
+                var still = context.RenderContext.Tags.Get(StaticSunShadowRenderer.Key);
+                bool ready = still is { Ready: true, Texture: not null };
+                Texture stand = currentLights.Count > 0 ? ((ShaderData)currentLights[0].ShadowMapTexture.ShaderData).Texture : null;
+                parameters.Set(staticMapKey, ready ? still.Texture : stand);
+                parameters.Set(sunLightmapKey, context.RenderContext.Tags.Get(Stride.Rendering.Voxels.ForwardRendererVoxels.SunLightmapKey) ?? stand);
+                parameters.Set(staticUVKey, ready ? still.WorldToUV : Matrix.Identity);
+                parameters.Set(staticTexelKey, ready ? new Vector2(1f / still.Texture.Width) : Vector2.Zero);
             }
 
             public void ApplyDrawParameters(RenderDrawContext context, ParameterCollection parameters,

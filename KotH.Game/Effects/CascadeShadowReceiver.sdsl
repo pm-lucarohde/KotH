@@ -9,6 +9,9 @@
 /// the cascade sampled. The blockers within 4 texels set the penumbra
 /// (SunTangent per metre between blocker and receiver, at most 4 texels),
 /// filtered over a disk. The scene's shadow filter must be PCF (size unused).
+/// With a static map (StaticSunShadowRenderer) the cascades hold only what
+/// moves, and the map's shadow from the static map is multiplied in, filtered alike;
+/// lightmapped meshes (KOTH_LIGHTMAP) read it baked per texel instead.
 /// </summary>
 shader CascadeShadowReceiver<int TCascadeCount,
                              int TLightCount,
@@ -16,14 +19,23 @@ shader CascadeShadowReceiver<int TCascadeCount,
                              bool TDepthRangeAuto,
                              bool TCascadeDebug,
                              bool TComputeTransmittance> :
-    ShadowMapReceiverDirectional<TCascadeCount, TLightCount, TBlendCascades, TDepthRangeAuto, TCascadeDebug, TComputeTransmittance>
+    ShadowMapReceiverDirectional<TCascadeCount, TLightCount, TBlendCascades, TDepthRangeAuto, TCascadeDebug, TComputeTransmittance>,
+    Texturing, LightmapBakeStream
 {
     cbuffer PerView.Lighting
     {
         float4 CascadeRects[TCascadeCount * TLightCount];   // atlas uv: left, top, right, bottom
         float SunTangent;     // penumbra metres per metre between blocker and receiver
         float MaxPenumbra;    // widest penumbra radius in texels, also the blocker search's reach
+        float4x4 WorldToStaticUV;
+        float2 StaticTexelSize;   // 0 without a static map
     };
+
+    rgroup PerView.Lighting
+    {
+        Texture2D StaticShadowMap;
+        Texture2D SunLightmap;      // red: the static shadow baked per lightmap texel
+    }
 
     stream float3 shadowFacetNormalWS;
 
@@ -35,21 +47,59 @@ shader CascadeShadowReceiver<int TCascadeCount,
         return 0;
     }
 
-    override float ComputeShadowFromCascade(float3 shadowPositionWS, int cascadeIndex, int lightIndex)
+    override float3 ComputeShadow(float3 position, int lightIndex)
     {
-        int index = cascadeIndex + lightIndex * TCascadeCount;
-        float4x4 toUV = WorldToShadowCascadeUV[index];
+#ifdef KOTH_LIGHTMAP_BAKE
+        // Baking: only the map's shadow, kept apart; nothing that moves.
+        streams.shadowFacetNormalWS = cross(ddx(streams.PositionWS.xyz), ddy(streams.PositionWS.xyz));
+        if (StaticTexelSize.x > 0.0)
+            streams.bakedSun = StaticShadow(position, lightIndex);
+        return 1.0;
+#else
+        float3 shadow = base.ComputeShadow(position, lightIndex);
+#ifdef KOTH_LIGHTMAP
+        shadow *= SunLightmap.SampleLevel(LinearSampler, streams.TexCoord1, 0).r;
+#else
+        if (StaticTexelSize.x > 0.0)
+            shadow *= StaticShadow(position, lightIndex);
+#endif
+        return shadow;
+#endif
+    }
+
+    // The static map like one more cascade over all, nothing outside of it.
+    float StaticShadow(float3 positionWS, int lightIndex)
+    {
+        float4 shadowPosition;
+        float2 gradient;
+        float depthPerMetre, texel;
+        Project(positionWS, WorldToStaticUV, StaticTexelSize.x, lightIndex, shadowPosition, gradient, depthPerMetre, texel);
+        if (any(shadowPosition.xy < 0.0) || any(shadowPosition.xy > 1.0))
+            return 1.0;
+        float4 rect = float4(0.5 * StaticTexelSize, 1.0 - 0.5 * StaticTexelSize);
+        float gap = StaticBlockerGap(shadowPosition.xyz, gradient, rect);
+        if (gap < 0.0)
+            return gap < -1.5 ? 0.0 : 1.0;
+        float radius = clamp(gap / depthPerMetre * SunTangent / texel, 1.5, MaxPenumbra);
+        return StaticFilterDisk(shadowPosition.xyz, gradient, radius, rect);
+    }
+
+    // Position in the map (biased), the receiver plane's depth gradient, depth
+    // units per metre and the texel's width in metres.
+    void Project(float3 positionWS, float4x4 toUV, float texelUV, int lightIndex,
+                 out float4 shadowPosition, out float2 gradient, out float depthPerMetre, out float texel)
+    {
         float3 axisU = float3(toUV._11, toUV._21, toUV._31);
         float3 axisV = float3(toUV._12, toUV._22, toUV._32);
         float3 axisZ = float3(toUV._13, toUV._23, toUV._33);
 
-        // Atlas units per metre across and along the light give the texel and depth scales.
+        // Map units per metre across and along the light give the texel and depth scales.
         float uvPerMetre = length(axisU);
-        float depthPerMetre = length(axisZ);
-        float texel = ShadowMapTextureTexelSize.x / uvPerMetre;
+        depthPerMetre = length(axisZ);
+        texel = texelUV / uvPerMetre;
         float bias = DepthBiases[lightIndex] + OffsetScales[lightIndex] * texel;
 
-        float4 shadowPosition = mul(float4(shadowPositionWS, 1.0), toUV);
+        shadowPosition = mul(float4(positionWS, 1.0), toUV);
         shadowPosition.z -= bias * depthPerMetre;
 
         // The plane's depth change per atlas unit: the shadow axes are orthogonal, so the
@@ -58,7 +108,17 @@ shader CascadeShadowReceiver<int TCascadeCount,
         float nz = dot(axisZ, n) / (depthPerMetre * depthPerMetre);
         float2 nuv = float2(dot(axisU, n), dot(axisV, n)) / (uvPerMetre * uvPerMetre);
         float limit = 10.0 * depthPerMetre / uvPerMetre;
-        float2 gradient = clamp(-nuv / (abs(nz) > 1e-12 ? nz : 1e-12), -limit, limit);
+        gradient = clamp(-nuv / (abs(nz) > 1e-12 ? nz : 1e-12), -limit, limit);
+    }
+
+    override float ComputeShadowFromCascade(float3 shadowPositionWS, int cascadeIndex, int lightIndex)
+    {
+        int index = cascadeIndex + lightIndex * TCascadeCount;
+        float4 shadowPosition;
+        float2 gradient;
+        float depthPerMetre, texel;
+        Project(shadowPositionWS, WorldToShadowCascadeUV[index], ShadowMapTextureTexelSize.x, lightIndex,
+                shadowPosition, gradient, depthPerMetre, texel);
 
         // Taps stay half a texel inside this cascade's rectangle of the atlas.
         float4 rect = CascadeRects[index] + float4(0.5 * ShadowMapTextureTexelSize, -0.5 * ShadowMapTextureTexelSize);
@@ -120,5 +180,57 @@ shader CascadeShadowReceiver<int TCascadeCount,
     {
         float depth = position.z + dot(tapUV - position.xy, gradient);
         return ShadowMapTexture.SampleCmpLevelZero(LinearClampCompareLessEqualSampler, tapUV, depth);
+    }
+
+    // The same over the static map.
+    float StaticBlockerGap(float3 position, float2 gradient, float4 rect)
+    {
+        float2 step = 0.5 * MaxPenumbra * StaticTexelSize;
+        float2 halfTexel = 0.5 * StaticTexelSize;
+        float4 corners = float4(dot(float2(-halfTexel.x, halfTexel.y), gradient), dot(halfTexel, gradient),
+                                dot(float2(halfTexel.x, -halfTexel.y), gradient), dot(-halfTexel, gradient));
+        float sum = 0;
+        float count = 0;
+        for (int j = 0; j < 4; j++)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                // Snapped to a texel corner, so the gather takes the four texels round it.
+                float2 uv = clamp(position.xy + (float2(i, j) - 1.5) * step, rect.xy + halfTexel, rect.zw - halfTexel);
+                uv = (floor(uv * (1.0 / StaticTexelSize) - 0.5) + 1.0) * StaticTexelSize;
+                float4 stored = StaticShadowMap.GatherRed(PointSampler, uv);
+                float4 receiver = position.z + dot(uv - position.xy, gradient) + corners;
+                float4 blocked = stored < receiver ? 1.0 : 0.0;
+                sum += dot(blocked, receiver - stored);
+                count += dot(blocked, 1.0);
+            }
+        }
+        return count == 0 ? -1.0 : count == 64 ? -2.0 : sum / count;
+    }
+
+    // 32 bilinear comparisons on a Vogel disk of the radius (texels), weighted
+    // towards the centre like a tent, so the penumbra fades without a rim.
+    float StaticFilterDisk(float3 position, float2 gradient, float radius, float4 rect)
+    {
+        float2 scale = radius * StaticTexelSize;
+        float shadow = 0;
+        float total = 0;
+        for (int k = 0; k < 32; k++)
+        {
+            float r2 = (k + 0.5) / 32.0;
+            float a = k * 2.39996;
+            float2 d = sqrt(r2) * float2(cos(a), sin(a));
+            float weight = 1.0 - 0.75 * r2;
+            float2 uv = clamp(position.xy + d * scale, rect.xy, rect.zw);
+            shadow += weight * StaticTap(uv, position, gradient);
+            total += weight;
+        }
+        return shadow / total;
+    }
+
+    float StaticTap(float2 tapUV, float3 position, float2 gradient)
+    {
+        float depth = position.z + dot(tapUV - position.xy, gradient);
+        return StaticShadowMap.SampleCmpLevelZero(LinearClampCompareLessEqualSampler, tapUV, depth);
     }
 };

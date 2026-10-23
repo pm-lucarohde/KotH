@@ -2,4 +2,5 @@
 shader LightmapBakeStream
 {
     stage stream float4 bakedLight;  // diffuse environment light, open sky fraction
+    stage stream float bakedSun;     // sun reaching the texel past the map (1 without a static shadow)
 };

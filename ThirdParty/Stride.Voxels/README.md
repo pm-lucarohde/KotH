@@ -85,3 +85,7 @@ gezeichnet sind. `LightmapRenderFeature` setzt über `ExtensionPostVertexStageSh
 Dann liest `LightVoxelShader` die Lightmap, die Kapseln kommen live dazu. Bild wie live (1–2/255), GI auf der Map
 statt ~1,3 ms noch ~0,15 ms (1440p); Figuren, Blätter, Meer rechnen weiter live. Ein Pass in 50/80 % Auflösung
 für den Rest war wieder langsamer als voll.
+
+Sonne: Die Bake-Stufe schreibt per zweitem Render-Target (RG16F, Grün = beschrieben) auch die Sonne hinter der Map
+(`bakedSun`, aus KotHs statischer Schattenkarte, `CascadeShadowReceiver` unter `KOTH_LIGHTMAP_BAKE`); frei über
+`ForwardRendererVoxels.SunLightmapKey`. `LightmapDilate` füllt beide (Marker: Alpha oder Grün < 0).

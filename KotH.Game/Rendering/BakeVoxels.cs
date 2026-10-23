@@ -29,7 +29,7 @@ namespace KotH.Client.Rendering
             // Sparse bricks bake over as many frames as they need.
             if (volume.Storage is VoxelStorageSparse sparse)
             {
-                volume.Voxelize = !sparse.Baked;
+                volume.Voxelize = !sparse.Baked && StaticShadowDrawn();
                 if (sparse.Baked && LightmapBaked())
                     Services.GetService<LoadScreen>()?.Baked();
                 return;
@@ -40,6 +40,15 @@ namespace KotH.Client.Rendering
                 return;
             }
             volume.Voxelize = ++done <= Frames;
+        }
+
+        // The voxels are lit with the map's shadow: with a lightmap the map casts only
+        // into the static sun shadow, so that has to be complete first.
+        bool StaticShadowDrawn()
+        {
+            if (Entity.Get<LightComponent>()?.Type is not LightVoxel { LightmapSize: > 0 })
+                return true;
+            return RenderContext.GetShared(Services).Tags.Get(StaticSunShadowRenderer.Key) is { Ready: true };
         }
 
         // Asks the renderer for the voxel light's lightmap until it is there (none wanted: at once).

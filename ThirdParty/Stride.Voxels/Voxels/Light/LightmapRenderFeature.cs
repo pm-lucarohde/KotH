@@ -63,9 +63,10 @@ namespace Stride.Rendering.Voxels.VoxelGI
         static int Slot(RootEffectRenderFeature root, RenderStage stage)
             => stage == null ? -1 : root.GetEffectPermutationSlot(stage).Index;
 
-        static bool HasSecondUV(RenderMesh mesh)
+        /// <summary>The mesh has a second UV set: it is part of the map, lightmapped and never moves.</summary>
+        public static bool HasSecondUV(RenderMesh mesh)
         {
-            foreach (var buffer in mesh.ActiveMeshDraw.VertexBuffers)
+            foreach (var buffer in (mesh.ActiveMeshDraw ?? mesh.Mesh?.Draw)?.VertexBuffers ?? [])
                 foreach (var element in buffer.Declaration.VertexElements)
                     if (element.SemanticName == "TEXCOORD" && element.SemanticIndex == 1)
                         return true;

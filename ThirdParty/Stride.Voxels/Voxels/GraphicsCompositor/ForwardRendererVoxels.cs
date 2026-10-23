@@ -49,6 +49,9 @@ namespace Stride.Rendering.Voxels
         const int BakeRounds = 3;
         const int DilateSteps = 4;
 
+        /// <summary>KotH patch: the sun past the map per lightmap texel (red; green 1), in the render context's tags once baked.</summary>
+        public static readonly PropertyKey<Texture> SunLightmapKey = new PropertyKey<Texture>("SunLightmap", typeof(ForwardRendererVoxels));
+
         /// <summary>KotH patch: which meshes read the lightmap (null without a bake stage).</summary>
         public LightmapRenderFeature Lightmaps => lightmaps;
 
@@ -56,6 +59,7 @@ namespace Stride.Rendering.Voxels
         RenderView bakeView;
         LightVoxel baking;
         Texture lightmap;
+        Texture sunmap;
         int bakeRounds;
         ImageEffectShader dilate;
 
@@ -77,12 +81,18 @@ namespace Stride.Rendering.Voxels
         {
             base.CollectStages(context);
             if (LightmapBakeRenderStage != null)
-                LightmapBakeRenderStage.Output = new RenderOutputDescription(PixelFormat.R16G16B16A16_Float);
+            {
+                var output = new RenderOutputDescription(PixelFormat.R16G16B16A16_Float);
+                output.RenderTargetCount = 2;
+                output.RenderTargetFormat1 = PixelFormat.R16G16_Float;
+                LightmapBakeRenderStage.Output = output;
+            }
         }
 
         protected override void Destroy()
         {
             lightmap?.Dispose();
+            sunmap?.Dispose();
             base.Destroy();
         }
 
@@ -129,40 +139,53 @@ namespace Stride.Rendering.Voxels
             base.DrawCore(context, drawContext);
         }
 
-        // KotH patch: texels nothing covers are marked (alpha -1) and grown over
-        // from their neighbours; the result goes to the light once every mesh's
-        // bake effect has been compiled for a few rounds.
+        // KotH patch: light and sun into two targets; texels nothing covers are marked
+        // (alpha or green -1) and grown over from their neighbours; the result goes to
+        // the light once every mesh's bake effect has been compiled for a few rounds.
         void DrawLightmapBake(RenderDrawContext drawContext)
         {
             int size = baking.LightmapSize;
             if (lightmap == null || lightmap.Width != size)
             {
                 lightmap?.Dispose();
+                sunmap?.Dispose();
                 lightmap = Texture.New2D(Context.GraphicsDevice, size, size, PixelFormat.R16G16B16A16_Float, TextureFlags.RenderTarget | TextureFlags.ShaderResource);
+                sunmap = Texture.New2D(Context.GraphicsDevice, size, size, PixelFormat.R16G16_Float, TextureFlags.RenderTarget | TextureFlags.ShaderResource);
             }
-            var spare = Context.Allocator.GetTemporaryTexture2D(size, size, PixelFormat.R16G16B16A16_Float);
             using (drawContext.PushRenderTargetsAndRestore())
             {
                 var commandList = drawContext.CommandList;
                 commandList.Clear(lightmap, new Color4(0, 0, 0, -1));
-                commandList.SetRenderTargetAndViewport(null, lightmap);
+                commandList.Clear(sunmap, new Color4(0, -1, 0, 0));
+                commandList.SetRenderTargetsAndViewport(null, [lightmap, sunmap]);
                 Context.RenderSystem.Draw(drawContext, bakeView, LightmapBakeRenderStage);
-                for (int i = 0; i < DilateSteps; i++)
-                {
-                    dilate.SetInput(0, i % 2 == 0 ? lightmap : spare);
-                    dilate.SetOutput(i % 2 == 0 ? spare : lightmap);
-                    dilate.Draw(drawContext);
-                }
             }
-            Context.Allocator.ReleaseReference(spare);
+            Dilate(drawContext, lightmap);
+            Dilate(drawContext, sunmap);
 
             if (lightmaps.Meshes > 0 && lightmaps.BakeEffectsCompiled == lightmaps.Meshes && ++bakeRounds >= BakeRounds)
             {
                 baking.Lightmap = lightmap;
+                Context.Tags.Set(SunLightmapKey, sunmap);
                 lightmaps.Ready = true;
                 Context.Tags.Remove(LightmapRequestKey);
                 baking = null;
             }
+        }
+
+        void Dilate(RenderDrawContext drawContext, Texture texture)
+        {
+            var spare = Context.Allocator.GetTemporaryTexture2D(texture.Width, texture.Height, texture.Format);
+            using (drawContext.PushRenderTargetsAndRestore())
+            {
+                for (int i = 0; i < DilateSteps; i++)
+                {
+                    dilate.SetInput(0, i % 2 == 0 ? texture : spare);
+                    dilate.SetOutput(i % 2 == 0 ? spare : texture);
+                    dilate.Draw(drawContext);
+                }
+            }
+            Context.Allocator.ReleaseReference(spare);
         }
 
         protected override void DrawView(RenderContext context, RenderDrawContext drawContext, int eyeIndex, int eyeCount)
