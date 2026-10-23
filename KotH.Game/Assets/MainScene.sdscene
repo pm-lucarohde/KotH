@@ -138,7 +138,9 @@ Hierarchy:
                                     ManualMaxDistance: 400.0
                                 PartitionMode: !LightDirectionalShadowMap.PartitionLogarithmic {}
                                 ComputeTransmittance: false
-                                BiasParameters: {}
+                                BiasParameters:
+                                    DepthBias: 0.005
+                                    NormalOffsetScale: 1.0
                         Intensity: 1.54
         -   Entity:
                 Id: 7A7852EF-BC8E-4CD6-AEFC-28048C231EE5

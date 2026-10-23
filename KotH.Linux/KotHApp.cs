@@ -53,7 +53,8 @@ game.Run();
 /// window, KOTH_VSYNC=0 or 1 overrides V-Sync, and KOTH_FRAMELOG=path writes
 /// every frame time in milliseconds, one per line, when the game ends. For the music:
 /// KOTH_MUSIC_VOLUME=0..1 overrides the volume, KOTH_MUSIC_TAIL=s starts every single-play
-/// track s seconds before its end, so the changes come quickly.
+/// track s seconds before its end, so the changes come quickly. KOTH_HEADLESS=1 never shows
+/// the window and renders into a texture of KOTH_SIZE (default 2560x1440), for shots.
 /// </summary>
 sealed class KotHGame : Game
 {
@@ -85,13 +86,15 @@ sealed class KotHGame : Game
     readonly string frameLogPath = Environment.GetEnvironmentVariable("KOTH_FRAMELOG");
     readonly double? musicVolume = Number("KOTH_MUSIC_VOLUME");
     readonly double? musicTail = Number("KOTH_MUSIC_TAIL");
+    readonly bool headless = Environment.GetEnvironmentVariable("KOTH_HEADLESS") == "1";
     bool musicSet;
     Int2 windowedSize;
     bool confined;
 
     // Fullscreen before loading, see Initialize; the size asked for then is
     // where F11 returns to. A fixed KOTH_SIZE stays a window.
-    readonly bool startFullscreen = Environment.GetEnvironmentVariable("KOTH_SIZE") == null;
+    readonly bool startFullscreen = Environment.GetEnvironmentVariable("KOTH_SIZE") == null &&
+                                    Environment.GetEnvironmentVariable("KOTH_HEADLESS") != "1";
     int restoreFrames;
 
     // Ten minutes at 2000 FPS, allocated once so logging never allocates.
@@ -113,8 +116,16 @@ sealed class KotHGame : Game
         if (frameLogPath != null)
             frameLog = new float[600 * 2000];
 
-        // A networked game must keep its clock with the other window in front.
-        if (LaunchOptions.Current.Networked)
+        // A hidden window never has the focus; a networked game must keep
+        // its clock with the other window in front.
+        MakeWindowVisibleOnRun = !headless;
+        if (headless)
+        {
+            // The hidden window counts as minimised: no 15 fps cap, still drawn.
+            DrawWhileMinimized = true;
+            MinimizedMinimumUpdateRate.MinimumElapsedTime = TimeSpan.Zero;
+        }
+        if (LaunchOptions.Current.Networked || headless)
         {
             TreatNotFocusedLikeMinimized = false;
             InactiveSleepTime = TimeSpan.Zero;
@@ -150,6 +161,8 @@ sealed class KotHGame : Game
     protected override void Initialize()
     {
         base.Initialize();
+        if (headless)
+            return;
         if (Window.NativeWindow?.NativeWindow is not Stride.Graphics.SDL.Window sdl)
             return;
 
@@ -178,6 +191,22 @@ sealed class KotHGame : Game
 
         SdlGrab.SDL_SetRelativeMouseMode(1);
         SdlGrab.SDL_SetWindowGrab(sdl.SdlHandle, 1);
+    }
+
+    /// <summary>
+    /// KOTH_HEADLESS: the frames go into a texture instead of the hidden
+    /// window's swapchain, in the formats it would have; shots read it like the back buffer.
+    /// </summary>
+    void RenderOffscreen()
+    {
+        GraphicsDeviceManager manager = GraphicsDeviceManager;
+        string[] size = (Environment.GetEnvironmentVariable("KOTH_SIZE") ?? "2560x1440").Split('x');
+        PixelFormat format = GraphicsDevice.ColorSpace == ColorSpace.Linear
+            ? manager.PreferredBackBufferFormat.ToSRgb() : manager.PreferredBackBufferFormat;
+        Texture target = Texture.New2D(GraphicsDevice, int.Parse(size[0]), int.Parse(size[1]), format,
+                                       TextureFlags.RenderTarget | TextureFlags.ShaderResource);
+        GraphicsDevice.Presenter = new RenderTargetGraphicsPresenter(GraphicsDevice, target, manager.PreferredDepthStencilFormat);
+        Console.WriteLine($"[headless] {target.Width}x{target.Height} {target.ViewFormat}");
     }
 
     /// <summary>
@@ -244,6 +273,10 @@ sealed class KotHGame : Game
             music.Volume = (float)(musicVolume ?? music.Volume);
             music.TailSeconds = musicTail ?? 0.0;
         }
+
+        // Not in Initialize: with the window hidden the device is not ready there.
+        if (headless && GraphicsDevice.Presenter is not RenderTargetGraphicsPresenter)
+            RenderOffscreen();
 
         base.Update(gameTime);
 

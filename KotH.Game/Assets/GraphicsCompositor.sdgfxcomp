@@ -106,7 +106,7 @@ RenderFeatures:
                     e658234519ffb99a3f45f76c2ac5a918: !Stride.Rendering.Voxels.VoxelGI.LightVoxelRenderer,Stride.Voxels {}
                 ShadowMapRenderer: !Stride.Rendering.Shadows.ShadowMapRenderer,Stride.Rendering
                     Renderers:
-                        7c3d3d4c86834c3551bacde2527b3836: !Stride.Rendering.Shadows.LightDirectionalShadowMapRenderer,Stride.Rendering
+                        7c3d3d4c86834c3551bacde2527b3836: !KotH.Client.Rendering.CascadeShadowMapRenderer,KotH.Game
                             ShadowCasterRenderStage: ref!! 78C668F8-9DE2-4D2A-83CE-AAE987C047E7
                         1c204b09435636256a3fcfd6f9ddb347: !Stride.Rendering.Shadows.LightSpotShadowMapRenderer,Stride.Rendering
                             ShadowCasterRenderStage: ref!! 78C668F8-9DE2-4D2A-83CE-AAE987C047E7

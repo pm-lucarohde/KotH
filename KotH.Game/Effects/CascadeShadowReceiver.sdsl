@@ -1,0 +1,89 @@
+/// <summary>
+/// Stride's directional shadow receiver with the bias measured per cascade and
+/// a receiver plane depth bias. Stride subtracts DepthBias as a share of the
+/// cascade's depth range (a few centimetres near, metres far), offsets along the
+/// normal by atlas texels and compares all PCF taps with the pixel's own depth,
+/// so a sloped face shadows itself inside the kernel and steps at every edge.
+/// Here each tap follows the triangle's plane; DepthBias is in metres and
+/// NormalOffsetScale adds a depth bias in texels of the cascade sampled.
+/// Filters 5x5 like Stride's PCF (the scene's shadow filter must be PCF 5x5).
+/// </summary>
+shader CascadeShadowReceiver<int TCascadeCount,
+                             int TLightCount,
+                             bool TBlendCascades,
+                             bool TDepthRangeAuto,
+                             bool TCascadeDebug,
+                             bool TComputeTransmittance> :
+    ShadowMapReceiverDirectional<TCascadeCount, TLightCount, TBlendCascades, TDepthRangeAuto, TCascadeDebug, TComputeTransmittance>
+{
+    stream float3 shadowFacetNormalWS;
+
+    // Called once before the cascade branches, where derivatives are still defined:
+    // keeps the triangle's normal (its sign does not matter) and moves nothing.
+    override float3 GetShadowPositionOffset(float offsetScale, float nDotL, float3 normal)
+    {
+        streams.shadowFacetNormalWS = cross(ddx(streams.PositionWS.xyz), ddy(streams.PositionWS.xyz));
+        return 0;
+    }
+
+    override float ComputeShadowFromCascade(float3 shadowPositionWS, int cascadeIndex, int lightIndex)
+    {
+        float4x4 toUV = WorldToShadowCascadeUV[cascadeIndex + lightIndex * TCascadeCount];
+        float3 axisU = float3(toUV._11, toUV._21, toUV._31);
+        float3 axisV = float3(toUV._12, toUV._22, toUV._32);
+        float3 axisZ = float3(toUV._13, toUV._23, toUV._33);
+
+        // Atlas units per metre across and along the light give the texel and depth scales.
+        float uvPerMetre = length(axisU);
+        float depthPerMetre = length(axisZ);
+        float texel = ShadowMapTextureTexelSize.x / uvPerMetre;
+        float bias = DepthBiases[lightIndex] + OffsetScales[lightIndex] * texel;
+
+        float4 shadowPosition = mul(float4(shadowPositionWS, 1.0), toUV);
+        shadowPosition.z -= bias * depthPerMetre;
+
+        // The plane's depth change per atlas unit: the shadow axes are orthogonal, so the
+        // normal maps to (a_i . n) / |a_i|^2. Steeper than 10:1 to the light is clamped.
+        float3 n = streams.shadowFacetNormalWS;
+        float nz = dot(axisZ, n) / (depthPerMetre * depthPerMetre);
+        float2 nuv = float2(dot(axisU, n), dot(axisV, n)) / (uvPerMetre * uvPerMetre);
+        float limit = 10.0 * depthPerMetre / uvPerMetre;
+        float2 gradient = clamp(-nuv / (abs(nz) > 1e-12 ? nz : 1e-12), -limit, limit);
+
+        return FilterPlane(shadowPosition.xyz, gradient);
+    }
+
+    // Stride's 5x5 PCF kernel (ShadowMapFilterPcf, MIT), each tap at the plane's depth.
+    float FilterPlane(float3 position, float2 gradient)
+    {
+        float2 uv = position.xy * ShadowMapTextureSize;
+        float2 corner = floor(uv + 0.5);
+        float2 st = uv + 0.5 - corner;
+        corner = (corner - 0.5) * ShadowMapTextureTexelSize;
+
+        float2 w0 = 4 - 3 * st;
+        float2 w1 = 7;
+        float2 w2 = 1 + 3 * st;
+        float2 o0 = (3 - 2 * st) / w0 - 2;
+        float2 o1 = (3 + st) / w1;
+        float2 o2 = st / w2 + 2;
+
+        float shadow = 0;
+        shadow += w0.x * w0.y * Tap(corner + float2(o0.x, o0.y) * ShadowMapTextureTexelSize, position, gradient);
+        shadow += w1.x * w0.y * Tap(corner + float2(o1.x, o0.y) * ShadowMapTextureTexelSize, position, gradient);
+        shadow += w2.x * w0.y * Tap(corner + float2(o2.x, o0.y) * ShadowMapTextureTexelSize, position, gradient);
+        shadow += w0.x * w1.y * Tap(corner + float2(o0.x, o1.y) * ShadowMapTextureTexelSize, position, gradient);
+        shadow += w1.x * w1.y * Tap(corner + float2(o1.x, o1.y) * ShadowMapTextureTexelSize, position, gradient);
+        shadow += w2.x * w1.y * Tap(corner + float2(o2.x, o1.y) * ShadowMapTextureTexelSize, position, gradient);
+        shadow += w0.x * w2.y * Tap(corner + float2(o0.x, o2.y) * ShadowMapTextureTexelSize, position, gradient);
+        shadow += w1.x * w2.y * Tap(corner + float2(o1.x, o2.y) * ShadowMapTextureTexelSize, position, gradient);
+        shadow += w2.x * w2.y * Tap(corner + float2(o2.x, o2.y) * ShadowMapTextureTexelSize, position, gradient);
+        return shadow / 144.0;
+    }
+
+    float Tap(float2 tapUV, float3 position, float2 gradient)
+    {
+        float depth = position.z + dot(tapUV - position.xy, gradient);
+        return ShadowMapTexture.SampleCmpLevelZero(LinearClampCompareLessEqualSampler, tapUV, depth);
+    }
+};
