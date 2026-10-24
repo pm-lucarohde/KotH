@@ -68,7 +68,10 @@ SIMPLIFY = 0.02            # the simplified mesh stays this close (metres) to ev
 SIMPLIFY_COLOUR = 0.03     # and merges only vertices this close in paint weights and shade
 SIMPLIFY_NORMAL = 0.95     # and with vertex normals at least this parallel
 WATER_Y = 0.4
-SEA_UNDER = 0.4            # the sea reaches this far in under the coast, past its rounded wall
+SEA_UNDER = 1.0            # the sea reaches at least this far in under the coast line
+EDGE_IN = 0.35             # the beach's edges follow their lines, not the blocks (Luca: too blocky):
+EDGE_OUT = 0.3             # an edge's top this far inside the line, its foot this far outside
+EDGE_ROUND = 0.5           # share of the way from the blocks to the line (Luca: 1 a touch too round)
 SEA_REACH = 30000.0        # the sea's half width, beyond the camera's far plane
 
 # Colours in sRGB; the glb carries them linear.
@@ -142,6 +145,30 @@ class Terrain:
 
     def coast(self, angle):
         return ISLAND + COAST * ring(self.seed + 2, angle, 9)
+
+    def rounded(self, corner, p):
+        """A ground corner on the beach's inner edge (grass to sand) or on the
+        coast (sand to sea) moved from the centre EDGE_ROUND of the way onto that
+        edge's line, top a little inside, foot a little outside: the edge runs
+        smoother than the block steps. Everything else stays."""
+        X, Y, Z = corner
+        if Y > GRASS_Y:
+            return p
+        columns = [self.height.get((X - 1 + i, Z - 1 + k)) for i in (0, 1) for k in (0, 1)]
+        if SAND_Y not in columns:
+            return p
+        if None in columns:
+            top = Y >= SAND_Y
+        elif GRASS_Y in columns and max(columns) == GRASS_Y:
+            top = Y >= GRASS_Y
+        else:
+            return p
+        r = math.hypot(p[0], p[2])
+        a = math.atan2(p[2], p[0]) % (2 * math.pi)
+        line = self.coast(a) - (0.0 if None in columns else BEACH)
+        target = line - EDGE_IN if top else line + EDGE_OUT
+        k = (r + EDGE_ROUND * (target - r)) / r
+        return (p[0] * k, p[1], p[2] * k)
 
     def build(self):
         s = self.seed
@@ -459,7 +486,8 @@ class Mesh:
         if key not in self.index:
             o = self.offset(*corner)
             self.index[key] = len(self.pos)
-            self.pos.append(tuple(corner[n] + SMOOTH * o[n] for n in range(3)))
+            p = tuple(corner[n] + SMOOTH * o[n] for n in range(3))
+            self.pos.append(self.t.rounded(corner, p) if kind == GROUND else p)
             self.nrm.append([0.0, 0.0, 0.0])
             self.keys.append(key)
         return self.index[key]
@@ -828,35 +856,22 @@ def sea(t):
         b = len(pos)
         pos.extend([(x0, 0.0, z0), (x0, 0.0, z1), (x1, 0.0, z1), (x1, 0.0, z0)])
         idx.extend([b, b + 1, b + 2, b, b + 2, b + 3])
+    # The hole keeps SEA_UNDER inside the coast line, so the sea reaches in
+    # under the rounded coast wall, else one saw past it into the void.
+    def hole(x, z):
+        r, a = t.polar(x, z)
+        return r + 0.71 <= t.coast(a) - SEA_UNDER
     for z in range(-HALF, HALF):
         x = -HALF
         while x < HALF:
-            if (x, z) in t.height:
+            if hole(x, z):
                 x += 1
                 continue
             end = x
-            while end < HALF and (end, z) not in t.height:
+            while end < HALF and not hole(end, z):
                 end += 1
             rect(x, z, end, z + 1)
             x = end
-    # Rounding pulls the coast wall in at the waterline: the sea reaches in
-    # under it, else one saw past the wall into the void.
-    i = SEA_UNDER
-    for (x, z) in sorted(t.height):
-        def sea_at(dx, dz):
-            return (x + dx, z + dz) not in t.height
-        if sea_at(-1, 0):
-            rect(x, z, x + i, z + 1)
-        if sea_at(1, 0):
-            rect(x + 1 - i, z, x + 1, z + 1)
-        if sea_at(0, -1):
-            rect(x, z, x + 1, z + i)
-        if sea_at(0, 1):
-            rect(x, z + 1 - i, x + 1, z + 1)
-        for dx, dz in ((-1, -1), (1, -1), (-1, 1), (1, 1)):
-            if sea_at(dx, dz) and not sea_at(dx, 0) and not sea_at(0, dz):
-                cx, cz = x + (0 if dx < 0 else 1 - i), z + (0 if dz < 0 else 1 - i)
-                rect(cx, cz, cx + i, cz + i)
     far = SEA_REACH
     rect(-far, -far, far, -HALF)
     rect(-far, HALF, far, far)
