@@ -91,11 +91,10 @@ TRUNK_FOOT = 0.55          # and this thick at the ground, widening over TRUNK_F
 TRUNK_FLARE = 0.5
 TRUNK_SIDES = 16
 CROWN_STEP = 0.35          # crowns are soft lobes run together (Luca: rounder, more natural), meshed this fine
-CROWN_ISO = 0.2            # where the summed lobes' field crosses this
-CROWN_NOISE = 0.07         # lumps on the lobes
+CROWN_MELT = 0.6           # metres over which the lobes run together
+CROWN_NOISE = 0.12         # lumps on the lobes, metres
 CROWN_WIDTH = 1.1          # crowns this much wider than the lobes say (Luca: 10 % more)
 CROWN_BLOCKY = 0.5         # share of the old leaf blocks in the crown's shape (Luca: between round and blocky)
-BLOCK_SOFT = 0.3           # the blocks' edges softened over this half width
 CARDS = 378                # twigs standing out of every crown, evenly all round (Luca, after "bushy leaves" packs)
 CARD_LENGTH = (0.72, 1.035)  # metres, a third of it inside the crown
 # The leaves are cut out of their texture (Luca); copies of the crown this far
@@ -658,35 +657,32 @@ def crown_lobes(rng, x, z, top):
 
 def round_crown(mesh, rng, x, z, top, blocks):
     """A crown as one smooth surface (Surface Nets, CROWN_STEP), CROWN_BLOCKY
-    of the way from the summed lobes (crossing CROWN_ISO, a little noise for
-    lumps) to the old leaf blocks with soft edges; both fields roughly in
-    metres inside. Normals from the field, lighter on top; solid like the
-    leaf blocks were."""
-    # A lobe alone crosses CROWN_ISO at its radius when scaled so.
-    grow = 1.0 / math.sqrt(1.0 - math.sqrt(CROWN_ISO))
-    lobes = [(c, tuple(v * grow for v in r)) for c, r in crown_lobes(rng, x, z, top)]
+    of the way from the lobes (run together over CROWN_MELT, a little noise
+    for lumps) to the old leaf blocks. Both as distances in metres, so the
+    blend stays clean far from either. Normals from the field, lighter on
+    top; solid like the leaf blocks were."""
+    lobes = crown_lobes(rng, x, z, top)
     seed = rng.randrange(1 << 30)
 
     def field(p):
-        f = 0.0
+        # Into the lobes: an ellipsoid's distance roughly, smooth minimum.
+        near = None
         for c, r in lobes:
-            q = sum(((p[k] - c[k]) / r[k]) ** 2 for k in range(3))
-            if q < 1.0:
-                f += (1.0 - q) ** 2
-        rounded = (f + CROWN_NOISE * noise3(seed, p[0] / 0.9, p[1] / 0.9, p[2] / 0.9) - CROWN_ISO) / 0.6
-        # How much of a box BLOCK_SOFT round p lies in the blocks: 1/2 on a face.
-        filled = 0.0
+            q = math.sqrt(sum(((p[k] - c[k]) / r[k]) ** 2 for k in range(3)))
+            d = (q - 1.0) * min(r)
+            if near is None:
+                near = d
+            else:
+                h = max(CROWN_MELT - abs(near - d), 0.0) / CROWN_MELT
+                near = min(near, d) - h * h * CROWN_MELT / 4
+        rounded = -near + CROWN_NOISE * noise3(seed, p[0] / 0.9, p[1] / 0.9, p[2] / 0.9)
+        # Into the blocks: the nearest block's box distance.
+        box = None
         for b in blocks:
-            share = 1.0
-            for k in range(3):
-                over = min(p[k] + BLOCK_SOFT, b[k] + 1) - max(p[k] - BLOCK_SOFT, b[k])
-                if over <= 0.0:
-                    share = 0.0
-                    break
-                share *= over / (2 * BLOCK_SOFT)
-            filled += share
-        blocky = (filled - 0.5) * 2 * BLOCK_SOFT
-        return (1 - CROWN_BLOCKY) * rounded + CROWN_BLOCKY * blocky
+            o = [abs(p[k] - b[k] - 0.5) - 0.5 for k in range(3)]
+            d = math.sqrt(sum(max(v, 0.0) ** 2 for v in o)) + min(max(o), 0.0)
+            box = d if box is None else min(box, d)
+        return (1 - CROWN_BLOCKY) * rounded - CROWN_BLOCKY * box
 
     lo = [min(min(c[k] - r[k] for c, r in lobes), min(b[k] for b in blocks)) - CROWN_STEP for k in range(3)]
     hi = [max(max(c[k] + r[k] for c, r in lobes), max(b[k] + 1 for b in blocks)) + CROWN_STEP for k in range(3)]
