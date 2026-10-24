@@ -1,0 +1,9 @@
+!Texture
+Id: 7BE39B29-A016-4E2A-8B01-53C4F7E6211D
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../../Resources/Textures/Terrain/LeafSprig.png
+IsCompressed: false
+Type: !ColorTextureType
+    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}
+    PremultiplyAlpha: false

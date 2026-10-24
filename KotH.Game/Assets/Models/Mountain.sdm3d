@@ -20,4 +20,9 @@ Materials:
         MaterialInstance:
             Material: 96A66F9A-15A0-4DFC-86F7-A47229FD80D2:Materials/Bark
             IsShadowCaster: true
+    953dbdbd63694308ae074c8125073b08:
+        Name: LeafCards
+        MaterialInstance:
+            Material: 1ECD50E8-3995-45B7-A554-D7338DC794E0:Materials/LeafCards
+            IsShadowCaster: true
 Modifiers: {}

@@ -385,6 +385,47 @@ def leaves(rng):
     return img
 
 
+def sprig(rng):
+    """A twig with leaves for the cards that stand out of the crowns (Luca,
+    after the "bushy leaves" resource packs): base at the bottom middle, tip at
+    the top, leaves alternating and smaller to the tip; painted like leaves()."""
+    size = SMALL
+    img = Image.new('RGBA', (size, size), (40, 96, 36, 0))
+    lay, d = layer(size)
+    twig = [(size * (0.5 + 0.06 * math.sin(3.0 * t)), size * (0.96 - 0.78 * t)) for t in (k / 24 for k in range(25))]
+    for k in range(24):
+        w = max(2, int((16 - 10 * k / 24) * K))
+        d.line([twig[k], twig[k + 1]], fill=(92, 64, 36, 255), width=w)
+
+    def leaf(x, y, angle, length, body):
+        width = length * LEAF_WIDTH
+        half = [(t * length, width * 0.5 * math.sin(math.pi * t) ** 0.8) for t in (k / 32 for k in range(33))]
+        outline = half + [(px, -py) for px, py in reversed(half)]
+        ca, sa = math.cos(angle), math.sin(angle)
+
+        def at(px, py):
+            return (x + px * ca - py * sa, y + px * sa + py * ca)
+        d.polygon([at(px, py) for px, py in outline], fill=shade(body, 0.55) + (255,))
+        d.polygon([at(px * 0.94 + length * 0.03, py * 0.82) for px, py in outline], fill=body + (255,))
+        d.polygon([at(px * 0.94 + length * 0.03, py * 0.82) for px, py in half] + [at(length * 0.97, 0)],
+                  fill=shade(body, 1.18) + (255,))
+        d.line([at(length * 0.06, 0), at(length * 0.9, 0)], fill=shade(body, 0.62) + (255,), width=max(1, int(5 * K)))
+    count = 9
+    for k in range(count):
+        t = 0.18 + 0.78 * k / (count - 1)
+        x, y = twig[int(t * 24)]
+        side = 1 if k % 2 else -1
+        # Up the twig and out to its side; smaller towards the tip.
+        angle = -math.pi / 2 + side * rng.uniform(0.55, 0.95)
+        length = size * (0.3 - 0.12 * t) * rng.uniform(0.9, 1.1)
+        body = mix((58, 128, 46), (110, 178, 66), rng.random())
+        leaf(x, y, angle, length, body)
+    x, y = twig[-1]
+    leaf(x, y + size * 0.02, -math.pi / 2 + rng.uniform(-0.2, 0.2), size * 0.14, mix((58, 128, 46), (110, 178, 66), rng.random()))
+    img.alpha_composite(blur(lay, EDGE * 3))
+    return img
+
+
 def bark(rng):
     size = SMALL
     img = tinted((122, 82, 48), (144, 98, 58), (96, 62, 38), clouds(rng, size, 4, 70, 190))
@@ -418,7 +459,7 @@ def bark(rng):
 
 
 PAINTERS = {'Grass': grass, 'Dirt': dirt, 'Sand': sand, 'Snow': snow, 'Rock': rock,
-            'Leaves': leaves, 'Bark': bark}
+            'Leaves': leaves, 'Bark': bark, 'LeafSprig': sprig}
 
 
 def main():

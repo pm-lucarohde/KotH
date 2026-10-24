@@ -104,9 +104,9 @@ Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall 
   schickt den Namen im `Welcome` (`INetWorld.LoadMap`). Proben laden `Maps.Test`, außer `bots climb`/`jumplab`.
 - **Neu** (Minecraft-Berg, 123 m): `Tools/maps/mountain.py` schreibt **nur** `Mountain.glb` (`COLOR_0` = Oberflächen,
   `TEXCOORD_0.x` = AO), `Sea.glb` und `NeuTerrain.bin` (Kollision, eingebettet, 4-m-Chunks, `WorldBuilder.AddTerrain`).
-  Surface Nets 70 %, Säulen 2 × 1, ohne Wege, Gipfel aus ≥ 9/12 Richtungen; Stämme rund (Gras/Laub darüber nur optisch,
-  kein Boden im Stamm). Danach `Tools/maps/MapUV` (Lightmap-UVs für Berg und Meer, `dotnet run`), `publish_aot.sh`. Sichtweite ≤ 20 km.
-- Texturen: `Tools/maps/textures.py` (gemalt, comichaft), Shader `TerrainTriplanar`/`PaintedTriplanar`/`LeafSplat`/`CellHash` in `KotH.Game/Effects`. Fallen:
+  Surface Nets 70 %, Säulen 2 × 1, ohne Wege, Gipfel aus ≥ 9/12 Richtungen; Stämme rund (kein Boden im Stamm), Kronen halb
+  Blöcke, halb Büschel, mit Zweig-Karten. Danach `Tools/maps/MapUV` (Lightmap-UVs für Berg und Meer, `dotnet run`), `publish_aot.sh`. Sichtweite ≤ 20 km.
+- Texturen: `Tools/maps/textures.py` (gemalt, comichaft), Shader `TerrainTriplanar`/`PaintedTriplanar`/`LeafSplat`/`LeafCard`/`CellHash` in `KotH.Game/Effects`. Fallen:
   kein `Texture2D` als Generic (`LinkType` + `[Link]` in `rgroup PerMaterial`), verschachteltes `ComputeColorParameterTexture`; Import merged gleichnamige Materialien.
 
 ### Game Studio (Wine/Proton)

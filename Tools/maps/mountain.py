@@ -14,6 +14,7 @@ block up is a jump, two a double jump, three a wall. Pure Python, seeded.
   python3 Tools/maps/mountain.py [--seed N]
   dotnet run --project Tools/maps/MapUV -c Release   then: the lightmap UVs (TEXCOORD_1)
 """
+import bisect
 import math
 import os
 import heapq
@@ -89,6 +90,14 @@ TRUNK_RADIUS = 0.5         # trunks are round (Luca), as thick as the block was
 TRUNK_FOOT = 0.55          # and this thick at the ground, widening over TRUNK_FLARE like roots
 TRUNK_FLARE = 0.5
 TRUNK_SIDES = 16
+CROWN_STEP = 0.35          # crowns are soft lobes run together (Luca: rounder, more natural), meshed this fine
+CROWN_ISO = 0.2            # where the summed lobes' field crosses this
+CROWN_NOISE = 0.07         # lumps on the lobes
+CROWN_WIDTH = 1.1          # crowns this much wider than the lobes say (Luca: 10 % more)
+CROWN_BLOCKY = 0.5         # share of the old leaf blocks in the crown's shape (Luca: between round and blocky)
+BLOCK_SOFT = 0.3           # the blocks' edges softened over this half width
+CARDS = 378                # twigs standing out of every crown, evenly all round (Luca, after "bushy leaves" packs)
+CARD_LENGTH = (0.72, 1.035)  # metres, a third of it inside the crown
 # The leaves are cut out of their texture (Luca); copies of the crown this far
 # in, this much darker, fill it behind the gaps. Only drawn, not in the collision.
 LEAF_SHELLS = ((0.3, 0.8), (0.6, 0.62))
@@ -132,6 +141,7 @@ class Terrain:
         self.material = {}    # (x, z) -> (top colour, side colour)
         self.tint = {}        # (x, z) -> brightness of that column
         self.trees = set()    # (x, y, z) of wood and leaf blocks
+        self.crowns = []      # (x, z, top of the trunk) per tree; the crowns are drawn round (round_crown)
         self.wood = set()
         self.build()
 
@@ -330,6 +340,8 @@ class Terrain:
             trunk = rng.randint(4, 6)
             base = self.height[x, z]
             top = base + trunk
+            blocks = []
+            self.crowns.append((x, z, top, blocks))
             for y in range(base, top):
                 self.wood.add((x, y, z))
             for y, reach in ((top - 2, 2), (top - 1, 2), (top, 1), (top + 1, 1)):
@@ -342,6 +354,7 @@ class Terrain:
                             continue
                         if (x + dx, y, z + dz) not in self.wood:
                             self.trees.add((x + dx, y, z + dz))
+                            blocks.append((x + dx, y, z + dz))
 
 
 def climbable(t, starts, limit, near=None):
@@ -412,7 +425,7 @@ def check_climb(t):
 # What a block is; None is air. Trunks are drawn round (round_trunk); the
 # ground and leaves close over their blocks only to the eye, so the
 # collision has no floor inside a trunk for the bots' grid.
-GROUND, FOLIAGE, TRUNK = 0, 1, 2
+GROUND, FOLIAGE, TRUNK, CARD = 0, 1, 2, 3
 
 # The dual cell round a block corner: its 8 blocks (i, j, k in 0, 1 from the
 # corner's lower side) and the 12 edges between blocks next to each other.
@@ -572,24 +585,12 @@ def build_mesh(t):
             for y in range(max(nb, UNDER), h):
                 if block(t, x + n[0], y, z + n[2]) is None:
                     mesh.face(x, y, z, n, GROUND)
-    # Leaves: every open face of every block.
-    for (x, y, z) in sorted(t.trees):
-        for n in FACES:
-            if block(t, x + n[0], y + n[1], z + n[2]) is None:
-                mesh.face(x, y, z, n, FOLIAGE)
-    columns = {}
-    for (x, y, z) in t.wood:
-        columns.setdefault((x, z), []).append(y)
-    for (x, z) in sorted(columns):
-        # Open from the ground up to the first block with leaves all round.
-        base = top = min(columns[x, z])
-        while any(block(t, x + dx, top, z + dz) is None for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1))):
-            top += 1
-        mesh.face(x, top, z, (0, -1, 0), FOLIAGE, False)
-        columns[x, z] = (base, top)
     mesh.finish()
-    for (x, z) in sorted(columns):
-        round_trunk(mesh, x, z, *columns[x, z])
+    for n, (x, z, top, blocks) in enumerate(t.crowns):
+        base = t.height[x, z]
+        # The trunk reaches into the crown's middle.
+        round_trunk(mesh, x, z, base, top - 1.3)
+        round_crown(mesh, random.Random(t.seed * 1000 + n), x, z, top, blocks)
     simplify(mesh)
     return mesh
 
@@ -632,6 +633,193 @@ def round_trunk(mesh, x, z, base, top):
         n = mesh.nrm[i]
         length = math.sqrt(n[0] ** 2 + n[1] ** 2 + n[2] ** 2) or 1.0
         mesh.nrm[i] = (n[0] / length, n[1] / length, n[2] / length)
+
+
+def crown_lobes(rng, x, z, top):
+    """A body round the trunk's top and 6 to 8 smaller lobes round it, one on
+    top, each as (centre, radii) of an ellipsoid as it shows on its own."""
+    cx, cz = x + 0.5 + rng.uniform(-0.25, 0.25), z + 0.5 + rng.uniform(-0.25, 0.25)
+    cy = top - 1.0
+    lobes = [((cx, cy, cz), (2.1, 1.5, 2.1))]
+    count = rng.randint(6, 8)
+    turn = rng.uniform(0.0, 2 * math.pi)
+    for i in range(count):
+        # Some hang lower at the rim, some sit up on the shoulders.
+        a = turn + 2 * math.pi * i / count + rng.uniform(-0.35, 0.35)
+        up = rng.uniform(-0.35, 0.8)
+        d = rng.uniform(1.5, 2.0)
+        r = rng.uniform(0.9, 1.3)
+        centre = (cx + d * math.cos(up) * math.cos(a), cy + 0.8 * d * math.sin(up), cz + d * math.cos(up) * math.sin(a))
+        lobes.append((centre, (r, 0.85 * r, r)))
+    lobes.append(((cx + rng.uniform(-0.5, 0.5), cy + 1.3, cz + rng.uniform(-0.5, 0.5)), (1.2, 0.95, 1.2)))
+    w = CROWN_WIDTH
+    return [((cx + (c[0] - cx) * w, c[1], cz + (c[2] - cz) * w), (r[0] * w, r[1], r[2] * w)) for c, r in lobes]
+
+
+def round_crown(mesh, rng, x, z, top, blocks):
+    """A crown as one smooth surface (Surface Nets, CROWN_STEP), CROWN_BLOCKY
+    of the way from the summed lobes (crossing CROWN_ISO, a little noise for
+    lumps) to the old leaf blocks with soft edges; both fields roughly in
+    metres inside. Normals from the field, lighter on top; solid like the
+    leaf blocks were."""
+    # A lobe alone crosses CROWN_ISO at its radius when scaled so.
+    grow = 1.0 / math.sqrt(1.0 - math.sqrt(CROWN_ISO))
+    lobes = [(c, tuple(v * grow for v in r)) for c, r in crown_lobes(rng, x, z, top)]
+    seed = rng.randrange(1 << 30)
+
+    def field(p):
+        f = 0.0
+        for c, r in lobes:
+            q = sum(((p[k] - c[k]) / r[k]) ** 2 for k in range(3))
+            if q < 1.0:
+                f += (1.0 - q) ** 2
+        rounded = (f + CROWN_NOISE * noise3(seed, p[0] / 0.9, p[1] / 0.9, p[2] / 0.9) - CROWN_ISO) / 0.6
+        # How much of a box BLOCK_SOFT round p lies in the blocks: 1/2 on a face.
+        filled = 0.0
+        for b in blocks:
+            share = 1.0
+            for k in range(3):
+                over = min(p[k] + BLOCK_SOFT, b[k] + 1) - max(p[k] - BLOCK_SOFT, b[k])
+                if over <= 0.0:
+                    share = 0.0
+                    break
+                share *= over / (2 * BLOCK_SOFT)
+            filled += share
+        blocky = (filled - 0.5) * 2 * BLOCK_SOFT
+        return (1 - CROWN_BLOCKY) * rounded + CROWN_BLOCKY * blocky
+
+    lo = [min(min(c[k] - r[k] for c, r in lobes), min(b[k] for b in blocks)) - CROWN_STEP for k in range(3)]
+    hi = [max(max(c[k] + r[k] for c, r in lobes), max(b[k] + 1 for b in blocks)) + CROWN_STEP for k in range(3)]
+    size = [int(math.ceil((hi[k] - lo[k]) / CROWN_STEP)) + 1 for k in range(3)]
+
+    def point(i, j, k):
+        return (lo[0] + i * CROWN_STEP, lo[1] + j * CROWN_STEP, lo[2] + k * CROWN_STEP)
+    values = {(i, j, k): field(point(i, j, k)) for i in range(size[0]) for j in range(size[1]) for k in range(size[2])}
+    first = len(mesh.pos)
+    corners = [(a, b, c) for a in (0, 1) for b in (0, 1) for c in (0, 1)]
+    edges = [(u, v) for u in corners for v in corners if u < v and sum(abs(u[n] - v[n]) for n in range(3)) == 1]
+    cell = {}
+    for i in range(size[0] - 1):
+        for j in range(size[1] - 1):
+            for k in range(size[2] - 1):
+                # The mean of the crossings on the cell's edges.
+                sx = sy = sz = n = 0
+                for u, v in edges:
+                    fu = values[i + u[0], j + u[1], k + u[2]]
+                    fv = values[i + v[0], j + v[1], k + v[2]]
+                    if (fu > 0) != (fv > 0):
+                        s = fu / (fu - fv)
+                        pu, pv = point(i + u[0], j + u[1], k + u[2]), point(i + v[0], j + v[1], k + v[2])
+                        sx += pu[0] + s * (pv[0] - pu[0])
+                        sy += pu[1] + s * (pv[1] - pu[1])
+                        sz += pu[2] + s * (pv[2] - pu[2])
+                        n += 1
+                if not n:
+                    continue
+                p = (sx / n, sy / n, sz / n)
+                h = 0.05
+                g = [field(tuple(p[m] + (h if m == a else 0.0) for m in range(3)))
+                     - field(tuple(p[m] - (h if m == a else 0.0) for m in range(3))) for a in range(3)]
+                length = math.sqrt(sum(v * v for v in g)) or 1.0
+                normal = tuple(-v / length for v in g)
+                cell[i, j, k] = len(mesh.pos)
+                mesh.pos.append(p)
+                mesh.nrm.append(normal)
+                mesh.col.append((0.0, 0.0, 0.0, 0.0))
+                mesh.uv.append((0.72 + 0.28 * (0.5 + 0.5 * normal[1]), 0.0))
+                mesh.keys.append((None, FOLIAGE))
+    # A quad round every grid edge the surface crosses, of the four cells sharing it.
+    faces = len(mesh.idx)
+    for (i, j, k), f in values.items():
+        for axis in range(3):
+            o = [i, j, k]
+            o[axis] += 1
+            if tuple(o) not in values or (f > 0) == (values[tuple(o)] > 0):
+                continue
+            b, c = [m for m in range(3) if m != axis]
+            ring = []
+            for db, dc in ((0, 0), (1, 0), (1, 1), (0, 1)):
+                q = [i, j, k]
+                q[b] -= db
+                q[c] -= dc
+                ring.append(cell.get(tuple(q)))
+            if None in ring:
+                continue
+            out = [0.0, 0.0, 0.0]
+            out[axis] = 1.0 if f > 0 else -1.0
+            for tri in ((ring[0], ring[1], ring[2]), (ring[0], ring[2], ring[3])):
+                p = [mesh.pos[v] for v in tri]
+                if sum(cross(sub(p[1], p[0]), sub(p[2], p[0]))[m] * out[m] for m in range(3)) < 0:
+                    tri = (tri[0], tri[2], tri[1])
+                mesh.idx += tri
+    leaf_cards(mesh, rng, faces)
+
+
+def leaf_cards(mesh, rng, faces):
+    """CARDS twigs on the crown whose triangles start at index faces, as many
+    per square metre on top, at the sides and below: each a card leaning out
+    of the surface, a third inside, lit with the crown's normal there; only to
+    be seen. u runs from a whole number k (LeafCard's wind pace) to k + 1,
+    mirrored at random; v from the tip (0) to the base (1)."""
+    tris = [mesh.idx[i:i + 3] for i in range(faces, len(mesh.idx), 3)]
+    total, upto = 0.0, []
+    for a, b, c in tris:
+        total += 0.5 * math.sqrt(sum(k * k for k in cross(sub(mesh.pos[b], mesh.pos[a]), sub(mesh.pos[c], mesh.pos[a]))))
+        upto.append(total)
+
+    def unit(v):
+        length = math.sqrt(sum(k * k for k in v))
+        return tuple(k / length for k in v) if length > 1e-6 else None
+    placed = 0
+    while placed < CARDS:
+        # A point on the surface by area, its normal blended from the corners.
+        tri = tris[min(bisect.bisect(upto, rng.random() * total), len(tris) - 1)]
+        r1, r2 = math.sqrt(rng.random()), rng.random()
+        wts = (1 - r1, r1 * (1 - r2), r1 * r2)
+        p = tuple(sum(wts[m] * mesh.pos[tri[m]][k] for m in range(3)) for k in range(3))
+        n = unit(tuple(sum(wts[m] * mesh.nrm[tri[m]][k] for m in range(3)) for k in range(3)))
+        if n is None:
+            continue
+        lean = unit((rng.gauss(0, 1), rng.gauss(0, 1), rng.gauss(0, 1)))
+        side = unit((rng.gauss(0, 1), rng.gauss(0, 1), rng.gauss(0, 1)))
+        if lean is None or side is None:
+            continue
+        d = unit(tuple(n[k] + 0.9 * lean[k] for k in range(3)))
+        w = d and unit(cross(d, side))
+        if w is None:
+            continue
+        length = rng.uniform(*CARD_LENGTH)
+        width = 0.8 * length
+        base = tuple(p[k] - d[k] * length / 3 for k in range(3))
+        quad = [tuple(base[k] + s * w[k] * width / 2 + t * d[k] * length for k in range(3))
+                for s, t in ((-1, 0), (1, 0), (1, 1), (-1, 1))]
+        card = rng.randrange(8)
+        u0, u1 = (card + 1, card) if rng.random() < 0.5 else (card, card + 1)
+        at = len(mesh.pos)
+        for q, uv in zip(quad, ((u0, 1.0), (u1, 1.0), (u1, 0.0), (u0, 0.0))):
+            mesh.pos.append(q)
+            mesh.nrm.append(n)
+            mesh.col.append((0.0, 0.0, 0.0, 0.0))
+            mesh.uv.append(uv)
+            mesh.keys.append((None, CARD))
+        for tri in ((at, at + 1, at + 2), (at, at + 2, at + 3)):
+            mesh.unsolid.add(len(mesh.idx) // 3)
+            mesh.idx += tri
+        placed += 1
+
+
+def noise3(seed, u, v, w):
+    """Smooth value noise in [-1, 1] in three dimensions."""
+    iu, iv, iw = math.floor(u), math.floor(v), math.floor(w)
+    f = [u - iu, v - iv, w - iw]
+    s = [t * t * (3 - 2 * t) for t in f]
+    total = 0.0
+    for a in (0, 1):
+        for b in (0, 1):
+            for c in (0, 1):
+                weight = (s[0] if a else 1 - s[0]) * (s[1] if b else 1 - s[1]) * (s[2] if c else 1 - s[2])
+                total += weight * (lattice(seed, iu + a, iv + b, iw + c) * 2 - 1)
+    return total
 
 
 def quadric(a, b, c):
@@ -825,7 +1013,7 @@ def parts(mesh):
     """The mesh split by kind of block, each with only its own vertices; the
     leaves with their inner shells (LEAF_SHELLS)."""
     out = []
-    for kind, name in ((GROUND, 'Terrain'), (FOLIAGE, 'Leaves'), (TRUNK, 'Bark')):
+    for kind, name in ((GROUND, 'Terrain'), (FOLIAGE, 'Leaves'), (TRUNK, 'Bark'), (CARD, 'LeafCards')):
         faces = [mesh.idx[i:i + 3] for i in range(0, len(mesh.idx), 3) if mesh.keys[mesh.idx[i]][1] == kind]
         used = sorted({v for f in faces for v in f})
         new = {v: i for i, v in enumerate(used)}

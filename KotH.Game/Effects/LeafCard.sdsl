@@ -1,0 +1,33 @@
+/// <summary>
+/// The twigs that stand out of the crowns (mountain.py's cards, LeafSprig.png),
+/// after the "bushy leaves" resource packs: the twig on its card, cut out by
+/// the material, darker at the base inside the crown. Each card's u runs from
+/// a whole number k to k + 1; k sets its own pace in the wind, which sways the
+/// tip more than the base, as LeafSplat's leaves sway.
+/// </summary>
+shader LeafCard<LinkType PaintKey>
+    : ComputeColor, PositionStream4, Texturing
+{
+    // As in LeafSplat.
+    static const float WindPace = 0.36;
+    // Share of the card's width the tip sways.
+    static const float Sway = 0.05;
+
+    rgroup PerMaterial
+    {
+        [Link("PaintKey")] stage Texture2D Paint;
+    }
+
+    override float4 Compute()
+    {
+        float2 uv = streams.TexCoord;
+        float card = floor(uv.x);
+        float3 q = streams.PositionWS.xyz;
+        float t = Global.Time * WindPace;
+        float tip = 1.0 - uv.y;
+        float gust = 0.65 + 0.35 * sin(t * 0.37 + q.x * 0.11 + q.z * 0.07);
+        uv.x += gust * tip * tip * Sway * sin(t * (1.6 + 0.1 * card) + card * 2.1);
+        float4 c = Paint.Sample(AnisotropicRepeatSampler, uv);
+        return float4(c.rgb * lerp(0.7, 1.0, saturate(tip * 1.5)), c.a);
+    }
+};
