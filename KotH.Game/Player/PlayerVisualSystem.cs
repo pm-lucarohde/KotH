@@ -101,6 +101,12 @@ namespace KotH.Client.Player
         /// <userdoc>Tempo der Arme in First Person im Verhältnis zur Figur: 0,5 = halb so viele Armschwünge wie Schritte, halb so schnelles Atmen.</userdoc>
         [Display("Tempo Arme", "First-Person-Arme")] public float ArmsPace = 0.5f;
 
+        /// <userdoc>Wie weit Hände und Stab in First Person in Ruhe schwanken, in Zentimetern (wie der Körper im Stand).</userdoc>
+        [Display("Schwanken Arme", "First-Person-Arme")] public float ArmsSway = 0.6f;
+
+        /// <userdoc>Sekunden für ein Hin und Her des Schwankens der Arme.</userdoc>
+        [Display("Schwanken Dauer", "First-Person-Arme")] public float ArmsSwayPeriod = 4f;
+
         /// <userdoc>Partikeleffekt, der beim Doppelsprung an den Füßen der Figur startet.</userdoc>
         [Display("Sporen beim Doppelsprung", "Effekte")] public Prefab SporeBurst;
 
@@ -217,7 +223,9 @@ namespace KotH.Client.Player
         readonly ArmSwing armsSwing = new ArmSwing();
         PlayingAnimation[] armPlays;
         readonly float[] armWeights = new float[ArmClips.Length];
-        float armPhase, lastStepPhase;
+        float armPhase, lastStepPhase, armSwayClock;
+        TransformComponent armsTransform;
+        Vector3 armsRest;
         readonly Random random = new Random();
 
         sealed class Figure
@@ -309,6 +317,8 @@ namespace KotH.Client.Player
         public void RegisterArms(Entity visual, PlayerMotor motor)
         {
             arms = visual.Get<AnimationComponent>();
+            armsTransform = visual.Transform;
+            armsRest = visual.Transform.Position;
             armsMotor = motor;
             armsLeaf = FindHeld(visual);
             armsModel = visual.Get<ModelComponent>();
@@ -321,6 +331,7 @@ namespace KotH.Client.Player
         public void UnregisterArms()
         {
             arms = null;
+            armsTransform = null;
             armsMotor = null;
             armsLeaf = null;
             armsModel = null;
@@ -892,7 +903,7 @@ namespace KotH.Client.Player
 
             float follow = 1f - MathF.Exp(-3f * dt / MathF.Max(1e-3f, BlendSeconds));
             if (motor == armsMotor)
-                Arms(f, moving, run, follow);
+                Arms(f, moving, run, follow, dt);
             // The landing is a short pulse over everything else, not followed:
             // quickly in, eased out. Crouched or sliding it gives nothing.
             float land = f.LandAge < LandAttack ? f.LandAge / LandAttack
@@ -920,8 +931,9 @@ namespace KotH.Client.Player
         /// <summary>
         /// The first-person arms: still or in the air the idle breath, on the
         /// move walking and running in step with the figure, ArmsPace times as fast.
+        /// At rest hands and stick sway a little as the standing body does.
         /// </summary>
-        void Arms(Figure f, float moving, float run, float follow)
+        void Arms(Figure f, float moving, float run, float follow, float dt)
         {
             if (arms == null)
                 return;
@@ -950,6 +962,22 @@ namespace KotH.Client.Player
                 else
                     play.TimeFactor = ArmsPace;
             }
+            ArmsSwaying(dt);
+        }
+
+        // A slow figure eight under the camera: side to side once, up and down
+        // twice per ArmsSwayPeriod, leaning with it; fades out on the move.
+        void ArmsSwaying(float dt)
+        {
+            if (armsTransform == null)
+                return;
+            armSwayClock = (armSwayClock + dt) % MathF.Max(1e-3f, ArmsSwayPeriod);
+            float a = MathUtil.TwoPi * armSwayClock / MathF.Max(1e-3f, ArmsSwayPeriod);
+            float side = MathF.Sin(a) * armWeights[0], lift = 0.5f * MathF.Sin(2f * a + 0.7f) * armWeights[0];
+            float metres = 0.01f * ArmsSway;
+            armsTransform.Position = armsRest + new Vector3(side * metres, lift * metres, 0f);
+            armsTransform.Rotation = Quaternion.RotationYawPitchRoll(
+                MathUtil.DegreesToRadians(0.4f * side), MathUtil.DegreesToRadians(0.6f * lift), MathUtil.DegreesToRadians(-0.8f * side));
         }
 
         /// <summary>0 standing, 1 crouched; follows the collider's height, which glides between both.</summary>
