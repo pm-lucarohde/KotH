@@ -1,0 +1,31 @@
+/// <summary>
+/// The cloud layer's shape, shared by AtmosphereMarch (the clouds) and
+/// CascadeShadowReceiver (their shadow): the cloud map's red is one dome per
+/// cloudlet, its green the large streaks; texture x runs with the wind.
+/// </summary>
+shader CloudLayer
+{
+    // Both layers' uv at (x, z): cloudlets in xy, streaks in zw.
+    // scale: 1 / repeat of both in metres; offset: what the wind carried off.
+    float4 CloudUV(float2 xz, float2 wind, float2 scale, float4 offset)
+    {
+        float2 w = float2(dot(xz, wind), dot(xz, float2(-wind.y, wind.x)));
+        return float4(w * scale.x, w * scale.y) - offset;
+    }
+
+    // Height of the cloudlet over a point as a share of the layer (0: none):
+    // its dome, shrunk in the streaks' lanes, so cloudlets thin out to the gaps.
+    float CloudTop(float cell, float band, float coverage)
+    {
+        float lane = smoothstep(0.75 - coverage, 1.25 - coverage, band);
+        return saturate((cell * lane - 0.15) / 0.85);
+    }
+
+    // Density share at height share y under a top: a soft, flat underside that
+    // sags a little under big cloudlets, and a soft round top.
+    float CloudShape(float top, float y, float thickness)
+    {
+        float bottom = -0.25 * top;
+        return saturate((y - bottom) * thickness / 0.5) * saturate((top - y) * thickness / 0.6);
+    }
+};

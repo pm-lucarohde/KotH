@@ -171,7 +171,7 @@ SharedRenderers:
             87ff1d9cdd52418daf76385176a0e316: ref!! 1F31213D-28E4-4091-9DF0-03CEEB4436C0
             5e059d4cc2db4ee8a1f28a40f4ac3ae8: ref!! E6C3DA39-E2E9-4D79-BABA-0B2D5D9A24B8
         GBufferRenderStage: ref!! EFF5EBE0-9211-442E-BE87-B98D8F1B9D59
-        PostEffects: !PostProcessingEffects ref!! A520A99E-E2BE-4080-85FA-91223BE7F8E9
+        PostEffects: !KotH.Client.Rendering.AtmosphereEffects,KotH.Game ref!! 6D3F2A9B-1C4E-4F7A-9B2D-8E5C3A1F7B64
         LightShafts: null
         VRSettings:
             Enabled: false
@@ -206,6 +206,9 @@ SharedRenderers:
             Overlays: {}
         MSAALevel: None
         MSAAResolver: {}
+    3f8d6b1a2c4e4b7f9a5d0e6c8b2a4f13: !KotH.Client.Rendering.AtmosphereEffects,KotH.Game
+        Id: 6D3F2A9B-1C4E-4F7A-9B2D-8E5C3A1F7B64
+        Inner: !PostProcessingEffects ref!! A520A99E-E2BE-4080-85FA-91223BE7F8E9
     34ecb9b2633eacfc439ba8744fe05102: !PostProcessingEffects
         Id: A520A99E-E2BE-4080-85FA-91223BE7F8E9
         AmbientOcclusion:

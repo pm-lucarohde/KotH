@@ -1,0 +1,41 @@
+/// <summary>
+/// Lays AtmosphereMarch's half-resolution fog and clouds over the scene:
+/// blended as scene * a + rgb (AtmosphereEffects sets the blend). Texture0
+/// is the half-resolution result, Texture1 the full depth; each of the four
+/// nearest half pixels counts by how close its depth is to this pixel's, so
+/// the mountain's edge against the sky stays sharp.
+/// </summary>
+shader AtmosphereComposite : ImageEffectShader
+{
+    float2 NearFar;
+
+    float Linear(float z)
+    {
+        return NearFar.x * NearFar.y / (NearFar.y - z * (NearFar.y - NearFar.x));
+    }
+
+    stage override float4 Shading()
+    {
+        int2 pixel = int2(streams.ShadingPosition.xy);
+        float own = Linear(Texture1.Load(int3(pixel, 0)).r);
+        float2 halfSize = 1.0 / Texture0TexelSize;
+        float2 at = (float2(pixel) + 0.5) * 0.5 - 0.5;
+        int2 corner = int2(floor(at));
+        float2 f = at - corner;
+        float4 sum = 0;
+        float total = 0;
+        for (int j = 0; j < 2; j++)
+        {
+            for (int i = 0; i < 2; i++)
+            {
+                int2 tap = clamp(corner + int2(i, j), 0, int2(halfSize) - 1);
+                float depth = Linear(Texture1.Load(int3(tap * 2, 0)).r);
+                float bilinear = (i == 0 ? 1.0 - f.x : f.x) * (j == 0 ? 1.0 - f.y : f.y);
+                float w = bilinear / (0.05 + abs(depth - own) / own) + 1e-4;
+                sum += w * Texture0.Load(int3(tap, 0));
+                total += w;
+            }
+        }
+        return sum / total;
+    }
+};

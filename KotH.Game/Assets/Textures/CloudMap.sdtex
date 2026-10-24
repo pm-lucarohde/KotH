@@ -1,0 +1,9 @@
+!Texture
+Id: 8BA09DCC-912C-49F1-8FBE-495F36149FAB
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Textures/CloudMap.png
+IsCompressed: false
+Type: !ColorTextureType
+    UseSRgbSampling: false
+    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}

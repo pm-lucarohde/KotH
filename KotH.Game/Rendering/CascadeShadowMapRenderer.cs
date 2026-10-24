@@ -18,6 +18,7 @@ namespace KotH.Client.Rendering
     /// with the distance to the blocker (PCSS). The map casts once into the static
     /// map of <see cref="StaticSunShadowRenderer"/>, which the receivers multiply in
     /// (lightmapped meshes baked per texel), so the cascades hold only the figures.
+    /// The clouds of the scene's <see cref="Atmosphere"/> shade on top, live.
     /// </summary>
     [DataContract("CascadeShadowMapRenderer")]
     public sealed class CascadeShadowMapRenderer : LightDirectionalShadowMapRenderer
@@ -29,6 +30,12 @@ namespace KotH.Client.Rendering
         static readonly ValueParameterKey<Vector2> StaticTexelSize = ParameterKeys.NewValue<Vector2>(default, "CascadeShadowReceiver.StaticTexelSize");
         static readonly ObjectParameterKey<Texture> StaticShadowMap = ParameterKeys.NewObject<Texture>(null, "CascadeShadowReceiver.StaticShadowMap");
         static readonly ObjectParameterKey<Texture> SunLightmap = ParameterKeys.NewObject<Texture>(null, "CascadeShadowReceiver.SunLightmap");
+        static readonly ValueParameterKey<Vector4> CloudShadowLayer = ParameterKeys.NewValue<Vector4>(default, "CascadeShadowReceiver.CloudShadowLayer");
+        static readonly ValueParameterKey<Vector4> CloudShadowScale = ParameterKeys.NewValue<Vector4>(default, "CascadeShadowReceiver.CloudShadowScale");
+        static readonly ValueParameterKey<Vector4> CloudShadowOffset = ParameterKeys.NewValue<Vector4>(default, "CascadeShadowReceiver.CloudShadowOffset");
+        static readonly ValueParameterKey<Vector2> CloudShadowWind = ParameterKeys.NewValue<Vector2>(default, "CascadeShadowReceiver.CloudShadowWind");
+        static readonly ValueParameterKey<Vector3> CloudShadowToSun = ParameterKeys.NewValue<Vector3>(default, "CascadeShadowReceiver.CloudShadowToSun");
+        static readonly ObjectParameterKey<Texture> CloudShadowMap = ParameterKeys.NewObject<Texture>(null, "CascadeShadowReceiver.CloudShadowMap");
 
         /// <summary>Angular radius of the sun in degrees: the penumbra per metre between blocker and receiver.</summary>
         /// <userdoc>Scheinbarer Radius der Sonne in Grad: Je größer, desto breiter der Halbschatten pro Meter Abstand zum Werfer.</userdoc>
@@ -63,6 +70,10 @@ namespace KotH.Client.Rendering
             ValueParameterKey<Vector2> staticTexelKey;
             ObjectParameterKey<Texture> staticMapKey;
             ObjectParameterKey<Texture> sunLightmapKey;
+            ValueParameterKey<Vector4> cloudLayerKey, cloudScaleKey, cloudOffsetKey;
+            ValueParameterKey<Vector2> cloudWindKey;
+            ValueParameterKey<Vector3> cloudSunKey;
+            ObjectParameterKey<Texture> cloudMapKey;
 
             public void ApplyShader(ShaderMixinSource mixin) => inner.ApplyShader(mixin);
 
@@ -76,6 +87,12 @@ namespace KotH.Client.Rendering
                 staticTexelKey = StaticTexelSize.ComposeWith(compositionName);
                 staticMapKey = StaticShadowMap.ComposeWith(compositionName);
                 sunLightmapKey = SunLightmap.ComposeWith(compositionName);
+                cloudLayerKey = CloudShadowLayer.ComposeWith(compositionName);
+                cloudScaleKey = CloudShadowScale.ComposeWith(compositionName);
+                cloudOffsetKey = CloudShadowOffset.ComposeWith(compositionName);
+                cloudWindKey = CloudShadowWind.ComposeWith(compositionName);
+                cloudSunKey = CloudShadowToSun.ComposeWith(compositionName);
+                cloudMapKey = CloudShadowMap.ComposeWith(compositionName);
             }
 
             public void UpdateLightCount(int lightLastCount, int lightCurrentCount)
@@ -108,6 +125,18 @@ namespace KotH.Client.Rendering
                 parameters.Set(sunLightmapKey, context.RenderContext.Tags.Get(Stride.Rendering.Voxels.ForwardRendererVoxels.SunLightmapKey) ?? stand);
                 parameters.Set(staticUVKey, ready ? still.WorldToUV : Matrix.Identity);
                 parameters.Set(staticTexelKey, ready ? new Vector2(1f / still.Texture.Width) : Vector2.Zero);
+
+                // The clouds' shadow; strength 0 (and the atlas standing in, unread) without them.
+                var air = context.RenderContext.Tags.Get(Atmosphere.Key);
+                bool clouds = air is { CloudMap: not null, CloudShadow: > 0f } && currentLights.Count > 0;
+                parameters.Set(cloudMapKey, clouds ? air.CloudMap : stand);
+                parameters.Set(cloudScaleKey, clouds ? new Vector4(1f / air.CloudTile, 1f / air.BandTile, air.CloudShadow, 0f) : Vector4.Zero);
+                if (!clouds)
+                    return;
+                parameters.Set(cloudLayerKey, new Vector4(air.CloudBase, air.CloudThickness, air.CloudCoverage, air.CloudDensity));
+                parameters.Set(cloudOffsetKey, air.CloudOffset);
+                parameters.Set(cloudWindKey, air.WindAxis);
+                parameters.Set(cloudSunKey, -Vector3.Normalize(currentLights[0].Light.Direction));
             }
 
             public void ApplyDrawParameters(RenderDrawContext context, ParameterCollection parameters,

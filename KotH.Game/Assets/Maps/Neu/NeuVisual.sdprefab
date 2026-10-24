@@ -19,6 +19,9 @@ Hierarchy:
                             19d1887ead3f427d894fe3bddaafc9eb: ref!! 5B67D16E-E32B-4407-B16A-9CD997169C9F
                             8786fe8e651649dd821338af1ea73ea2: ref!! 370B95D9-9CC6-45BD-9DC9-6AF25212CC19
                             f5ade132945441499f45dd1b07a98340: ref!! 96A5DA75-D378-489D-A9D7-5C573DA398AD
+                    49c9ee42fb8845feb0c361a74a3a559e: !KotH.Client.Rendering.Atmosphere,KotH.Game
+                        Id: 43DA95DE-AF6A-4AA1-8B8A-F4EBF7FEDC58
+                        CloudMap: 8BA09DCC-912C-49F1-8FBE-495F36149FAB:Textures/CloudMap
         -   Entity:
                 Id: F650EF23-C9C9-429E-B840-A9424DE5C19A
                 Name: Mountain

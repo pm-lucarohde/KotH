@@ -106,9 +106,8 @@ Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall 
   `TEXCOORD_0.x` = AO), `Sea.glb` und `NeuTerrain.bin` (Kollision, eingebettet, 4-m-Chunks, `WorldBuilder.AddTerrain`).
   Surface Nets 70 %, Säulen 2 × 1, ohne Wege, Gipfel aus ≥ 9/12 Richtungen; Stämme rund (Gras/Laub darüber nur optisch,
   kein Boden im Stamm). Danach `Tools/maps/MapUV` (Lightmap-UVs für Berg und Meer, `dotnet run`), `publish_aot.sh`. Sichtweite ≤ 20 km.
-- Texturen: `Tools/maps/textures.py` (gemalt, comichaft, wenig Details), Shader `TerrainTriplanar` (Flechten als Tupfen)/`PaintedTriplanar`/`LeafSplat`/`CellHash`
-  in `KotH.Game/Effects`. Fallen: kein `Texture2D` als Generic (`LinkType` + `[Link]` in `rgroup PerMaterial`),
-  verschachteltes `ComputeColorParameterTexture`; Import legt namensgleiche Materialien zusammen.
+- Texturen: `Tools/maps/textures.py` (gemalt, comichaft), Shader `TerrainTriplanar`/`PaintedTriplanar`/`LeafSplat`/`CellHash` in `KotH.Game/Effects`. Fallen:
+  kein `Texture2D` als Generic (`LinkType` + `[Link]` in `rgroup PerMaterial`), verschachteltes `ComputeColorParameterTexture`; Import merged gleichnamige Materialien.
 
 ### Game Studio (Wine/Proton)
 - Steam-Verknüpfung „Stride Game Studio 4.4.0“, Prefix `compatdata/2392464373`, GE-Proton11-6, Windows-SDK .NET 11,
@@ -123,6 +122,7 @@ Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall 
   Überblendung 3,5 s, Lautstärke 0,2, im Netz nach bestätigter Runde; misst die Länge selbst (`Sound.TotalLength`).
 - Licht: VXGI (`ThirdParty/Stride.Voxels`, README), Profil 11; je Map `GI` (256 m, Bricks 0,125 m, GI 0,27, `LightVoxel.Sky`); Map-Licht
   und -Sonne (auch Meer; Blätterschatten stehen still) in Lightmap 4096², Map-Schatten einmal `StaticSunShadowRenderer`, Kaskaden nur Figuren (6 Kapseln).
+  Nebel und Wolken: `Atmosphere` (Neu) → `AtmosphereEffects` vor FXAA (halbe Auflösung), Karte `Tools/maps/clouds.py`, Schatten im `CascadeShadowReceiver`.
 
 ### Bots (`KotH.Shared/Bots`)
 - Treten wie Spieler bei (NetId ab 4, Slots nach `NetWorld.BotSlots`), offline/Host `--bots N` (Standard 3), stehen bei Rundenbeginn 3 s (`StartWait`).

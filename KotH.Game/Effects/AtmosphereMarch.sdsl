@@ -1,0 +1,163 @@
+/// <summary>
+/// Fog and clouds along each view ray at half resolution (AtmosphereEffects):
+/// rgb is the light they add, a the share of the scene still seen. Texture0 is
+/// the full depth (read at every other pixel), Texture1 the cloud map.
+/// The clouds are marched through their thin layer; the fog has a part that
+/// depends on height only, integrated exactly, and a part gathered round the
+/// centre, marched in 8 steps. Both fog parts are split at the clouds' depth.
+/// </summary>
+shader AtmosphereMarch : ImageEffectShader, CloudLayer
+{
+    float4x4 ClipToWorld;
+    float3 Eye;
+    float3 ToSun;
+    float3 SunColor;
+    float4 FogHeights;      // start, peak, top, farthest distance
+    float4 FogShape;        // density, share far off, centre x, centre z
+    float FogRadius;
+    float3 FogColor;
+    float FogSun;
+    float4 Cloud;           // base, thickness, coverage, density
+    float4 CloudReach;      // farthest distance, lod per metre, lod of the streaks over the cloudlets, 0
+    float2 CloudScale;
+    float4 CloudOffset;
+    float2 Wind;
+    float3 CloudTopColor;
+    float3 CloudBottomColor;
+
+    static const int FogSteps = 8;
+    static const int MaxCloudSteps = 16;
+
+    // The fog's height profile: 0 up to the start, 1 at the peak, 0 again at the top.
+    float Ramp(float h)
+    {
+        if (h <= FogHeights.x)
+            return 0.0;
+        if (h <= FogHeights.y)
+            return (h - FogHeights.x) / (FogHeights.y - FogHeights.x);
+        return saturate((FogHeights.z - h) / (FogHeights.z - FogHeights.y));
+    }
+
+    // The profile integrated over height from below.
+    float RampIntegral(float h)
+    {
+        float a = FogHeights.x, p = FogHeights.y, b = FogHeights.z;
+        if (h <= a)
+            return 0.0;
+        if (h <= p)
+            return (h - a) * (h - a) / (2.0 * (p - a));
+        float s = min(h, b) - p;
+        return 0.5 * (p - a) + s - s * s / (2.0 * (b - p));
+    }
+
+    // The profile along the ray from t0 to t1, exactly (it is linear in t on each piece).
+    float RampAlong(float3 o, float3 d, float t0, float t1)
+    {
+        if (abs(d.y) < 1e-4)
+            return Ramp(o.y) * (t1 - t0);
+        return (RampIntegral(o.y + d.y * t1) - RampIntegral(o.y + d.y * t0)) / d.y;
+    }
+
+    // Where the ray is between two heights, within [t0, t1]; empty when x > y.
+    float2 Slab(float3 o, float3 d, float lo, float hi, float t0, float t1)
+    {
+        if (abs(d.y) < 1e-6)
+            return o.y >= lo && o.y <= hi ? float2(t0, t1) : float2(1.0, 0.0);
+        float a = (lo - o.y) / d.y, b = (hi - o.y) / d.y;
+        return float2(max(min(a, b), t0), min(max(a, b), t1));
+    }
+
+    stage override float4 Shading()
+    {
+        int2 pixel = int2(streams.ShadingPosition.xy);
+        int2 full = pixel * 2;
+        float z = Texture0.Load(int3(full, 0)).r;
+        float2 uv = (float2(full) + 0.5) * Texture0TexelSize;
+        float4 h = mul(float4(uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0, min(z, 0.999999), 1.0), ClipToWorld);
+        float3 seen = h.xyz / h.w - Eye;
+        float seenLength = length(seen);
+        float3 d = seen / seenLength;
+        float scene = z >= 1.0 ? 1e9 : seenLength;
+        float3 o = Eye;
+        // Interleaved gradient noise shifts every pixel's steps, so they do not band.
+        float jitter = frac(52.9829189 * frac(dot(float2(pixel), float2(0.06711056, 0.00583715))));
+
+        // Clouds, front to back.
+        float3 cloud = 0;
+        float through = 1.0;
+        float cloudDepth = 0, weight = 0;
+        float lowest = Cloud.x, thickness = Cloud.y;
+        float2 layer = Slab(o, d, lowest - 0.25 * thickness, lowest + thickness, 0.0, min(scene, CloudReach.x));
+        if (layer.x < layer.y)
+        {
+            float run = layer.y - layer.x;
+            int steps = (int)clamp(ceil(run / 0.75), 3.0, (float)MaxCloudSteps);
+            // Long runs inside the layer put their steps near the eye.
+            float power = run > 0.75 * MaxCloudSteps ? 2.0 : 1.0;
+            float lighting = Cloud.w * 0.6 / max(ToSun.y, 0.1);
+            float silver = pow(saturate(dot(d, ToSun)), 8.0);
+            for (int i = 0; i < steps && through > 0.02; i++)
+            {
+                float x = (i + jitter) / steps;
+                float t = layer.x + run * pow(x, power);
+                float ds = run * power * pow(x, power - 1.0) / steps;
+                float3 p = o + d * t;
+                float lod = log2(max(1.0, t * CloudReach.y));
+                float4 cuv = CloudUV(p.xz, Wind, CloudScale, CloudOffset);
+                float cell = Texture1.SampleLevel(LinearRepeatSampler, cuv.xy, lod).r;
+                float band = Texture1.SampleLevel(LinearRepeatSampler, cuv.zw, max(lod - CloudReach.z, 0.0)).g;
+                float top = CloudTop(cell, band, Cloud.z);
+                float y = (p.y - lowest) / thickness;
+                float fade = smoothstep(0.5, 3.0, t) * (1.0 - smoothstep(0.5 * CloudReach.x, CloudReach.x, t));
+                float sigma = Cloud.w * CloudShape(top, y, thickness) * fade;
+                if (sigma <= 0.0)
+                    continue;
+                float alpha = 1.0 - exp(-sigma * ds);
+                // Lit by the sun through what lies above in the cloudlet; two tones.
+                float sun = exp(-lighting * max(top - y, 0.0) * thickness);
+                float3 colour = lerp(CloudBottomColor, CloudTopColor, sun) + 0.35 * silver * sun * CloudTopColor;
+                cloud += through * alpha * colour;
+                cloudDepth += through * alpha * t;
+                weight += through * alpha;
+                through *= 1.0 - alpha;
+            }
+        }
+        float split = weight > 0.0 ? cloudDepth / weight : scene;
+
+        // Fog: the height part exactly, the part round the centre marched.
+        float end = min(scene, FogHeights.w);
+        split = min(split, end);
+        float everywhere = FogShape.x * FogShape.y;
+        float before = everywhere * RampAlong(o, d, 0.0, split);
+        float after = everywhere * RampAlong(o, d, split, end);
+        float reach = 2.5 * FogRadius;
+        float2 oc = o.xz - FogShape.zw;
+        float A = dot(d.xz, d.xz), B = dot(oc, d.xz), C = dot(oc, oc) - reach * reach;
+        float root = B * B - A * C;
+        if (root > 0.0 && A > 1e-8)
+        {
+            root = sqrt(root);
+            float2 inside = Slab(o, d, FogHeights.x, FogHeights.z, max((-B - root) / A, 0.0), min((-B + root) / A, end));
+            if (inside.x < inside.y)
+            {
+                float ds = (inside.y - inside.x) / FogSteps;
+                float gathered = FogShape.x * (1.0 - FogShape.y);
+                for (int i = 0; i < FogSteps; i++)
+                {
+                    float t = inside.x + (i + jitter) * ds;
+                    float3 p = o + d * t;
+                    float2 r = p.xz - FogShape.zw;
+                    float tau = gathered * Ramp(p.y) * exp(-dot(r, r) / (FogRadius * FogRadius)) * ds;
+                    if (t < split)
+                        before += tau;
+                    else
+                        after += tau;
+                }
+            }
+        }
+        float3 fog = FogColor + FogSun * SunColor * pow(saturate(dot(d, ToSun)), 4.0);
+        float front = exp(-before), back = exp(-after);
+        float3 light = fog * (1.0 - front) + front * (cloud + through * fog * (1.0 - back));
+        return float4(light, front * through * back);
+    }
+};

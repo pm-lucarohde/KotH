@@ -12,6 +12,7 @@
 /// With a static map (StaticSunShadowRenderer) the cascades hold only what
 /// moves, and the map's shadow from the static map is multiplied in, filtered alike;
 /// lightmapped meshes (KOTH_LIGHTMAP) read it baked per texel instead.
+/// The clouds' shadow (Atmosphere) is multiplied in last, never baked: they drift.
 /// </summary>
 shader CascadeShadowReceiver<int TCascadeCount,
                              int TLightCount,
@@ -20,7 +21,7 @@ shader CascadeShadowReceiver<int TCascadeCount,
                              bool TCascadeDebug,
                              bool TComputeTransmittance> :
     ShadowMapReceiverDirectional<TCascadeCount, TLightCount, TBlendCascades, TDepthRangeAuto, TCascadeDebug, TComputeTransmittance>,
-    Texturing, LightmapBakeStream
+    Texturing, LightmapBakeStream, CloudLayer
 {
     cbuffer PerView.Lighting
     {
@@ -29,12 +30,18 @@ shader CascadeShadowReceiver<int TCascadeCount,
         float MaxPenumbra;    // widest penumbra radius in texels, also the blocker search's reach
         float4x4 WorldToStaticUV;
         float2 StaticTexelSize;   // 0 without a static map
+        float4 CloudShadowLayer;  // base, thickness, coverage, density
+        float4 CloudShadowScale;  // 1 / repeat of cloudlets and streaks, strength (0: no clouds), 0
+        float4 CloudShadowOffset;
+        float2 CloudShadowWind;
+        float3 CloudShadowToSun;
     };
 
     rgroup PerView.Lighting
     {
         Texture2D StaticShadowMap;
         Texture2D SunLightmap;      // red: the static shadow baked per lightmap texel
+        Texture2D CloudShadowMap;
     }
 
     stream float3 shadowFacetNormalWS;
@@ -63,8 +70,30 @@ shader CascadeShadowReceiver<int TCascadeCount,
         if (StaticTexelSize.x > 0.0)
             shadow *= StaticShadow(position, lightIndex);
 #endif
+        if (CloudShadowScale.z > 0.0)
+            shadow *= CloudShadow(position);
         return shadow;
 #endif
+    }
+
+    // Through the cloudlet the sun crosses on its way down: the point is taken up
+    // to the layer's middle along the sun and the map read a few mips blurred, so
+    // the shadow is soft; it fades in below the layer and is gone above it.
+    float CloudShadow(float3 positionWS)
+    {
+        float lowest = CloudShadowLayer.x, thickness = CloudShadowLayer.y;
+        float middle = lowest + 0.5 * thickness;
+        float below = saturate((middle - positionWS.y) / thickness);
+        if (below <= 0.0)
+            return 1.0;
+        float up = max(CloudShadowToSun.y, 0.05);
+        float2 xz = positionWS.xz + CloudShadowToSun.xz * ((middle - positionWS.y) / up);
+        float4 uv = CloudUV(xz, CloudShadowWind, CloudShadowScale.xy, CloudShadowOffset);
+        float cell = CloudShadowMap.SampleLevel(LinearRepeatSampler, uv.xy, 3.0).r;
+        float band = CloudShadowMap.SampleLevel(LinearRepeatSampler, uv.zw, 1.0).g;
+        float top = CloudTop(cell, band, CloudShadowLayer.z);
+        float through = exp(-CloudShadowLayer.w * 1.25 * top * thickness / up);
+        return 1.0 - CloudShadowScale.z * below * (1.0 - through);
     }
 
     // The static map like one more cascade over all, nothing outside of it.
