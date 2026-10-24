@@ -68,6 +68,7 @@ UnwrapResult result = new UnwrapMesh(positions.ToArray(), triangles.ToArray())
         Projection = { UseDiagonalAxes = args.Contains("--diagonal") },
     });
 Console.WriteLine($"fertig nach {watch.Elapsed.TotalSeconds:F1} s, {result.DegenerateTriangleIndices?.Length ?? 0} entartete Dreiecke");
+Console.WriteLine($"davon {MapDegenerates()} auf die Ebene eines Nachbarn gelegt");
 
 // Metres per texel from the areas in the world and in the atlas.
 double world = 0, atlas = 0;
@@ -135,6 +136,73 @@ mountain.Write();
 sea.Write();
 return 0;
 
+// The unwrapper drops slivers (the flat beach has some a few centimetres wide) with
+// zero UVs, so they read an empty texel and draw a black line. Each takes the map of
+// the nearest coplanar kept triangle reached over shared edges: a projected chart is
+// affine in its plane, so the sliver lands in the seam between its neighbours.
+int MapDegenerates()
+{
+    if (result.DegenerateTriangleIndices is not { Length: > 0 } dropped)
+        return 0;
+    var isDropped = new HashSet<int>(dropped);
+    var byEdge = new Dictionary<(int, int), List<int>>();
+    for (int t = 0; t < triangles.Count / 3; t++)
+        for (int k = 0; k < 3; k++)
+        {
+            int a = triangles[3 * t + k], b = triangles[3 * t + (k + 1) % 3];
+            var edge = (Math.Min(a, b), Math.Max(a, b));
+            if (!byEdge.TryGetValue(edge, out var list))
+                byEdge[edge] = list = [];
+            list.Add(t);
+        }
+    int mapped = 0;
+    foreach (int start in dropped)
+    {
+        var seen = new HashSet<int> { start };
+        var queue = new Queue<int>([start]);
+        while (queue.Count > 0)
+        {
+            int t = queue.Dequeue();
+            if (!isDropped.Contains(t) && TryMapOnto(start, t))
+            {
+                mapped++;
+                break;
+            }
+            for (int k = 0; k < 3; k++)
+            {
+                int a = triangles[3 * t + k], b = triangles[3 * t + (k + 1) % 3];
+                foreach (int next in byEdge[(Math.Min(a, b), Math.Max(a, b))])
+                    if (seen.Add(next))
+                        queue.Enqueue(next);
+            }
+        }
+    }
+    return mapped;
+}
+
+// Gives the dropped triangle's corners the UVs of their points in the kept triangle's
+// plane (barycentric, extrapolated), if all three lie in that plane.
+bool TryMapOnto(int dropped, int kept)
+{
+    Double3 a = positions[triangles[3 * kept]], b = positions[triangles[3 * kept + 1]], c = positions[triangles[3 * kept + 2]];
+    Double3 e1 = b - a, e2 = c - a, n = Cross(e1, e2);
+    double area2 = Dot(n, n);
+    if (area2 < 1e-12)
+        return false;
+    var uvs = new Double2[3];
+    for (int k = 0; k < 3; k++)
+    {
+        Double3 p = positions[triangles[3 * dropped + k]] - a;
+        if (Math.Abs(Dot(p, n)) / Math.Sqrt(area2) > 1e-3)
+            return false;
+        double s = Dot(Cross(p, e2), n) / area2, t = Dot(Cross(e1, p), n) / area2;
+        uvs[k] = result.PerCornerUVs[3 * kept] * (1 - s - t) + result.PerCornerUVs[3 * kept + 1] * s + result.PerCornerUVs[3 * kept + 2] * t;
+    }
+    for (int k = 0; k < 3; k++)
+        result.PerCornerUVs[3 * dropped + k] = uvs[k];
+    return true;
+}
+
 int Option(string name, int fallback)
 {
     int i = Array.IndexOf(args, name);
@@ -143,6 +211,7 @@ int Option(string name, int fallback)
 
 static Double3 Cross(Double3 a, Double3 b) => new(a.Y * b.Z - a.Z * b.Y, a.Z * b.X - a.X * b.Z, a.X * b.Y - a.Y * b.X);
 static double Length(Double3 a) => Math.Sqrt(a.X * a.X + a.Y * a.Y + a.Z * a.Z);
+static double Dot(Double3 a, Double3 b) => a.X * b.X + a.Y * b.Y + a.Z * b.Z;
 
 sealed class Primitive(string material, int materialIndex)
 {

@@ -199,7 +199,7 @@ shader CascadeShadowReceiver<int TCascadeCount,
                 float2 uv = clamp(position.xy + (float2(i, j) - 1.5) * step, rect.xy + halfTexel, rect.zw - halfTexel);
                 uv = (floor(uv * (1.0 / StaticTexelSize) - 0.5) + 1.0) * StaticTexelSize;
                 float4 stored = StaticShadowMap.GatherRed(PointSampler, uv);
-                float4 receiver = position.z + dot(uv - position.xy, gradient) + corners;
+                float4 receiver = min(position.z + dot(uv - position.xy, gradient) + corners, 1.0);
                 float4 blocked = stored < receiver ? 1.0 : 0.0;
                 sum += dot(blocked, receiver - stored);
                 count += dot(blocked, 1.0);
@@ -228,9 +228,11 @@ shader CascadeShadowReceiver<int TCascadeCount,
         return shadow / total;
     }
 
+    // Beyond the far plane (the sea far off) is behind every caster: the cleared
+    // depth means nothing is there, so the receiver is held to it.
     float StaticTap(float2 tapUV, float3 position, float2 gradient)
     {
-        float depth = position.z + dot(tapUV - position.xy, gradient);
+        float depth = min(position.z + dot(tapUV - position.xy, gradient), 1.0);
         return StaticShadowMap.SampleCmpLevelZero(LinearClampCompareLessEqualSampler, tapUV, depth);
     }
 };
