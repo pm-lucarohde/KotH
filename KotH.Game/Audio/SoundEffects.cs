@@ -25,7 +25,7 @@ namespace KotH.Client.Audio
         [Display("Ambient", "Umgebung")] public Sound Ambient;
 
         /// <userdoc>Deutlich leiser als die Musik (0,2).</userdoc>
-        [Display("Lautstärke Ambient", "Umgebung")] public float AmbientVolume = 0.05f;
+        [Display("Lautstärke Ambient", "Umgebung")] public float AmbientVolume = 0.025f;
 
         [Display("Schritt", "Figuren")] public Sound Step;
         [Display("Lautstärke Schritt", "Figuren")] public float StepVolume = 0.3f;
@@ -171,17 +171,19 @@ namespace KotH.Client.Audio
         }
 
         /// <summary>
-        /// The point as the camera hears it. Stride moves a listener only for
-        /// an AudioListenerComponent (internally), so the default one stays at
-        /// the origin facing +Z with +Y up: the point goes there in the
-        /// camera's own axes, right to +X, up to +Y, ahead to +Z.
+        /// The point as heard from the own eye, also in third person (Luca: the
+        /// own sounds as loud as in first person), turned with the view. Stride
+        /// moves a listener only for an AudioListenerComponent (internally), so
+        /// the default one stays at the origin facing +Z with +Y up: the point
+        /// goes there in the view's axes, right to +X, up to +Y, ahead to +Z.
         /// </summary>
         Vector3 FromEar(Vector3 at)
         {
             if (camera == null)
                 return Vector3.Zero;
             Matrix view = camera.Entity.Transform.WorldMatrix;
-            Vector3 d = at - view.TranslationVector;
+            Vector3 ear = camera.Motor != null ? ViewMath.Eye(camera.Motor, TickInterpolation.Alpha) : view.TranslationVector;
+            Vector3 d = at - ear;
             return new Vector3(Vector3.Dot(d, Vector3.Normalize(view.Right)), Vector3.Dot(d, Vector3.Normalize(view.Up)),
                                Vector3.Dot(d, Vector3.Normalize(view.Forward)));
         }
