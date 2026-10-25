@@ -1,0 +1,7 @@
+!Sound
+Id: 29A91AF9-8B27-4B81-9FCE-3F6690833F83
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Sounds/steps.wav
+StreamFromDisk: false
+Spatialized: true

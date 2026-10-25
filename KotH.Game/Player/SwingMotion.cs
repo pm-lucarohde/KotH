@@ -99,6 +99,9 @@ namespace KotH.Client.Player
         /// <summary>The torso's share of the swing, already weighted; identity at rest.</summary>
         public Quaternion Torso { get; private set; } = Quaternion.Identity;
 
+        /// <summary>Swings started so far, the cane's whoosh follows it.</summary>
+        public int Started { get; private set; }
+
         /// <summary>The recoil bone of this skeleton, -1 without.</summary>
         public int RecoilNode { get; private set; } = -1;
 
@@ -158,6 +161,7 @@ namespace KotH.Client.Player
         {
             // From wherever the hand is shown now: mid-swing or the clip's own.
             from = Weight > 1e-3f ? Hand : ClipHand(skeleton);
+            Started++;
             startWeight = Weight;
             startYaw = yawNow;
             startBend = bendNow;

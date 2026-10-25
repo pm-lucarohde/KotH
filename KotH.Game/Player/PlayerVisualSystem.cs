@@ -195,6 +195,8 @@ namespace KotH.Client.Player
         const float LandAttack = 0.06f, KickAttack = 0.05f;
         // A jump in the air shows as a sudden climb; gravity alone only slows it.
         const float KickBoost = 3f;
+        // Leaving the ground this fast upwards was a jump, not a step off an edge.
+        const float JumpSpeed = 3f;
 
         // Lids open: shrunk to their pivot, as no triangle at all.
         const float Hidden = 1e-4f;
@@ -212,6 +214,9 @@ namespace KotH.Client.Player
         const string HeldLeafBone = "Leaf", HeldLeafTip = "LeafTip";
 
         readonly List<Figure> figures = new List<Figure>();
+
+        /// <summary>A figure did something to be heard: what, whose body, where it is shown, and how much (FigureSound).</summary>
+        public event Action<FigureSound, PlayerMotor, Vector3, float> Sounded;
 
         // The first-person arms of the own body, null without.
         AnimationComponent arms;
@@ -235,8 +240,11 @@ namespace KotH.Client.Player
             public PlayingAnimation[] Plays;
             public readonly float[] Weights = new float[Clips.Length];
             public SimulationBody Body;
+            public PlayerMotor Motor;
+            public TransformComponent Transform;
             public float Phase, BlinkClock, BlinkWait;
-            public float AirTime, LandAge = float.MaxValue, KickAge = float.MaxValue, LastClimb;
+            public float AirTime, LandAge = float.MaxValue, KickAge = float.MaxValue, LastClimb, Peak;
+            public int SwingsHeard;
             public int[] Lids;
             public int Look = -2, Mouth = -2, Recoil = -2;
             public DamagePercent Damage;
@@ -305,6 +313,8 @@ namespace KotH.Client.Player
                 Animation = visual.Get<AnimationComponent>(),
                 Model = visual.Get<ModelComponent>(),
                 Body = motor.Entity.Get<SimulationBody>(),
+                Motor = motor,
+                Transform = visual.Transform,
                 // Figures side by side never blink together.
                 BlinkWait = BlinkPause(),
                 MouthClock = (float)random.NextDouble() * 30f,
@@ -460,6 +470,11 @@ namespace KotH.Client.Player
             Blink(f, dt);
             Breathe(f, dt);
             f.Swing.Update(f.Model?.Skeleton, f.Melee, f.Body?.NetId ?? 0, Swing(), SwingPath.Figure, dt);
+            if (f.Swing.Started != f.SwingsHeard)
+            {
+                f.SwingsHeard = f.Swing.Started;
+                Sound(f, FigureSound.Swing, 1f);
+            }
             Hit(f, dt);
             LookUpDown(f, alpha);
             Leaves(f, motor, t, dt);
@@ -770,6 +785,7 @@ namespace KotH.Client.Player
                 {
                     f.HitAge = 0f;
                     f.HitAxis = RecoilAxis(f, f.Damage.LastHitAway);
+                    Sound(f, FigureSound.Hit, 1f);
                 }
                 f.SeenHit = hit;
             }
@@ -858,15 +874,28 @@ namespace KotH.Client.Player
             {
                 f.KickAge = 0f;
                 f.Kicked = true;
+                Sound(f, FigureSound.DoubleJump, 1f);
             }
             f.LastClimb = v.Y;
             f.KickAge += dt;
             if (airborne)
+            {
+                if (f.AirTime == 0f)
+                {
+                    f.Peak = motor.Position.Y;
+                    if (v.Y > JumpSpeed && motor.KnockLeft <= 0f)
+                        Sound(f, FigureSound.Jump, 1f);
+                }
+                f.Peak = MathF.Max(f.Peak, motor.Position.Y);
                 f.AirTime += dt;
+            }
             else
             {
                 if (f.AirTime > LandMinAir)
+                {
                     f.LandAge = 0f;
+                    Sound(f, FigureSound.Land, f.Peak - motor.Position.Y);
+                }
                 f.AirTime = 0f;
             }
             f.LandAge += dt;
@@ -899,7 +928,11 @@ namespace KotH.Client.Player
             float stepsPerSecond = WalkSteps + (RunSteps - WalkSteps) * run;
             float cycleMetres = 2f * (motor.WalkSpeed + (motor.SprintSpeed - motor.WalkSpeed) * run) / stepsPerSecond;
             cycleMetres += (2f * motor.CrouchSpeed / CrouchSteps - cycleMetres) * crouched;
+            float before = f.Phase;
             f.Phase = (f.Phase + speed / cycleMetres * dt) % 1f;
+            // Phase 0 puts the left foot down, half the right (.work/rig/rig.py).
+            if (footing && speed > 0.5f && (f.Phase < before || before < 0.5f && f.Phase >= 0.5f))
+                Sound(f, FigureSound.Step, crouched > 0.5f ? 0.5f : 0.75f + 0.25f * run);
 
             float follow = 1f - MathF.Exp(-3f * dt / MathF.Max(1e-3f, BlendSeconds));
             if (motor == armsMotor)
@@ -927,6 +960,8 @@ namespace KotH.Client.Player
                 }
             }
         }
+
+        void Sound(Figure f, FigureSound what, float amount) => Sounded?.Invoke(what, f.Motor, f.Transform.Position, amount);
 
         /// <summary>
         /// The first-person arms: still or in the air the idle breath, on the

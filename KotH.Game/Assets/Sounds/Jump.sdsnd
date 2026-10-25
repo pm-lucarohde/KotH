@@ -1,0 +1,7 @@
+!Sound
+Id: E18D7F7E-D0C8-44DC-8A6D-3AC548227ECE
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Sounds/jump.wav
+StreamFromDisk: false
+Spatialized: true

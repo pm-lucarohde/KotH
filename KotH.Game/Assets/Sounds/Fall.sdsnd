@@ -1,0 +1,7 @@
+!Sound
+Id: 2BB6BEF4-E4F8-4AAC-9386-65C3971A33EC
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Sounds/fall.wav
+StreamFromDisk: false
+Spatialized: true

@@ -1,0 +1,7 @@
+!Sound
+Id: 56344623-DBF6-458E-8D30-882D71160A39
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Sounds/hit1.wav
+StreamFromDisk: false
+Spatialized: true

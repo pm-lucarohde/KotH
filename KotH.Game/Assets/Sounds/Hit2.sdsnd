@@ -1,0 +1,7 @@
+!Sound
+Id: 6F67770C-3D0C-460A-90F3-90C614F2994B
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Sounds/hit2.wav
+StreamFromDisk: false
+Spatialized: true

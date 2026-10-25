@@ -1,0 +1,7 @@
+!Sound
+Id: 8D1176FC-3ECF-4C14-95A3-88B60B7D4CD7
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Sounds/hit3.wav
+StreamFromDisk: false
+Spatialized: true

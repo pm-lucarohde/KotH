@@ -28,7 +28,8 @@ Sie sehen die Welt 0,2 s verzögert. Einstellungen an `BotSettings` (Entity „B
 **Mehrspieler.** Die Runde wartet auf 4 Spieler (Bots zählen mit), dann folgt ein Countdown von 60 s.
 Beitreten geht beim Warten, im Countdown, nach einem Sieg und in der ersten Minute. Offline beginnt
 die Runde sofort. **Musik:** Lobby-Track vor dem Spiel, ein Spielbeginn-Track, danach die übrigen
-gemischt, Überblendung 3,5 s (Entity `Music`).
+gemischt, Überblendung 3,5 s (Entity `Music`). **Geräusche:** leiser Ambient, Schritte, Sprünge, Schläge und
+Treffer aller Figuren räumlich (`SoundEffects`, Lautstärken dort; Dateien aus `Sounds/` mit `Tools/audio/sfx.py`).
 
 | | |
 |---|---|

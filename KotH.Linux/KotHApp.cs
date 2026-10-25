@@ -55,7 +55,9 @@ game.Run();
 /// like --fps, and KOTH_FRAMELOG=path writes
 /// every frame time in milliseconds, one per line, when the game ends. For the music:
 /// KOTH_MUSIC_VOLUME=0..1 overrides the volume, KOTH_MUSIC_TAIL=s starts every single-play
-/// track s seconds before its end, so the changes come quickly. KOTH_HEADLESS=1 never shows
+/// track s seconds before its end, so the changes come quickly. KOTH_SFX_VOLUME=0..1 scales the
+/// ambient and the figures' sounds (silent with KOTH_MUSIC_VOLUME=0 unless set), KOTH_SOUNDLOG=1
+/// logs each of those. KOTH_HEADLESS=1 never shows
 /// the window and renders into a texture of KOTH_SIZE (default 2560x1440), for shots.
 /// </summary>
 sealed class KotHGame : Game
@@ -89,6 +91,9 @@ sealed class KotHGame : Game
     readonly string frameLogPath = Environment.GetEnvironmentVariable("KOTH_FRAMELOG");
     readonly double? musicVolume = Number("KOTH_MUSIC_VOLUME");
     readonly double? musicTail = Number("KOTH_MUSIC_TAIL");
+    readonly double? sfxVolume = Number("KOTH_SFX_VOLUME");
+    readonly bool soundLog = Environment.GetEnvironmentVariable("KOTH_SOUNDLOG") == "1";
+    bool sfxSet;
     readonly bool headless = Environment.GetEnvironmentVariable("KOTH_HEADLESS") == "1";
     bool musicSet;
     Int2 windowedSize;
@@ -295,6 +300,12 @@ sealed class KotHGame : Game
             musicSet = true;
             music.Volume = (float)(musicVolume ?? music.Volume);
             music.TailSeconds = musicTail ?? 0.0;
+        }
+        if (!sfxSet && Find<SoundEffects>() is { } sounds)
+        {
+            sfxSet = true;
+            sounds.Master = (float)(sfxVolume ?? (musicVolume == 0.0 ? 0.0 : 1.0));
+            sounds.Trace = soundLog;
         }
 
         // Not in Initialize: with the window hidden the device is not ready there.

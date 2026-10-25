@@ -32,7 +32,7 @@ Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Pr
 - Testhilfen (`KotHApp.cs`, Zeiten ab Ende des Ladebilds): `KOTH_SHOT=bild.png` (nach `_SECONDS`, F3 an), `_YAW`/`_PITCH`/`_FOV`,
   `_THIRD`, `_AT=x,y,z`, `_FACE=grad`, `_SWING`, `_SHAKE`, `_HIT=grad`, `_BLINK`, `_STRIKE=s,…`, `_MOVE=x,y[,sprint]`, `_CROUCH=s`,
   `_JUMP=s,…`, `_TURN=grad,s[,kreis]`, `_VIDEO=s` (30 fps nach `bild.png.rgba`, Format im Log); `KOTH_HEADLESS=1` (ohne Fenster),
-  `KOTH_SIZE`, `KOTH_VSYNC`, `KOTH_FRAMELOG`, `KOTH_BOT_THREAD`, `KOTH_MUSIC_VOLUME` (stumm), `KOTH_MUSIC_TAIL`, Ton `ALSOFT_DRIVERS=wave`. Kein Splash, 6 Render-Threads.
+  `KOTH_SIZE`, `KOTH_VSYNC`, `KOTH_FRAMELOG`, `KOTH_BOT_THREAD`, `KOTH_MUSIC_VOLUME` (stumm, auch Geräusche), `KOTH_MUSIC_TAIL`, `KOTH_SFX_VOLUME`, `KOTH_SOUNDLOG`, Ton `ALSOFT_DRIVERS=wave`. Kein Splash, 6 Render-Threads.
 
 ## Tests: Proben und Regression
 
@@ -119,7 +119,7 @@ Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall 
 - `HudRenderer`: SpriteBatch nach der Szene (Strides UI kippt unter Vulkan), `HudRenderer.Numbers`; Prozent oben rechts/über Köpfen, `LoadScreen` schwarz bis GI gebacken.
 - Hauptmenü (`KotH.Game/Menu`, XAML, Avalonia 11.3 headless/Skia): `MenuOverlay` je Teil ein Offscreen-TopLevel mit festem Puffer, Upload nur bei neuem
   Bild, Einblenden in Stride; startet hinter dem Ladebild (wartet auf ruhige Bilder), `MenuCamera`, 60 fps; Erstellen = `--host`, Rest Optik; Shots: `KOTH_SHOT_MENU=1` (`_HOT`/`_PAGE=n`).
-- `MusicPlayer` (`Music`): Menü-, Lobby- (bis `Running`), Spielbeginn-Track, dann gemischte Playlist; Überblendung 3,5 s, Lautstärke 0,2, im Netz bestätigt.
+- `MusicPlayer` (`Music`): Menü, Lobby (bis `Running`), Spielbeginn, Playlist; 3,5 s Überblendung, 0,2, im Netz bestätigt. `SoundEffects`: Ambient, Figuren (`PlayerVisualSystem.Sounded`) relativ zur Kamera, `Tools/audio/sfx.py`.
 - Licht: VXGI (`ThirdParty/Stride.Voxels`, README), Profil 11; je Map `GI` (256 m, Bricks 0,125 m, GI 0,27, `LightVoxel.Sky`); Map-Licht
   und -Sonne (auch Meer; Blätterschatten stehen still) in Lightmap 4096², Map-Schatten einmal `StaticSunShadowRenderer`, Kaskaden nur Figuren (6 Kapseln).
   Nebel und Wolken: `Atmosphere` (Neu) → `AtmosphereEffects` vor FXAA (halbe Auflösung), Karte `Tools/maps/clouds.py`, Schatten im `CascadeShadowReceiver`.

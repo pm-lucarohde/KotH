@@ -1,0 +1,7 @@
+!Sound
+Id: E1720B1A-ABC1-4F55-BEFD-1EA255556127
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Sounds/ambient.wav
+StreamFromDisk: true
+Spatialized: false

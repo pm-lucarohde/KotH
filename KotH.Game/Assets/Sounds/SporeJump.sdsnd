@@ -1,0 +1,7 @@
+!Sound
+Id: 84376E64-5524-4430-8CC9-8ABC92C3235F
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Sounds/sporejump.wav
+StreamFromDisk: false
+Spatialized: true

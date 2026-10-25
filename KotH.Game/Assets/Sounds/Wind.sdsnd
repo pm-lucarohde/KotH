@@ -1,0 +1,7 @@
+!Sound
+Id: 516307D1-3DF7-4B43-98AF-5859A11D7AB6
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Sounds/wind.wav
+StreamFromDisk: false
+Spatialized: true
