@@ -28,9 +28,15 @@ ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
 
 SEED = 7
 HALF = 133                 # cells from the centre to the edge of the grid
-ISLAND = 117.0             # coast radius, varied by COAST
-COAST = 4.0
-BEACH = 5.0                # sand this far in from the coast
+ISLAND = 119.5             # coast radius, varied by COAST_WAVES
+COAST_WAVES = ((16.0, 3), (11.0, 6), (6.0, 13), (2.5, 29), (1.0, 67))   # (metres, cells round): bays to ripples
+COAST_MAX = 126.0          # the GI volume ends at 128 m
+BEACH = 5.5                # sand this far in from the coast, varied by BEACH_WAVES (Luca: less round)
+BEACH_WAVES = ((4.5, 4), (3.0, 9), (1.5, 23))
+BEACH_MIN = 2.0
+MEADOW_MIN = 12.0          # the meadow reaches at least this far out past the foot (spawns, trees)
+SOFT = 3.0                 # metres over which those limits ease in
+OLD_ISLAND, OLD_COAST, OLD_BEACH = 117.0, 4.0, 5.0   # the round island the trees were planted on
 MOUNTAIN = 95.0            # foot of the mountain, varied by FOOT
 FOOT = 4.0
 GRASS_Y = 2                # top of the meadow
@@ -132,6 +138,12 @@ def ring(seed, angle, cells):
     return noise(seed, angle / (2 * math.pi) * cells, 0.5, wrap=cells)
 
 
+def soft_max(a, b):
+    """max(a, b), eased over SOFT metres: a limit leaves no straight stretch."""
+    h = max(SOFT - abs(a - b), 0.0) / SOFT
+    return max(a, b) + h * h * SOFT / 4
+
+
 class Terrain:
     def __init__(self, seed):
         self.seed = seed
@@ -140,8 +152,9 @@ class Terrain:
         self.material = {}    # (x, z) -> (top colour, side colour)
         self.tint = {}        # (x, z) -> brightness of that column
         self.trees = set()    # (x, y, z) of wood and leaf blocks
-        self.crowns = []      # (x, z, top of the trunk) per tree; the crowns are drawn round (round_crown)
+        self.crowns = []      # (x, z, top of the trunk, blocks, tree number) per tree; drawn round (round_crown)
         self.wood = set()
+        self.dropped = 0      # trees the new coast left too close to the sand
         self.build()
 
     # Cell (x, z) spans x..x+1 and z..z+1; its centre is +0.5.
@@ -153,7 +166,15 @@ class Terrain:
         return MOUNTAIN + FOOT * ring(self.seed + 1, angle, 7)
 
     def coast(self, angle):
-        return ISLAND + COAST * ring(self.seed + 2, angle, 9)
+        r = ISLAND + sum(m * ring(self.seed + 20 + k, angle, cells) for k, (m, cells) in enumerate(COAST_WAVES))
+        return -soft_max(-soft_max(r, self.foot(angle) + MEADOW_MIN + self.beach(angle)), -COAST_MAX)
+
+    def beach(self, angle):
+        w = BEACH + sum(m * ring(self.seed + 30 + k, angle, cells) for k, (m, cells) in enumerate(BEACH_WAVES))
+        return soft_max(w, BEACH_MIN)
+
+    def old_meadow_edge(self, angle):
+        return OLD_ISLAND + OLD_COAST * ring(self.seed + 2, angle, 9) - OLD_BEACH
 
     def rounded(self, corner, p):
         """A ground corner on the beach's inner edge (grass to sand) or on the
@@ -174,7 +195,7 @@ class Terrain:
             return p
         r = math.hypot(p[0], p[2])
         a = math.atan2(p[2], p[0]) % (2 * math.pi)
-        line = self.coast(a) - (0.0 if None in columns else BEACH)
+        line = self.coast(a) - (0.0 if None in columns else self.beach(a))
         target = line - EDGE_IN if top else line + EDGE_OUT
         k = (r + EDGE_ROUND * (target - r)) / r
         return (p[0] * k, p[1], p[2] * k)
@@ -188,7 +209,7 @@ class Terrain:
                 if r > coast:
                     continue
                 foot = self.foot(a)
-                if r > coast - BEACH:
+                if r > coast - self.beach(a):
                     self.height[x, z] = SAND_Y
                 elif r >= foot:
                     self.height[x, z] = GRASS_Y
@@ -320,29 +341,27 @@ class Terrain:
         """Trees on the meadow, never by the spawns."""
         rng = random.Random(self.seed + 9)
         spots = []
-        meadow = [c for c, h in self.height.items() if h == GRASS_Y and self.material[c][0] == GRASS]
-        meadow.sort()
+        # Chosen from the old round island's meadow, so the trees stand where they did.
+        meadow = sorted(c for c in self.height if self.foot(self.polar(*c)[1]) <= self.polar(*c)[0] <= self.old_meadow_edge(self.polar(*c)[1]))
         tries = 0
         spawn = self.foot(SOUTH) + SPAWN_GAP
         while len(spots) < TREES and tries < 20000:
             tries += 1
             x, z = rng.choice(meadow)
             r, a = self.polar(x, z)
-            if r < self.foot(a) + 4 or r > self.coast(a) - BEACH - 3:
+            if r < self.foot(a) + 4 or r > self.old_meadow_edge(a) - 3:
                 continue
             if -10 <= x <= 10 and spawn - 8 <= z <= spawn + 14:     # around the spawns
                 continue
             if any(math.hypot(x - sx, z - sz) < TREE_GAP for sx, sz in spots):
                 continue
             spots.append((x, z))
-        for x, z in spots:
+        for n, (x, z) in enumerate(spots):
             trunk = rng.randint(4, 6)
             base = self.height[x, z]
             top = base + trunk
+            wood = {(x, y, z) for y in range(base, top)}
             blocks = []
-            self.crowns.append((x, z, top, blocks))
-            for y in range(base, top):
-                self.wood.add((x, y, z))
             for y, reach in ((top - 2, 2), (top - 1, 2), (top, 1), (top + 1, 1)):
                 for dx in range(-reach, reach + 1):
                     for dz in range(-reach, reach + 1):
@@ -351,9 +370,16 @@ class Terrain:
                             continue
                         if y == top + 1 and abs(dx) + abs(dz) > 1:
                             continue
-                        if (x + dx, y, z + dz) not in self.wood:
-                            self.trees.add((x + dx, y, z + dz))
+                        if (x + dx, y, z + dz) not in wood:
                             blocks.append((x + dx, y, z + dz))
+            # Built in full either way, so the trees after it stay the same.
+            r, a = self.polar(x, z)
+            if r > self.coast(a) - self.beach(a) - 3:
+                self.dropped += 1
+                continue
+            self.crowns.append((x, z, top, blocks, n))
+            self.wood |= wood
+            self.trees.update(blocks)
 
 
 def climbable(t, starts, limit, near=None):
@@ -585,7 +611,7 @@ def build_mesh(t):
                 if block(t, x + n[0], y, z + n[2]) is None:
                     mesh.face(x, y, z, n, GROUND)
     mesh.finish()
-    for n, (x, z, top, blocks) in enumerate(t.crowns):
+    for x, z, top, blocks, n in t.crowns:
         base = t.height[x, z]
         # The trunk reaches into the crown's middle.
         round_trunk(mesh, x, z, base, top - 1.3)
@@ -1130,7 +1156,7 @@ def main():
     t = Terrain(seed)
 
     shares, sectors, quickest = check_climb(t)
-    print('Seed %d: %d Säulen, %d Baumblöcke, %d Säulen aus Fallen angehoben' % (seed, len(t.height), len(t.wood | t.trees), t.raised))
+    print('Seed %d: %d Säulen, %d Baumblöcke, %d Säulen aus Fallen angehoben, %d Bäume am Strand weggelassen' % (seed, len(t.height), len(t.wood | t.trees), t.raised, t.dropped))
     print('Gipfel aus %d / %d Richtungen erreichbar (mit Doppelsprung); vom Berg erreichbar: %.0f %% mit Doppelsprung, '
           '%.0f %% nur mit einfachen Sprüngen (Gipfel %s)' % (sectors, SECTORS, shares[2][1] * 100, shares[1][1] * 100,
                                                             'ja' if shares[1][0] else 'nein'))
@@ -1158,7 +1184,7 @@ def main():
 
     print('Gipfelplateau: %d x %d Blöcke, Oberkante y = %d, Mitte (0, 0)' % (2 * PLATEAU + 2, 2 * PLATEAU + 2, SUMMIT_Y))
     print('Wiese im Süden: Höhe y = %d, Bergfuß dort bei z = %.1f, Strand ab z = %.1f, Startreihen bei z = %.1f und %.1f'
-          % (GRASS_Y, t.foot(SOUTH), t.coast(SOUTH) - BEACH, t.foot(SOUTH) + SPAWN_GAP, t.foot(SOUTH) + SPAWN_GAP + 2.5))
+          % (GRASS_Y, t.foot(SOUTH), t.coast(SOUTH) - t.beach(SOUTH), t.foot(SOUTH) + SPAWN_GAP, t.foot(SOUTH) + SPAWN_GAP + 2.5))
 
 
 if __name__ == '__main__':
