@@ -25,10 +25,10 @@ namespace KotH.Client.Audio
         [Display("Ambient", "Umgebung")] public Sound Ambient;
 
         /// <userdoc>Deutlich leiser als die Musik (0,2).</userdoc>
-        [Display("Lautstärke Ambient", "Umgebung")] public float AmbientVolume = 0.025f;
+        [Display("Lautstärke Ambient", "Umgebung")] public float AmbientVolume = 0.0125f;
 
         [Display("Schritt", "Figuren")] public Sound Step;
-        [Display("Lautstärke Schritt", "Figuren")] public float StepVolume = 0.3f;
+        [Display("Lautstärke Schritt", "Figuren")] public float StepVolume = 0.264f;
 
         [Display("Sprung", "Figuren")] public Sound Jump;
         [Display("Lautstärke Sprung", "Figuren")] public float JumpVolume = 0.16f;
@@ -46,7 +46,7 @@ namespace KotH.Client.Audio
 
         /// <userdoc>Der Stab saust bei jedem Schlag, ob er trifft oder nicht.</userdoc>
         [Display("Schlag", "Figuren")] public Sound Swing;
-        [Display("Lautstärke Schlag", "Figuren")] public float SwingVolume = 0.28f;
+        [Display("Lautstärke Schlag", "Figuren")] public float SwingVolume = 0.14f;
 
         /// <userdoc>Einer davon zufällig, wenn eine andere Figur getroffen wird.</userdoc>
         [Display("Treffer", "Figuren")] public List<Sound> Hits = new List<Sound>();
