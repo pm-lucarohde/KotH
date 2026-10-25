@@ -28,14 +28,14 @@ namespace KotH.Client.Audio
         [Display("Lautstärke Ambient", "Umgebung")] public float AmbientVolume = 0.0125f;
 
         [Display("Schritt", "Figuren")] public Sound Step;
-        [Display("Lautstärke Schritt", "Figuren")] public float StepVolume = 0.26f;
+        [Display("Lautstärke Schritt", "Figuren")] public float StepVolume = 0.24f;
 
         [Display("Sprung", "Figuren")] public Sound Jump;
-        [Display("Lautstärke Sprung", "Figuren")] public float JumpVolume = 0.14f;
+        [Display("Lautstärke Sprung", "Figuren")] public float JumpVolume = 0.08f;
 
         /// <userdoc>Beim Doppelsprung, wenn die Sporen stieben.</userdoc>
         [Display("Doppelsprung", "Figuren")] public Sound DoubleJump;
-        [Display("Lautstärke Doppelsprung", "Figuren")] public float DoubleJumpVolume = 0.26f;
+        [Display("Lautstärke Doppelsprung", "Figuren")] public float DoubleJumpVolume = 0.18f;
 
         /// <userdoc>Bei der Landung nach einem tiefen Fall; nach kleineren Sprüngen klingt ein Schritt.</userdoc>
         [Display("Aufprall", "Figuren")] public Sound Fall;
@@ -50,11 +50,11 @@ namespace KotH.Client.Audio
 
         /// <userdoc>Einer davon zufällig, wenn eine andere Figur getroffen wird.</userdoc>
         [Display("Treffer", "Figuren")] public List<Sound> Hits = new List<Sound>();
-        [Display("Lautstärke Treffer", "Figuren")] public float HitVolume = 0.5f;
+        [Display("Lautstärke Treffer", "Figuren")] public float HitVolume = 0.645f;
 
         /// <userdoc>Wenn man selbst getroffen wird.</userdoc>
         [Display("Selbst getroffen", "Figuren")] public Sound Hurt;
-        [Display("Lautstärke selbst getroffen", "Figuren")] public float HurtVolume = 0.5f;
+        [Display("Lautstärke selbst getroffen", "Figuren")] public float HurtVolume = 0.645f;
 
         /// <userdoc>Schritte und Schläge klingen je um bis zu diesen Anteil höher oder tiefer, damit sie sich nicht gleich anhören.</userdoc>
         [Display("Tonhöhe streut", "Figuren")] public float PitchSpread = 0.05f;
