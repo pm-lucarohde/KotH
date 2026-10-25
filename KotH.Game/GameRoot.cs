@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using KotH.Client.Audio;
 using KotH.Client.Hud;
 using KotH.Client.Match;
+using KotH.Client.Menu;
 using KotH.Client.Net;
 using KotH.Client.Player;
 using KotH.Shared.Bots;
@@ -128,6 +129,11 @@ namespace KotH.Client
                 }
                 LoadMap(map);
             }
+            if (options.ShowsMenu)
+            {
+                ShowMenu();
+                return;
+            }
             if (options.Host)
             {
                 // The game opens once the host has loaded.
@@ -172,6 +178,49 @@ namespace KotH.Client
                 AddLabel(bot, bot.Name);
             }
             BindLocal(player, reader);
+        }
+
+        /// <summary>
+        /// The main menu over the flight round the map, with its music; no
+        /// body yet and nothing ticks. Both start behind the load screen, which
+        /// stays until the menu's first frames and the flight's first views are
+        /// done (no stutter in sight). Server erstellen hosts on this map.
+        /// </summary>
+        void ShowMenu()
+        {
+            var script = new MainMenu { StartHost = HostFromMenu, PlayerName = LaunchOptions.Current.Name, Cover = cover };
+            menu = new Entity("Menu") { script };
+            Entity.Scene.Entities.Add(menu);
+            cover.Hold = () => !script.Ready;
+            SetMenuOpen(true);
+        }
+
+        /// <summary>Server erstellen: as if started with --host and the defaults.</summary>
+        void HostFromMenu()
+        {
+            if (menu == null)
+                return;
+            Entity.Scene.Entities.Remove(menu);
+            menu = null;
+            cover.Hold = null;
+            SetMenuOpen(false);
+            LaunchOptions options = LaunchOptions.Current;
+            options.Host = true;
+            StartNetworked(options);
+        }
+
+        void SetMenuOpen(bool open)
+        {
+            Entity.Get<SimulationDriver>().InMenu = open;
+            foreach (Entity e in Entity.Scene.Entities)
+            {
+                if (e.Get<MusicPlayer>() is { } music)
+                    music.InMenu = open;
+                if (e.Get<MenuCamera>() is { } flight)
+                    flight.Active = open;
+                if (e.Get<Crosshair>() is { } crosshair)
+                    crosshair.Hidden = open;
+            }
         }
 
         void StartNetworked(LaunchOptions options)
@@ -492,6 +541,7 @@ namespace KotH.Client
         NetClient net;
         BotDirector botDirector;
         LoadScreen cover;
+        Entity menu;
         PlayerInputReader localReader;
         Entity arms;
         readonly Dictionary<SimulationBody, (Entity Visual, Entity Label)> shown =

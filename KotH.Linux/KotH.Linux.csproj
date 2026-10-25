@@ -13,6 +13,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\KotH.Game\KotH.Game.csproj" />
+    <PackageReference Include="Avalonia.BuildServices" Version="11.3.2" ExcludeAssets="all" PrivateAssets="all" />
     <!-- Scripts and serializers are only reached through the asset database,
          which the trimmer cannot see: without these the scene fails to load. -->
     <TrimmerRootAssembly Include="KotH.Game" />

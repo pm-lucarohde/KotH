@@ -9,14 +9,17 @@ using Stride.Media;
 namespace KotH.Client.Audio
 {
     /// <summary>
-    /// The music: one looping piece before the round (lobby, countdown and the
-    /// pause after a win), a fixed piece when a round starts and then the
-    /// playlist in shuffled order; every change crossfades. Follows the confirmed
+    /// The music: one looping piece in the main menu, one before the round
+    /// (lobby, countdown and the pause after a win), a fixed piece when a round
+    /// starts and then the playlist in shuffled order; every change crossfades. Follows the confirmed
     /// round when networked, so no rollback flips it. Presentation only.
     /// </summary>
     [DataContract("KotH.MusicPlayer")]
     public sealed class MusicPlayer : SyncScript
     {
+        /// <userdoc>Läuft in Schleife, solange das Hauptmenü offen ist.</userdoc>
+        [Display("Hauptmenü", "Musik")] public Sound Menu;
+
         /// <userdoc>Läuft in Schleife, solange kein Spiel läuft: Warten auf Spieler, Countdown und die Pause nach dem Sieg.</userdoc>
         [Display("Vor dem Spiel", "Musik")] public Sound Lobby;
 
@@ -32,6 +35,9 @@ namespace KotH.Client.Audio
         [Display("Überblenden", "Musik")] public float FadeSeconds = 3.5f;
 
         [DataMemberIgnore] public HillMatch Match { get; set; }
+
+        /// <summary>The main menu is open: its piece plays, whatever the round does.</summary>
+        [DataMemberIgnore] public bool InMenu { get; set; }
 
         /// <summary>Networked: the round as the host confirmed it, null before the first.</summary>
         [DataMemberIgnore] public Func<MatchState?> ConfirmedRound { get; set; }
@@ -52,14 +58,14 @@ namespace KotH.Client.Audio
         Sound playing;
         float fadeIn = 1f;
         double age, length;
-        bool? inRound;
+        Mode? mode;
         bool failed;
         readonly List<string> history = new List<string>();
 
         public override void Update()
         {
             // Joining, the round comes with the host's map: until then it is the lobby.
-            if (failed || Match == null && ConfirmedRound == null)
+            if (failed || !InMenu && Match == null && ConfirmedRound == null)
                 return;
             try
             {
@@ -86,13 +92,16 @@ namespace KotH.Client.Audio
         void Step(float dt)
         {
             age += dt;
-            bool round = Phase() == MatchPhase.Running;
-            if (round != inRound)
+            Mode now = InMenu ? Mode.Menu : Phase() == MatchPhase.Running ? Mode.Round : Mode.Lobby;
+            if (now != mode)
             {
-                inRound = round;
-                Switch(round ? RoundStart : Lobby, round ? "Spielbeginn" : "Vor dem Spiel");
+                mode = now;
+                if (now == Mode.Menu)
+                    Switch(Menu, "Hauptmenü");
+                else
+                    Switch(now == Mode.Round ? RoundStart : Lobby, now == Mode.Round ? "Spielbeginn" : "Vor dem Spiel");
             }
-            else if (round && current != null && !current.IsLooping && age >= length - Math.Min(FadeSeconds, length * 0.5))
+            else if (now == Mode.Round && current != null && !current.IsLooping && age >= length - Math.Min(FadeSeconds, length * 0.5))
                 Switch(Draw(), "Zufall");
 
             float step = FadeSeconds > 0f ? dt / FadeSeconds : 1f;
@@ -132,7 +141,7 @@ namespace KotH.Client.Audio
                 return;
 
             SoundInstance instance = sound.CreateInstance();
-            instance.IsLooping = sound == Lobby;
+            instance.IsLooping = sound == Lobby || sound == Menu;
             instance.Volume = Volume * fadeIn;
             length = sound.TotalLength.TotalSeconds;
             if (TailSeconds > 0.0)
@@ -180,6 +189,8 @@ namespace KotH.Client.Audio
             Release(fading);
             current = fading = null;
         }
+
+        enum Mode { Menu, Lobby, Round }
 
         static void Release(SoundInstance instance)
         {

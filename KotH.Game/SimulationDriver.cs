@@ -27,6 +27,23 @@ namespace KotH.Client
         /// <summary>Whether the mouse drives the view.</summary>
         [DataMemberIgnore] public bool Captured { get; private set; }
 
+        /// <summary>
+        /// The main menu is open: the mouse is free and belongs to it, Escape
+        /// never quits and nothing ticks. Closing it grabs the mouse.
+        /// </summary>
+        [DataMemberIgnore]
+        public bool InMenu
+        {
+            get => inMenu;
+            set
+            {
+                inMenu = value;
+                SetCaptured(!value);
+            }
+        }
+
+        bool inMenu;
+
         public SimulationDriver()
         {
             Priority = -1000;
@@ -34,7 +51,7 @@ namespace KotH.Client
 
         public override void Start()
         {
-            SetCaptured(true);
+            SetCaptured(!LaunchOptions.Current.ShowsMenu);
         }
 
         public override void Update()
@@ -43,7 +60,7 @@ namespace KotH.Client
             if (system == null)
                 return;
 
-            bool grabbed = UpdateCursor();
+            bool grabbed = !inMenu && UpdateCursor();
             LocalInput?.Collect(Input, Captured && !grabbed);
 
             // Alone, the round starts once the load screen is gone; networked
@@ -56,7 +73,7 @@ namespace KotH.Client
                 net.Update();
                 TickInterpolation.Alpha = net.Alpha;
             }
-            else if (!LaunchOptions.Current.Networked && cover is not { Covers: true })
+            else if (!LaunchOptions.Current.Networked && !inMenu && cover is not { Covers: true })
             {
                 int due = clock.Advance(Game.UpdateTime.Elapsed.TotalSeconds);
                 for (int i = 0; i < due; i++)

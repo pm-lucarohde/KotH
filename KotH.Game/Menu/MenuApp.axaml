@@ -1,0 +1,9 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="KotH.Client.Menu.MenuApp"
+             RequestedThemeVariant="Light">
+    <Application.Styles>
+        <FluentTheme />
+        <StyleInclude Source="avares://KotH.Game/Menu/MenuTheme.axaml" />
+    </Application.Styles>
+</Application>

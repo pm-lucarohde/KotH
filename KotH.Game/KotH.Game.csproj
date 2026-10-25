@@ -2,6 +2,10 @@
   <PropertyGroup>
     <RootNamespace>KotH.Client</RootNamespace>
     <IsAotCompatible>true</IsAotCompatible>
+    <!-- MenuOverlay raises raw pointer input itself, which Avalonia keeps out of its
+         reference assemblies; fine while the version stays pinned exactly. -->
+    <AvaloniaAccessUnstablePrivateApis>true</AvaloniaAccessUnstablePrivateApis>
+    <NoWarn>$(NoWarn);AVA3001</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Stride.Engine" Version="4.4.0" />
@@ -9,6 +13,17 @@
     <PackageReference Include="Stride.UI" Version="4.4.0" />
     <PackageReference Include="Stride.Particles" Version="4.4.0" />
     <PackageReference Include="Stride.AssetCompiler" Version="4.4.0" IncludeAssets="build;buildTransitive" />
+    <!-- The main menu: Avalonia rendered headless by Skia (Menu/MenuOverlay.cs). -->
+    <PackageReference Include="Avalonia" Version="11.3.20" />
+    <PackageReference Include="Avalonia.Skia" Version="11.3.20" />
+    <PackageReference Include="Avalonia.Headless" Version="11.3.20" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.20" />
+    <!-- Avalonia's build sends usage statistics home; not from this build. -->
+    <PackageReference Include="Avalonia.BuildServices" Version="11.3.2" ExcludeAssets="all" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The main menu's painted pictures and type (Tools/menu/menu_art.py, Fredoka under OFL). -->
+    <AvaloniaResource Include="Menu\Art\*.png;Menu\Fonts\*.ttf" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\KotH.Shared\KotH.Shared.csproj" />

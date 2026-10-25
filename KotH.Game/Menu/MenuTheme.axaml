@@ -1,0 +1,177 @@
+<!-- The menu's look, in the figure's colours (Tools/menu/menu_art.py paints the
+     pictures): cream boards in bamboo, cream buttons that light up yellow
+     under the pointer, rounded Fredoka type, no hard outlines. -->
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Styles.Resources>
+        <FontFamily x:Key="Round">avares://KotH.Game/Menu/Fonts#Fredoka</FontFamily>
+        <Color x:Key="Red">#C4231F</Color>
+        <Color x:Key="Cream">#F6ECDE</Color>
+        <Color x:Key="Green">#3F8F35</Color>
+        <Color x:Key="Brown">#5B3A24</Color>
+        <Color x:Key="Bamboo">#D9A44C</Color>
+        <SolidColorBrush x:Key="RedBrush" Color="{StaticResource Red}" />
+        <SolidColorBrush x:Key="CreamBrush" Color="{StaticResource Cream}" />
+        <SolidColorBrush x:Key="GreenBrush" Color="{StaticResource Green}" />
+        <SolidColorBrush x:Key="BrownBrush" Color="{StaticResource Brown}" />
+        <SolidColorBrush x:Key="SoftBrownBrush" Color="#9A7A5F" />
+        <SolidColorBrush x:Key="WellBrush" Color="#EADBC5" />
+
+        <!-- Fluent's sliders, switches and boxes in our colours -->
+        <SolidColorBrush x:Key="SliderTrackValueFill" Color="{StaticResource Red}" />
+        <SolidColorBrush x:Key="SliderTrackValueFillPointerOver" Color="#D2342F" />
+        <SolidColorBrush x:Key="SliderTrackValueFillPressed" Color="#A81D1A" />
+        <SolidColorBrush x:Key="SliderTrackFill" Color="#DCC9AE" />
+        <SolidColorBrush x:Key="SliderTrackFillPointerOver" Color="#D3BEA1" />
+        <SolidColorBrush x:Key="SliderTrackFillPressed" Color="#D3BEA1" />
+        <SolidColorBrush x:Key="SliderThumbBackground" Color="{StaticResource Cream}" />
+        <SolidColorBrush x:Key="SliderThumbBackgroundPointerOver" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="SliderThumbBackgroundPressed" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="ToggleSwitchFillOn" Color="{StaticResource Red}" />
+        <SolidColorBrush x:Key="ToggleSwitchFillOnPointerOver" Color="#D2342F" />
+        <SolidColorBrush x:Key="ToggleSwitchFillOff" Color="#EADBC5" />
+        <SolidColorBrush x:Key="ToggleSwitchFillOffPointerOver" Color="#E3D1B6" />
+        <SolidColorBrush x:Key="ToggleSwitchStrokeOff" Color="#9A7A5F" />
+        <SolidColorBrush x:Key="ToggleSwitchKnobFillOff" Color="#9A7A5F" />
+        <SolidColorBrush x:Key="ToggleSwitchKnobFillOn" Color="{StaticResource Cream}" />
+        <x:Double x:Key="SliderHorizontalThumbWidth">26</x:Double>
+        <x:Double x:Key="SliderHorizontalThumbHeight">26</x:Double>
+        <x:Double x:Key="SliderTrackThemeHeight">8</x:Double>
+    </Styles.Resources>
+
+    <Style Selector="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Round}" />
+    </Style>
+
+    <!-- The menu's big buttons: a painted pill; under the pointer, focused or
+         chosen it lights up yellow and springs up a little. -->
+    <Style Selector="Button.Menu">
+        <Setter Property="Width" Value="380" />
+        <Setter Property="Height" Value="66" />
+        <Setter Property="Padding" Value="0" />
+        <!-- The painted pill and its shadow reach 24 past the button's edge. -->
+        <Setter Property="ClipToBounds" Value="False" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Foreground" Value="{StaticResource BrownBrush}" />
+        <Setter Property="FontFamily" Value="{StaticResource Round}" />
+        <Setter Property="FontSize" Value="30" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="RenderTransformOrigin" Value="50%,50%" />
+        <Setter Property="RenderTransform" Value="scale(1) rotate(0deg)" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.3" Easing="BackEaseOut" />
+            </Transitions>
+        </Setter>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Panel>
+                    <Image Name="Idle" Source="/Menu/Art/Button.png" Margin="-24" Stretch="Fill" />
+                    <Image Name="Hot" Source="/Menu/Art/ButtonHot.png" Margin="-24" Stretch="Fill" Opacity="0">
+                        <Image.Transitions>
+                            <Transitions>
+                                <DoubleTransition Property="Opacity" Duration="0:0:0.12" />
+                            </Transitions>
+                        </Image.Transitions>
+                    </Image>
+                    <ContentPresenter Name="Label" Content="{TemplateBinding Content}"
+                                      HorizontalAlignment="Left" VerticalAlignment="Center" Margin="34,0,0,3" />
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="Button.Menu:pointerover, Button.Menu:focus-visible, Button.Menu.Active">
+        <Setter Property="RenderTransform" Value="scale(1.045) rotate(-1.2deg)" />
+    </Style>
+    <Style Selector="Button.Menu:pointerover /template/ Image#Hot, Button.Menu:focus-visible /template/ Image#Hot, Button.Menu.Active /template/ Image#Hot">
+        <Setter Property="Opacity" Value="1" />
+    </Style>
+    <Style Selector="Button.Menu:pressed">
+        <Setter Property="RenderTransform" Value="scale(0.98) rotate(-0.5deg)" />
+    </Style>
+    <Style Selector="Button.Menu.Small">
+        <Setter Property="Width" Value="230" />
+        <Setter Property="Height" Value="54" />
+        <Setter Property="FontSize" Value="25" />
+    </Style>
+    <Style Selector="Button.Menu.Small /template/ Image#Idle">
+        <Setter Property="Source" Value="/Menu/Art/SmallButton.png" />
+    </Style>
+    <Style Selector="Button.Menu.Small /template/ Image#Hot">
+        <Setter Property="Source" Value="/Menu/Art/SmallButtonHot.png" />
+    </Style>
+    <Style Selector="Button.Menu.Small /template/ ContentPresenter#Label">
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,0,0,3" />
+    </Style>
+    <Style Selector="Button.Menu:disabled">
+        <Setter Property="Opacity" Value="0.55" />
+        <Setter Property="Cursor" Value="Arrow" />
+    </Style>
+
+    <!-- Text on the boards -->
+    <Style Selector="TextBlock.Title">
+        <Setter Property="FontSize" Value="44" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="{StaticResource BrownBrush}" />
+    </Style>
+    <Style Selector="TextBlock.Label">
+        <Setter Property="FontSize" Value="25" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="Foreground" Value="{StaticResource BrownBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBlock.Hint">
+        <Setter Property="FontSize" Value="20" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="Foreground" Value="{StaticResource SoftBrownBrush}" />
+    </Style>
+
+    <!-- A sunk well on a board, for lists and groups of settings -->
+    <Style Selector="Border.Well">
+        <Setter Property="Background" Value="{StaticResource WellBrush}" />
+        <Setter Property="CornerRadius" Value="20" />
+        <Setter Property="BoxShadow" Value="inset 0 3 8 0 #33503018" />
+        <Setter Property="Padding" Value="26,18" />
+    </Style>
+
+    <!-- The settings' tabs: small pills, the chosen one red -->
+    <Style Selector="Border.Tab">
+        <Setter Property="Background" Value="#EADBC5" />
+        <Setter Property="CornerRadius" Value="22" />
+        <Setter Property="Padding" Value="24,8" />
+    </Style>
+    <Style Selector="Border.Tab TextBlock">
+        <Setter Property="FontSize" Value="23" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{StaticResource BrownBrush}" />
+    </Style>
+    <Style Selector="Border.Tab.Chosen">
+        <Setter Property="Background" Value="{StaticResource RedBrush}" />
+    </Style>
+    <Style Selector="Border.Tab.Chosen TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource CreamBrush}" />
+    </Style>
+
+    <!-- Fluent's switch is drawn for desktop forms; ours is bigger -->
+    <Style Selector="ToggleSwitch">
+        <Setter Property="RenderTransformOrigin" Value="0%,50%" />
+        <Setter Property="RenderTransform" Value="scale(1.5)" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="TextBox.Field">
+        <Setter Property="FontFamily" Value="{StaticResource Round}" />
+        <Setter Property="FontSize" Value="22" />
+        <Setter Property="Height" Value="50" />
+        <Setter Property="CornerRadius" Value="25" />
+        <Setter Property="Padding" Value="22,11" />
+        <Setter Property="Background" Value="#FBF5EC" />
+        <Setter Property="BorderBrush" Value="#D3BEA1" />
+        <Setter Property="Foreground" Value="{StaticResource BrownBrush}" />
+    </Style>
+    <Style Selector="TextBox.Field:disabled /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="#F1E6D6" />
+        <Setter Property="BorderBrush" Value="#DCC9AE" />
+    </Style>
+</Styles>

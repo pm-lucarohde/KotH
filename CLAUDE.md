@@ -26,9 +26,9 @@ Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Pr
   exakter Endzustand); `--map NAME` (Standard `Neu`); `--bots N --bot-seed N`; Lasttest `--bodies N --warmup N`
   (für `--map Test`, `BenchBot`s); `KOTH_TRACE=BotName`, `KOTH_FALLS=1`. Endzustands-Hash JIT = AOT.
   Netz: `--host [--port N] [--min-players N] [--bots N]`, `--join ADRESSE[:PORT]`, `--bot`, `--name` (`NetPlay.cs`).
-- Client: ohne Argumente offline; `--host`/`--join`, `--name`, `--port`, `--min-players`, `--display N` (Monitor
-  von links), `--map NAME` (Gäste nehmen die des Hosts), `--fps N` (Grenze, sonst frei). Zwei Clients: `Tools/two_clients.sh [aot|jit] [MAP]` (nicht
-  selbst starten). JIT und AOT spielen zusammen, wenn JIT mit `DOTNET_EnableAVX=0` läuft (`BuildId`).
+- Client: ohne Argumente Hauptmenü, `--offline` gleich allein; `--host`/`--join`, `--name`, `--port`, `--min-players`, `--display N` (Monitor
+  von links), `--map NAME` (Gäste nehmen die des Hosts), `--fps N` (Grenze, sonst frei). Zwei Clients: `Tools/two_clients.sh [aot|jit] [MAP]`
+  (nicht selbst starten). JIT und AOT spielen zusammen, wenn JIT mit `DOTNET_EnableAVX=0` läuft (`BuildId`).
 - Testhilfen (`KotHApp.cs`, Zeiten ab Ende des Ladebilds): `KOTH_SHOT=bild.png` (nach `_SECONDS`, F3 an), `_YAW`/`_PITCH`/`_FOV`,
   `_THIRD`, `_AT=x,y,z`, `_FACE=grad`, `_SWING`, `_SHAKE`, `_HIT=grad`, `_BLINK`, `_STRIKE=s,…`, `_MOVE=x,y[,sprint]`, `_CROUCH=s`,
   `_JUMP=s,…`, `_TURN=grad,s[,kreis]`, `_VIDEO=s` (30 fps nach `bild.png.rgba`, Format im Log); `KOTH_HEADLESS=1` (ohne Fenster),
@@ -116,10 +116,10 @@ Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall 
   UseSharedCompilation=false %command%` (`Stride.Core` mit PR #3600). Prefix-`.nuget` = Symlink: nie Dateien ersetzen.
 
 ### Client: HUD, Kamera, Musik, Licht
-- `HudRenderer` zeichnet per SpriteBatch nach der Szene (Strides UI kippt unter Vulkan); Zahlen über
-  `HudRenderer.Numbers`. Prozent oben rechts/über Köpfen, Kamera wackelt bei Treffern. `LoadScreen`: schwarz bis GI gebacken.
-- `MusicPlayer` (Entity `Music`): Lobby-Track bis `Running`, dann Spielbeginn-Track und gemischte Playlist,
-  Überblendung 3,5 s, Lautstärke 0,2, im Netz nach bestätigter Runde; misst die Länge selbst (`Sound.TotalLength`).
+- `HudRenderer`: SpriteBatch nach der Szene (Strides UI kippt unter Vulkan), `HudRenderer.Numbers`; Prozent oben rechts/über Köpfen, `LoadScreen` schwarz bis GI gebacken.
+- Hauptmenü (`KotH.Game/Menu`, XAML, Avalonia 11.3 headless/Skia): `MenuOverlay` je Teil ein Offscreen-TopLevel mit festem Puffer, Upload nur bei neuem
+  Bild, Einblenden in Stride; startet hinter dem Ladebild (wartet auf ruhige Bilder), `MenuCamera`, 60 fps; Erstellen = `--host`, Rest Optik; Shots: `KOTH_SHOT_MENU=1` (`_HOT`/`_PAGE=n`).
+- `MusicPlayer` (`Music`): Menü-, Lobby- (bis `Running`), Spielbeginn-Track, dann gemischte Playlist; Überblendung 3,5 s, Lautstärke 0,2, im Netz bestätigt.
 - Licht: VXGI (`ThirdParty/Stride.Voxels`, README), Profil 11; je Map `GI` (256 m, Bricks 0,125 m, GI 0,27, `LightVoxel.Sky`); Map-Licht
   und -Sonne (auch Meer; Blätterschatten stehen still) in Lightmap 4096², Map-Schatten einmal `StaticSunShadowRenderer`, Kaskaden nur Figuren (6 Kapseln).
   Nebel und Wolken: `Atmosphere` (Neu) → `AtmosphereEffects` vor FXAA (halbe Auflösung), Karte `Tools/maps/clouds.py`, Schatten im `CascadeShadowReceiver`.

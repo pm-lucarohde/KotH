@@ -7,11 +7,12 @@ using KotH.Shared.Net;
 namespace KotH.Client.Net
 {
     /// <summary>
-    /// What the client was started with. Without --host or --join it plays
-    /// alone, as it always did.
+    /// What the client was started with. Without --host, --join or --offline
+    /// it opens the main menu; --offline plays alone, as it always did.
     ///
     ///   --host [--port N] [--min-players N]   hosts a game and plays in it
     ///   --join ADDRESS[:PORT]                 joins one
+    ///   --offline                             plays alone at once, without the menu
     ///   --name NAME                           the name the others see
     ///   --display N                           fullscreen on that monitor, 0 first
     ///   --bots N, --bot-seed N                bots alone or as host (3 by default), their seed
@@ -22,6 +23,7 @@ namespace KotH.Client.Net
     {
         public bool Host;
         public string JoinAddress;
+        public bool Offline;
         public int Port = LiteNetTransport.DefaultPort;
         public string Name;
         public int MinPlayers = HillMatch.DefaultMinPlayers;
@@ -36,6 +38,13 @@ namespace KotH.Client.Net
         /// <summary>Joins someone else's game, so the map comes from that host.</summary>
         public bool Joining => !Host && JoinAddress != null;
 
+        /// <summary>
+        /// Starts in the main menu: not told to host, join or play alone. Shots
+        /// and headless runs (KOTH_SHOT, KOTH_HEADLESS) play alone as before,
+        /// unless KOTH_SHOT_MENU asks for the menu.
+        /// </summary>
+        public bool ShowsMenu;
+
         static LaunchOptions current;
 
         /// <summary>The options of this process, read once from its command line.</summary>
@@ -43,7 +52,7 @@ namespace KotH.Client.Net
 
         public static LaunchOptions Parse(string[] args)
         {
-            var o = new LaunchOptions { Host = Array.IndexOf(args, "--host") >= 0 };
+            var o = new LaunchOptions { Host = Array.IndexOf(args, "--host") >= 0, Offline = Array.IndexOf(args, "--offline") >= 0 };
 
             if (Text(args, "--join") is { } join)
             {
@@ -70,6 +79,8 @@ namespace KotH.Client.Net
             o.Map = Text(args, "--map") ?? o.Map;
             o.Fps = Number(args, "--fps");
             o.Name = Text(args, "--name") ?? Environment.UserName;
+            bool test = Environment.GetEnvironmentVariable("KOTH_SHOT") != null || Environment.GetEnvironmentVariable("KOTH_HEADLESS") == "1";
+            o.ShowsMenu = !o.Networked && !o.Offline && (!test || Environment.GetEnvironmentVariable("KOTH_SHOT_MENU") == "1");
             return o;
         }
 

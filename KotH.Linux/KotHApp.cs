@@ -128,7 +128,8 @@ sealed class KotHGame : Game
             DrawWhileMinimized = true;
             MinimizedMinimumUpdateRate.MinimumElapsedTime = TimeSpan.Zero;
         }
-        if (LaunchOptions.Current.Networked || headless)
+        // From the menu the game may become a host too.
+        if (LaunchOptions.Current.Networked || LaunchOptions.Current.ShowsMenu || headless)
         {
             TreatNotFocusedLikeMinimized = false;
             InactiveSleepTime = TimeSpan.Zero;
@@ -142,6 +143,13 @@ sealed class KotHGame : Game
                 rate.SetMaxFrequency(fps);
                 rate.SetToPreciseAuto();
             }
+
+        // The load screen and the main menu need no more than 60 (Luca); MainMenu gives the game its own limit back.
+        if (LaunchOptions.Current.ShowsMenu && !headless)
+        {
+            WindowMinimumUpdateRate.SetMaxFrequency(KotH.Client.Menu.MainMenu.MenuFps);
+            WindowMinimumUpdateRate.SetToPreciseAuto();
+        }
     }
 
     protected override void PrepareContext()
@@ -201,6 +209,9 @@ sealed class KotHGame : Game
             }
         }
 
+        // The main menu wants the pointer; SimulationDriver grabs it when a game starts.
+        if (LaunchOptions.Current.ShowsMenu)
+            return;
         SdlGrab.SDL_SetRelativeMouseMode(1);
         SdlGrab.SDL_SetWindowGrab(sdl.SdlHandle, 1);
     }

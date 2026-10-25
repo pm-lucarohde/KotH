@@ -102,7 +102,9 @@ shader AtmosphereMarch : ImageEffectShader, CloudLayer
                 float t = layer.x + run * pow(x, power);
                 float ds = run * power * pow(x, power - 1.0) / steps;
                 float3 p = o + d * t;
-                float lod = log2(max(1.0, t * CloudReach.y));
+                // A grazing ray strides far over the map between two pixel rows: read the map
+                // that much coarser, or the far cloudlets flicker between rows as the eye moves.
+                float lod = log2(max(1.0, t * CloudReach.y / max(abs(d.y), 0.03)));
                 float4 cuv = CloudUV(p.xz, Wind, CloudScale, CloudOffset);
                 float cell = Texture1.SampleLevel(LinearRepeatSampler, cuv.xy, lod).r;
                 float band = Texture1.SampleLevel(LinearRepeatSampler, cuv.zw, max(lod - CloudReach.z, 0.0)).g;

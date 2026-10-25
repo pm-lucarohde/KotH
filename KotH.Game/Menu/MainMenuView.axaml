@@ -1,0 +1,119 @@
+<!-- The main menu over the flight round the mountain, in four parts that
+     MainMenu shows as small overlays of their own (MenuOverlay), so a change
+     redraws only its part. Laid out for a screen 1080 high and scaled to the
+     real one; the pictures carry 24 px of shadow on every side, hence their
+     margins. Parts: the buttons at the top left, the page beside them, the
+     title at the top right, the small print at the bottom right. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="KotH.Client.Menu.MainMenuView"
+             x:CompileBindings="True">
+    <Panel Name="Parts">
+        <Grid Name="ColumnPart" Width="600" Height="830">
+            <!-- The player's name on a green band -->
+            <Panel Name="NameTag" Width="340" Height="58" Margin="90,62,0,0"
+                   HorizontalAlignment="Left" VerticalAlignment="Top">
+                <Image Source="/Menu/Art/Ribbon.png" Margin="-24" Stretch="Fill" />
+                <TextBlock Name="PlayerName" Text="Spieler" Foreground="{StaticResource CreamBrush}"
+                           FontSize="27" FontWeight="SemiBold" Margin="28,0,20,3"
+                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+            </Panel>
+
+            <!-- The buttons on their bamboo board, the note underneath -->
+            <StackPanel Name="Column" Margin="90,170,0,0" Width="460"
+                        HorizontalAlignment="Left" VerticalAlignment="Top">
+                <Panel Width="440" Height="450" HorizontalAlignment="Left">
+                    <Image Source="/Menu/Art/Panel.png" Margin="-24" Stretch="Fill" />
+                    <StackPanel Name="Buttons" Spacing="18" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                KeyboardNavigation.TabNavigation="Cycle">
+                        <Button Name="Host" Classes="Menu" Content="Server erstellen" />
+                        <Button Name="Find" Classes="Menu" Content="Server suchen" />
+                        <Button Name="Settings" Classes="Menu" Content="Einstellungen" />
+                        <Button Name="Languages" Classes="Menu" Content="Sprachen" />
+                        <Button Name="Quit" Classes="Menu" Content="Spiel verlassen" />
+                    </StackPanel>
+                </Panel>
+                <Panel Name="Note" Width="460" Height="112" Margin="-10,30,0,0" HorizontalAlignment="Left">
+                    <Image Source="/Menu/Art/Note.png" Margin="-24" Stretch="Fill" />
+                    <TextBlock Name="Description" Foreground="{StaticResource CreamBrush}" FontSize="21"
+                               FontWeight="Medium" TextWrapping="Wrap" LineHeight="27" Margin="30,0,26,2"
+                               VerticalAlignment="Center" />
+                </Panel>
+            </StackPanel>
+        </Grid>
+
+        <!-- The pages behind Server suchen, Einstellungen and Sprachen: only to look at for now -->
+        <Grid Name="PagePart" Width="870" Height="610">
+            <Panel Name="Page" Width="820" Height="560" Margin="24,24,0,0"
+                   HorizontalAlignment="Left" VerticalAlignment="Top">
+                <Image Source="/Menu/Art/Wide.png" Margin="-24" Stretch="Fill" />
+                <Grid RowDefinitions="Auto,*,Auto" Margin="50,36,50,34">
+                    <TextBlock Name="PageTitle" Classes="Title" Text="Seite" />
+
+                    <!-- Server suchen -->
+                    <Grid Name="FindPage" Grid.Row="1" RowDefinitions="*,Auto" Margin="0,20,0,0">
+                        <Border Classes="Well">
+                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8">
+                                <TextBlock Classes="Label" Text="Keine Server gefunden" HorizontalAlignment="Center" FontSize="28" />
+                                <TextBlock Classes="Hint" Text="Die Suche nach Runden kommt bald." HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
+                        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,20,0,0">
+                            <TextBox Classes="Field" Watermark="IP-Adresse oder Name" IsEnabled="False" />
+                            <Button Grid.Column="1" Classes="Menu Small" Content="Beitreten" IsEnabled="False" Margin="18,0,0,0" />
+                        </Grid>
+                    </Grid>
+
+                    <!-- Einstellungen -->
+                    <Grid Name="SettingsPage" Grid.Row="1" RowDefinitions="Auto,*" Margin="0,20,0,0">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Border Classes="Tab Chosen"><TextBlock Text="Grafik" /></Border>
+                            <Border Classes="Tab"><TextBlock Text="Ton" /></Border>
+                            <Border Classes="Tab"><TextBlock Text="Steuerung" /></Border>
+                        </StackPanel>
+                        <Border Grid.Row="1" Classes="Well" Margin="0,18,0,0">
+                            <Grid ColumnDefinitions="260,*" RowDefinitions="*,*,*,*">
+                                <TextBlock Classes="Label" Text="Vollbild" />
+                                <ToggleSwitch Grid.Column="1" IsChecked="True" OnContent="" OffContent="" />
+                                <TextBlock Grid.Row="1" Classes="Label" Text="Sichtfeld" />
+                                <Slider Grid.Row="1" Grid.Column="1" Minimum="60" Maximum="110" Value="85" VerticalAlignment="Center" />
+                                <TextBlock Grid.Row="2" Classes="Label" Text="Bildrate" />
+                                <Slider Grid.Row="2" Grid.Column="1" Minimum="30" Maximum="240" Value="144" VerticalAlignment="Center" />
+                                <TextBlock Grid.Row="3" Classes="Label" Text="V-Sync" />
+                                <ToggleSwitch Grid.Row="3" Grid.Column="1" IsChecked="False" OnContent="" OffContent="" />
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <!-- Sprachen -->
+                    <Border Name="LanguagesPage" Grid.Row="1" Classes="Well" Margin="0,20,0,0">
+                        <StackPanel Spacing="14" VerticalAlignment="Top">
+                            <Border Classes="Tab Chosen" HorizontalAlignment="Left" Padding="24,10,30,10">
+                                <StackPanel Orientation="Horizontal" Spacing="14">
+                                    <Path Data="M 2,11 L 9,18 L 22,4" Stroke="{StaticResource CreamBrush}" StrokeThickness="4.5"
+                                          StrokeLineCap="Round" StrokeJoin="Round" VerticalAlignment="Center" />
+                                    <TextBlock Text="Deutsch" FontSize="26" />
+                                </StackPanel>
+                            </Border>
+                            <TextBlock Classes="Hint" Text="Weitere Sprachen folgen später." Margin="6,6,0,0" />
+                        </StackPanel>
+                    </Border>
+
+                    <Button Name="Back" Grid.Row="2" Classes="Menu Small" Content="Zurück"
+                            HorizontalAlignment="Right" Margin="0,18,0,0" />
+                </Grid>
+            </Panel>
+        </Grid>
+
+        <!-- The title over the sky -->
+        <Grid Name="LogoPart" Width="660" Height="350">
+            <Image Name="Logo" Source="/Menu/Art/Logo.png" Width="582" Height="278" Margin="0,30,50,0"
+                   HorizontalAlignment="Right" VerticalAlignment="Top" IsHitTestVisible="False" />
+        </Grid>
+
+        <Grid Name="CornerPart" Width="320" Height="70">
+            <TextBlock Name="Version" Classes="Hint" Foreground="#E8F6ECDE" FontSize="17"
+                       HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,36,26" />
+        </Grid>
+    </Panel>
+</UserControl>

@@ -30,6 +30,9 @@ namespace KotH.Client.Hud
         /// <userdoc>Abstand von der Mitte bis zum Beginn eines Arms</userdoc>
         [Display("Lücke", "Maße (Pixel)")] public float Gap = 4f;
 
+        /// <summary>Not drawn, such as while the main menu is open.</summary>
+        [DataMemberIgnore] public bool Hidden { get; set; }
+
         // 32 px is far more than the mark is ever drawn at, so the disc
         // stays smooth however large the dot is set.
         const int DiscPixels = 32;
@@ -76,6 +79,8 @@ namespace KotH.Client.Hud
 
         public void Draw(SpriteBatch batch, Vector2 screen)
         {
+            if (Hidden)
+                return;
             Vector2 center = screen * 0.5f;
 
             for (int i = 0; i < parts.Count; i++)

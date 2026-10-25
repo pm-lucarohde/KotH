@@ -26,6 +26,7 @@ Hierarchy:
                         Children: {}
                     ab28fc9d067a455d9ed5558ee501dd1b: !KotH.MusicPlayer
                         Id: D4BA9C2D-F29B-4529-B9F0-CA4DC65FAD3B
+                        Menu: FCCF350A-035C-4AF5-A488-A2D622F152C0:Music/Menu
                         Lobby: BC951019-777A-4553-A647-BE1D54F2FEDD:Music/Lobby
                         RoundStart: EC8DD547-26CC-4A07-BA27-E8E83317A04D:Music/RoundStart
                         Playlist:
@@ -112,6 +113,8 @@ Hierarchy:
                     480e3a3e580e5dc590788894577c0a14: !KotH.PlayerCamera
                         Id: 18A6BD5F-A220-5128-AFF9-6E26AA7C797D
                         NearClipMargin: 0.7
+                    9b1e4f0c7d2a4e6f8a3b5c7d9e1f2a4b: !KotH.MenuCamera
+                        Id: 3C8E2B71-5D4F-4A9B-8E6C-1F2A3B4C5D6E
         -   Entity:
                 Id: 2D61BA57-8ABA-58FE-92C5-6C03BB3ECFFE
                 Name: Directional light

@@ -61,7 +61,7 @@ gemischt, Überblendung 3,5 s (Entity `Music`).
 ## Bauen und starten
 
 ```bash
-dotnet build KotH.Linux -c Release && cd Bin/Linux/Release && ./KotH   # Client (JIT)
+dotnet build KotH.Linux -c Release && cd Bin/Linux/Release && ./KotH   # Client (JIT), Hauptmenü; --offline gleich allein
 Tools/publish_aot.sh [linux|server|probes]    # NativeAOT -> Bin/{Linux,Server,Probes}/aot
 ```
 
@@ -137,7 +137,7 @@ Ausgenommen sind mitgelieferte Fremdbestandteile unter ihren eigenen Lizenzen:
 - `KotH.Game/Resources/skybox_texture_*.dds`: aus der Stride-Projektvorlage, MIT.
 - `KotH.Game/Resources/Music/*.mp3`: von Pixabay unter der
   [Pixabay Content License](https://pixabay.com/service/license-summary/), auf −15,5 LUFS normalisiert:
-  - Hauptmenü (noch nicht eingebaut): [Jazz Fusion Piano Cocktail Bar](https://pixabay.com/music/modern-jazz-jazz-fusion-piano-cocktail-bar-560074/)
+  - Hauptmenü: [Jazz Fusion Piano Cocktail Bar](https://pixabay.com/music/modern-jazz-jazz-fusion-piano-cocktail-bar-560074/)
   - Vor dem Spiel: [Jazz Piano](https://pixabay.com/music/small-drama-jazz-piano-585359/)
   - Spielbeginn: [Fun and Quirky Jazz](https://pixabay.com/music/modern-jazz-fun-and-quirky-jazz-583916/)
   - Während des Spiels: [Jazz Cocktail Bar Music](https://pixabay.com/music/modern-jazz-jazz-cocktail-bar-music-556247/),
