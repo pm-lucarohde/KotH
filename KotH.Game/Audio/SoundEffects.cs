@@ -28,14 +28,14 @@ namespace KotH.Client.Audio
         [Display("Lautstärke Ambient", "Umgebung")] public float AmbientVolume = 0.0125f;
 
         [Display("Schritt", "Figuren")] public Sound Step;
-        [Display("Lautstärke Schritt", "Figuren")] public float StepVolume = 0.264f;
+        [Display("Lautstärke Schritt", "Figuren")] public float StepVolume = 0.26f;
 
         [Display("Sprung", "Figuren")] public Sound Jump;
-        [Display("Lautstärke Sprung", "Figuren")] public float JumpVolume = 0.16f;
+        [Display("Lautstärke Sprung", "Figuren")] public float JumpVolume = 0.14f;
 
         /// <userdoc>Beim Doppelsprung, wenn die Sporen stieben.</userdoc>
         [Display("Doppelsprung", "Figuren")] public Sound DoubleJump;
-        [Display("Lautstärke Doppelsprung", "Figuren")] public float DoubleJumpVolume = 0.28f;
+        [Display("Lautstärke Doppelsprung", "Figuren")] public float DoubleJumpVolume = 0.26f;
 
         /// <userdoc>Bei der Landung nach einem tiefen Fall; nach kleineren Sprüngen klingt ein Schritt.</userdoc>
         [Display("Aufprall", "Figuren")] public Sound Fall;
@@ -46,7 +46,7 @@ namespace KotH.Client.Audio
 
         /// <userdoc>Der Stab saust bei jedem Schlag, ob er trifft oder nicht.</userdoc>
         [Display("Schlag", "Figuren")] public Sound Swing;
-        [Display("Lautstärke Schlag", "Figuren")] public float SwingVolume = 0.14f;
+        [Display("Lautstärke Schlag", "Figuren")] public float SwingVolume = 0.07f;
 
         /// <userdoc>Einer davon zufällig, wenn eine andere Figur getroffen wird.</userdoc>
         [Display("Treffer", "Figuren")] public List<Sound> Hits = new List<Sound>();
