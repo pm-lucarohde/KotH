@@ -798,7 +798,9 @@ def leaf_cards(mesh, rng, faces):
             mesh.col.append((0.0, 0.0, 0.0, 0.0))
             mesh.uv.append(uv)
             mesh.keys.append((None, CARD))
-        for tri in ((at, at + 1, at + 2), (at, at + 2, at + 3)):
+        # Both sides wound as fronts (LeafCards culls backs): Stride turns a
+        # back face's normal round, and a twig seen from behind went dark.
+        for tri in ((at, at + 1, at + 2), (at, at + 2, at + 3), (at, at + 2, at + 1), (at, at + 3, at + 2)):
             mesh.unsolid.add(len(mesh.idx) // 3)
             mesh.idx += tri
         placed += 1
