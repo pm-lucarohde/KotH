@@ -31,8 +31,8 @@ namespace KotH.Client.Audio
 
         [Display("Lautstärke", "Musik")] public float Volume = 0.2f;
 
-        /// <userdoc>Verstärkt Musik, Umgebung und Geräusche gemeinsam, ihre Lautstärken untereinander bleiben. 2 hebt alles so weit an, dass ein Treffer am eigenen Ohr auch auf einer Spitze der Musik nicht übersteuert (höchstens etwa −1,6 dBFS; Musik etwa −24 LUFS).</userdoc>
-        [Display("Gesamtlautstärke", "Alles")] public float MasterVolume = 2f;
+        /// <userdoc>Verstärkt Musik, Umgebung und Geräusche gemeinsam, ihre Lautstärken untereinander bleiben. 2,43 hebt alles so weit an, dass ein Treffer am eigenen Ohr auch auf einer Spitze der Musik höchstens etwa −0,3 dBFS erreicht (Musik etwa −22 LUFS).</userdoc>
+        [Display("Gesamtlautstärke", "Alles")] public float MasterVolume = 2.43f;
 
         /// <userdoc>So lange blendet ein Track in den nächsten über (Sekunden), auch wenn einer ausläuft: der nächste beginnt so lange vor dessen Ende.</userdoc>
         [Display("Überblenden", "Musik")] public float FadeSeconds = 3.5f;
