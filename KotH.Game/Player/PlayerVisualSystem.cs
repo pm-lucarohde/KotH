@@ -110,6 +110,9 @@ namespace KotH.Client.Player
         /// <userdoc>Partikeleffekt, der beim Doppelsprung an den Füßen der Figur startet.</userdoc>
         [Display("Sporen beim Doppelsprung", "Effekte")] public Prefab SporeBurst;
 
+        /// <userdoc>Partikeleffekt, der an der getroffenen Figur dort startet, wo der Schlag sie trifft, und vom Schläger weg stiebt.</userdoc>
+        [Display("Partikel beim Treffer", "Effekte")] public Prefab HitSparkles;
+
         /// <userdoc>Wie weit der Kopf dem Blick nach oben und unten folgt (1 = ganz).</userdoc>
         [Display("Kopf folgt Blick", "Animation")] public float HeadFollow = 0.5f;
 
@@ -263,7 +266,7 @@ namespace KotH.Client.Player
             public int TwistSeen;
             public bool TwistWatching;
             public Vector3 ShownAt;
-            public Entity Spores;
+            public Entity Spores, Sparkles;
             public HeldLeaf Held;
             public MeleeAttack Melee;
             public readonly ArmSwing Swing = new ArmSwing();
@@ -360,6 +363,9 @@ namespace KotH.Client.Player
                     // The push points from the attacker through the body.
                     var away = new Vector3(-MathF.Sin(a), 0f, MathF.Cos(a));
                     damage.LastHitAway = Vector3.Transform(away, Quaternion.RotationY(f.BodyYaw));
+                    // Struck at the cap's rim on that side.
+                    damage.LastHitAt = new Vector3(0f, 0.4f * f.Motor.StandHeight, 0f) -
+                                       Vector3.Normalize(damage.LastHitAway) * f.Motor.Radius;
                     damage.LastHitTick++;
                 }
         }
@@ -403,6 +409,8 @@ namespace KotH.Client.Player
             toRotations.RemoveAt(i);
             if (figures[i].Spores is { } spores)
                 spores.Scene?.Entities.Remove(spores);
+            if (figures[i].Sparkles is { } sparkles)
+                sparkles.Scene?.Entities.Remove(sparkles);
             figures.RemoveAt(i);
         }
 
@@ -786,6 +794,7 @@ namespace KotH.Client.Player
                     f.HitAge = 0f;
                     f.HitAxis = RecoilAxis(f, f.Damage.LastHitAway);
                     Sound(f, FigureSound.Hit, 1f);
+                    Sparkle(f, f.Damage.LastHitAway, f.Damage.LastHitAt);
                 }
                 f.SeenHit = hit;
             }
@@ -801,6 +810,37 @@ namespace KotH.Client.Player
             skeleton.NodeTransformations[f.Recoil].Transform.Rotation =
                 Quaternion.RotationY(f.TorsoYaw) * f.Swing.Torso *
                 Quaternion.RotationAxis(f.HitAxis, MathUtil.DegreesToRadians(HitLeanDegrees * amount));
+        }
+
+        /// <summary>
+        /// A hit bursts sparkles where the blow struck (offset from the body's
+        /// centre, moved with the shown body), away from the attacker: one
+        /// effect entity per figure like the spores, turned so its -Z is the
+        /// push. Drawn with the figure's render group, so the own ones show
+        /// only where the own figure does (third person).
+        /// </summary>
+        void Sparkle(Figure f, Vector3 away, Vector3 struck)
+        {
+            if (HitSparkles == null || f.Motor == null)
+                return;
+            // Unknown counts as from the front, as for the recoil.
+            Vector3 push = away.X * away.X + away.Z * away.Z > 1e-8f
+                ? Vector3.Normalize(new Vector3(away.X, 0f, away.Z))
+                : Vector3.Transform(Vector3.UnitZ, Quaternion.RotationY(f.BodyYaw));
+            Vector3 at = UMath.Lerp(f.Motor.PreviousBodyCenter, f.Motor.BodyCenter, TickInterpolation.Alpha) + struck;
+            bool fresh = f.Sparkles == null;
+            if (fresh)
+            {
+                f.Sparkles = HitSparkles.Instantiate()[0];
+                if (f.Sparkles.Get<ParticleSystemComponent>() is { } made && f.Model != null)
+                    made.RenderGroup = f.Model.RenderGroup;
+            }
+            f.Sparkles.Transform.Position = at;
+            f.Sparkles.Transform.Rotation = Quaternion.RotationY(MathF.Atan2(-push.X, -push.Z));
+            if (fresh)
+                Entity.Scene.Entities.Add(f.Sparkles);
+            else
+                f.Sparkles.Get<ParticleSystemComponent>()?.ParticleSystem.ResetSimulation();
         }
 
         /// <summary>

@@ -37,7 +37,7 @@ game.Run();
 /// turns it that way when it does (the figure stays so in third person), KOTH_SHOT_SWING=1 swings
 /// once a second before the shot and reports the hit, KOTH_SHOT_SHAKE=1 takes a hit
 /// just before it and reports how far the camera shake tilts the view,
-/// KOTH_SHOT_HIT=deg hits every figure just before it, from deg round its body (0 front, 90 right),
+/// KOTH_SHOT_HIT=deg[,s] hits every figure s (default 0.1) seconds before it, from deg round its body (0 front, 90 right),
 /// KOTH_SHOT_BLINK=1 has every figure blink so the shot shows shut lids,
 /// KOTH_SHOT_STRIKE=s[,s2] has every figure swing its cane at these times (only shown),
 /// KOTH_SHOT_MOVE=x,y[,sprint] holds the move keys (D and W are +1),
@@ -74,7 +74,8 @@ sealed class KotHGame : Game
     bool shotSwing = Environment.GetEnvironmentVariable("KOTH_SHOT_SWING") == "1";
     bool shotShake = Environment.GetEnvironmentVariable("KOTH_SHOT_SHAKE") == "1";
     bool shotBlink = Environment.GetEnvironmentVariable("KOTH_SHOT_BLINK") == "1";
-    double? shotHit = Number("KOTH_SHOT_HIT");
+    double? shotHit = Number("KOTH_SHOT_HIT", 0);
+    readonly double shotHitLead = Number("KOTH_SHOT_HIT", 1) ?? 0.1;
     string shotMove = Environment.GetEnvironmentVariable("KOTH_SHOT_MOVE");
     double? shotCrouch = Number("KOTH_SHOT_CROUCH");
     readonly double shotVideo = Number("KOTH_SHOT_VIDEO") ?? 0.0;
@@ -380,7 +381,7 @@ sealed class KotHGame : Game
 
         // Every figure hit just before the shot, from one side; a frame early
         // enough even while the start still runs at 10 fps.
-        if (shotHit.HasValue && TestSeconds(gameTime) >= shotSeconds - 0.1 &&
+        if (shotHit.HasValue && TestSeconds(gameTime) >= shotSeconds - shotHitLead &&
             Find<PlayerVisualSystem>() is { } struck)
         {
             struck.HitAll((float)shotHit.Value);
@@ -467,6 +468,14 @@ sealed class KotHGame : Game
     static double? Number(string variable) =>
         double.TryParse(Environment.GetEnvironmentVariable(variable), NumberStyles.Float,
                         CultureInfo.InvariantCulture, out double value) ? value : null;
+
+    /// <summary>The index-th of the comma-separated numbers in the variable.</summary>
+    static double? Number(string variable, int index)
+    {
+        string[] parts = Environment.GetEnvironmentVariable(variable)?.Split(',');
+        return parts != null && index < parts.Length &&
+               double.TryParse(parts[index], NumberStyles.Float, CultureInfo.InvariantCulture, out double value) ? value : null;
+    }
 
     static Vector3? Point(string variable)
     {

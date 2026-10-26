@@ -148,6 +148,7 @@ namespace KotH.Shared.Combat
             LastHitDistance = hit.Distance;
             target.LastHitTick = Entity.Get<SimulationBody>()?.Simulation?.CurrentTick ?? 0;
             target.LastHitAway = default;
+            target.LastHitAt = default;
 
             // The percent before this hit decides: a fresh body is not moved.
             float before = target.Percent;
@@ -157,6 +158,7 @@ namespace KotH.Shared.Combat
             PlayerMotor victim = target.Entity.Get<PlayerMotor>();
             if (victim == null)
                 return;
+            target.LastHitAt = UMath.Sub(hit.Point, victim.BodyCenter);
 
             // Away from the attacker; straight along the aim if they overlap.
             Vector3 away = UMath.Sub(victim.Position, motor.Position);

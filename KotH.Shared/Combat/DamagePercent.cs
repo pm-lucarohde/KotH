@@ -39,6 +39,12 @@ namespace KotH.Shared.Combat
         [DataMemberIgnore] public Vector3 LastHitAway { get; set; }
 
         /// <summary>
+        /// Where the last hit struck, from the body's centre at that tick;
+        /// zero when unknown. For the hit effect only, like LastHitTick.
+        /// </summary>
+        [DataMemberIgnore] public Vector3 LastHitAt { get; set; }
+
+        /// <summary>
         /// Charges the body up. Returns whether the value actually moved -
         /// at the cap the answer is false, and that is the place where
         /// "nothing happens after this" will turn into something else.
