@@ -31,6 +31,9 @@ namespace KotH.Client.Audio
 
         [Display("Lautstärke", "Musik")] public float Volume = 0.2f;
 
+        /// <userdoc>Verstärkt Musik, Umgebung und Geräusche gemeinsam, ihre Lautstärken untereinander bleiben. 2 hebt alles so weit an, dass ein Treffer am eigenen Ohr auch auf einer Spitze der Musik nicht übersteuert (höchstens etwa −1,6 dBFS; Musik etwa −24 LUFS).</userdoc>
+        [Display("Gesamtlautstärke", "Alles")] public float MasterVolume = 2f;
+
         /// <userdoc>So lange blendet ein Track in den nächsten über (Sekunden), auch wenn einer ausläuft: der nächste beginnt so lange vor dessen Ende.</userdoc>
         [Display("Überblenden", "Musik")] public float FadeSeconds = 3.5f;
 
@@ -61,14 +64,20 @@ namespace KotH.Client.Audio
         Mode? mode;
         bool failed;
         readonly List<string> history = new List<string>();
+        float master = -1f;
 
         public override void Update()
         {
-            // Joining, the round comes with the host's map: until then it is the lobby.
-            if (failed || !InMenu && Match == null && ConfirmedRound == null)
+            if (failed)
                 return;
             try
             {
+                // The listener's gain: one factor over every sound, allowed above 1.
+                if (master != MasterVolume)
+                    Audio.AudioEngine.MasterVolume = master = MasterVolume;
+                // Joining, the round comes with the host's map: until then it is the lobby.
+                if (!InMenu && Match == null && ConfirmedRound == null)
+                    return;
                 Step((float)Game.UpdateTime.Elapsed.TotalSeconds);
             }
             catch (Exception e)
