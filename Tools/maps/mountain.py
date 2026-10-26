@@ -101,7 +101,7 @@ CROWN_MELT = 0.6           # metres over which the lobes run together
 CROWN_NOISE = 0.12         # lumps on the lobes, metres
 CROWN_WIDTH = 1.1          # crowns this much wider than the lobes say (Luca: 10 % more)
 CROWN_BLOCKY = 0.5         # share of the old leaf blocks in the crown's shape (Luca: between round and blocky)
-CARDS = 378                # twigs standing out of every crown, evenly all round (Luca, after "bushy leaves" packs)
+CARDS = 200                # twigs standing out of every crown, evenly all round (Luca, after "bushy leaves" packs)
 CARD_LENGTH = (0.72, 1.035)  # metres, a third of it inside the crown
 # The leaves are cut out of their texture (Luca); copies of the crown this far
 # in, this much darker, fill it behind the gaps. Only drawn, not in the collision.

@@ -9,9 +9,9 @@ shader LeafCard<LinkType PaintKey>
     : ComputeColor, PositionStream4, Texturing
 {
     // As in LeafSplat.
-    static const float WindPace = 0.36;
+    static const float WindPace = 0.45;
     // Share of the card's width the tip sways.
-    static const float Sway = 0.05;
+    static const float Sway = 0.06;
 
     rgroup PerMaterial
     {

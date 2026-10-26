@@ -48,7 +48,7 @@ namespace KotH.Client.Rendering
         /// <userdoc>Untere Kante der Wolkenschicht in Metern.</userdoc>
         [DataMember(31)] public float CloudBase { get; set; } = 78f;
         /// <userdoc>Höhe der größten Wölkchen über der Unterkante in Metern.</userdoc>
-        [DataMember(32)] public float CloudThickness { get; set; } = 2.5f;
+        [DataMember(32)] public float CloudThickness { get; set; } = 7.0f;
         /// <userdoc>Meter, nach denen sich die Wölkchen wiederholen.</userdoc>
         [DataMember(33)] public float CloudTile { get; set; } = 540f;
         /// <userdoc>Meter, nach denen sich die großen Streifen wiederholen.</userdoc>
@@ -66,7 +66,7 @@ namespace KotH.Client.Rendering
         /// <userdoc>Windrichtung in Grad (0 = nach −Z, 90 = nach +X).</userdoc>
         [DataMember(40)] public float WindHeading { get; set; } = 60f;
         /// <userdoc>Windgeschwindigkeit in m/s, mit der die Wolken ziehen.</userdoc>
-        [DataMember(41)] public float WindSpeed { get; set; } = 0.5f;
+        [DataMember(41)] public float WindSpeed { get; set; } = 1.0f;
         /// <userdoc>Wie dunkel der Schatten einer Wolke ist (0 = keiner, 1 = ganz).</userdoc>
         [DataMember(42)] public float CloudShadow { get; set; } = 0.45f;
 

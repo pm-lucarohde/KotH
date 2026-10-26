@@ -28,21 +28,21 @@ namespace KotH.Client.Audio
         [Display("Lautstärke Ambient", "Umgebung")] public float AmbientVolume = 0.0125f;
 
         [Display("Schritt", "Figuren")] public Sound Step;
-        [Display("Lautstärke Schritt", "Figuren")] public float StepVolume = 0.24f;
+        [Display("Lautstärke Schritt", "Figuren")] public float StepVolume = 0.1945f;
 
         [Display("Sprung", "Figuren")] public Sound Jump;
         [Display("Lautstärke Sprung", "Figuren")] public float JumpVolume = 0.08f;
 
         /// <userdoc>Beim Doppelsprung, wenn die Sporen stieben.</userdoc>
         [Display("Doppelsprung", "Figuren")] public Sound DoubleJump;
-        [Display("Lautstärke Doppelsprung", "Figuren")] public float DoubleJumpVolume = 0.18f;
+        [Display("Lautstärke Doppelsprung", "Figuren")] public float DoubleJumpVolume = 0.08f;
 
         /// <userdoc>Bei der Landung nach einem tiefen Fall; nach kleineren Sprüngen klingt ein Schritt.</userdoc>
         [Display("Aufprall", "Figuren")] public Sound Fall;
-        [Display("Lautstärke Aufprall", "Figuren")] public float FallVolume = 0.45f;
+        [Display("Lautstärke Aufprall", "Figuren")] public float FallVolume = 0.16f;
 
         /// <userdoc>Ab dieser Fallhöhe (Meter vom höchsten Punkt) klingt der Aufprall. Ein Doppelsprung auf ebenem Boden erreicht etwa 2,7 m.</userdoc>
-        [Display("Aufprall ab (m)", "Figuren")] public float FallHeight = 3.5f;
+        [Display("Aufprall ab (m)", "Figuren")] public float FallHeight = 5.0f;
 
         /// <userdoc>Der Stab saust bei jedem Schlag, ob er trifft oder nicht.</userdoc>
         [Display("Schlag", "Figuren")] public Sound Swing;
