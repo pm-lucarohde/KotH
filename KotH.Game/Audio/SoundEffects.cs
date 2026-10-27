@@ -28,7 +28,7 @@ namespace KotH.Client.Audio
         [Display("Lautstärke Ambient", "Umgebung")] public float AmbientVolume = 0.00765f;
 
         [Display("Schritt", "Figuren")] public Sound Step;
-        [Display("Lautstärke Schritt", "Figuren")] public float StepVolume = 0.0865f;
+        [Display("Lautstärke Schritt", "Figuren")] public float StepVolume = 0.154f;
 
         [Display("Sprung", "Figuren")] public Sound Jump;
         [Display("Lautstärke Sprung", "Figuren")] public float JumpVolume = 0.08f;

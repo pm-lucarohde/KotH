@@ -27,7 +27,8 @@ SILENCE = -60.0            # dBFS: quieter than this at either end is cut
 FADE = 0.03                # seconds faded out at the end
 LOOP_FADE = 1.0            # seconds of the ambient's end laid over its start
 SOUNDS = ['fall', 'hit1', 'hit2', 'hit3', 'jump', 'slide', 'sporejump', 'steps', 'wind']
-FILTERS = {'steps': 'acompressor=threshold=0.05:ratio=20:attack=0.05:release=20:detection=peak,lowpass=f=1000'}   # Luca: steps too harsh (click, mids)
+FILTERS = {'steps': 'lowpass=f=1000'}   # ffmpeg filters on decoding (Luca: steps too harsh)
+DRY = {'steps': (0.04, 0.12)}           # the room's reverb faded out between these seconds (Luca: sounded like a hall)
 
 
 def decode(path, channels, filters=None):
@@ -62,6 +63,15 @@ def trim(samples, channels):
     return out
 
 
+def dry(samples, start, end):
+    """Faded out from start to end seconds (a cosine) and cut there: no room tail."""
+    a, b = int(start * RATE), int(end * RATE)
+    out = samples[:b]
+    for i in range(a, len(out)):
+        out[i] *= 0.5 + 0.5 * math.cos(math.pi * (i - a) / (b - a))
+    return out
+
+
 def seamless(samples, channels):
     """The last LOOP_FADE seconds faded out over the first ones fading in, then cut off."""
     fade = int(LOOP_FADE * RATE)
@@ -91,6 +101,8 @@ def main():
     os.makedirs(TARGET, exist_ok=True)
     for name in SOUNDS:
         samples = trim(decode(os.path.join(SOURCE, name + '.mp3'), 1, FILTERS.get(name)), 1)
+        if name in DRY:
+            samples = dry(samples, *DRY[name])
         before = loudness(samples, 1, False)
         gain = write(name, samples, 1, SFX_LOUD - before)
         print('%-10s %.2f s, %6.1f LUFS (400 ms) -> %6.1f' % (name, len(samples) / RATE, before, before + gain))
