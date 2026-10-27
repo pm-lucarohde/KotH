@@ -49,6 +49,13 @@ namespace KotH.Shared.Simulation
         [DataMemberIgnore] public int PlacedTick { get; private set; } = -1;
         [DataMemberIgnore] public float PlacedYaw { get; private set; }
 
+        /// <summary>
+        /// The tick the body was last set down elsewhere at all (PlaceAt,
+        /// Respawn, ResetToSpawn), for the looks: no jump or landing from the
+        /// jolt. Not state, like PlacedTick.
+        /// </summary>
+        [DataMemberIgnore] public int MovedTick { get; private set; } = -1;
+
         /// <summary>Puts the body down as it stood when it joined, but at a new place and facing yaw.</summary>
         public void PlaceAt(Vector3 position, float yaw)
         {
@@ -62,7 +69,7 @@ namespace KotH.Shared.Simulation
             s.Rotation = UMath.EulerYaw(yaw);
             Motor.RestoreState(s);
             Motor.Teleport(position);
-            PlacedTick = Simulation?.CurrentTick ?? 0;
+            PlacedTick = MovedTick = Simulation?.CurrentTick ?? 0;
             PlacedYaw = yaw;
         }
 
@@ -157,15 +164,19 @@ namespace KotH.Shared.Simulation
         /// </summary>
         public void Respawn()
         {
-            if (HasSpawn)
-                Motor.RestoreState(spawn.Motor);
+            if (!HasSpawn)
+                return;
+            Motor.RestoreState(spawn.Motor);
+            MovedTick = Simulation?.CurrentTick ?? 0;
         }
 
         /// <summary>Back to where it joined, with no points: a new round.</summary>
         public void ResetToSpawn()
         {
-            if (HasSpawn)
-                RestoreState(spawn);
+            if (!HasSpawn)
+                return;
+            RestoreState(spawn);
+            MovedTick = Simulation?.CurrentTick ?? 0;
         }
 
         /// <summary>Puts this body back to a captured tick.</summary>

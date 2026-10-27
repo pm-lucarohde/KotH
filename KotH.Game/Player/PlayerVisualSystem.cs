@@ -910,10 +910,10 @@ namespace KotH.Client.Player
             bool airborne = !motor.IsGrounded;
             float falling = airborne ? Smooth(0f, 3f, -v.Y) : 0f;
             float rising = airborne ? Smooth(0f, 3f, v.Y) : 0f;
-            // Put down anew by the round (respawn): no kick, jump or fall from the jolt.
-            if (f.Body != null && f.Body.PlacedTick != f.SeenPlaced)
+            // Put down anew (respawn, new round): no kick, jump or fall from the jolt.
+            if (f.Body != null && f.Body.MovedTick != f.SeenPlaced)
             {
-                f.SeenPlaced = f.Body.PlacedTick;
+                f.SeenPlaced = f.Body.MovedTick;
                 f.LastClimb = v.Y;
                 f.AirTime = 0f;
                 f.Peak = motor.Position.Y;
