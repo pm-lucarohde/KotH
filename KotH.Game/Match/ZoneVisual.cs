@@ -32,10 +32,7 @@ namespace KotH.Client.Match
         [Display("Leistenhöhe", "Maße")] public float RailHeight = 0.1f;
 
         /// <userdoc>So weit sind die Partikel zu Weiß hin aufgehellt, von 0 (Zonenfarbe) bis 1 (weiß).</userdoc>
-        [Display("Partikel aufhellen", "Darstellung")] public float MoteLight = 0.35f;
-
-        /// <userdoc>Helligkeit der Partikel; über 1 leuchten sie stärker als die Leisten.</userdoc>
-        [Display("Partikel Helligkeit", "Darstellung")] public float MoteGain = 1.8f;
+        [Display("Partikel aufhellen", "Darstellung")] public float MoteLight = 0.3f;
 
         [DataMemberIgnore] public CaptureZone Zone { get; set; }
         [DataMemberIgnore] public HillMatch Match { get; set; }
@@ -73,8 +70,9 @@ namespace KotH.Client.Match
             Color4 color = (Board?.ColorOf(look) ?? Color.White).ToColor4();
             if (Cube.Materials.Count > 0)
                 Tint(Cube.Materials[0].Material, color);
-            // The shade darkens what the rails' glow shows: lifted towards white.
-            Color4 light = Color4.Lerp(color, Color.White.ToColor4(), MoteLight) * MoteGain;
+            // The rails glow in linear colour, the particles' shade is sRGB:
+            // the same colour as the rails, lifted a little towards white.
+            Color4 light = Color4.Lerp(color.ToSRgb(), Color.White.ToColor4(), MoteLight);
             light.A = 1f;
             foreach (ParticleSystemComponent particles in motes)
                 particles.Color = light;

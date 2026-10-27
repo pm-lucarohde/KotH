@@ -108,39 +108,31 @@ Hierarchy:
                                             SamplerMain: !ComputeCurveSamplerColor4
                                                 Curve: !ComputeAnimationCurveColor4
                                                     KeyFrames:
-                                                        6297bd0b8a62402297e94766486b27a6:
+                                                        572ddbcadf5d4c9ea1be18db9dc9d120:
                                                             Key: 0.0
                                                             Value: {R: 1.0, G: 1.0, B: 1.0, A: 0.0}
                                                             TangentType: Linear
-                                                        4ddaa0fb32f64d87af09bf2e1114f5b0:
-                                                            Key: 0.08
+                                                        a5e08914127d44a09bf9282a7e6914e6:
+                                                            Key: 0.15
                                                             Value: {R: 1.0, G: 1.0, B: 1.0, A: 1.0}
                                                             TangentType: Linear
-                                                        cdca6b91346e4b8d91a64e3f0dddf3f7:
-                                                            Key: 0.35
+                                                        79433b10737a43039183ab06813f6521:
+                                                            Key: 0.5
                                                             Value: {R: 1.0, G: 1.0, B: 1.0, A: 1.0}
                                                             TangentType: Linear
-                                                        a9b2781d7ca04f5abb739b40eeb2da3d:
-                                                            Key: 0.38
-                                                            Value: {R: 1.0, G: 1.0, B: 1.0, A: 0.15}
+                                                        2f5910f67dfb4c689742691491c0fc20:
+                                                            Key: 0.56
+                                                            Value: {R: 1.0, G: 1.0, B: 1.0, A: 0.6}
                                                             TangentType: Linear
-                                                        b5d4b02ab5a4431fab2650cd7d7fd499:
-                                                            Key: 0.43
+                                                        817f6840ac9147c9b5524142ee8eba8a:
+                                                            Key: 0.63
                                                             Value: {R: 1.0, G: 1.0, B: 1.0, A: 1.0}
                                                             TangentType: Linear
-                                                        f592e854048140a99ff0288f277d109c:
-                                                            Key: 0.7
-                                                            Value: {R: 1.0, G: 1.0, B: 1.0, A: 0.8}
+                                                        cd783aab232f45ff98deaad51a1d9ec5:
+                                                            Key: 0.85
+                                                            Value: {R: 1.0, G: 1.0, B: 1.0, A: 0.9}
                                                             TangentType: Linear
-                                                        880998bb0aff48af9d01b0ededd52c9c:
-                                                            Key: 0.73
-                                                            Value: {R: 1.0, G: 1.0, B: 1.0, A: 0.1}
-                                                            TangentType: Linear
-                                                        091347312a8f479d836a9a24a03c0a28:
-                                                            Key: 0.76
-                                                            Value: {R: 1.0, G: 1.0, B: 1.0, A: 0.8}
-                                                            TangentType: Linear
-                                                        826f5f262fa84b4cbff170113ffd4e55:
+                                                        51f88ece56504ac79523bb02688facc3:
                                                             Key: 1.0
                                                             Value: {R: 1.0, G: 1.0, B: 1.0, A: 0.0}
                                                             TangentType: Linear
@@ -227,23 +219,19 @@ Hierarchy:
                                             SamplerMain: !ComputeCurveSamplerColor4
                                                 Curve: !ComputeAnimationCurveColor4
                                                     KeyFrames:
-                                                        3497ac87e9d443378f848cc51217bb29:
+                                                        7e5d619b16cc45cd8116eecd7e84cb2a:
                                                             Key: 0.0
                                                             Value: {R: 1.0, G: 1.0, B: 1.0, A: 0.0}
                                                             TangentType: Linear
-                                                        47ee66cc69c84a248e97b26d7287bf1b:
-                                                            Key: 0.1
+                                                        3b997bf5d787493a883a3cd94a8ce8ba:
+                                                            Key: 0.2
                                                             Value: {R: 1.0, G: 1.0, B: 1.0, A: 1.0}
                                                             TangentType: Linear
-                                                        a57cde96bf3142278cf29fae0e3e2cd8:
-                                                            Key: 0.5
-                                                            Value: {R: 1.0, G: 1.0, B: 1.0, A: 0.2}
+                                                        4ec950bc093f4405beaeaf2251a3646d:
+                                                            Key: 0.7
+                                                            Value: {R: 1.0, G: 1.0, B: 1.0, A: 0.8}
                                                             TangentType: Linear
-                                                        4702cf4e999249e881adb1e69e3558d8:
-                                                            Key: 0.6
-                                                            Value: {R: 1.0, G: 1.0, B: 1.0, A: 1.0}
-                                                            TangentType: Linear
-                                                        9fc0a7e590d340d18eef3f1030a23dd4:
+                                                        b1e82352d6db491cba0086abb859ecf7:
                                                             Key: 1.0
                                                             Value: {R: 1.0, G: 1.0, B: 1.0, A: 0.0}
                                                             TangentType: Linear
