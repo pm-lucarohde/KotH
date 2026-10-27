@@ -26,6 +26,10 @@
     <AvaloniaResource Include="Menu\Art\*.png;Menu\Fonts\*.ttf" />
   </ItemGroup>
   <ItemGroup>
+    <!-- Per map the ground the grass stands on (Tools/maps/MapUV, Rendering/GrassField.cs). -->
+    <EmbeddedResource Include="Resources/Maps/*Grass.bin" LogicalName="Maps/%(Filename)%(Extension)" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\KotH.Shared\KotH.Shared.csproj" />
     <ProjectReference Include="..\ThirdParty\Stride.Voxels\Stride.Voxels.csproj" />
   </ItemGroup>

@@ -105,9 +105,9 @@ Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall 
 - **Neu** (Minecraft-Berg, 123 m): `Tools/maps/mountain.py` schreibt **nur** `Mountain.glb` (`COLOR_0` = Oberflächen,
   `TEXCOORD_0.x` = AO), `Sea.glb` und `NeuTerrain.bin` (Kollision, eingebettet, 4-m-Chunks, `WorldBuilder.AddTerrain`).
   Surface Nets 70 %, Säulen 2 × 1, ohne Wege, Gipfel aus ≥ 9/12 Richtungen; Stämme rund (kein Boden im Stamm), Kronen halb
-  Blöcke, halb Büschel, mit Zweig-Karten. Danach `Tools/maps/MapUV` (Lightmap-UVs für Berg und Meer, `dotnet run`), `publish_aot.sh`. Sichtweite ≤ 20 km.
-- Texturen: `Tools/maps/textures.py` (gemalt, comichaft), Shader `TerrainTriplanar`/`PaintedTriplanar`/`LeafSplat`/`LeafCard`/`CellHash` in `KotH.Game/Effects`. Fallen:
-  kein `Texture2D` als Generic (`LinkType` + `[Link]` in `rgroup PerMaterial`), verschachteltes `ComputeColorParameterTexture`; Import merged gleichnamige Materialien.
+  Blöcke, halb Büschel, mit Zweig-Karten. Danach `Tools/maps/MapUV` (Lightmap-UVs, Graskarte `NeuGrass.bin`), `publish_aot.sh`. Sichtweite ≤ 20 km.
+- Gras: `GrassField` (Gruppe 5, Kacheln instanziert, Halme in `GrassBlade` gebaut, Licht der Lightmap). Texturen: `Tools/maps/textures.py` (comichaft),
+  Shader in `KotH.Game/Effects`. Fallen: kein `Texture2D` als Generic (`LinkType` + `[Link]`), verschachteltes `ComputeColorParameterTexture`; Import merged.
 
 ### Game Studio (Wine/Proton)
 - Steam-Verknüpfung „Stride Game Studio 4.4.0“, Prefix `compatdata/2392464373`, GE-Proton11-6, Windows-SDK .NET 11,

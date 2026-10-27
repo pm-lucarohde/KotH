@@ -19,6 +19,7 @@ Hierarchy:
                             19d1887ead3f427d894fe3bddaafc9eb: ref!! 5B67D16E-E32B-4407-B16A-9CD997169C9F
                             8786fe8e651649dd821338af1ea73ea2: ref!! 370B95D9-9CC6-45BD-9DC9-6AF25212CC19
                             f5ade132945441499f45dd1b07a98340: ref!! 96A5DA75-D378-489D-A9D7-5C573DA398AD
+                            c739d2bfe99c425b8b28dc3c8cbb5434: ref!! 17AFF78D-250F-4D93-93CD-160820F56C8C
                     49c9ee42fb8845feb0c361a74a3a559e: !KotH.Client.Rendering.Atmosphere,KotH.Game
                         Id: 43DA95DE-AF6A-4AA1-8B8A-F4EBF7FEDC58
                         CloudMap: 8BA09DCC-912C-49F1-8FBE-495F36149FAB:Textures/CloudMap
@@ -99,3 +100,16 @@ Hierarchy:
                         Frames: 2
                     8f32c79bfae4456fb40418cb4fa72a20: !KotH.Client.Rendering.FigureOccluders,KotH.Game
                         Id: 9046CFF2-81A6-4FF2-AF75-0B3439307AC8
+        -   Entity:
+                Id: 706AE9DF-2898-4893-A67D-6278AB09F760
+                Name: Grass
+                Components:
+                    de5967b34e8a4c179d44d7c33642a338: !TransformComponent
+                        Id: 17AFF78D-250F-4D93-93CD-160820F56C8C
+                        Position: {X: 0.0, Y: 0.0, Z: 0.0}
+                        Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    7916e87e94f7438a83409f51511796d0: !KotH.Client.Rendering.GrassField,KotH.Game
+                        Id: 3B0E1C55-5A0F-4C2E-9D63-0C1F7A2E8B41
+                        Material: AE7A280E-E2E7-4617-A2F4-0F7D275E4F48:Materials/Grass

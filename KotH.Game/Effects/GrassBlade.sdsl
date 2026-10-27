@@ -1,0 +1,163 @@
+/// <summary>
+/// Builds the grass blades of GrassField's patches, as Ghost of Tsushima does:
+/// each vertex knows only its blade (a cell of the patch) and its place on it;
+/// root, height, facing and lean come from whole-number hashes of patch and
+/// blade, the ground from the grass map (height, amount, shade, lightmap UV).
+/// The blade is a curve from the root to a tip bent by its lean, the gusts
+/// that run across the field with the wind and the figures walking through.
+/// Blades thin out with distance and are gone at the far reach, where the
+/// ground's own grass texture remains. GrassRenderFeature mixes it in after
+/// the vertex stage (colour and depth prepass alike) for the grass group.
+/// </summary>
+shader GrassBlade : TransformationBase, PositionStream4, Transformation, Texturing, CellHash, GrassStreams
+{
+    // Patch side in metres and blades along it (GrassPatch).
+    static const float PatchSize = 2.0;
+    static const float Cells = 13.0;
+    static const float Pi2 = 6.2831853;
+    static const int MaxFigures = 12;
+
+    // (across -1..1, along 0..1, kind, blade number in the patch)
+    stage stream float4 GrassData : COLOR0;
+
+    cbuffer PerMaterial
+    {
+        // Map: 1 / cell, half extent, size in cells, height range.
+        stage float4 GrassMapShape;
+        // Full density up to x m, gone at y m; blade height z to w m.
+        stage float4 GrassReach;
+        // Blade width at the root, (unused), petal radius, flower share.
+        stage float4 GrassForm;
+        // Wind axis (x, z), gust speed in m/s, gust length in m.
+        stage float4 GrassWind;
+        // Still lean, gust lean, flutter, figure push (shares of the height).
+        stage float4 GrassBend;
+        // Feet (x, y, z) and reach of the figures; reach 0 is none.
+        stage float4 GrassFigures[12];
+    }
+
+    rgroup PerMaterial
+    {
+        stage Texture2D GrassMap;
+    }
+
+    // One cell of the map: lightmap uv, height, amount, shade.
+    void Cell(int2 c, out float4 raw, out float height, out float amount)
+    {
+        int size = int(GrassMapShape.z);
+        raw = GrassMap.Load(int3(clamp(c, 0, size - 1), 0));
+        uint packed = uint(round(raw.w * 65535.0));
+        height = raw.z * GrassMapShape.w;
+        amount = float(packed >> 8u) / 255.0;
+    }
+
+    // The ground at p: height and amount between the four nearest cells,
+    // uv and shade from the nearest (the lightmap's charts must not blend).
+    void Ground(float2 p, out float height, out float amount, out float shade, out float2 uv)
+    {
+        float2 f = (p + GrassMapShape.y) * GrassMapShape.x - 0.5;
+        int2 c = int2(floor(f));
+        float2 t = f - float2(c);
+        float4 r00, r10, r01, r11;
+        float h00, h10, h01, h11, a00, a10, a01, a11;
+        Cell(c, r00, h00, a00);
+        Cell(c + int2(1, 0), r10, h10, a10);
+        Cell(c + int2(0, 1), r01, h01, a01);
+        Cell(c + int2(1, 1), r11, h11, a11);
+        height = lerp(lerp(h00, h10, t.x), lerp(h01, h11, t.x), t.y);
+        amount = lerp(lerp(a00, a10, t.x), lerp(a01, a11, t.x), t.y);
+        float4 near = t.y < 0.5 ? (t.x < 0.5 ? r00 : r10) : (t.x < 0.5 ? r01 : r11);
+        shade = float(uint(round(near.w * 65535.0)) & 255u) / 255.0;
+        uv = near.xy;
+    }
+
+    stage override void PreTransformPosition()
+    {
+        base.PreTransformPosition();
+
+        float4 data = streams.GrassData;
+        float kind = data.z;
+        float3 root = streams.PositionWS.xyz;
+        int2 patch = int2(round((root.xz - streams.Position.xz) / PatchSize));
+        int id = int(data.w);
+        float3 h0 = Hash3(int3(patch, id), 0u);
+        float3 h1 = Hash3(int3(patch, id), 1u);
+        root.xz += (h0.xy - 0.5) * (PatchSize / Cells);
+
+        float height, amount, shade;
+        float2 uv;
+        Ground(root.xz, height, amount, shade, uv);
+        root.y = height;
+
+        // Thinner with distance: a blade stays while its rank is under the
+        // density there, and grows in over the last stretch instead of popping.
+        float far = length(root - Eye.xyz);
+        float density = 1.0 - smoothstep(GrassReach.x, GrassReach.y, far);
+        float keep = amount * density - h0.z;
+        if (kind > 0.5)
+        {
+            // Flowers in clumps of 4 m: a clump has them or not, all one colour.
+            float3 clump = Hash3(int3(int2(floor(root.xz / 4.0)), 7), 2u);
+            keep = clump.x < GrassForm.w && h0.z < 0.6 ? amount * density - 0.05 : -1.0;
+            streams.GrassPetal = float2(length(data.xy), clump.y);
+        }
+        else
+            streams.GrassPetal = 0;
+        float grow = saturate(keep / 0.12);
+
+        float tall = lerp(GrassReach.z, GrassReach.w, h1.x) * (kind > 0.5 ? 1.35 : 1.0) * grow;
+        float angle = h1.y * Pi2;
+        float3 side = float3(cos(angle), 0, sin(angle));
+        float2 ahead = float2(-side.z, side.x);
+
+        // Lean: its own, the gusts along the wind (bands that run over the
+        // field, bent by a slow sway across), a flutter, and away from figures.
+        float t = Global.Time;
+        float2 axis = GrassWind.xy;
+        float along = dot(root.xz, axis), across = dot(root.xz, float2(-axis.y, axis.x));
+        float phase = (along - t * GrassWind.z) / GrassWind.w + 0.35 * sin(across / 13.0 + t * 0.07);
+        float wave = pow(0.5 + 0.5 * sin(phase * Pi2), 3.0);
+        float2 lean = ahead * (GrassBend.x * (0.4 + h1.z));
+        lean += axis * (GrassBend.y * (0.25 + wave));
+        lean += side.xz * (GrassBend.z * sin(t * 3.7 + h1.z * 31.0));
+        for (int i = 0; i < MaxFigures; i++)
+        {
+            float4 figure = GrassFigures[i];
+            float2 away = root.xz - figure.xz;
+            float d = length(away);
+            if (figure.w > 0.0 && d < figure.w && abs(root.y - figure.y) < 1.0)
+            {
+                float k = 1.0 - d / figure.w;
+                lean += away / max(d, 0.01) * (GrassBend.w * k * k);
+            }
+        }
+        float3 tip = root + normalize(float3(lean.x, 1.0, lean.y)) * tall;
+        float3 bow = root + float3(0, tall * 0.6, 0);
+
+        float s = kind > 1.5 ? 1.0 : data.y;
+        float3 p = (1 - s) * (1 - s) * root + 2 * s * (1 - s) * bow + s * s * tip;
+        float3 tangent = 2 * (1 - s) * (bow - root) + 2 * s * (tip - bow);
+        float width = GrassForm.x * (kind > 0.5 ? 0.35 : 1.0) * lerp(1.0, 1.8, 1.0 - density) * pow(saturate(1.0 - s), 0.6);
+        float3 normal = normalize(cross(tangent, side) + side * data.x * 0.5 * tall);
+        if (kind > 1.5)
+        {
+            // Petals round the stem's tip, tilted up a little to the sky.
+            float3 forward = float3(ahead.x, 0, ahead.y);
+            p = tip + (side * data.x + forward * data.y) * GrassForm.z * grow + float3(0, 0.01, 0);
+            normal = float3(0, 1, 0);
+        }
+        else
+            p += side * (data.x * 0.5 * width);
+        if (keep <= 0.0)
+            p = root;
+
+        streams.PositionWS = float4(p, 1.0);
+        streams.TexCoord1 = uv;
+        streams.GrassRoot = root.xz;
+        streams.GrassAlong = s;
+        streams.GrassWave = wave;
+        streams.GrassShade = shade * lerp(0.9, 1.1, Hash3(int3(int2(floor(root.xz)), 3), 4u).x);
+        streams.GrassKind = kind;
+        streams.GrassNormal = normal;
+    }
+};

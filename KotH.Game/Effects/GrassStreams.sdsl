@@ -1,0 +1,20 @@
+/// <summary>
+/// What GrassBlade (vertex stage) hands GrassColor (the blades' colour) about
+/// the blade a pixel lies on.
+/// </summary>
+shader GrassStreams
+{
+    // The root's place on the ground (x, z), where the colour is taken from.
+    stage stream float2 GrassRoot;
+    // 0 at the root, 1 at the tip.
+    stage stream float GrassAlong;
+    // The gust passing over the blade, 0 to 1.
+    stage stream float GrassWave;
+    // The ground's shade there times the clump's own tint.
+    stage stream float GrassShade;
+    // 0 a blade, 1 a flower's stem, 2 its petals.
+    stage stream float GrassKind;
+    // The petals: distance from the flower's middle (0 to 1) and its colour pick.
+    stage stream float2 GrassPetal;
+    stage stream float3 GrassNormal;
+};

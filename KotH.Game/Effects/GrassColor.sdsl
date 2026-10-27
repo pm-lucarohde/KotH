@@ -1,0 +1,46 @@
+/// <summary>
+/// The grass blades' colour (GrassBlade builds them): the meadow texture's
+/// colour where the blade stands, so near and far blend into the ground, dark
+/// at the root, lighter and warmer to the tip, brighter where a gust runs over.
+/// The shading normal leans mostly to the sky, so the blades shade as softly
+/// as the painted ground. Flowers: red, yellow or white petals round a darker eye.
+/// </summary>
+shader GrassColor<LinkType GrassKey>
+    : ComputeColor, PositionStream4, NormalStream, Texturing, Transformation, GrassStreams
+{
+    // As TerrainTriplanar: metres per repeat of the ground's texture.
+    static const float TileSize = 4.0;
+    // A blurred mip: one blade one colour, not the texture's strokes.
+    static const float Mip = 5.0;
+
+    rgroup PerMaterial
+    {
+        [Link("GrassKey")] stage Texture2D Grass;
+    }
+
+    override float4 Compute()
+    {
+        float3 n = normalize(streams.GrassNormal);
+        if (dot(n, Eye.xyz - streams.PositionWS.xyz) < 0.0)
+            n = -n;
+        streams.normalWS = normalize(0.35 * n + float3(0, 1, 0));
+
+        float s = streams.GrassAlong;
+        float3 c;
+        if (streams.GrassKind > 1.5)
+        {
+            float r = streams.GrassPetal.x, pick = streams.GrassPetal.y;
+            float3 petal = pick < 0.34 ? float3(0.70, 0.045, 0.035) : pick < 0.67 ? float3(0.88, 0.55, 0.03) : float3(0.86, 0.85, 0.78);
+            float3 eye = pick < 0.34 || pick >= 0.67 ? float3(0.85, 0.5, 0.03) : float3(0.3, 0.12, 0.03);
+            c = r < 0.32 ? eye : petal * lerp(0.85, 1.05, r);
+        }
+        else
+        {
+            float3 ground = Grass.SampleLevel(LinearRepeatSampler, streams.GrassRoot / TileSize, Mip).rgb;
+            c = ground * streams.GrassShade * lerp(0.7, 1.1, s);
+            c = lerp(c, c * float3(1.2, 1.15, 0.6), s * s * 0.35);
+            c *= 1.0 + 0.3 * streams.GrassWave * s;
+        }
+        return float4(c, 1.0);
+    }
+};

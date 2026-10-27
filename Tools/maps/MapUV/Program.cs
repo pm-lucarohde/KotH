@@ -8,6 +8,8 @@
 //
 // --size is the lightmap's side in texels the margins are meant for, --pad the
 // texels kept free round every chart. Everything else in the file stays as it was.
+// It also writes the grass map (NeuGrass.bin, GrassField); --grass writes only that,
+// from a Mountain.glb that has its lightmap UVs already.
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Prowl.Unwrapper;
@@ -22,6 +24,12 @@ const double SeaShrink = 4.0;
 
 var mountain = new Glb(Path.Combine(root, "KotH.Game/Resources/Models/Mountain.glb"));
 var sea = new Glb(Path.Combine(root, "KotH.Game/Resources/Models/Sea.glb"));
+string grassPath = Path.Combine(root, "KotH.Game/Resources/Maps/NeuGrass.bin");
+if (args.Contains("--grass") && mountain.HadSecondUV)
+{
+    GrassMap.Write(grassPath, mountain.Primitives);
+    return 0;
+}
 if (mountain.HadSecondUV || sea.HadSecondUV)
 {
     // Its corners are split along the old charts already; unwrapped again, they would stay split.
@@ -134,6 +142,7 @@ Console.WriteLine($"Meer: ±{half:F0} m, {Math.Sqrt(world / atlas) / size * SeaS
 
 mountain.Write();
 sea.Write();
+GrassMap.Write(grassPath, primitives);
 return 0;
 
 // The unwrapper drops slivers (the flat beach has some a few centimetres wide) with
@@ -243,10 +252,8 @@ sealed class Glb
             var prim = new Primitive((string)gltf["materials"]![(int)p!["material"]!]!["name"]!, (int)p["material"]!);
             foreach (var (name, accessor) in p["attributes"]!.AsObject())
             {
-                if (name == "TEXCOORD_1")
-                    HadSecondUV = true;
-                else
-                    prim.Attributes[name] = ReadFloats((int)accessor!);
+                HadSecondUV |= name == "TEXCOORD_1";
+                prim.Attributes[name] = ReadFloats((int)accessor!);
             }
             prim.Indices = ReadIndices((int)p["indices"]!);
             Primitives.Add(prim);
