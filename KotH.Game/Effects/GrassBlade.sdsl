@@ -13,7 +13,7 @@ shader GrassBlade : TransformationBase, PositionStream4, Transformation, Texturi
 {
     // Patch side in metres and blades along it (GrassPatch).
     static const float PatchSize = 2.0;
-    static const float Cells = 13.0;
+    static const float Cells = 19.0;
     static const float Pi2 = 6.2831853;
     static const int MaxFigures = 12;
 

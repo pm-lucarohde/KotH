@@ -9,14 +9,14 @@ using Buffer = Stride.Graphics.Buffer;
 namespace KotH.Client.Rendering
 {
     /// <summary>
-    /// The one patch of grass GrassField draws many times (2 × 2 m, 13 × 13
+    /// The one patch of grass GrassField draws many times (2 × 2 m, 19 × 19
     /// blades, five flower places): every vertex only says which blade it
     /// belongs to and where on it, GrassBlade builds the blade from that.
     /// </summary>
     static class GrassPatch
     {
         public const float Size = 2f;
-        const int Cells = 13;
+        const int Cells = 19;
         // Flower places (cell x, cell z), numbered after the blades.
         static readonly (int X, int Z)[] Flowers = { (3, 4), (9, 2), (6, 10), (1, 9), (11, 7) };
 

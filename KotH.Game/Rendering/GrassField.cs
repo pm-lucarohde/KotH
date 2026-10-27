@@ -47,9 +47,9 @@ namespace KotH.Client.Rendering
         /// <userdoc>Ab so vielen Metern sind die Halme ganz weg (dazwischen dünner), dort bleibt nur die Bodentextur.</userdoc>
         [DataMember(21)] public float FarReach { get; set; } = 40f;
         /// <userdoc>Höhe der kürzesten Halme in Metern.</userdoc>
-        [DataMember(22)] public float HeightMin { get; set; } = 0.25f;
+        [DataMember(22)] public float HeightMin { get; set; } = 0.125f;
         /// <userdoc>Höhe der längsten Halme in Metern.</userdoc>
-        [DataMember(23)] public float HeightMax { get; set; } = 0.45f;
+        [DataMember(23)] public float HeightMax { get; set; } = 0.225f;
         /// <userdoc>Breite eines Halms am Fuß in Metern.</userdoc>
         [DataMember(24)] public float Width { get; set; } = 0.06f;
         /// <userdoc>Radius einer Blüte in Metern.</userdoc>
