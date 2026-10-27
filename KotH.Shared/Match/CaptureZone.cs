@@ -29,7 +29,7 @@ namespace KotH.Shared.Match
         [Display("Zeitlimit", "Regeln")] public float TimeLimitMinutes = 20f;
 
         /// <userdoc>So lange steht der Sieger da, bevor die nächste Runde beginnt, in Sekunden.</userdoc>
-        [Display("Siegerpause", "Regeln")] public float WinPauseSeconds = 5f;
+        [Display("Siegerpause", "Regeln")] public float WinPauseSeconds = 15f;
 
         /// <userdoc>Im Mehrspieler: So lange läuft der Countdown, sobald genug Spieler da sind, in Sekunden.</userdoc>
         [Display("Countdown", "Mehrspieler")] public float CountdownSeconds = 60f;

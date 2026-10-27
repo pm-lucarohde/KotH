@@ -2134,7 +2134,7 @@ Hierarchy:
                         WarmupSeconds: 3.0
                         WinPoints: 100
                         TimeLimitMinutes: 20.0
-                        WinPauseSeconds: 5.0
+                        WinPauseSeconds: 15.0
                         CountdownSeconds: 60.0
                         JoinSeconds: 60.0
                         RespawnBelow: -5.0
