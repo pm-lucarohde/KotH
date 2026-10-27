@@ -26,61 +26,62 @@ public readonly record struct V3(double X, double Y, double Z)
     public static double Dist(V3 a, V3 b) => Math.Sqrt(Py.Sum([Py.Pow(a.X - b.X, 2), Py.Pow(a.Y - b.Y, 2), Py.Pow(a.Z - b.Z, 2)]));
 }
 
+// Fields rather than constants: the .work scripts set them by mountain.py's names (NAME=VALUE).
 public static class M
 {
-    public const int Seed = 7;
-    public const int Half = 133;               // cells from the centre to the edge of the grid
-    public const double Island = 119.5;        // coast radius, varied by CoastWaves
+    public static int Seed = 7;
+    public static int Half = 133;               // cells from the centre to the edge of the grid
+    public static double Island = 119.5;        // coast radius, varied by CoastWaves
     public static readonly (double M, int Cells)[] CoastWaves = [(16.0, 3), (11.0, 6), (6.0, 13), (2.5, 29), (1.0, 67)];
-    public const double CoastMax = 126.0;      // the GI volume ends at 128 m
-    public const double Beach = 7.0;           // sand this far in from the coast, varied by BeachWaves (Luca: less round)
+    public static double CoastMax = 126.0;      // the GI volume ends at 128 m
+    public static double Beach = 7.0;           // sand this far in from the coast, varied by BeachWaves (Luca: less round)
     public static readonly (double M, int Cells)[] BeachWaves = [(4.5, 4), (3.0, 9), (1.5, 23)];
-    public const double BeachMin = 3.5;
-    public const double MeadowMin = 12.0;      // the meadow reaches at least this far out past the foot (spawns, trees)
-    public const double Soft = 3.0;            // metres over which those limits ease in
-    public const double OldIsland = 117.0, OldCoast = 4.0, OldBeach = 5.0;   // the round island the trees were planted on
-    public const double Mountain = 95.0;       // foot of the mountain, varied by Foot
-    public const double Foot = 4.0;
-    public const int GrassY = 2;               // top of the meadow
-    public const int SandY = 1;
-    public const int SummitY = 123;            // top of the summit plateau (Luca)
-    public const int Plateau = 4;              // plateau: 2 * Plateau + 2 cells across, centred on the origin
-    public const double TopBlend = 2.0;        // the slope eases into the plateau over this many metres down
-    public const double TopRun = 4.0;          // and this many metres across (Luca: 2 m and 4 m)
-    public const double TopFade = 12.0;        // ridges and columns grow in over this many metres below the plateau
-    public const double Profile = 1.1;         // height = (1 - r / foot) ^ Profile
-    public const double Ridges = 9.0;          // depth of the ridges running down the slope
-    public const double RidgeSpacing = 3.0;    // metres between ridges around the mountain
-    public const double RidgeLength = 13.0;    // metres a ridge runs down before it changes
-    public const int Column = 2;               // the slope's columns are this many blocks wide round the mountain
-    public const int ColumnDown = 1;           // and this many deep down it (Luca: tops to stand on)
-    public const double Columns = 2.0;         // fine columns between the ridges, as in the video
-    public const double ColumnSpacing = 1.3;
-    public const double ColumnLength = 5.0;
-    public const double Bumps = 4.0;           // larger lumps
-    public const double Jitter = 0.15;         // share of columns a block higher or lower at random
-    public const double Snowline = 0.55;       // share of the summit height, varied by SnowNoise
-    public const double SnowNoise = 9.0;
-    public const double Caps = 8.0;            // snow caps on tops this far below the snow line
-    public const double South = Math.PI / 2;   // +Z, where the meadow with the spawns is
-    public const int Sectors = 12;             // directions round the foot the climb is checked from
-    public const int MinSectors = 9;           // the summit must be reached from this many of them
-    public const int Trees = 36;
-    public const double SpawnGap = 7.0;        // first spawn row this far out from the foot in the south
-    public const double TreeGap = 7.0;
-    public const int Chunk = 4;                // collision chunks, metres across
-    public const int Under = 0;                // the coast is drawn down to here, just under the sea
-    public const double Simplify = 0.02;       // the simplified mesh stays this close (metres) to every original face
-    public const double SimplifyColour = 0.03; // and merges only vertices this close in paint weights and shade
-    public const double SimplifyNormal = 0.95; // and with vertex normals at least this parallel
-    public const double SeaUnder = 1.0;        // the sea reaches at least this far in under the coast line
-    public const double EdgeIn = 0.35;         // the beach's edges follow their lines, not the blocks (Luca: too blocky):
-    public const double EdgeOut = 0.3;         // an edge's top this far inside the line, its foot this far outside
-    public const double BankIn = 0.7;          // the same for the bank from the meadow down to the sand, wider
-    public const double BankOut = 0.7;         // (Luca: the drop was too steep)
-    public const double EdgeRound = 0.85;      // share of the way from the blocks to the line (Luca)
-    public const double SeaReach = 30000.0;    // the sea's half width, beyond the camera's far plane
-    public const double SeaGrowth = 1.5;       // each ring of the outer sea's tiles this much wider than the last
+    public static double BeachMin = 3.5;
+    public static double MeadowMin = 12.0;      // the meadow reaches at least this far out past the foot (spawns, trees)
+    public static double Soft = 3.0;            // metres over which those limits ease in
+    public static double OldIsland = 117.0, OldCoast = 4.0, OldBeach = 5.0;   // the round island the trees were planted on
+    public static double Mountain = 95.0;       // foot of the mountain, varied by Foot
+    public static double Foot = 4.0;
+    public static int GrassY = 2;               // top of the meadow
+    public static int SandY = 1;
+    public static int SummitY = 123;            // top of the summit plateau (Luca)
+    public static int Plateau = 4;              // plateau: 2 * Plateau + 2 cells across, centred on the origin
+    public static double TopBlend = 2.0;        // the slope eases into the plateau over this many metres down
+    public static double TopRun = 4.0;          // and this many metres across (Luca: 2 m and 4 m)
+    public static double TopFade = 12.0;        // ridges and columns grow in over this many metres below the plateau
+    public static double Profile = 1.1;         // height = (1 - r / foot) ^ Profile
+    public static double Ridges = 9.0;          // depth of the ridges running down the slope
+    public static double RidgeSpacing = 3.0;    // metres between ridges around the mountain
+    public static double RidgeLength = 13.0;    // metres a ridge runs down before it changes
+    public static int Column = 2;               // the slope's columns are this many blocks wide round the mountain
+    public static int ColumnDown = 1;           // and this many deep down it (Luca: tops to stand on)
+    public static double Columns = 2.0;         // fine columns between the ridges, as in the video
+    public static double ColumnSpacing = 1.3;
+    public static double ColumnLength = 5.0;
+    public static double Bumps = 4.0;           // larger lumps
+    public static double Jitter = 0.15;         // share of columns a block higher or lower at random
+    public static double Snowline = 0.55;       // share of the summit height, varied by SnowNoise
+    public static double SnowNoise = 9.0;
+    public static double Caps = 8.0;            // snow caps on tops this far below the snow line
+    public static double South = Math.PI / 2;   // +Z, where the meadow with the spawns is
+    public static int Sectors = 12;             // directions round the foot the climb is checked from
+    public static int MinSectors = 9;           // the summit must be reached from this many of them
+    public static int Trees = 36;
+    public static double SpawnGap = 7.0;        // first spawn row this far out from the foot in the south
+    public static double TreeGap = 7.0;
+    public static int Chunk = 4;                // collision chunks, metres across
+    public static int Under = 0;                // the coast is drawn down to here, just under the sea
+    public static double Simplify = 0.02;       // the simplified mesh stays this close (metres) to every original face
+    public static double SimplifyColour = 0.03; // and merges only vertices this close in paint weights and shade
+    public static double SimplifyNormal = 0.95; // and with vertex normals at least this parallel
+    public static double SeaUnder = 1.0;        // the sea reaches at least this far in under the coast line
+    public static double EdgeIn = 0.35;         // the beach's edges follow their lines, not the blocks (Luca: too blocky):
+    public static double EdgeOut = 0.3;         // an edge's top this far inside the line, its foot this far outside
+    public static double BankIn = 0.7;          // the same for the bank from the meadow down to the sand, wider
+    public static double BankOut = 0.7;         // (Luca: the drop was too steep)
+    public static double EdgeRound = 0.85;      // share of the way from the blocks to the line (Luca)
+    public static double SeaReach = 30000.0;    // the sea's half width, beyond the camera's far plane
+    public static double SeaGrowth = 1.5;       // each ring of the outer sea's tiles this much wider than the last
 
     // Colours in sRGB.
     public static readonly Rgb Stone = new(0.55, 0.51, 0.45);
@@ -90,21 +91,21 @@ public static class M
     public static readonly Rgb Sand = new(0.86, 0.81, 0.60);
     public static readonly Rgb Wood = new(0.42, 0.31, 0.18);
     public static readonly Rgb Leaves = new(0.24, 0.42, 0.16);
-    public const double AoStep = 0.16;         // darker per solid block over half of a corner's eight (Minecraft's steps)
-    public const double Smooth = 0.7;          // Surface Nets strength: 0 cubes, 1 as round as NoCubes
-    public const double SlopeLimit = 50.0;     // the player motor's, to report how much ground one stands on
-    public const double TrunkRadius = 0.5;     // trunks are round (Luca), as thick as the block was
-    public const double TrunkFoot = 0.55;      // and this thick at the ground, widening over TrunkFlare like roots
-    public const double TrunkFlare = 0.5;
-    public const int TrunkSides = 16;
-    public const double CrownStep = 0.35;      // crowns are soft lobes run together (Luca), meshed this fine
-    public const double CrownMelt = 0.6;       // metres over which the lobes run together
-    public const double CrownNoise = 0.12;     // lumps on the lobes, metres
-    public const double CrownWidth = 1.1;      // crowns this much wider than the lobes say (Luca: 10 % more)
-    public const double CrownBlocky = 0.5;     // share of the old leaf blocks in the crown's shape (Luca)
-    public const double CrownClear = 2.3;      // undersides stay this high over the ground: bodies (1.8 m) wedged under low rims
-    public const double CrownFloorRound = 0.4; // metres over which the cut underside rounds into the lobes
-    public const int Cards = 200;              // twigs standing out of every crown, evenly all round (Luca)
+    public static double AoStep = 0.16;         // darker per solid block over half of a corner's eight (Minecraft's steps)
+    public static double Smooth = 0.7;          // Surface Nets strength: 0 cubes, 1 as round as NoCubes
+    public static double SlopeLimit = 50.0;     // the player motor's, to report how much ground one stands on
+    public static double TrunkRadius = 0.5;     // trunks are round (Luca), as thick as the block was
+    public static double TrunkFoot = 0.55;      // and this thick at the ground, widening over TrunkFlare like roots
+    public static double TrunkFlare = 0.5;
+    public static int TrunkSides = 16;
+    public static double CrownStep = 0.35;      // crowns are soft lobes run together (Luca), meshed this fine
+    public static double CrownMelt = 0.6;       // metres over which the lobes run together
+    public static double CrownNoise = 0.12;     // lumps on the lobes, metres
+    public static double CrownWidth = 1.1;      // crowns this much wider than the lobes say (Luca: 10 % more)
+    public static double CrownBlocky = 0.5;     // share of the old leaf blocks in the crown's shape (Luca)
+    public static double CrownClear = 2.3;      // undersides stay this high over the ground: bodies (1.8 m) wedged under low rims
+    public static double CrownFloorRound = 0.4; // metres over which the cut underside rounds into the lobes
+    public static int Cards = 200;              // twigs standing out of every crown, evenly all round (Luca)
     public static readonly (double Min, double Max) CardLength = (0.72, 1.035);  // metres, a third of it inside the crown
     // The leaves are cut out of their texture (Luca); the crown's surface this far
     // in, this much darker, fills it behind the gaps. Only drawn, not in the collision.
@@ -1187,7 +1188,7 @@ public static class Simplifier
         var alive = Enumerable.Repeat(true, faces.Count).ToArray();
         var gone = new bool[pos.Count];
         var version = new int[pos.Count];
-        const double limit = M.Simplify * M.Simplify;
+        double limit = M.Simplify * M.Simplify;
         var heap = new PriorityQueue<(double, int, int, int, int), (double, int, int, int, int)>();
 
         HashSet<int> Neighbours(int v)

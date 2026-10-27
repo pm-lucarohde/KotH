@@ -210,6 +210,18 @@ public sealed class PilImage
                     o[p + 3] = 255;
                 }
                 break;
+            case "RGB>L":
+            case "RGBA>L":
+                for (int p = 0; p < o.Length; p++)
+                    o[p] = (byte)((i[4 * p] * 19595 + i[4 * p + 1] * 38470 + i[4 * p + 2] * 7471 + 0x8000) >> 16);
+                break;
+            case "L>RGB":
+                for (int p = 0; p < i.Length; p++)
+                {
+                    o[4 * p] = o[4 * p + 1] = o[4 * p + 2] = i[p];
+                    o[4 * p + 3] = 255;
+                }
+                break;
             case "RGBA>RGBa":
                 for (int p = 0; p < i.Length; p += 4)
                 {
@@ -280,42 +292,49 @@ public sealed class PilImage
             }
     }
 
-    public enum Filter { Bicubic, Lanczos }
+    public enum Filter { Nearest, Bicubic, Lanczos }
 
     /// <summary>Image.resize (Resample.c, 8 bits a channel); RGBA goes through RGBa like in Pillow.</summary>
     public PilImage Resize(int width, int height, Filter filter)
     {
         if (width == Width && height == Height)
             return Copy();
+        if (filter == Filter.Nearest)
+            return ResizeNearest(width, height);
         if (Mode == "RGBA")
             return Convert("RGBa").Resize(width, height, filter).Convert("RGBA");
-        if (width == Width || height == Height)
-            throw new NotSupportedException("resize along one axis");
         var (vBounds, vK, vSize) = Coefficients(Height, 0, Height, height, filter);
         int first = vBounds[0], last = vBounds[height * 2 - 2] + vBounds[height * 2 - 1];
-        var (hBounds, hK, hSize) = Coefficients(Width, 0, Width, width, filter);
-        for (int i = 0; i < height; i++)
-            vBounds[i * 2] -= first;
-        // Horizontal pass over the rows the vertical one needs, then the vertical pass.
-        var input = new PilImage(Mode, width, last - first);
         int n = Pixel;
-        Parallel.For(0, input.Height, yy =>
+        PilImage input = this;
+        if (width != Width)
         {
-            int inRow = (yy + first) * Width * n, outRow = yy * width * n;
-            for (int xx = 0; xx < width; xx++)
+            var (hBounds, hK, hSize) = Coefficients(Width, 0, Width, width, filter);
+            for (int i = 0; i < height; i++)
+                vBounds[i * 2] -= first;
+            // Horizontal pass over the rows the vertical one needs.
+            var temp = new PilImage(Mode, width, last - first);
+            Parallel.For(0, temp.Height, yy =>
             {
-                int xmin = hBounds[xx * 2], xmax = hBounds[xx * 2 + 1];
-                for (int c = 0; c < n; c++)
+                int inRow = (yy + first) * Width * n, outRow = yy * width * n;
+                for (int xx = 0; xx < width; xx++)
                 {
-                    int ss = 1 << (Precision - 1);
-                    for (int x = 0; x < xmax; x++)
-                        ss += Data[inRow + (x + xmin) * n + c] * hK[xx * hSize + x];
-                    input.Data[outRow + xx * n + c] = ClipResample(ss);
+                    int xmin = hBounds[xx * 2], xmax = hBounds[xx * 2 + 1];
+                    for (int c = 0; c < n; c++)
+                    {
+                        int ss = 1 << (Precision - 1);
+                        for (int x = 0; x < xmax; x++)
+                            ss += Data[inRow + (x + xmin) * n + c] * hK[xx * hSize + x];
+                        temp.Data[outRow + xx * n + c] = ClipResample(ss);
+                    }
                 }
-            }
-        });
+            });
+            input = temp;
+        }
+        if (height == Height)
+            return input;
         var output = new PilImage(Mode, input.Width, height);
-        int m = n, w = width;
+        int m = n, w = input.Width;
         Parallel.For(0, height, yy =>
         {
             int ymin = vBounds[yy * 2], ymax = vBounds[yy * 2 + 1];
@@ -328,6 +347,29 @@ public sealed class PilImage
                     output.Data[(yy * w + xx) * m + c] = ClipResample(ss);
                 }
         });
+        return output;
+    }
+
+    // ImagingScaleAffine, as _resize does NEAREST: the source pixel under each centre.
+    PilImage ResizeNearest(int width, int height)
+    {
+        double a0 = (double)(float)Width / width, a4 = (double)(float)Height / height;
+        var xin = new int[width];
+        double xo = a0 * 0.5;
+        for (int x = 0; x < width; x++, xo += a0)
+            xin[x] = xo < 0.0 ? -1 : (int)xo;
+        var output = new PilImage(Mode, width, height);
+        int n = Pixel;
+        double yo = a4 * 0.5;
+        for (int y = 0; y < height; y++, yo += a4)
+        {
+            int yi = yo < 0.0 ? -1 : (int)yo;
+            if (yi < 0 || yi >= Height)
+                continue;
+            for (int x = 0; x < width; x++)
+                if (xin[x] >= 0 && xin[x] < Width)
+                    Array.Copy(Data, (yi * Width + xin[x]) * n, output.Data, (y * width + x) * n, n);
+        }
         return output;
     }
 
@@ -555,6 +597,23 @@ public sealed class PilImage
         return png;
     }
 
+    /// <summary>Image.merge("RGB" or "RGBA", L bands).</summary>
+    public static PilImage Merge(string mode, params PilImage[] bands)
+    {
+        var output = new PilImage(mode, bands[0].Width, bands[0].Height);
+        for (int p = 0; p < output.Width * output.Height; p++)
+        {
+            for (int c = 0; c < bands.Length; c++)
+                output.Data[4 * p + c] = bands[c].Data[p];
+            if (bands.Length == 3)
+                output.Data[4 * p + 3] = 255;
+        }
+        return output;
+    }
+
+    /// <summary>Image.open of a PNG; a palette comes as RGB or RGBA.</summary>
+    public static PilImage Open(string path) => FromPng(Png.Read(path));
+
     public static PilImage FromPng(Png png)
     {
         string mode = png.Channels switch { 1 => "L", 3 => "RGB", 4 => "RGBA", _ => throw new NotSupportedException() };
@@ -580,6 +639,9 @@ public sealed class PilDraw
 {
     readonly PilImage image;
 
+    // The mask an outline is drawn through (hline8/hline32 with a mask), else null.
+    PilImage mask;
+
     public PilDraw(PilImage image) => this.image = image;
 
     struct Edge
@@ -603,6 +665,13 @@ public sealed class PilDraw
         if (x0 > x1)
             return;
         int n = image.Pixel;
+        if (mask != null)
+        {
+            for (; x0 <= x1; x0++)
+                if (mask.Data[y0 * mask.Width + x0] != 0)
+                    Array.Copy(ink, 0, image.Data, (y0 * image.Width + x0) * n, n);
+            return;
+        }
         Span<byte> row = image.Data.AsSpan((y0 * image.Width + x0) * n, (x1 - x0 + 1) * n);
         if (n == 1)
             row.Fill(ink[0]);
@@ -750,6 +819,33 @@ public sealed class PilDraw
         PolygonGeneric(e, n, ink);
     }
 
+    /// <summary>ImageDraw.polygon(points, outline=ink, width): thin lines round it, or wider ones
+    /// through the filled polygon as a mask (twice as wide, so only the inner half shows).</summary>
+    public void PolygonOutline(IReadOnlyList<(double X, double Y)> points, byte[] ink, int width)
+    {
+        int count = points.Count;
+        var xy = new int[count * 2];
+        for (int i = 0; i < count; i++)
+        {
+            xy[i * 2] = (int)points[i].X;
+            xy[i * 2 + 1] = (int)points[i].Y;
+        }
+        if (width == 1)
+        {
+            for (int i = 0; i < count - 1; i++)
+                ThinLine(xy[i * 2], xy[i * 2 + 1], xy[i * 2 + 2], xy[i * 2 + 3], ink);
+            ThinLine(xy[(count - 1) * 2], xy[(count - 1) * 2 + 1], xy[0], xy[1], ink);
+            return;
+        }
+        var m = new PilImage("L", image.Width, image.Height, 0);
+        new PilDraw(m).Polygon(points, [255]);
+        mask = m;
+        for (int i = 0; i < count - 1; i++)
+            WideLine(xy[i * 2], xy[i * 2 + 1], xy[i * 2 + 2], xy[i * 2 + 3], ink, width * 2 - 1);
+        WideLine(xy[(count - 1) * 2], xy[(count - 1) * 2 + 1], xy[0], xy[1], ink, width * 2 - 1);
+        mask = null;
+    }
+
     /// <summary>ImageDraw.line(points, fill=ink, width): every segment as a wide line.</summary>
     public void Line(IReadOnlyList<(double X, double Y)> points, byte[] ink, int width)
     {
@@ -785,14 +881,14 @@ public sealed class PilDraw
         PolygonGeneric(e, 4, ink);
     }
 
-    /// <summary>ImageDraw.ellipse(box, fill=ink).</summary>
-    public void Ellipse(double x0, double y0, double x1, double y1, byte[] ink)
+    /// <summary>ImageDraw.ellipse(box, fill=ink), or with a width its outline only (outline=ink, width).</summary>
+    public void Ellipse(double x0, double y0, double x1, double y1, byte[] ink, int width = -1)
     {
         int ix0 = (int)x0, iy0 = (int)y0;
         int a = (int)x1 - ix0, b = (int)y1 - iy0;
         if (a < 0 || b < 0)
             return;
-        var st = new EllipseState(a, b, a + b);
+        var st = new EllipseState(a, b, width < 0 ? a + b : width);
         while (st.Next(out int X0, out int Y, out int X1))
             HLine(ix0 + (X0 + a) / 2, iy0 + (Y + b) / 2, ix0 + (X1 + a) / 2, ink);
     }
@@ -818,6 +914,22 @@ public sealed class PilDraw
             return;
         int ix0 = (int)x0, iy0 = (int)y0, ix1 = (int)x1, iy1 = (int)y1;
         Clipped(ix0, iy0, ix1, iy1, ink, (a, b) => ClipEllipse.Chord(a, b, ix1 - ix0 + iy1 - iy0 + 1, start, end));
+    }
+
+    /// <summary>ImageDraw.chord(box, start, end, outline=ink, width): the line across and the arc.</summary>
+    public void ChordOutline(double x0, double y0, double x1, double y1, float start, float end, byte[] ink, int width)
+    {
+        NormalizeAngles(ref start, ref end);
+        if (start + 360 == end)
+        {
+            Ellipse(x0, y0, x1, y1, ink, width);
+            return;
+        }
+        if (start == end)
+            return;
+        int ix0 = (int)x0, iy0 = (int)y0, ix1 = (int)x1, iy1 = (int)y1;
+        Clipped(ix0, iy0, ix1, iy1, ink, (a, b) => ClipEllipse.ChordLine(a, b, width, start, end));
+        Clipped(ix0, iy0, ix1, iy1, ink, (a, b) => ClipEllipse.Chord(a, b, width, start, end));
     }
 
     // ImagingDrawPieslice, filled.
@@ -858,6 +970,56 @@ public sealed class PilDraw
             iy1 = image.Height;
         for (int y = iy0; y <= iy1; y++)
             HLine(ix0, y, ix1, ink);
+    }
+
+    /// <summary>ImageDraw.rectangle(box, outline=ink, width): the frame only, its sides drawn as thin lines.</summary>
+    public void RectangleOutline(double x0, double y0, double x1, double y1, byte[] ink, int width)
+    {
+        int ix0 = (int)x0, iy0 = (int)y0, ix1 = (int)x1, iy1 = (int)y1;
+        if (iy0 > iy1)
+            (iy0, iy1) = (iy1, iy0);
+        if (width == 0)
+            width = 1;
+        for (int i = 0; i < width; i++)
+        {
+            HLine(ix0, iy0 + i, ix1, ink);
+            HLine(ix0, iy1 - i, ix1, ink);
+            ThinLine(ix1 - i, iy0 + width, ix1 - i, iy1 - width + 1, ink);
+            ThinLine(ix0 + i, iy0 + width, ix0 + i, iy1 - width + 1, ink);
+        }
+    }
+
+    /// <summary>ImageDraw.line(points, fill=ink, width, joint="curve"): the segments, then a pie slice
+    /// in every bend and, above width 8, a short line over the gap (ImageDraw.py).</summary>
+    public void LineCurved(IReadOnlyList<(double X, double Y)> points, byte[] ink, int width)
+    {
+        Line(points, ink, width);
+        if (width <= 4)
+            return;
+        for (int i = 1; i < points.Count - 1; i++)
+        {
+            var point = points[i];
+            double Angle((double X, double Y) start, (double X, double Y) end) =>
+                Py.Mod(Libm.atan2(end.X - start.X, start.Y - end.Y) * (180.0 / Math.PI), 360);
+            double a0 = Angle(points[i - 1], point), a1 = Angle(point, points[i + 1]);
+            if (a0 == a1)
+                continue;
+            (double, double) CoordAtAngle((double X, double Y) coord, double angle)
+            {
+                angle -= 90;
+                double distance = width / 2.0 - 1;
+                double Step(double d) => d > 0 ? Math.Floor(d) : Math.Ceiling(d);
+                return (coord.X + Step(distance * Libm.cos(angle * (Math.PI / 180.0))), coord.Y + Step(distance * Libm.sin(angle * (Math.PI / 180.0))));
+            }
+            bool flipped = (a1 > a0 && a1 - 180 > a0) || (a1 < a0 && a1 + 180 > a0);
+            var (start, end) = flipped ? (a1 + 90, a0 + 90) : (a0 - 90, a1 - 90);
+            Pieslice((int)(point.X - width / 2.0 + 1), (int)(point.Y - width / 2.0 + 1), (int)(point.X + width / 2.0 - 1), (int)(point.Y + width / 2.0 - 1),
+                (float)(start - 90), (float)(end - 90), ink);
+            if (width > 8)
+                Line(flipped
+                    ? [CoordAtAngle(point, a0 + 90), point, CoordAtAngle(point, a1 + 90)]
+                    : [CoordAtAngle(point, a0 - 90), point, CoordAtAngle(point, a1 - 90)], ink, 3);
+        }
     }
 
     /// <summary>ImageDraw.rounded_rectangle(box, radius, fill=ink), all corners round.</summary>
@@ -1262,6 +1424,16 @@ public sealed class PilDraw
             double yl = b * Libm.sin(al * Math.PI / 180.0), yr = b * Libm.sin(ar * Math.PI / 180.0);
             double ca = yr - yl, cb = xl - xr;
             return new ClipEllipse(new EllipseState(a, b, w), Clip(ca, cb, -(ca * xl + cb * yl)));
+        }
+
+        // chord_line_init: the band along the chord, w wide, inside the whole ellipse.
+        public static ClipEllipse ChordLine(int a, int b, int w, float al, float ar)
+        {
+            double xl = a * Libm.cos(al * Math.PI / 180.0), xr = a * Libm.cos(ar * Math.PI / 180.0);
+            double yl = b * Libm.sin(al * Math.PI / 180.0), yr = b * Libm.sin(ar * Math.PI / 180.0);
+            double la = yr - yl, lb = xl - xr, lc = -(la * xl + lb * yl);
+            var root = new ClipNode { IsAnd = true, L = Clip(la, lb, lc), R = Clip(-la, -lb, 2 * w * Math.Sqrt(Libm.pow(la, 2.0) + Libm.pow(lb, 2.0)) - lc) };
+            return new ClipEllipse(new EllipseState(a, b, a + b + 1), root);
         }
 
         // pie_init: the ellipse between two rays from its centre.

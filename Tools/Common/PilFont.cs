@@ -62,6 +62,8 @@ public sealed unsafe class PilFont
     [DllImport(FT)] static extern void FT_Stroker_Done(nint stroker);
     [DllImport(FT)] static extern int FT_Glyph_StrokeBorder(ref nint glyph, nint stroker, byte inside, byte destroy);
     [DllImport(FT)] static extern int FT_Glyph_To_Bitmap(ref nint glyph, int mode, ref Vector origin, byte destroy);
+    [DllImport(FT)] static extern uint FT_Get_Char_Index(nint face, nuint charcode);
+    [DllImport(FT)] static extern int FT_Get_Kerning(nint face, uint left, uint right, uint mode, out Vector kerning);
     [DllImport(Raqm)] static extern nint raqm_create();
     [DllImport(Raqm)] static extern void raqm_destroy(nint rq);
     [DllImport(Raqm)] static extern byte raqm_set_text(nint rq, uint* text, nuint length);
@@ -71,15 +73,18 @@ public sealed unsafe class PilFont
     [DllImport(Raqm)] static extern RaqmGlyph* raqm_get_glyphs(nint rq, out nuint length);
 
     // Offsets into FreeType's records on 64-bit Linux (freetype.h, ftglyph.h).
-    const int FaceGlyph = 152, FaceSize = 160, SizeAscender = 48;
+    const int FaceFlags = 16, SlotHoriAdvance = 80, FaceGlyph = 152, FaceSize = 160, SizeAscender = 48;
     const int SlotBitmap = 152, SlotBitmapLeft = 192, SlotBitmapTop = 196;
     const int BitmapGlyphLeft = 40, BitmapGlyphTop = 44, BitmapGlyphBitmap = 48;
 
     static nint library;
     readonly nint face;
+    readonly bool basic;
 
-    public PilFont(string path, float size)
+    /// <summary>ImageFont.truetype(path, size); basic: Layout.BASIC, as load_default() uses it.</summary>
+    public PilFont(string path, float size, bool basic = false)
     {
+        this.basic = basic;
         if (library == 0 && FT_Init_FreeType(out library) != 0)
             throw new InvalidOperationException("FreeType");
         Check(FT_New_Face(library, path, 0, out face));
@@ -97,9 +102,33 @@ public sealed unsafe class PilFont
 
     nint Slot => *(nint*)(face + FaceGlyph);
 
+    // text_layout_fallback: glyph by glyph with FreeType's kerning.
+    GlyphInfo[] LayoutBasic(string text)
+    {
+        int[] codepoints = [.. EnumerateRunes(text)];
+        bool kerning = (*(nint*)(face + FaceFlags) & (1 << 6)) != 0;
+        uint last = 0;
+        var info = new GlyphInfo[codepoints.Length];
+        for (int i = 0; i < info.Length; i++)
+        {
+            info[i].Index = (int)FT_Get_Char_Index(face, (nuint)codepoints[i]);
+            Check(FT_Load_Glyph(face, (uint)info[i].Index, LoadDefault));
+            if (kerning && last != 0 && info[i].Index != 0 && FT_Get_Kerning(face, last, (uint)info[i].Index, 0, out Vector delta) == 0)
+            {
+                info[i - 1].XAdvance += Pixel(delta.X);
+                info[i - 1].YAdvance += Pixel(delta.Y);
+            }
+            info[i].XAdvance = (int)*(nint*)(Slot + SlotHoriAdvance);
+            last = (uint)info[i].Index;
+        }
+        return info;
+    }
+
     // text_layout_raqm.
     GlyphInfo[] Layout(string text)
     {
+        if (basic)
+            return LayoutBasic(text);
         int[] codepoints = [.. EnumerateRunes(text)];
         nint rq = raqm_create();
         try

@@ -43,7 +43,7 @@ Bin/Probes/Release/KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumph
   determinism|clock|stairrun|rampfoot|crouchedge|knockback|thirdperson|wallknock|capture|netstate|netplay|bots>
 Bin/Probes/Release/KotH.Probes determinism hashes   # Hashkette C857D39208F53C83, JIT = AOT
 Bin/Probes/Release/KotH.Probes bots climb 12        # Berg (Neu), Mittel ≤ 140 s, Zappeln/Blick; bots stats 12, jumplab
-.work/tools/climb_many.sh ORDNER 8 13 && .work/tools/climb_many.py ORDNER   # 104 Seeds, jeder Bot einzeln
+.work/tools/climb_many.sh ORDNER 8 13 && dotnet run .work/tools/climb_many.cs -- ORDNER   # 104 Seeds, jeder Bot einzeln
 .work/tools/stride_runs.sh 3; R=Reference/unity/runs
 dotnet run Tools/Verdict.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # Urteile (95, davon 94 gleich)
 dotnet run Tools/Regress.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # Zahlen in 5 mm / 1 %
@@ -52,7 +52,7 @@ dotnet run Tools/Regress.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # Za
 - Abweichungen und gewollte Änderungen in `Reference/REGRESSION.md`; ohne Unity-Referenz: `stairrun`, `rampfoot`,
   `crouchedge`, `thirdperson`, `wallknock`, `capture`, `netstate`, `netplay`. `.work/` hält Werkzeuge (`/tmp` flüchtig).
 - **JIT nur mit `DOTNET_EnableAVX=0`** (AOT `x86-64-v2`, Luca). Regression nur, wenn der Messpfad berührt ist; Bots ≥ 100 Runs.
-- Spuren: `KOTH_BOTTRACE=tick` (`_BOT=n`), `KOTH_HOPLOG=n`, `KOTH_BOTPATH=datei` (Draufsicht `.work/bots/routes.py`),
+- Spuren: `KOTH_BOTTRACE=tick` (`_BOT=n`), `KOTH_HOPLOG=n`, `KOTH_BOTPATH=datei` (Draufsicht `.work/bots/routes.cs`),
   `KOTH_CLIMB_FIRST=k`, `KOTH_JAMTEST=1`; Labor `KOTH_LAB_LOOK=x,y,z`, `KOTH_LAB_STUCK=x,y,z`.
 
 ## Architektur

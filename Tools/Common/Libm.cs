@@ -27,4 +27,5 @@ public static class Libm
     [DllImport(Lib)] public static extern float cosf(float x);
     [DllImport(Lib)] public static extern float powf(float x, float y);
     [DllImport(Lib)] public static extern float expf(float x);
+    [DllImport(Lib)] public static extern float acosf(float x);
 }

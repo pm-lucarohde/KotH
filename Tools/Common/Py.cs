@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Numerics;
 
 namespace KotH.Tools;
@@ -101,8 +102,30 @@ public static class Py
         return (a % b != 0) && ((a < 0) != (b < 0)) ? q - 1 : q;
     }
 
+    /// <summary>float // float as CPython's float_floor_div: from fmod, with its correction.</summary>
+    public static double FloorDiv(double vx, double wx)
+    {
+        double mod = vx % wx;
+        double div = (vx - mod) / wx;
+        if (mod != 0)
+        {
+            if ((wx < 0) != (mod < 0))
+                div -= 1.0;
+        }
+        if (div == 0)
+            return Math.CopySign(0.0, vx / wx);
+        double floordiv = Math.Floor(div);
+        if (div - floordiv > 0.5)
+            floordiv += 1.0;
+        return floordiv;
+    }
+
     /// <summary>round(x): to the nearest int, halves to even.</summary>
     public static int Round(double x) => (int)Math.Round(x, MidpointRounding.ToEven);
+
+    /// <summary>round(x, digits): the exact value rounded half to even in decimal, read back.</summary>
+    public static double Round(double x, int digits) =>
+        double.IsFinite(x) ? Float(F(x, digits)) : x;
 
     /// <summary>float ** float: the C library's pow, as CPython's float_pow (no special case changes a finite result here).</summary>
     public static double Pow(double x, double y)
@@ -153,6 +176,79 @@ public static class Py
         var (num, den) = Exact(Math.Abs(v));
         string digits = RoundScaled(num, den, decimals).ToString(Inv);
         return (double.IsNegative(v) ? "-" : "") + Place(digits, decimals);
+    }
+
+    /// <summary>Python's "%+.{decimals}f".</summary>
+    public static string FPlus(double v, int decimals) => (double.IsNegative(v) ? "" : "+") + F(v, decimals);
+
+    /// <summary>statistics.mean: the exact sum over n, rounded once (CPython sums Fractions).</summary>
+    public static double Mean(IEnumerable<double> values)
+    {
+        BigInteger total = BigInteger.Zero;
+        long n = 0;
+        foreach (double v in values)
+        {
+            var (num, den) = Exact(Math.Abs(v));
+            // Every double is a multiple of 2^-1074.
+            BigInteger scaled = num * (BigInteger.One << 1074) / den;
+            total += double.IsNegative(v) ? -scaled : scaled;
+            n++;
+        }
+        if (n == 0)
+            throw new InvalidOperationException("mean requires at least one data point");
+        return Ratio(total, (BigInteger)n << 1074);
+    }
+
+    /// <summary>statistics.median: the middle value, or the mean of the middle two.</summary>
+    public static double Median(IEnumerable<double> values)
+    {
+        var sorted = new List<double>(values);
+        sorted.Sort();
+        int n = sorted.Count;
+        if (n == 0)
+            throw new InvalidOperationException("no median for empty data");
+        return n % 2 == 1 ? sorted[n / 2] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
+    }
+
+    /// <summary>statistics.quantiles(data, n=n) with the default 'exclusive' method.</summary>
+    public static double[] Quantiles(IEnumerable<double> values, int n)
+    {
+        var data = new List<double>(values);
+        data.Sort();
+        int ld = data.Count;
+        if (ld < 2)
+            return ld == 1 ? Enumerable.Repeat(data[0], n - 1).ToArray() : throw new InvalidOperationException("must have at least one data point");
+        long m = ld + 1;
+        var result = new double[n - 1];
+        for (int i = 1; i < n; i++)
+        {
+            long j = Math.Clamp(i * m / n, 1, ld - 1);
+            long delta = i * m - j * n;
+            result[i - 1] = (data[(int)j - 1] * (n - delta) + data[(int)j] * delta) / n;
+        }
+        return result;
+    }
+
+    // num / den correctly rounded to a double (Python's int / int).
+    static double Ratio(BigInteger num, BigInteger den)
+    {
+        if (num.IsZero)
+            return 0.0;
+        bool negative = num.Sign < 0;
+        num = BigInteger.Abs(num);
+        long shift = 55 - (long)(num.GetBitLength() - den.GetBitLength());
+        if (shift > 0)
+            num <<= (int)shift;
+        else
+            den <<= (int)-shift;
+        BigInteger q = BigInteger.DivRem(num, den, out BigInteger r);
+        int extra = (int)q.GetBitLength() - 53;
+        BigInteger low = q & ((BigInteger.One << extra) - 1), half = BigInteger.One << (extra - 1);
+        q >>= extra;
+        if (low > half || (low == half && (!r.IsZero || !q.IsEven)))
+            q++;
+        double result = Math.ScaleB((double)q, (int)(extra - shift));
+        return negative ? -result : result;
     }
 
     /// <summary>Python's float() of a number in the scripts' text: invariant, with exponent.</summary>

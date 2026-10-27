@@ -25,9 +25,11 @@ public sealed class Png
 
     static readonly byte[] Signature = [137, 80, 78, 71, 13, 10, 26, 10];
 
-    public static Png Read(string path)
+    public static Png Read(string path) => Decode(File.ReadAllBytes(path), path);
+
+    /// <summary>A PNG from its bytes (an image inside a glb); name only labels errors.</summary>
+    public static Png Decode(byte[] file, string path = "PNG")
     {
-        byte[] file = File.ReadAllBytes(path);
         if (!file.AsSpan(0, 8).SequenceEqual(Signature))
             throw new InvalidDataException($"{path}: kein PNG");
         int width = 0, height = 0, depth = 0, type = 0;
@@ -110,7 +112,10 @@ public sealed class Png
         return pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
     }
 
-    public void Write(string path)
+    public void Write(string path) => File.WriteAllBytes(path, Encode());
+
+    /// <summary>The PNG file's bytes.</summary>
+    public byte[] Encode()
     {
         int type = Channels switch { 1 => 0, 2 => 4, 3 => 2, 4 => 6, _ => throw new NotSupportedException() };
         int stride = Width * Channels;
@@ -146,7 +151,7 @@ public sealed class Png
                 z.Write(best);
             }
         }
-        using var file = File.Create(path);
+        var file = new MemoryStream();
         file.Write(Signature);
         Span<byte> header = stackalloc byte[13];
         BinaryPrimitives.WriteInt32BigEndian(header, Width);
@@ -156,6 +161,7 @@ public sealed class Png
         Chunk(file, "IHDR", header);
         Chunk(file, "IDAT", compressed.GetBuffer().AsSpan(0, (int)compressed.Length));
         Chunk(file, "IEND", []);
+        return file.ToArray();
     }
 
     static void Chunk(Stream s, string kind, ReadOnlySpan<byte> body)
