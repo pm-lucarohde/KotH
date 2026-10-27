@@ -110,6 +110,7 @@ CARD_LENGTH = (0.72, 1.035)  # metres, a third of it inside the crown
 # The leaves are cut out of their texture (Luca); copies of the crown this far
 # in, this much darker, fill it behind the gaps. Only drawn, not in the collision.
 LEAF_SHELLS = ((0.3, 0.8), (0.6, 0.62))
+SHELL_SEARCH = 12.0       # metres a ray from a leaf corner inward looks for the crown's far side
 
 
 
@@ -1052,15 +1053,79 @@ def parts(mesh):
             # TEXCOORD_0.y = 1 marks the leaves (LeafSplat needs it no more).
             uv = [(u[0], 1.0) for u in uv]
             n = len(used)
+            room = shell_room(pos, nrm, idx)
+            print(f'Laub: {sum(r < 1.0 for r in room)} von {n} Ecken zu dünn für die inneren Schalen, '
+                  f'{sum(r == 0.0 for r in room)} ohne')
+            # A shell face on a corner without room would stand on the crown itself.
+            held = [i for f in range(0, len(faces) * 3, 3) if all(room[v] > 0 for v in idx[f:f + 3]) for i in idx[f:f + 3]]
             for depth, dark in LEAF_SHELLS:
                 base = len(pos)
-                pos += [tuple(pos[i][k] - depth * nrm[i][k] for k in range(3)) for i in range(n)]
+                pos += [tuple(pos[i][k] - depth * room[i] * nrm[i][k] for k in range(3)) for i in range(n)]
                 nrm += nrm[:n]
                 col += col[:n]
                 uv += [(uv[i][0] * dark, uv[i][1]) for i in range(n)]
-                idx += [base + i for i in idx[:len(faces) * 3]]
+                idx += [base + i for i in held]
         out.append((name, pos, nrm, idx, col, uv))
     return out
+
+
+def shell_room(pos, nrm, idx):
+    """Per leaf vertex the share of LEAF_SHELLS' depths that fits under it:
+    where a ray inward along the normal leaves the crown again within twice
+    the deepest shell (a lump, a thin top), the shells keep to its middle,
+    else they came out on the far side as dark patches (Luca). None where the
+    ray meets no wall from inside within SHELL_SEARCH (a loose sliver, a
+    normal turned out): there the shell stood above the crown."""
+    deepest = max(depth for depth, _ in LEAF_SHELLS)
+    reach = 2 * deepest
+    grid = {}
+    for f in range(0, len(idx), 3):
+        tri = [pos[v] for v in idx[f:f + 3]]
+        lo = [math.floor(min(p[k] for p in tri) / reach) for k in range(3)]
+        hi = [math.floor(max(p[k] for p in tri) / reach) for k in range(3)]
+        for cx in range(lo[0], hi[0] + 1):
+            for cy in range(lo[1], hi[1] + 1):
+                for cz in range(lo[2], hi[2] + 1):
+                    grid.setdefault((cx, cy, cz), []).append(f)
+    room = []
+    for v, (p, n) in enumerate(zip(pos, nrm)):
+        d = (-n[0], -n[1], -n[2])
+        near, inside, seen, along = SHELL_SEARCH, False, set(), 0.0
+        while along < near:
+            home = [math.floor((p[k] + d[k] * along) / reach) for k in range(3)]
+            for cx in (home[0] - 1, home[0], home[0] + 1):
+                for cy in (home[1] - 1, home[1], home[1] + 1):
+                    for cz in (home[2] - 1, home[2], home[2] + 1):
+                        for f in grid.get((cx, cy, cz), ()):
+                            if f in seen or v in idx[f:f + 3]:
+                                continue
+                            seen.add(f)
+                            corners = idx[f:f + 3]
+                            t = ray_triangle(p, d, *(pos[w] for w in corners))
+                            if t is not None and 0.01 < t < near:
+                                near = t
+                                inside = sum(d[k] * nrm[w][k] for w in corners for k in range(3)) > 0
+            along += reach
+        room.append(min(1.0, near / reach) if inside else 0.0)
+    return room
+
+
+def ray_triangle(o, d, a, b, c):
+    """Distance along d from o to triangle abc (Möller-Trumbore), or None."""
+    e1, e2 = sub(b, a), sub(c, a)
+    h = cross(d, e2)
+    det = sum(e1[k] * h[k] for k in range(3))
+    if abs(det) < 1e-12:
+        return None
+    s = sub(o, a)
+    u = sum(s[k] * h[k] for k in range(3)) / det
+    if u < 0 or u > 1:
+        return None
+    q = cross(s, e1)
+    w = sum(d[k] * q[k] for k in range(3)) / det
+    if w < 0 or u + w > 1:
+        return None
+    return sum(e2[k] * q[k] for k in range(3)) / det
 
 
 def sea(t):
