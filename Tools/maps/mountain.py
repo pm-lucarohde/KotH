@@ -107,10 +107,9 @@ CROWN_WIDTH = 1.1          # crowns this much wider than the lobes say (Luca: 10
 CROWN_BLOCKY = 0.5         # share of the old leaf blocks in the crown's shape (Luca: between round and blocky)
 CARDS = 200                # twigs standing out of every crown, evenly all round (Luca, after "bushy leaves" packs)
 CARD_LENGTH = (0.72, 1.035)  # metres, a third of it inside the crown
-# The leaves are cut out of their texture (Luca); copies of the crown this far
-# in, this much darker, fill it behind the gaps. Only drawn, not in the collision.
+# The leaves are cut out of their texture (Luca); the crown's surface this far
+# in, this much darker, fills it behind the gaps. Only drawn, not in the collision.
 LEAF_SHELLS = ((0.3, 0.8), (0.6, 0.62))
-SHELL_SEARCH = 12.0       # metres a ray from a leaf corner inward looks for the crown's far side
 
 
 
@@ -457,6 +456,7 @@ def check_climb(t):
 # ground and leaves close over their blocks only to the eye, so the
 # collision has no floor inside a trunk for the bots' grid.
 GROUND, FOLIAGE, TRUNK, CARD = 0, 1, 2, 3
+SHELL = 4  # a crown's inner leaf shells (LEAF_SHELLS), drawn with the leaves
 
 # The dual cell round a block corner: its 8 blocks (i, j, k in 0, 1 from the
 # corner's lower side) and the 12 edges between blocks next to each other.
@@ -617,11 +617,15 @@ def build_mesh(t):
                 if block(t, x + n[0], y, z + n[2]) is None:
                     mesh.face(x, y, z, n, GROUND)
     mesh.finish()
+    shells = []
     for x, z, top, blocks, n in t.crowns:
         base = t.height[x, z]
         # The trunk reaches into the crown's middle.
         round_trunk(mesh, x, z, base, top - 1.3)
-        round_crown(mesh, random.Random(t.seed * 1000 + n), x, z, top, blocks)
+        shells.append(round_crown(mesh, random.Random(t.seed * 1000 + n), x, z, top, blocks))
+    # The shells last: everything before keeps its numbers, the collision its bytes.
+    for shell in shells:
+        shell()
     simplify(mesh)
     return mesh
 
@@ -692,7 +696,7 @@ def round_crown(mesh, rng, x, z, top, blocks):
     of the way from the lobes (run together over CROWN_MELT, a little noise
     for lumps) to the old leaf blocks. Both as distances in metres, so the
     blend stays clean far from either. Normals from the field, lighter on
-    top; solid like the leaf blocks were."""
+    top; solid like the leaf blocks were. Returns what adds its inner shells."""
     lobes = crown_lobes(rng, x, z, top)
     seed = rng.randrange(1 << 30)
 
@@ -723,64 +727,78 @@ def round_crown(mesh, rng, x, z, top, blocks):
     def point(i, j, k):
         return (lo[0] + i * CROWN_STEP, lo[1] + j * CROWN_STEP, lo[2] + k * CROWN_STEP)
     values = {(i, j, k): field(point(i, j, k)) for i in range(size[0]) for j in range(size[1]) for k in range(size[2])}
-    first = len(mesh.pos)
     corners = [(a, b, c) for a in (0, 1) for b in (0, 1) for c in (0, 1)]
     edges = [(u, v) for u in corners for v in corners if u < v and sum(abs(u[n] - v[n]) for n in range(3)) == 1]
-    cell = {}
-    for i in range(size[0] - 1):
-        for j in range(size[1] - 1):
-            for k in range(size[2] - 1):
-                # The mean of the crossings on the cell's edges.
-                sx = sy = sz = n = 0
-                for u, v in edges:
-                    fu = values[i + u[0], j + u[1], k + u[2]]
-                    fv = values[i + v[0], j + v[1], k + v[2]]
-                    if (fu > 0) != (fv > 0):
-                        s = fu / (fu - fv)
-                        pu, pv = point(i + u[0], j + u[1], k + u[2]), point(i + v[0], j + v[1], k + v[2])
-                        sx += pu[0] + s * (pv[0] - pu[0])
-                        sy += pu[1] + s * (pv[1] - pu[1])
-                        sz += pu[2] + s * (pv[2] - pu[2])
-                        n += 1
-                if not n:
+
+    def surface(level, kind, dark):
+        # The field's surface at level (metres inside), shaded dark.
+        cell = {}
+        for i in range(size[0] - 1):
+            for j in range(size[1] - 1):
+                for k in range(size[2] - 1):
+                    # The mean of the crossings on the cell's edges.
+                    sx = sy = sz = n = 0
+                    for u, v in edges:
+                        fu = values[i + u[0], j + u[1], k + u[2]] - level
+                        fv = values[i + v[0], j + v[1], k + v[2]] - level
+                        if (fu > 0) != (fv > 0):
+                            s = fu / (fu - fv)
+                            pu, pv = point(i + u[0], j + u[1], k + u[2]), point(i + v[0], j + v[1], k + v[2])
+                            sx += pu[0] + s * (pv[0] - pu[0])
+                            sy += pu[1] + s * (pv[1] - pu[1])
+                            sz += pu[2] + s * (pv[2] - pu[2])
+                            n += 1
+                    if not n:
+                        continue
+                    p = (sx / n, sy / n, sz / n)
+                    h = 0.05
+                    g = [field(tuple(p[m] + (h if m == a else 0.0) for m in range(3)))
+                         - field(tuple(p[m] - (h if m == a else 0.0) for m in range(3))) for a in range(3)]
+                    length = math.sqrt(sum(v * v for v in g)) or 1.0
+                    normal = tuple(-v / length for v in g)
+                    cell[i, j, k] = len(mesh.pos)
+                    mesh.pos.append(p)
+                    mesh.nrm.append(normal)
+                    mesh.col.append((0.0, 0.0, 0.0, 0.0))
+                    mesh.uv.append(((0.72 + 0.28 * (0.5 + 0.5 * normal[1])) * dark, 0.0))
+                    mesh.keys.append((None, kind))
+        # A quad round every grid edge the surface crosses, of the four cells sharing it.
+        for (i, j, k), f in values.items():
+            for axis in range(3):
+                o = [i, j, k]
+                o[axis] += 1
+                if tuple(o) not in values or (f > level) == (values[tuple(o)] > level):
                     continue
-                p = (sx / n, sy / n, sz / n)
-                h = 0.05
-                g = [field(tuple(p[m] + (h if m == a else 0.0) for m in range(3)))
-                     - field(tuple(p[m] - (h if m == a else 0.0) for m in range(3))) for a in range(3)]
-                length = math.sqrt(sum(v * v for v in g)) or 1.0
-                normal = tuple(-v / length for v in g)
-                cell[i, j, k] = len(mesh.pos)
-                mesh.pos.append(p)
-                mesh.nrm.append(normal)
-                mesh.col.append((0.0, 0.0, 0.0, 0.0))
-                mesh.uv.append((0.72 + 0.28 * (0.5 + 0.5 * normal[1]), 0.0))
-                mesh.keys.append((None, FOLIAGE))
-    # A quad round every grid edge the surface crosses, of the four cells sharing it.
+                b, c = [m for m in range(3) if m != axis]
+                ring = []
+                for db, dc in ((0, 0), (1, 0), (1, 1), (0, 1)):
+                    q = [i, j, k]
+                    q[b] -= db
+                    q[c] -= dc
+                    ring.append(cell.get(tuple(q)))
+                if None in ring:
+                    continue
+                out = [0.0, 0.0, 0.0]
+                out[axis] = 1.0 if f > level else -1.0
+                for tri in ((ring[0], ring[1], ring[2]), (ring[0], ring[2], ring[3])):
+                    p = [mesh.pos[v] for v in tri]
+                    if sum(cross(sub(p[1], p[0]), sub(p[2], p[0]))[m] * out[m] for m in range(3)) < 0:
+                        tri = (tri[0], tri[2], tri[1])
+                    if kind == SHELL:
+                        mesh.unsolid.add(len(mesh.idx) // 3)
+                    mesh.idx += tri
+
     faces = len(mesh.idx)
-    for (i, j, k), f in values.items():
-        for axis in range(3):
-            o = [i, j, k]
-            o[axis] += 1
-            if tuple(o) not in values or (f > 0) == (values[tuple(o)] > 0):
-                continue
-            b, c = [m for m in range(3) if m != axis]
-            ring = []
-            for db, dc in ((0, 0), (1, 0), (1, 1), (0, 1)):
-                q = [i, j, k]
-                q[b] -= db
-                q[c] -= dc
-                ring.append(cell.get(tuple(q)))
-            if None in ring:
-                continue
-            out = [0.0, 0.0, 0.0]
-            out[axis] = 1.0 if f > 0 else -1.0
-            for tri in ((ring[0], ring[1], ring[2]), (ring[0], ring[2], ring[3])):
-                p = [mesh.pos[v] for v in tri]
-                if sum(cross(sub(p[1], p[0]), sub(p[2], p[0]))[m] * out[m] for m in range(3)) < 0:
-                    tri = (tri[0], tri[2], tri[1])
-                mesh.idx += tri
+    surface(0.0, FOLIAGE, 1.0)
     leaf_cards(mesh, rng, faces)
+
+    def shells():
+        # The field's own surfaces further in: inside wherever the crown is
+        # that thick, none where it is thinner (copies along the normal turned
+        # inside out there and stood out as dark lumps and smears, Luca).
+        for depth, dark in LEAF_SHELLS:
+            surface(depth, SHELL, dark)
+    return shells
 
 
 def leaf_cards(mesh, rng, faces):
@@ -893,7 +911,8 @@ def simplify(mesh):
             border.update((a, b))
     # Faces only to be seen keep their corners: no collision face shrinks under them.
     for f in mesh.unsolid:
-        border.update(faces[f])
+        if mesh.keys[faces[f][0]][1] != SHELL:
+            border.update(faces[f])
     alive = [True] * len(faces)
     gone = [False] * len(pos)
     version = [0] * len(pos)
@@ -1043,89 +1062,17 @@ def parts(mesh):
     """The mesh split by kind of block, each with only its own vertices; the
     leaves with their inner shells (LEAF_SHELLS)."""
     out = []
-    for kind, name in ((GROUND, 'Terrain'), (FOLIAGE, 'Leaves'), (TRUNK, 'Bark'), (CARD, 'LeafCards')):
-        faces = [mesh.idx[i:i + 3] for i in range(0, len(mesh.idx), 3) if mesh.keys[mesh.idx[i]][1] == kind]
+    for kinds, name in (((GROUND,), 'Terrain'), ((FOLIAGE, SHELL), 'Leaves'), ((TRUNK,), 'Bark'), ((CARD,), 'LeafCards')):
+        faces = [mesh.idx[i:i + 3] for i in range(0, len(mesh.idx), 3) if mesh.keys[mesh.idx[i]][1] in kinds]
         used = sorted({v for f in faces for v in f})
         new = {v: i for i, v in enumerate(used)}
         pos, nrm = [mesh.pos[v] for v in used], [mesh.nrm[v] for v in used]
         idx, col, uv = [new[v] for f in faces for v in f], [mesh.col[v] for v in used], [mesh.uv[v] for v in used]
-        if kind == FOLIAGE:
+        if FOLIAGE in kinds:
             # TEXCOORD_0.y = 1 marks the leaves (LeafSplat needs it no more).
             uv = [(u[0], 1.0) for u in uv]
-            n = len(used)
-            room = shell_room(pos, nrm, idx)
-            print(f'Laub: {sum(r < 1.0 for r in room)} von {n} Ecken zu dünn für die inneren Schalen, '
-                  f'{sum(r == 0.0 for r in room)} ohne')
-            # A shell face on a corner without room would stand on the crown itself.
-            held = [i for f in range(0, len(faces) * 3, 3) if all(room[v] > 0 for v in idx[f:f + 3]) for i in idx[f:f + 3]]
-            for depth, dark in LEAF_SHELLS:
-                base = len(pos)
-                pos += [tuple(pos[i][k] - depth * room[i] * nrm[i][k] for k in range(3)) for i in range(n)]
-                nrm += nrm[:n]
-                col += col[:n]
-                uv += [(uv[i][0] * dark, uv[i][1]) for i in range(n)]
-                idx += [base + i for i in held]
         out.append((name, pos, nrm, idx, col, uv))
     return out
-
-
-def shell_room(pos, nrm, idx):
-    """Per leaf vertex the share of LEAF_SHELLS' depths that fits under it:
-    where a ray inward along the normal leaves the crown again within twice
-    the deepest shell (a lump, a thin top), the shells keep to its middle,
-    else they came out on the far side as dark patches (Luca). None where the
-    ray meets no wall from inside within SHELL_SEARCH (a loose sliver, a
-    normal turned out): there the shell stood above the crown."""
-    deepest = max(depth for depth, _ in LEAF_SHELLS)
-    reach = 2 * deepest
-    grid = {}
-    for f in range(0, len(idx), 3):
-        tri = [pos[v] for v in idx[f:f + 3]]
-        lo = [math.floor(min(p[k] for p in tri) / reach) for k in range(3)]
-        hi = [math.floor(max(p[k] for p in tri) / reach) for k in range(3)]
-        for cx in range(lo[0], hi[0] + 1):
-            for cy in range(lo[1], hi[1] + 1):
-                for cz in range(lo[2], hi[2] + 1):
-                    grid.setdefault((cx, cy, cz), []).append(f)
-    room = []
-    for v, (p, n) in enumerate(zip(pos, nrm)):
-        d = (-n[0], -n[1], -n[2])
-        near, inside, seen, along = SHELL_SEARCH, False, set(), 0.0
-        while along < near:
-            home = [math.floor((p[k] + d[k] * along) / reach) for k in range(3)]
-            for cx in (home[0] - 1, home[0], home[0] + 1):
-                for cy in (home[1] - 1, home[1], home[1] + 1):
-                    for cz in (home[2] - 1, home[2], home[2] + 1):
-                        for f in grid.get((cx, cy, cz), ()):
-                            if f in seen or v in idx[f:f + 3]:
-                                continue
-                            seen.add(f)
-                            corners = idx[f:f + 3]
-                            t = ray_triangle(p, d, *(pos[w] for w in corners))
-                            if t is not None and 0.01 < t < near:
-                                near = t
-                                inside = sum(d[k] * nrm[w][k] for w in corners for k in range(3)) > 0
-            along += reach
-        room.append(min(1.0, near / reach) if inside else 0.0)
-    return room
-
-
-def ray_triangle(o, d, a, b, c):
-    """Distance along d from o to triangle abc (Möller-Trumbore), or None."""
-    e1, e2 = sub(b, a), sub(c, a)
-    h = cross(d, e2)
-    det = sum(e1[k] * h[k] for k in range(3))
-    if abs(det) < 1e-12:
-        return None
-    s = sub(o, a)
-    u = sum(s[k] * h[k] for k in range(3)) / det
-    if u < 0 or u > 1:
-        return None
-    q = cross(s, e1)
-    w = sum(d[k] * q[k] for k in range(3)) / det
-    if w < 0 or u + w > 1:
-        return None
-    return sum(e2[k] * q[k] for k in range(3)) / det
 
 
 def sea(t):
@@ -1174,8 +1121,11 @@ def write_collision(mesh, path):
         cx = sum(mesh.pos[i][0] for i in tri) / 3
         cz = sum(mesh.pos[i][2] for i in tri) / 3
         chunks.setdefault((math.floor(cx / CHUNK), math.floor(cz / CHUNK)), []).append(tri)
-    out = [struct.pack('<4sII', b'KTRN', 1, len(mesh.pos))]
-    out += [struct.pack('<3f', *p) for p in mesh.pos]
+    # The leaf shells come last (build_mesh) and are not solid.
+    solid = sum(key[1] != SHELL for key in mesh.keys)
+    assert all(key[1] == SHELL for key in mesh.keys[solid:])
+    out = [struct.pack('<4sII', b'KTRN', 1, solid)]
+    out += [struct.pack('<3f', *p) for p in mesh.pos[:solid]]
     out.append(struct.pack('<I', len(chunks)))
     for key in sorted(chunks):
         tris = chunks[key]
