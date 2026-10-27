@@ -4,7 +4,9 @@
 /// the full depth (read at every other pixel), Texture1 the cloud map.
 /// The clouds are marched through their thin layer; the fog has a part that
 /// depends on height only, integrated exactly, and a part gathered round the
-/// centre, marched in 8 steps. Both fog parts are split at the clouds' depth.
+/// centre, marched in 8 steps. The coastal fog lies low on the water in a ring
+/// round the centre, in 2 to 10 pieces through the slab, haze and wisps
+/// (the map's blue). All fog is split at the clouds' depth.
 /// </summary>
 shader AtmosphereMarch : ImageEffectShader, CloudLayer
 {
@@ -25,8 +27,14 @@ shader AtmosphereMarch : ImageEffectShader, CloudLayer
     float2 Wind;
     float3 CloudTopColor;
     float3 CloudBottomColor;
+    float4 CoastHeights;    // water, top, 0, metres a pixel spans per metre away
+    float4 CoastRing;       // radii: starts, full, thins, gone
+    float4 CoastShape;      // density, haze share, 1 / repeat of the wisps, texels per metre
+    float CoastOffset;
+    float3 CoastColor;
 
     static const int FogSteps = 8;
+    static const int CoastSteps = 10;
     static const int MaxCloudSteps = 16;
 
     // The fog's height profile: 0 up to the start, 1 at the peak, 0 again at the top.
@@ -57,6 +65,12 @@ shader AtmosphereMarch : ImageEffectShader, CloudLayer
         if (abs(d.y) < 1e-4)
             return Ramp(o.y) * (t1 - t0);
         return (RampIntegral(o.y + d.y * t1) - RampIntegral(o.y + d.y * t0)) / d.y;
+    }
+
+    // The coastal fog's fall-off 1 - smoothstep(0, 1, h) integrated over h from 0.
+    float LowIntegral(float h)
+    {
+        return h - h * h * h + 0.5 * h * h * h * h;
     }
 
     // Where the ray is between two heights, within [t0, t1]; empty when x > y.
@@ -158,9 +172,59 @@ shader AtmosphereMarch : ImageEffectShader, CloudLayer
                 }
             }
         }
-        float3 fog = FogColor + FogSun * SunColor * pow(saturate(dot(d, ToSun)), 4.0);
-        float front = exp(-before), back = exp(-after);
-        float3 light = fog * (1.0 - front) + front * (cloud + through * fog * (1.0 - back));
+        // Coastal fog: through the slab over the water, inside the ring's outer circle.
+        float coastBefore = 0, coastAfter = 0;
+        float2 oc2 = o.xz - FogShape.zw;
+        float B2 = dot(oc2, d.xz), A2 = dot(d.xz, d.xz);
+        float root2 = B2 * B2 - A2 * (dot(oc2, oc2) - CoastRing.w * CoastRing.w);
+        if (CoastShape.x > 0.0 && root2 > 0.0 && A2 > 1e-8)
+        {
+            root2 = sqrt(root2);
+            // The ring bounds it, not the fog's reach: the menu's far eye saw that circle cut the sea.
+            // The depth buffer (far 20 km) puts the water metres off far away, anew each frame,
+            // and the fog is densest right on it: run on by that error (the slab ends at the water).
+            float slack = z >= 1.0 ? 0.0 : scene * scene * 2.4e-7 / NearFar.x;
+            float2 slab = Slab(o, d, CoastHeights.x, CoastHeights.y, max((-B2 - root2) / A2, 0.0), min((-B2 + root2) / A2, scene + slack));
+            if (slab.x < slab.y)
+            {
+                // Pieces by the run over the water (seen from above it is short). The fall-off
+                // with height is integrated exactly on each piece, ring and wisps are read at
+                // its middle: jittered steps through the thin slab flickered as the eye moved.
+                float across = sqrt(A2);
+                int steps = (int)clamp(ceil((slab.y - slab.x) * across / 12.0), 2.0, (float)CoastSteps);
+                float ds = (slab.y - slab.x) / steps;
+                float span = CoastHeights.y - CoastHeights.x;
+                float rise = d.y / span;
+                for (int i = 0; i < steps; i++)
+                {
+                    float ta = slab.x + i * ds, t = ta + 0.5 * ds;
+                    float ha = saturate((o.y + d.y * ta - CoastHeights.x) / span);
+                    float hb = saturate((o.y + d.y * (ta + ds) - CoastHeights.x) / span);
+                    float low = abs(rise) > 1e-4 ? (LowIntegral(hb) - LowIntegral(ha)) / rise : (1.0 - smoothstep(0.0, 1.0, ha)) * ds;
+                    float3 p = o + d * t;
+                    float r = length(p.xz - FogShape.zw);
+                    float ring = smoothstep(CoastRing.x, CoastRing.y, r) * (1.0 - smoothstep(CoastRing.z, CoastRing.w, r));
+                    // Read as coarse as a pixel or a piece spans, or far wisps flicker.
+                    float lod = log2(max(1.0, max(t * CoastHeights.w, ds * across) * CoastShape.w));
+                    float2 w = float2(dot(p.xz, Wind), dot(p.xz, float2(-Wind.y, Wind.x))) * CoastShape.z - float2(CoastOffset, 0.0);
+                    float wisp = smoothstep(0.35, 0.75, Texture1.SampleLevel(LinearRepeatSampler, w, lod).b);
+                    float tau = CoastShape.x * ring * low * (CoastShape.y + (1.0 - CoastShape.y) * wisp);
+                    if (t < split)
+                        coastBefore += tau;
+                    else
+                        coastAfter += tau;
+                }
+            }
+        }
+
+        // Both fogs' colours, mixed by how much of each lies in front of and behind the clouds.
+        float glow = pow(saturate(dot(d, ToSun)), 4.0);
+        float3 fog = FogColor + FogSun * SunColor * glow;
+        float3 coast = CoastColor + FogSun * SunColor * glow;
+        float3 fogFront = (fog * before + coast * coastBefore) / max(before + coastBefore, 1e-6);
+        float3 fogBack = (fog * after + coast * coastAfter) / max(after + coastAfter, 1e-6);
+        float front = exp(-before - coastBefore), back = exp(-after - coastAfter);
+        float3 light = fogFront * (1.0 - front) + front * (cloud + through * fogBack * (1.0 - back));
         return float4(light, front * through * back);
     }
 };

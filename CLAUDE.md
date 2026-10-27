@@ -122,7 +122,7 @@ Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall 
 - `MusicPlayer` (`Music`): Menü, Lobby (bis `Running`), Spielbeginn, Playlist; 3,5 s Überblendung, 0,1224, im Netz bestätigt. `SoundEffects`: Ambient, Figuren (`PlayerVisualSystem.Sounded`) relativ zur Kamera, `Tools/audio/sfx.py`.
 - Licht: VXGI (`ThirdParty/Stride.Voxels`, README), Profil 11; je Map `GI` (256 m, Bricks 0,125 m, GI 0,27, `LightVoxel.Sky`); Map-Licht
   und -Sonne (auch Meer; Blätterschatten stehen still) in Lightmap 4096², Map-Schatten einmal `StaticSunShadowRenderer`, Kaskaden nur Figuren (6 Kapseln).
-  Nebel und Wolken: `Atmosphere` (Neu) → `AtmosphereEffects` vor FXAA (halbe Auflösung), Karte `Tools/maps/clouds.py`, Schatten im `CascadeShadowReceiver`.
+  Nebel, Küstennebel (Ring über dem Wasser, Schwaden im Blau der Karte) und Wolken: `Atmosphere` (Neu) → `AtmosphereEffects` vor FXAA (halbe Auflösung), Karte `Tools/maps/clouds.py`, Schatten im `CascadeShadowReceiver`.
 
 ### Bots (`KotH.Shared/Bots`)
 - Treten wie Spieler bei (NetId ab 4, Slots nach `NetWorld.BotSlots`), offline/Host `--bots N` (Standard 3), stehen bei Rundenbeginn 3 s (`StartWait`).

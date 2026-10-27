@@ -11,7 +11,7 @@ using Stride.Rendering.Lights;
 namespace KotH.Client.Rendering
 {
     /// <summary>
-    /// The map's fog and clouds (<see cref="Atmosphere"/>) before Stride's post
+    /// The map's fog, coastal fog and clouds (<see cref="Atmosphere"/>) before Stride's post
     /// effects (<see cref="Inner"/>, FXAA): AtmosphereMarch along every view ray
     /// at half resolution, then AtmosphereComposite blends it over the colour at
     /// full resolution, in place. Without an Atmosphere in the scene it passes
@@ -39,6 +39,11 @@ namespace KotH.Client.Rendering
         static readonly ValueParameterKey<Vector2> Wind = ParameterKeys.NewValue<Vector2>(default, "AtmosphereMarch.Wind");
         static readonly ValueParameterKey<Vector3> CloudTopColor = ParameterKeys.NewValue<Vector3>(default, "AtmosphereMarch.CloudTopColor");
         static readonly ValueParameterKey<Vector3> CloudBottomColor = ParameterKeys.NewValue<Vector3>(default, "AtmosphereMarch.CloudBottomColor");
+        static readonly ValueParameterKey<Vector4> CoastHeights = ParameterKeys.NewValue<Vector4>(default, "AtmosphereMarch.CoastHeights");
+        static readonly ValueParameterKey<Vector4> CoastRing = ParameterKeys.NewValue<Vector4>(default, "AtmosphereMarch.CoastRing");
+        static readonly ValueParameterKey<Vector4> CoastShape = ParameterKeys.NewValue<Vector4>(default, "AtmosphereMarch.CoastShape");
+        static readonly ValueParameterKey<float> CoastOffset = ParameterKeys.NewValue<float>(default, "AtmosphereMarch.CoastOffset");
+        static readonly ValueParameterKey<Vector3> CoastColor = ParameterKeys.NewValue<Vector3>(default, "AtmosphereMarch.CoastColor");
         static readonly ValueParameterKey<Vector2> NearFar = ParameterKeys.NewValue<Vector2>(default, "AtmosphereComposite.NearFar");
 
         [DataMember(-100), Display(Browsable = false)]
@@ -129,6 +134,11 @@ namespace KotH.Client.Rendering
             p.Set(Wind, atmosphere.WindAxis);
             p.Set(CloudTopColor, (Vector3)atmosphere.CloudTop);
             p.Set(CloudBottomColor, (Vector3)atmosphere.CloudBottom);
+            p.Set(CoastHeights, new Vector4(atmosphere.CoastLevel, atmosphere.CoastLevel + atmosphere.CoastTop, 0f, pixel));
+            p.Set(CoastRing, new Vector4(atmosphere.CoastInner.X, atmosphere.CoastInner.Y, atmosphere.CoastOuter.X, atmosphere.CoastOuter.Y));
+            p.Set(CoastShape, new Vector4(atmosphere.CoastDensity, atmosphere.CoastHaze, 1f / atmosphere.CoastTile, atmosphere.CloudMap.Width / atmosphere.CoastTile));
+            p.Set(CoastOffset, atmosphere.CoastOffset);
+            p.Set(CoastColor, (Vector3)atmosphere.CoastColor);
 
             using (drawContext.PushRenderTargetsAndRestore())
             {

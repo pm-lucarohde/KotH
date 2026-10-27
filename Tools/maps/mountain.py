@@ -84,6 +84,7 @@ BANK_OUT = 0.7             # (Luca: the drop was too steep)
 EDGE_ROUND = 0.85          # share of the way from the blocks to the line (Luca: 1 a touch too round,
                            # 0.5 still too angular seen from above)
 SEA_REACH = 30000.0        # the sea's half width, beyond the camera's far plane
+SEA_GROWTH = 1.5           # each ring of the outer sea's tiles this much wider than the last
 
 # Colours in sRGB; the glb carries them linear.
 STONE = (0.55, 0.51, 0.45)
@@ -1107,11 +1108,17 @@ def sea(t):
                 end += 1
             rect(x, z, end, z + 1)
             x = end
-    far = SEA_REACH
-    rect(-far, -far, far, -HALF)
-    rect(-far, HALF, far, far)
-    rect(-far, -HALF, -HALF, HALF)
-    rect(HALF, -HALF, far, HALF)
+    # Outside, tiles growing outwards to SEA_REACH: four 30-km rectangles came
+    # past the far plane with a depth that jumped every frame, and the coastal
+    # fog on the water flickered with it.
+    cuts = [float(HALF)]
+    while cuts[-1] < SEA_REACH:
+        cuts.append(min(SEA_REACH, cuts[-1] * SEA_GROWTH))
+    lines = [-c for c in reversed(cuts)] + cuts
+    for z0, z1 in zip(lines, lines[1:]):
+        for x0, x1 in zip(lines, lines[1:]):
+            if not (-HALF <= x0 and x1 <= HALF and -HALF <= z0 and z1 <= HALF):
+                rect(x0, z0, x1, z1)
     return 'Water', pos, [(0.0, 1.0, 0.0)] * len(pos), idx, None, None
 
 

@@ -13,9 +13,11 @@ namespace KotH.Client.Rendering
     /// <see cref="FogStart"/>, grows to <see cref="FogPeak"/> and fades out by
     /// <see cref="FogTop"/>, gathered round <see cref="FogCentre"/>. The clouds are
     /// a thin sheet of cloudlets from <see cref="CloudMap"/> drifting with the wind.
-    /// Only for the picture; maps without it have neither.
+    /// A low coastal fog lies on the water in a ring round the centre, haze and
+    /// wisps (the map's blue) drifting with the wind. Only for the picture; maps
+    /// without it have none of them.
     /// </summary>
-    /// <userdoc>Höhennebel und Wolkenschicht der Map (nur Darstellung).</userdoc>
+    /// <userdoc>Höhennebel, Küstennebel und Wolkenschicht der Map (nur Darstellung).</userdoc>
     [DataContract("Atmosphere")]
     [Display("Atmosphäre")]
     public sealed class Atmosphere : SyncScript
@@ -70,13 +72,33 @@ namespace KotH.Client.Rendering
         /// <userdoc>Wie dunkel der Schatten einer Wolke ist (0 = keiner, 1 = ganz).</userdoc>
         [DataMember(42)] public float CloudShadow { get; set; } = 0.45f;
 
+        /// <userdoc>Dichte pro Meter des Küstennebels in seinen Schwaden, direkt über dem Wasser (0 = kein Küstennebel).</userdoc>
+        [DataMember(50)] public float CoastDensity { get; set; } = 0.12f;
+        /// <userdoc>Anteil des gleichmäßigen Dunsts zwischen den Schwaden (0 = nur Schwaden, 1 = überall gleich).</userdoc>
+        [DataMember(51)] public float CoastHaze { get; set; } = 0.15f;
+        /// <userdoc>Höhe des Wassers in Metern, auf dem der Küstennebel liegt.</userdoc>
+        [DataMember(52)] public float CoastLevel { get; set; } = 0.4f;
+        /// <userdoc>Meter über dem Wasser, bis zu denen der Küstennebel ausläuft.</userdoc>
+        [DataMember(53)] public float CoastTop { get; set; } = 4.5f;
+        /// <userdoc>Abstand zur Mitte in Metern, ab dem der Küstennebel einsetzt (x) und voll ist (y): die Küste.</userdoc>
+        [DataMember(54)] public Vector2 CoastInner { get; set; } = new(118f, 135f);
+        /// <userdoc>Abstand zur Mitte in Metern, ab dem der Küstennebel dünner wird (x) und weg ist (y).</userdoc>
+        [DataMember(55)] public Vector2 CoastOuter { get; set; } = new(270f, 520f);
+        /// <userdoc>Meter, nach denen sich die Schwaden wiederholen.</userdoc>
+        [DataMember(56)] public float CoastTile { get; set; } = 260f;
+        /// <userdoc>Farbe des Küstennebels (linear), heller als der Höhennebel.</userdoc>
+        [DataMember(57)] public Color3 CoastColor { get; set; } = new(0.82f, 0.86f, 0.90f);
+
         /// <summary>The wind's direction in x, z: texture x of the cloud map runs along it.</summary>
         [DataMemberIgnore] public Vector2 WindAxis { get; private set; } = Vector2.UnitX;
 
         /// <summary>Where the wind has carried both layers, in their texture's repeats: cloudlets xy, streaks zw.</summary>
         [DataMemberIgnore] public Vector4 CloudOffset { get; private set; }
 
-        double cloudlets, streaks;
+        /// <summary>Where the wind has carried the coastal fog's wisps, in their texture's repeats along it.</summary>
+        [DataMemberIgnore] public float CoastOffset { get; private set; }
+
+        double cloudlets, streaks, wisps;
 
         public override void Update()
         {
@@ -86,7 +108,10 @@ namespace KotH.Client.Rendering
             double travel = WindSpeed * Game.UpdateTime.Elapsed.TotalSeconds;
             cloudlets = Wrap(cloudlets + travel / Math.Max(CloudTile, 1f));
             streaks = Wrap(streaks + 0.8 * travel / Math.Max(BandTile, 1f));
+            // Down at the water the wind is weaker.
+            wisps = Wrap(wisps + 0.6 * travel / Math.Max(CoastTile, 1f));
             CloudOffset = new Vector4((float)cloudlets, 0f, (float)streaks, 0f);
+            CoastOffset = (float)wisps;
             RenderContext.GetShared(Services).Tags.Set(Key, this);
         }
 

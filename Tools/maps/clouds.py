@@ -7,6 +7,7 @@ Writes KotH.Game/Resources/Textures/CloudMap.png, tileable, linear:
   red   the cloudlets: one dome per cloudlet (1 at its top, 0 at its rim);
         the shader takes it as the height of the cloudlet over the layer's base
   green the large streaks and lanes, read again at a larger scale (Atmosphere)
+  blue  the coastal fog's wisps over the sea, at their own scale (Atmosphere)
 Texture x runs with the wind. Seeded, so every run paints the same.
 Needs numpy and Pillow (.work/venv).
 
@@ -29,6 +30,7 @@ WAVE = 0.35                 # rows bend along the wind by this many cells
 WAVES = 3                   # times per repeat
 LANES = (2, 7)              # streaks along and across the wind per repeat
 OCTAVES = 3
+WISPS = (3, 5)              # coastal fog banks' size: repeats per tile along and across the wind
 
 
 def cloudlets(rng):
@@ -52,12 +54,12 @@ def cloudlets(rng):
     return out
 
 
-def lanes(rng):
+def lanes(rng, cells=LANES):
     """Tileable streaks along the wind: smooth noise on whole-number lattices."""
     out = np.zeros((SIZE, SIZE))
     total = 0.0
     for o in range(OCTAVES):
-        fx, fy = LANES[0] << o, LANES[1] << o
+        fx, fy = cells[0] << o, cells[1] << o
         grid = rng.random((fy, fx))
         u = np.arange(SIZE) / SIZE * fx
         v = np.arange(SIZE) / SIZE * fy
@@ -75,11 +77,25 @@ def lanes(rng):
     return np.clip((out - lo) / (hi - lo), 0.0, 1.0)
 
 
+def wisps(rng):
+    """Soft fog banks: white noise filtered in the frequency domain, so it tiles
+    and has no lattice; longer along the wind than across."""
+    k = np.fft.fftfreq(SIZE) * SIZE
+    kx, ky = np.meshgrid(k / WISPS[0], k / WISPS[1])
+    amplitude = 1.0 / (1.0 + kx * kx + ky * ky) ** 1.4
+    amplitude[0, 0] = 0.0
+    out = np.real(np.fft.ifft2(np.fft.fft2(rng.standard_normal((SIZE, SIZE))) * amplitude))
+    lo, hi = np.percentile(out, 3), np.percentile(out, 97)
+    return np.clip((out - lo) / (hi - lo), 0.0, 1.0)
+
+
 def main():
     rng = np.random.default_rng(SEED)
     red = cloudlets(rng)
     green = lanes(rng)
-    rgb = np.stack([red, green, np.zeros_like(red)], axis=-1)
+    # Their own seed: red and green stay as they were.
+    blue = wisps(np.random.default_rng(SEED + 1))
+    rgb = np.stack([red, green, blue], axis=-1)
     Image.fromarray(np.round(rgb * 255).astype(np.uint8), 'RGB').save(OUT, optimize=True)
     print('geschrieben:', OUT)
     if '--preview' in sys.argv:
