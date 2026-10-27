@@ -39,7 +39,7 @@ namespace KotH.Client.Rendering
         /// <userdoc>Anteil der Fundstellen mit zwei oder drei Muscheln beieinander (0 bis 1).</userdoc>
         [DataMember(22)] public float GroupShare { get; set; } = 0.25f;
         /// <userdoc>Kleinste und größte Muschel in Metern (quer über die breiteste Stelle).</userdoc>
-        [DataMember(23)] public Vector2 Size { get; set; } = new(0.03f, 0.07f);
+        [DataMember(23)] public Vector2 Size { get; set; } = new(0.075f, 0.175f);
         /// <userdoc>Anteile von Jakobsmuschel, Herzmuschel und Schnecke (werden auf 1 gerechnet).</userdoc>
         [DataMember(24)] public Vector3 KindShares { get; set; } = new(0.4f, 0.4f, 0.2f);
         /// <userdoc>Bis zu so vielen Metern von der Kamera sind die Muscheln zu sehen.</userdoc>
