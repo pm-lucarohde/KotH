@@ -32,7 +32,7 @@ namespace KotH.Client.Match
         [Display("Leistenhöhe", "Maße")] public float RailHeight = 0.1f;
 
         /// <userdoc>So weit sind die Partikel zu Weiß hin aufgehellt, von 0 (Zonenfarbe) bis 1 (weiß).</userdoc>
-        [Display("Partikel aufhellen", "Darstellung")] public float MoteLight = 0.3f;
+        [Display("Partikel aufhellen", "Darstellung")] public float MoteLight = 0f;
 
         [DataMemberIgnore] public CaptureZone Zone { get; set; }
         [DataMemberIgnore] public HillMatch Match { get; set; }
