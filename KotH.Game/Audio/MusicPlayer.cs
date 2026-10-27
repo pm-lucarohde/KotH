@@ -29,7 +29,7 @@ namespace KotH.Client.Audio
         /// <userdoc>Nach dem Spielbeginn-Track zufällig nacheinander: jeder einmal, bevor einer wiederkommt.</userdoc>
         [Display("Danach zufällig", "Musik")] public List<Sound> Playlist = new List<Sound>();
 
-        [Display("Lautstärke", "Musik")] public float Volume = 0.16f;
+        [Display("Lautstärke", "Musik")] public float Volume = 0.136f;
 
         /// <userdoc>Verstärkt Musik, Umgebung und Geräusche gemeinsam, ihre Lautstärken untereinander bleiben. 2,43 hebt alles so weit an, dass ein Treffer am eigenen Ohr auch auf einer Spitze der Musik höchstens etwa −0,3 dBFS erreicht (Musik etwa −22 LUFS).</userdoc>
         [Display("Gesamtlautstärke", "Alles")] public float MasterVolume = 2.43f;

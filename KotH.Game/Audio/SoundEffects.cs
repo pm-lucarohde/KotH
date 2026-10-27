@@ -24,8 +24,8 @@ namespace KotH.Client.Audio
         /// <userdoc>Läuft von Anfang an in Schleife, im Menü wie im Spiel.</userdoc>
         [Display("Ambient", "Umgebung")] public Sound Ambient;
 
-        /// <userdoc>Deutlich leiser als die Musik (0,16).</userdoc>
-        [Display("Lautstärke Ambient", "Umgebung")] public float AmbientVolume = 0.01f;
+        /// <userdoc>Deutlich leiser als die Musik (0,136).</userdoc>
+        [Display("Lautstärke Ambient", "Umgebung")] public float AmbientVolume = 0.0085f;
 
         [Display("Schritt", "Figuren")] public Sound Step;
         [Display("Lautstärke Schritt", "Figuren")] public float StepVolume = 0.1945f;
