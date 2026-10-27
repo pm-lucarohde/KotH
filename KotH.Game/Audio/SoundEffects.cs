@@ -24,8 +24,8 @@ namespace KotH.Client.Audio
         /// <userdoc>Läuft von Anfang an in Schleife, im Menü wie im Spiel.</userdoc>
         [Display("Ambient", "Umgebung")] public Sound Ambient;
 
-        /// <userdoc>Deutlich leiser als die Musik (0,2).</userdoc>
-        [Display("Lautstärke Ambient", "Umgebung")] public float AmbientVolume = 0.0125f;
+        /// <userdoc>Deutlich leiser als die Musik (0,16).</userdoc>
+        [Display("Lautstärke Ambient", "Umgebung")] public float AmbientVolume = 0.01f;
 
         [Display("Schritt", "Figuren")] public Sound Step;
         [Display("Lautstärke Schritt", "Figuren")] public float StepVolume = 0.1945f;
@@ -35,7 +35,7 @@ namespace KotH.Client.Audio
 
         /// <userdoc>Beim Doppelsprung, wenn die Sporen stieben.</userdoc>
         [Display("Doppelsprung", "Figuren")] public Sound DoubleJump;
-        [Display("Lautstärke Doppelsprung", "Figuren")] public float DoubleJumpVolume = 0.088f;
+        [Display("Lautstärke Doppelsprung", "Figuren")] public float DoubleJumpVolume = 0.08f;
 
         /// <userdoc>Bei der Landung nach einem tiefen Fall; nach kleineren Sprüngen klingt ein Schritt.</userdoc>
         [Display("Aufprall", "Figuren")] public Sound Fall;
@@ -46,7 +46,7 @@ namespace KotH.Client.Audio
 
         /// <userdoc>Einmal, wenn die Figur aus dem Sprint ins Gleiten geht.</userdoc>
         [Display("Gleiten", "Figuren")] public Sound Slide;
-        [Display("Lautstärke Gleiten", "Figuren")] public float SlideVolume = 0.15f;
+        [Display("Lautstärke Gleiten", "Figuren")] public float SlideVolume = 0.1275f;
 
         /// <userdoc>Der Stab saust bei jedem Schlag, ob er trifft oder nicht.</userdoc>
         [Display("Schlag", "Figuren")] public Sound Swing;
