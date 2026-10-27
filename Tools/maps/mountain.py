@@ -78,7 +78,10 @@ WATER_Y = 0.4
 SEA_UNDER = 1.0            # the sea reaches at least this far in under the coast line
 EDGE_IN = 0.35             # the beach's edges follow their lines, not the blocks (Luca: too blocky):
 EDGE_OUT = 0.3             # an edge's top this far inside the line, its foot this far outside
-EDGE_ROUND = 0.5           # share of the way from the blocks to the line (Luca: 1 a touch too round)
+BANK_IN = 0.7              # the same for the bank from the meadow down to the sand, wider
+BANK_OUT = 0.7             # (Luca: the drop was too steep)
+EDGE_ROUND = 0.85          # share of the way from the blocks to the line (Luca: 1 a touch too round,
+                           # 0.5 still too angular seen from above)
 SEA_REACH = 30000.0        # the sea's half width, beyond the camera's far plane
 
 # Colours in sRGB; the glb carries them linear.
@@ -195,8 +198,9 @@ class Terrain:
             return p
         r = math.hypot(p[0], p[2])
         a = math.atan2(p[2], p[0]) % (2 * math.pi)
-        line = self.coast(a) - (0.0 if None in columns else self.beach(a))
-        target = line - EDGE_IN if top else line + EDGE_OUT
+        bank = None not in columns
+        line = self.coast(a) - (self.beach(a) if bank else 0.0)
+        target = line - (BANK_IN if bank else EDGE_IN) if top else line + (BANK_OUT if bank else EDGE_OUT)
         k = (r + EDGE_ROUND * (target - r)) / r
         return (p[0] * k, p[1], p[2] * k)
 
