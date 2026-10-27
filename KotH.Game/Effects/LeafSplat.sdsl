@@ -6,7 +6,7 @@
 /// the alpha says leaf or gap, the material cuts the gaps off.
 /// </summary>
 shader LeafSplat<LinkType PaintKey>
-    : ComputeColor, PositionStream4, NormalStream, Texturing, CellHash
+    : ComputeColor, PositionStream4, NormalStream, Texturing, CellHash, LeafWind
 {
     // Leaves sit at random in cubes of Cell metres, PerCell to a cube. A leaf
     // shows where the surface passes within Depth of its middle; Cell must stay
@@ -21,25 +21,7 @@ shader LeafSplat<LinkType PaintKey>
     // atlas quarter (LEAF_WIDTH, LEAF_FILL).
     static const float Width = 0.43;
     static const float Fill = 0.94;
-    // Wind: metres the leaves move, as a slow sway of whole patches and a
-    // quicker flutter of single leaves, never in step from place to place.
-    static const float SwayReach = 0.03;
-    static const float FlutterReach = 0.008;
-    // Share of the first draft's pace (Luca: 40 % slower, twice).
-    static const float WindPace = 0.36;
     static const float Pi = 3.14159265;
-
-    float3 Wind(float3 q, float t)
-    {
-        float gust = 0.65 + 0.35 * sin(t * 0.37 + q.x * 0.11 + q.z * 0.07);
-        float3 sway = float3(sin(t * 1.9 + q.x * 2.3 + q.y * 1.7),
-                             0.5 * sin(t * 1.4 + q.y * 2.1 + q.z * 1.3),
-                             sin(t * 1.6 + q.z * 2.6 - q.x * 1.1));
-        float3 flutter = float3(sin(t * 7.3 + q.y * 9.1 + q.z * 6.7),
-                                sin(t * 6.1 + q.x * 8.3 - q.z * 7.9),
-                                sin(t * 8.2 + q.x * 7.1 + q.y * 9.7));
-        return gust * (SwayReach * sway + FlutterReach * flutter);
-    }
 
     rgroup PerMaterial
     {

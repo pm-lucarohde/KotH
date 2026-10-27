@@ -8,7 +8,8 @@
 /// </summary>
 shader AtmosphereMarch : ImageEffectShader, CloudLayer
 {
-    float4x4 ClipToWorld;
+    float4x4 ClipToRay;     // clip x, y, 1 to the view ray with a view depth of 1
+    float2 NearFar;
     float3 Eye;
     float3 ToSun;
     float3 SunColor;
@@ -73,11 +74,11 @@ shader AtmosphereMarch : ImageEffectShader, CloudLayer
         int2 full = pixel * 2;
         float z = Texture0.Load(int3(full, 0)).r;
         float2 uv = (float2(full) + 0.5) * Texture0TexelSize;
-        float4 h = mul(float4(uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0, min(z, 0.999999), 1.0), ClipToWorld);
-        float3 seen = h.xyz / h.w - Eye;
-        float seenLength = length(seen);
-        float3 d = seen / seenLength;
-        float scene = z >= 1.0 ? 1e9 : seenLength;
+        float3 ray = mul(float4(uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0, 1.0, 0.0), ClipToRay).xyz;
+        float rayLength = length(ray);
+        float3 d = ray / rayLength;
+        float viewDepth = NearFar.x * NearFar.y / (NearFar.y - z * (NearFar.y - NearFar.x));
+        float scene = z >= 1.0 ? 1e9 : viewDepth * rayLength;
         float3 o = Eye;
         // Interleaved gradient noise shifts every pixel's steps, so they do not band.
         float jitter = frac(52.9829189 * frac(dot(float2(pixel), float2(0.06711056, 0.00583715))));

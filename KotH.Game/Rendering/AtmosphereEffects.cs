@@ -22,7 +22,8 @@ namespace KotH.Client.Rendering
     [Display("Atmosphäre und Post-Effekte")]
     public sealed class AtmosphereEffects : ImageEffect, IPostProcessingEffects
     {
-        static readonly ValueParameterKey<Matrix> ClipToWorld = ParameterKeys.NewValue<Matrix>(default, "AtmosphereMarch.ClipToWorld");
+        static readonly ValueParameterKey<Matrix> ClipToRay = ParameterKeys.NewValue<Matrix>(default, "AtmosphereMarch.ClipToRay");
+        static readonly ValueParameterKey<Vector2> MarchNearFar = ParameterKeys.NewValue<Vector2>(default, "AtmosphereMarch.NearFar");
         static readonly ValueParameterKey<Vector3> Eye = ParameterKeys.NewValue<Vector3>(default, "AtmosphereMarch.Eye");
         static readonly ValueParameterKey<Vector3> ToSun = ParameterKeys.NewValue<Vector3>(default, "AtmosphereMarch.ToSun");
         static readonly ValueParameterKey<Vector3> SunColor = ParameterKeys.NewValue<Vector3>(default, "AtmosphereMarch.SunColor");
@@ -97,13 +98,22 @@ namespace KotH.Client.Rendering
                     sunColor = (Vector3)light.Color;
                 }
 
-            Matrix clipToWorld = Matrix.Invert(view.ViewProjection);
+            // Each pixel's ray from the camera's axes and the projection's scale. Inverting the
+            // whole view-projection (far 20 km) in float tilted all rays by up to a pixel, anew
+            // every frame, and the thin layer seen from above shook with it (Luca: "Zittern").
+            Matrix v = view.View, proj = view.Projection;
+            var right = new Vector3(v.M11, v.M21, v.M31) / proj.M11;
+            var up = new Vector3(v.M12, v.M22, v.M32) / proj.M22;
+            var ahead = right * proj.M31 + up * proj.M32 - new Vector3(v.M13, v.M23, v.M33);
+            var clipToRay = new Matrix(right.X, right.Y, right.Z, 0f, up.X, up.Y, up.Z, 0f,
+                                       ahead.X, ahead.Y, ahead.Z, 0f, 0f, 0f, 0f, 1f);
             Matrix viewToWorld = Matrix.Invert(view.View);
             float texel = atmosphere.CloudTile / atmosphere.CloudMap.Width;
             // Metres one half-resolution pixel spans per metre away, over a texel's width: the cloud map's lod.
             float pixel = 2f / (view.Projection.M22 * height);
             var p = march.Parameters;
-            p.Set(ClipToWorld, clipToWorld);
+            p.Set(ClipToRay, clipToRay);
+            p.Set(MarchNearFar, new Vector2(view.NearClipPlane, view.FarClipPlane));
             p.Set(Eye, viewToWorld.TranslationVector);
             p.Set(ToSun, toSun);
             p.Set(SunColor, sunColor);
