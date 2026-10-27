@@ -17,8 +17,8 @@ shader LeafSplat<LinkType PaintKey>
     static const float Depth = 0.12;
     static const float LengthMin = 0.2;
     static const float LengthMax = 0.3;
-    // The outline as textures.py paints it: width over length, length in the
-    // atlas quarter (LEAF_WIDTH, LEAF_FILL).
+    // The outline as Tools/maps/Textures.cs paints it: width over length, length in the
+    // atlas quarter (LeafWidth, LeafFill).
     static const float Width = 0.43;
     static const float Fill = 0.94;
     static const float Pi = 3.14159265;

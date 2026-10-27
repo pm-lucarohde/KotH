@@ -105,7 +105,7 @@ Reference/     eingefrorene Unity-Messungen und der Regressionsbericht
 - **Assets:** Game Studio ist die einzige Quelle. Jede Map hat `Maps/NAME` mit `NAMECollision`
   (KotH.Shared, ohne Grafik ladbar) und `NAMEVisual` (KotH.Game), beide als Root-Asset.
 - **Map Neu:** `dotnet run Tools/maps/Mountain.cs` erzeugt Berg, Meer und Kollision (keine vorgefertigten
-  Wege, prüft die Erreichbarkeit des Gipfels), `python3 Tools/maps/textures.py` malt die Texturen.
+  Wege, prüft die Erreichbarkeit des Gipfels), `dotnet run Tools/maps/Textures.cs` malt die Texturen.
   Danach alles neu bauen.
 
 ## Proben und Regression
