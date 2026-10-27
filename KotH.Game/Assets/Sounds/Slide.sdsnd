@@ -1,0 +1,7 @@
+!Sound
+Id: F83D14FC-8C91-4757-9A80-F7047AF0E8B2
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Sounds/slide.wav
+StreamFromDisk: false
+Spatialized: true

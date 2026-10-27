@@ -258,7 +258,7 @@ namespace KotH.Client.Player
             public int[] Leaves;
             public Vector2[] LeafBend, LeafRate;
             public float LeafClock, Yaw, Spin, MouthClock;
-            public bool HasYaw, Kicked, HasBody;
+            public bool HasYaw, Kicked, HasBody, WasSliding;
             public float BodyYaw, HeadYaw;
             // The turn to a swing's aim: the shown view, the aim and the torso's
             // part of the head turn; a ramp from 0 to 1 while the swing lasts.
@@ -917,6 +917,9 @@ namespace KotH.Client.Player
                 Sound(f, FigureSound.DoubleJump, 1f);
             }
             f.LastClimb = v.Y;
+            if (motor.IsSliding && !f.WasSliding)
+                Sound(f, FigureSound.Slide, 1f);
+            f.WasSliding = motor.IsSliding;
             f.KickAge += dt;
             if (airborne)
             {

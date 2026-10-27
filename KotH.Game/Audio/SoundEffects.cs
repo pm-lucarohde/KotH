@@ -35,7 +35,7 @@ namespace KotH.Client.Audio
 
         /// <userdoc>Beim Doppelsprung, wenn die Sporen stieben.</userdoc>
         [Display("Doppelsprung", "Figuren")] public Sound DoubleJump;
-        [Display("Lautstärke Doppelsprung", "Figuren")] public float DoubleJumpVolume = 0.08f;
+        [Display("Lautstärke Doppelsprung", "Figuren")] public float DoubleJumpVolume = 0.088f;
 
         /// <userdoc>Bei der Landung nach einem tiefen Fall; nach kleineren Sprüngen klingt ein Schritt.</userdoc>
         [Display("Aufprall", "Figuren")] public Sound Fall;
@@ -43,6 +43,10 @@ namespace KotH.Client.Audio
 
         /// <userdoc>Ab dieser Fallhöhe (Meter vom höchsten Punkt) klingt der Aufprall. Ein Doppelsprung auf ebenem Boden erreicht etwa 2,7 m.</userdoc>
         [Display("Aufprall ab (m)", "Figuren")] public float FallHeight = 5.0f;
+
+        /// <userdoc>Einmal, wenn die Figur aus dem Sprint ins Gleiten geht.</userdoc>
+        [Display("Gleiten", "Figuren")] public Sound Slide;
+        [Display("Lautstärke Gleiten", "Figuren")] public float SlideVolume = 0.15f;
 
         /// <userdoc>Der Stab saust bei jedem Schlag, ob er trifft oder nicht.</userdoc>
         [Display("Schlag", "Figuren")] public Sound Swing;
@@ -138,6 +142,9 @@ namespace KotH.Client.Audio
                         Play(Fall, FallVolume, at, false, what);
                     else
                         Play(Step, StepVolume, at, true, what);
+                    break;
+                case FigureSound.Slide:
+                    Play(Slide, SlideVolume, at, true, what);
                     break;
                 case FigureSound.Swing:
                     Play(Swing, SwingVolume, at, true, what);

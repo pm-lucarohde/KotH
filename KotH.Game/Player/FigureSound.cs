@@ -11,6 +11,8 @@ namespace KotH.Client.Player
         DoubleJump,
         /// <summary>Back on the ground; the amount is the drop in metres from the highest point.</summary>
         Land,
+        /// <summary>A slide out of the sprint started.</summary>
+        Slide,
         /// <summary>A swing of the cane started.</summary>
         Swing,
         /// <summary>The figure was hit.</summary>

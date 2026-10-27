@@ -26,7 +26,7 @@ PEAK = -1.0                # dBFS
 SILENCE = -60.0            # dBFS: quieter than this at either end is cut
 FADE = 0.03                # seconds faded out at the end
 LOOP_FADE = 1.0            # seconds of the ambient's end laid over its start
-SOUNDS = ['fall', 'hit1', 'hit2', 'hit3', 'jump', 'sporejump', 'steps', 'wind']
+SOUNDS = ['fall', 'hit1', 'hit2', 'hit3', 'jump', 'slide', 'sporejump', 'steps', 'wind']
 
 
 def decode(path, channels):

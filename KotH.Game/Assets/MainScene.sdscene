@@ -44,6 +44,7 @@ Hierarchy:
                         Jump: E18D7F7E-D0C8-44DC-8A6D-3AC548227ECE:Sounds/Jump
                         DoubleJump: 84376E64-5524-4430-8CC9-8ABC92C3235F:Sounds/SporeJump
                         Fall: 2BB6BEF4-E4F8-4AAC-9386-65C3971A33EC:Sounds/Fall
+                        Slide: F83D14FC-8C91-4757-9A80-F7047AF0E8B2:Sounds/Slide
                         Swing: 516307D1-3DF7-4B43-98AF-5859A11D7AB6:Sounds/Wind
                         Hits:
                             4128e20c94de4a419351c4b92b331d0e: 56344623-DBF6-458E-8D30-882D71160A39:Sounds/Hit1
