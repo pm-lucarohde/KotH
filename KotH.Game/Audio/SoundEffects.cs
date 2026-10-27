@@ -46,7 +46,7 @@ namespace KotH.Client.Audio
 
         /// <userdoc>Einmal, wenn die Figur aus dem Sprint ins Gleiten geht.</userdoc>
         [Display("Gleiten", "Figuren")] public Sound Slide;
-        [Display("Lautstärke Gleiten", "Figuren")] public float SlideVolume = 0.1275f;
+        [Display("Lautstärke Gleiten", "Figuren")] public float SlideVolume = 0.1084f;
 
         /// <userdoc>Der Stab saust bei jedem Schlag, ob er trifft oder nicht.</userdoc>
         [Display("Schlag", "Figuren")] public Sound Swing;
