@@ -63,7 +63,7 @@ namespace KotH.Client.Menu
         Vector2 pointer = new Vector2(-1f);
         int calm;
         float waited;
-        bool loaded, dark, shown, hostWanted;
+        bool loaded, dark, shown, hostWanted, quitWanted;
         float since;
 
         public override void Start()
@@ -77,7 +77,7 @@ namespace KotH.Client.Menu
             view = new MainMenuView();
             view.Label(PlayerName ?? Environment.UserName, $"Build {NetProtocol.BuildText[..8]}");
             view.HostRequested += () => hostWanted = true;
-            view.QuitRequested += () => ((GameBase)Game).Exit();
+            view.QuitRequested += () => quitWanted = true;
             view.Light(true);
 
             var parts = view.TakeParts();
@@ -124,6 +124,8 @@ namespace KotH.Client.Menu
                 hostWanted = false;
                 StartHost?.Invoke();
             }
+            if (quitWanted)
+                ((GameBase)Game).Exit();
         }
 
         /// <summary>

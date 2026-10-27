@@ -22,8 +22,8 @@
     <PackageReference Include="Avalonia.BuildServices" Version="11.3.2" ExcludeAssets="all" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>
-    <!-- The main menu's painted pictures and type (Tools/menu/menu_art.py, Fredoka under OFL). -->
-    <AvaloniaResource Include="Menu\Art\*.png;Menu\Fonts\*.ttf" />
+    <!-- The main menu's painted pictures (Tools/menu/menu_art.py, title in Fredoka under OFL) and type (Accuratist). -->
+    <AvaloniaResource Include="Menu\Art\*.png;Menu\Fonts\*.otf" />
   </ItemGroup>
   <ItemGroup>
     <!-- Per map the ground the grass stands on (Tools/maps/MapUV, Rendering/GrassField.cs). -->

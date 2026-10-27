@@ -85,14 +85,14 @@ namespace KotH.Client.Menu
             return true;
         }
 
-        /// <summary>Test aid (KOTH_SHOT_MENU): shows button 0-4 as under the pointer, or clicks one of the first four.</summary>
+        /// <summary>Test aid (KOTH_SHOT_MENU): shows button 0-4 as under the pointer, or clicks it.</summary>
         public void Pretend(int button, bool click)
         {
             Button[] buttons = { Host, Find, Settings, Languages, Quit };
             if (button < 0 || button >= buttons.Length)
                 return;
             Describe(buttons[button]);
-            if (click && button <= 3)
+            if (click)
                 buttons[button].RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             else
                 buttons[button].Classes.Add("Active");

@@ -1,10 +1,10 @@
 <!-- The menu's look, in the figure's colours (Tools/menu/menu_art.py paints the
      pictures): clean cream boards and buttons with a solid lip underneath,
-     buttons light up yellow under the pointer, rounded Fredoka type. -->
+     buttons light up yellow under the pointer, Accuratist type (Luca). -->
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Styles.Resources>
-        <FontFamily x:Key="Round">avares://KotH.Game/Menu/Fonts#Fredoka</FontFamily>
+        <FontFamily x:Key="Type">avares://KotH.Game/Menu/Fonts#Accuratist</FontFamily>
         <Color x:Key="Red">#C4231F</Color>
         <Color x:Key="Cream">#F6ECDE</Color>
         <Color x:Key="Green">#3F8F35</Color>
@@ -40,7 +40,7 @@
     </Styles.Resources>
 
     <Style Selector="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource Round}" />
+        <Setter Property="FontFamily" Value="{StaticResource Type}" />
     </Style>
 
     <!-- The menu's big buttons: a painted pill on a lip (7 px, small 6), its
@@ -55,7 +55,7 @@
         <Setter Property="ClipToBounds" Value="False" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Foreground" Value="{StaticResource BrownBrush}" />
-        <Setter Property="FontFamily" Value="{StaticResource Round}" />
+        <Setter Property="FontFamily" Value="{StaticResource Type}" />
         <Setter Property="FontSize" Value="30" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Template">
@@ -174,7 +174,7 @@
     </Style>
 
     <Style Selector="TextBox.Field">
-        <Setter Property="FontFamily" Value="{StaticResource Round}" />
+        <Setter Property="FontFamily" Value="{StaticResource Type}" />
         <Setter Property="FontSize" Value="22" />
         <Setter Property="Height" Value="50" />
         <Setter Property="CornerRadius" Value="25" />
