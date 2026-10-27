@@ -17,7 +17,9 @@ using Stride.Games;
 using Stride.Graphics;
 using Stride.Input;
 
+#if !WINDOWS
 StdCxxPreload.Run();
+#endif
 
 // Six render threads instead of all 24: Stride's workers spin after every
 // parallel loop, and on this scene fewer of them are faster and far lighter
@@ -606,6 +608,7 @@ sealed class KotHGame : Game
     }
 }
 
+#if !WINDOWS
 /// <summary>
 /// The .NET 11 apphost and NativeAOT binaries no longer pull in libstdc++,
 /// but Stride's libstrideaudio.so expects its symbols in the global scope.
@@ -625,24 +628,31 @@ static class StdCxxPreload
             Console.Error.WriteLine("libstdc++.so.6 konnte nicht geladen werden, Audio fällt aus.");
     }
 }
+#endif
 
 static class SdlGrab
 {
-    [DllImport("libSDL2-2.0.so")] public static extern void SDL_SetWindowGrab(nint window, int grabbed);
-    [DllImport("libSDL2-2.0.so")] public static extern int SDL_SetRelativeMouseMode(int enabled);
-    [DllImport("libSDL2-2.0.so")] public static extern nint SDL_GetKeyboardFocus();
-    [DllImport("libSDL2-2.0.so")] public static extern void SDL_PumpEvents();
-    [DllImport("libSDL2-2.0.so")] public static extern int SDL_SetWindowFullscreen(nint window, uint flags);
+#if WINDOWS
+    const string Lib = "SDL2";
+#else
+    const string Lib = "libSDL2-2.0.so";
+#endif
+
+    [DllImport(Lib)] public static extern void SDL_SetWindowGrab(nint window, int grabbed);
+    [DllImport(Lib)] public static extern int SDL_SetRelativeMouseMode(int enabled);
+    [DllImport(Lib)] public static extern nint SDL_GetKeyboardFocus();
+    [DllImport(Lib)] public static extern void SDL_PumpEvents();
+    [DllImport(Lib)] public static extern int SDL_SetWindowFullscreen(nint window, uint flags);
 
     /// <summary>SDL_WINDOW_FULLSCREEN_DESKTOP: borderless at the desktop's size.</summary>
     public const uint FullscreenDesktop = 0x1001;
-    [DllImport("libSDL2-2.0.so")] public static extern void SDL_GetWindowSize(nint window, out int w, out int h);
-    [DllImport("libSDL2-2.0.so")] public static extern int SDL_GetWindowDisplayIndex(nint window);
-    [DllImport("libSDL2-2.0.so")] public static extern int SDL_GetDisplayBounds(int displayIndex, out Rect rect);
-    [DllImport("libSDL2-2.0.so")] public static extern int SDL_GetNumVideoDisplays();
-    [DllImport("libSDL2-2.0.so")] public static extern void SDL_RestoreWindow(nint window);
-    [DllImport("libSDL2-2.0.so")] public static extern void SDL_SetWindowPosition(nint window, int x, int y);
-    [DllImport("libSDL2-2.0.so")] public static extern void SDL_GetWindowPosition(nint window, out int x, out int y);
+    [DllImport(Lib)] public static extern void SDL_GetWindowSize(nint window, out int w, out int h);
+    [DllImport(Lib)] public static extern int SDL_GetWindowDisplayIndex(nint window);
+    [DllImport(Lib)] public static extern int SDL_GetDisplayBounds(int displayIndex, out Rect rect);
+    [DllImport(Lib)] public static extern int SDL_GetNumVideoDisplays();
+    [DllImport(Lib)] public static extern void SDL_RestoreWindow(nint window);
+    [DllImport(Lib)] public static extern void SDL_SetWindowPosition(nint window, int x, int y);
+    [DllImport(Lib)] public static extern void SDL_GetWindowPosition(nint window, out int x, out int y);
 
     [StructLayout(LayoutKind.Sequential)]
     public struct Rect { public int X, Y, W, H; }

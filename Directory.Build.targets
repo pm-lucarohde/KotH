@@ -12,4 +12,32 @@
                              Condition="'%(ResolvedFileToPublish.Extension)' == '.pdb' or '%(ResolvedFileToPublish.Extension)' == '.xml'" />
     </ItemGroup>
   </Target>
+
+  <!-- NativeAOT for Windows from Linux, which the SDK does not support itself:
+       no Visual Studio lookup, lld-link instead of link.exe, and the Windows
+       CRT and SDK import libraries "xwin splat" put in XWinRoot. -->
+  <PropertyGroup Condition="'$(OS)' != 'Windows_NT' and $(RuntimeIdentifier.StartsWith('win'))">
+    <DisableUnsupportedError>true</DisableUnsupportedError>
+    <IlcUseEnvironmentalTools>true</IlcUseEnvironmentalTools>
+    <XWinRoot Condition="'$(XWinRoot)' == ''">$(HOME)/.local/share/xwin</XWinRoot>
+    <!-- lld-link takes /SOURCELINK for a file name. -->
+    <EnableSourceLink>false</EnableSourceLink>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(OS)' != 'Windows_NT' and $(RuntimeIdentifier.StartsWith('win'))">
+    <AdditionalNativeLibraryDirectories Include="$(XWinRoot)/crt/lib/x86_64;$(XWinRoot)/sdk/lib/um/x86_64;$(XWinRoot)/sdk/lib/ucrt/x86_64" />
+    <!-- The CRT's debug info is not part of what xwin downloads. -->
+    <LinkerArg Include="/ignore:4099" />
+  </ItemGroup>
+  <!-- The ILCompiler targets set CppLinker to link after the project is read. -->
+  <Target Name="KotHUseLldLink" BeforeTargets="LinkNative"
+          Condition="'$(OS)' != 'Windows_NT' and $(RuntimeIdentifier.StartsWith('win'))">
+    <Error Condition="!Exists('$(XWinRoot)/crt/lib/x86_64')"
+           Text="Windows-Bibliotheken fehlen in $(XWinRoot): einmal xwin --accept-license splat --output $(XWinRoot)" />
+    <!-- The runtime asks for Synchronization.lib; xwin spells it in lower and upper case only. -->
+    <Exec Condition="!Exists('$(XWinRoot)/sdk/lib/um/x86_64/Synchronization.lib')"
+          Command="ln -s synchronization.lib &quot;$(XWinRoot)/sdk/lib/um/x86_64/Synchronization.lib&quot;" />
+    <PropertyGroup>
+      <CppLinker>lld-link</CppLinker>
+    </PropertyGroup>
+  </Target>
 </Project>

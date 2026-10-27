@@ -63,7 +63,7 @@ Treffer aller Figuren räumlich (`SoundEffects`, Lautstärken dort; Dateien aus 
 
 ```bash
 dotnet build KotH.Linux -c Release && cd Bin/Linux/Release && ./KotH   # Client (JIT), Hauptmenü; --offline gleich allein
-Tools/publish_aot.sh [linux|server|probes]    # NativeAOT -> Bin/{Linux,Server,Probes}/aot
+Tools/publish_aot.sh [linux|server|probes|windows|probes-windows]   # NativeAOT -> Bin/…/aot; Windows nur auf Wunsch (xwin)
 ```
 
 Stürzt ILC beim Publish ab (kommt vor), einfach erneut starten. `--map NAME` wählt die Map. **Server** (ohne Fenster und GPU, 40 Hz, dieselbe Schleife wie ein hostender Peer):

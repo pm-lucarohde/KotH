@@ -15,9 +15,9 @@ Später Peer-to-Peer (ein Peer hostet), keine dedizierten Server. Herleitungen u
 ## Bauen und starten
 
 ```bash
-dotnet build KotH.Linux -c Release     # ebenso KotH.Server, KotH.Probes -> Bin/{Linux,Server,Probes}/Release
-cd Bin/Linux/Release && ./KotH         # aus dem Ausgabeordner starten
+dotnet build KotH.Linux -c Release     # ebenso KotH.Server, KotH.Probes -> Bin/{Linux,Server,Probes}/Release; dann ./KotH dort
 Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Probes}/aot
+Tools/publish_aot.sh windows probes-windows  # nur auf Wunsch: Bin/Windows/aot, Bin/Probes/aot-win (lld-link, xwin)
 ```
 
 - AOT linkt in der Distrobox `aot` (clang, lld, zlib-devel, libva); ILC stürzt manchmal ab, dann neu starten. Immer

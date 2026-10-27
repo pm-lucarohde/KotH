@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The Windows client: KotH.Linux's app for win-x64, Vulkan like on Linux.
+       Built on demand with Tools/publish_aot.sh windows (NativeAOT from Linux:
+       lld-link and the Windows libraries from xwin, Directory.Build.targets). -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>KotH.Windows</RootNamespace>
+    <AssemblyName>KotH</AssemblyName>
+    <OutputPath>..\Bin\Windows\$(Configuration)\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <DefineConstants>$(DefineConstants);WINDOWS</DefineConstants>
+    <StrideCurrentPackagePath>$(MSBuildThisFileDirectory)..\KotH.Game\KotH.Game.sdpkg</StrideCurrentPackagePath>
+    <StridePlatform>Windows</StridePlatform>
+    <StrideGraphicsApi>Vulkan</StrideGraphicsApi>
+    <PublishAot>true</PublishAot>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\KotH.Linux\KotHApp.cs" Link="KotHApp.cs" />
+    <ProjectReference Include="..\KotH.Game\KotH.Game.csproj" />
+    <PackageReference Include="Avalonia.BuildServices" Version="11.3.2" ExcludeAssets="all" PrivateAssets="all" />
+    <!-- As in KotH.Linux: scripts and serializers are only reached through the asset database. -->
+    <TrimmerRootAssembly Include="KotH.Game" />
+    <TrimmerRootAssembly Include="KotH.Shared" />
+    <TrimmerRootAssembly Include="Stride.Voxels" />
+  </ItemGroup>
+
+</Project>
