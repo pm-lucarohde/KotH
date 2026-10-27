@@ -1,6 +1,6 @@
 <!-- The menu's look, in the figure's colours (Tools/menu/menu_art.py paints the
-     pictures): cream boards in bamboo, cream buttons that light up yellow
-     under the pointer, rounded Fredoka type, no hard outlines. -->
+     pictures): clean cream boards and buttons with a solid lip underneath,
+     buttons light up yellow under the pointer, rounded Fredoka type. -->
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Styles.Resources>
@@ -43,8 +43,10 @@
         <Setter Property="FontFamily" Value="{StaticResource Round}" />
     </Style>
 
-    <!-- The menu's big buttons: a painted pill; under the pointer, focused or
-         chosen it lights up yellow and springs up a little. -->
+    <!-- The menu's big buttons: a painted pill on a lip (7 px, small 6), its
+         label centred on the face. Under the pointer or focused it turns
+         yellow, nothing else (Luca); pressed, and while its page is open,
+         the face sinks into the lip down to 2 px. -->
     <Style Selector="Button.Menu">
         <Setter Property="Width" Value="380" />
         <Setter Property="Height" Value="66" />
@@ -56,13 +58,6 @@
         <Setter Property="FontFamily" Value="{StaticResource Round}" />
         <Setter Property="FontSize" Value="30" />
         <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="RenderTransformOrigin" Value="50%,50%" />
-        <Setter Property="RenderTransform" Value="scale(1) rotate(0deg)" />
-        <Setter Property="Transitions">
-            <Transitions>
-                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.3" Easing="BackEaseOut" />
-            </Transitions>
-        </Setter>
         <Setter Property="Template">
             <ControlTemplate>
                 <Panel>
@@ -74,20 +69,30 @@
                             </Transitions>
                         </Image.Transitions>
                     </Image>
+                    <Image Name="Down" Source="/Menu/Art/ButtonDown.png" Margin="-24" Stretch="Fill" IsVisible="False" />
                     <ContentPresenter Name="Label" Content="{TemplateBinding Content}"
-                                      HorizontalAlignment="Left" VerticalAlignment="Center" Margin="34,0,0,3" />
+                                      HorizontalAlignment="Left" VerticalAlignment="Center" Margin="34,0,0,10" />
                 </Panel>
             </ControlTemplate>
         </Setter>
     </Style>
-    <Style Selector="Button.Menu:pointerover, Button.Menu:focus-visible, Button.Menu.Active">
-        <Setter Property="RenderTransform" Value="scale(1.045) rotate(-1.2deg)" />
-    </Style>
-    <Style Selector="Button.Menu:pointerover /template/ Image#Hot, Button.Menu:focus-visible /template/ Image#Hot, Button.Menu.Active /template/ Image#Hot">
+    <Style Selector="Button.Menu:pointerover /template/ Image#Hot, Button.Menu:focus-visible /template/ Image#Hot">
         <Setter Property="Opacity" Value="1" />
     </Style>
-    <Style Selector="Button.Menu:pressed">
-        <Setter Property="RenderTransform" Value="scale(0.98) rotate(-0.5deg)" />
+    <Style Selector="Button.Menu:pressed /template/ Image#Down, Button.Menu.Active /template/ Image#Down">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="Button.Menu:pressed /template/ Image#Idle, Button.Menu.Active /template/ Image#Idle,
+                     Button.Menu:pressed /template/ Image#Hot, Button.Menu.Active /template/ Image#Hot">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="Button.Menu:pressed /template/ ContentPresenter#Label, Button.Menu.Active /template/ ContentPresenter#Label">
+        <Setter Property="RenderTransform" Value="translate(0px, 5px)" />
+    </Style>
+    <!-- Behind the load screen (MainMenuView.Light): every picture shown once, so Skia decodes them there. -->
+    <Style Selector="Button.Menu.Warm /template/ Image">
+        <Setter Property="IsVisible" Value="True" />
+        <Setter Property="Opacity" Value="1" />
     </Style>
     <Style Selector="Button.Menu.Small">
         <Setter Property="Width" Value="230" />
@@ -100,9 +105,15 @@
     <Style Selector="Button.Menu.Small /template/ Image#Hot">
         <Setter Property="Source" Value="/Menu/Art/SmallButtonHot.png" />
     </Style>
+    <Style Selector="Button.Menu.Small /template/ Image#Down">
+        <Setter Property="Source" Value="/Menu/Art/SmallButtonDown.png" />
+    </Style>
     <Style Selector="Button.Menu.Small /template/ ContentPresenter#Label">
         <Setter Property="HorizontalAlignment" Value="Center" />
-        <Setter Property="Margin" Value="0,0,0,3" />
+        <Setter Property="Margin" Value="0,0,0,9" />
+    </Style>
+    <Style Selector="Button.Menu.Small:pressed /template/ ContentPresenter#Label">
+        <Setter Property="RenderTransform" Value="translate(0px, 4px)" />
     </Style>
     <Style Selector="Button.Menu:disabled">
         <Setter Property="Opacity" Value="0.55" />
@@ -135,11 +146,12 @@
         <Setter Property="Padding" Value="26,18" />
     </Style>
 
-    <!-- The settings' tabs: small pills, the chosen one red -->
+    <!-- The settings' tabs: small pills on a lip like the buttons, the chosen one red -->
     <Style Selector="Border.Tab">
-        <Setter Property="Background" Value="#EADBC5" />
+        <Setter Property="Background" Value="#F3E7D6" />
         <Setter Property="CornerRadius" Value="22" />
         <Setter Property="Padding" Value="24,8" />
+        <Setter Property="BoxShadow" Value="0 4 0 0 #C9AE8C" />
     </Style>
     <Style Selector="Border.Tab TextBlock">
         <Setter Property="FontSize" Value="23" />
@@ -148,6 +160,7 @@
     </Style>
     <Style Selector="Border.Tab.Chosen">
         <Setter Property="Background" Value="{StaticResource RedBrush}" />
+        <Setter Property="BoxShadow" Value="0 4 0 0 #8A1815" />
     </Style>
     <Style Selector="Border.Tab.Chosen TextBlock">
         <Setter Property="Foreground" Value="{StaticResource CreamBrush}" />

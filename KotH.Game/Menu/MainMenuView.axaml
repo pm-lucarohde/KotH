@@ -15,16 +15,16 @@
                    HorizontalAlignment="Left" VerticalAlignment="Top">
                 <Image Source="/Menu/Art/Ribbon.png" Margin="-24" Stretch="Fill" />
                 <TextBlock Name="PlayerName" Text="Spieler" Foreground="{StaticResource CreamBrush}"
-                           FontSize="27" FontWeight="SemiBold" Margin="28,0,20,3"
+                           FontSize="27" FontWeight="SemiBold" Margin="28,0,20,10"
                            VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
             </Panel>
 
-            <!-- The buttons on their bamboo board, the note underneath -->
+            <!-- The buttons on their board, the note underneath -->
             <StackPanel Name="Column" Margin="90,170,0,0" Width="460"
                         HorizontalAlignment="Left" VerticalAlignment="Top">
                 <Panel Width="440" Height="450" HorizontalAlignment="Left">
                     <Image Source="/Menu/Art/Panel.png" Margin="-24" Stretch="Fill" />
-                    <StackPanel Name="Buttons" Spacing="18" HorizontalAlignment="Center" VerticalAlignment="Center"
+                    <StackPanel Name="Buttons" Spacing="18" Margin="0,0,0,10" HorizontalAlignment="Center" VerticalAlignment="Center"
                                 KeyboardNavigation.TabNavigation="Cycle">
                         <Button Name="Host" Classes="Menu" Content="Server erstellen" />
                         <Button Name="Find" Classes="Menu" Content="Server suchen" />
@@ -36,7 +36,7 @@
                 <Panel Name="Note" Width="460" Height="112" Margin="-10,30,0,0" HorizontalAlignment="Left">
                     <Image Source="/Menu/Art/Note.png" Margin="-24" Stretch="Fill" />
                     <TextBlock Name="Description" Foreground="{StaticResource CreamBrush}" FontSize="21"
-                               FontWeight="Medium" TextWrapping="Wrap" LineHeight="27" Margin="30,0,26,2"
+                               FontWeight="Medium" TextWrapping="Wrap" LineHeight="27" Margin="30,0,26,10"
                                VerticalAlignment="Center" />
                 </Panel>
             </StackPanel>
@@ -47,7 +47,7 @@
             <Panel Name="Page" Width="820" Height="560" Margin="24,24,0,0"
                    HorizontalAlignment="Left" VerticalAlignment="Top">
                 <Image Source="/Menu/Art/Wide.png" Margin="-24" Stretch="Fill" />
-                <Grid RowDefinitions="Auto,*,Auto" Margin="50,36,50,34">
+                <Grid RowDefinitions="Auto,*,Auto" Margin="50,36,50,44">
                     <TextBlock Name="PageTitle" Classes="Title" Text="Seite" />
 
                     <!-- Server suchen -->

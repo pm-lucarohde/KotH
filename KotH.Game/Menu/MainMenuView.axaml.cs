@@ -42,17 +42,17 @@ namespace KotH.Client.Menu
         Button[] Lit => new[] { Host, Find, Settings, Languages, Quit, Back };
 
         /// <summary>
-        /// Behind the load screen: every button lit, so Skia decodes the lit
-        /// pictures there (hidden ones it skips, and their first sight stuttered)
-        /// and the hover transitions run once; false puts them back.
+        /// Behind the load screen: every button shows all its pictures, so Skia
+        /// decodes the lit and pressed ones there (hidden ones it skips, and their
+        /// first sight stuttered) and the hover transitions run once; false puts them back.
         /// </summary>
         public void Light(bool on)
         {
             foreach (Button button in Lit)
                 if (on)
-                    button.Classes.Add("Active");
+                    button.Classes.Add("Warm");
                 else
-                    button.Classes.Remove("Active");
+                    button.Classes.Remove("Warm");
         }
 
         /// <summary>Whether a page is open, so its part is shown.</summary>
