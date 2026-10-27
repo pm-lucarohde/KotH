@@ -3,7 +3,7 @@ Id: BF458FFD-3AFB-4E1F-9772-98CC183D9082
 SerializedVersion: {Stride: 2.1.0.0}
 Tags: []
 FontSource: !FileFontProvider
-    Source: !file ../../Resources/Fonts/OpenSans-Regular.ttf
+    Source: !file ../../Resources/Fonts/FiraCode-Regular.ttf
 FontType: !OfflineRasterizedSpriteFontType
     Size: 22.0
     CharacterSet: null

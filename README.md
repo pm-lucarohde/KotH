@@ -133,8 +133,8 @@ Copyright © 2026 Luca Rohde
 
 Ausgenommen sind mitgelieferte Fremdbestandteile unter ihren eigenen Lizenzen:
 
-- `KotH.Game/Resources/Fonts/OpenSans-Regular.ttf`: Open Sans, Apache License 2.0
-  (`KotH.Game/Resources/Fonts/LICENSE.txt`).
+- `KotH.Game/Resources/Fonts/FiraCode-Regular.ttf`: Fira Code 6.2, SIL Open Font License 1.1
+  (`KotH.Game/Resources/Fonts/FiraCode-OFL.txt`).
 - `KotH.Game/Resources/skybox_texture_*.dds`: aus der Stride-Projektvorlage, MIT.
 - `KotH.Game/Resources/Music/*.mp3`: von Pixabay unter der
   [Pixabay Content License](https://pixabay.com/service/license-summary/), auf −15,5 LUFS normalisiert:
