@@ -27,10 +27,12 @@ SILENCE = -60.0            # dBFS: quieter than this at either end is cut
 FADE = 0.03                # seconds faded out at the end
 LOOP_FADE = 1.0            # seconds of the ambient's end laid over its start
 SOUNDS = ['fall', 'hit1', 'hit2', 'hit3', 'jump', 'slide', 'sporejump', 'steps', 'wind']
+FILTERS = {'steps': 'acompressor=threshold=0.05:ratio=20:attack=0.05:release=20:detection=peak,lowpass=f=1000'}   # Luca: steps too harsh (click, mids)
 
 
-def decode(path, channels):
-    raw = subprocess.run(['ffmpeg', '-v', 'error', '-i', path, '-f', 'f32le', '-ac', str(channels), '-ar', str(RATE), '-'],
+def decode(path, channels, filters=None):
+    shape = ['-af', filters] if filters else []
+    raw = subprocess.run(['ffmpeg', '-v', 'error', '-i', path, *shape, '-f', 'f32le', '-ac', str(channels), '-ar', str(RATE), '-'],
                          check=True, capture_output=True).stdout
     return array.array('f', raw)
 
@@ -88,7 +90,7 @@ def main():
         sys.exit('Abbruch: Sounds/ fehlt')
     os.makedirs(TARGET, exist_ok=True)
     for name in SOUNDS:
-        samples = trim(decode(os.path.join(SOURCE, name + '.mp3'), 1), 1)
+        samples = trim(decode(os.path.join(SOURCE, name + '.mp3'), 1, FILTERS.get(name)), 1)
         before = loudness(samples, 1, False)
         gain = write(name, samples, 1, SFX_LOUD - before)
         print('%-10s %.2f s, %6.1f LUFS (400 ms) -> %6.1f' % (name, len(samples) / RATE, before, before + gain))

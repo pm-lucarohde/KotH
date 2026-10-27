@@ -28,7 +28,7 @@ namespace KotH.Client.Audio
         [Display("Lautstärke Ambient", "Umgebung")] public float AmbientVolume = 0.00765f;
 
         [Display("Schritt", "Figuren")] public Sound Step;
-        [Display("Lautstärke Schritt", "Figuren")] public float StepVolume = 0.1945f;
+        [Display("Lautstärke Schritt", "Figuren")] public float StepVolume = 0.0865f;
 
         [Display("Sprung", "Figuren")] public Sound Jump;
         [Display("Lautstärke Sprung", "Figuren")] public float JumpVolume = 0.08f;
@@ -46,7 +46,7 @@ namespace KotH.Client.Audio
 
         /// <userdoc>Einmal, wenn die Figur aus dem Sprint ins Gleiten geht.</userdoc>
         [Display("Gleiten", "Figuren")] public Sound Slide;
-        [Display("Lautstärke Gleiten", "Figuren")] public float SlideVolume = 0.0976f;
+        [Display("Lautstärke Gleiten", "Figuren")] public float SlideVolume = 0.083f;
 
         /// <userdoc>Der Stab saust bei jedem Schlag, ob er trifft oder nicht.</userdoc>
         [Display("Schlag", "Figuren")] public Sound Swing;
