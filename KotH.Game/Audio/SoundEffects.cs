@@ -15,7 +15,7 @@ namespace KotH.Client.Audio
     /// start (menu and game alike), and what the figures do, placed where they
     /// are shown (PlayerVisualSystem.Sounded) and heard from the camera, so the
     /// own ones sound near and the others fade with distance. The files come
-    /// from Tools/audio/sfx.py, all equally loud: the volumes here are the mix.
+    /// from Tools/audio/Sfx.cs, all equally loud: the volumes here are the mix.
     /// Presentation only.
     /// </summary>
     [DataContract("KotH.SoundEffects")]
