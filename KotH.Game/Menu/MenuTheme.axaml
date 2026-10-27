@@ -1,4 +1,4 @@
-<!-- The menu's look, in the figure's colours (Tools/menu/menu_art.py paints the
+<!-- The menu's look, in the figure's colours (Tools/menu/MenuArt.cs paints the
      pictures): clean cream boards and buttons with a solid lip underneath,
      buttons light up yellow under the pointer, Accuratist type (Luca). -->
 <Styles xmlns="https://github.com/avaloniaui"

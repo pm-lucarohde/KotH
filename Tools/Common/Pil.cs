@@ -41,22 +41,137 @@ public sealed class PilImage
 
     public PilImage Copy() => new(Mode, Width, Height, (byte[])Data.Clone(), true);
 
-    /// <summary>Image.crop within the image.</summary>
+    /// <summary>Image.crop; outside the image the pixels are zero.</summary>
     public PilImage Crop(int x0, int y0, int x1, int y1)
     {
         var output = new PilImage(Mode, x1 - x0, y1 - y0);
-        int row = output.Width * Pixel;
-        for (int y = 0; y < output.Height; y++)
-            Array.Copy(Data, ((y + y0) * Width + x0) * Pixel, output.Data, y * row, row);
+        output.Paste(this, -x0, -y0);
         return output;
     }
 
-    /// <summary>Image.paste of an image of the same pixel size, without a mask, within the image.</summary>
+    /// <summary>Image.paste of an image of the same pixel size, without a mask, clipped to the image.</summary>
     public void Paste(PilImage source, int x, int y)
     {
-        int row = source.Width * Pixel;
-        for (int j = 0; j < source.Height; j++)
-            Array.Copy(source.Data, j * row, Data, ((y + j) * Width + x) * Pixel, row);
+        int sx = Math.Max(0, -x), sy = Math.Max(0, -y);
+        int w = Math.Min(source.Width, Width - x) - sx, h = Math.Min(source.Height, Height - y) - sy;
+        if (w <= 0 || h <= 0)
+            return;
+        int n = Pixel;
+        for (int j = 0; j < h; j++)
+            Array.Copy(source.Data, ((sy + j) * source.Width + sx) * n, Data, ((y + sy + j) * Width + x + sx) * n, w * n);
+    }
+
+    /// <summary>Image.getchannel: one band as an L image.</summary>
+    public PilImage GetChannel(int band)
+    {
+        var output = new PilImage("L", Width, Height);
+        for (int p = 0; p < output.Data.Length; p++)
+            output.Data[p] = Data[p * 4 + band];
+        return output;
+    }
+
+    /// <summary>Image.putalpha with an L image (RGBA).</summary>
+    public void PutAlpha(PilImage alpha)
+    {
+        for (int p = 0; p < alpha.Data.Length; p++)
+            Data[p * 4 + 3] = alpha.Data[p];
+    }
+
+    // ImageChops of Chops.c, over every byte, clipped.
+    static PilImage Chop(PilImage a, PilImage b, Func<int, int, int> operation)
+    {
+        var output = new PilImage(a.Mode, a.Width, a.Height);
+        for (int p = 0; p < output.Data.Length; p++)
+            output.Data[p] = Clip8(operation(a.Data[p], b.Data[p]));
+        return output;
+    }
+
+    public static PilImage Multiply(PilImage a, PilImage b) => Chop(a, b, (x, y) => x * y / 255);
+    public static PilImage Subtract(PilImage a, PilImage b) => Chop(a, b, (x, y) => (int)((x - y) / 1.0f + 0));
+    public static PilImage Lighter(PilImage a, PilImage b) => Chop(a, b, (x, y) => x > y ? x : y);
+
+    /// <summary>ImageChops.offset: the image moved, wrapping round its edges.</summary>
+    public PilImage Offset(int xoffset, int yoffset)
+    {
+        xoffset %= Width;
+        xoffset = Width - xoffset;
+        if (xoffset < 0)
+            xoffset += Width;
+        yoffset %= Height;
+        yoffset = Height - yoffset;
+        if (yoffset < 0)
+            yoffset += Height;
+        var output = new PilImage(Mode, Width, Height);
+        int n = Pixel;
+        for (int y = 0; y < Height; y++)
+            for (int x = 0; x < Width; x++)
+                Array.Copy(Data, (((y + yoffset) % Height) * Width + (x + xoffset) % Width) * n, output.Data, (y * Width + x) * n, n);
+        return output;
+    }
+
+    /// <summary>ImageFilter.MinFilter and MaxFilter on L: the image expanded by its edge pixels, then the window's rank.</summary>
+    public PilImage MinFilter(int size) => RankFilter(size, false);
+    public PilImage MaxFilter(int size) => RankFilter(size, true);
+
+    PilImage RankFilter(int size, bool max)
+    {
+        int margin = size / 2;
+        var output = new PilImage(Mode, Width, Height);
+        System.Threading.Tasks.Parallel.For(0, Height, y =>
+        {
+            for (int x = 0; x < Width; x++)
+            {
+                int best = max ? 0 : 255;
+                for (int j = -margin; j <= margin; j++)
+                {
+                    int row = Math.Clamp(y + j, 0, Height - 1) * Width;
+                    for (int i = -margin; i <= margin; i++)
+                    {
+                        int v = Data[row + Math.Clamp(x + i, 0, Width - 1)];
+                        best = max ? Math.Max(best, v) : Math.Min(best, v);
+                    }
+                }
+                output.Data[y * Width + x] = (byte)best;
+            }
+        });
+        return output;
+    }
+
+    /// <summary>ImageFilter.Kernel((3, 3), kernel, scale, offset) on L (ImagingFilter3x3): the border stays.</summary>
+    public PilImage Kernel3x3(float[] kernel, float scale, float offset)
+    {
+        var k = new float[9];
+        for (int i = 0; i < 9; i++)
+            k[i] = kernel[i] / scale;
+        offset = (float)(offset + 0.5);
+        PilImage output = Copy();
+        for (int y = 1; y < Height - 1; y++)
+        {
+            int up = (y - 1) * Width, mid = y * Width, down = (y + 1) * Width;
+            float Row(int r, int x, int o) => (float)Data[r + x - 1] * k[o] + (float)Data[r + x] * k[o + 1] + (float)Data[r + x + 1] * k[o + 2];
+            for (int x = 1; x < Width - 1; x++)
+            {
+                float ss = offset;
+                ss += Row(down, x, 0);
+                ss += Row(mid, x, 3);
+                ss += Row(up, x, 6);
+                ss = ss < 0.0f ? 0.0f : ss;
+                ss = ss > 255.0f ? 255.0f : ss;
+                output.Data[mid + x] = (byte)ss;
+            }
+        }
+        return output;
+    }
+
+    /// <summary>Image.rotate(90, expand=True): a quarter turn counter-clockwise (ImagingRotate90).</summary>
+    public PilImage Rotate90()
+    {
+        var output = new PilImage(Mode, Height, Width);
+        int n = Pixel;
+        for (int y = 0; y < Height; y++)
+            for (int x = 0; x < Width; x++)
+                Array.Copy(Data, (y * Width + x) * n, output.Data, ((Width - 1 - x) * Height + y) * n, n);
+        return output;
     }
 
     /// <summary>Image.composite(a, b, mask): b, with a pasted over it through the L mask (paste_mask_L).</summary>
@@ -138,27 +253,31 @@ public sealed class PilImage
             Data[p] = Clip8(values[p]);
     }
 
-    /// <summary>Image.alpha_composite over the whole image (RGBA), in place.</summary>
-    public void AlphaComposite(PilImage source)
+    /// <summary>Image.alpha_composite(source, dest): over this image (RGBA) in place, clipped to it.</summary>
+    public void AlphaComposite(PilImage source, int dx = 0, int dy = 0)
     {
         const int precision = 7;
         byte[] d = Data, s = source.Data;
-        for (int p = 0; p < d.Length; p += 4)
-        {
-            uint sa = s[p + 3];
-            if (sa == 0)
-                continue;
-            uint blend = d[p + 3] * (255 - sa);
-            uint outa255 = sa * 255 + blend;
-            uint coef1 = sa * 255 * 255 * (1 << precision) / outa255;
-            uint coef2 = 255 * (1 << precision) - coef1;
-            for (int c = 0; c < 3; c++)
+        int x0 = Math.Max(0, dx), y0 = Math.Max(0, dy);
+        int x1 = Math.Min(Width, dx + source.Width), y1 = Math.Min(Height, dy + source.Height);
+        for (int y = y0; y < y1; y++)
+            for (int x = x0; x < x1; x++)
             {
-                uint tmp = s[p + c] * coef1 + d[p + c] * coef2;
-                d[p + c] = (byte)(ShiftForDiv255(tmp + (0x80 << precision)) >> precision);
+                int p = (y * Width + x) * 4, q = ((y - dy) * source.Width + x - dx) * 4;
+                uint sa = s[q + 3];
+                if (sa == 0)
+                    continue;
+                uint blend = d[p + 3] * (255 - sa);
+                uint outa255 = sa * 255 + blend;
+                uint coef1 = sa * 255 * 255 * (1 << precision) / outa255;
+                uint coef2 = 255 * (1 << precision) - coef1;
+                for (int c = 0; c < 3; c++)
+                {
+                    uint tmp = s[q + c] * coef1 + d[p + c] * coef2;
+                    d[p + c] = (byte)(ShiftForDiv255(tmp + (0x80 << precision)) >> precision);
+                }
+                d[p + 3] = (byte)ShiftForDiv255(outa255 + 0x80);
             }
-            d[p + 3] = (byte)ShiftForDiv255(outa255 + 0x80);
-        }
     }
 
     public enum Filter { Bicubic, Lanczos }
@@ -635,7 +754,13 @@ public sealed class PilDraw
     public void Line(IReadOnlyList<(double X, double Y)> points, byte[] ink, int width)
     {
         if (width == 1)
-            throw new NotSupportedException("line width 1");
+        {
+            for (int i = 0; i < points.Count - 1; i++)
+                ThinLine((int)points[i].X, (int)points[i].Y, (int)points[i + 1].X, (int)points[i + 1].Y, ink);
+            if (points.Count > 1)
+                Point((int)points[^1].X, (int)points[^1].Y, ink);
+            return;
+        }
         for (int i = 0; i < points.Count - 1; i++)
             WideLine((int)points[i].X, (int)points[i].Y, (int)points[i + 1].X, (int)points[i + 1].Y, ink, width);
     }
@@ -675,18 +800,198 @@ public sealed class PilDraw
     /// <summary>ImageDraw.arc(box, start, end, fill=ink, width).</summary>
     public void Arc(double x0, double y0, double x1, double y1, float start, float end, byte[] ink, int width)
     {
-        int ix0 = (int)x0, iy0 = (int)y0, ix1 = (int)x1, iy1 = (int)y1;
         NormalizeAngles(ref start, ref end);
         if (start + 360 == end)
             throw new NotSupportedException("full arc");
         if (start == end)
             return;
-        int a = ix1 - ix0, b = iy1 - iy0;
+        Clipped((int)x0, (int)y0, (int)x1, (int)y1, ink, (a, b) => ClipEllipse.Arc(a, b, width, start, end));
+    }
+
+    /// <summary>ImageDraw.chord(box, start, end, fill=ink).</summary>
+    public void Chord(double x0, double y0, double x1, double y1, float start, float end, byte[] ink)
+    {
+        NormalizeAngles(ref start, ref end);
+        if (start + 360 == end)
+            throw new NotSupportedException("full chord");
+        if (start == end)
+            return;
+        int ix0 = (int)x0, iy0 = (int)y0, ix1 = (int)x1, iy1 = (int)y1;
+        Clipped(ix0, iy0, ix1, iy1, ink, (a, b) => ClipEllipse.Chord(a, b, ix1 - ix0 + iy1 - iy0 + 1, start, end));
+    }
+
+    // ImagingDrawPieslice, filled.
+    void Pieslice(int x0, int y0, int x1, int y1, float start, float end, byte[] ink)
+    {
+        NormalizeAngles(ref start, ref end);
+        if (start + 360 == end)
+            throw new NotSupportedException("full pie");
+        if (start == end)
+            return;
+        Clipped(x0, y0, x1, y1, ink, (a, b) => ClipEllipse.Pie(a, b, x1 + y1 - x0 - y0, start, end));
+    }
+
+    // clipEllipseNew.
+    void Clipped(int x0, int y0, int x1, int y1, byte[] ink, Func<int, int, ClipEllipse> init)
+    {
+        int a = x1 - x0, b = y1 - y0;
         if (a < 0 || b < 0)
             return;
-        var st = new ArcState(a, b, width, start, end);
+        ClipEllipse st = init(a, b);
         while (st.Next(out int X0, out int Y, out int X1))
-            HLine(ix0 + (X0 + a) / 2, iy0 + (Y + b) / 2, ix0 + (X1 + a) / 2, ink);
+            HLine(x0 + (X0 + a) / 2, y0 + (Y + b) / 2, x0 + (X1 + a) / 2, ink);
+    }
+
+    /// <summary>ImageDraw.rectangle(box, fill=ink).</summary>
+    public void Rectangle(double x0, double y0, double x1, double y1, byte[] ink)
+    {
+        int ix0 = (int)x0, iy0 = (int)y0, ix1 = (int)x1, iy1 = (int)y1;
+        if (iy0 > iy1)
+            (iy0, iy1) = (iy1, iy0);
+        if (iy0 < 0)
+            iy0 = 0;
+        else if (iy0 >= image.Height)
+            return;
+        if (iy1 < 0)
+            return;
+        else if (iy1 > image.Height)
+            iy1 = image.Height;
+        for (int y = iy0; y <= iy1; y++)
+            HLine(ix0, y, ix1, ink);
+    }
+
+    /// <summary>ImageDraw.rounded_rectangle(box, radius, fill=ink), all corners round.</summary>
+    public void RoundedRectangle(double fx0, double fy0, double fx1, double fy1, double radius, byte[] ink)
+    {
+        double d = Math.Min(Math.Min(fx1 - fx0, fy1 - fy0), radius * 2);
+        int x0 = Py.Round(fx0), y0 = Py.Round(fy0), x1 = Py.Round(fx1), y1 = Py.Round(fy1);
+        bool fullX = d >= x1 - x0 - 1;
+        if (fullX)
+            d = x1 - x0;
+        bool fullY = d >= y1 - y0 - 1;
+        if (fullY)
+            d = y1 - y0;
+        if (fullX && fullY)
+        {
+            Ellipse(fx0, fy0, fx1, fy1, ink);
+            return;
+        }
+        if (d == 0)
+        {
+            Rectangle(fx0, fy0, fx1, fy1, ink);
+            return;
+        }
+        int r = (int)Math.Floor(d / 2);
+        (double, double, double, double, float, float)[] parts = fullX
+            ? [(x0, y0, x0 + d, y0 + d, 180, 360), (x0, y1 - d, x0 + d, y1, 0, 180)]
+            : fullY
+            ? [(x0, y0, x0 + d, y0 + d, 90, 270), (x1 - d, y0, x1, y0 + d, 270, 90)]
+            : [(x0, y0, x0 + d, y0 + d, 180, 270), (x1 - d, y0, x1, y0 + d, 270, 360),
+               (x1 - d, y1 - d, x1, y1, 0, 90), (x0, y1 - d, x0 + d, y1, 90, 180)];
+        foreach (var (px0, py0, px1, py1, start, end) in parts)
+            Pieslice((int)px0, (int)py0, (int)px1, (int)py1, start, end, ink);
+        if (fullX)
+            Rectangle(x0, y0 + r + 1, x1, y1 - r - 1, ink);
+        else if (x1 - r - 1 >= x0 + r + 1)
+            Rectangle(x0 + r + 1, y0, x1 - r - 1, y1, ink);
+        if (!fullX && !fullY)
+        {
+            Rectangle(x0, y0 + r + 1, x0 + r, y1 - r - 1, ink);
+            Rectangle(x1 - r, y0 + r + 1, x1, y1 - r - 1, ink);
+        }
+    }
+
+    // line32/line8 (Bresenham) and the last point, as _draw_lines draws width 1.
+    void ThinLine(int x0, int y0, int x1, int y1, byte[] ink)
+    {
+        int dx = x1 - x0, dy = y1 - y0, xs = 1, ys = 1;
+        if (dx < 0) { dx = -dx; xs = -1; }
+        if (dy < 0) { dy = -dy; ys = -1; }
+        if (dx == 0)
+            for (int i = 0; i < dy; i++, y0 += ys)
+                Point(x0, y0, ink);
+        else if (dy == 0)
+            for (int i = 0; i < dx; i++, x0 += xs)
+                Point(x0, y0, ink);
+        else if (dx > dy)
+        {
+            int n = dx;
+            dy += dy;
+            int e = dy - dx;
+            dx += dx;
+            for (int i = 0; i < n; i++)
+            {
+                Point(x0, y0, ink);
+                if (e >= 0)
+                {
+                    y0 += ys;
+                    e -= dx;
+                }
+                e += dy;
+                x0 += xs;
+            }
+        }
+        else
+        {
+            int n = dy;
+            dx += dx;
+            int e = dx - dy;
+            dy += dy;
+            for (int i = 0; i < n; i++)
+            {
+                Point(x0, y0, ink);
+                if (e >= 0)
+                {
+                    x0 += xs;
+                    e -= dy;
+                }
+                e += dx;
+                y0 += ys;
+            }
+        }
+    }
+
+    /// <summary>ImagingDrawBitmap: ImagingFill2 with an L mask (fill_mask_L), clipped to the image.</summary>
+    public void Bitmap(int dx0, int dy0, PilImage mask, byte[] ink)
+    {
+        int xsize = mask.Width, ysize = mask.Height, sx0 = 0, sy0 = 0;
+        if (dx0 < 0)
+        {
+            xsize += dx0;
+            if (xsize <= 0)
+                return;
+            sx0 = -dx0;
+            dx0 = 0;
+        }
+        if (dx0 + xsize > image.Width)
+            xsize = image.Width - dx0;
+        if (dy0 < 0)
+        {
+            ysize += dy0;
+            if (ysize <= 0)
+                return;
+            sy0 = -dy0;
+            dy0 = 0;
+        }
+        if (dy0 + ysize > image.Height)
+            ysize = image.Height - dy0;
+        if (xsize <= 0 || ysize <= 0)
+            return;
+        int n = image.Pixel;
+        bool alpha = image.Mode is "RGBA" or "RGBa";
+        for (int y = 0; y < ysize; y++)
+            for (int x = 0; x < xsize; x++)
+            {
+                int o = ((y + dy0) * image.Width + x + dx0) * n;
+                uint m = mask.Data[(y + sy0) * mask.Width + x + sx0];
+                for (int i = 0; i < n; i++)
+                {
+                    uint cm = m;
+                    if (alpha && i != 3 && cm != 0)
+                        cm = 255 - (255 - cm) * (uint)(1 - (255 - image.Data[o + 3]) / 255);
+                    image.Data[o + i] = (byte)PilImage.Div255(image.Data[o + i] * (255 - cm) + ink[i] * cm);
+                }
+            }
     }
 
     static void NormalizeAngles(ref float al, ref float ar)
@@ -900,60 +1205,75 @@ public sealed class PilDraw
         return output;
     }
 
-    // arc_init and clip_ellipse_next: an arc with caps orthogonal to the curve.
-    sealed class ArcState
+    // clip_ellipse_state: the ellipse's segments through a clipping tree (arc, chord, pie).
+    sealed class ClipEllipse
     {
         readonly EllipseState st;
         readonly ClipNode root;
         readonly Queue<int> head = new();
         int y;
 
-        public ArcState(int a, int b, int w, float al, float ar)
+        ClipEllipse(EllipseState st, ClipNode root)
+        {
+            this.st = st;
+            this.root = root;
+        }
+
+        static ClipNode Clip(double a, double b, double c) => new() { IsClip = true, A = a, B = b, C = c };
+
+        // arc_init: an arc with caps orthogonal to the curve.
+        public static ClipEllipse Arc(int a, int b, int w, float al, float ar)
         {
             if (a < b)
             {
-                var transposed = new ArcState(b, a, w, 90 - ar, 90 - al);
-                st = new EllipseState(a, b, w);
-                root = transposed.root;
-                root?.Transpose();
-                return;
+                ClipNode transposed = Arc(b, a, w, 90 - ar, 90 - al).root;
+                transposed?.Transpose();
+                return new ClipEllipse(new EllipseState(a, b, w), transposed);
             }
-            st = new EllipseState(a, b, w);
+            var st = new EllipseState(a, b, w);
             NormalizeAngles(ref al, ref ar);
             if (ar == al + 360)
-                return;
-            var lc = new ClipNode
-            {
-                IsClip = true,
-                A = -a * Libm.sin(al * Math.PI / 180.0),
-                B = b * Libm.cos(al * Math.PI / 180.0),
-                C = (a * a - b * b) * Libm.sin(al * Math.PI / 90.0) / 2.0,
-            };
-            var rc = new ClipNode
-            {
-                IsClip = true,
-                A = a * Libm.sin(ar * Math.PI / 180.0),
-                B = -b * Libm.cos(ar * Math.PI / 180.0),
-                C = (b * b - a * a) * Libm.sin(ar * Math.PI / 90.0) / 2.0,
-            };
+                return new ClipEllipse(st, null);
+            ClipNode lc = Clip(-a * Libm.sin(al * Math.PI / 180.0), b * Libm.cos(al * Math.PI / 180.0),
+                (a * a - b * b) * Libm.sin(al * Math.PI / 90.0) / 2.0);
+            ClipNode rc = Clip(a * Libm.sin(ar * Math.PI / 180.0), -b * Libm.cos(ar * Math.PI / 180.0),
+                (b * b - a * a) * Libm.sin(ar * Math.PI / 90.0) / 2.0);
+            ClipNode root;
             if (Libm.fmod(al, 180) == 0 || Libm.fmod(ar, 180) == 0)
                 root = new ClipNode { L = lc, R = rc, IsAnd = ar - al < 180 };
             else if (((int)(al / 180) + (int)(ar / 180)) % 2 == 1)
                 root = new ClipNode
                 {
-                    L = new ClipNode { IsAnd = true, L = new ClipNode { IsClip = true, B = (int)(al / 180) % 2 == 0 ? 1 : -1 }, R = lc },
-                    R = new ClipNode { IsAnd = true, L = new ClipNode { IsClip = true, B = (int)(ar / 180) % 2 == 0 ? 1 : -1 }, R = rc },
+                    L = new ClipNode { IsAnd = true, L = Clip(0, (int)(al / 180) % 2 == 0 ? 1 : -1, 0), R = lc },
+                    R = new ClipNode { IsAnd = true, L = Clip(0, (int)(ar / 180) % 2 == 0 ? 1 : -1, 0), R = rc },
                 };
             else
             {
                 bool and = ar - al < 180;
-                root = new ClipNode
-                {
-                    IsAnd = and,
-                    L = new ClipNode { IsAnd = and, L = lc, R = rc },
-                    R = new ClipNode { IsClip = true, B = ar < 180 || ar > 540 ? 1 : -1 },
-                };
+                root = new ClipNode { IsAnd = and, L = new ClipNode { IsAnd = and, L = lc, R = rc }, R = Clip(0, ar < 180 || ar > 540 ? 1 : -1, 0) };
             }
+            return new ClipEllipse(st, root);
+        }
+
+        // chord_init: the ellipse cut by the line through both ends.
+        public static ClipEllipse Chord(int a, int b, int w, float al, float ar)
+        {
+            double xl = a * Libm.cos(al * Math.PI / 180.0), xr = a * Libm.cos(ar * Math.PI / 180.0);
+            double yl = b * Libm.sin(al * Math.PI / 180.0), yr = b * Libm.sin(ar * Math.PI / 180.0);
+            double ca = yr - yl, cb = xl - xr;
+            return new ClipEllipse(new EllipseState(a, b, w), Clip(ca, cb, -(ca * xl + cb * yl)));
+        }
+
+        // pie_init: the ellipse between two rays from its centre.
+        public static ClipEllipse Pie(int a, int b, int w, float al, float ar)
+        {
+            double xl = a * Libm.cos(al * Math.PI / 180.0), xr = a * Libm.cos(ar * Math.PI / 180.0);
+            double yl = b * Libm.sin(al * Math.PI / 180.0), yr = b * Libm.sin(ar * Math.PI / 180.0);
+            var root = new ClipNode { L = Clip(-yl, xl, 0), R = Clip(yr, -xr, 0), IsAnd = ar - al < 180 };
+            // One more half plane against spikes.
+            if (ar - al < 90)
+                root = new ClipNode { IsAnd = true, L = root, R = Clip((xl + xr) / 2.0, (yl + yr) / 2.0, 0) };
+            return new ClipEllipse(new EllipseState(a, b, w), root);
         }
 
         public bool Next(out int x0, out int y0, out int x1)
