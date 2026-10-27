@@ -60,16 +60,18 @@
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Template">
             <ControlTemplate>
-                <Panel>
-                    <Image Name="Idle" Source="/Menu/Art/Button.png" Margin="-24" Stretch="Fill" />
-                    <Image Name="Hot" Source="/Menu/Art/ButtonHot.png" Margin="-24" Stretch="Fill" Opacity="0">
+                <!-- Hit by its own bounds, not by the pictures: once pressed, the shown
+                     one was not hit and the release counted only over the label. -->
+                <Panel Background="Transparent">
+                    <Image Name="Idle" Source="/Menu/Art/Button.png" Margin="-24" Stretch="Fill" IsHitTestVisible="False" />
+                    <Image Name="Hot" Source="/Menu/Art/ButtonHot.png" Margin="-24" Stretch="Fill" Opacity="0" IsHitTestVisible="False">
                         <Image.Transitions>
                             <Transitions>
                                 <DoubleTransition Property="Opacity" Duration="0:0:0.12" />
                             </Transitions>
                         </Image.Transitions>
                     </Image>
-                    <Image Name="Down" Source="/Menu/Art/ButtonDown.png" Margin="-24" Stretch="Fill" IsVisible="False" />
+                    <Image Name="Down" Source="/Menu/Art/ButtonDown.png" Margin="-24" Stretch="Fill" IsVisible="False" IsHitTestVisible="False" />
                     <ContentPresenter Name="Label" Content="{TemplateBinding Content}"
                                       HorizontalAlignment="Left" VerticalAlignment="Center" Margin="34,0,0,10" />
                 </Panel>
@@ -78,6 +80,11 @@
     </Style>
     <Style Selector="Button.Menu:pointerover /template/ Image#Hot, Button.Menu:focus-visible /template/ Image#Hot">
         <Setter Property="Opacity" Value="1" />
+    </Style>
+    <!-- Fluent shrinks a pressed button to 98 %: a click near the edge then
+         ended off it and was lost. Ours sinks instead. -->
+    <Style Selector="Button.Menu:pressed">
+        <Setter Property="RenderTransform" Value="none" />
     </Style>
     <Style Selector="Button.Menu:pressed /template/ Image#Down, Button.Menu.Active /template/ Image#Down">
         <Setter Property="IsVisible" Value="True" />
