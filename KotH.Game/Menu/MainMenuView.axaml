@@ -105,9 +105,10 @@
             </Panel>
         </Grid>
 
-        <!-- The title over the sky -->
+        <!-- The title over the sky; the picture is empty on its right, so it may
+             reach past the part's edge (only clear pixels are cut there). -->
         <Grid Name="LogoPart" Width="800" Height="420">
-            <Image Name="Logo" Source="/Menu/Art/Logo.png" Width="728" Height="348" Margin="0,20,10,0"
+            <Image Name="Logo" Source="/Menu/Art/Logo.png" Width="728" Height="348" Margin="0,20,-90,0"
                    HorizontalAlignment="Right" VerticalAlignment="Top" IsHitTestVisible="False" />
         </Grid>
 
