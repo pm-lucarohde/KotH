@@ -372,7 +372,7 @@ def main():
         'SmallButtonHot': lambda: button('hot', 230, 54, SMALL_LIP),
         'SmallButtonDown': lambda: button('down', 230, 54, SMALL_LIP),
         'Note': lambda: board(460, 112, (mix(GREEN, WHITE, 0.12), shade(GREEN, 0.95)), NOTE_LIP, 22, gloss=28),
-        'Ribbon': lambda: board(340, 58, (mix(GREEN, WHITE, 0.12), shade(GREEN, 0.95)), BUTTON_LIP, 29, gloss=34),
+        'Ribbon': lambda: board(340, 58, (mix(GREEN, WHITE, 0.12), shade(GREEN, 0.95)), BUTTON_LIP, round(58 * CORNER), gloss=34),
         'Logo': logo,
     }
     for name, paint in pieces.items():
