@@ -54,9 +54,12 @@ foreach (Primitive prim in primitives.Where(p => lit.Contains(p.Material)))
     }
     triangles.AddRange(prim.Indices.Select(i => i + base0));
 }
-// The inner sea (inside the outer rectangles' rim) as one more chart, far off and shrunk.
+// The inner sea (inside the outer tiles' rim) as one more chart, far off and shrunk.
+// Its strips are 1 m deep; the outer tiles, growing outwards, are far deeper.
 float[] seaPos = water.Attributes["POSITION"];
-double half = Enumerable.Range(0, seaPos.Length / 3).Select(v => Math.Abs(seaPos[3 * v])).Where(x => x < 1000).Max();
+double half = water.Indices.Chunk(3)
+    .Where(t => t.Max(i => seaPos[3 * i + 2]) - t.Min(i => seaPos[3 * i + 2]) <= 1.001f)
+    .SelectMany(t => t).Max(i => Math.Abs(seaPos[3 * i]));
 int litTriangles = triangles.Count;
 int quad = positions.Count;
 foreach (var (x, z) in new[] { (-1, -1), (1, -1), (1, 1), (-1, 1) })

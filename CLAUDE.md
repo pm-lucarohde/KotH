@@ -45,8 +45,8 @@ Bin/Probes/Release/KotH.Probes determinism hashes   # Hashkette C857D39208F53C83
 Bin/Probes/Release/KotH.Probes bots climb 12        # Berg (Neu), Mittel ≤ 140 s, Zappeln/Blick; bots stats 12, jumplab
 .work/tools/climb_many.sh ORDNER 8 13 && .work/tools/climb_many.py ORDNER   # 104 Seeds, jeder Bot einzeln
 .work/tools/stride_runs.sh 3; R=Reference/unity/runs
-python3 Tools/verdict.py $R/run1,$R/run2,$R/run3 .work/regress/run1   # Urteile (95, davon 94 gleich)
-python3 Tools/regress.py $R/run1,$R/run2,$R/run3 .work/regress/run1   # Zahlen in 5 mm / 1 %
+dotnet run Tools/Verdict.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # Urteile (95, davon 94 gleich)
+dotnet run Tools/Regress.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # Zahlen in 5 mm / 1 %
 ```
 
 - Abweichungen und gewollte Änderungen in `Reference/REGRESSION.md`; ohne Unity-Referenz: `stairrun`, `rampfoot`,

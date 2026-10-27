@@ -116,7 +116,7 @@ Keine Unit-Tests: Proben fahren den Motor mit geskripteter Eingabe; Exit-Code 0 
 export DOTNET_EnableAVX=0                         # JIT rechnet sonst anders als AOT
 Bin/Probes/Release/KotH.Probes step               # eine Probe; Liste in CLAUDE.md
 .work/tools/stride_runs.sh 3                     # alle Bewegungsproben dreimal
-R=Reference/unity/runs; python3 Tools/verdict.py $R/run1,$R/run2,$R/run3 .work/regress/run1
+R=Reference/unity/runs; dotnet run Tools/Verdict.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1
 ```
 
 Stand: alle 94 Urteile wie in Unity; Abweichungen mit Ursache in

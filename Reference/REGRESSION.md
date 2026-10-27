@@ -3,8 +3,8 @@
 Verglichen werden alle acht Bewegungs- und Kampfproben sowie die DeterminismProbe
 gegen die eingefrorene Unity-Referenz in `Reference/unity/runs/run1..3`.
 Werkzeuge:
-- `Tools/regress.py`: Zahlen mit 5 mm Toleranz, Zeilen pro Tick eingeschlossen.
-- `Tools/verdict.py`: Urteile.
+- `Tools/Regress.cs`: Zahlen mit 5 mm Toleranz, Zeilen pro Tick eingeschlossen.
+- `Tools/Verdict.cs`: Urteile.
 
 Läufe: `KotH.Probes <name>`, jede Probe dreimal.
 
