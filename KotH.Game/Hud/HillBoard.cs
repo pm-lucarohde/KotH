@@ -82,9 +82,9 @@ namespace KotH.Client.Hud
             // The own damage sits at the bottom middle (Luca).
             top = new MenuOverlay(view.TopPart, Corner.TopCenter, 0f, 8f, Size);
             points = new MenuOverlay(view.PointsPart, Corner.TopCenter, 0f, 8f, Size);
-            status = new MenuOverlay(view.StatusPart, Corner.TopCenter, 0f, 78f, Size);
-            track = new MenuOverlay(view.TrackPart, Corner.TopCenter, 0f, 130f, Size);
-            fill = new MenuOverlay(view.FillPart, Corner.TopCenter, 0f, 158f, Size);
+            status = new MenuOverlay(view.StatusPart, Corner.TopCenter, 0f, 72f, Size);
+            track = new MenuOverlay(view.TrackPart, Corner.TopCenter, 0f, 124f, Size);
+            fill = new MenuOverlay(view.FillPart, Corner.TopCenter, 0f, 152f, Size);
             board = new MenuOverlay(view.BoardPart, Corner.TopRight, 8f, 8f, Size);
             ranks = new MenuOverlay(view.RanksPart, Corner.TopRight, 8f, 8f, Size);
             hurt = new MenuOverlay(view.DamagePart, Corner.BottomCenter, 0f, 16f, Size);

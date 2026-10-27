@@ -11,10 +11,10 @@
     <Panel Name="Parts">
         <!-- The glass apart from what is written on it, here and in the best
              list: the words change every second, the glass's shadow is costly. -->
-        <Grid Name="TopPart" Width="520" Height="108">
-            <Border Classes="Glass" Margin="24" CornerRadius="14" />
+        <Grid Name="TopPart" Width="449" Height="102">
+            <Border Classes="Glass" Margin="24" CornerRadius="13" />
         </Grid>
-        <Grid Name="PointsPart" Width="520" Height="108">
+        <Grid Name="PointsPart" Width="449" Height="102">
             <StackPanel Orientation="Horizontal" Spacing="12" Margin="49.5,25.5,0,29.5">
                 <TextBlock Name="Caption" Classes="Hud Soft" Text="Punkte" FontSize="22" />
                 <TextBlock Name="Points" Classes="Hud" Text="0 / 100" FontSize="32" />
@@ -23,12 +23,13 @@
                        HorizontalAlignment="Right" Margin="0,24,48,28" />
         </Grid>
 
-        <Grid Name="StatusPart" Width="640" Height="92">
-            <Border Name="StatusChip" Classes="Glass" Margin="24" Height="44" CornerRadius="11"
-                    HorizontalAlignment="Center" Padding="18,0,20,0">
-                <StackPanel Orientation="Horizontal" Spacing="10">
+        <!-- The zone and the own damage on chips of one size (Luca), 300 x 44 -->
+        <Grid Name="StatusPart" Width="348" Height="92">
+            <Border Name="StatusChip" Classes="Glass" Margin="24" CornerRadius="11" Padding="18,0">
+                <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
                     <Ellipse Name="Dot" Width="12" Height="12" Fill="White" VerticalAlignment="Center" />
-                    <TextBlock Name="Status" Classes="Hud" Text="Zone frei" FontSize="25" Margin="0,0,0,3" />
+                    <TextBlock Name="Status" Classes="Hud" Text="Zone frei" FontSize="25" Margin="0,0,0,3"
+                               MaxWidth="242" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
             </Border>
         </Grid>
@@ -48,10 +49,9 @@
             <StackPanel Name="RankList" Margin="33.5,33.5,33.5,0" VerticalAlignment="Top" />
         </Grid>
 
-        <Grid Name="DamagePart" Width="340" Height="92">
-            <Border Classes="Glass" Margin="24" Height="44" CornerRadius="11"
-                    HorizontalAlignment="Center" Padding="18,0,18,0">
-                <StackPanel Orientation="Horizontal" Spacing="10">
+        <Grid Name="DamagePart" Width="348" Height="92">
+            <Border Classes="Glass" Margin="24" CornerRadius="11" Padding="18,0">
+                <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
                     <TextBlock Classes="Hud Soft" Text="Schaden" FontSize="22" Margin="0,0,0,2" />
                     <TextBlock Name="Damage" Classes="Hud" Text="0,0 %" FontSize="27" Margin="0,0,0,3" />
                 </StackPanel>
