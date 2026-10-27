@@ -21,7 +21,8 @@ from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
 
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 OUT = os.path.join(ROOT, 'KotH.Game/Menu/Art')
-FONT = os.path.join(ROOT, 'KotH.Game/Menu/Fonts/Fredoka-Bold.ttf')
+FONT = os.path.join(ROOT, 'KotH.Game/Menu/Fonts/Accuratist.otf')
+BOLD = 5                    # Accuratist has one thin weight: a stroke in pixels fattens the title
 S = 2                       # pixels per design pixel
 PAD = 24                    # design pixels round every picture for its shadow
 
@@ -299,19 +300,19 @@ def logo():
     img = canvas(w, h)
     size = img.size
     p = PAD * S
-    big = ImageFont.truetype(FONT, 132 * S)
-    small = ImageFont.truetype(FONT, 46 * S)
-    words = [('Kıng', p + 40 * S, p + 0 * S), ('Hıll', p + 250 * S, p + 140 * S)]
+    big = ImageFont.truetype(FONT, 135 * S)
+    small = ImageFont.truetype(FONT, 50 * S)
+    words = [('Kıng', p + 50 * S, p + 4 * S), ('Hıll', p + 260 * S, p + 144 * S)]
 
     text = Image.new('L', size, 0)
     td = ImageDraw.Draw(text)
     for word, x, y in words:
-        td.text((x, y), word, font=big, fill=255)
+        td.text((x, y), word, font=big, fill=255, stroke_width=BOLD, stroke_fill=255)
     text = text.filter(ImageFilter.GaussianBlur(0.5 * S))
     rim = text.filter(ImageFilter.MaxFilter(2 * 6 * S + 1)).filter(ImageFilter.GaussianBlur(0.7 * S))
 
     # the leaf behind 'Hıll', with 'of the' on it
-    lx, ly = p + 36 * S, p + 200 * S
+    lx, ly = p + 46 * S, p + 204 * S
     leaf = Image.new('L', size, 0)
     ImageDraw.Draw(leaf).polygon([(lx + a, ly + b) for a, b in leaf_shape(196 * S, 64 * S, -0.08)], fill=255)
     leaf = leaf.filter(ImageFilter.GaussianBlur(0.7 * S))
@@ -322,8 +323,8 @@ def logo():
     put(img, flat(size, shade(GREEN, 0.5), 150), dark)
     d = ImageDraw.Draw(img)
     tx, ty = lx + 42 * S, ly - 31 * S
-    d.text((tx + S, ty + 3 * S), 'of the', font=small, fill=shade(GREEN, 0.5))
-    d.text((tx, ty), 'of the', font=small, fill=CREAM)
+    d.text((tx + S, ty + 3 * S), 'of the', font=small, fill=shade(GREEN, 0.5), stroke_width=S, stroke_fill=shade(GREEN, 0.5))
+    d.text((tx, ty), 'of the', font=small, fill=CREAM, stroke_width=S, stroke_fill=CREAM)
 
     # the letters' body: extrusion, then rim, then face
     extrude(img, rim, 16, shade(BROWN, 0.85), shade(BROWN, 0.48))
@@ -349,7 +350,7 @@ def logo():
         pre = word[:word.index('ı')]
         x0 = x + d.textlength(pre, font=big)
         x1 = x0 + d.textlength('ı', font=big)
-        stem_top = y + big.getbbox('ı')[1]
+        stem_top = y + big.getbbox('ı', stroke_width=BOLD)[1]
         cx, cy, r = (x0 + x1) / 2, stem_top + 2 * S, 24 * S
         stalk = Image.new('L', size, 0)
         ImageDraw.Draw(stalk).chord((cx - r * 1.3, cy - r * 1.25, cx + r * 1.3, cy + r * 0.45), 180, 360, fill=255)

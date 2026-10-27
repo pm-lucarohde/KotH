@@ -22,7 +22,7 @@
     <PackageReference Include="Avalonia.BuildServices" Version="11.3.2" ExcludeAssets="all" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>
-    <!-- The main menu's painted pictures (Tools/menu/menu_art.py, title in Fredoka under OFL) and type (Accuratist). -->
+    <!-- The main menu's painted pictures (Tools/menu/menu_art.py) and type (Accuratist, public domain). -->
     <AvaloniaResource Include="Menu\Art\*.png;Menu\Fonts\*.otf" />
   </ItemGroup>
   <ItemGroup>
