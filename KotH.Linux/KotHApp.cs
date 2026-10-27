@@ -149,13 +149,6 @@ sealed class KotHGame : Game
                 rate.SetMaxFrequency(fps);
                 rate.SetToPreciseAuto();
             }
-
-        // The load screen and the main menu need no more than 60 (Luca); MainMenu gives the game its own limit back.
-        if (LaunchOptions.Current.ShowsMenu && !headless)
-        {
-            WindowMinimumUpdateRate.SetMaxFrequency(KotH.Client.Menu.MainMenu.MenuFps);
-            WindowMinimumUpdateRate.SetToPreciseAuto();
-        }
     }
 
     protected override void PrepareContext()

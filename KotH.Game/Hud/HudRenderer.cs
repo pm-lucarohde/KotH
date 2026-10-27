@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Globalization;
+using KotH.Client.Rendering;
 using Stride.Core;
 using Stride.Core.Mathematics;
 using Stride.Engine;
@@ -45,7 +46,7 @@ namespace KotH.Client.Hud
         /// <summary>One opaque white pixel, for filled rectangles.</summary>
         public Texture White => white;
 
-        /// <summary>The scene's HUD, appended to the compositor on first use.</summary>
+        /// <summary>The scene's HUD, appended to the compositor on first use, the scene wrapped in a SceneThrottle.</summary>
         public static HudRenderer Of(ScriptComponent script)
         {
             var hud = script.Services.GetService<HudRenderer>();
@@ -56,7 +57,9 @@ namespace KotH.Client.Hud
             script.Services.AddService(hud);
 
             GraphicsCompositor compositor = script.SceneSystem.GraphicsCompositor;
-            compositor.Game = new SceneRendererCollection { compositor.Game, hud };
+            var throttle = new SceneThrottle { Child = compositor.Game };
+            script.Services.AddService(throttle);
+            compositor.Game = new SceneRendererCollection { throttle, hud };
 
             hud.white = Texture.New2D(script.GraphicsDevice, 1, 1, PixelFormat.R8G8B8A8_UNorm,
                                       new byte[] { 255, 255, 255, 255 });

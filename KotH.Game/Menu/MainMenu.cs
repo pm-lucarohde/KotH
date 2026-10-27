@@ -2,6 +2,7 @@ using System;
 using System.Runtime;
 using KotH.Client.Hud;
 using KotH.Client.Net;
+using KotH.Client.Rendering;
 using KotH.Shared.Net;
 using Stride.Core;
 using Stride.Core.Mathematics;
@@ -22,11 +23,11 @@ namespace KotH.Client.Menu
     public sealed class MainMenu : SyncScript
     {
         /// <summary>
-        /// The menu and the load screen before it need no more frames than
-        /// this (Luca); KotHApp sets it at the start, the game's own limit
-        /// (--fps, KOTH_FPS or none) comes back when the menu goes.
+        /// The map behind the menu needs no more frames than this (Luca); the
+        /// menu itself runs at the game's own limit (--fps, KOTH_FPS or none).
+        /// Behind the load screen the map runs free, its bake not slowed.
         /// </summary>
-        public const int MenuFps = 60;
+        public const int MapFps = 30;
 
         // Ready once the map is loaded and then this many frames in a row came
         // quicker than CalmFrame seconds, or Longest seconds after it at most;
@@ -55,6 +56,7 @@ namespace KotH.Client.Menu
 
         MainMenuView view;
         HudRenderer hud;
+        SceneThrottle throttle;
         MenuOverlay column, page, logo, corner;
         MenuOverlay[] overlays;
         MenuOverlay hovered, pressed;
@@ -68,6 +70,7 @@ namespace KotH.Client.Menu
         {
             MenuOverlay.Start<MenuApp>();
             hud = HudRenderer.Of(this);
+            throttle = Services.GetService<SceneThrottle>();
             if (Cover != null)
                 Cover.Loaded += () => loaded = true;
 
@@ -98,6 +101,8 @@ namespace KotH.Client.Menu
 
             if (Cover is not { Covers: true })
             {
+                if (throttle != null)
+                    throttle.Interval = 1.0 / MapFps;
                 if (!shown)
                     Reveal();
                 Enter((float)Game.UpdateTime.Elapsed.TotalSeconds, screen.Y / (float)MainMenuView.DesignHeight);
@@ -221,13 +226,11 @@ namespace KotH.Client.Menu
 
         public override void Cancel()
         {
-            var rate = ((GameBase)Game).WindowMinimumUpdateRate;
-            int? fps = LaunchOptions.Current.Fps
-                    ?? (int.TryParse(Environment.GetEnvironmentVariable("KOTH_FPS"), out int f) ? f : null);
-            if (fps > 0)
-                rate.SetMaxFrequency(fps.Value);
-            else
-                rate.MinimumElapsedTime = TimeSpan.Zero;
+            if (throttle != null)
+            {
+                throttle.Interval = 0.0;
+                throttle.Release();
+            }
 
             if (overlays == null)
                 return;
