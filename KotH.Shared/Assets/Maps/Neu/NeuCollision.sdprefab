@@ -47,13 +47,13 @@ Hierarchy:
                 Components:
                     815135e1a9a94c12aff59e23a80af12a: !TransformComponent
                         Id: 8B4650C6-9437-40E8-B05A-A4A4A7A7BDBD
-                        Position: {X: 0.0, Y: 124.75, Z: 0.0}
+                        Position: {X: 0.0, Y: 130.5, Z: 0.0}
                         Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
                         Scale: {X: 1.0, Y: 1.0, Z: 1.0}
                         Children: {}
                     298c1296f795462b8393b155f6b50a2b: !KotH.CaptureZone
                         Id: DAA0C84A-9ACC-49A3-B661-4A29E02AC7AC
-                        Size: {X: 10.0, Y: 3.5, Z: 10.0}
+                        Size: {X: 10.0, Y: 15.0, Z: 10.0}
                         WarmupSeconds: 3.0
                         WinPoints: 100
                         TimeLimitMinutes: 20.0

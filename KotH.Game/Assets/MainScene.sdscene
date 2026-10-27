@@ -63,6 +63,7 @@ Hierarchy:
                     6f5453b5fe1348e9b702c511d2449171: !KotH.ZoneVisual
                         Id: 7848132A-4358-4AFE-8B09-BEB950054399
                         Cube: 1AB86A87-04BF-45CD-A1C9-5502AA737FFD:Models/ZoneCube
+                        Motes: d4df7515-1ee4-4c93-bcf5-cdf5dd876c8c:Effects/ZoneMotes
         -   Entity:
                 Id: C66042CC-6A58-5015-A989-C770025D8616
                 Name: GameRoot

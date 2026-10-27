@@ -1,17 +1,22 @@
+using System.Collections.Generic;
 using KotH.Client.Hud;
 using KotH.Shared.Match;
 using KotH.Shared.Simulation;
 using Stride.Core;
 using Stride.Core.Mathematics;
 using Stride.Engine;
+using Stride.Particles;
+using Stride.Particles.Components;
+using Stride.Particles.Initializers;
+using Stride.Particles.Spawners;
 using Stride.Rendering;
 using Stride.Rendering.Materials;
 
 namespace KotH.Client.Match
 {
     /// <summary>
-    /// Draws the capture zone as glowing rails along its floor edges, in
-    /// the colour of what the zone does for this screen. Built from the zone's box once the game root has wired it, so
+    /// Draws the capture zone as glowing rails along its floor edges, with
+    /// motes rising off them, in the colour of what the zone does for this screen. Built from the zone's box once the game root has wired it, so
     /// moving the zone in the arena moves the rails along. Presentation only.
     /// </summary>
     [DataContract("KotH.ZoneVisual")]
@@ -20,8 +25,17 @@ namespace KotH.Client.Match
         /// <userdoc>Ein Würfel von 1 m, aus dem die Leisten gebaut werden, mit ihrem Material.</userdoc>
         [Display("Würfel", "Darstellung")] public Model Cube;
 
+        /// <userdoc>Partikel, die von den Leisten aufsteigen, in der Farbe der Zone. Ihre Emitter sind für 1 m Rand eingestellt (Rand entlang X, Höhe ab dem Zonenboden) und werden auf jede Seite gestreckt.</userdoc>
+        [Display("Partikel am Rand", "Darstellung")] public Prefab Motes;
+
         [Display("Leistenbreite", "Maße")] public float Thickness = 0.12f;
         [Display("Leistenhöhe", "Maße")] public float RailHeight = 0.1f;
+
+        /// <userdoc>So weit sind die Partikel zu Weiß hin aufgehellt, von 0 (Zonenfarbe) bis 1 (weiß).</userdoc>
+        [Display("Partikel aufhellen", "Darstellung")] public float MoteLight = 0.35f;
+
+        /// <userdoc>Helligkeit der Partikel; über 1 leuchten sie stärker als die Leisten.</userdoc>
+        [Display("Partikel Helligkeit", "Darstellung")] public float MoteGain = 1.8f;
 
         [DataMemberIgnore] public CaptureZone Zone { get; set; }
         [DataMemberIgnore] public HillMatch Match { get; set; }
@@ -36,6 +50,7 @@ namespace KotH.Client.Match
         /// <summary>Drawn, but in none of the voxel GI's groups: the rails never move and give no GI.</summary>
         const RenderGroup RailGroup = RenderGroup.Group4;
 
+        readonly List<ParticleSystemComponent> motes = new List<ParticleSystemComponent>();
         bool built;
         ZoneLook shown = (ZoneLook)(-1);
 
@@ -58,6 +73,11 @@ namespace KotH.Client.Match
             Color4 color = (Board?.ColorOf(look) ?? Color.White).ToColor4();
             if (Cube.Materials.Count > 0)
                 Tint(Cube.Materials[0].Material, color);
+            // The shade darkens what the rails' glow shows: lifted towards white.
+            Color4 light = Color4.Lerp(color, Color.White.ToColor4(), MoteLight) * MoteGain;
+            light.A = 1f;
+            foreach (ParticleSystemComponent particles in motes)
+                particles.Color = light;
         }
 
         void Build()
@@ -74,6 +94,46 @@ namespace KotH.Client.Match
             Part(new Vector3(0f, y, inZ), new Vector3(s.X, RailHeight, Thickness));
             Part(new Vector3(-inX, y, 0f), new Vector3(Thickness, RailHeight, s.Z - 2f * Thickness));
             Part(new Vector3(inX, y, 0f), new Vector3(Thickness, RailHeight, s.Z - 2f * Thickness));
+
+            AddMotes(new Vector3(0f, bottom, -inZ), 0f, s.X);
+            AddMotes(new Vector3(0f, bottom, inZ), 0f, s.X);
+            AddMotes(new Vector3(-inX, bottom, 0f), MathUtil.PiOverTwo, s.Z);
+            AddMotes(new Vector3(inX, bottom, 0f), MathUtil.PiOverTwo, s.Z);
+        }
+
+        // One side's motes: the prefab's metre of rail stretched to its length,
+        // as many per second for every metre. Before it joins the scene, so
+        // the emitters size their pools for it.
+        void AddMotes(Vector3 at, float turn, float length)
+        {
+            if (Motes == null)
+                return;
+            foreach (Entity side in Motes.Instantiate())
+            {
+                side.Transform.Position = at;
+                side.Transform.Rotation = Quaternion.RotationY(turn);
+                if (side.Get<ParticleSystemComponent>() is { } particles)
+                {
+                    particles.RenderGroup = RailGroup;
+                    foreach (ParticleEmitter emitter in particles.ParticleSystem.Emitters)
+                        Stretch(emitter, length);
+                    motes.Add(particles);
+                }
+                Entity.AddChild(side);
+            }
+        }
+
+        static void Stretch(ParticleEmitter emitter, float length)
+        {
+            foreach (ParticleSpawner spawner in emitter.Spawners)
+                if (spawner is SpawnerPerSecond rate)
+                    rate.SpawnCount *= length;
+            foreach (ParticleInitializer initializer in emitter.Initializers)
+                if (initializer is InitialPositionSeed seed)
+                {
+                    seed.PositionMin = new Vector3(seed.PositionMin.X * length, seed.PositionMin.Y, seed.PositionMin.Z);
+                    seed.PositionMax = new Vector3(seed.PositionMax.X * length, seed.PositionMax.Y, seed.PositionMax.Z);
+                }
         }
 
         void Part(Vector3 at, Vector3 scale)
