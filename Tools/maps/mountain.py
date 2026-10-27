@@ -31,9 +31,10 @@ HALF = 133                 # cells from the centre to the edge of the grid
 ISLAND = 119.5             # coast radius, varied by COAST_WAVES
 COAST_WAVES = ((16.0, 3), (11.0, 6), (6.0, 13), (2.5, 29), (1.0, 67))   # (metres, cells round): bays to ripples
 COAST_MAX = 126.0          # the GI volume ends at 128 m
-BEACH = 5.5                # sand this far in from the coast, varied by BEACH_WAVES (Luca: less round)
+BEACH = 7.0                # sand this far in from the coast, varied by BEACH_WAVES (Luca: less round;
+                           # 1.5 m more after the wider bank)
 BEACH_WAVES = ((4.5, 4), (3.0, 9), (1.5, 23))
-BEACH_MIN = 2.0
+BEACH_MIN = 3.5
 MEADOW_MIN = 12.0          # the meadow reaches at least this far out past the foot (spawns, trees)
 SOFT = 3.0                 # metres over which those limits ease in
 OLD_ISLAND, OLD_COAST, OLD_BEACH = 117.0, 4.0, 5.0   # the round island the trees were planted on
