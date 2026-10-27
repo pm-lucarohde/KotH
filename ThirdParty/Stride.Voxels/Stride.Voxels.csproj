@@ -7,7 +7,8 @@
     <RootNamespace>Stride.Rendering.Voxels</RootNamespace>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <IsAotCompatible>true</IsAotCompatible>
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <!-- CS0105: the shader generator writes a using twice into its .g.cs files. -->
+    <NoWarn>$(NoWarn);CS1591;CS0105</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Stride.Engine" Version="4.4.0" />

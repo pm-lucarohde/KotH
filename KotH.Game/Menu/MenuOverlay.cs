@@ -148,14 +148,14 @@ namespace KotH.Client.Menu
         /// <summary>Uploads the part's frame if Avalonia rendered a new one.</summary>
         public void Upload(CommandList commandList)
         {
-            if (!Visible || !surface.TakeFrame(out IntPtr pixels, out int width, out int height))
+            if (!Visible || !surface.TakeFrame(out byte[] pixels, out int width, out int height))
                 return;
             if (texture == null || texture.Width != width || texture.Height != height)
             {
                 texture?.Dispose();
                 texture = Texture.New2D(commandList.GraphicsDevice, width, height, Stride.Graphics.PixelFormat.B8G8R8A8_UNorm_SRgb, TextureFlags.ShaderResource);
             }
-            texture.SetData(commandList, new DataPointer(pixels, width * height * 4));
+            texture.SetData<byte>(commandList, pixels);
         }
 
         public void Draw(SpriteBatch batch, Vector2 screen)
@@ -244,9 +244,9 @@ namespace KotH.Client.Menu
             }
 
             /// <summary>The buffer, once per frame Avalonia rendered into it.</summary>
-            public bool TakeFrame(out IntPtr frame, out int frameWidth, out int frameHeight)
+            public bool TakeFrame(out byte[] frame, out int frameWidth, out int frameHeight)
             {
-                (frame, frameWidth, frameHeight) = (pixels, width, height);
+                (frame, frameWidth, frameHeight) = (buffer, width, height);
                 bool taken = rendered;
                 rendered = false;
                 return taken;
