@@ -13,9 +13,12 @@ shader GrassBlade : TransformationBase, PositionStream4, Transformation, Texturi
 {
     // Patch side in metres and blades along it (GrassPatch).
     static const float PatchSize = 2.0;
-    static const float Cells = 19.0;
+    static const float2 Cells = float2(20.0, 21.0);
     static const float Pi2 = 6.2831853;
     static const int MaxFigures = 12;
+    // Blades never thinner than this share of their distance (about 1.5
+    // pixels at 1440p): far, thin blades would flicker between pixels.
+    static const float MinWidthPerMetre = 0.0015;
 
     // (across -1..1, along 0..1, kind, blade number in the patch)
     stage stream float4 GrassData : COLOR0;
@@ -89,11 +92,12 @@ shader GrassBlade : TransformationBase, PositionStream4, Transformation, Texturi
         Ground(root.xz, height, amount, shade, uv);
         root.y = height;
 
-        // Thinner with distance: a blade stays while its rank is under the
-        // density there, and grows in over the last stretch instead of popping.
+        // Thinner with distance: a blade stays while its rank (its number,
+        // GrassPatch.Order, plus a little chance) is under the density there,
+        // and grows in over the last stretch instead of popping.
         float far = length(root - Eye.xyz);
         float density = 1.0 - smoothstep(GrassReach.x, GrassReach.y, far);
-        float keep = amount * density - h0.z;
+        float keep = amount * density - (float(id) + h0.z) / (Cells.x * Cells.y);
         if (kind > 0.5)
         {
             // Flowers in clumps of 4 m: a clump has them or not, all one colour.
@@ -137,7 +141,7 @@ shader GrassBlade : TransformationBase, PositionStream4, Transformation, Texturi
         float s = kind > 1.5 ? 1.0 : data.y;
         float3 p = (1 - s) * (1 - s) * root + 2 * s * (1 - s) * bow + s * s * tip;
         float3 tangent = 2 * (1 - s) * (bow - root) + 2 * s * (tip - bow);
-        float width = GrassForm.x * (kind > 0.5 ? 0.35 : 1.0) * lerp(1.0, 1.8, 1.0 - density) * pow(saturate(1.0 - s), 0.6);
+        float width = max(GrassForm.x, far * MinWidthPerMetre) * (kind > 0.5 ? 0.35 : 1.0) * pow(saturate(1.0 - s), 0.6);
         float3 normal = normalize(cross(tangent, side) + side * data.x * 0.5 * tall);
         if (kind > 1.5)
         {

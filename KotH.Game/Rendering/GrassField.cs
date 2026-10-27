@@ -14,8 +14,8 @@ namespace KotH.Client.Rendering
 {
     /// <summary>
     /// Grass blades on the meadow, after Ghost of Tsushima (Luca): GrassPatch
-    /// drawn instanced on the map's grassy 2 m patches near the camera and in
-    /// view, one draw; GrassBlade builds the blades on the ground of the grass
+    /// drawn instanced on the map's grassy 2 m patches in reach and in view,
+    /// two draws (far patches with a quarter of the blades); GrassBlade builds the blades on the ground of the grass
     /// map (Tools/maps/MapUV writes it), GrassColor paints them. Only looks:
     /// no collision, nothing of the simulation. Hands the shader the wind of
     /// the Atmosphere and the figures' feet every frame.
@@ -43,15 +43,15 @@ namespace KotH.Client.Rendering
         /// <userdoc>Graskarte der Map (eingebettete Ressource, von Tools/maps/MapUV).</userdoc>
         [DataMember(11)] public string MapResource { get; set; } = "Maps/NeuGrass.bin";
         /// <userdoc>Bis zu so vielen Metern von der Kamera stehen die Halme voll dicht.</userdoc>
-        [DataMember(20)] public float FullReach { get; set; } = 15f;
+        [DataMember(20)] public float FullReach { get; set; } = 25f;
         /// <userdoc>Ab so vielen Metern sind die Halme ganz weg (dazwischen dünner), dort bleibt nur die Bodentextur.</userdoc>
-        [DataMember(21)] public float FarReach { get; set; } = 40f;
+        [DataMember(21)] public float FarReach { get; set; } = 90f;
         /// <userdoc>Höhe der kürzesten Halme in Metern.</userdoc>
         [DataMember(22)] public float HeightMin { get; set; } = 0.125f;
         /// <userdoc>Höhe der längsten Halme in Metern.</userdoc>
         [DataMember(23)] public float HeightMax { get; set; } = 0.225f;
         /// <userdoc>Breite eines Halms am Fuß in Metern.</userdoc>
-        [DataMember(24)] public float Width { get; set; } = 0.06f;
+        [DataMember(24)] public float Width { get; set; } = 0.03f;
         /// <userdoc>Radius einer Blüte in Metern.</userdoc>
         [DataMember(25)] public float PetalRadius { get; set; } = 0.08f;
         /// <userdoc>Anteil der 4-m-Flecken mit Blumen (0 bis 1).</userdoc>
@@ -74,11 +74,11 @@ namespace KotH.Client.Rendering
         Texture map;
         float half, cell, maxHeight;
         readonly List<Vector2> patches = new List<Vector2>();
-        Matrix[] shown = Array.Empty<Matrix>();
-        int shownCount = -1;
-        readonly List<Matrix> wanted = new List<Matrix>();
         readonly Vector4[] figures = new Vector4[MaxFigures];
-        InstancingUserArray instancing;
+        // Near patches carry every blade, far ones (density there at most
+        // FarShare) only the low numbers GrassBlade keeps there anyway.
+        const float FarShare = 0.25f;
+        Patches near, far;
         CameraComponent camera;
         PlayerVisualSystem visuals;
 
@@ -86,12 +86,10 @@ namespace KotH.Client.Rendering
         {
             if (Material == null || !LoadMap())
                 return;
-            var model = new Model { GrassPatch.Build(GraphicsDevice) };
-            model.Materials.Add(new MaterialInstance(Material) { IsShadowCaster = false });
-            model.BoundingBox = model.Meshes[0].BoundingBox;
-            instancing = new InstancingUserArray();
-            Entity.Add(new ModelComponent(model) { RenderGroup = Group, IsShadowCaster = false });
-            Entity.Add(new InstancingComponent { Type = instancing });
+            near = new Patches(this, Entity, GrassPatch.Blades);
+            var farEntity = new Entity("GrassFar");
+            Entity.AddChild(farEntity);
+            far = new Patches(this, farEntity, (int)(GrassPatch.Blades * FarShare));
             GrassRenderFeature.Install(SceneSystem, Group);
             Material.Passes[0].Parameters.Set(MapKey, map);
             Material.Passes[0].Parameters.Set(MapShapeKey, new Vector4(1f / cell, half, map.Width, maxHeight));
@@ -131,7 +129,7 @@ namespace KotH.Client.Rendering
 
         public override void Update()
         {
-            if (instancing == null || (camera ??= FindCamera()) == null)
+            if (near == null || (camera ??= FindCamera()) == null)
                 return;
             ParameterCollection parameters = Material.Passes[0].Parameters;
             parameters.Set(ReachKey, new Vector4(FullReach, FarReach, HeightMin, HeightMax));
@@ -141,42 +139,75 @@ namespace KotH.Client.Rendering
             parameters.Set(BendKey, new Vector4(StillLean, GustLean, Flutter, FigurePush));
             Figures();
             parameters.Set(FiguresKey, MaxFigures, ref figures[0]);
-            Patches();
+            Choose();
         }
 
-        /// <summary>The patches within reach and in view (the camera's last matrices, a patch wider).</summary>
-        void Patches()
+        /// <summary>
+        /// The patches within reach and in view (the camera's last matrices, a
+        /// patch wider), near or far by their nearest point's density.
+        /// </summary>
+        void Choose()
         {
             Vector3 eye = camera.Entity.Transform.WorldMatrix.TranslationVector;
             Matrix viewProjection = camera.ViewProjectionMatrix;
             var frustum = new BoundingFrustum(ref viewProjection);
-            float reach = FarReach + GrassPatch.Size;
-            wanted.Clear();
+            near.Wanted.Clear();
+            far.Wanted.Clear();
             foreach (Vector2 p in patches)
             {
-                float dx = p.X + 0.5f * GrassPatch.Size - eye.X, dz = p.Y + 0.5f * GrassPatch.Size - eye.Z;
-                if (dx * dx + dz * dz > reach * reach)
+                float dx = Math.Max(0f, Math.Max(p.X - eye.X, eye.X - p.X - GrassPatch.Size));
+                float dz = Math.Max(0f, Math.Max(p.Y - eye.Z, eye.Z - p.Y - GrassPatch.Size));
+                float distance = MathF.Sqrt(dx * dx + dz * dz);
+                if (distance > FarReach)
                     continue;
                 var box = new BoundingBoxExt(new BoundingBox(new Vector3(p.X - 1f, 0f, p.Y - 1f),
                     new Vector3(p.X + GrassPatch.Size + 1f, maxHeight, p.Y + GrassPatch.Size + 1f)));
-                if (frustum.Contains(ref box))
-                    wanted.Add(Matrix.Translation(p.X, 0f, p.Y));
+                if (!frustum.Contains(ref box))
+                    continue;
+                float t = Math.Clamp((distance - FullReach) / Math.Max(FarReach - FullReach, 0.01f), 0f, 1f);
+                float density = 1f - t * t * (3f - 2f * t);
+                (density <= FarShare ? far : near).Wanted.Add(Matrix.Translation(p.X, 0f, p.Y));
             }
-            if (wanted.Count == shownCount && Same())
-                return;
-            if (shown.Length < wanted.Count)
-                shown = new Matrix[Math.Max(wanted.Count, 2 * shown.Length)];
-            wanted.CopyTo(shown);
-            shownCount = wanted.Count;
-            instancing.UpdateWorldMatrices(shown, shownCount);
+            near.Show();
+            far.Show();
         }
 
-        bool Same()
+        /// <summary>One patch mesh drawn instanced on an entity, and where it stands now.</summary>
+        sealed class Patches
         {
-            for (int i = 0; i < wanted.Count; i++)
-                if (wanted[i].M41 != shown[i].M41 || wanted[i].M43 != shown[i].M43)
-                    return false;
-            return true;
+            public readonly List<Matrix> Wanted = new List<Matrix>();
+            readonly InstancingUserArray instancing = new InstancingUserArray();
+            Matrix[] shown = Array.Empty<Matrix>();
+            int shownCount = -1;
+
+            public Patches(GrassField field, Entity entity, int blades)
+            {
+                var model = new Model { GrassPatch.Build(field.GraphicsDevice, blades) };
+                model.Materials.Add(new MaterialInstance(field.Material) { IsShadowCaster = false });
+                model.BoundingBox = model.Meshes[0].BoundingBox;
+                entity.Add(new ModelComponent(model) { RenderGroup = Group, IsShadowCaster = false });
+                entity.Add(new InstancingComponent { Type = instancing });
+            }
+
+            /// <summary>Hands the wanted patches to the instancing, if they changed.</summary>
+            public void Show()
+            {
+                if (Wanted.Count == shownCount && Same())
+                    return;
+                if (shown.Length < Wanted.Count)
+                    shown = new Matrix[Math.Max(Wanted.Count, 2 * shown.Length)];
+                Wanted.CopyTo(shown);
+                shownCount = Wanted.Count;
+                instancing.UpdateWorldMatrices(shown, shownCount);
+            }
+
+            bool Same()
+            {
+                for (int i = 0; i < Wanted.Count; i++)
+                    if (Wanted[i].M41 != shown[i].M41 || Wanted[i].M43 != shown[i].M43)
+                        return false;
+                return true;
+            }
         }
 
         /// <summary>The figures' feet, as shown (interpolated), for the blades to bend away.</summary>
