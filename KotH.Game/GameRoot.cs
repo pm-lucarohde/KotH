@@ -277,9 +277,6 @@ namespace KotH.Client
         {
             HudRenderer hud = HudRenderer.Of(this);
             cover = new LoadScreen(hud) { Text = () => net?.Notice };
-            foreach (Entity e in Entity.Scene.Entities)
-                if (e.Get<HillBoard>() is { } board)
-                    cover.Font = board.Font;
             hud.Cover = cover;
             Services.AddService(cover);
         }

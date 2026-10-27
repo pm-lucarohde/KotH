@@ -111,7 +111,7 @@ namespace KotH.Client.Menu
                 Point(screen);
             }
 
-            MenuOverlay.Tick();
+            MenuOverlay.Tick(Game.UpdateTime.FrameCount);
             page.Visible = view.PageOpen;
             logo.Visible = !view.PageOpen;
             foreach (MenuOverlay overlay in overlays)
@@ -186,7 +186,7 @@ namespace KotH.Client.Menu
         }
 
         // The easings Avalonia's BackEaseOut and ElasticEaseOut use.
-        static float BackOut(float t)
+        internal static float BackOut(float t)
         {
             float u = t - 1f;
             return 1f + u * u * (2.70158f * u + 1.70158f);

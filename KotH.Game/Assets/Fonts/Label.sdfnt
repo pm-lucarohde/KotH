@@ -3,11 +3,11 @@ Id: 6B653845-EFE6-5534-8C3D-396207FA2121
 SerializedVersion: {Stride: 2.1.0.0}
 Tags: []
 FontSource: !FileFontProvider
-    Source: !file ../../Resources/Fonts/FiraCode-Regular.ttf
+    Source: !file ../../Menu/Fonts/Accuratist.otf
 FontType: !SignedDistanceFieldSpriteFontType
     Size: 48.0
     CharacterSet: null
     CharacterRegions:
         0c1abff3c22b54099e7b09ef69509a04:
             Start: ' '
-            End: "\x7F"
+            End: "\xFF"

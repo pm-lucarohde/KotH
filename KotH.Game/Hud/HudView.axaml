@@ -1,0 +1,81 @@
+<!-- The round on screen in parts that HillBoard shows as overlays of their own
+     (MenuOverlay), so a change redraws only its part: the bar with the points
+     and the time at the top, the zone under it with the warm-up bar, the best
+     four at the top right, the own damage at the bottom, the winner and
+     notices in the middle. Laid out for a screen 1080 high; every glass piece keeps 24 of
+     room round it for its shadow. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="KotH.Client.Hud.HudView"
+             x:CompileBindings="True">
+    <Panel Name="Parts">
+        <!-- The glass apart from what is written on it, here and in the best
+             list: the words change every second, the glass's shadow is costly. -->
+        <Grid Name="TopPart" Width="520" Height="108">
+            <Border Classes="Glass" Margin="24" CornerRadius="14" />
+        </Grid>
+        <Grid Name="PointsPart" Width="520" Height="108">
+            <StackPanel Orientation="Horizontal" Spacing="12" Margin="49.5,25.5,0,29.5">
+                <TextBlock Name="Caption" Classes="Hud Soft" Text="Punkte" FontSize="22" />
+                <TextBlock Name="Points" Classes="Hud" Text="0 / 100" FontSize="32" />
+            </StackPanel>
+            <TextBlock Name="Time" Classes="Hud" Text="0:00" FontSize="38"
+                       HorizontalAlignment="Right" Margin="0,24,48,28" />
+        </Grid>
+
+        <Grid Name="StatusPart" Width="640" Height="92">
+            <Border Name="StatusChip" Classes="Glass" Margin="24" Height="44" CornerRadius="11"
+                    HorizontalAlignment="Center" Padding="18,0,20,0">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Ellipse Name="Dot" Width="12" Height="12" Fill="White" VerticalAlignment="Center" />
+                    <TextBlock Name="Status" Classes="Hud" Text="Zone frei" FontSize="25" Margin="0,0,0,3" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- The warm-up: the track, and the fill HillBoard shows a share of -->
+        <Grid Name="TrackPart" Width="276" Height="62">
+            <Border Classes="Glass" Margin="24" CornerRadius="7" />
+        </Grid>
+        <Grid Name="FillPart" Width="220" Height="6">
+            <Border Name="Fill" CornerRadius="3" Background="White" />
+        </Grid>
+
+        <Grid Name="BoardPart" Width="340" Height="208">
+            <Border Name="BoardGlass" Classes="Glass" Margin="24" CornerRadius="16" Height="163" VerticalAlignment="Top" />
+        </Grid>
+        <Grid Name="RanksPart" Width="340" Height="208">
+            <StackPanel Name="RankList" Margin="33.5,33.5,33.5,0" VerticalAlignment="Top" />
+        </Grid>
+
+        <Grid Name="DamagePart" Width="340" Height="92">
+            <Border Classes="Glass" Margin="24" Height="44" CornerRadius="11"
+                    HorizontalAlignment="Center" Padding="18,0,18,0">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBlock Classes="Hud Soft" Text="Schaden" FontSize="22" Margin="0,0,0,2" />
+                    <TextBlock Name="Damage" Classes="Hud" Text="0,0 %" FontSize="27" Margin="0,0,0,3" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <Grid Name="BannerPart" Width="1100" Height="150">
+            <Border Classes="Glass" Margin="24" CornerRadius="24" HorizontalAlignment="Center" Padding="48,0">
+                <TextBlock Name="Banner" Classes="Hud" Text="Unentschieden" FontSize="66" Margin="0,0,0,8" />
+            </Border>
+        </Grid>
+
+        <Grid Name="CountdownPart" Width="600" Height="92">
+            <Border Classes="Glass" Margin="24" Height="44" CornerRadius="11"
+                    HorizontalAlignment="Center" Padding="20,0">
+                <TextBlock Name="Countdown" Classes="Hud" Text="Neue Runde in 10" FontSize="25" Margin="0,0,0,3" />
+            </Border>
+        </Grid>
+
+        <Grid Name="NoticePart" Width="1200" Height="104">
+            <Border Classes="Glass" Margin="24" Height="56" CornerRadius="13"
+                    HorizontalAlignment="Center" Padding="26,0">
+                <TextBlock Name="Notice" Classes="Hud" Text="Verbinde ..." FontSize="29" Margin="0,0,0,4" />
+            </Border>
+        </Grid>
+    </Panel>
+</UserControl>

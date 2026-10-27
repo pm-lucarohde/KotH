@@ -537,12 +537,14 @@ sealed class KotHGame : Game
     /// covers: a slow frame repeats, so the video keeps the game's time.
     /// </summary>
     // The test helpers count from the moment the load screen is gone, as a
-    // player's time starts then; -1 while it still covers the screen.
+    // player's time starts then; -1 while it still covers the screen. With
+    // KOTH_SHOT_LOAD=1 it stays, and they count from the first frame.
     double coverLifted = double.NaN;
+    readonly bool shotLoad = Environment.GetEnvironmentVariable("KOTH_SHOT_LOAD") == "1";
 
     double TestSeconds(GameTime time)
     {
-        if (double.IsNaN(coverLifted) && Services.GetService<LoadScreen>() is not { Covers: true })
+        if (double.IsNaN(coverLifted) && (shotLoad || Services.GetService<LoadScreen>() is not { Covers: true }))
             coverLifted = time.Total.TotalSeconds;
         return double.IsNaN(coverLifted) ? -1.0 : time.Total.TotalSeconds - coverLifted;
     }

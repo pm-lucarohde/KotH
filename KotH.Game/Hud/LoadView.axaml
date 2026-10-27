@@ -1,0 +1,35 @@
+<!-- The load screen's corner (Luca): a clock of dark glass that turns while
+     the world gets ready, the word to its left. Parts as in HudView: the
+     face, the two hands and the pin each a square of the same size, so
+     LoadScreen turns the hands round the part's middle; units of 1080. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:hud="using:KotH.Client.Hud"
+             x:Class="KotH.Client.Hud.LoadView"
+             x:CompileBindings="True">
+    <Panel Name="Parts">
+        <Grid Name="FacePart" Width="144" Height="144">
+            <Border Classes="Glass" Width="96" Height="96" CornerRadius="48" BorderThickness="2" />
+            <hud:ClockDial Width="96" Height="96" />
+        </Grid>
+        <Grid Name="MinutePart" Width="144" Height="144">
+            <hud:ClockHand Length="34" Tail="7" Thickness="4.5" Color="#F6ECDE" />
+        </Grid>
+        <Grid Name="HourPart" Width="144" Height="144">
+            <hud:ClockHand Length="22" Tail="5" Thickness="6.5" Color="#F2C447" />
+        </Grid>
+        <!-- The pin: a little mushroom cap -->
+        <Grid Name="PinPart" Width="144" Height="144">
+            <Canvas Width="16" Height="16">
+                <Ellipse Width="16" Height="16" Fill="#C4231F" Stroke="#8A1815" StrokeThickness="1" />
+                <Ellipse Canvas.Left="3" Canvas.Top="4" Width="4" Height="4" Fill="#F6ECDE" />
+                <Ellipse Canvas.Left="9" Canvas.Top="3" Width="3" Height="3" Fill="#F6ECDE" />
+                <Ellipse Canvas.Left="8.5" Canvas.Top="9" Width="4" Height="4" Fill="#F6ECDE" />
+            </Canvas>
+        </Grid>
+        <Grid Name="WordsPart" Width="900" Height="144">
+            <TextBlock Name="Words" Classes="Hud" Text="Lädt …" FontSize="36"
+                       HorizontalAlignment="Right" Margin="0,0,0,6" />
+        </Grid>
+    </Panel>
+</UserControl>

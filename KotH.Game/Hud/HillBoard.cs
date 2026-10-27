@@ -1,29 +1,27 @@
 using System;
 using System.Collections.Generic;
+using KotH.Client.Menu;
 using KotH.Shared.Combat;
 using KotH.Shared.Match;
 using KotH.Shared.Simulation;
 using Stride.Core;
 using Stride.Core.Mathematics;
 using Stride.Engine;
-using Stride.Graphics;
+using Corner = KotH.Client.Menu.MenuOverlay.Corner;
 
 namespace KotH.Client.Hud
 {
     /// <summary>
-    /// The round on screen: own points and the time left at the top, what
-    /// the zone is doing below, the warm-up as a bar, the best four at the
-    /// top right with the own damage percent below them and the winner in
-    /// the middle. Before a networked round the
-    /// top line waits for players or counts down instead. Presentation
-    /// only: it reads the match and the bodies and never writes to either.
+    /// The round on screen (HudView, Avalonia): own points and the time left
+    /// at the top, what the zone is doing below with the warm-up as a bar, the
+    /// best four at the top right, the own damage percent at the bottom and
+    /// the winner in the middle. Before a networked round the top bar waits
+    /// for players or counts down instead. Presentation only: it reads the
+    /// match and the bodies and never writes to either.
     /// </summary>
     [DataContract("KotH.HillBoard")]
-    public sealed class HillBoard : StartupScript, IHudElement
+    public sealed class HillBoard : SyncScript
     {
-        [Display("Schrift", "Schrift")] public SpriteFont Font;
-        [Display("Schrift für den Sieger", "Schrift")] public SpriteFont BannerFont;
-
         [Display("Frei", "Farben")] public Color FreeColor = Color.White;
         [Display("Eigene Zone", "Farben")] public Color OwnColor = new Color(30, 200, 230);
         [Display("Umkämpft", "Farben")] public Color ContestedColor = new Color(255, 205, 60);
@@ -32,11 +30,7 @@ namespace KotH.Client.Hud
         /// <userdoc>Ein Gegner steht allein in der Zone und nimmt sie gerade ein, bekommt also noch keine Punkte.</userdoc>
         [Display("Gegner nimmt ein", "Farben")] public Color EnemyTakingColor = new Color(255, 140, 30);
 
-        [Display("Rand", "Maße (Pixel)")] public float Margin = 12f;
-        [Display("Balkenbreite", "Maße (Pixel)")] public float BarWidth = 220f;
-        [Display("Balkenhöhe", "Maße (Pixel)")] public float BarHeight = 6f;
-
-        /// <userdoc>So viele Körper zeigt die Bestenliste oben rechts</userdoc>
+        /// <userdoc>So viele Körper zeigt die Bestenliste oben rechts (höchstens 4)</userdoc>
         [Display("Bestenliste", "Anzeige")] public int Leaders = 4;
 
         [DataMemberIgnore] public HillMatch Match { get; set; }
@@ -51,32 +45,72 @@ namespace KotH.Client.Hud
         /// <summary>Networked: what to say while there is no game, such as connecting.</summary>
         [DataMemberIgnore] public Func<string> Notice { get; set; }
 
-        static readonly Color4 Band = Color4.PremultiplyAlpha(new Color(0, 0, 0, 0xD0).ToColor4());
-        const float Pad = 6f;
+        // Test aid for shots: KOTH_SHOT_HUD=banner shows the winner banner with a sample.
+        static readonly bool PretendBanner = Environment.GetEnvironmentVariable("KOTH_SHOT_HUD") == "banner";
 
+        // The whole HUD this much smaller than laid out in HudView (Luca).
+        const float Size = 0.9f;
+
+        // The banner pops in this many seconds, and fades in in these.
+        const float PopSeconds = 0.35f, FadeSeconds = 0.2f;
+
+        HudView view;
         HudRenderer hud;
+        MenuOverlay top, points, status, track, fill, board, ranks, hurt, banner, countdown, notice;
+        MenuOverlay[] overlays;
         readonly List<SimulationBody> ranking = new List<SimulationBody>();
-        readonly List<string> rankLines = new List<string>();
 
         // Rebuilt once per tick, not per frame: the values only change then.
         int builtTick = -1;
-        string score = "", status = "", banner = "", countdown = "";
-        Color statusColor;
-        float warmup;
+        string statusText = "", bannerText = "";
+        float warmup, popped = -1f;
 
         // The own damage percent, its text rebuilt only when it changes.
         SimulationBody damageOf;
         DamagePercent damage;
         float shownDamage = float.NaN;
-        string damageText = "";
 
         public override void Start()
         {
+            MenuOverlay.Start<MenuApp>();
             hud = HudRenderer.Of(this);
-            hud.Add(this);
+            view = new HudView();
+            view.Own(ToAvalonia(OwnColor));
+            view.TakeParts();
+
+            // In units of a screen 1080 high; see HudView for the pieces' 24 of shadow room.
+            // The own damage sits at the bottom middle (Luca).
+            top = new MenuOverlay(view.TopPart, Corner.TopCenter, 0f, 8f, Size);
+            points = new MenuOverlay(view.PointsPart, Corner.TopCenter, 0f, 8f, Size);
+            status = new MenuOverlay(view.StatusPart, Corner.TopCenter, 0f, 78f, Size);
+            track = new MenuOverlay(view.TrackPart, Corner.TopCenter, 0f, 130f, Size);
+            fill = new MenuOverlay(view.FillPart, Corner.TopCenter, 0f, 158f, Size);
+            board = new MenuOverlay(view.BoardPart, Corner.TopRight, 8f, 8f, Size);
+            ranks = new MenuOverlay(view.RanksPart, Corner.TopRight, 8f, 8f, Size);
+            hurt = new MenuOverlay(view.DamagePart, Corner.BottomCenter, 0f, 16f, Size);
+            // The middle ones stay at a third of the height however small: 322 / Size.
+            banner = new MenuOverlay(view.BannerPart, Corner.TopCenter, 0f, 358f, Size);
+            countdown = new MenuOverlay(view.CountdownPart, Corner.TopCenter, 0f, 470f, Size);
+            notice = new MenuOverlay(view.NoticePart, Corner.TopCenter, 0f, 358f, Size);
+            overlays = new[] { top, points, status, track, fill, board, ranks, hurt, banner, countdown, notice };
+            foreach (MenuOverlay overlay in overlays)
+            {
+                overlay.Visible = false;
+                hud.Add(overlay);
+            }
         }
 
-        public override void Cancel() => hud?.Remove(this);
+        public override void Cancel()
+        {
+            if (overlays == null)
+                return;
+            foreach (MenuOverlay overlay in overlays)
+            {
+                hud.Remove(overlay);
+                overlay.Dispose();
+            }
+            overlays = null;
+        }
 
         /// <summary>What the zone means for this screen; the visual uses the same colours.</summary>
         public static ZoneLook Look(in MatchState m, SimulationBody self, int warmupTicks)
@@ -99,48 +133,54 @@ namespace KotH.Client.Hud
             _ => FreeColor,
         };
 
-        public void Draw(SpriteBatch batch, Vector2 screen)
+        public override void Update()
         {
-            if (Simulation == null || Font == null)
+            if (overlays == null)
                 return;
-            // Joining, the round comes with the host's map; until then only the notice.
-            string notice = Notice?.Invoke();
-            if (Match == null)
+            var backBuffer = GraphicsDevice.Presenter.BackBuffer;
+            var screen = new Vector2(backBuffer.Width, backBuffer.Height);
+            foreach (MenuOverlay overlay in overlays)
+                overlay.Place(screen);
+
+            // Behind the load screen, which hides the rest of the HUD, every part
+            // renders and uploads its sample texts once: Skia learns the type
+            // and each texture exists before the game is seen.
+            if (Services.GetService<LoadScreen>() is { Covers: true })
+                foreach (MenuOverlay overlay in overlays)
+                    overlay.Visible = true;
+            else
+                Show((float)Game.UpdateTime.Elapsed.TotalSeconds);
+
+            MenuOverlay.Tick(Game.UpdateTime.FrameCount);
+            foreach (MenuOverlay overlay in overlays)
+                overlay.Upload(Game.GraphicsContext.CommandList);
+        }
+
+        /// <summary>Hands this frame's values to the view and picks the parts that show.</summary>
+        void Show(float seconds)
+        {
+            string says = Simulation != null ? Notice?.Invoke() : null;
+            notice.Visible = says != null;
+            if (says != null)
+                view.Say(says);
+            bool round = Simulation != null && Match != null;
+            if (round)
+                Rebuild();
+
+            top.Visible = points.Visible = board.Visible = ranks.Visible = round;
+            status.Visible = round && statusText.Length > 0;
+            track.Visible = fill.Visible = round && warmup > 0f;
+            fill.Reveal = warmup;
+            hurt.Visible = round && ShowDamage();
+
+            bool won = round && bannerText.Length > 0 && says == null;
+            banner.Visible = countdown.Visible = won;
+            popped = won ? popped < 0f ? 0f : popped + seconds : -1f;
+            if (won)
             {
-                if (notice != null)
-                    Centered(batch, Font, notice, Font.Size, screen.X, screen.Y * 0.32f, Color.White);
-                return;
-            }
-
-            Rebuild();
-
-            float y = Margin;
-            y = Centered(batch, Font, score, Font.Size, screen.X, y, Color.White) + Pad;
-            y = Centered(batch, Font, status, Font.Size, screen.X, y, statusColor);
-
-            if (warmup > 0f)
-            {
-                float x = (screen.X - BarWidth) * 0.5f;
-                y += Pad;
-                batch.Draw(hud.White, new RectangleF(x - 1f, y - 1f, BarWidth + 2f, BarHeight + 2f), Band);
-                batch.Draw(hud.White, new RectangleF(x, y, BarWidth * warmup, BarHeight),
-                           Color4.PremultiplyAlpha(OwnColor.ToColor4()));
-            }
-
-            DrawDamage(batch, screen, DrawRanking(batch, screen) + Pad);
-
-            if (notice != null)
-            {
-                Centered(batch, Font, notice, Font.Size, screen.X, screen.Y * 0.32f, Color.White);
-                return;
-            }
-
-            if (banner.Length > 0)
-            {
-                SpriteFont big = BannerFont ?? Font;
-                float top = screen.Y * 0.32f;
-                top = Centered(batch, big, banner, big.Size, screen.X, top, Color.White) + Pad;
-                Centered(batch, Font, countdown, Font.Size, screen.X, top, Color.White);
+                // The first frame stays clear: the new title may not be rendered yet.
+                banner.Zoom = 0.85f + 0.15f * MainMenu.BackOut(Math.Min(1f, popped / PopSeconds));
+                banner.Alpha = countdown.Alpha = Math.Min(1f, popped / FadeSeconds);
             }
         }
 
@@ -155,11 +195,11 @@ namespace KotH.Client.Hud
             int own = Self != null ? HillMatch.Points(Self.ScoreTicks) : 0;
             int win = Match.WinTicks / HillMatch.TicksPerPoint;
             int left = (Math.Max(0, Match.LimitTicks - m.RoundTicks) + HillMatch.TicksPerPoint - 1) / HillMatch.TicksPerPoint;
-            score = string.Format(HudRenderer.Numbers, "Punkte {0} / {1}     {2}:{3:D2}", own, win, left / 60, left % 60);
+            string caption = "Punkte", count = string.Format(HudRenderer.Numbers, "{0} / {1}", own, win);
+            string time = Clock(left);
 
             ZoneLook look = Look(m, Self, Match.WarmupTicks);
-            statusColor = ColorOf(look);
-            status = look switch
+            statusText = look switch
             {
                 ZoneLook.Own => Self.AloneTicks > Match.WarmupTicks ? "Du hältst die Zone" : "Du nimmst die Zone ein",
                 ZoneLook.Contested => "Umkämpft",
@@ -173,29 +213,34 @@ namespace KotH.Client.Hud
 
             if (m.Phase == MatchPhase.Waiting)
             {
-                score = string.Format(HudRenderer.Numbers, "Warte auf Spieler ({0} / {1})",
-                                      HillMatch.CountPlayers(Simulation.Bodies), m.MinPlayers);
-                status = "";
+                caption = "Warte auf Spieler";
+                count = string.Format(HudRenderer.Numbers, "{0} / {1}", HillMatch.CountPlayers(Simulation.Bodies), m.MinPlayers);
+                time = statusText = "";
             }
             else if (m.Phase == MatchPhase.Countdown)
             {
-                int start = (m.PhaseTicks + HillMatch.TicksPerPoint - 1) / HillMatch.TicksPerPoint;
-                score = string.Format(HudRenderer.Numbers, "Match beginnt in {0}:{1:D2}", start / 60, start % 60);
-                status = "";
+                caption = "Match beginnt in";
+                count = "";
+                time = Clock((m.PhaseTicks + HillMatch.TicksPerPoint - 1) / HillMatch.TicksPerPoint);
+                statusText = "";
             }
+            view.Bar(caption, count, time);
+            view.Zone(statusText, ToAvalonia(ColorOf(look)));
 
             // Networked, a win shows only once no rollback can take it back.
             MatchState final = ConfirmedRound != null ? ConfirmedRound() ?? default : m;
-            if (final.Over)
+            if (final.Over || PretendBanner)
             {
-                banner = final.Winner == null ? "Unentschieden"
-                       : final.Winner == Self ? "Du gewinnst!"
-                       : NameOf(final.Winner) + " gewinnt";
-                int seconds = (final.PhaseTicks + HillMatch.TicksPerPoint - 1) / HillMatch.TicksPerPoint;
-                countdown = string.Format(HudRenderer.Numbers, "Neue Runde in {0}", seconds);
+                bannerText = PretendBanner ? "Du gewinnst!"
+                           : final.Winner == null ? "Unentschieden"
+                           : final.Winner == Self ? "Du gewinnst!"
+                           : NameOf(final.Winner) + " gewinnt";
+                int seconds = PretendBanner ? 10 : (final.PhaseTicks + HillMatch.TicksPerPoint - 1) / HillMatch.TicksPerPoint;
+                view.Win(bannerText, PretendBanner || final.Winner == Self && Self != null,
+                         string.Format(HudRenderer.Numbers, "Neue Runde in {0}", seconds));
             }
             else
-                banner = countdown = "";
+                bannerText = "";
 
             ranking.Clear();
             foreach (SimulationBody body in Simulation.Bodies)
@@ -207,30 +252,15 @@ namespace KotH.Client.Hud
                 return byScore != 0 ? byScore : IndexOf(a).CompareTo(IndexOf(b));
             });
 
-            rankLines.Clear();
-            for (int i = 0; i < Math.Min(Leaders, ranking.Count); i++)
-                rankLines.Add(string.Format(HudRenderer.Numbers, "{0}. {1}  {2}",
-                                            i + 1, NameOf(ranking[i]), HillMatch.Points(ranking[i].ScoreTicks)));
+            int ranked = Math.Min(Math.Min(Leaders, HudView.Rows), ranking.Count);
+            view.Ranked(ranked);
+            for (int i = 0; i < ranked; i++)
+                view.Rank(i, (i + 1).ToString(HudRenderer.Numbers), NameOf(ranking[i]),
+                          HillMatch.Points(ranking[i].ScoreTicks).ToString(HudRenderer.Numbers), ranking[i] == Self);
         }
 
-        /// <summary>The best few at the top right; returns the y below them.</summary>
-        float DrawRanking(SpriteBatch batch, Vector2 screen)
-        {
-            float y = Margin;
-            for (int i = 0; i < rankLines.Count; i++)
-            {
-                Vector2 size = Font.MeasureString(rankLines[i], Font.Size);
-                var at = new Vector2(screen.X - Margin - size.X, y);
-                batch.Draw(hud.White, new RectangleF(at.X - Pad, at.Y, size.X + 2f * Pad, size.Y), Band);
-                bool own = ranking[i] == Self;
-                batch.DrawString(Font, rankLines[i], Font.Size, at, own ? OwnColor : Color.White);
-                y += size.Y;
-            }
-            return y;
-        }
-
-        /// <summary>The own damage percent at the top right from y on, as over the heads of the others.</summary>
-        void DrawDamage(SpriteBatch batch, Vector2 screen, float y)
+        /// <summary>The own damage percent to the view when it changed; false while there is none.</summary>
+        bool ShowDamage()
         {
             if (Self != damageOf)
             {
@@ -239,29 +269,18 @@ namespace KotH.Client.Hud
                 shownDamage = float.NaN;
             }
             if (damage == null)
-                return;
+                return false;
             if (damage.Percent != shownDamage)
             {
                 shownDamage = damage.Percent;
-                damageText = "Schaden " + shownDamage.ToString("F1", HudRenderer.Numbers) + " %";
+                view.Hurt(shownDamage.ToString("F1", HudRenderer.Numbers) + " %");
             }
-            Vector2 size = Font.MeasureString(damageText, Font.Size);
-            var at = new Vector2(screen.X - Margin - size.X, y);
-            batch.Draw(hud.White, new RectangleF(at.X - Pad, at.Y, size.X + 2f * Pad, size.Y), Band);
-            batch.DrawString(Font, damageText, Font.Size, at, Color.White);
+            return true;
         }
 
-        /// <summary>Draws one line centred on a band; returns the y below it.</summary>
-        float Centered(SpriteBatch batch, SpriteFont font, string text, float size, float width, float y, Color color)
-        {
-            if (text.Length == 0)
-                return y;
-            Vector2 extent = font.MeasureString(text, size);
-            var at = new Vector2(MathF.Round((width - extent.X) * 0.5f), y);
-            batch.Draw(hud.White, new RectangleF(at.X - Pad, at.Y, extent.X + 2f * Pad, extent.Y), Band);
-            batch.DrawString(font, text, size, at, color);
-            return y + extent.Y;
-        }
+        static string Clock(int seconds) => string.Format(HudRenderer.Numbers, "{0}:{1:D2}", seconds / 60, seconds % 60);
+
+        static global::Avalonia.Media.Color ToAvalonia(Color c) => global::Avalonia.Media.Color.FromArgb(c.A, c.R, c.G, c.B);
 
         string NameOf(SimulationBody body) => body == Self ? "Du" : body.Entity.Name;
 

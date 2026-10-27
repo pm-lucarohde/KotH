@@ -1,0 +1,32 @@
+<!-- The HUD's look (Luca): dark see-through glass (about 80 %) with a light rim, corners
+     like the menu's buttons (a quarter of the height), Accuratist type. -->
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Styles.Resources>
+        <LinearGradientBrush x:Key="GlassFace" StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Offset="0" Color="#D21F252E" />
+            <GradientStop Offset="1" Color="#C80D1015" />
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="GlassRim" StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Offset="0" Color="#4DFFFFFF" />
+            <GradientStop Offset="1" Color="#0FFFFFFF" />
+        </LinearGradientBrush>
+        <SolidColorBrush x:Key="HudSoft" Color="#B3FFFFFF" />
+    </Styles.Resources>
+
+    <Style Selector="Border.Glass">
+        <Setter Property="Background" Value="{StaticResource GlassFace}" />
+        <Setter Property="BorderBrush" Value="{StaticResource GlassRim}" />
+        <Setter Property="BorderThickness" Value="1.5" />
+        <Setter Property="BoxShadow" Value="0 4 14 0 #59000000" />
+    </Style>
+
+    <Style Selector="TextBlock.Hud">
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBlock.Hud.Soft">
+        <Setter Property="Foreground" Value="{StaticResource HudSoft}" />
+    </Style>
+</Styles>

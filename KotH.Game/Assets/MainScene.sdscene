@@ -192,5 +192,3 @@ Hierarchy:
                         Font: 083E3CA2-4062-5729-94AB-DE5DF2E7A56A:Fonts/Overlay
                     277d9c84d9404071930a3597f18fab91: !KotH.HillBoard
                         Id: 05745E4A-802A-4A0E-B092-C6B17290ED77
-                        Font: BF458FFD-3AFB-4E1F-9772-98CC183D9082:Fonts/Hud
-                        BannerFont: AC86E8FA-7064-4617-806D-6BE1E27B35AA:Fonts/HudBanner

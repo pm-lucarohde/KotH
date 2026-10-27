@@ -116,9 +116,9 @@ Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall 
   UseSharedCompilation=false %command%` (`Stride.Core` mit PR #3600). Prefix-`.nuget` = Symlink: nie Dateien ersetzen.
 
 ### Client: HUD, Kamera, Musik, Licht
-- `HudRenderer`: SpriteBatch nach der Szene (Strides UI kippt unter Vulkan), `HudRenderer.Numbers`; Prozent oben rechts/über Köpfen, `LoadScreen` schwarz bis GI gebacken.
+- `HudRenderer` (SpriteBatch nach der Szene, `Numbers`, F3/Fadenkreuz direkt); Runde `HillBoard`→`HudView`, Ladebild `LoadView` (Uhr): Avalonia wie das Menü.
 - Hauptmenü (`KotH.Game/Menu`, XAML, Avalonia 11.3 headless/Skia): `MenuOverlay` je Teil ein Offscreen-TopLevel mit festem Puffer, Upload nur bei neuem
-  Bild, Einblenden in Stride; startet hinter dem Ladebild (wartet auf ruhige Bilder), `MenuCamera`, Map dahinter 30 fps (`SceneThrottle`), Menü frei; Erstellen = `--host`, Rest Optik; Shots: `KOTH_SHOT_MENU=1` (`_HOT`/`_PAGE=n`).
+  Bild, Einblenden in Stride; startet hinter dem Ladebild (wartet auf ruhige Bilder), `MenuCamera`, Map dahinter 30 fps (`SceneThrottle`), Menü frei; Erstellen = `--host`, Rest Optik; Shots: `KOTH_SHOT_MENU=1` (`_HOT`/`_PAGE=n`), `KOTH_SHOT_HUD=banner`, `KOTH_SHOT_LOAD=1`.
 - `MusicPlayer` (`Music`): Menü, Lobby (bis `Running`), Spielbeginn, Playlist; 3,5 s Überblendung, 0,1224, im Netz bestätigt. `SoundEffects`: Ambient, Figuren (`PlayerVisualSystem.Sounded`) relativ zur Kamera, `Tools/audio/sfx.py`.
 - Licht: VXGI (`ThirdParty/Stride.Voxels`, README), Profil 11; je Map `GI` (256 m, Bricks 0,125 m, GI 0,27, `LightVoxel.Sky`); Map-Licht
   und -Sonne (auch Meer; Blätterschatten stehen still) in Lightmap 4096², Map-Schatten einmal `StaticSunShadowRenderer`, Kaskaden nur Figuren (6 Kapseln).

@@ -66,7 +66,7 @@ namespace KotH.Client
             // Alone, the round starts once the load screen is gone; networked
             // the session starts then (GameRoot), and until then nothing ticks.
             LoadScreen cover = Services.GetService<LoadScreen>();
-            cover?.Update(Game.UpdateTime.Elapsed.TotalSeconds);
+            cover?.Update(Game.UpdateTime.Elapsed.TotalSeconds, Game.UpdateTime.FrameCount, Game.GraphicsContext.CommandList);
 
             if (Services.GetService<NetClient>() is { } net)
             {

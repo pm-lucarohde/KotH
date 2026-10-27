@@ -21,7 +21,7 @@ namespace KotH.Client.Menu
         public event Action QuitRequested;
 
         /// <summary>The height the parts are laid out for, in their units.</summary>
-        public const double DesignHeight = 1080;
+        public const double DesignHeight = MenuOverlay.DesignHeight;
 
         Button open;
 

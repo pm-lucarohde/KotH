@@ -30,20 +30,25 @@ namespace KotH.Client.Menu
     /// and drawn by the HUD. Headless windows took a fresh 3.5 MB bitmap for
     /// every frame, and the memory pressure forced a full collection every few
     /// frames of a hover (50-120 ms each). Placed in units of a screen 1080
-    /// high, measured from one corner of the screen.
+    /// high, measured from one corner of the screen or its top middle.
     /// </summary>
     public sealed class MenuOverlay : IHudElement, IDisposable
     {
-        /// <summary>The screen corner a part is placed from.</summary>
-        public enum Corner { TopLeft, TopRight, BottomRight }
+        /// <summary>The screen corner a part is placed from; the centres centre it, x moves it right.</summary>
+        public enum Corner { TopLeft, TopRight, BottomRight, TopCenter, BottomCenter }
+
+        /// <summary>The height parts are laid out for, in their units.</summary>
+        public const double DesignHeight = 1080;
 
         static bool started;
+        static long tickedFrame = -1;
 
         readonly Surface surface = new Surface();
         readonly EmbeddableControlRoot root;
         readonly LayoutTransformControl scaler;
         readonly Corner corner;
         readonly Vector2 offset, size;
+        readonly float zoom;
         RectangleF rect;
         Vector2 placedFor;
         Texture texture;
@@ -60,13 +65,21 @@ namespace KotH.Client.Menu
         /// <summary>Drawn this opaque.</summary>
         public float Alpha { get; set; } = 1f;
 
+        /// <summary>Drawn turned this far round its centre, in radians, clockwise.</summary>
+        public float Angle { get; set; }
+
+        /// <summary>Only this share of it is drawn, from the left (a filling bar).</summary>
+        public float Reveal { get; set; } = 1f;
+
         /// <param name="part">The part, sized in units of a screen 1080 high.</param>
         /// <param name="corner">The screen corner it is placed from.</param>
         /// <param name="x">Its distance from that corner sideways, in the same units.</param>
         /// <param name="y">And up or down.</param>
-        public MenuOverlay(Control part, Corner corner, float x, float y)
+        /// <param name="zoom">Part and distances this much bigger, such as the whole HUD.</param>
+        public MenuOverlay(Control part, Corner corner, float x, float y, float zoom = 1f)
         {
             this.corner = corner;
+            this.zoom = zoom;
             offset = new Vector2(x, y);
             size = new Vector2((float)part.Width, (float)part.Height);
             scaler = new LayoutTransformControl { Child = part };
@@ -93,9 +106,15 @@ namespace KotH.Client.Menu
                 .SetupWithoutStarting();
         }
 
-        /// <summary>Runs Avalonia's queued work and renders the parts whose content changed.</summary>
-        public static void Tick()
+        /// <summary>
+        /// Runs Avalonia's queued work and renders the parts whose content
+        /// changed; once per frame, however many callers ask.
+        /// </summary>
+        public static void Tick(long frame)
         {
+            if (frame == tickedFrame)
+                return;
+            tickedFrame = frame;
             Dispatcher.UIThread.RunJobs();
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         }
@@ -107,10 +126,15 @@ namespace KotH.Client.Menu
                 return;
             bool first = placedFor == Vector2.Zero;
             placedFor = screen;
-            float scale = screen.Y / (float)MainMenuView.DesignHeight;
+            float scale = screen.Y / (float)DesignHeight * zoom;
             int width = (int)MathF.Ceiling(size.X * scale), height = (int)MathF.Ceiling(size.Y * scale);
-            float left = corner == Corner.TopLeft ? offset.X * scale : screen.X - (offset.X + size.X) * scale;
-            float top = corner == Corner.BottomRight ? screen.Y - (offset.Y + size.Y) * scale : offset.Y * scale;
+            float left = corner switch
+            {
+                Corner.TopLeft => offset.X * scale,
+                Corner.TopCenter or Corner.BottomCenter => (screen.X - size.X * scale) * 0.5f + offset.X * scale,
+                _ => screen.X - (offset.X + size.X) * scale,
+            };
+            float top = corner is Corner.BottomRight or Corner.BottomCenter ? screen.Y - (offset.Y + size.Y) * scale : offset.Y * scale;
             rect = new RectangleF(MathF.Round(left), MathF.Round(top), width, height);
             scaler.LayoutTransform = new ScaleTransform(scale, scale);
             surface.Resize(width, height);
@@ -139,9 +163,24 @@ namespace KotH.Client.Menu
             if (!Visible || texture == null || Alpha <= 0f)
                 return;
             float width = texture.Width * Zoom, height = texture.Height * Zoom;
-            var at = new RectangleF(rect.X + Shift.X + (texture.Width - width) * 0.5f, rect.Y + Shift.Y + (texture.Height - height) * 0.5f, width, height);
             // Avalonia's pixels are premultiplied, so the tint fades all four channels.
-            batch.Draw(texture, at, Color.White * Alpha);
+            Color4 tint = (Color.White * Alpha).ToColor4();
+            if (Angle != 0f)
+            {
+                // Rotated, the rectangle's corner is where the picture's centre goes.
+                var centre = new RectangleF(rect.X + Shift.X + texture.Width * 0.5f, rect.Y + Shift.Y + texture.Height * 0.5f, width, height);
+                batch.Draw(texture, centre, null, tint, Angle, new Vector2(texture.Width * 0.5f, texture.Height * 0.5f));
+                return;
+            }
+            var at = new RectangleF(rect.X + Shift.X + (texture.Width - width) * 0.5f, rect.Y + Shift.Y + (texture.Height - height) * 0.5f, width, height);
+            if (Reveal < 1f)
+            {
+                float share = Math.Max(0f, Reveal);
+                at.Width *= share;
+                batch.Draw(texture, at, new RectangleF(0f, 0f, texture.Width * share, texture.Height), tint, 0f, Vector2.Zero);
+                return;
+            }
+            batch.Draw(texture, at, tint);
         }
 
         /// <summary>Whether the screen point lies on it.</summary>
