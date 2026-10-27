@@ -247,7 +247,7 @@ namespace KotH.Client.Player
             public TransformComponent Transform;
             public float Phase, BlinkClock, BlinkWait;
             public float AirTime, LandAge = float.MaxValue, KickAge = float.MaxValue, LastClimb, Peak;
-            public int SwingsHeard;
+            public int SwingsHeard, SeenPlaced = -1;
             public int[] Lids;
             public int Look = -2, Mouth = -2, Recoil = -2;
             public DamagePercent Damage;
@@ -910,6 +910,14 @@ namespace KotH.Client.Player
             bool airborne = !motor.IsGrounded;
             float falling = airborne ? Smooth(0f, 3f, -v.Y) : 0f;
             float rising = airborne ? Smooth(0f, 3f, v.Y) : 0f;
+            // Put down anew by the round (respawn): no kick, jump or fall from the jolt.
+            if (f.Body != null && f.Body.PlacedTick != f.SeenPlaced)
+            {
+                f.SeenPlaced = f.Body.PlacedTick;
+                f.LastClimb = v.Y;
+                f.AirTime = 0f;
+                f.Peak = motor.Position.Y;
+            }
             if (airborne && f.AirTime > 0.05f && motor.KnockLeft <= 0f && v.Y - f.LastClimb > KickBoost)
             {
                 f.KickAge = 0f;
