@@ -105,6 +105,8 @@ CROWN_MELT = 0.6           # metres over which the lobes run together
 CROWN_NOISE = 0.12         # lumps on the lobes, metres
 CROWN_WIDTH = 1.1          # crowns this much wider than the lobes say (Luca: 10 % more)
 CROWN_BLOCKY = 0.5         # share of the old leaf blocks in the crown's shape (Luca: between round and blocky)
+CROWN_CLEAR = 2.3          # undersides stay this high over the ground: bodies (1.8 m) wedged under low rims
+CROWN_FLOOR_ROUND = 0.4    # metres over which the cut underside rounds into the lobes
 CARDS = 200                # twigs standing out of every crown, evenly all round (Luca, after "bushy leaves" packs)
 CARD_LENGTH = (0.72, 1.035)  # metres, a third of it inside the crown
 # The leaves are cut out of their texture (Luca); the crown's surface this far
@@ -622,7 +624,7 @@ def build_mesh(t):
         base = t.height[x, z]
         # The trunk reaches into the crown's middle.
         round_trunk(mesh, x, z, base, top - 1.3)
-        shells.append(round_crown(mesh, random.Random(t.seed * 1000 + n), x, z, top, blocks))
+        shells.append(round_crown(mesh, random.Random(t.seed * 1000 + n), x, z, base, top, blocks))
     # The shells last: everything before keeps its numbers, the collision its bytes.
     for shell in shells:
         shell()
@@ -691,7 +693,7 @@ def crown_lobes(rng, x, z, top):
     return [((cx + (c[0] - cx) * w, c[1], cz + (c[2] - cz) * w), (r[0] * w, r[1], r[2] * w)) for c, r in lobes]
 
 
-def round_crown(mesh, rng, x, z, top, blocks):
+def round_crown(mesh, rng, x, z, base, top, blocks):
     """A crown as one smooth surface (Surface Nets, CROWN_STEP), CROWN_BLOCKY
     of the way from the lobes (run together over CROWN_MELT, a little noise
     for lumps) to the old leaf blocks. Both as distances in metres, so the
@@ -718,7 +720,11 @@ def round_crown(mesh, rng, x, z, top, blocks):
             o = [abs(p[k] - b[k] - 0.5) - 0.5 for k in range(3)]
             d = math.sqrt(sum(max(v, 0.0) ** 2 for v in o)) + min(max(o), 0.0)
             box = d if box is None else min(box, d)
-        return (1 - CROWN_BLOCKY) * rounded - CROWN_BLOCKY * box
+        crown = (1 - CROWN_BLOCKY) * rounded - CROWN_BLOCKY * box
+        # Cut flat CROWN_CLEAR over the ground, rounded like the lobes melt.
+        above = p[1] - base - CROWN_CLEAR
+        h = max(CROWN_FLOOR_ROUND - abs(crown - above), 0.0) / CROWN_FLOOR_ROUND
+        return min(crown, above) - h * h * CROWN_FLOOR_ROUND / 4
 
     lo = [min(min(c[k] - r[k] for c, r in lobes), min(b[k] for b in blocks)) - CROWN_STEP for k in range(3)]
     hi = [max(max(c[k] + r[k] for c, r in lobes), max(b[k] + 1 for b in blocks)) + CROWN_STEP for k in range(3)]
