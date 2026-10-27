@@ -2,7 +2,8 @@
 """Art for the main menu in the figures' colours (Mushroom.png), clean and
 chunky: smooth faces with a soft gradient, a thin darker rim, a lighter top
 edge, and a solid lip underneath that gives every board and button depth,
-as if moulded from plastic. No brush strokes, no black outlines. The title is
+as if moulded from plastic; the big boards sit in a frame of round
+bamboo poles tied at the corners. No brush strokes, no black outlines. The title is
 lettering with a bevelled face, a brown extrusion and a cast shadow.
 
 Writes PNGs at twice the menu's design size (1080 px high) to
@@ -13,6 +14,7 @@ every side; MainMenuView.axaml places them by that). Needs Pillow only.
 """
 import math
 import os
+import random
 import sys
 
 from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
@@ -28,12 +30,14 @@ RED = (196, 35, 31)
 CREAM = (246, 236, 222)
 GREEN = (63, 143, 53)
 BROWN = (91, 58, 36)
+BAMBOO = (217, 164, 76)
 YELLOW = (248, 204, 64)     # a button under the pointer (Luca: lights up yellow)
 WHITE = (255, 255, 255)
 
+SEED = 7
+
 # Lip heights in design pixels; MainMenuView.axaml and MenuTheme.axaml shift
 # the text up by half of them (and down again on a press).
-BOARD_LIP = 10
 BUTTON_LIP = 7
 SMALL_LIP = 6
 NOTE_LIP = 8
@@ -152,6 +156,93 @@ def button(state, w=380, h=66, lip=BUTTON_LIP):
     return shadow(pic, mask, dy=4 if state != 'down' else 2, radius=4, strength=80)
 
 
+# ---------------------------------------------------------------- bamboo
+
+def pole(length, thick, rng, vertical):
+    """A bamboo pole like the figure's cane, lit as a cylinder from above:
+    nodes as darker rings with a light edge, now and then a leaf. Returns an
+    RGBA strip of length x thick design pixels plus room for the leaves."""
+    L, T = int(length * S), int(thick * S)
+    room = int(thick * 1.6 * S)
+    size = (L + 2 * room, T + 2 * room)
+    img = Image.new('RGBA', size, (0, 0, 0, 0))
+    y0, x0 = room, room
+
+    def profile(k):
+        col = Image.new('RGBA', size)
+        d = ImageDraw.Draw(col)
+        for y in range(T):
+            t = (y + 0.5) / T
+            light = 0.66 + 0.4 * math.sin(math.pi * t) ** 0.8 - 0.14 * t
+            c = mix(shade(BAMBOO, light * k), (255, 246, 214), 0.75 * math.exp(-((t - 0.3) / 0.08) ** 2))
+            d.line([(0, y0 + y), (size[0], y0 + y)], fill=c + (255,))
+        return col
+
+    put(img, profile(1.0), pill(size, (x0, y0, x0 + L, y0 + T), T // 2))
+    dark, bright = profile(0.74), profile(1.12)
+    leaves = Image.new('RGBA', size, (0, 0, 0, 0))
+    x = x0 + rng.uniform(40, 70) * S
+    while x < x0 + L - 25 * S:
+        put(img, dark, pill(size, (x - 3.5 * S, y0 - S, x + 3.5 * S, y0 + T + S), 2 * S))
+        put(img, bright, pill(size, (x + 3.5 * S, y0 + S, x + 5.5 * S, y0 + T - S), S))
+        if rng.random() < 0.4:
+            turn = -rng.uniform(0.35, 0.6) if rng.random() < 0.5 else math.pi + rng.uniform(0.35, 0.6)
+            leaf(leaves, x, y0 + T * 0.3, turn, thick * 1.5 * S, thick * 0.55 * S)
+        x += rng.uniform(70, 110) * S
+    img.alpha_composite(leaves)
+    if vertical:
+        img = img.rotate(90, expand=True)
+    return img, room
+
+
+def leaf(img, x, y, turn, length, width):
+    """A clean leaf: darker edge, lighter towards its tip, a light midrib."""
+    size = img.size
+    shape = Image.new('L', size, 0)
+    ImageDraw.Draw(shape).polygon([(x + a, y + b) for a, b in leaf_shape(length, width, turn)], fill=255)
+    shape = shape.filter(ImageFilter.GaussianBlur(0.6 * S))
+    put(img, flat(size, shade(GREEN, 0.72)), shape)
+    inner = shape.filter(ImageFilter.MinFilter(2 * S + 1)).filter(ImageFilter.GaussianBlur(0.5 * S))
+    put(img, gradient(size, y - width, y + width, mix(GREEN, WHITE, 0.2), GREEN), inner)
+    d = ImageDraw.Draw(img)
+    vx, vy = math.cos(turn), math.sin(turn)
+    d.line([(x, y), (x + vx * length * 0.8, y + vy * length * 0.8)], fill=mix(GREEN, (220, 240, 160), 0.45), width=S)
+
+
+def twine(img, x, y):
+    """Brown cord wound round a corner where two poles cross."""
+    d = ImageDraw.Draw(img)
+    cord, light = mix(BROWN, BAMBOO, 0.25), mix(BROWN, (255, 230, 190), 0.4)
+    for k in range(3):
+        off = (k - 1) * 4.5 * S
+        a = (x - 11 * S + off, y + 11 * S + off)
+        b = (x + 11 * S + off, y - 11 * S + off)
+        d.line([a, b], fill=shade(cord, 0.75), width=int(4.5 * S))
+        d.line([(a[0], a[1] - S), (b[0], b[1] - S)], fill=cord, width=int(3 * S))
+        d.line([(a[0] + 2 * S, a[1] - 3 * S), (b[0] - 2 * S, b[1] + S)], fill=light, width=S)
+
+
+def framed(w, h, rng):
+    """A clean cream board in a frame of bamboo poles crossing and tied at
+    the corners."""
+    pic, mask = slab(w, h, (mix(CREAM, WHITE, 0.45), shade(CREAM, 0.97)), 0, 26)
+    thick, over = 22, 14
+    p = PAD * S
+    poles = Image.new('RGBA', pic.size, (0, 0, 0, 0))
+    for top in (True, False):
+        strip, room = pole(w + 2 * over, thick, rng, False)
+        y = p - thick * S // 2 if top else p + h * S - thick * S // 2
+        poles.alpha_composite(strip, (p - over * S - room, y - room))
+    for left in (True, False):
+        strip, room = pole(h + 2 * over, thick, rng, True)
+        x = p - thick * S // 2 if left else p + w * S - thick * S // 2
+        poles.alpha_composite(strip, (x - room, p - over * S - room))
+    for cx, cy in ((p, p), (p + w * S, p), (p, p + h * S), (p + w * S, p + h * S)):
+        twine(poles, cx, cy)
+    pic.alpha_composite(poles)
+    return shadow(pic, ImageChops.lighter(mask, poles.getchannel('A')), dy=7, radius=6, strength=110)
+
+
 # ---------------------------------------------------------------- title
 
 def bevel(mask, width, strength):
@@ -267,10 +358,11 @@ def logo():
 
 
 def main():
+    rng = random.Random(SEED)
     os.makedirs(OUT, exist_ok=True)
     pieces = {
-        'Panel': lambda: board(440, 450, (mix(CREAM, WHITE, 0.45), shade(CREAM, 0.97)), BOARD_LIP, 30),
-        'Wide': lambda: board(820, 560, (mix(CREAM, WHITE, 0.45), shade(CREAM, 0.97)), BOARD_LIP, 30),
+        'Panel': lambda: framed(440, 450, rng),
+        'Wide': lambda: framed(820, 560, rng),
         'Button': lambda: button('idle'),
         'ButtonHot': lambda: button('hot'),
         'ButtonDown': lambda: button('down'),
