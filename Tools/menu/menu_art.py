@@ -42,6 +42,8 @@ BUTTON_LIP = 7
 SMALL_LIP = 6
 NOTE_LIP = 8
 PRESSED_LIP = 2
+# Button corners as a share of the height (Luca: less round than a pill).
+CORNER = 0.24
 
 
 def mix(a, b, t):
@@ -149,10 +151,10 @@ def button(state, w=380, h=66, lip=BUTTON_LIP):
     """Idle cream, under the pointer yellow, pressed yellow and sunk in."""
     if state == 'idle':
         face = (mix(CREAM, WHITE, 0.8), mix(CREAM, WHITE, 0.15))
-        pic, mask = slab(w, h, face, lip, h // 2, gloss=70)
+        pic, mask = slab(w, h, face, lip, round(h * CORNER), gloss=70)
     else:
         face = (mix(YELLOW, WHITE, 0.35), shade(YELLOW, 0.97))
-        pic, mask = slab(w, h, face, lip, h // 2, sunk=lip - PRESSED_LIP if state == 'down' else 0, gloss=80)
+        pic, mask = slab(w, h, face, lip, round(h * CORNER), sunk=lip - PRESSED_LIP if state == 'down' else 0, gloss=80)
     return shadow(pic, mask, dy=4 if state != 'down' else 2, radius=4, strength=80)
 
 
