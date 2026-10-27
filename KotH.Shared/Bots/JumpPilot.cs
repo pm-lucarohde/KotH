@@ -207,8 +207,8 @@ namespace KotH.Shared.Bots
         {
             for (int k = 0; k < 8; k++)
             {
-                RingX[k] = MathF.Cos(k * MathF.PI / 4f);
-                RingZ[k] = MathF.Sin(k * MathF.PI / 4f);
+                RingX[k] = DetMath.CosF(k * MathF.PI / 4f);
+                RingZ[k] = DetMath.SinF(k * MathF.PI / 4f);
             }
         }
 

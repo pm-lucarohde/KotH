@@ -32,10 +32,10 @@ namespace KotH.Shared.Mathematics
         // --- Mathf ---
 
         public static float Sqrt(float f) => (float)Math.Sqrt(f);
-        public static float Cos(float f) => (float)Math.Cos(f);
-        public static float Sin(float f) => (float)Math.Sin(f);
-        public static float Acos(float f) => (float)Math.Acos(f);
-        public static float Atan2(float y, float x) => (float)Math.Atan2(y, x);
+        public static float Cos(float f) => (float)DetMath.Cos(f);
+        public static float Sin(float f) => (float)DetMath.Sin(f);
+        public static float Acos(float f) => (float)DetMath.Acos(f);
+        public static float Atan2(float y, float x) => (float)DetMath.Atan2(y, x);
         public static float Abs(float f) => Math.Abs(f);
 
         // Not Math.Min/Max: those treat NaN differently.
@@ -154,7 +154,7 @@ namespace KotH.Shared.Mathematics
                 return 0f;
 
             float dot = Clamp(Dot(from, to) / denominator, -1f, 1f);
-            return (float)Math.Acos(dot) * Rad2Deg;
+            return (float)DetMath.Acos(dot) * Rad2Deg;
         }
 
         public static Vector3 Lerp(Vector3 a, Vector3 b, float t)
@@ -198,8 +198,8 @@ namespace KotH.Shared.Mathematics
         {
             float x = -pitch * Deg2Rad * 0.5f;
             float y = -yaw * Deg2Rad * 0.5f;
-            float sx = MathF.Sin(x), cx = MathF.Cos(x);
-            float sy = MathF.Sin(y), cy = MathF.Cos(y);
+            float sx = DetMath.SinF(x), cx = DetMath.CosF(x);
+            float sy = DetMath.SinF(y), cy = DetMath.CosF(y);
 
             // Unity order Z, X, Y with z = 0, then mirrored: (-x, -y, z, w).
             return new Quaternion(-(cy * sx), -(sy * cx), -(sy * sx), cy * cx);
@@ -209,7 +209,7 @@ namespace KotH.Shared.Mathematics
         public static Quaternion EulerYaw(float yaw)
         {
             float y = -yaw * Deg2Rad * 0.5f;
-            return new Quaternion(0f, -MathF.Sin(y), 0f, MathF.Cos(y));
+            return new Quaternion(0f, -DetMath.SinF(y), 0f, DetMath.CosF(y));
         }
 
         /// <summary>
@@ -218,7 +218,7 @@ namespace KotH.Shared.Mathematics
         /// </summary>
         public static float YawOf(Quaternion q)
         {
-            double unity = 2.0 * Math.Atan2(-q.Y, q.W) * (180.0 / Math.PI);
+            double unity = 2.0 * DetMath.Atan2(-q.Y, q.W) * (180.0 / Math.PI);
             unity %= 360.0;
             if (unity < 0.0)
                 unity += 360.0;

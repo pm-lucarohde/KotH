@@ -65,8 +65,8 @@ namespace KotH.Shared.Bots
             for (int d = 0; d < 16; d++)
             {
                 double a = d * Math.PI / 8.0;
-                UX[d] = (float)Math.Cos(a);
-                UZ[d] = (float)Math.Sin(a);
+                UX[d] = (float)DetMath.Cos(a);
+                UZ[d] = (float)DetMath.Sin(a);
             }
         }
 
@@ -173,7 +173,7 @@ namespace KotH.Shared.Bots
             int nx = Math.Max(1, (int)MathF.Ceiling((maxX - minX) / cell));
             int nz = Math.Max(1, (int)MathF.Ceiling((maxZ - minZ) / cell));
             var grid = new ClimbGrid(minX, minZ, cell, nx, nz, motor, s);
-            grid.Rasterize(tris, MathF.Cos(motor.SlopeLimit * (MathF.PI / 180f)));
+            grid.Rasterize(tris, DetMath.CosF(motor.SlopeLimit * (MathF.PI / 180f)));
             grid.FindFloors();
             grid.FindWalks();
             grid.FindLinks();
@@ -562,7 +562,7 @@ namespace KotH.Shared.Bots
             float px = CentreX(floorCol[f]), pz = CentreZ(floorCol[f]);
             float dx = px - hub.X, dz = pz - hub.Z;
             float r = UMath.Sqrt(dx * dx + dz * dz);
-            float off = MathF.IEEERemainder((float)Math.Atan2(dz, dx) - side[v], 2f * MathF.PI) * (180f / MathF.PI) / SideWidth;
+            float off = MathF.IEEERemainder((float)DetMath.Atan2(dz, dx) - side[v], 2f * MathF.PI) * (180f / MathF.PI) / SideWidth;
             float near = UMath.Clamp((r - 10f) / 20f, 0f, 1f);
             float away = SideAmp * UMath.Min(1f, off * off) * near * near * (3f - 2f * near);
 
@@ -601,7 +601,7 @@ namespace KotH.Shared.Bots
             noiseSeed = new uint[variants + 1];
             side = new float[variants + 1];
             hub = zone?.Center ?? Vector3.Zero;
-            float bearing = (float)Math.Atan2(start.Z - hub.Z, start.X - hub.X);
+            float bearing = (float)DetMath.Atan2(start.Z - hub.Z, start.X - hub.X);
             for (int v = 0; v <= variants; v++)
             {
                 noiseSeed[v] = Mix((uint)seed * 2654435761u + (uint)v * 40503u + 1u);

@@ -656,8 +656,8 @@ namespace KotH.Shared.Bots
         void Look(int u, float wantYaw, float wantPitch, float maxRate)
         {
             double t = u * Dt, phase = netId * 1.618;
-            float wanderYaw = (float)(1.2 * Math.Sin(t * 0.9 + phase) + 0.6 * Math.Sin(t * 2.3 + phase * 1.7));
-            float wanderPitch = (float)(1.0 * Math.Sin(t * 0.7 + phase * 2.1) + 0.5 * Math.Sin(t * 1.9 + phase * 0.6));
+            float wanderYaw = (float)(1.2 * DetMath.Sin(t * 0.9 + phase) + 0.6 * DetMath.Sin(t * 2.3 + phase * 1.7));
+            float wanderPitch = (float)(1.0 * DetMath.Sin(t * 0.7 + phase * 2.1) + 0.5 * DetMath.Sin(t * 1.9 + phase * 0.6));
             float turn = MathF.IEEERemainder(wantYaw + wanderYaw - yaw, 360f);
             yawRate += (UMath.Clamp(turn * Ease, -maxRate, maxRate) - yawRate) * Grip;
             yaw = MathF.IEEERemainder(yaw + yawRate, 360f);

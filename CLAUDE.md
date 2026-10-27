@@ -41,7 +41,7 @@ Keine Unit-Tests; Proben gegen die eingefrorene Unity-Referenz. Exit-Code 0 = be
 ```bash
 Bin/Probes/Release/KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|step|
   determinism|clock|stairrun|rampfoot|crouchedge|knockback|thirdperson|wallknock|capture|netstate|netplay|bots>
-Bin/Probes/Release/KotH.Probes determinism hashes   # Hashkette 880D0C64389C53E3, JIT = AOT
+Bin/Probes/Release/KotH.Probes determinism hashes   # Hashkette C857D39208F53C83, JIT = AOT
 Bin/Probes/Release/KotH.Probes bots climb 12        # Berg (Neu), Mittel ≤ 140 s, Zappeln/Blick; bots stats 12, jumplab
 .work/tools/climb_many.sh ORDNER 8 13 && .work/tools/climb_many.py ORDNER   # 104 Seeds, jeder Bot einzeln
 .work/tools/stride_runs.sh 3; R=Reference/unity/runs
@@ -49,10 +49,9 @@ python3 Tools/verdict.py $R/run1,$R/run2,$R/run3 .work/regress/run1   # Urteile 
 python3 Tools/regress.py $R/run1,$R/run2,$R/run3 .work/regress/run1   # Zahlen in 5 mm / 1 %
 ```
 
-- **JIT-Läufe nur mit `DOTNET_EnableAVX=0`** (AOT fest `x86-64-v2`, Lucas Entscheidung).
 - Abweichungen und gewollte Änderungen in `Reference/REGRESSION.md`; ohne Unity-Referenz: `stairrun`, `rampfoot`,
   `crouchedge`, `thirdperson`, `wallknock`, `capture`, `netstate`, `netplay`. `.work/` hält Werkzeuge (`/tmp` flüchtig).
-- Regression nur messen, wenn die Änderung den Messpfad berührt. Bots auf dem Berg mit mindestens 100 Runs prüfen.
+- **JIT nur mit `DOTNET_EnableAVX=0`** (AOT `x86-64-v2`, Luca). Regression nur, wenn der Messpfad berührt ist; Bots ≥ 100 Runs.
 - Spuren: `KOTH_BOTTRACE=tick` (`_BOT=n`), `KOTH_HOPLOG=n`, `KOTH_BOTPATH=datei` (Draufsicht `.work/bots/routes.py`),
   `KOTH_CLIMB_FIRST=k`, `KOTH_JAMTEST=1`; Labor `KOTH_LAB_LOOK=x,y,z`, `KOTH_LAB_STUCK=x,y,z`.
 
@@ -69,8 +68,9 @@ Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall 
 - `MotorState` muss **jedes** Motorfeld enthalten (`Pack = 1`); `DeterminismProbe` prüft bitgenau mit Mutationstests.
 - `TickClock` = Unitys Player-Loop (max. 0,333 s/Frame, `dt = 0.025f`); Darstellung interpoliert, wirkt nie zurück.
 - `UMath` rechnet Unitys Formeln Operation für Operation; in der Simulation nie Strides Helfer (`Normalize` rundet
-  anders). `WorldQueries`: Bepu mit PhysX-Semantik (Startüberlappung = Abstand 0, Strahl aus dem Inneren sieht
-  nichts, stabile Sortierung); Körperhüllen sind Statics auf Layer 6 (`Hittable`). Nie aus `TransformComponent` lesen.
+  anders). Sin/Cos/Atan2/Acos nur über `DetMath` (C-Laufzeit Linux ≠ Windows; `BannedSymbols.txt` sperrt `Math.Sin` & Co.).
+  `WorldQueries`: Bepu mit PhysX-Semantik (Startüberlappung = Abstand 0, Strahl aus dem Inneren sieht nichts, stabile
+  Sortierung); Körperhüllen sind Statics auf Layer 6 (`Hittable`). Nie aus `TransformComponent` lesen.
 - Klemmen (Lucas Wahl): Kapsel steil ≥ 0,25 s in einem Schacht schmaler als sie, nicht am Boden, `wedged`, < 0,4 m/s
   → `PlayerMotor.EscapeJam`: 0,1–0,8 m hoch, 0,3/0,6 m seitlich, Tempo 0; nie in Regression/Proben, ohne Zustandsfeld.
 - Koordinaten: Stride (−Z vorn); Unity → Stride `z → −z`, Gier → −Gier, Quaternion `(x,y,z,w) → (−x,−y,z,w)`.
@@ -137,8 +137,8 @@ Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall 
   der Landung lässt er los, bis er sich sieht, gehaltene Tasten bleiben, keine Umkehr ohne Pause (Lucas Wunsch: kein
   Zappeln). Blick wie eine Hand an der Maus (Trägheit, leichte Unruhe, nickt zum Weg oder zur Stufe), Gehen peilt
   1,8 m voraus. `BotBrain`: Utility AI, `ManeuverWfc`; weit unter der Zone nur Schlag im Vorbeigehen, nur in `Running`.
-- Nur Snapshot-Zustände lesen, nie lebende Komponenten (außer Einstellungen); Trigonometrie über `UMath`/`Math` in
-  double, keine `System.Random`. Stand: 312/312 Bots oben, Mittel 85 s, höchstens 150 s.
+- Nur Snapshot-Zustände lesen, nie lebende Komponenten (außer Einstellungen); Trigonometrie über `UMath`/`DetMath` in
+  double, keine `System.Random`. Stand: 312/312 Bots oben, Mittel 90 s, höchstens 145 s.
 
 ### Figur und Animation (nur Darstellung)
 - Pilzfigur `Mushroom.glb` mit 17 Clips; `PlayerVisualSystem` mischt sie nach Tempo und Richtung, Lauf-Clips auf

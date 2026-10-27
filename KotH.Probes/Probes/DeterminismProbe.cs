@@ -204,7 +204,10 @@ namespace KotH.Probes.Probes
             // All replays in one frame, with no physics step in between: the
             // situation a server resimulating a late input is in.
             if (PrintHashes)
+            {
                 LogChain();
+                LogTrig();
+            }
 
             bool ok = Report();
             Log(ok ? "[det] ALLE FAELLE DETERMINISTISCH" : "[det] FEHLER");
@@ -236,6 +239,43 @@ namespace KotH.Probes.Probes
             for (int t = 0; t <= Ticks; t += Ticks / 4)
                 Log($"[det] Hash Tick {t}: {reference[t]:X16}");
             Log($"[det] Hashkette über {reference.Length} Ticks: {chain:X16}");
+        }
+
+        // DetMath over a fixed spread of arguments: the hash must be the same
+        // on Linux and Windows; the ulps say how near it stays to the C runtime.
+        void LogTrig()
+        {
+            ulong hash = 14695981039346656037UL, state = 0x9E3779B97F4A7C15UL;
+            int differ = 0, count = 0;
+            long worst = 0;
+            void Take(double mine, double runtime)
+            {
+                long a = BitConverter.DoubleToInt64Bits(mine), b = BitConverter.DoubleToInt64Bits(runtime);
+                Mix(ref hash, (int)a);
+                Mix(ref hash, (int)(a >> 32));
+                count++;
+                if (a != b)
+                {
+                    differ++;
+                    worst = Math.Max(worst, Math.Abs(a - b));
+                }
+            }
+            double Next(double range)
+            {
+                state ^= state << 13;
+                state ^= state >> 7;
+                state ^= state << 17;
+                return ((state >> 11) * (1.0 / (1UL << 53)) * 2.0 - 1.0) * range;
+            }
+            for (int i = 0; i < 100000; i++)
+            {
+                double x = Next(i % 10 == 0 ? 5000.0 : 10.0), y = Next(10.0), c = Next(1.0);
+                Take(DetMath.Sin(x), Math.Sin(x));
+                Take(DetMath.Cos(x), Math.Cos(x));
+                Take(DetMath.Atan2(y, x), Math.Atan2(y, x));
+                Take(DetMath.Acos(c), Math.Acos(c));
+            }
+            Log($"[det] Trigonometrie: Hash {hash:X16}, {differ} von {count} weichen von der C-Laufzeit ab, höchstens {worst} ulp");
         }
 
         MoveInput Steer()
