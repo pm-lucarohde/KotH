@@ -2,7 +2,7 @@
 // the bark's faces unwrapped into one atlas, which the client fills with the voxel
 // light once it is baked (a lightmap), and the inner sea as one square of it, laid
 // on from above (the outer sea clamped to its rim). Leaves keep none. Run after
-// Tools/maps/mountain.py, on its fresh output:
+// Tools/maps/Mountain.cs, on its fresh output:
 //
 //   dotnet run --project Tools/maps/MapUV -c Release [-- --size 4096 --pad 3]
 //
@@ -33,7 +33,7 @@ if (args.Contains("--grass") && mountain.HadSecondUV)
 if (mountain.HadSecondUV || sea.HadSecondUV)
 {
     // Its corners are split along the old charts already; unwrapped again, they would stay split.
-    Console.Error.WriteLine("Mountain.glb/Sea.glb haben schon Lightmap-UVs: erst Tools/maps/mountain.py laufen lassen.");
+    Console.Error.WriteLine("Mountain.glb/Sea.glb haben schon Lightmap-UVs: erst Tools/maps/Mountain.cs laufen lassen.");
     return 1;
 }
 var primitives = mountain.Primitives;
@@ -233,7 +233,7 @@ sealed class Primitive(string material, int materialIndex)
     public int[] Indices = [];
 }
 
-// A glb as mountain.py's write_glb lays it out: one mesh, float attributes, uint indices.
+// A glb as Mountain.cs (Output.WriteGlb) lays it out: one mesh, float attributes, uint indices.
 sealed class Glb
 {
     readonly string path;
@@ -283,7 +283,7 @@ sealed class Glb
         return values;
     }
 
-    // The same layout as mountain.py's write_glb, plus TEXCOORD_1.
+    // The same layout as Mountain.cs writes, plus TEXCOORD_1.
     public void Write()
     {
         var body = new MemoryStream();
@@ -322,7 +322,7 @@ sealed class Glb
         gltf["bufferViews"] = views;
         gltf["accessors"] = accessors;
         gltf["buffers"] = new JsonArray(new JsonObject { ["byteLength"] = body.Length });
-        gltf["asset"]!["generator"] = "KotH Tools/maps/mountain.py + Tools/maps/MapUV";
+        gltf["asset"]!["generator"] = "KotH Tools/maps/Mountain.cs + Tools/maps/MapUV";
 
         byte[] json = JsonSerializer.SerializeToUtf8Bytes(gltf);
         json = [.. json, .. Enumerable.Repeat((byte)' ', -json.Length & 3)];

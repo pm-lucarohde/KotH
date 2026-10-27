@@ -1,5 +1,5 @@
 /// <summary>
-/// The twigs that stand out of the crowns (mountain.py's cards, LeafSprig.png),
+/// The twigs that stand out of the crowns (Mountain.cs's cards, LeafSprig.png),
 /// after the "bushy leaves" resource packs: the twig on its card, cut out by
 /// the material, darker at the base inside the crown. The twig moves with
 /// LeafSplat's wind at its place (sway and flutter), held where it enters
@@ -9,7 +9,7 @@
 shader LeafCard<LinkType PaintKey>
     : ComputeColor, PositionStream4, Texturing, LeafWind
 {
-    // About a card's width in metres (mountain.py: 0.8 of 0.72-1.035 m), to turn the wind into uv.
+    // About a card's width in metres (Mountain.cs: 0.8 of 0.72-1.035 m), to turn the wind into uv.
     static const float CardWidth = 0.7;
     // The tip's swing against the wind's reach; the inside swings with the square of the way out.
     static const float TipSwing = 2.5;

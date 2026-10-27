@@ -102,7 +102,7 @@ Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall 
 - Je Map `Maps/NAME`: `NAMECollision` (Shared: Kollision, `PlayerSpawn0`–`11`, `DummySpawn`, `CaptureZone`, `Bots`)
   und `NAMEVisual` (Game), beide Root-Assets; URLs in `Hosting/Maps.cs`. `MainScene` ist nur der Rahmen. Host
   schickt den Namen im `Welcome` (`INetWorld.LoadMap`). Proben laden `Maps.Test`, außer `bots climb`/`jumplab`.
-- **Neu** (Minecraft-Berg, 123 m): `Tools/maps/mountain.py` schreibt **nur** `Mountain.glb` (`COLOR_0` = Oberflächen,
+- **Neu** (Minecraft-Berg, 123 m): `Tools/maps/Mountain.cs` schreibt **nur** `Mountain.glb` (`COLOR_0` = Oberflächen,
   `TEXCOORD_0.x` = AO), `Sea.glb` und `NeuTerrain.bin` (Kollision, eingebettet, 4-m-Chunks, `WorldBuilder.AddTerrain`).
   Surface Nets 70 %, Säulen 2 × 1, ohne Wege, Gipfel aus ≥ 9/12 Richtungen; Stämme rund (kein Boden im Stamm), Kronen halb
   Blöcke, halb Büschel, mit Zweig-Karten. Danach `Tools/maps/MapUV` (Lightmap-UVs, Graskarte `NeuGrass.bin`), `publish_aot.sh`. Sichtweite ≤ 20 km.

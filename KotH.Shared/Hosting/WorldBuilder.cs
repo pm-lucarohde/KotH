@@ -75,7 +75,7 @@ namespace KotH.Shared.Hosting
         }
 
         /// <summary>
-        /// The generated ground (Tools/maps/mountain.py), if the map has one:
+        /// The generated ground (Tools/maps/Mountain.cs), if the map has one:
         /// per chunk, in file order, one static compound of its triangles, wound
         /// into the solid like the test arena's. Too many for a prefab.
         /// </summary>
