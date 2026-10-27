@@ -1,0 +1,8 @@
+!Texture
+Id: 466DDFF9-89CF-4534-8171-8FA56048F370
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../../Resources/Textures/Terrain/GrassNormal.png
+IsCompressed: false
+Type: !NormalMapTextureType
+    InvertY: false

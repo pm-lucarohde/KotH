@@ -3,9 +3,10 @@
 /// texture where the ground faces up, the side texture on slopes and walls.
 /// COLOR0 weighs the surfaces (grass, sand, snow, snow cap; the rest is rock),
 /// TEXCOORD0.x is the shade (soft AO). The lichen on the rock is laid on
-/// spot by spot, like LeafSplat's leaves, so it never stretches.
+/// spot by spot, like LeafSplat's leaves, so it never stretches. Sand and meadow
+/// have a relief (normal maps from Textures.cs) that tilts the normal for the sun.
 /// </summary>
-shader TerrainTriplanar<LinkType GrassKey, LinkType DirtKey, LinkType SandKey, LinkType SnowKey, LinkType RockKey>
+shader TerrainTriplanar<LinkType GrassKey, LinkType DirtKey, LinkType SandKey, LinkType SnowKey, LinkType RockKey, LinkType GrassReliefKey, LinkType SandReliefKey>
     : ComputeColor, PositionStream4, NormalStream, Texturing, CellHash
 {
     // Metres per repeat of the textures.
@@ -21,6 +22,12 @@ shader TerrainTriplanar<LinkType GrassKey, LinkType DirtKey, LinkType SandKey, L
     static const float LichenRadiusMin = 0.02;
     static const float LichenRadiusMax = 0.047;
     static const int LichenSpots = 10;
+    // Strength of the relief of sand and meadow (their normal maps, Textures.cs; 1 = as painted in metres).
+    static const float Relief = 2.0;
+    // It varies by up to ReliefSpread either way in soft patches of about ReliefPatch metres,
+    // so the 4 m tiles of the relief do not repeat alike (Luca: "not so sterile").
+    static const float ReliefPatch = 9.0;
+    static const float ReliefSpread = 0.45;
 
     rgroup PerMaterial
     {
@@ -29,9 +36,34 @@ shader TerrainTriplanar<LinkType GrassKey, LinkType DirtKey, LinkType SandKey, L
         [Link("SandKey")] stage Texture2D Sand;
         [Link("SnowKey")] stage Texture2D Snow;
         [Link("RockKey")] stage Texture2D Rock;
+        [Link("GrassReliefKey")] stage Texture2D GrassRelief;
+        [Link("SandReliefKey")] stage Texture2D SandRelief;
     }
 
     stage stream float4 TerrainWeights : COLOR0;
+
+    // Smooth value noise over the ground in [0, 1): patches of ReliefPatch metres.
+    float Patchy(float2 xz)
+    {
+        float2 f = xz / ReliefPatch;
+        int2 c = int2(floor(f));
+        float2 t = f - float2(c);
+        t = t * t * (3.0 - 2.0 * t);
+        float a = Hash3(int3(c, 0), 9u).x, b = Hash3(int3(c + int2(1, 0), 0), 9u).x;
+        float d = Hash3(int3(c + int2(0, 1), 0), 9u).x, e = Hash3(int3(c + int2(1, 1), 0), 9u).x;
+        return lerp(lerp(a, b, t.x), lerp(d, e, t.x), t.y);
+    }
+
+    // The relief maps' tilt (their x and y, level at 128); gradients taken before any branch.
+    float2 SandSlope(float2 uv, float2 dx, float2 dy)
+    {
+        return (SandRelief.SampleGrad(LinearRepeatSampler, uv, dx, dy).xy - 128.0 / 255.0) * 2.0;
+    }
+
+    float2 GrassSlope(float2 uv, float2 dx, float2 dy)
+    {
+        return (GrassRelief.SampleGrad(LinearRepeatSampler, uv, dx, dy).xy - 128.0 / 255.0) * 2.0;
+    }
 
     // The lichen over a point, premultiplied: half the groups yellow, half
     // green, each spot a dark rim round a lighter core set a little upward.
@@ -106,6 +138,38 @@ shader TerrainTriplanar<LinkType GrassKey, LinkType DirtKey, LinkType SandKey, L
         float4 top = w.x * grass + w.y * sand + (w.z + w.w) * snow + rock * stone;
         float up = smoothstep(0.45, 0.85, n.y);
         float4 c = lerp(side, top, up);
+#ifndef KOTH_LIGHTMAP_BAKE
+        // The relief of sand (all three projections) and meadow (from above) tilts the normal
+        // the sun lights: each map's slope laid along its projection's u and v in the world.
+        // Read only where the surface and the projection count (rock and snow need none).
+        float2 dxx = ddx(ux), dxy = ddy(ux), dyx = ddx(uy), dyy = ddy(uy), dzx = ddx(uz), dzy = ddy(uz);
+        float3 tilt = 0;
+        if (w.y > 0.004)
+        {
+            if (b.x > 0.004)
+            {
+                float2 s = SandSlope(ux, dxx, dxy);
+                tilt += w.y * b.x * float3(0, -s.y, s.x);
+            }
+            if (b.y > 0.004)
+            {
+                float2 s = SandSlope(uy, dyx, dyy);
+                tilt += w.y * b.y * float3(s.x, 0, s.y);
+            }
+            if (b.z > 0.004)
+            {
+                float2 s = SandSlope(uz, dzx, dzy);
+                tilt += w.y * b.z * float3(s.x, -s.y, 0);
+            }
+        }
+        if (w.x * up > 0.004)
+        {
+            float2 s = GrassSlope(uy, dyx, dyy);
+            tilt += w.x * up * float3(s.x, 0, s.y);
+        }
+        float strength = Relief * (1.0 + ReliefSpread * (2.0 * Patchy(q.xz) - 1.0));
+        streams.normalWS = normalize(n + strength * tilt);
+#endif
         return float4(c.rgb * shade, 1.0);
     }
 };

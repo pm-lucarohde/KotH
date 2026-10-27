@@ -33,20 +33,28 @@ const double LeafWidth = 0.43;       // its width over its length (LeafSplat.sds
 string root = Path.GetFullPath(Path.Combine(Here(), "../.."));
 string outDir = Path.Combine(root, "KotH.Game/Resources/Textures/Terrain");
 
-var painters = new (string Name, Func<PyRandom, PilImage> Paint)[]
+// Grass and sand also give their relief (Luca: "not quite so flat"), written as NAMENormal.png.
+var painters = new (string Name, Func<PyRandom, (PilImage Image, double[] Relief)> Paint)[]
 {
-    ("Grass", Grass), ("Dirt", Dirt), ("Sand", Sand), ("Snow", Snow), ("Rock", Rock),
-    ("Leaves", Leaves), ("Bark", Bark), ("LeafSprig", Sprig),
+    ("Grass", Grass), ("Dirt", Flat(Dirt)), ("Sand", Sand), ("Snow", Flat(Snow)), ("Rock", Flat(Rock)),
+    ("Leaves", Flat(Leaves)), ("Bark", Flat(Bark)), ("LeafSprig", Flat(Sprig)),
 };
 Directory.CreateDirectory(outDir);
 var painted = new List<PilImage>();
 for (int n = 0; n < painters.Length; n++)
 {
-    PilImage img = painters[n].Paint(new PyRandom(Seed * 100 + n));
+    var (img, relief) = painters[n].Paint(new PyRandom(Seed * 100 + n));
     img.ToPng().Write(Path.Combine(outDir, painters[n].Name + ".png"));
     Console.WriteLine($"{painters[n].Name}.png: {img.Width} x {img.Height}");
     painted.Add(img);
+    if (relief != null)
+    {
+        NormalMap(relief).ToPng().Write(Path.Combine(outDir, painters[n].Name + "Normal.png"));
+        Console.WriteLine($"{painters[n].Name}Normal.png: Relief {relief.Min() * 1000:F1} bis {relief.Max() * 1000:F1} mm");
+    }
 }
+
+static Func<PyRandom, (PilImage, double[])> Flat(Func<PyRandom, PilImage> paint) => rng => (paint(rng), null);
 if (args.Contains("--preview"))
 {
     // Every texture tiled 2 x 2, to look for seams.
@@ -158,8 +166,9 @@ static Pts Stroke(double length, double width, double turn, double bend = 0.0)
 }
 
 // Visible brush strokes in close tones, like the painted figures.
+// With relief, every stroke is drawn again into its mask, in the ink it gives for the colour (Up, Down).
 static void Brush(PilImage img, PyRandom rng, int count, int[][] colours, (double, double) length, (double, double) width,
-    double turn, double jitter, double bend = 0.1)
+    double turn, double jitter, double bend = 0.1, (PilDraw Draw, Func<int[], byte[]> Ink) relief = default)
 {
     int size = img.Width;
     var (lay, d) = Layer(size);
@@ -170,7 +179,10 @@ static void Brush(PilImage img, PyRandom rng, int count, int[][] colours, (doubl
         double w = rng.Uniform(width.Item1, width.Item2) * K;
         double tn = turn + rng.Uniform(-jitter, jitter);
         Pts pts = Stroke(ln, w, tn, rng.Uniform(-bend, bend));
-        Polys(d, size, x - ln / 2, y, ln * 1.2, [(pts, Ink(rng.Choice(colours)))]);
+        int[] colour = rng.Choice(colours);
+        Polys(d, size, x - ln / 2, y, ln * 1.2, [(pts, Ink(colour))]);
+        if (relief.Draw != null)
+            Polys(relief.Draw, size, x - ln / 2, y, ln * 1.2, [(pts, relief.Ink(colour))]);
     }
     img.AlphaComposite(Blur(lay, Edge));
 }
@@ -194,7 +206,8 @@ static void Stones(PilImage img, PyRandom rng, List<(double X, double Y, double 
     img.AlphaComposite(Blur(lay, Edge));
 }
 
-static void Specks(PilImage img, PyRandom rng, int count, int[][] colours, (double, double) radius)
+static void Specks(PilImage img, PyRandom rng, int count, int[][] colours, (double, double) radius,
+    (PilDraw Draw, Func<int[], byte[]> Ink) relief = default)
 {
     int size = img.Width;
     var (lay, d) = Layer(size);
@@ -202,8 +215,14 @@ static void Specks(PilImage img, PyRandom rng, int count, int[][] colours, (doub
     {
         double x = rng.Uniform(0, size), y = rng.Uniform(0, size);
         double r = rng.Uniform(radius.Item1, radius.Item2) * K;
-        byte[] c = Ink(rng.Choice(colours));
+        int[] colour = rng.Choice(colours);
+        byte[] c = Ink(colour);
         Wrap((sx, sy) => d.Ellipse(sx - r, sy - r, sx + r, sy + r, c), size, x, y, r + 2);
+        if (relief.Draw != null)
+        {
+            byte[] bump = relief.Ink(colour);
+            Wrap((sx, sy) => relief.Draw.Ellipse(sx - r, sy - r, sx + r, sy + r, bump), size, x, y, r + 2);
+        }
     }
     img.AlphaComposite(Blur(lay, Edge));
 }
@@ -225,9 +244,14 @@ static Pts Blade(double length, double width, double lean, double bend, double r
     return [.. left, .. right];
 }
 
-static PilImage Grass(PyRandom rng)
+static (PilImage, double[]) Grass(PyRandom rng)
 {
-    PilImage img = Tinted([96, 168, 62], [124, 194, 76], [66, 132, 48], Clouds(rng, Size, 6, 70, 190));
+    PilImage noise = Clouds(rng, Size, 6, 70, 190);
+    PilImage img = Tinted([96, 168, 62], [124, 194, 76], [66, 132, 48], noise);
+    // Relief from the very shapes of the colour: the clouds as gentle swells, every clump a soft
+    // mound (the lighter ones higher), every painted blade a slim ridge, the flowers small buttons.
+    double[] relief = Swells(noise, 130, 60, 0.008);
+    var (bumps, bd) = Layer(Size);
     // Soft clumps, darker and lighter, so the meadow reads from afar.
     var (lay, d) = Layer(Size);
     for (int i = 0; i < 70; i++)
@@ -236,9 +260,14 @@ static PilImage Grass(PyRandom rng)
         int[] c = rng.Choice(new[] { new[] { 70, 138, 48, 120 }, [128, 192, 78, 110] });
         double x = rng.Uniform(0, Size), y = rng.Uniform(0, Size);
         double squash = rng.Uniform(0.6, 1.0), turn = rng.Uniform(0, Math.PI);
-        Polys(d, Size, x, y, r * 1.4, [(Blob(0, 0, r, rng, 12, 0.3, squash, turn), Ink(c))]);
+        Pts blob = Blob(0, 0, r, rng, 12, 0.3, squash, turn);
+        Polys(d, Size, x, y, r * 1.4, [(blob, Ink(c))]);
+        Polys(bd, Size, x, y, r * 1.4, [(blob, Up((c[0] == 70 ? 0.6 : 1.0) * Vary(i, 1, 0.65, 1.0)))]);
     }
     img.AlphaComposite(Blur(lay, 8 * K));
+    AddRelief(relief, bumps, 0.014, 10 * K);
+    (bumps, bd) = Layer(Size);
+    int tuft = 0;
     // Tufts like in a comic: a few slim, curved blades from one root, close to the
     // ground's tone (a shade darker, or lighter towards the tips).
     foreach (var (count, colours) in new[] { (130, new[] { new[] { 80, 148, 52 }, [86, 154, 54] }), (130, [[132, 198, 80], [146, 208, 92]]) })
@@ -258,9 +287,13 @@ static PilImage Grass(PyRandom rng)
             }
             double x = rng.Uniform(0, Size), y = rng.Uniform(0, Size);
             Polys(d, Size, x, y, 50 * K, shapes);
+            byte[] ridge = Up(Vary(tuft++, 2, 0.5, 1.0));
+            Polys(bd, Size, x, y, 50 * K, [.. shapes.Select(s => (s.Item1, ridge))]);
         }
         img.AlphaComposite(Blur(lay, Edge));
     }
+    AddRelief(relief, bumps, 0.004, 1.2 * K);
+    (bumps, bd) = Layer(Size);
     // A few small flowers, white and yellow like the spots on the caps.
     (lay, d) = Layer(Size);
     for (int i = 0; i < 10; i++)
@@ -277,12 +310,20 @@ static PilImage Grass(PyRandom rng)
                 d.Ellipse(px - r * 0.55, py - r * 0.6, px + r * 0.5, py + r * 0.5, Ink(petal, 255));
             }
             d.Ellipse(fx - r * 0.5, fy - r * 0.5, fx + r * 0.5, fy + r * 0.5, [236, 160, 40, 255]);
+            bd.Ellipse(fx - r * 1.4, fy - r * 1.4, fx + r * 1.4, fy + r * 1.4, Up(Vary(i, 3, 0.6, 1.0)));
         }
         double x = rng.Uniform(0, Size), y = rng.Uniform(0, Size);
         Wrap(Draw, Size, x, y, 12 * K);
     }
     img.AlphaComposite(Blur(lay, Edge));
-    return img.Convert("RGB");
+    AddRelief(relief, bumps, 0.003, 1.5 * K);
+    // Not only what is painted: a few soft lumps of their own, then all of it bent a little off the paint.
+    for (int k = 0; k < 40; k++)
+    {
+        double s = Vary(k, 23, 20, 40) * K, h = Vary(k, 24, 0.003, 0.007);
+        Stamp(relief, Vary(k, 25, 0, Size), Vary(k, 26, 0, Size), 3 * s, (dx, dy) => h * Math.Exp(-(dx * dx + dy * dy) / (2 * s * s)));
+    }
+    return (img.Convert("RGB"), Warp(relief, 4 * K, 31));
 }
 
 static PilImage Dirt(PyRandom rng)
@@ -335,9 +376,14 @@ static PilImage Dirt(PyRandom rng)
     return img.Convert("RGB");
 }
 
-static PilImage Sand(PyRandom rng)
+static (PilImage, double[]) Sand(PyRandom rng)
 {
-    PilImage img = Tinted([238, 214, 148], [248, 230, 172], [218, 190, 124], Clouds(rng, Size, 6, 80, 180));
+    PilImage noise = Clouds(rng, Size, 6, 80, 180);
+    PilImage img = Tinted([238, 214, 148], [248, 230, 172], [218, 190, 124], noise);
+    // Relief from the very shapes of the colour: the clouds as low swells, every ripple a crest
+    // that falls off steeply to its trough (the shaded arc below the lit one), the light strokes
+    // a little raised and the dark ones sunk, every grain a tiny bump, the shells small domes.
+    double[] relief = Swells(noise, 130, 50, 0.005);
     // Ripples as a lit crest over a shaded trough, then grains and a few shells.
     var (lay, d) = Layer(Size);
     for (int i = 0; i < 60; i++)
@@ -349,10 +395,18 @@ static PilImage Sand(PyRandom rng)
             d.Arc(sx - w, sy - w * 0.25 + 3 * K, sx + w, sy + w * 0.25 + 3 * K, 200, 340, [212, 182, 118, 150], (int)(4 * K));
             d.Arc(sx - w, sy - w * 0.25, sx + w, sy + w * 0.25, 205, 335, [255, 244, 200, 170], (int)(3 * K));
         }, Size, x, y, 120 * K);
+        int ripple = i;
+        Stamp(relief, x, y, w + 20 * K, (dx, dy) => Ripple(dx, dy, w, ripple));
     }
     img.AlphaComposite(Blur(lay, Edge));
-    Brush(img, rng, 70, [[250, 236, 186, 80], [222, 194, 130, 80]], (50, 110), (10, 22), 0.0, 0.3);
-    Specks(img, rng, 1250, [[196, 160, 98, 200], [255, 248, 220, 200], [224, 192, 128, 200], [176, 140, 90, 180]], (1.4, 2.8));
+    var (bumps, bd) = Layer(Size);
+    int stroke = 0, grain = 0;
+    Brush(img, rng, 70, [[250, 236, 186, 80], [222, 194, 130, 80]], (50, 110), (10, 22), 0.0, 0.3,
+        relief: (bd, c => c[0] == 250 ? Up(Vary(stroke++, 4, 0.4, 1.0)) : Down(Vary(stroke++, 4, 0.4, 1.0))));
+    AddRelief(relief, bumps, 0.002, 3 * K);
+    (bumps, bd) = Layer(Size);
+    Specks(img, rng, 1250, [[196, 160, 98, 200], [255, 248, 220, 200], [224, 192, 128, 200], [176, 140, 90, 180]], (1.4, 2.8), (bd, _ => Up(Vary(grain++, 5, 0.3, 1.0))));
+    AddRelief(relief, bumps, 0.0012, 0.8 * K);
     var specs = new List<(double, double, double, int[], double, int)>();
     for (int i = 0; i < 6; i++)
     {
@@ -361,7 +415,20 @@ static PilImage Sand(PyRandom rng)
         specs.Add((x, y, rng.Uniform(5, 8) * K, c, 0.7, 6));
     }
     Stones(img, rng, specs, 0.7);
-    return img.Convert("RGB");
+    for (int k = 0; k < specs.Count; k++)
+    {
+        var (x, y, r, _, squash, _) = specs[k];
+        double dome = 0.003 * Vary(k, 6, 0.7, 1.3);
+        Stamp(relief, x, y, r, (dx, dy) => dome * Math.Max(0, 1 - (dx * dx + dy * dy / (squash * squash)) / (r * r)));
+    }
+    // Not only what is painted: some fainter ripples of their own, then all of it bent a little off the paint.
+    for (int k = 0; k < 30; k++)
+    {
+        double w = Vary(k, 20, 40, 110) * K;
+        int ripple = 1000 + k;
+        Stamp(relief, Vary(k, 21, 0, Size), Vary(k, 22, 0, Size), w + 20 * K, (dx, dy) => 0.5 * Ripple(dx, dy, w, ripple));
+    }
+    return (img.Convert("RGB"), Warp(relief, 5 * K, 30));
 }
 
 static PilImage Snow(PyRandom rng)
@@ -586,6 +653,139 @@ static PilImage Bark(PyRandom rng)
     }
     img.AlphaComposite(Blur(lay, Edge));
     return img.Convert("RGB");
+}
+
+// Relief of a ground texture: height in metres per pixel (Size px are 4 m), tiling.
+// Shapes are stamped wrapped round the edges; NormalMap turns it into the normal map.
+static void Stamp(double[] relief, double x, double y, double reach, Func<double, double, double> height)
+{
+    for (int py = (int)Math.Floor(y - reach); py <= (int)Math.Ceiling(y + reach); py++)
+    {
+        int row = (py % Size + Size) % Size * Size;
+        for (int px = (int)Math.Floor(x - reach); px <= (int)Math.Ceiling(x + reach); px++)
+            relief[row + (px % Size + Size) % Size] += height(px + 0.5 - x, py + 0.5 - y);
+    }
+}
+
+// The cloud noise (an L image) as swells: middle is level, ±spread reaches ±metres.
+static double[] Swells(PilImage noise, int middle, int spread, double metres)
+{
+    var relief = new double[Size * Size];
+    for (int i = 0; i < relief.Length; i++)
+        relief[i] = (noise.Data[i] - middle) / (double)spread * metres;
+    return relief;
+}
+
+// Inks for a relief mask: red raises, green sinks, by the given share of the full height.
+static byte[] Up(double share) => [(byte)Math.Round(255 * Math.Min(1, share)), 0, 0, 255];
+
+static byte[] Down(double share) => [0, (byte)Math.Round(255 * Math.Min(1, share)), 0, 255];
+
+// Adds a mask drawn with Up and Down (an RGBA layer) to the relief, softened by a
+// Gaussian of sigma pixels that wraps round the edges like the tiling.
+static void AddRelief(double[] relief, PilImage mask, double metres, double sigma)
+{
+    var share = new double[Size * Size];
+    for (int i = 0; i < share.Length; i++)
+        share[i] = (mask.Data[4 * i] - mask.Data[4 * i + 1]) / 255.0;
+    int reach = (int)Math.Ceiling(3 * sigma);
+    double[] kernel = [.. Enumerable.Range(-reach, 2 * reach + 1).Select(k => Math.Exp(-k * k / (2 * sigma * sigma)))];
+    double sum = kernel.Sum();
+    var across = new double[Size * Size];
+    for (int y = 0; y < Size; y++)
+        for (int x = 0; x < Size; x++)
+        {
+            double v = 0;
+            for (int k = -reach; k <= reach; k++)
+                v += kernel[k + reach] * share[y * Size + ((x + k) % Size + Size) % Size];
+            across[y * Size + x] = v / sum;
+        }
+    for (int y = 0; y < Size; y++)
+        for (int x = 0; x < Size; x++)
+        {
+            double v = 0;
+            for (int k = -reach; k <= reach; k++)
+                v += kernel[k + reach] * across[((y + k) % Size + Size) % Size * Size + x];
+            relief[y * Size + x] += metres * v / sum;
+        }
+}
+
+// A ripple along the lit arc of Sand (half axes w and w/4, its upper side): rising gently
+// from above, falling steeply below into a shallow trough; fading out towards its ends.
+// Every ripple k its own (Luca: "not so sterile"): height, slopes, a crest that wavers a little
+// about the painted line, higher towards one end.
+static double Ripple(double dx, double dy, double w, int k)
+{
+    double t = Math.Abs(dx) / w;
+    if (t >= 0.9)
+        return 0;
+    double waver = Vary(k, 7, 0, 1.5 * K) * Math.Sin(dx / w * Vary(k, 8, 4, 9) + Vary(k, 9, 0, 2 * Math.PI));
+    double crest = -0.25 * w * Math.Sqrt(1 - t * t) + waver;
+    double d = dy - crest, fade = (1 - Math.Pow(t / 0.9, 4)) * (1 + Vary(k, 10, -0.3, 0.3) * dx / w);
+    double windward = Vary(k, 11, 5, 9) * K, lee = Vary(k, 12, 2.2, 3.8) * K;
+    double rise = d < 0 ? Math.Exp(-d * d / (2 * windward * windward)) : Math.Exp(-d * d / (2 * lee * lee));
+    double trough = Math.Exp(-(d - 5 * K) * (d - 5 * K) / (2 * 3 * K * 3 * K));
+    return fade * Vary(k, 13, 0.6, 1.4) * (0.008 * rise - 0.002 * trough);
+}
+
+// The relief bent by a soft displacement of up to about reach pixels (sines that fit the
+// tile a whole number of times, so it still tiles): its shapes no longer sit exactly on the paint.
+static double[] Warp(double[] relief, double reach, int salt)
+{
+    var waves = Enumerable.Range(0, 6).Select(k => (Fx: (int)Vary(k, salt, 2, 7), Fy: (int)Vary(k, salt + 1, -6, 7),
+        Phase: Vary(k, salt + 2, 0, 2 * Math.PI), Size: reach / 3 * Vary(k, salt + 3, 0.6, 1.4))).ToArray();
+    var bent = new double[Size * Size];
+    for (int y = 0; y < Size; y++)
+        for (int x = 0; x < Size; x++)
+        {
+            double sx = x, sy = y;
+            for (int k = 0; k < waves.Length; k++)
+            {
+                double a = 2 * Math.PI * (waves[k].Fx * x + waves[k].Fy * y) / Size + waves[k].Phase;
+                if (k % 2 == 0)
+                    sx += waves[k].Size * Math.Sin(a);
+                else
+                    sy += waves[k].Size * Math.Sin(a);
+            }
+            int x0 = (int)Math.Floor(sx), y0 = (int)Math.Floor(sy);
+            double tx = sx - x0, ty = sy - y0;
+            double At(int px, int py) => relief[(py % Size + Size) % Size * Size + (px % Size + Size) % Size];
+            bent[y * Size + x] = (At(x0, y0) * (1 - tx) + At(x0 + 1, y0) * tx) * (1 - ty) + (At(x0, y0 + 1) * (1 - tx) + At(x0 + 1, y0 + 1) * tx) * ty;
+        }
+    return bent;
+}
+
+// A fixed draw in [low, high) for shape k and a purpose (salt): varies the relief shape by
+// shape without touching the painter's random numbers, so the colour stays as it was.
+static double Vary(int k, int salt, double low, double high)
+{
+    uint h = (uint)k * 2654435761u ^ (uint)salt * 2246822519u;
+    h ^= h >> 15;
+    h *= 0x2c1b3c6du;
+    h ^= h >> 12;
+    h *= 0x297a2d39u;
+    h ^= h >> 15;
+    return low + (high - low) * (h / 4294967296.0);
+}
+
+// The normal map of a relief: x along the texture's u, y along v (down the rows), z up; 0.5 is level.
+// Written at half the size: the relief is soft, and the ground reads it on every pixel.
+static PilImage NormalMap(double[] relief)
+{
+    var img = new PilImage("RGB", Size, Size, 128, 128, 255);
+    double perPixel = Size / 4.0 / 2;   // metres per pixel inverted, over the two-pixel central difference
+    for (int y = 0; y < Size; y++)
+        for (int x = 0; x < Size; x++)
+        {
+            double gx = (relief[y * Size + (x + 1) % Size] - relief[y * Size + (x + Size - 1) % Size]) * perPixel;
+            double gy = (relief[(y + 1) % Size * Size + x] - relief[(y + Size - 1) % Size * Size + x]) * perPixel;
+            double n = Math.Sqrt(gx * gx + gy * gy + 1);
+            int p = 4 * (y * Size + x);
+            img.Data[p] = (byte)Math.Round((-gx / n * 0.5 + 0.5) * 255);
+            img.Data[p + 1] = (byte)Math.Round((-gy / n * 0.5 + 0.5) * 255);
+            img.Data[p + 2] = (byte)Math.Round((1 / n * 0.5 + 0.5) * 255);
+        }
+    return img.Resize(Size / 2, Size / 2, PilImage.Filter.Bicubic);
 }
 
 static string Here([CallerFilePath] string path = "") => Path.GetDirectoryName(path);

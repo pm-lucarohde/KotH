@@ -25,6 +25,12 @@ Attributes:
                 d6430e7b5722403e93179768db92feae~RockKey: !ComputeColorParameterTexture
                     Texture:
                         Texture: 4EC32F13-40E9-4C98-A918-19A038F98745:Textures/Terrain/Rock
+                d2587c4c1b494ded8d000dbad712fee5~GrassReliefKey: !ComputeColorParameterTexture
+                    Texture:
+                        Texture: 466DDFF9-89CF-4534-8171-8FA56048F370:Textures/Terrain/GrassNormal
+                ac2ed081f1b947f1a08d2be512f92ea5~SandReliefKey: !ComputeColorParameterTexture
+                    Texture:
+                        Texture: D6A82179-F0C5-474D-8627-18CA177CB7C0:Textures/Terrain/SandNormal
             CompositionNodes: {}
     DiffuseModel: !MaterialDiffuseLambertModelFeature {}
     Specular: !MaterialMetalnessMapFeature
