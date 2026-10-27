@@ -73,7 +73,7 @@ namespace KotH.Client.Rendering
         [DataMember(42)] public float CloudShadow { get; set; } = 0.45f;
 
         /// <userdoc>Dichte pro Meter des Küstennebels in seinen Schwaden, direkt über dem Wasser (0 = kein Küstennebel).</userdoc>
-        [DataMember(50)] public float CoastDensity { get; set; } = 0.12f;
+        [DataMember(50)] public float CoastDensity { get; set; } = 0.06f;
         /// <userdoc>Anteil des gleichmäßigen Dunsts zwischen den Schwaden (0 = nur Schwaden, 1 = überall gleich).</userdoc>
         [DataMember(51)] public float CoastHaze { get; set; } = 0.15f;
         /// <userdoc>Höhe des Wassers in Metern, auf dem der Küstennebel liegt.</userdoc>
