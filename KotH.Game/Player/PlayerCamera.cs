@@ -1,4 +1,5 @@
 using System;
+using KotH.Client.Rendering;
 using KotH.Shared.Combat;
 using KotH.Shared.Mathematics;
 using KotH.Shared.Physics;
@@ -193,11 +194,13 @@ namespace KotH.Client.Player
             view.RenderMask = arms ? view.RenderMask | armsBit : view.RenderMask & ~armsBit;
         }
 
-        /// <summary>The camera's renderer, also inside the collection the HUD wraps it in.</summary>
+        /// <summary>The camera's renderer, also inside the collection and SceneThrottle the HUD wraps it in.</summary>
         static SceneCameraRenderer FindView(ISceneRenderer renderer)
         {
             if (renderer is SceneCameraRenderer camera)
                 return camera;
+            if (renderer is SceneThrottle throttle)
+                return FindView(throttle.Child);
             if (renderer is SceneRendererCollection collection)
                 foreach (ISceneRenderer child in collection.Children)
                     if (FindView(child) is { } found)
