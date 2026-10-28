@@ -22,15 +22,15 @@ namespace KotH.Client.Player
         // SDL's relative mode here delivers whole counts.
         const float DegreesPerPixelAtOne = 0.025f;
 
-        [Display("Mausempfindlichkeit", "Maus")] public float MouseSensitivity = 2f;
-        [Display("Nick unten", "Maus")] public float MinPitch = -89f;
-        [Display("Nick oben", "Maus")] public float MaxPitch = 89f;
+        [Display("Mouse sensitivity", "Mouse")] public float MouseSensitivity = 2f;
+        [Display("Pitch down", "Mouse")] public float MinPitch = -89f;
+        [Display("Pitch up", "Mouse")] public float MaxPitch = 89f;
 
-        [Display("Sprint", "Tasten")] public Keys SprintKey = Keys.LeftShift;
-        [Display("Ducken", "Tasten")] public Keys CrouchKey = Keys.E;
+        [Display("Sprint", "Keys")] public Keys SprintKey = Keys.LeftShift;
+        [Display("Crouch", "Keys")] public Keys CrouchKey = Keys.E;
 
-        /// <userdoc>Wie schnell sich die Figur in Third-Person zur Laufrichtung dreht, in Grad pro Sekunde</userdoc>
-        [Display("Drehtempo", "Third-Person")] public float TurnSpeed = 720f;
+        /// <userdoc>How fast the figure turns to its running direction in third person, in degrees per second</userdoc>
+        [Display("Turn speed", "Third person")] public float TurnSpeed = 720f;
 
         // yaw and pitch are the view; bodyYaw is where the figure faces. In
         // first person both yaws are one, in third person the view circles

@@ -49,8 +49,8 @@ namespace KotH.Probes.Probes
             Side a = Build(host, 3);
             using var second = new HeadlessWorld();
             Side b = Build(second, 3);
-            Log($"[netstate] BodyState {StateCodec.BodyStateSize} Bytes, {a.Sim.Bodies.Count} Körper je Welt");
-            Check(StateCodec.BodyStateSize == 202, "BodyState ohne Füllbytes (202 Bytes)");
+            Log($"[netstate] BodyState {StateCodec.BodyStateSize} bytes, {a.Sim.Bodies.Count} bodies per world");
+            Check(StateCodec.BodyStateSize == 202, "BodyState without padding (202 bytes)");
 
             Transfer(a, b);
             JoinRollback(a);
@@ -58,7 +58,7 @@ namespace KotH.Probes.Probes
             FreshSpawn(a, b);
             Damaged(a, b);
 
-            Log(failures == 0 ? "[netstate] BESTANDEN" : $"[netstate] {failures} Fehler");
+            Log(failures == 0 ? "[netstate] PASSED" : $"[netstate] {failures} errors");
             return failures == 0 ? 0 : 1;
         }
 
@@ -160,8 +160,8 @@ namespace KotH.Probes.Probes
             Steps(a, 150);
             Steps(b, 37);
             byte[] sent = Encode(a);
-            Check(Decode(b, sent), "Zustand in die zweite Welt gelesen");
-            Check(Hash(Encode(b)) == Hash(sent), $"zweite Welt sofort bitgleich ({sent.Length} Bytes)");
+            Check(Decode(b, sent), "state read into the second world");
+            Check(Hash(Encode(b)) == Hash(sent), $"second world bit-identical at once ({sent.Length} bytes)");
 
             int first = -1;
             bool reset = false;
@@ -173,8 +173,8 @@ namespace KotH.Probes.Probes
                 if (first < 0 && Hash(Encode(a)) != Hash(Encode(b)))
                     first = t;
             }
-            Check(first < 0, first < 0 ? "600 Ticks weiter bitgleich" : $"weicht ab Tick {first} ab");
-            Check(reset, "eine Runde endete und setzte alle auf den Spawn zurück");
+            Check(first < 0, first < 0 ? "600 ticks on bit-identical" : $"differs from tick {first} on");
+            Check(reset, "a round ended and reset everyone to the spawn");
         }
 
         /// <summary>A body joins after a snapshot; a rollback parks it, the replay brings it back.</summary>
@@ -190,12 +190,12 @@ namespace KotH.Probes.Probes
 
             a.Sim.Restore(before);
             Check(joined.IsParked && !Contains(a.Sim.Bodies, joined) && joined.Motor.Hull.Entity.Transform.Position.Y < -1000f,
-                  "Rollback vor den Beitritt parkt den Körper samt Hülle");
+                  "rollback before the join parks the body and its hull");
 
             Steps(a, 5);
             a.Sim.Rejoin(joined, joinState);
             Steps(a, 15);
-            Check(Hash(Encode(a)) == Hash(straight), "Nachspielen mit Beitritt landet bitgleich");
+            Check(Hash(Encode(a)) == Hash(straight), "replay with join ends bit-identical");
         }
 
         /// <summary>A body leaves after a snapshot; a rollback brings it back at its old place.</summary>
@@ -212,12 +212,12 @@ namespace KotH.Probes.Probes
 
             a.Sim.Restore(before);
             Check(!leaving.IsParked && Order(a.Sim.Bodies) == order,
-                  $"Rollback vor das Verlassen holt ihn an seinen Platz zurück ({order})");
+                  $"rollback before leaving brings him back to his place ({order})");
 
             Steps(a, 5);
             a.Sim.Leave(leaving);
             Steps(a, 15);
-            Check(Hash(Encode(a)) == Hash(straight), "Nachspielen mit Verlassen landet bitgleich");
+            Check(Hash(Encode(a)) == Hash(straight), "replay with leaving ends bit-identical");
         }
 
         /// <summary>The same prefab at the same spot is the same state in any world.</summary>
@@ -225,7 +225,7 @@ namespace KotH.Probes.Probes
         {
             SimulationBody x = Spawn(a, 6, Spots[4]);
             SimulationBody y = Spawn(b, 6, Spots[4]);
-            Check(Same(x.CaptureState(), y.CaptureState()), "frischer Körper in beiden Welten bitgleich");
+            Check(Same(x.CaptureState(), y.CaptureState()), "fresh body bit-identical in both worlds");
         }
 
         /// <summary>Damaged bytes are refused or change the state.</summary>
@@ -234,17 +234,17 @@ namespace KotH.Probes.Probes
             byte[] good = Encode(a);
             byte[] bad = (byte[])good.Clone();
             bad[0] ^= 1;
-            Check(!StateCodec.Read(bad, id => a.ById.GetValueOrDefault(id), scratch), "falscher Kopf abgelehnt");
+            Check(!StateCodec.Read(bad, id => a.ById.GetValueOrDefault(id), scratch), "wrong header rejected");
 
             bad = (byte[])good.Clone();
             bad[StateCodec.HeadBytes + StateCodec.MatchBytes] = 99;     // first body's NetId
-            Check(!StateCodec.Read(bad, id => a.ById.GetValueOrDefault(id), scratch), "unbekannte NetId abgelehnt");
+            Check(!StateCodec.Read(bad, id => a.ById.GetValueOrDefault(id), scratch), "unknown NetId rejected");
 
             bad = (byte[])good.Clone();
             bad[StateCodec.HeadBytes + StateCodec.MatchBytes + 34] ^= 0x40;   // a byte of the first body's velocity
-            Check(StateCodec.Read(bad, id => a.ById.GetValueOrDefault(id), scratch), "gekipptes Byte gelesen");
+            Check(StateCodec.Read(bad, id => a.ById.GetValueOrDefault(id), scratch), "flipped byte read");
             a.Sim.Restore(scratch);
-            Check(Hash(Encode(a)) != Hash(good), "gekipptes Byte ändert den Zustand");
+            Check(Hash(Encode(a)) != Hash(good), "flipped byte changes the state");
         }
 
         static bool Contains(IReadOnlyList<SimulationBody> list, SimulationBody body)
@@ -276,7 +276,7 @@ namespace KotH.Probes.Probes
         {
             if (!ok)
                 failures++;
-            Log($"[netstate] {(ok ? "ok    " : "FEHLER")} {what}");
+            Log($"[netstate] {(ok ? "ok    " : "ERROR ")} {what}");
         }
     }
 }

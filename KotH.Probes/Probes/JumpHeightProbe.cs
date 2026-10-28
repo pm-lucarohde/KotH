@@ -38,18 +38,18 @@ namespace KotH.Probes.Probes
 
         static readonly Case[] Cases =
         {
-            new Case { name = "JumpHeld vergessen", hold = 0 },
-            new Case { name = "1 Tick (25 ms)",     hold = 1 },
-            new Case { name = "2 Ticks (50 ms)",    hold = 2 },
-            new Case { name = "3 Ticks (75 ms)",    hold = 3 },
-            new Case { name = "4 Ticks (100 ms)",   hold = 4 },
-            new Case { name = "5 Ticks (125 ms)",   hold = 5 },
-            new Case { name = "6 Ticks (150 ms)",   hold = 6 },
-            new Case { name = "7 Ticks (175 ms)",   hold = 7 },
-            new Case { name = "8 Ticks (200 ms)",   hold = 8 },
-            new Case { name = "9 Ticks (225 ms)",   hold = 9 },
-            new Case { name = "12 Ticks, ungekappt", hold = 12 },
-            new Case { name = "Doppelsprung nach Tipp", hold = 1, doubleJump = true },
+            new Case { name = "JumpHeld forgotten", hold = 0 },
+            new Case { name = "1 tick (25 ms)",     hold = 1 },
+            new Case { name = "2 ticks (50 ms)",    hold = 2 },
+            new Case { name = "3 ticks (75 ms)",    hold = 3 },
+            new Case { name = "4 ticks (100 ms)",   hold = 4 },
+            new Case { name = "5 ticks (125 ms)",   hold = 5 },
+            new Case { name = "6 ticks (150 ms)",   hold = 6 },
+            new Case { name = "7 ticks (175 ms)",   hold = 7 },
+            new Case { name = "8 ticks (200 ms)",   hold = 8 },
+            new Case { name = "9 ticks (225 ms)",   hold = 9 },
+            new Case { name = "12 ticks, uncapped", hold = 12 },
+            new Case { name = "double jump after tap", hold = 1, doubleJump = true },
         };
 
         PlayerMotor motor;
@@ -86,10 +86,10 @@ namespace KotH.Probes.Probes
             doubleJumpHeight = motor.DoubleJumpHeight;
             gravity = motor.Gravity;
 
-            Log($"[jump] Sollwerte: voll {jumpHeight:F3} m," +
-                $" minimal {minJumpHeight:F3} m, Haltespanne" +
+            Log($"[jump] targets: full {jumpHeight:F3} m," +
+                $" minimal {minJumpHeight:F3} m, hold span" +
                 $" {minJumpHold * 1000f:F0}-{fullJumpHold * 1000f:F0} ms," +
-                $" doppelt {doubleJumpHeight:F3} m, g {gravity:F1}");
+                $" double {doubleJumpHeight:F3} m, g {gravity:F1}");
             NextCase();
         }
 
@@ -111,8 +111,8 @@ namespace KotH.Probes.Probes
 
             if (!motor.IsGrounded)
             {
-                LogError($"[jump] {Cases[caseIndex].name}: kein Boden unter" +
-                         $" {Spot.X:F1}/{Spot.Z:F1}, Messung waere sinnlos");
+                LogError($"[jump] {Cases[caseIndex].name}: no ground below" +
+                         $" {Spot.X:F1}/{Spot.Z:F1}, measuring would be pointless");
                 Exit(4);
                 return;
             }
@@ -196,9 +196,9 @@ namespace KotH.Probes.Probes
                            + gravity * FixedDeltaTime;
 
                 ok = UMath.Abs(speedAfterCut - want) < 0.005f;
-                extra = $", Soll {target:F3} m, gestiegen {risenAtCut:F3}," +
-                        $" Schnitt {speedAfterCut:F3} gegen {want:F3} m/s" +
-                        $" {(ok ? "ok" : "ABWEICHUNG")}";
+                extra = $", target {target:F3} m, rose {risenAtCut:F3}," +
+                        $" mean {speedAfterCut:F3} vs {want:F3} m/s" +
+                        $" {(ok ? "ok" : "DEVIATION")}";
             }
 
             if (c.doubleJump)
@@ -215,18 +215,18 @@ namespace KotH.Probes.Probes
                 if (!peakOk)
                     failures++;
 
-                extra = $", Absprung {doubleJumpSpeed:F3} gegen {want:F3} m/s" +
-                        $" {(ok ? "ok" : "ABWEICHUNG")}, ab {doubleJumpFrom:F3} m" +
-                        $" noch {climbed:F3} gegen {WantedDoublePeak:F3}" +
-                        $" {(peakOk ? "ok" : "ABWEICHUNG")}";
+                extra = $", take-off {doubleJumpSpeed:F3} vs {want:F3} m/s" +
+                        $" {(ok ? "ok" : "DEVIATION")}, from {doubleJumpFrom:F3} m" +
+                        $" still {climbed:F3} vs {WantedDoublePeak:F3}" +
+                        $" {(peakOk ? "ok" : "DEVIATION")}";
             }
 
             if (!ok)
                 failures++;
 
-            Log($"[jump] {c.name,-24} gehalten {c.hold,2} Ticks" +
+            Log($"[jump] {c.name,-24} held {c.hold,2} ticks" +
                 $" ({c.hold * FixedDeltaTime * 1000f,3:F0} ms):" +
-                $" Gipfel {peak:F3} m nach {tick,3} Ticks{extra}");
+                $" peak {peak:F3} m after {tick,3} ticks{extra}");
         }
 
         // The peaks are judged on shape only -- monotone and spanning the range.
@@ -238,20 +238,20 @@ namespace KotH.Probes.Probes
             float high = peaks[Cases.Length - 2]; // 12 ticks, uncut
             float span = high - low;
 
-            Log($"[jump] == Gipfel von {low:F3} bis {high:F3} m," +
-                $" Spanne {span:F3} gegen eingestellte" +
+            Log($"[jump] == peak from {low:F3} to {high:F3} m," +
+                $" span {span:F3} against set" +
                 $" {jumpHeight - minJumpHeight:F3} m");
-            Log($"[jump]    Euler frisst oben {jumpHeight - high:F3} m," +
-                $" unten {minJumpHeight - low:F3} m" +
-                $" -- die Felder tragen das vorkorrigiert");
+            Log($"[jump]    Euler eats at top {jumpHeight - high:F3} m," +
+                $" bottom {minJumpHeight - low:F3} m" +
+                $" -- the fields carry it pre-corrected");
 
             // The point of the pre-correction: the real peaks, not the fields.
-            CheckPeak("volle Hoehe", high, WantedFullPeak);
-            CheckPeak("Mindesthoehe", low, WantedMinPeak);
+            CheckPeak("full height", high, WantedFullPeak);
+            CheckPeak("min height", low, WantedMinPeak);
 
             if (span < 0.9f * (jumpHeight - minJumpHeight))
             {
-                LogError("[jump] Spanne zu klein, die Kappung greift falsch");
+                LogError("[jump] span too small, the cut works wrong");
                 failures++;
             }
 
@@ -268,14 +268,14 @@ namespace KotH.Probes.Probes
                 if (!up)
                 {
                     failures++;
-                    Log($"[jump]    {Cases[i].hold,2} Ticks:" +
-                        $" {peaks[i]:F3} m NICHT MONOTON");
+                    Log($"[jump]    {Cases[i].hold,2} ticks:" +
+                        $" {peaks[i]:F3} m NOT MONOTONE");
                 }
             }
 
             Log(failures == 0
-                ? "[jump] ALLE FÄLLE WIE ERWARTET"
-                : $"[jump] {failures} ABWEICHUNGEN");
+                ? "[jump] ALL CASES AS EXPECTED"
+                : $"[jump] {failures} DEVIATIONS");
             Exit(failures == 0 ? 0 : 1);
         }
 
@@ -285,9 +285,9 @@ namespace KotH.Probes.Probes
             if (!ok)
                 failures++;
 
-            Log($"[jump]    {what,-14} erreicht {measured:F3} m," +
-                $" gewollt {wanted:F3} m, ab {measured - wanted:+0.000;-0.000}" +
-                $" -> {(ok ? "ok" : "ABWEICHUNG")}");
+            Log($"[jump]    {what,-14} reached {measured:F3} m," +
+                $" wanted {wanted:F3} m, from {measured - wanted:+0.000;-0.000}" +
+                $" -> {(ok ? "ok" : "DEVIATION")}");
         }
     }
 }

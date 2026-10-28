@@ -77,17 +77,17 @@ namespace KotH.Probes.Probes
                     {
                         stalls++;
                         if (logged++ < 3)
-                            Log($"[stairs]    stockt: x {start.X:F1} z {start.Z:F2} Blick {yaw:F0}°," +
-                                $" {worst} Ticks bis Tick {worstAt} -> ABWEICHUNG");
+                            Log($"[stairs]    stalls: x {start.X:F1} z {start.Z:F2} view {yaw:F0}°," +
+                                $" {worst} ticks until tick {worstAt} -> DEVIATION");
                     }
                 }
 
                 failures += stalls;
-                Log($"[stairs] == Steps{Risers[f] * 100f:F0} {(sprint ? "Sprint" : "Gehen")}: {runs} Läufe," +
-                    $" {stalls} gestockt -> {(stalls == 0 ? "ok" : "ABWEICHUNG")}");
+                Log($"[stairs] == Steps{Risers[f] * 100f:F0} {(sprint ? "Sprint" : "Gehen")}: {runs} runs," +
+                    $" {stalls} stalled -> {(stalls == 0 ? "ok" : "ABWEICHUNG")}");
             }
 
-            Log(failures == 0 ? "[stairs] ALLE LÄUFE OHNE STOCKEN" : $"[stairs] {failures} LÄUFE GESTOCKT");
+            Log(failures == 0 ? "[stairs] ALL RUNS WITHOUT STALLING" : $"[stairs] {failures} RUNS STALLED");
             return failures == 0 ? 0 : 1;
         }
     }

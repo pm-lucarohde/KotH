@@ -6,7 +6,7 @@
 // colour come from the directional light in MainScene. Writes the HDR cube map
 // KotH.Game/Resources/Sky.dds (512², RGBA half, D3D face order) and a preview.
 //
-// The sky also lights the map (LightVoxel.Sky): it prints the SkyIntensity for NeuVisual
+// The sky also lights the map (LightVoxel.Sky): it prints the SkyIntensity for MountDestinyVisual
 // that keeps the light from above as bright as Stride's default sky's gave (Luca).
 //
 //   dotnet run Tools/maps/Sky.cs [-- --preview]
@@ -45,12 +45,12 @@ bool preview = Array.IndexOf(args, "--preview") >= 0;
 string scene = File.ReadAllText(scenePath);
 var light = Regex.Match(scene, @"Name: Directional light.*?Rotation: \{X: (\S+), Y: (\S+), Z: (\S+), W: (\S+)\}.*?Value: \{R: (\S+), G: (\S+), B: (\S+)\}", RegexOptions.Singleline);
 if (!light.Success)
-    throw new InvalidDataException("Kein Directional light in MainScene.sdscene");
+    throw new InvalidDataException("No directional light in MainScene.sdscene");
 float F(int g) => float.Parse(light.Groups[g].Value.TrimEnd(','), CultureInfo.InvariantCulture);
 var q = new Quaternion(F(1), F(2), F(3), F(4));
 Vector3 toSun = -Vector3.Transform(-Vector3.UnitZ, q);
 Vector3 sunColour = new(F(5), F(6), F(7));
-Console.WriteLine($"Sonne ({toSun.X:F3}, {toSun.Y:F3}, {toSun.Z:F3}), {Math.Asin(toSun.Y) * 180 / Math.PI:F1}° hoch");
+Console.WriteLine($"Sun ({toSun.X:F3}, {toSun.Y:F3}, {toSun.Z:F3}), {Math.Asin(toSun.Y) * 180 / Math.PI:F1}° high");
 
 // Nishita's atmosphere, metres.
 const double Earth = 6360e3, Top = 6420e3, Eye = 50.0;
@@ -185,13 +185,13 @@ for (int i = 0; i < cube.Length; i++)
     BitConverter.TryWriteBytes(dds.AsSpan(b + 6), (Half)1f);
 }
 File.WriteAllBytes(outPath, dds);
-Console.WriteLine($"Geschrieben: {outPath}");
+Console.WriteLine($"Written: {outPath}");
 
 // Light from above (cosine-weighted, normal up) against Stride's default sky's at SkyIntensity 0.26.
 Vector3 up = Irradiance(cube, N);
 var luma = new Vector3(0.2126f, 0.7152f, 0.0722f);
 double defaultUp = Vector3.Dot(new Vector3(1.42f, 2.58f, 4.25f), luma);
-Console.WriteLine($"Licht von oben: ({up.X:F2}, {up.Y:F2}, {up.Z:F2}); SkyIntensity für gleiches Licht: {0.26 * defaultUp / Vector3.Dot(up, luma):F3}");
+Console.WriteLine($"Light from above: ({up.X:F2}, {up.Y:F2}, {up.Z:F2}); SkyIntensity for equal light: {0.26 * defaultUp / Vector3.Dot(up, luma):F3}");
 
 if (preview)
 {
@@ -212,7 +212,7 @@ if (preview)
     string previewPath = Path.Combine(root, ".work/sky/preview.png");
     Directory.CreateDirectory(Path.GetDirectoryName(previewPath));
     png.Write(previewPath);
-    Console.WriteLine($"Vorschau: {previewPath} (Mitte = -Z)");
+    Console.WriteLine($"Preview: {previewPath} (centre = -Z)");
 }
 
 static byte Srgb(float v)

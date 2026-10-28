@@ -27,18 +27,18 @@ namespace KotH.Client.Rendering
     /// into one depth map; the cascades of every frame then hold only the figures.
     /// Redraws until every caster's effect is compiled, then keeps it.
     /// </summary>
-    /// <userdoc>Zeichnet die unbewegten Werfer (Map) einmal aus Sonnensicht in eine große Schattenkarte.</userdoc>
+    /// <userdoc>Draws the still casters (map) once from the sun into a large shadow map.</userdoc>
     [DataContract("StaticSunShadowRenderer")]
-    [Display("Statischer Sonnenschatten")]
+    [Display("Static sun shadow")]
     public sealed class StaticSunShadowRenderer : SceneRendererBase
     {
         public static readonly PropertyKey<StaticSunShadow> Key = new("StaticSunShadow", typeof(StaticSunShadowRenderer));
 
-        /// <userdoc>Stufe der unbewegten Werfer (wie im SunShadowStageSelector).</userdoc>
+        /// <userdoc>Stage of the still casters (as in SunShadowStageSelector).</userdoc>
         [DataMember(10)]
         public RenderStage StaticRenderStage { get; set; }
 
-        /// <userdoc>Kantenlänge der Schattenkarte in Texeln (4096 sind auf dem Berg etwa 8 cm).</userdoc>
+        /// <userdoc>Edge length of the shadow map in texels (4096 is about 8 cm on the mountain).</userdoc>
         [DataMember(20)]
         public int Size { get; set; } = 4096;
 

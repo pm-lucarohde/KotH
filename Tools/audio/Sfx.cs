@@ -34,7 +34,7 @@ string source = Path.Combine(root, "Sounds");
 string target = Path.Combine(root, "KotH.Game/Resources/Sounds");
 if (!Directory.Exists(source))
 {
-    Console.Error.WriteLine("Abbruch: Sounds/ fehlt");
+    Console.Error.WriteLine("Abort: Sounds/ is missing");
     return 1;
 }
 Directory.CreateDirectory(target);

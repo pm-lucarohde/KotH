@@ -1,5 +1,5 @@
 #!/usr/bin/env -S dotnet run
-// The cloud map for map "Neu": a sheet of small, soft cloudlets in rows and waves with
+// The cloud map for map "Mount Destiny": a sheet of small, soft cloudlets in rows and waves with
 // blue lanes between them, like Luca's photo (altocumulus, 24.10.2026). Painted, few
 // details, soft but clear edges. Writes KotH.Game/Resources/Textures/CloudMap.png,
 // tileable, linear; texture x runs with the wind. Seeded, so every run paints the same:
@@ -49,7 +49,7 @@ for (int p = 0; p < Size * Size; p++)
     png.Pixels[3 * p + 2] = Byte(blue[p]);
 }
 png.Write(outPath);
-Console.WriteLine($"geschrieben: {outPath}");
+Console.WriteLine($"written: {outPath}");
 if (args.Contains("--preview"))
 {
     var tile = new Png(2 * Size, 2 * Size, 1);
@@ -61,7 +61,7 @@ if (args.Contains("--preview"))
         }
     string path = Path.Combine(root, ".work/maps/clouds.png");
     tile.Write(path);
-    Console.WriteLine($"Vorschau: {path}");
+    Console.WriteLine($"preview: {path}");
 }
 
 // np.round(v * 255).astype(uint8): half to even.

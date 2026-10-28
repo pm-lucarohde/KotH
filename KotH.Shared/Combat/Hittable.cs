@@ -13,7 +13,7 @@ namespace KotH.Shared.Combat
     /// hull is meant to be found and complains when it cannot be.
     /// </summary>
     [DataContract("KotH.Hittable")]
-    [Display("Treffbar")]
+    [Display("Hittable")]
     [ComponentCategory("KotH")]
     public sealed class Hittable : EntityComponent
     {
@@ -23,9 +23,9 @@ namespace KotH.Shared.Combat
         public void Check(StaticComponent hull)
         {
             if (hull == null)
-                Log.Warning($"Treffbar ohne Collider wird nie getroffen: {Entity.Name}.");
+                Log.Warning($"Hittable without a collider is never hit: {Entity.Name}.");
             else if (hull.CollisionLayer != WorldQueries.HittableLayer)
-                Log.Warning($"Treffbar liegt nicht auf Layer 6: {Entity.Name}.");
+                Log.Warning($"Hittable is not on layer 6: {Entity.Name}.");
         }
     }
 }

@@ -99,7 +99,7 @@ namespace KotH.Probes.Probes
                     // The late ones join as the client does: map first, Hello once loaded.
                     Peer p = AddPeer($"P{peers.Count}", end, founder: false, ask: net.Now >= LateJoinMs);
                     p.Endpoint = end;
-                    Log($"[netplay] {p.Name} verbindet bei {net.Now / 1000:F1} s, {latency:F0} ms einfach");
+                    Log($"[netplay] {p.Name} connects at {net.Now / 1000:F1} s, {latency:F0} ms one way");
                 }
 
                 if (leaverIndex < 0 && net.Now >= LeaveMs)
@@ -108,7 +108,7 @@ namespace KotH.Probes.Probes
                     Peer leaver = peers[leaverIndex];
                     leaver.Endpoint.Disconnect(0);
                     leaver.Gone = true;
-                    Log($"[netplay] {leaver.Name} geht bei {net.Now / 1000:F1} s");
+                    Log($"[netplay] {leaver.Name} leaves at {net.Now / 1000:F1} s");
                 }
 
                 if (damaged == null && net.Now >= DamageMs)
@@ -123,14 +123,14 @@ namespace KotH.Probes.Probes
                     System.Buffers.Binary.BinaryPrimitives.WriteSingleLittleEndian(state.AsSpan(firstBody + percent), 777f);
                     bool loaded = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(state.AsSpan(firstBody)) == 1 &&
                                   damaged.Session.LoadState(state);
-                    Check(loaded, $"{damaged.Name} bei Tick {damagedTick} verfälscht (Dummy 1 auf 777 %)");
+                    Check(loaded, $"{damaged.Name} at tick {damagedTick} tampered (dummy 1 to 777 %)");
                 }
 
                 if (wrong == null && net.Now >= WrongBuildMs)
-                    wrong = Knock(new byte[NetProtocol.BuildId.Length], "Falsch");
+                    wrong = Knock(new byte[NetProtocol.BuildId.Length], "Wrong");
                 rejected |= Refused(wrong, RejectReason.Version);
                 if (tooLate == null && net.Now >= TooLateMs)
-                    tooLate = Knock(NetProtocol.BuildId, "Spät");
+                    tooLate = Knock(NetProtocol.BuildId, "Late");
                 closed |= Refused(tooLate, RejectReason.Closed);
 
                 MatchPhase phase = round.State.Phase;
@@ -157,28 +157,28 @@ namespace KotH.Probes.Probes
                 net.Now += FrameMs;
             }
 
-            Log($"[netplay] {EndMs / 1000 + SettleMs / 1000:F0} s gespielt in {stopwatch.Elapsed.TotalSeconds:F1} s, " +
-                $"{net.Sent} Pakete, {net.Lost} verloren, {net.Bytes / 1024} KiB, Host bestätigt bis {host.NextConfirm - 1}, " +
-                $"{host.Substituted} Eingaben ersetzt");
+            Log($"[netplay] {EndMs / 1000 + SettleMs / 1000:F0} s played in {stopwatch.Elapsed.TotalSeconds:F1} s, " +
+                $"{net.Sent} packets, {net.Lost} lost, {net.Bytes / 1024} KiB, host confirmed up to {host.NextConfirm - 1}, " +
+                $"{host.Substituted} inputs substituted");
             Log($"[netplay] Build {NetProtocol.BuildText}");
 
             Report(founder, damaged, damagedTick, rejected);
-            Check(closed, "Beitritt nach dem Fenster abgelehnt");
-            Check(host.Sanitized == 0, $"ehrliche Eingaben nie geklemmt ({host.Sanitized})");
+            Check(closed, "join after the window rejected");
+            Check(host.Sanitized == 0, $"honest inputs never clamped ({host.Sanitized})");
             Sanitizing();
             Check(countdownAt > 0 && runningAt - countdownAt >= CountdownTicks && runningAt - countdownAt < CountdownTicks + 40,
-                  $"Countdown ab Tick {countdownAt}, Runde ab Tick {runningAt}");
+                  $"countdown from tick {countdownAt}, round from tick {runningAt}");
             // The camera shake keys on the tick of the last hit taken.
             int marked = 0;
             foreach (SimulationBody body in founder.World.Simulation.Bodies)
                 if (body.Entity.Get<DamagePercent>() is { LastHitTick: >= 0 } d && d.LastHitTick < founder.World.Simulation.CurrentTick)
                     marked++;
-            Check(marked > 0, $"{marked} Körper tragen den Tick ihres letzten Treffers");
+            Check(marked > 0, $"{marked} bodies carry the tick of their last hit");
 
             foreach (Peer p in peers)
                 p.World.Dispose();
             LoadPause();
-            Log(failures == 0 ? "[netplay] BESTANDEN" : $"[netplay] {failures} Fehler");
+            Log(failures == 0 ? "[netplay] PASSED" : $"[netplay] {failures} errors");
             return failures == 0 ? 0 : 1;
         }
 
@@ -238,7 +238,7 @@ namespace KotH.Probes.Probes
 
             PeerSession s = founder.Session;
             Check(s.Stalls == settled && Math.Abs(s.Lead - PeerSession.LeadTarget) <= 1.0,
-                  $"Host nach 1,5 s Ladepause: Vorlauf {s.Lead:F1}, {settled}-mal gewartet im Anlauf, danach {s.Stalls - settled}");
+                  $"host after 1.5 s load pause: lead {s.Lead:F1}, {settled} waits during start-up, then {s.Stalls - settled}");
             foreach (Peer p in peers)
                 p.World.Dispose();
         }
@@ -254,7 +254,7 @@ namespace KotH.Probes.Probes
             MoveInput clean = NetProtocol.Sanitize(bad);
             Check(clean.Move == new Vector2(0f, -1f) && clean.Yaw == NetProtocol.MaxYaw && clean.Pitch == 0f &&
                   clean.JumpPresses == NetProtocol.MaxPresses && clean.AttackPresses == NetProtocol.MaxPresses,
-                  "NaN, Unendlich, zu große Bewegung und Tastendrücke werden geklemmt");
+                  "NaN, infinity, too large movement and key presses are clamped");
 
             var r = new Random(Seed);
             int changed = 0;
@@ -269,7 +269,7 @@ namespace KotH.Probes.Probes
                 if (!NetProtocol.Same(NetProtocol.Sanitize(good), good))
                     changed++;
             }
-            Check(changed == 0, $"100 000 gültige Eingaben bitgleich durchgelassen ({changed} verändert)");
+            Check(changed == 0, $"100 000 valid inputs passed bit-identical ({changed} changed)");
         }
 
         /// <summary>Says hello from a fresh endpoint with the given build, like a peer would.</summary>
@@ -350,18 +350,18 @@ namespace KotH.Probes.Probes
                     {
                         mismatches++;
                         if (mismatches <= 5)
-                            LogError($"[netplay] {p.Name} weicht bei Tick {at} vom Host ab");
+                            LogError($"[netplay] {p.Name} differs at tick {at} from the host");
                     }
                 }
             }
 
-            Check(compared > 400, $"{compared} Prüfsummen mit dem Host verglichen");
-            Check(mismatches == 0, $"ohne Eingriff kein einziger Desync ({mismatches})");
+            Check(compared > 400, $"{compared} checksums compared with the host");
+            Check(mismatches == 0, $"without interference not a single desync ({mismatches})");
             Check(damagedMismatches > 0 && host.Desyncs > 0 && damaged.Session.Repairs > 0,
-                  $"verfälschter Peer erkannt ({damagedMismatches} Prüfsummen anders, {host.Desyncs} Desyncs) und repariert ({damaged.Session.Repairs})");
+                  $"tampered peer detected ({damagedMismatches} checksums different, {host.Desyncs} desyncs) and repaired ({damaged.Session.Repairs})");
             Check(lastDamagedMismatch >= 0 && lastDamagedMismatch < damagedTick + 4 * PeerSession.ChecksumEvery,
-                  $"nach der Reparatur wieder gleich (letzte Abweichung Tick {lastDamagedMismatch}, verfälscht bei {damagedTick})");
-            Check(rejected, "falscher Build abgelehnt");
+                  $"same again after the repair (last deviation tick {lastDamagedMismatch}, tampered at {damagedTick})");
+            Check(rejected, "wrong build rejected");
 
             int joined = 0, rollbacks = 0, deepest = 0, stalls = 0;
             double worst = 0, jumps = 0, turns = 0;
@@ -378,18 +378,18 @@ namespace KotH.Probes.Probes
                 worstJump = Math.Max(worstJump, p.Session.WorstCorrection);
                 worst = Math.Max(worst, p.WorstUpdateMs);
                 Log($"[netplay] {p.Name,-5} NetId {p.Session.LocalNetId,2}, Ping {p.Session.RoundTripMs,5:F0} ms, " +
-                    $"Vorlauf {p.Session.Lead,5:F1}, Rollbacks {p.Session.Rollbacks,5} ({p.Session.RolledTicks} Ticks, " +
-                    $"tiefster {p.Session.DeepestRollback}), Warten {p.Session.Stalls}, Reparaturen {p.Session.Repairs}, " +
-                    $"bestätigt bis {p.Session.ConfirmedTick}, schlimmstes Update {p.WorstUpdateMs:F1} ms, " +
-                    $"vom Host {host.BytesSentTo(p.Session.LocalNetId) / 1024.0 / (EndMs + SettleMs) * 1000:F1} KiB/s");
+                    $"lead {p.Session.Lead,5:F1}, Rollbacks {p.Session.Rollbacks,5} ({p.Session.RolledTicks} ticks, " +
+                    $"deepest {p.Session.DeepestRollback}), stalls {p.Session.Stalls}, repairs {p.Session.Repairs}, " +
+                    $"confirmed up to {p.Session.ConfirmedTick}, worst update {p.WorstUpdateMs:F1} ms, " +
+                    $"from the host {host.BytesSentTo(p.Session.LocalNetId) / 1024.0 / (EndMs + SettleMs) * 1000:F1} KiB/s");
             }
 
-            Check(joined == peers.Count, $"alle {peers.Count} beigetreten, auch die späten (erst Map, dann Hello)");
-            Check(rollbacks > 100, $"{rollbacks} Rollbacks, die Vorhersage lag also oft daneben");
-            Check(deepest <= PeerSession.MaxPredict, $"tiefster Rollback {deepest} Ticks, höchstens {PeerSession.MaxPredict}");
-            Log($"[netplay] Warten gesamt {stalls}, schlimmstes Update {worst:F1} ms");
-            Log($"[netplay] Drehung {peers[0].Session.TurnAhead} Ticks fortgeschrieben: Korrektur im Mittel " +
-                $"{jumps / Math.Max(rollbacks, 1) * 100:F1} cm und {turns / Math.Max(rollbacks, 1):F2}°, größte {worstJump * 100:F0} cm");
+            Check(joined == peers.Count, $"all {peers.Count} joined, the late ones too (first Map, then Hello)");
+            Check(rollbacks > 100, $"{rollbacks} rollbacks, so the prediction was often off");
+            Check(deepest <= PeerSession.MaxPredict, $"deepest rollback {deepest} ticks, at most {PeerSession.MaxPredict}");
+            Log($"[netplay] stalls in total {stalls}, worst update {worst:F1} ms");
+            Log($"[netplay] turn {peers[0].Session.TurnAhead} ticks extrapolated: mean correction " +
+                $"{jumps / Math.Max(rollbacks, 1) * 100:F1} cm and {turns / Math.Max(rollbacks, 1):F2}°, largest {worstJump * 100:F0} cm");
 
             // Everyone still in the game reaches the same final tick with the same state.
             int last = int.MaxValue;
@@ -401,14 +401,14 @@ namespace KotH.Probes.Probes
             foreach (Peer p in peers)
                 if (!p.Gone && (!p.Hashes.TryGetValue(tick, out ulong h) || h != founder.Hashes[tick]))
                     same = false;
-            Check(same, $"am Ende alle bei Tick {tick} bitgleich mit dem Host");
+            Check(same, $"at the end all at tick {tick} bit-identical with the host");
         }
 
         void Check(bool ok, string what)
         {
             if (!ok)
                 failures++;
-            Log($"[netplay] {(ok ? "ok    " : "FEHLER")} {what}");
+            Log($"[netplay] {(ok ? "ok    " : "ERROR ")} {what}");
         }
     }
 }

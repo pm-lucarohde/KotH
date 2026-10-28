@@ -1,27 +1,14 @@
-# Unity-Referenz (Stand b09cb6b, Unity 6000.3.21f1, Editor-Mono)
+# Unity reference (b09cb6b, Unity 6000.3.21f1, editor Mono)
 
-Eingefroren am 15.10.2026, bevor Unity aus dem Repo verschwand. Entfernt wurde
-das Unity-Projekt am 20.10.2026; sein Quelltext liegt in der Git-Geschichte bis
-`577ed3f`.
+Frozen on 15.10.2026 before Unity left the repo (its source is in Git up to `577ed3f`). All in Unity coordinates
+(+Z forward); `KotH.Probes` mirrors through `Ref`. The editor Mono rounds locals to float but evaluates every
+expression in double (`RotationProbe`), the port is pure float like IL2CPP: compare with tolerance, never bit-exactly.
 
-- `runs/run1..3/` – alle acht Bewegungs- und Kampfproben, dreimal, nur die
-  Probe-Zeilen aus dem Editor-Log (alle Exit 0).
-- `runs/DeterminismProbe.txt` – alle Fälle deterministisch.
-- `dump/ground.txt` – Boden-Mesh in Weltkoordinaten samt Wicklung.
-- `dump/colliders.txt` – alle Collider der Arena in InstanceID-Reihenfolge.
-- `dump/rotations.txt.gz` – Bits von `Quaternion.Euler` und `Quaternion*Vector3`.
-- `dump/queries.txt.gz` – PhysX-Antworten auf 6 500 Abfragen je Art.
-- `dump/clock.txt` – Unitys Player-Loop über 200 Frames mit festen Schlafzeiten
-  (Hänger bis 1 s): echte und gekappte Frame-Zeit, Ticks pro Frame, Alpha,
-  Kamera, Auge, Nahebene; Spieler bei Frame 30 um 3 m angehoben. Gemessen nach
-  b09cb6b mit einer Einmal-Probe, die Quelle liegt in `.work/unity-dump/ClockProbe.cs`.
-- `dump/crouchoffset.txt` – Beleg: `ComputePenetration` legt `center` auf die
-  übergebene Pose, die geduckte Hülle wurde 0,45 m zu tief gemessen.
-
-Alles in Unity-Koordinaten (+Z vorn). Die Proben in `KotH.Probes` spiegeln
-beim Ein- und Auslesen über `Ref`.
-
-Wichtig für Vergleiche: Der Editor-Mono rundet lokale Variablen auf float,
-rechnet aber jeden Ausdruck in double (`RotationProbe` belegt das bitgenau).
-Der Port rechnet rein in float, wie es die IL2CPP-Builds taten; Bitgleichheit
-mit diesen Logs ist deshalb nicht möglich, nur die Toleranz.
+- `runs/run1..3/`: the eight movement and combat probes, three times (probe lines only, all exit 0). Translated to
+  English with decimal points on 28.10.2026, values unchanged.
+- `runs/DeterminismProbe.txt`: all cases deterministic.
+- `dump/ground.txt`: ground mesh in world coordinates with winding; `dump/colliders.txt`: the arena's colliders.
+- `dump/rotations.txt.gz`: bits of `Quaternion.Euler` and `Quaternion*Vector3`; `dump/queries.txt.gz`: PhysX answers
+  to 6,500 queries per kind.
+- `dump/clock.txt`: Unity's player loop over 200 frames with fixed sleeps (ticks per frame, alpha, camera, eye, near plane).
+- `dump/crouchoffset.txt`: proof that `ComputePenetration` measured the crouched hull 0.45 m too low.

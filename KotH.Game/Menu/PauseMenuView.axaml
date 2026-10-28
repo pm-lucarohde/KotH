@@ -1,6 +1,6 @@
 <!-- The menu Escape opens in a game, in two parts that PauseMenu shows as
      overlays in the middle of the screen: the buttons on their board, or
-     instead the Einstellungen page. Laid out for a screen 1080 high like
+     instead the Settings page. Laid out for a screen 1080 high like
      MainMenuView; the pictures carry 24 px of shadow on every side. -->
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -13,10 +13,10 @@
                 <Image Source="/Menu/Art/Panel.png" Margin="-24" Stretch="Fill" />
                 <StackPanel Spacing="18" HorizontalAlignment="Center" VerticalAlignment="Center"
                             KeyboardNavigation.TabNavigation="Cycle">
-                    <Button Name="Resume" Classes="Menu" Content="Weiterspielen" />
-                    <Button Name="Settings" Classes="Menu" Content="Einstellungen" />
-                    <Button Name="Quit" Classes="Menu" Content="Zum Desktop" />
-                    <Button Name="ToMenu" Classes="Menu" Content="Hauptmenü" />
+                    <Button Name="Resume" Classes="Menu" Content="Resume" />
+                    <Button Name="Settings" Classes="Menu" Content="Settings" />
+                    <Button Name="Quit" Classes="Menu" Content="To desktop" />
+                    <Button Name="ToMenu" Classes="Menu" Content="Main menu" />
                 </StackPanel>
             </Panel>
         </Grid>
@@ -25,9 +25,9 @@
             <Panel Width="820" Height="560" Margin="24">
                 <Image Source="/Menu/Art/Wide.png" Margin="-24" Stretch="Fill" />
                 <Grid RowDefinitions="Auto,*,Auto" Margin="50,36,50,34">
-                    <TextBlock Classes="Title" Text="Einstellungen" />
+                    <TextBlock Classes="Title" Text="Settings" />
                     <menu:SettingsPage Grid.Row="1" Margin="0,20,0,0" />
-                    <Button Name="Back" Grid.Row="2" Classes="Menu Small" Content="Zurück"
+                    <Button Name="Back" Grid.Row="2" Classes="Menu Small" Content="Back"
                             HorizontalAlignment="Right" Margin="0,18,0,0" />
                 </Grid>
             </Panel>

@@ -33,11 +33,10 @@ namespace KotH.Client.Hud
     public sealed class HudRenderer : SceneRendererBase
     {
         /// <summary>
-        /// The German number format the Unity build showed through its
-        /// system culture, made explicit so the client does not depend on
-        /// the machine's locale or on invariant globalisation.
+        /// The English number format, made explicit so the client does not
+        /// depend on the machine's locale or on invariant globalisation.
         /// </summary>
-        public static readonly NumberFormatInfo Numbers = GermanNumbers();
+        public static readonly NumberFormatInfo Numbers = EnglishNumbers();
 
         readonly List<IHudElement> elements = new List<IHudElement>();
         readonly List<IHudElement> front = new List<IHudElement>();
@@ -107,11 +106,11 @@ namespace KotH.Client.Hud
             base.Destroy();
         }
 
-        static NumberFormatInfo GermanNumbers()
+        static NumberFormatInfo EnglishNumbers()
         {
             var format = (NumberFormatInfo)CultureInfo.InvariantCulture.NumberFormat.Clone();
-            format.NumberDecimalSeparator = ",";
-            format.NumberGroupSeparator = ".";
+            format.NumberDecimalSeparator = ".";
+            format.NumberGroupSeparator = ",";
             return format;
         }
     }

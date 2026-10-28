@@ -28,7 +28,7 @@
             </Canvas>
         </Grid>
         <Grid Name="WordsPart" Width="900" Height="144">
-            <TextBlock Name="Words" Classes="Hud" Text="Lädt …" FontSize="36"
+            <TextBlock Name="Words" Classes="Hud" Text="Loading …" FontSize="36"
                        HorizontalAlignment="Right" Margin="0,0,0,6" />
         </Grid>
     </Panel>

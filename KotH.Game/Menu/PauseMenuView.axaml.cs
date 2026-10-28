@@ -5,18 +5,18 @@ using Avalonia.Interactivity;
 namespace KotH.Client.Menu
 {
     /// <summary>
-    /// The pause menu's buttons and its Einstellungen page, as two parts for
+    /// The pause menu's buttons and its Settings page, as two parts for
     /// overlays of their own (PauseMenu); one of them is shown at a time.
     /// </summary>
     public partial class PauseMenuView : UserControl
     {
-        /// <summary>Weiterspielen was chosen.</summary>
+        /// <summary>Resume was chosen.</summary>
         public event Action ResumeRequested;
 
-        /// <summary>Hauptmenü was chosen.</summary>
+        /// <summary>Main menu was chosen.</summary>
         public event Action MenuRequested;
 
-        /// <summary>Zum Desktop was chosen.</summary>
+        /// <summary>To desktop was chosen.</summary>
         public event Action QuitRequested;
 
         public PauseMenuView()
@@ -29,7 +29,7 @@ namespace KotH.Client.Menu
             Back.Click += (_, _) => SettingsOpen = false;
         }
 
-        /// <summary>Whether the Einstellungen page shows instead of the buttons.</summary>
+        /// <summary>Whether the Settings page shows instead of the buttons.</summary>
         public bool SettingsOpen { get; set; }
 
         /// <summary>The two parts, out of this control, each to be the content of an overlay.</summary>

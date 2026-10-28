@@ -1,91 +1,53 @@
-# Stride.Voxels (gepatcht)
+# Stride.Voxels (patched)
 
-Quelle: `stride3d/stride`, Tag `releases/4.4.0` (a0fdf91), `sources/engine/Stride.Voxels`, MIT (`LICENSE.md`).
-Im Repo, damit wir es reparieren und erweitern können (Lucas Wahl). Weggelassen:
-`DefaultGraphicsCompositorVoxels.sdgfxcomp` und die Strong-Name-`InternalsVisibleTo`. Jeder Eingriff ist im
-Code mit `KotH patch` markiert; der unveränderte Stand liegt lokal in `.work/stride-src`.
+Source: `stride3d/stride`, tag `releases/4.4.0` (a0fdf91), `sources/engine/Stride.Voxels`, MIT (`LICENSE.md`). Kept in
+the repo so we can fix and extend it (Luca's choice); left out: `DefaultGraphicsCompositorVoxels.sdgfxcomp` and the
+strong-name `InternalsVisibleTo`. Every change is marked `KotH patch` in the code.
 
-## Fehler behoben
+## Fixes
 
-- `VoxelVolumeProcessor`: Volumen leben über Frames weiter, statt jeden Frame neu angelegt zu werden
-  (Müll → GC-Spitzen alle 0,4 s); beim Entfernen der Komponente werden sie gelöscht.
-- `VoxelRenderer.Collect`, `ProcessedVoxelVolume.Prepared`: Ein Volumen mit `Voxelize = false` behält Voxel und
-  Pässe; keine Voxel-Views, kein Culling, keine Schatten-Views mehr (vorher jeden Frame).
-- `VoxelRenderFeature`: überspringt solche Volumen. `LightVoxelRenderer`: hält dann keine fremde View mehr für eine
-  Voxel-View (alte View-Indizes).
+- `VoxelVolumeProcessor`: volumes live across frames instead of being recreated each frame (GC spikes every 0.4 s).
+- `VoxelRenderer.Collect`, `ProcessedVoxelVolume.Prepared`, `VoxelRenderFeature`, `LightVoxelRenderer`: a volume with
+  `Voxelize = false` keeps voxels and passes; no voxel views, culling or shadow views every frame any more.
+- `VoxelMarchSetHemisphere6`: the sixth cone pointed almost like the second; the ring needs `(0, 0.895, 0.445)`.
 
-## Dynamische Gruppen (neu)
+## Dynamic groups
 
-`VoxelVolumeComponent.StaticGroups` werden voxelisiert, solange `Voxelize` an ist; die Clipmaps werden danach
-behalten (`VoxelStorageTextureClipmap.StaticClipMaps`). Ist `Voxelize` aus und `DynamicGroups` gesetzt, läuft jeden
-Frame nur noch:
+`StaticGroups` are voxelised while `Voxelize` is on, then the clipmaps are kept. With `Voxelize` off and `DynamicGroups`
+set, each frame restores last frame's boxes, voxelises only the dynamic groups (lit by the camera view) and writes them
+back per box (`BufferToTextureBox`). KotH no longer uses this (figures are capsules, below); the code stays.
 
-1. `RestoreDynamic`: die Kästen vom letzten Frame aus der Kopie zurückschreiben (`CopyRegion`).
-2. Die Voxel-Pässe zeichnen nur `DynamicGroups` (`RenderView.CullingMask`), beleuchtet mit der Kamera-View
-   (`LightingView`, deren Schattenkarten vom Vorframe) statt eigener Schattenkarten.
-3. `PostProcessDynamic`: `BufferToTextureBox` schreibt je Kasten und Clipmap; leere Zellen behalten die Map, gelesene
-   Fragmente werden gelöscht. Kästen = Bounds der Render-Objekte + 2 Voxel, überlappende zusammengelegt.
+## Sparse storage (`Voxelization/VoxelStorage/Sparse`)
 
-Die Mipmaps der gröbsten Clipmap bleiben gebacken: Weite Kegel sehen die dynamischen Gruppen nicht.
-Braucht `UpdatesPerFrame = AllClipmapsGeometryShader` (alle Clipmaps je Frame) und Attribute ohne Spalten-Modifikatoren.
+`VoxelStorageSparse` holds the whole volume (256 m) at 0.125 m only where something is: 1 m cells = bricks of 8³ voxels
+(9³ with a +x/+y/+z border for trilinear filtering), page table `pages`, an atlas in three levels (0.125/0.25/0.5 m)
+plus a dense 1 m volume with hardware mips; 220,000 bricks.
 
-## Dünn besetzter Speicher (neu, `Voxelization/VoxelStorage/Sparse`)
+- **Baking** over several frames (effects compile asynchronously; each step repeats until the read-back count matches
+  twice within 0.1 %): mark cells, add the cells below and the filter footprints, assign slots, write fragments in
+  slabs ≤ 2²⁷ elements (`BufferToBricks`), then levels and the dense volume (`SparseMip`). `BakeVoxels` waits for `Baked`.
+- **Reading** (`VoxelStorageTextureSparseShader`): brick via the filter footprint's lower corner, page 0 = empty; from mip 3 the dense volume.
+- Vulkan: `ClearReadWrite(Buffer)` is missing (compute `ClearBuffer`), typed buffers at most 2²⁷ elements.
+- Cost (AOT, 1440p, RTX 3070): about 1.2 ms more than 0.5 m clipmaps; cone `Steps` 7. GI at reduced resolution was slower.
 
-`VoxelStorageSparse` hält das ganze Volumen (256 m) in 0,125 m, nur wo etwas ist: Zellen von 1 m = Bricks aus 8³
-Voxeln (9³ mit Rand +x/+y/+z, damit trilinear in einem Brick bleibt), Seitentabelle `pages` (R32_UInt, Platz + 1),
-Atlas in drei Stufen (0,125/0,25/0,5 m) plus ein dichtes 1-m-Volumen mit Hardware-Mips. Neu: 220.000 Bricks (Spiel gesamt ~1,4 GB VRAM).
+## Sky light through the cones
 
-- **Backen** über mehrere Frames (Effekte kompilieren asynchron; jeder Schritt wiederholt sich, bis die
-  zurückgelesene Zahl zweimal auf 0,1 % gleich ist; die Voxelzahl schwankt je Frame): Zellen markieren (`InterlockedOr` in einen Puffer), die Zellen darunter
-  anlegen, in die gröbere Filterfüße reichen, Plätze vergeben, Fragmente in Scheiben ≤ 2²⁷ Elemente schreiben
-  (`BufferToBricks`), dann Stufen und dichtes Volumen (`SparseMip`). `BakeVoxels` hört auf `Baked`.
-- **Lesen** (`VoxelStorageTextureSparseShader`): Brick über die untere Ecke des Filterfußes, Seite 0 = leer; ab
-  Mip 3 das dichte Volumen.
-- **Dynamisch:** Zellen um die Figuren (+4 Voxel) bekommen je Frame eigene Plätze (bis 1024), `SparseEdit` kopiert
-  den gebackenen Brick hinein und setzt die Seiten nach dem Frame zurück. Jede Figur wird in einem eigenen Fenster
-  von 64³ Voxeln voxelisiert (ein Fenster über das ganze Volumen kostete ~3 ms, auch ohne Figuren darin). Die Mips
-  des dichten Volumens bleiben gebacken. `VoxelRenderer.Collect` nimmt nur Figuren, deren Box, um die Kegelreichweite
-  (128 Voxel = 16 m) vergrößert, das Kamera-Frustum schneidet (spart bis ~0,5 ms, Bild gleich).
-- Unter Vulkan: `ClearReadWrite(Buffer)` fehlt (Compute `ClearBuffer`), typisierte Puffer höchstens 2²⁷ Elemente.
-- Kosten (AOT, 1440p, RTX 3070): rund 1,2 ms mehr als 0,5-m-Clipmaps, davon Figuren ~0,45 ms; Kegel `Steps` 7.
-  GI in reduzierter Auflösung (eigener Pass, hochgerechnet) war langsamer: Der Pass kostet pro Pixel etwa das
-  Doppelte des Abtastens im Forward-Pass.
+`LightVoxel.Sky` (skybox) and `SkyIntensity`: `VoxelMarchSet.MarchSky` also returns how much sky the cones see (bent
+normal, open share). Diffuse: the skybox SH along the bent normal times the share; specular: the prefiltered cubemap
+times the share. This replaces a separate skybox light. Voxel views see the sky unoccluded and without specular.
 
-## Himmelslicht durch die Kegel (neu)
+## Capsules for figures
 
-`LightVoxelShader` kannte keinen Himmel: Ein Kegel ins Freie brachte 0. Jetzt gibt es `LightVoxel.Sky` (Skybox) und
-`SkyIntensity`. `VoxelMarchSet.MarchSky` liefert neben dem Licht, wie viel Himmel die Kegel sehen (offene Richtungen
-aufsummiert = Bent Normal, offener Anteil). Diffus: die SH der Skybox entlang der Bent Normal, mal Anteil; gespiegelt:
-die vorgefilterte Cubemap in Reflexionsrichtung, mal Anteil. Damit ersetzt das Voxel-Licht ein eigenes Skybox-Licht.
-In Voxel-Views (Voxelisieren) kommt der Himmel unverdeckt und ohne Spiegelung.
+The game fills `LightVoxel.Occluders` each frame: up to 12 groups (figures) of up to 8 capsules behind a bounding
+sphere. `LightVoxelShader.CapsuleVisibility` multiplies the diffuse light by what the capsules leave (nearest sphere on
+the axis, cosine weighted, faded out by `OccluderFade` radii). About 0.5 ms with 12 figures in a crowd, 0.1–0.2 ms far away.
 
-`VoxelMarchSetHemisphere6`: Der sechste Kegel zeigte auf `(0.895, 0.445, 0.445)`, fast wie der zweite; der Ring
-braucht `(0, 0.895, 0.445)`.
+## Lightmap
 
-## Kapseln für Figuren (neu)
-
-KotH voxelisiert die Figuren nicht mehr (`DynamicGroups` leer; der Weg oben bleibt im Code). Stattdessen füllt das
-Spiel je Frame `LightVoxel.Occluders`: bis 12 Gruppen (Figuren) zu je bis 8 Kapseln (Enden, Radius), jede Gruppe
-hinter einer Kugel, die ihre Reichweite umfasst. `LightVoxelShader.CapsuleVisibility` multipliziert das diffuse Licht
-(Kegel und Himmel) mit dem, was die Kapseln übrig lassen: je Kapsel die Kugel auf der Achse, die dem Punkt am nächsten
-ist, kosinusgewichtet ohne Horizontschnitt, ausgeblendet bis `OccluderFade` (4) Radien; ein Punkt in einer Kapsel zählt
-wie auf ihrer Oberfläche. Nicht in Voxel-Views. Genauere Formeln (Horizontschnitt nach Quilez, Integral entlang der
-Achse) sahen kaum anders aus und kosteten mehr. Kosten (JIT, 1440p, 12 Figuren × 6 Kapseln im Gedränge) ~0,5 ms,
-Figuren weit weg ~0,1–0,2 ms; die Voxel-Figuren kosteten mit Bots im Bild ~2 ms.
-
-## Lightmap (neu)
-
-`LightVoxel.LightmapSize` (Neu: 4096): Meshes mit zweitem UV-Set (`TEXCOORD1`, für Berg und Meer aus `Tools/maps/MapUV`)
-bekommen das Voxel-Licht einmal gebacken. `BakeVoxels` fragt nach dem Voxel-Backen über die Tags des
-`RenderContext` (`ForwardRendererVoxels.LightmapRequestKey`); der Renderer zeichnet die Stufe `LightmapBake`
-(`LightmapBakeEffect`: Position = UV, beide Seiten, `IsFrontFace` fest, sonst kippt Stride die Normale gespiegelter
-Karten) mit einer View, die wie die Kamera beleuchtet ist, ohne Kapseln, nach RGBA16F (Licht, offener Himmelsanteil),
-füllt leere Texel in 4 Schritten (`LightmapDilate`) und gibt sie frei, wenn alle Bake-Effekte kompiliert und 3 Runden
-gezeichnet sind. `LightmapRenderFeature` setzt über `ExtensionPostVertexStageShader` Position bzw. `KOTH_LIGHTMAP`:
-Dann liest `LightVoxelShader` die Lightmap, die Kapseln kommen live dazu. Bild wie live (1–2/255), GI auf der Map
-statt ~1,3 ms noch ~0,15 ms (1440p); Figuren und Blätter rechnen weiter live; das Meer ist mitgebacken (flache Normale beim Backen, Wellen live). Ein Pass in 50/80 % Auflösung
-für den Rest war wieder langsamer als voll.
-
-Sonne: Die Bake-Stufe schreibt per zweitem Render-Target (RG16F, Grün = beschrieben) auch die Sonne hinter der Map
-(`bakedSun`, aus KotHs statischer Schattenkarte, `CascadeShadowReceiver` unter `KOTH_LIGHTMAP_BAKE`); frei über
-`ForwardRendererVoxels.SunLightmapKey`. `LightmapDilate` füllt beide (Marker: Alpha oder Grün < 0).
+`LightVoxel.LightmapSize` (Mount Destiny: 4096): meshes with a second UV set (`TEXCOORD1`, from `Tools/maps/MapUV`)
+get the voxel light baked once. `BakeVoxels` asks via `ForwardRendererVoxels.LightmapRequestKey`; the renderer draws
+the stage `LightmapBake` (position = UV, both faces) into RGBA16F (light, open sky share), dilates empty texels
+(`LightmapDilate`) and releases it after three rounds. `LightmapRenderFeature` sets `KOTH_LIGHTMAP`, then
+`LightVoxelShader` reads the lightmap and only the capsules are live. Map GI drops from ~1.3 ms to ~0.15 ms (1440p).
+A second render target (RG16F) bakes the sun behind the map from KotH's static shadow map
+(`ForwardRendererVoxels.SunLightmapKey`).

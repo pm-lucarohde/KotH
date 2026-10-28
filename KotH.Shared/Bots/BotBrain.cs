@@ -171,7 +171,7 @@ namespace KotH.Shared.Bots
             MatchPhase phase = match != null ? view.Match.Phase : MatchPhase.Running;
 
             // The round has just begun: stand a moment before setting off
-            // (Lucas Wunsch). What is seen is Reaction ticks old, the round is not.
+            // (Luca's wish). What is seen is Reaction ticks old, the round is not.
             if (match != null && phase == MatchPhase.Running &&
                 view.Match.RoundTicks + Reaction < (int)MathF.Round(settings.StartWait / Dt))
                 return Remember(u, new MoveInput { Yaw = yaw, Pitch = pitch });
@@ -575,7 +575,7 @@ namespace KotH.Shared.Bots
                     lastJump = u;
                     Hops++;
                     HopLog?.Invoke(FormattableString.Invariant(
-                        $"{u} Bot {netId}: Absprung {(attempt.Twice ? "doppelt" : "einfach")} bei {b.X:F2} {b.Y:F2} {b.Z:F2} v {b.VX:F1} {b.VZ:F1}, ab {hop.From.X:F2} {hop.From.Y:F2} {hop.From.Z:F2} Richtung {hop.DX:F2} {hop.DZ:F2}, Kante {hop.Edge:F1} Lippe {hop.Lip:F1} Ziel {hop.Target:F1} Ende {hop.End:F1} Anstieg {hop.Rise:F2} nötig {hop.Need:F2}"));
+                        $"{u} Bot {netId}: jump {(attempt.Twice ? "double" : "single")} at {b.X:F2} {b.Y:F2} {b.Z:F2} v {b.VX:F1} {b.VZ:F1}, from {hop.From.X:F2} {hop.From.Y:F2} {hop.From.Z:F2} direction {hop.DX:F2} {hop.DZ:F2}, edge {hop.Edge:F1} lip {hop.Lip:F1} target {hop.Target:F1} end {hop.End:F1} rise {hop.Rise:F2} need {hop.Need:F2}"));
                     flight = k.Link;
                     landing = land.Position;
                 }
@@ -594,7 +594,7 @@ namespace KotH.Shared.Bots
                 nav.Grid.Punish(landedFrom, landedTo, FailedJump, memory);
             HopsLanded += missed ? 0 : 1;
             HopLog?.Invoke(FormattableString.Invariant(
-                $"{u} Bot {netId}: {(missed ? "DANEBEN" : "gut")} sieht {seen.X:F2} {seen.Y:F2} {seen.Z:F2}, Ziel {landed.X:F2} {landed.Y:F2} {landed.Z:F2}"));
+                $"{u} Bot {netId}: {(missed ? "MISSED" : "good")} sees {seen.X:F2} {seen.Y:F2} {seen.Z:F2}, target {landed.X:F2} {landed.Y:F2} {landed.Z:F2}"));
             verifyAt = -1;
         }
 

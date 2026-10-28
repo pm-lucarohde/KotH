@@ -16,7 +16,7 @@ namespace KotH.Probes.Probes
 {
     public sealed partial class BotProbe
     {
-        /// <summary>Seeds for "bots climb N": three bots up the mountain of map Neu.</summary>
+        /// <summary>Seeds for "bots climb N": three bots up the mountain of map MountDestiny.</summary>
         public int Climb = 0;
 
         const int ClimbTicks = 40 * 360;
@@ -34,7 +34,7 @@ namespace KotH.Probes.Probes
         readonly double[] PredClassErr = new double[4], PredClassErrY = new double[4];
 
         /// <summary>
-        /// The climb on map Neu (the one probe off the test ground): each
+        /// The climb on map MountDestiny (the one probe off the test ground): each
         /// round runs until all three bots have been in the zone, at most
         /// six minutes. The measure is Luca's: each bot's time to its first
         /// step into the zone, averaged over the three and then the seeds.
@@ -57,7 +57,7 @@ namespace KotH.Probes.Probes
                 var parts = new List<string>();
                 foreach (float t in times)
                 {
-                    parts.Add(t < 0f ? "nicht oben" : $"{t:F0} s");
+                    parts.Add(t < 0f ? "not on top" : $"{t:F0} s");
                     mean += t < 0f ? ClimbTicks / 40f : t;
                     missing += t < 0f ? 1 : 0;
                     worstBot = MathF.Max(worstBot, t < 0f ? ClimbTicks / 40f : t);
@@ -70,31 +70,31 @@ namespace KotH.Probes.Probes
                     sumSpread += spread;
                     spreads++;
                 }
-                Log($"[klettern] Seed {seed}: {string.Join(", ", parts)}, Mittel {mean:F0} s, " +
-                    $"Streuung {(spread >= 0f ? $"{spread:F0}°" : "-")}; {extra}");
+                Log($"[climb] seed {seed}: {string.Join(", ", parts)}, mean {mean:F0} s, " +
+                    $"spread {(spread >= 0f ? $"{spread:F0}°" : "-")}; {extra}");
             }
 
             ticks.Sort();
             double Pick(double q) => ticks.Count == 0 ? 0 : ticks[Math.Min(ticks.Count - 1, (int)(q * ticks.Count))];
             float average = sumMean / seeds;
-            Log($"[klettern] über {seeds} Seeds: Mittel {average:F1} s (Ziel höchstens {ClimbGoal:F0} s), " +
-                $"langsamster Seed {worstMean:F0} s, langsamster Bot {worstBot:F0} s, {missing} nicht oben, " +
-                $"Streuung der Routen {(spreads > 0 ? sumSpread / spreads : 0f):F0}°");
-            Log($"[klettern] Sprünge gelandet: {HopStats[1]} von {HopStats[0]}, {HopStats[2]} aufgegeben vor dem Absprung");
+            Log($"[climb] over {seeds} seeds: mean {average:F1} s (goal at most {ClimbGoal:F0} s), " +
+                $"slowest seed {worstMean:F0} s, slowest bot {worstBot:F0} s, {missing} not on top, " +
+                $"route spread {(spreads > 0 ? sumSpread / spreads : 0f):F0}°");
+            Log($"[climb] jumps landed: {HopStats[1]} of {HopStats[0]}, {HopStats[2]} given up before take-off");
             double ground = Math.Max(1, Nat[0]), all = Math.Max(1, Nat[0] + Nat[5]);
-            Log($"[klettern] Am Boden: {Nat[1] / ground * 40:F2} Tastenwechsel/s, {Nat[2] / ground * 2400:F1} Umkehrungen/min, " +
-                $"davon beim Sprung {Nat[10] / Math.Max(1, Nat[11]) * 40:F2}/s in {Nat[11] / ground * 100:F0} % der Zeit (Flugsteuerung am Boden {Nat[12] / Math.Max(1, Nat[13]) * 40:F2}/s in {Nat[13] / ground * 100:F0} %), seitwärts {Nat[3] / ground * 100:F0} %, steht {Nat[4] / ground * 100:F0} %; Blick: {Nat[6] / all:F2}°/Tick, " +
-                $"{Nat[7] / all * 2400:F1} Richtungswechsel/min, {Nat[8] / all * 2400:F1} Rucke über 15°/min, Nicken Ø {Nat[9] / all:F1}°");
-            Log($"[klettern] Hin und her: {Nat[17] / Math.Max(1, Nat[0]) * 2400:F1}/min am Boden; Laufen gegen Blick: über 35° in {Nat[15] / Math.Max(1, Nat[14]) * 100:F0} %, über 80° (seitwärts, rückwärts) in {Nat[16] / Math.Max(1, Nat[14]) * 100:F0} % der Bodenticks in Bewegung");
-            Log($"[klettern] Vorhersage: Boden falsch in {Predictions[1] * 100.0 / Math.Max(1, Predictions[0]):F1} % der Ticks, " +
-                $"Lage im Mittel {PredictionError * 100.0 / Math.Max(1, Predictions[0]):F1} cm daneben");
-            string[] names = { "Boden/Boden", "Boden/Luft", "Luft/Boden", "Luft/Luft" };
+            Log($"[climb] on the ground: {Nat[1] / ground * 40:F2} key changes/s, {Nat[2] / ground * 2400:F1} reversals/min, " +
+                $"of them jumping {Nat[10] / Math.Max(1, Nat[11]) * 40:F2}/s in {Nat[11] / ground * 100:F0} % of the time (air control on the ground {Nat[12] / Math.Max(1, Nat[13]) * 40:F2}/s in {Nat[13] / ground * 100:F0} %), sideways {Nat[3] / ground * 100:F0} %, standing {Nat[4] / ground * 100:F0} %; view: {Nat[6] / all:F2}°/tick, " +
+                $"{Nat[7] / all * 2400:F1} direction changes/min, {Nat[8] / all * 2400:F1} jerks over 15°/min, nod Ø {Nat[9] / all:F1}°");
+            Log($"[climb] back and forth: {Nat[17] / Math.Max(1, Nat[0]) * 2400:F1}/min on the ground; running against view: over 35° in {Nat[15] / Math.Max(1, Nat[14]) * 100:F0} %, over 80° (sideways, backwards) in {Nat[16] / Math.Max(1, Nat[14]) * 100:F0} % of moving ground ticks");
+            Log($"[climb] prediction: ground wrong in {Predictions[1] * 100.0 / Math.Max(1, Predictions[0]):F1} % of ticks, " +
+                $"position off by {PredictionError * 100.0 / Math.Max(1, Predictions[0]):F1} cm on average");
+            string[] names = { "ground/ground", "ground/air", "air/ground", "air/air" };
             for (int c = 0; c < 4; c++)
-                Log($"[klettern]   echt/Modell {names[c]}: {PredClass[c]} Ticks, {PredClassErr[c] * 100 / Math.Max(1, PredClass[c]):F1} cm, davon Höhe {PredClassErrY[c] * 100 / Math.Max(1, PredClass[c]):F1} cm");
-            Log($"[klettern] Tick mit 3 Bots: Median {Pick(0.5):F0} µs, 99 % {Pick(0.99):F0} µs, höchstens {Pick(1.0):F0} µs");
-            Log($"[klettern] Startplätze: engster Abstand {StartSpacing:F1} m, Blick höchstens {StartFacing:F1}° neben der Zone");
+                Log($"[climb]   real/model {names[c]}: {PredClass[c]} ticks, {PredClassErr[c] * 100 / Math.Max(1, PredClass[c]):F1} cm, height {PredClassErrY[c] * 100 / Math.Max(1, PredClass[c]):F1} cm");
+            Log($"[climb] tick with 3 bots: median {Pick(0.5):F0} µs, 99 % {Pick(0.99):F0} µs, at most {Pick(1.0):F0} µs");
+            Log($"[climb] spawns: closest spacing {StartSpacing:F1} m, view at most {StartFacing:F1}° beside the zone");
             bool passed = missing == 0 && average <= ClimbGoal && StartSpacing >= 6f && StartFacing < 1f;
-            Log(passed ? "[klettern] BESTANDEN" : "[klettern] NICHT BESTANDEN");
+            Log(passed ? "[climb] PASSED" : "[climb] NOT PASSED");
             return passed ? 0 : 1;
         }
 
@@ -161,8 +161,8 @@ namespace KotH.Probes.Probes
         // trial starts from the same motor state; the bots stand still.
         void JamTrials(HeadlessWorld world, BotBody bot, MotorState jammed)
         {
-            Log(FormattableString.Invariant($"[klemmt] bei {jammed.Position.X:F2} {jammed.Position.Y:F2} {jammed.Position.Z:F2}, Tempo {jammed.Velocity.X:F2} {jammed.Velocity.Y:F2} {jammed.Velocity.Z:F2}, Normale {jammed.GroundNormal.X:F2} {jammed.GroundNormal.Y:F2} {jammed.GroundNormal.Z:F2}"));
-            string[] names = { "nichts", "Sprung", "Doppelsprung", "Ducken", "Ducken + Sprung" };
+            Log(FormattableString.Invariant($"[jammed] at {jammed.Position.X:F2} {jammed.Position.Y:F2} {jammed.Position.Z:F2}, velocity {jammed.Velocity.X:F2} {jammed.Velocity.Y:F2} {jammed.Velocity.Z:F2}, normal {jammed.GroundNormal.X:F2} {jammed.GroundNormal.Y:F2} {jammed.GroundNormal.Z:F2}"));
+            string[] names = { "nothing", "jump", "double jump", "crouch", "crouch + jump" };
             for (int mode = 0; mode < names.Length; mode++)
                 for (int d = -1; d < 8; d++)
                 {
@@ -181,7 +181,7 @@ namespace KotH.Probes.Probes
                     Vector3 p = bot.Motor.Position;
                     float moved = (p - jammed.Position).Length();
                     if (moved > 0.3f)
-                        Log(FormattableString.Invariant($"[klemmt]   frei mit {names[mode]}, Richtung {(d < 0 ? "keine" : $"{d * 45}°")}: {moved:F2} m weiter, y {p.Y:F2}"));
+                        Log(FormattableString.Invariant($"[jammed]   free with {names[mode]}, direction {(d < 0 ? "none" : $"{d * 45}°")}: {moved:F2} m on, y {p.Y:F2}"));
                 }
             var queries = bot.Motor.World;
             foreach (float up in new[] { 0.1f, 0.4f, 0.9f, 1.5f })
@@ -196,12 +196,12 @@ namespace KotH.Probes.Probes
                         ? FormattableString.Invariant($"{d * 45}°:{hit.Distance:F2}({hit.Normal.X:F1},{hit.Normal.Y:F1},{hit.Normal.Z:F1})")
                         : $"{d * 45}°:-");
                 }
-                Log(FormattableString.Invariant($"[klemmt] Fuß+{up:F1}: {string.Join(" ", parts)}"));
+                Log(FormattableString.Invariant($"[jammed] foot+{up:F1}: {string.Join(" ", parts)}"));
             }
             var below = new Vector3(jammed.Position.X, jammed.Position.Y, jammed.Position.Z);
             if (queries.Raycast(below, new Vector3(0f, -1f, 0f), 5f, KotH.Shared.Physics.WorldQueries.WorldMask, out var down))
-                Log(FormattableString.Invariant($"[klemmt] unten {down.Distance:F2} ({down.Normal.X:F2},{down.Normal.Y:F2},{down.Normal.Z:F2})"));
-            Log("[klemmt] Versuche fertig");
+                Log(FormattableString.Invariant($"[jammed] below {down.Distance:F2} ({down.Normal.X:F2},{down.Normal.Y:F2},{down.Normal.Z:F2})"));
+            Log("[jammed] trials done");
             bot.Motor.RestoreState(jammed);
             bot.Motor.Teleport(jammed.Position);
         }
@@ -229,7 +229,7 @@ namespace KotH.Probes.Probes
                                            bot, new DamagePercent());
                 e.Name = $"Bot {i + 1}";
                 if (Environment.GetEnvironmentVariable("KOTH_HOPLOG") is string who && (who == "0" || who == $"{i + 1}"))
-                    director.BrainOf(bot.NetId).HopLog = line => Log($"[sprung] {line}");
+                    director.BrainOf(bot.NetId).HopLog = line => Log($"[jump] {line}");
                 bots.Add(bot);
             }
 
@@ -271,7 +271,7 @@ namespace KotH.Probes.Probes
                 double us = Stopwatch.GetElapsedTime(tick).TotalMicroseconds;
                 ticks.Add(us);
                 if (us > 5000)
-                    Log($"[klettern] langer Tick {t}: {us:F0} µs");
+                    Log($"[climb] long tick {t}: {us:F0} µs");
                 for (int i = 0; i < bots.Count; i++)
                 {
                     Vector3 p = bots[i].Motor.Position;
@@ -332,9 +332,9 @@ namespace KotH.Probes.Probes
                         var m = bots[i].Motor.CaptureState();
                         string next = br.Corners.Count > 1 ? $"{br.Corners[1].Position.X:F1} {br.Corners[1].Position.Y:F1} {br.Corners[1].Position.Z:F1} {br.Corners[1].Link}" : "-";
                         string after = br.Corners.Count > 2 ? $"{br.Corners[2].Position.X:F1} {br.Corners[2].Position.Y:F1} {br.Corners[2].Position.Z:F1} {br.Corners[2].Link}" : "-";
-                        Log($"[spur] {t} Bot {i + 1} {br.Intent} {(br.Climbing ? "K" : br.Running.ToString())} {br.Flight} v{br.Variant} tasten {br.LastInput.Move.X:F0},{br.LastInput.Move.Y:F0} gier {br.LastInput.Yaw:F0} fuß {p.X:F2} {p.Y - 0.9f:F2} {p.Z:F2} " +
-                            $"tempo {m.Velocity.X:F1} {m.Velocity.Y:F1} {m.Velocity.Z:F1} boden {(m.Grounded ? 1 : 0)}{(m.OnSteepGround ? " steil" : "")}{(m.TouchingGround ? " berührt" : "")}{(m.Wedged ? " klemmt" : "")} n {m.GroundNormal.X:F2} {m.GroundNormal.Y:F2} {m.GroundNormal.Z:F2} " +
-                            $"ecke1 {next} ecke2 {after} feld {director.Navigation.Grid.TimeToZone(new Vector3(p.X, p.Y - 0.9f, p.Z), br.Variant):F1} lehren {br.Lessons} hops {br.Hops}/{br.HopsLanded} weg {string.Join(";", System.Linq.Enumerable.Select(br.Corners, c => FormattableString.Invariant($"{c.Position.X:F2},{c.Position.Y:F2},{c.Position.Z:F2},{c.Link}")))} land {br.Landing.X:F1} {br.Landing.Y:F1} {br.Landing.Z:F1}");
+                        Log($"[spur] {t} Bot {i + 1} {br.Intent} {(br.Climbing ? "K" : br.Running.ToString())} {br.Flight} v{br.Variant} keys {br.LastInput.Move.X:F0},{br.LastInput.Move.Y:F0} yaw {br.LastInput.Yaw:F0} foot {p.X:F2} {p.Y - 0.9f:F2} {p.Z:F2} " +
+                            $"velocity {m.Velocity.X:F1} {m.Velocity.Y:F1} {m.Velocity.Z:F1} ground {(m.Grounded ? 1 : 0)}{(m.OnSteepGround ? " steep" : "")}{(m.TouchingGround ? " touching" : "")}{(m.Wedged ? " jammed" : "")} n {m.GroundNormal.X:F2} {m.GroundNormal.Y:F2} {m.GroundNormal.Z:F2} " +
+                            $"corner1 {next} corner2 {after} field {director.Navigation.Grid.TimeToZone(new Vector3(p.X, p.Y - 0.9f, p.Z), br.Variant):F1} lessons {br.Lessons} hops {br.Hops}/{br.HopsLanded} path {string.Join(";", System.Linq.Enumerable.Select(br.Corners, c => FormattableString.Invariant($"{c.Position.X:F2},{c.Position.Y:F2},{c.Position.Z:F2},{c.Link}")))} land {br.Landing.X:F1} {br.Landing.Y:F1} {br.Landing.Z:F1}");
                     }
                 }
             }
@@ -380,7 +380,7 @@ namespace KotH.Probes.Probes
             }
             StartSpacing = MathF.Min(StartSpacing, closest);
             StartFacing = MathF.Max(StartFacing, worstFacing);
-            extra = $"Start {string.Join(", ", where)}; Navigation {buildMs:F0} ms, {falls} Stürze, {respawns} Respawns, Höhe am Ende {string.Join("/", highest)} m";
+            extra = $"start {string.Join(", ", where)}; navigation {buildMs:F0} ms, {falls} falls, {respawns} respawns, height at the end {string.Join("/", highest)} m";
             return times;
         }
     }

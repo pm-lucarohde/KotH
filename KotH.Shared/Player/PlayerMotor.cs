@@ -18,106 +18,106 @@ namespace KotH.Shared.Player
     /// Collision goes through CapsuleSweep and plain physics queries.
     /// </summary>
     [DataContract("KotH.PlayerMotor")]
-    [Display("Spieler-Motor")]
+    [Display("Player Motor")]
     [ComponentCategory("KotH")]
     public sealed class PlayerMotor : EntityComponent
     {
-        /// <userdoc>Gehtempo in m/s.</userdoc>
-        [Display("Gehen", "Tempo (m/s)")] public float WalkSpeed = 5.175f;
-        [Display("Sprinten", "Tempo (m/s)")] public float SprintSpeed = 8.625f;
-        [Display("Ducken", "Tempo (m/s)")] public float CrouchSpeed = 2.1f;
+        /// <userdoc>Walk speed in m/s.</userdoc>
+        [Display("Walk", "Speed (m/s)")] public float WalkSpeed = 5.175f;
+        [Display("Sprint", "Speed (m/s)")] public float SprintSpeed = 8.625f;
+        [Display("Crouch", "Speed (m/s)")] public float CrouchSpeed = 2.1f;
 
-        [Display("Beschleunigen am Boden", "Trägheit (m/s²)")] public float GroundAcceleration = 50f;
-        [Display("Bremsen am Boden", "Trägheit (m/s²)")] public float GroundDeceleration = 35f;
+        [Display("Ground acceleration", "Inertia (m/s²)")] public float GroundAcceleration = 50f;
+        [Display("Ground deceleration", "Inertia (m/s²)")] public float GroundDeceleration = 35f;
 
         // 15% of ground acceleration: enough to correct mid-jump, not enough
         // to reverse direction within a normal flight time.
-        [Display("Beschleunigen in der Luft", "Trägheit (m/s²)")] public float AirAcceleration = 7.5f;
+        [Display("Air acceleration", "Inertia (m/s²)")] public float AirAcceleration = 7.5f;
 
         // All three carry a pre-correction: integrating at 40 Hz loses
         // v*dt/2 of every jump, so a plain 1.5 would peak at 1.405 m. These
         // numbers are chosen so the REAL peaks come out at 1.50, 1.00 and
         // 1.00 m. Retuning one means measuring it again, see JumpHeightProbe.
-        [Display("Sprunghöhe", "Sprung und Schwerkraft")] public float JumpHeight = 1.6f;
-        [Display("Doppelsprunghöhe", "Sprung und Schwerkraft")] public float DoubleJumpHeight = 1.0822f;
+        [Display("Jump height", "Jump and gravity")] public float JumpHeight = 1.6f;
+        [Display("Double jump height", "Jump and gravity")] public float DoubleJumpHeight = 1.0822f;
 
-        /// <userdoc>Sprunghöhe bei ganz kurzem Antippen</userdoc>
-        [Display("Mindestsprunghöhe", "Sprung und Schwerkraft")] public float MinJumpHeight = 1.0744f;
+        /// <userdoc>Jump height for the shortest tap</userdoc>
+        [Display("Min jump height", "Jump and gravity")] public float MinJumpHeight = 1.0744f;
 
-        /// <userdoc>Haltedauer, bis zu der nur die Mindesthöhe kommt</userdoc>
-        [Display("Mindesthaltedauer", "Sprung und Schwerkraft")] public float MinJumpHold = 0.032f;
+        /// <userdoc>Hold time up to which only the minimum height comes</userdoc>
+        [Display("Min hold time", "Jump and gravity")] public float MinJumpHold = 0.032f;
 
-        /// <userdoc>Haltedauer für die volle Sprunghöhe</userdoc>
-        [Display("Volle Haltedauer", "Sprung und Schwerkraft")] public float FullJumpHold = 0.2f;
+        /// <userdoc>Hold time for the full jump height</userdoc>
+        [Display("Full hold time", "Jump and gravity")] public float FullJumpHold = 0.2f;
 
         // Opens on the ground jump. A double tap only counts inside this time.
-        [Display("Doppelsprung-Fenster", "Sprung und Schwerkraft")] public float DoubleJumpWindow = 1f;
+        [Display("Double jump window", "Jump and gravity")] public float DoubleJumpWindow = 1f;
 
         // Maximum gap between the two taps of the double tap.
-        [Display("Doppeltipp-Abstand", "Sprung und Schwerkraft")] public float DoubleTapWindow = 0.25f;
+        [Display("Double tap window", "Jump and gravity")] public float DoubleTapWindow = 0.25f;
 
         // Deliberately about twice real gravity; at -9.81 a jump feels floaty.
-        [Display("Schwerkraft", "Sprung und Schwerkraft")] public float Gravity = -20f;
+        [Display("Gravity", "Jump and gravity")] public float Gravity = -20f;
 
         // Eyes sit 0.12 m below the crown in both poses, as on a real body.
-        [Display("Radius", "Körpermaße (m)")] public float BodyRadius = 0.4f;
-        [Display("Hautdicke", "Körpermaße (m)")] public float SkinWidth = 0.04f;
-        [Display("Höhe stehend", "Körpermaße (m)")] public float StandHeight = 1.8f;
-        [Display("Höhe geduckt", "Körpermaße (m)")] public float CrouchHeight = 0.9f;
-        [Display("Augenhöhe stehend", "Körpermaße (m)")] public float StandEyeHeight = 1.68f;
-        [Display("Augenhöhe geduckt", "Körpermaße (m)")] public float CrouchEyeHeight = 0.78f;
+        [Display("Radius", "Body (m)")] public float BodyRadius = 0.4f;
+        [Display("Skin width", "Body (m)")] public float SkinWidth = 0.04f;
+        [Display("Stand height", "Body (m)")] public float StandHeight = 1.8f;
+        [Display("Crouch height", "Body (m)")] public float CrouchHeight = 0.9f;
+        [Display("Stand eye height", "Body (m)")] public float StandEyeHeight = 1.68f;
+        [Display("Crouch eye height", "Body (m)")] public float CrouchEyeHeight = 0.78f;
 
         // Drives collision height and eye together, in m/s of height: the
         // 0.90 m between the poses take 0.15 s. One rate, because two would
         // let the eye leave the body it belongs to.
-        [Display("Posenwechsel", "Körpermaße (m)")] public float PoseChangeSpeed = 6f;
+        [Display("Pose change speed", "Body (m)")] public float PoseChangeSpeed = 6f;
 
         // Step height the body climbs. Crouched it is much lower, so
         // ducking becomes a real trade: you fit through gaps but lose reach.
-        [Display("Stufe stehend", "Körpermaße (m)")] public float StandStepOffset = 0.45f;
-        [Display("Stufe geduckt", "Körpermaße (m)")] public float CrouchStepOffset = 0.25f;
+        [Display("Step standing", "Body (m)")] public float StandStepOffset = 0.45f;
+        [Display("Step crouched", "Body (m)")] public float CrouchStepOffset = 0.25f;
 
         // Crouching guards against falling: a step that would leave nothing
         // walkable this far below the feet is refused. Deliberately larger
         // than GroundSnapDistance, so a drop is either caught or refused.
-        [Display("Kantenschutz", "Körpermaße (m)")] public float LedgeGuardDrop = 0.5f;
-        [Display("Kopffreiheit-Maske", "Körpermaße (m)")] public CollisionMask HeadroomMask = CollisionMask.Everything;
+        [Display("Ledge guard", "Body (m)")] public float LedgeGuardDrop = 0.5f;
+        [Display("Headroom mask", "Body (m)")] public CollisionMask HeadroomMask = CollisionMask.Everything;
 
-        /// <userdoc>Steilste Fläche, die noch begehbar ist</userdoc>
-        [Display("Hanglimit (°)", "Hang")] public float SlopeLimit = 50f;
-        [Display("Boden-Maske", "Hang")] public CollisionMask GroundMask = CollisionMask.Everything;
+        /// <userdoc>Steepest surface that is still walkable</userdoc>
+        [Display("Slope limit (°)", "Slope")] public float SlopeLimit = 50f;
+        [Display("Ground mask", "Slope")] public CollisionMask GroundMask = CollisionMask.Everything;
 
         // How far below the feet the probe still looks for ground.
-        [Display("Bodensonde extra", "Hang")] public float GroundProbeExtra = 0.1f;
+        [Display("Ground probe extra", "Slope")] public float GroundProbeExtra = 0.1f;
 
         // How far the player is pulled back down onto ground it ran off.
         // Covers a sprint down the steepest walkable ramp; much more would
         // glue the player to the floor at a real ledge.
-        [Display("Bodenhaftung", "Hang")] public float GroundSnapDistance = 0.3f;
+        [Display("Ground snap", "Slope")] public float GroundSnapDistance = 0.3f;
 
         // Speed the slide starts at, so stepping onto a steep face slides
         // at once instead of accelerating out of a standstill.
-        [Display("Mindestrutschtempo", "Hang")] public float MinSlideSpeed = 3f;
+        [Display("Min slide speed", "Slope")] public float MinSlideSpeed = 3f;
 
         // A stair edge can report a steep normal for a tick or two. Sliding
         // only starts once the reading holds, so an edge cannot shove the
         // player back down the step.
-        [Display("Rutsch-Bestätigung", "Hang")] public float SlideConfirmTime = 0.075f;
+        [Display("Slide confirm time", "Slope")] public float SlideConfirmTime = 0.075f;
 
         // How far past the blocking wall the ledge is measured.
-        [Display("Stufensonde voraus", "Hang")] public float StepProbeAhead = 0.05f;
+        [Display("Step probe ahead", "Slope")] public float StepProbeAhead = 0.05f;
 
-        /// <userdoc>Reibung beim Gleiten, deutlich kleiner als beim Bremsen</userdoc>
-        [Display("Gleitreibung", "Gleiten")] public float SlideDeceleration = 6f;
+        /// <userdoc>Friction while sliding, much lower than when braking</userdoc>
+        [Display("Slide friction", "Slide")] public float SlideDeceleration = 6f;
 
-        /// <userdoc>Tempo, über das ein Hang das Gleiten nicht hinaustreibt</userdoc>
-        [Display("Höchsttempo", "Gleiten")] public float MaxSlideSpeed = 15f;
+        /// <userdoc>Speed beyond which a slope does not drive the slide</userdoc>
+        [Display("Max speed", "Slide")] public float MaxSlideSpeed = 15f;
 
-        /// <userdoc>Abstand zwischen zwei Gleitvorgängen, ab dem Start gezählt</userdoc>
-        [Display("Abklingzeit", "Gleiten")] public float SlideCooldown = 0.5f;
+        /// <userdoc>Time between two slides, counted from the start</userdoc>
+        [Display("Cooldown", "Slide")] public float SlideCooldown = 0.5f;
 
-        /// <userdoc>Wie viel vom Rückstoß in eine Wand hinein als Abprall zurückkommt; das eigene Laufen prallt nie ab</userdoc>
-        [Display("Abprall an Wänden", "Rückstoß")] public float KnockWallBounce = 0.4f;
+        /// <userdoc>How much knockback into a wall bounces back; one's own running never bounces</userdoc>
+        [Display("Wall bounce", "Knockback")] public float KnockWallBounce = 0.4f;
 
         // --- wiring, set by Initialize ---
         WorldQueries world;
@@ -249,7 +249,7 @@ namespace KotH.Shared.Player
             }
 
             if (hullParts.Count == 0)
-                Log.Warning($"Keine Trefferform am Körper {Entity.Name}.");
+                Log.Warning($"No hit shape on body {Entity.Name}.");
 
             position = Entity.Transform.Position;
             rotation = Entity.Transform.Rotation;

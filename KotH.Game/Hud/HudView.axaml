@@ -16,7 +16,7 @@
         </Grid>
         <Grid Name="PointsPart" Width="449" Height="102">
             <StackPanel Orientation="Horizontal" Spacing="12" Margin="49.5,25.5,0,29.5">
-                <TextBlock Name="Caption" Classes="Hud Soft" Text="Punkte" FontSize="22" />
+                <TextBlock Name="Caption" Classes="Hud Soft" Text="Points" FontSize="22" />
                 <TextBlock Name="Points" Classes="Hud" Text="0 / 100" FontSize="32" />
             </StackPanel>
             <TextBlock Name="Time" Classes="Hud" Text="0:00" FontSize="38"
@@ -24,12 +24,12 @@
         </Grid>
 
         <!-- The zone and the own damage on chips of a fixed size (Luca): 270 x 44, just
-             room for "Du nimmst die Zone ein", and 240 x 44 -->
+             room for "You are capturing", and 240 x 44 -->
         <Grid Name="StatusPart" Width="318" Height="92">
             <Border Name="StatusChip" Classes="Glass" Margin="24" CornerRadius="11" Padding="14,0">
                 <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
                     <Ellipse Name="Dot" Width="10" Height="10" Fill="White" VerticalAlignment="Center" />
-                    <TextBlock Name="Status" Classes="Hud" Text="Zone frei" FontSize="24" Margin="0,0,0,3"
+                    <TextBlock Name="Status" Classes="Hud" Text="Zone free" FontSize="24" Margin="0,0,0,3"
                                MaxWidth="224" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
             </Border>
@@ -53,29 +53,29 @@
         <Grid Name="DamagePart" Width="288" Height="92">
             <Border Classes="Glass" Margin="24" CornerRadius="11" Padding="18,0">
                 <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
-                    <TextBlock Classes="Hud Soft" Text="Schaden" FontSize="22" Margin="0,0,0,2" />
-                    <TextBlock Name="Damage" Classes="Hud" Text="0,0 %" FontSize="27" Margin="0,0,0,3" />
+                    <TextBlock Classes="Hud Soft" Text="Damage" FontSize="22" Margin="0,0,0,2" />
+                    <TextBlock Name="Damage" Classes="Hud" Text="0.0 %" FontSize="27" Margin="0,0,0,3" />
                 </StackPanel>
             </Border>
         </Grid>
 
         <Grid Name="BannerPart" Width="1100" Height="150">
             <Border Classes="Glass" Margin="24" CornerRadius="24" HorizontalAlignment="Center" Padding="48,0">
-                <TextBlock Name="Banner" Classes="Hud" Text="Unentschieden" FontSize="66" Margin="0,0,0,8" />
+                <TextBlock Name="Banner" Classes="Hud" Text="Draw" FontSize="66" Margin="0,0,0,8" />
             </Border>
         </Grid>
 
         <Grid Name="CountdownPart" Width="600" Height="92">
             <Border Classes="Glass" Margin="24" Height="44" CornerRadius="11"
                     HorizontalAlignment="Center" Padding="20,0">
-                <TextBlock Name="Countdown" Classes="Hud" Text="Neue Runde in 10" FontSize="25" Margin="0,0,0,3" />
+                <TextBlock Name="Countdown" Classes="Hud" Text="New round in 10" FontSize="25" Margin="0,0,0,3" />
             </Border>
         </Grid>
 
         <Grid Name="NoticePart" Width="1200" Height="104">
             <Border Classes="Glass" Margin="24" Height="56" CornerRadius="13"
                     HorizontalAlignment="Center" Padding="26,0">
-                <TextBlock Name="Notice" Classes="Hud" Text="Verbinde ..." FontSize="29" Margin="0,0,0,4" />
+                <TextBlock Name="Notice" Classes="Hud" Text="Connecting ..." FontSize="29" Margin="0,0,0,4" />
             </Border>
         </Grid>
     </Panel>

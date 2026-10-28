@@ -12,41 +12,41 @@ namespace KotH.Shared.Match
     /// Read once when a HillMatch starts; moving it later changes nothing.
     /// </summary>
     [DataContract("KotH.CaptureZone")]
-    [Display("Capture-Zone")]
+    [Display("Capture zone")]
     [ComponentCategory("KotH")]
     public sealed class CaptureZone : EntityComponent
     {
-        /// <userdoc>Breite, Höhe und Tiefe der Zone in Metern, um den Mittelpunkt des Entitys. Zählt, wo die Körpermitte steht.</userdoc>
-        [Display("Größe", "Zone")] public Vector3 Size = new Vector3(12f, 3.5f, 12f);
+        /// <userdoc>Width, height and depth of the zone in metres, around the entity's centre. What counts is where the body's centre stands.</userdoc>
+        [Display("Size", "Zone")] public Vector3 Size = new Vector3(12f, 3.5f, 12f);
 
-        /// <userdoc>So lange muss man allein in der Zone stehen, um sie einzunehmen, in Sekunden. Danach gibt es einen Punkt pro Sekunde, solange man drin bleibt, auch wenn andere dazukommen.</userdoc>
-        [Display("Aufwärmen", "Regeln")] public float WarmupSeconds = 3f;
+        /// <userdoc>How long one must stand alone in the zone to capture it, in seconds. Then it scores a point per second while one stays inside, even when others join.</userdoc>
+        [Display("Capture time", "Rules")] public float WarmupSeconds = 3f;
 
-        /// <userdoc>Wer so viele Punkte hat, gewinnt die Runde sofort.</userdoc>
-        [Display("Siegpunkte", "Regeln")] public int WinPoints = 100;
+        /// <userdoc>Whoever has this many points wins the round at once.</userdoc>
+        [Display("Win points", "Rules")] public int WinPoints = 100;
 
-        /// <userdoc>Länge einer Runde in Minuten. Danach gewinnt, wer die meisten Punkte hat; bei Gleichstand ist sie unentschieden.</userdoc>
-        [Display("Zeitlimit", "Regeln")] public float TimeLimitMinutes = 20f;
+        /// <userdoc>Length of a round in minutes. Then the most points win; a tie is a draw.</userdoc>
+        [Display("Time limit", "Rules")] public float TimeLimitMinutes = 20f;
 
-        /// <userdoc>So lange steht der Sieger da, bevor die nächste Runde beginnt, in Sekunden.</userdoc>
-        [Display("Siegerpause", "Regeln")] public float WinPauseSeconds = 15f;
+        /// <userdoc>How long the winner stands there before the next round starts, in seconds.</userdoc>
+        [Display("Winner pause", "Rules")] public float WinPauseSeconds = 15f;
 
-        /// <userdoc>Im Mehrspieler: So lange läuft der Countdown, sobald genug Spieler da sind, in Sekunden.</userdoc>
-        [Display("Countdown", "Mehrspieler")] public float CountdownSeconds = 60f;
+        /// <userdoc>Multiplayer: how long the countdown runs once enough players are there, in seconds.</userdoc>
+        [Display("Countdown", "Multiplayer")] public float CountdownSeconds = 60f;
 
-        /// <userdoc>Im Mehrspieler: So lange nach dem Start einer Runde darf noch jemand beitreten, in Sekunden.</userdoc>
-        [Display("Beitritt bis", "Mehrspieler")] public float JoinSeconds = 60f;
+        /// <userdoc>Multiplayer: how long after a round starts someone may still join, in seconds.</userdoc>
+        [Display("Join until", "Multiplayer")] public float JoinSeconds = 60f;
 
-        /// <userdoc>Wer aus der Arena fliegt und unter diese Höhe fällt, steht wieder an seinem Startplatz (mit Ring: an einem neuen Platz im Ring), in Metern. Schadensprozent und Punkte bleiben.</userdoc>
-        [Display("Respawn unter (m)", "Regeln")] public float RespawnBelow = -5f;
+        /// <userdoc>Whoever falls below this height respawns at a spawn point (with a ring: a new place in the ring), in metres. Damage percent and points stay.</userdoc>
+        [Display("Respawn below (m)", "Rules")] public float RespawnBelow = -5f;
 
-        /// <userdoc>Bei Rundenbeginn und nach jedem Respawn steht jeder an einem zufälligen Platz in diesem Ring um die Zone, Blick zur Zone: innerer Abstand von ihrer Mitte, waagerecht, in Metern. Außen 0: feste Startplätze.</userdoc>
-        [Display("Ring innen (m)", "Startplätze")] public float SpawnRingInner = 0f;
+        /// <userdoc>At round start and after each respawn everyone stands at a random place in this ring around the zone, facing it: inner horizontal distance from its centre, in metres. Outer 0: fixed spawn points.</userdoc>
+        [Display("Ring inner (m)", "Spawns")] public float SpawnRingInner = 0f;
 
-        /// <userdoc>Äußerer Abstand des Rings von der Mitte der Zone, in Metern. 0 schaltet den Ring ab, dann gelten die Startplätze.</userdoc>
-        [Display("Ring außen (m)", "Startplätze")] public float SpawnRingOuter = 0f;
+        /// <userdoc>Outer distance of the ring from the zone's centre, in metres. 0 turns the ring off; the spawn points apply.</userdoc>
+        [Display("Ring outer (m)", "Spawns")] public float SpawnRingOuter = 0f;
 
-        /// <userdoc>So weit stehen zwei Spieler im Ring mindestens auseinander, in Metern.</userdoc>
-        [Display("Abstand", "Startplätze")] public float SpawnSpacing = 6f;
+        /// <userdoc>Minimum distance between two players in the ring, in metres.</userdoc>
+        [Display("Spacing", "Spawns")] public float SpawnSpacing = 6f;
     }
 }

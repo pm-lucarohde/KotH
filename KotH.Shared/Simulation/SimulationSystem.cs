@@ -175,7 +175,7 @@ namespace KotH.Shared.Simulation
             int count = bodies.Count;
             if (tickInputs.Count != count)
             {
-                Log.Error($"Step mit {tickInputs.Count} Eingaben für {count} Körper.");
+                Log.Error($"Step with {tickInputs.Count} inputs for {count} bodies.");
                 return;
             }
 

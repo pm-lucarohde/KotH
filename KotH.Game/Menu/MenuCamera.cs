@@ -11,37 +11,37 @@ namespace KotH.Client.Menu
     /// little past it so the mountain stands right of the buttons. Only while
     /// <see cref="Active"/>; the field of view goes back afterwards.
     /// </summary>
-    /// <userdoc>Kameraflug hinter dem Hauptmenü.</userdoc>
+    /// <userdoc>Camera flight behind the main menu.</userdoc>
     [DataContract("KotH.MenuCamera")]
-    [Display("Menü-Kameraflug")]
+    [Display("Menu camera flight")]
     public sealed class MenuCamera : SyncScript
     {
-        /// <userdoc>Mitte der Bahn (x, z in Metern), etwa die Bergachse.</userdoc>
-        [Display("Mitte", "Bahn")] public Vector2 Centre;
+        /// <userdoc>Centre of the path (x, z in metres), about the mountain's axis.</userdoc>
+        [Display("Centre", "Path")] public Vector2 Centre;
 
-        /// <userdoc>Abstand der Kamera von der Mitte in Metern.</userdoc>
-        [Display("Radius", "Bahn")] public float Radius = 265f;
+        /// <userdoc>Distance of the camera from the centre in metres.</userdoc>
+        [Display("Radius", "Path")] public float Radius = 265f;
 
-        /// <userdoc>Mittlere Höhe der Kamera in Metern.</userdoc>
-        [Display("Höhe", "Bahn")] public float Height = 142f;
+        /// <userdoc>Mean height of the camera in metres.</userdoc>
+        [Display("Height", "Path")] public float Height = 142f;
 
-        /// <userdoc>Wie weit die Kamera um die mittlere Höhe auf und ab schwingt, in Metern.</userdoc>
-        [Display("Schwingen", "Bahn")] public float Bob = 12f;
+        /// <userdoc>How far the camera bobs up and down around the mean height, in metres.</userdoc>
+        [Display("Bob", "Path")] public float Bob = 12f;
 
-        /// <userdoc>Sekunden für eine Runde um den Berg.</userdoc>
-        [Display("Rundenzeit", "Bahn")] public float Period = 150f;
+        /// <userdoc>Seconds for one lap around the mountain.</userdoc>
+        [Display("Lap time", "Path")] public float Period = 150f;
 
-        /// <userdoc>Höhe in Metern, auf die die Kamera an der Bergachse schaut.</userdoc>
-        [Display("Blickhöhe", "Blick")] public float LookHeight = 62f;
+        /// <userdoc>Height in metres the camera looks at on the mountain's axis.</userdoc>
+        [Display("Look height", "View")] public float LookHeight = 62f;
 
-        /// <userdoc>Wie weit der Blick seitlich neben dem Berg vorbeigeht (Meter, positiv = Berg rückt nach rechts).</userdoc>
-        [Display("Seitlich", "Blick")] public float LookAside = 60f;
+        /// <userdoc>How far the view passes beside the mountain (metres, positive = mountain moves right).</userdoc>
+        [Display("Aside", "View")] public float LookAside = 60f;
 
-        /// <userdoc>Vertikales Sichtfeld im Menü in Grad.</userdoc>
-        [Display("Sichtfeld", "Blick")] public float FieldOfView = 50f;
+        /// <userdoc>Vertical field of view in the menu in degrees.</userdoc>
+        [Display("Field of view", "View")] public float FieldOfView = 50f;
 
-        /// <userdoc>Wo auf der Bahn der Flug beginnt, in Grad.</userdoc>
-        [Display("Startwinkel", "Bahn")] public float StartAngle = 200f;
+        /// <userdoc>Where on the path the flight starts, in degrees.</userdoc>
+        [Display("Start angle", "Path")] public float StartAngle = 200f;
 
         /// <summary>Set by GameRoot while the main menu is open.</summary>
         [DataMemberIgnore] public bool Active { get; set; }

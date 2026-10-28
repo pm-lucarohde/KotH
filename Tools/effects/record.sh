@@ -11,8 +11,8 @@ log=$out/record.bin; rm -f $log
 run() {  # run "ENV=.. ENV=.." ARGS..
   local envs=$1; shift
   (cd $bin && env KOTH_HEADLESS=1 KOTH_MUSIC_VOLUME=0 KOTH_EFFECTLOG=$log KOTH_SHOT=$out/shot.png $envs \
-     timeout 150 ./KotH "$@" > $out/run.log 2>&1) || echo "Lauf $envs $*: Fehler $?" >&2
-  echo "$(grep -c '^\[effekte\] [0-9]' $out/run.log) neu: $envs $*"
+     timeout 150 ./KotH "$@" > $out/run.log 2>&1) || echo "run $envs $*: error $?" >&2
+  echo "$(grep -c '^\[effects\] [0-9]' $out/run.log) new: $envs $*"
 }
 run "KOTH_SHOT_MENU=1 KOTH_SHOT_SECONDS=4"
 run "KOTH_SHOT_MENU=1 KOTH_SHOT_MENU_PAGE=0 KOTH_SHOT_SECONDS=10"

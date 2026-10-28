@@ -8,7 +8,7 @@ namespace KotH.Client.Hud
 {
     /// <summary>
     /// Black with a turning clock and a word at the bottom right (LoadView,
-    /// Lucas Wahl) while the world gets ready: from the first frame until the
+    /// Luca's choice) while the world gets ready: from the first frame until the
     /// map's lighting is baked (BakeVoxels reports it) and a moment after, so
     /// the stutter of the first seconds is never seen. Nothing starts before
     /// Loaded: alone the round waits (SimulationDriver), a host opens its game
@@ -87,8 +87,8 @@ namespace KotH.Client.Hud
                     loaded = true;
                     // Loading and warming the HUD left garbage behind: collected here, not in play.
                     GC.Collect();
-                    Console.WriteLine(bakedAt < 0.0 ? $"[laden] fertig nach {shown:F1} s, ohne fertiges Licht"
-                                                    : $"[laden] fertig nach {shown:F1} s, Licht nach {bakedAt:F1} s gebacken");
+                    Console.WriteLine(bakedAt < 0.0 ? $"[load] done after {shown:F1} s, light not baked"
+                                                    : $"[load] done after {shown:F1} s, light baked after {bakedAt:F1} s");
                     Loaded?.Invoke();
                 }
             }
@@ -97,7 +97,7 @@ namespace KotH.Client.Hud
                 return;
 
             turned += seconds;
-            view.Say((begun && !loaded ? null : Text?.Invoke()) ?? "Lädt …");
+            view.Say((begun && !loaded ? null : Text?.Invoke()) ?? "Loading …");
             Texture backBuffer = commandList.GraphicsDevice.Presenter.BackBuffer;
             var screen = new Vector2(backBuffer.Width, backBuffer.Height);
             foreach (MenuOverlay overlay in overlays)

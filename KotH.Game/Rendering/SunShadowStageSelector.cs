@@ -16,7 +16,7 @@ namespace KotH.Client.Rendering
     [DataContract("SunShadowStageSelector")]
     public sealed class SunShadowStageSelector : ShadowMapRenderStageSelector
     {
-        /// <userdoc>Stufe für die Werfer, die sich nie bewegen (Map mit Lightmap); leer = alle jeden Frame.</userdoc>
+        /// <userdoc>Stage for the casters that never move (map with lightmap); empty = all every frame.</userdoc>
         public RenderStage StaticRenderStage { get; set; }
 
         /// <summary>The mesh never moves: it belongs to a model with lightmap UVs (the map).</summary>

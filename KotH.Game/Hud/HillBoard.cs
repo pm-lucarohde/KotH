@@ -22,21 +22,21 @@ namespace KotH.Client.Hud
     [DataContract("KotH.HillBoard")]
     public sealed class HillBoard : SyncScript
     {
-        [Display("Frei", "Farben")] public Color FreeColor = Color.White;
-        [Display("Eigene Zone", "Farben")] public Color OwnColor = new Color(30, 200, 230);
-        [Display("Umkämpft", "Farben")] public Color ContestedColor = new Color(255, 205, 60);
-        [Display("Gegner", "Farben")] public Color EnemyColor = new Color(255, 85, 70);
+        [Display("Free", "Colours")] public Color FreeColor = Color.White;
+        [Display("Own zone", "Colours")] public Color OwnColor = new Color(30, 200, 230);
+        [Display("Contested", "Colours")] public Color ContestedColor = new Color(255, 205, 60);
+        [Display("Enemy", "Colours")] public Color EnemyColor = new Color(255, 85, 70);
 
-        /// <userdoc>Ein Gegner steht allein in der Zone und nimmt sie gerade ein, bekommt also noch keine Punkte.</userdoc>
-        [Display("Gegner nimmt ein", "Farben")] public Color EnemyTakingColor = new Color(255, 140, 30);
+        /// <userdoc>An enemy stands alone in the zone and is capturing it, so scores no points yet.</userdoc>
+        [Display("Enemy capturing", "Colours")] public Color EnemyTakingColor = new Color(255, 140, 30);
 
-        /// <userdoc>So viele Körper zeigt die Bestenliste oben rechts (höchstens 4)</userdoc>
-        [Display("Bestenliste", "Anzeige")] public int Leaders = 4;
+        /// <userdoc>How many bodies the leaderboard top right shows (at most 4)</userdoc>
+        [Display("Leaderboard", "Display")] public int Leaders = 4;
 
         [DataMemberIgnore] public HillMatch Match { get; set; }
         [DataMemberIgnore] public SimulationSystem Simulation { get; set; }
 
-        /// <summary>The body this screen belongs to, named "Du" everywhere.</summary>
+        /// <summary>The body this screen belongs to, named "You" everywhere.</summary>
         [DataMemberIgnore] public SimulationBody Self { get; set; }
 
         /// <summary>Networked: the round as the host confirmed it, for the winner banner.</summary>
@@ -195,17 +195,17 @@ namespace KotH.Client.Hud
             int own = Self != null ? HillMatch.Points(Self.ScoreTicks) : 0;
             int win = Match.WinTicks / HillMatch.TicksPerPoint;
             int left = (Math.Max(0, Match.LimitTicks - m.RoundTicks) + HillMatch.TicksPerPoint - 1) / HillMatch.TicksPerPoint;
-            string caption = "Punkte", count = string.Format(HudRenderer.Numbers, "{0} / {1}", own, win);
+            string caption = "Points", count = string.Format(HudRenderer.Numbers, "{0} / {1}", own, win);
             string time = Clock(left);
 
             ZoneLook look = Look(m, Self, Match.WarmupTicks);
             statusText = look switch
             {
-                ZoneLook.Own => Self.AloneTicks > Match.WarmupTicks ? "Du hältst die Zone" : "Du nimmst die Zone ein",
-                ZoneLook.Contested => "Umkämpft",
-                ZoneLook.Enemy => NameOf(m.Holder) + " hält die Zone",
-                ZoneLook.EnemyTaking => NameOf(m.Holder) + " nimmt die Zone ein",
-                _ => "Zone frei",
+                ZoneLook.Own => Self.AloneTicks > Match.WarmupTicks ? "You hold the zone" : "You are capturing",
+                ZoneLook.Contested => "Contested",
+                ZoneLook.Enemy => NameOf(m.Holder) + " holds the zone",
+                ZoneLook.EnemyTaking => NameOf(m.Holder) + " is capturing",
+                _ => "Zone free",
             };
 
             warmup = look == ZoneLook.Own && Self.AloneTicks <= Match.WarmupTicks && Match.WarmupTicks > 0
@@ -213,13 +213,13 @@ namespace KotH.Client.Hud
 
             if (m.Phase == MatchPhase.Waiting)
             {
-                caption = "Warte auf Spieler";
+                caption = "Waiting for players";
                 count = string.Format(HudRenderer.Numbers, "{0} / {1}", HillMatch.CountPlayers(Simulation.Bodies), m.MinPlayers);
                 time = statusText = "";
             }
             else if (m.Phase == MatchPhase.Countdown)
             {
-                caption = "Match beginnt in";
+                caption = "Match starts in";
                 count = "";
                 time = Clock((m.PhaseTicks + HillMatch.TicksPerPoint - 1) / HillMatch.TicksPerPoint);
                 statusText = "";
@@ -231,13 +231,13 @@ namespace KotH.Client.Hud
             MatchState final = ConfirmedRound != null ? ConfirmedRound() ?? default : m;
             if (final.Over || PretendBanner)
             {
-                bannerText = PretendBanner ? "Du gewinnst!"
-                           : final.Winner == null ? "Unentschieden"
-                           : final.Winner == Self ? "Du gewinnst!"
-                           : NameOf(final.Winner) + " gewinnt";
+                bannerText = PretendBanner ? "You win!"
+                           : final.Winner == null ? "Draw"
+                           : final.Winner == Self ? "You win!"
+                           : NameOf(final.Winner) + " wins";
                 int seconds = PretendBanner ? 10 : (final.PhaseTicks + HillMatch.TicksPerPoint - 1) / HillMatch.TicksPerPoint;
                 view.Win(bannerText, PretendBanner || final.Winner == Self && Self != null,
-                         string.Format(HudRenderer.Numbers, "Neue Runde in {0}", seconds));
+                         string.Format(HudRenderer.Numbers, "New round in {0}", seconds));
             }
             else
                 bannerText = "";
@@ -282,7 +282,7 @@ namespace KotH.Client.Hud
 
         static global::Avalonia.Media.Color ToAvalonia(Color c) => global::Avalonia.Media.Color.FromArgb(c.A, c.R, c.G, c.B);
 
-        string NameOf(SimulationBody body) => body == Self ? "Du" : body.Entity.Name;
+        string NameOf(SimulationBody body) => body == Self ? "You" : body.Entity.Name;
 
         int IndexOf(SimulationBody body)
         {

@@ -60,7 +60,7 @@ namespace KotH.Probes.Probes
 
             if (World.Simulation == null)
             {
-                LogError("[melee] kein SimulationSystem in der Szene");
+                LogError("[melee] no SimulationSystem in the scene");
                 Exit(3);
                 return;
             }
@@ -68,7 +68,7 @@ namespace KotH.Probes.Probes
             TrainingDummy target = scene.Dummy?.Get<TrainingDummy>();
             if (target == null)
             {
-                LogError("[melee] kein TrainingDummy in der Szene");
+                LogError("[melee] no TrainingDummy in the scene");
                 Exit(3);
                 return;
             }
@@ -89,7 +89,7 @@ namespace KotH.Probes.Probes
 
             if (damage == null || attack == null)
             {
-                LogError("[melee] DamagePercent am Dummy oder MeleeAttack am Spieler fehlt");
+                LogError("[melee] DamagePercent on the dummy or MeleeAttack on the player is missing");
                 Exit(3);
                 return;
             }
@@ -130,9 +130,9 @@ namespace KotH.Probes.Probes
                     accepted++;
             }
 
-            Log($"[melee] == Deckel: nach 900 Schlägen à 1,2 %" +
-                $" steht {damage.Percent:F1} % (soll 1000,0)," +
-                $" angenommen {accepted} von 900 (soll 834)," +
+            Log($"[melee] == Cap: after 900 swings of 1.2 %" +
+                $" stands at {damage.Percent:F1} % (want 1000.0)," +
+                $" accepted {accepted} of 900 (want 834)," +
                 $" IsCapped {damage.IsCapped}");
 
             damage.Reset();
@@ -179,11 +179,11 @@ namespace KotH.Probes.Probes
                                       6f, CollisionMask.Everything, out QueryHit side))
                 radius = Ref.ToUnity(side.Point).X - d.X;
 
-            Log($"[melee] == Trefferfläche: Dummy-Mitte y {d.Y:F3}," +
-                $" bounds oben {bMax.Y:F3} unten {bMin.Y:F3} breit {(bMax.X - bMin.X):F3}," +
-                $" aber abfragbar: Scheitel {crown:F3} Radius {radius:F3}." +
-                $" Oberste {(bMax.Y - crown):F3} m sind nicht treffbar," +
-                $" Augenhöhe des Spielers ist {Ref.ToUnity(player.EyePosition).Y:F3}");
+            Log($"[melee] == Hit area: dummy centre y {d.Y:F3}," +
+                $" bounds top {bMax.Y:F3} bottom {bMin.Y:F3} wide {(bMax.X - bMin.X):F3}," +
+                $" but queryable: crown {crown:F3} Radius {radius:F3}." +
+                $" topmost {(bMax.Y - crown):F3} m are not hittable," +
+                $" eye height of the player is {Ref.ToUnity(player.EyePosition).Y:F3}");
 
             tick = 0;
             phase = Phase.Reach;
@@ -263,11 +263,11 @@ namespace KotH.Probes.Probes
                 return;
             }
 
-            Log($"[melee] == Reichweite: letzter Treffer bei waagerechtem" +
-                $" Abstand {lastHitCentre:F3} m, der Strahl lief dabei" +
-                $" {lastHitRay:F3} m (Grenze {attack.Range:F3})," +
-                $" Schrittweite {DistanceStep:F3} m," +
-                $" Auge auf y {Ref.ToUnity(player.EyePosition).Y:F3}");
+            Log($"[melee] == Range: last hit at horizontal" +
+                $" distance {lastHitCentre:F3} m, the ray ran" +
+                $" {lastHitRay:F3} m (limit {attack.Range:F3})," +
+                $" step {DistanceStep:F3} m," +
+                $" eye at y {Ref.ToUnity(player.EyePosition).Y:F3}");
 
             distance = 2.0f;
             PlaceDummy();
@@ -294,10 +294,10 @@ namespace KotH.Probes.Probes
                 return;
 
             Vector3 d = Ref.ToUnity(dummy.Position);
-            Log($"[melee] == Takt: {BurstTicks} Ticks Dauerfeuer ergeben" +
-                $" {attack.SwingCount} Schläge und {attack.HitCount} Treffer" +
-                $" (soll je 11), Aufladung {damage.Percent:F1} % (soll 13,2)," +
-                $" Dummy bei ({d.X:F2}/{d.Y:F2}/{d.Z:F2})");
+            Log($"[melee] == Rate: {BurstTicks} ticks of constant fire give" +
+                $" {attack.SwingCount} swings and {attack.HitCount} hits" +
+                $" (want each 11), charge {damage.Percent:F1} % (want 13.2)," +
+                $" dummy at ({d.X:F2}/{d.Y:F2}/{d.Z:F2})");
 
             // Within reach, but a metre off the line of sight.
             Place(dummy,
@@ -323,11 +323,11 @@ namespace KotH.Probes.Probes
                 return;
 
             Vector3 d = Ref.ToUnity(dummy.Position);
-            Log($"[melee] == Seitlich versetzt: Dummy bei" +
-                $" ({d.X:F2}/{d.Y:F2}/{d.Z:F2}), Spieler blickt waagerecht" +
-                $" nach +x, Schläge {attack.SwingCount}," +
-                $" Treffer {attack.HitCount} (soll 0)," +
-                $" Aufladung {damage.Percent:F1} % (soll 0,0)");
+            Log($"[melee] == Offset sideways: dummy at" +
+                $" ({d.X:F2}/{d.Y:F2}/{d.Z:F2}), player looks horizontally" +
+                $" towards +x, swings {attack.SwingCount}," +
+                $" hits {attack.HitCount} (want 0)," +
+                $" charge {damage.Percent:F1} % (want 0.0)");
 
             // Unity measured the DamageLabel's font here; the client is not ported yet.
             phase = Phase.Done;

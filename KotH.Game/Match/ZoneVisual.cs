@@ -22,17 +22,17 @@ namespace KotH.Client.Match
     [DataContract("KotH.ZoneVisual")]
     public sealed class ZoneVisual : SyncScript
     {
-        /// <userdoc>Ein Würfel von 1 m, aus dem die Leisten gebaut werden, mit ihrem Material.</userdoc>
-        [Display("Würfel", "Darstellung")] public Model Cube;
+        /// <userdoc>A 1 m cube the rails are built from, with their material.</userdoc>
+        [Display("Cube", "Visuals")] public Model Cube;
 
-        /// <userdoc>Partikel, die von den Leisten aufsteigen, in der Farbe der Zone. Ihre Emitter sind für 1 m Rand eingestellt (Rand entlang X, Höhe ab dem Zonenboden) und werden auf jede Seite gestreckt.</userdoc>
-        [Display("Partikel am Rand", "Darstellung")] public Prefab Motes;
+        /// <userdoc>Particles rising from the rails in the zone's colour. Their emitters are set up for 1 m of edge (edge along X, height from the zone floor) and stretched to each side.</userdoc>
+        [Display("Edge particles", "Visuals")] public Prefab Motes;
 
-        [Display("Leistenbreite", "Maße")] public float Thickness = 0.12f;
-        [Display("Leistenhöhe", "Maße")] public float RailHeight = 0.1f;
+        [Display("Rail width", "Size")] public float Thickness = 0.12f;
+        [Display("Rail height", "Size")] public float RailHeight = 0.1f;
 
-        /// <userdoc>So weit sind die Partikel zu Weiß hin aufgehellt, von 0 (Zonenfarbe) bis 1 (weiß).</userdoc>
-        [Display("Partikel aufhellen", "Darstellung")] public float MoteLight = 0f;
+        /// <userdoc>How far the particles are lightened towards white, from 0 (zone colour) to 1 (white).</userdoc>
+        [Display("Lighten particles", "Visuals")] public float MoteLight = 0f;
 
         [DataMemberIgnore] public CaptureZone Zone { get; set; }
         [DataMemberIgnore] public HillMatch Match { get; set; }

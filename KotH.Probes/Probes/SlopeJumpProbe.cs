@@ -108,10 +108,10 @@ namespace KotH.Probes.Probes
 
             int counted = TicksPerCase - 20;
             Log($"[slope] == {Ramps[caseIndex / 2]}" +
-                $" {(sprint ? "sprint" : "gehen")} runter:" +
-                $" ohne Boden {notGrounded} von {counted}" +
+                $" {(sprint ? "sprint" : "walk")} down:" +
+                $" without ground {notGrounded} of {counted}" +
                 $" ({100f * notGrounded / counted:F0} %)," +
-                $" längste Strecke {worstStreak} Ticks" +
+                $" longest run {worstStreak} ticks" +
                 $" ({worstStreak * 0.025f:F3} s)");
             Next();
         }

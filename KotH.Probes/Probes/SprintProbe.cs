@@ -63,80 +63,80 @@ namespace KotH.Probes.Probes
 
         static readonly Case[] Cases =
         {
-            new Case { name = "Einmal tippen", phases = new[] {
-                P("tippen, 1 Tick",       1, true,  false, Fwd, true, Speed.Any),
-                P("Taste los, vorwärts", 40, false, false, Fwd, true, Speed.Sprint),
+            new Case { name = "Tap once", phases = new[] {
+                P("tap, 1 tick",       1, true,  false, Fwd, true, Speed.Any),
+                P("key up, forward", 40, false, false, Fwd, true, Speed.Sprint),
             }},
-            new Case { name = "Loslassen beendet", phases = new[] {
-                P("tippen + anlaufen",   40, true,  false, Fwd, true,  Speed.Sprint),
-                P("stehen bleiben",      30, false, false, Zero, false, Speed.Zero),
-                P("wieder vorwärts",     40, false, false, Fwd, false, Speed.Walk),
+            new Case { name = "Release ends", phases = new[] {
+                P("tap + run-up",   40, true,  false, Fwd, true,  Speed.Sprint),
+                P("stop",      30, false, false, Zero, false, Speed.Zero),
+                P("forward again",     40, false, false, Fwd, false, Speed.Walk),
             }},
-            new Case { name = "Halten endet nie", phases = new[] {
-                P("halten + anlaufen",   40, true, false, Fwd, true, Speed.Sprint),
-                P("halten, stehen",      30, true, false, Zero, true, Speed.Zero),
-                P("halten, vorwärts",    40, true, false, Fwd, true, Speed.Sprint),
+            new Case { name = "Holding never ends", phases = new[] {
+                P("hold + run-up",   40, true, false, Fwd, true, Speed.Sprint),
+                P("hold, stand",      30, true, false, Zero, true, Speed.Zero),
+                P("hold, forward",    40, true, false, Fwd, true, Speed.Sprint),
             }},
-            new Case { name = "Ducken beendet", phases = new[] {
-                P("tippen + anlaufen",   40, true,  false, Fwd, true,  Speed.Sprint),
-                P("ducken",              30, false, true,  Fwd, false, Speed.Crouch),
-                P("aufrichten",          40, false, false, Fwd, false, Speed.Walk),
+            new Case { name = "Crouch ends", phases = new[] {
+                P("tap + run-up",   40, true,  false, Fwd, true,  Speed.Sprint),
+                P("crouch",              30, false, true,  Fwd, false, Speed.Crouch),
+                P("stand up",          40, false, false, Fwd, false, Speed.Walk),
             }},
-            new Case { name = "Ducken mit Halten", phases = new[] {
-                P("halten + anlaufen",   40, true, false, Fwd, true, Speed.Sprint),
-                P("halten + ducken",     30, true, true,  Fwd, true, Speed.Crouch),
-                P("halten, aufrichten",  40, true, false, Fwd, true, Speed.Sprint),
+            new Case { name = "Crouch while holding", phases = new[] {
+                P("hold + run-up",   40, true, false, Fwd, true, Speed.Sprint),
+                P("hold + crouch",     30, true, true,  Fwd, true, Speed.Crouch),
+                P("hold, stand up",  40, true, false, Fwd, true, Speed.Sprint),
             }},
-            new Case { name = "Stoß beendet", phases = new[] {
-                P("tippen + anlaufen",   40, true, false, Fwd, true, Speed.Sprint),
+            new Case { name = "Push ends", phases = new[] {
+                P("tap + run-up",   40, true, false, Fwd, true, Speed.Sprint),
                 // Two ticks: the limit reads the previous tick, so the push
                 // lands in the first and ends the sprint in the second.
-                new Phase { name = "Stoß entgegen", ticks = 2, move = Fwd,
+                new Phase { name = "push against", ticks = 2, move = Fwd,
                             push = true, wantSprint = false, wantSpeed = Speed.Any },
-                P("danach vorwärts",     40, false, false, Fwd, false, Speed.Walk),
+                P("then forward",     40, false, false, Fwd, false, Speed.Walk),
             }},
-            new Case { name = "Wand, getippt", wall = true, phases = new[] {
-                P("tippen + anlaufen",   40, true,  false, Fwd, true,  Speed.Sprint),
-                P("in die Wand rennen",  40, false, false, Fwd, false, Speed.Blocked),
-                P("zurück, vorwärts",    40, false, false, Back, false, Speed.Walk),
+            new Case { name = "Wall, tapped", wall = true, phases = new[] {
+                P("tap + run-up",   40, true,  false, Fwd, true,  Speed.Sprint),
+                P("run into the wall",  40, false, false, Fwd, false, Speed.Blocked),
+                P("back, forward",    40, false, false, Back, false, Speed.Walk),
             }},
-            new Case { name = "Wand, gehalten", wall = true, phases = new[] {
-                P("halten + anlaufen",   40, true, false, Fwd, true, Speed.Sprint),
-                P("in die Wand rennen",  40, true, false, Fwd, true, Speed.Blocked),
-                P("halten, zurück",      40, true, false, Back, true, Speed.Sprint),
+            new Case { name = "Wall, held", wall = true, phases = new[] {
+                P("hold + run-up",   40, true, false, Fwd, true, Speed.Sprint),
+                P("run into the wall",  40, true, false, Fwd, true, Speed.Blocked),
+                P("hold, back",      40, true, false, Back, true, Speed.Sprint),
             }},
             // The open question about measuring the real step: uphill the
             // horizontal part of it is shorter than the distance travelled.
-            new Case { name = "Rampe 20 getippt", where = Where.Ramp20, phases = new[] {
-                P("tippen + anlaufen",   20, true,  false, Fwd, true, Speed.Any),
-                P("Rampe hoch",          30, false, false, Fwd, true, Speed.Uphill),
+            new Case { name = "Ramp 20 tapped", where = Where.Ramp20, phases = new[] {
+                P("tap + run-up",   20, true,  false, Fwd, true, Speed.Any),
+                P("ramp up",          30, false, false, Fwd, true, Speed.Uphill),
             }},
-            new Case { name = "Rampe 35 getippt", where = Where.Ramp35, phases = new[] {
-                P("tippen + anlaufen",   20, true,  false, Fwd, true, Speed.Any),
-                P("Rampe hoch",          30, false, false, Fwd, true, Speed.Uphill),
+            new Case { name = "Ramp 35 tapped", where = Where.Ramp35, phases = new[] {
+                P("tap + run-up",   20, true,  false, Fwd, true, Speed.Any),
+                P("ramp up",          30, false, false, Fwd, true, Speed.Uphill),
             }},
-            new Case { name = "Rampe 45 getippt", where = Where.Ramp45, phases = new[] {
-                P("tippen + anlaufen",   20, true,  false, Fwd, true, Speed.Any),
-                P("Rampe hoch",          30, false, false, Fwd, true, Speed.Uphill),
+            new Case { name = "Ramp 45 tapped", where = Where.Ramp45, phases = new[] {
+                P("tap + run-up",   20, true,  false, Fwd, true, Speed.Any),
+                P("ramp up",          30, false, false, Fwd, true, Speed.Uphill),
             }},
             // Held, so the sprint survives the impact tick and the steady
             // uphill step becomes measurable at all.
-            new Case { name = "Rampe 20 gehalten", where = Where.Ramp20, phases = new[] {
-                P("anlaufen",            20, true, false, Fwd, true, Speed.Any),
-                T("Rampe hoch",          30, true, false, Fwd, true, Speed.Uphill, 14),
+            new Case { name = "Ramp 20 held", where = Where.Ramp20, phases = new[] {
+                P("run-up",            20, true, false, Fwd, true, Speed.Any),
+                T("ramp up",          30, true, false, Fwd, true, Speed.Uphill, 14),
             }},
-            new Case { name = "Rampe 35 gehalten", where = Where.Ramp35, phases = new[] {
-                P("anlaufen",            20, true, false, Fwd, true, Speed.Any),
-                T("Rampe hoch",          30, true, false, Fwd, true, Speed.Uphill, 14),
+            new Case { name = "Ramp 35 held", where = Where.Ramp35, phases = new[] {
+                P("run-up",            20, true, false, Fwd, true, Speed.Any),
+                T("ramp up",          30, true, false, Fwd, true, Speed.Uphill, 14),
             }},
-            new Case { name = "Rampe 45 gehalten", where = Where.Ramp45, phases = new[] {
-                P("anlaufen",            20, true, false, Fwd, true, Speed.Any),
-                T("Rampe hoch",          30, true, false, Fwd, true, Speed.Uphill, 14),
+            new Case { name = "Ramp 45 held", where = Where.Ramp45, phases = new[] {
+                P("run-up",            20, true, false, Fwd, true, Speed.Any),
+                T("ramp up",          30, true, false, Fwd, true, Speed.Uphill, 14),
             }},
-            new Case { name = "Wand gehalten, Verlauf", where = Where.Flat,
+            new Case { name = "Wall held, trace", where = Where.Flat,
                        wall = true, phases = new[] {
-                P("anlaufen",            40, true, false, Fwd, true, Speed.Any),
-                T("in die Wand",         40, true, false, Fwd, true, Speed.Blocked, 14),
+                P("run-up",            40, true, false, Fwd, true, Speed.Any),
+                T("into the wall",         40, true, false, Fwd, true, Speed.Blocked, 14),
             }},
         };
 
@@ -172,8 +172,8 @@ namespace KotH.Probes.Probes
             CheckSlopeHeadroom();
             BuildFlatGround();
 
-            Log($"[sprint] Sollwerte: gehen {walkSpeed:F3}," +
-                $" sprint {sprintSpeed:F3}, geduckt {crouchSpeed:F3} m/s");
+            Log($"[sprint] targets: walk {walkSpeed:F3}," +
+                $" sprint {sprintSpeed:F3}, crouched {crouchSpeed:F3} m/s");
 
             // The first case waits for FixedUpdate, as it did in Unity, where
             // the fresh ground was not yet known to PhysX at this point.
@@ -189,9 +189,9 @@ namespace KotH.Probes.Probes
             float ratio = walkSpeed / sprintSpeed;
             float limit = UMath.Cos(motor.SlopeLimit * UMath.Deg2Rad);
 
-            Log($"[sprint] gehen/sprint {ratio:F3} gegen" +
+            Log($"[sprint] walk/sprint {ratio:F3} vs" +
                 $" cos({motor.SlopeLimit:F0}°) = {limit:F3}:" +
-                $" {(ratio < limit ? "Luft da" : "ZU KNAPP, Sprint stirbt bergauf")}");
+                $" {(ratio < limit ? "room left" : "TOO TIGHT, sprint dies uphill")}");
 
             if (ratio >= limit)
                 failures++;
@@ -216,8 +216,8 @@ namespace KotH.Probes.Probes
             if (caseIndex >= Cases.Length)
             {
                 Log(failures == 0
-                    ? "[sprint] ALLE FÄLLE WIE ERWARTET"
-                    : $"[sprint] {failures} ABWEICHUNGEN");
+                    ? "[sprint] ALL CASES AS EXPECTED"
+                    : $"[sprint] {failures} DEVIATIONS");
                 Exit(failures == 0 ? 0 : 1);
                 return;
             }
@@ -315,12 +315,12 @@ namespace KotH.Probes.Probes
                 minRealLate = lastReal;
 
             if (tick < p.trace)
-                Log($"[sprint]       Tick {tick,3}: echt {lastReal,6:F3}" +
-                    $" {(lastReal < walkSpeed ? "UNTER" : "     ")}," +
-                    $" waagerecht {lastFlat,6:F3}," +
-                    $" sprint {(motor.IsSprinting ? "AN " : "aus")}," +
+                Log($"[sprint]       tick {tick,3}: real {lastReal,6:F3}" +
+                    $" {(lastReal < walkSpeed ? "BELOW" : "     ")}," +
+                    $" horizontal {lastFlat,6:F3}," +
+                    $" sprint {(motor.IsSprinting ? "ON " : "off")}," +
                     $" y {after.Y,6:F2}," +
-                    $" boden {(motor.IsGrounded ? "ja " : "nein")}");
+                    $" ground {(motor.IsGrounded ? "yes " : "no  ")}");
 
             tick++;
             if (tick < p.ticks)
@@ -368,21 +368,21 @@ namespace KotH.Probes.Probes
             if (!ok)
                 failures++;
 
-            string wanted = $"sprint {(p.wantSprint ? "an" : "aus")}" +
-                            (want < 0f ? "" : $", echt {want:F2}");
+            string wanted = $"sprint {(p.wantSprint ? "on" : "off")}" +
+                            (want < 0f ? "" : $", real {want:F2}");
 
             if (p.wantSpeed == Speed.Uphill)
                 wanted += $" (sprint x cos {motor.GroundAngle:F1}°)";
 
-            Log($"[sprint]    {p.name,-20} nach {p.ticks,3} Ticks:" +
-                $" sprint {(sprinting ? "AN " : "aus")}" +
-                $"{(sprintLostAt >= 0 ? $" (erlosch bei Tick {sprintLostAt,3})" : "")}," +
-                $" wunsch {wish,6:F3}, echt {lastReal,6:F3}" +
-                $" (waagerecht {lastFlat,6:F3})" +
-                $" (min letztes Drittel {minRealLate,6:F3})," +
+            Log($"[sprint]    {p.name,-20} after {p.ticks,3} ticks:" +
+                $" sprint {(sprinting ? "ON " : "off")}" +
+                $"{(sprintLostAt >= 0 ? $" (ended at tick {sprintLostAt,3})" : "")}," +
+                $" wanted {wish,6:F3}, real {lastReal,6:F3}" +
+                $" (horizontal {lastFlat,6:F3})" +
+                $" (min last third {minRealLate,6:F3})," +
                 $" x/y/z {pos.X,8:F2}/" +
                 $"{pos.Y,6:F2}/{pos.Z,8:F2}" +
-                $"  -> {(ok ? "ok" : "ABWEICHUNG, erwartet " + wanted)}");
+                $"  -> {(ok ? "ok" : "DEVIATION, expected " + wanted)}");
         }
     }
 }

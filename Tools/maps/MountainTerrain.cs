@@ -8,9 +8,9 @@ using System.Text;
 
 namespace KotH.Tools.Maps;
 
-// The block mountain of map "Neu" (Mountain.cs runs it): the terrain, its mesh and what
+// The block mountain of map "Mount Destiny" (Mountain.cs runs it): the terrain, its mesh and what
 // is written from it. Ported from mountain.py, operation for operation: the floats are
-// Python's (Py.Sum, Py.Hypot, Py.Pow, libm), so Mountain.glb, Sea.glb and NeuTerrain.bin
+// Python's (Py.Sum, Py.Hypot, Py.Pow, libm), so Mountain.glb, Sea.glb and MountDestinyTerrain.bin
 // come out as the script made them.
 
 public readonly record struct Rgb(double R, double G, double B)
@@ -406,7 +406,7 @@ public sealed class Terrain
                     Raised++;
                 }
         }
-        throw new Exception("Abbruch: Fallen lassen sich nicht auffüllen");
+        throw new Exception("Abort: pits cannot be filled");
     }
 
     void Paint()
@@ -1361,7 +1361,7 @@ public static class Output
     /// <summary>
     /// The sea round the island and out to SeaReach, with a hole where the island stands:
     /// overlapping it, the far depth buffer lost the meadow under the water. Flat at the
-    /// entity's height (NeuVisual puts it at the water's height).
+    /// entity's height (MountDestinyVisual puts it at the water's height).
     /// </summary>
     public static Part Sea(Terrain t)
     {
@@ -1436,7 +1436,7 @@ public static class Output
         static bool Leafy(int kind) => kind == M.Leaf || kind == M.Clump;
         int solid = mesh.Keys.Count(k => !Leafy(k.Kind));
         if (mesh.Keys.Skip(solid).Any(k => !Leafy(k.Kind)))
-            throw new Exception("Blätter nicht am Ende");
+            throw new Exception("leaves not at the end");
         var raw = new MemoryStream();
         var w = new BinaryWriter(raw);
         w.Write("KTRN"u8);

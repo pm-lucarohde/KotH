@@ -48,13 +48,13 @@ foreach (string fn in Directory.GetFiles(newdir).Select(Path.GetFileName).Order(
         else
         {
             changed++;
-            report.Add($"ANDERS   {fn} {k}\n           neu : {v}\n           ref : {string.Join("\n           ref : ", known)}");
+            report.Add($"CHANGED  {fn} {k}\n           new : {v}\n           ref : {string.Join("\n           ref : ", known)}");
         }
     }
 }
 
-Console.WriteLine(report.Count > 0 ? string.Join("\n", report) : "keine Abweichung");
-Console.WriteLine($"--- {total} Faelle: {same} wie Referenz ({spread} davon streuen in der Referenz selbst), {changed} abweichend");
+Console.WriteLine(report.Count > 0 ? string.Join("\n", report) : "no deviation");
+Console.WriteLine($"--- {total} cases: {same} as reference ({spread} of them scatter within the reference),{changed} changed");
 
 static List<(string, string)> Cases(string path)
 {

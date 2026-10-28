@@ -34,7 +34,7 @@ namespace KotH.Server
             bool hosting = Array.IndexOf(args, "--host") >= 0;
             string join = Text(args, "--join");
             int port = (int)(Number(args, "--port") ?? LiteNetTransport.DefaultPort);
-            string name = Text(args, "--name") ?? (hosting ? "Host" : "Gast");
+            string name = Text(args, "--name") ?? (hosting ? "Host" : "Guest");
             double? seconds = Number(args, "--seconds");
             bool bot = Array.IndexOf(args, "--bot") >= 0;
             int minPlayers = (int)(Number(args, "--min-players") ?? HillMatch.DefaultMinPlayers);
@@ -48,7 +48,7 @@ namespace KotH.Server
             {
                 if (!world.Builder.HasMap(map))
                 {
-                    Console.WriteLine($"[net] unbekannte Map: {map}");
+                    Console.WriteLine($"[net] unknown map: {map}");
                     return 1;
                 }
                 world.LoadArena(map);
@@ -73,7 +73,7 @@ namespace KotH.Server
                 HillMatch round = world.Simulation.Match;
                 round.MinPlayers = minPlayers;
                 host.CanJoin = () => round.AcceptsJoin;
-                Console.WriteLine($"[net] Host auf Port {port}, Map {map}, Runde ab {minPlayers} Spielern, Build {NetProtocol.BuildText}");
+                Console.WriteLine($"[net] host on port {port}, map {map}, round from {minPlayers} players, build {NetProtocol.BuildText}");
                 if (bots > 0)
                 {
                     BotDirector director = BotDirector.Create(world.Builder, world.Simulation, session, botSeed);
@@ -81,7 +81,7 @@ namespace KotH.Server
                     session.KnownInputs = director;
                     for (int i = 0; i < bots; i++)
                         director.Add(host.AddBot($"Bot {i + 1}"));
-                    Console.WriteLine($"[net] {bots} Bots, Seed {botSeed}");
+                    Console.WriteLine($"[net] {bots} bots, seed {botSeed}");
                 }
             }
             else
@@ -89,13 +89,13 @@ namespace KotH.Server
                 (string address, int at) = Address(join, port);
                 transport = LiteNetTransport.Join(address, at);
                 session = new PeerSession(new HeadlessNetWorld(world), transport, sample, name, founder: false, Now());
-                Console.WriteLine($"[net] {name} verbindet mit {address}:{at}, Build {NetProtocol.BuildText}");
+                Console.WriteLine($"[net] {name} connects to {address}:{at}, build {NetProtocol.BuildText}");
             }
 
             session.Checksum += (tick, hash) =>
             {
                 if (tick % 400 == 0)
-                    Console.WriteLine($"[net] Prüfsumme Tick {tick}: {hash:X16}");
+                    Console.WriteLine($"[net] checksum tick {tick}: {hash:X16}");
             };
 
             using var stop = new CancellationTokenSource();
@@ -121,20 +121,20 @@ namespace KotH.Server
 
                     if (session.Rejected is { } why)
                     {
-                        Console.WriteLine($"[net] abgelehnt: {why}");
+                        Console.WriteLine($"[net] rejected: {why}");
                         code = 2;
                         break;
                     }
                     if (session.HostLost)
                     {
-                        Console.WriteLine($"[net] Host weg ({transport.DisconnectReason}), Spiel vorbei");
+                        Console.WriteLine($"[net] host gone ({transport.DisconnectReason}), game over");
                         code = 3;
                         break;
                     }
                     if (!joined && session.Joined)
                     {
                         joined = true;
-                        Console.WriteLine($"[net] beigetreten als NetId {session.LocalNetId} bei Tick {world.Simulation.CurrentTick}, Map {world.Builder.Map}");
+                        Console.WriteLine($"[net] joined as NetId {session.LocalNetId} at tick {world.Simulation.CurrentTick}, map {world.Builder.Map}");
                     }
                     if (now - lastReport >= 10000.0)
                     {
@@ -147,7 +147,7 @@ namespace KotH.Server
             }
 
             Report(world, session, host);
-            Console.WriteLine("[net] beendet");
+            Console.WriteLine("[net] stopped");
             return code;
         }
 
@@ -157,15 +157,15 @@ namespace KotH.Server
             int players = HillMatch.CountPlayers(world.Simulation.Bodies);
             string phase = m.Phase switch
             {
-                MatchPhase.Waiting => $"warte ({players} / {m.MinPlayers})",
+                MatchPhase.Waiting => $"waiting ({players} / {m.MinPlayers})",
                 MatchPhase.Countdown => $"Start in {(m.PhaseTicks + 39) / 40} s",
-                MatchPhase.Over => "Runde vorbei",
-                _ => $"Runde {m.RoundTicks / 40} s",
+                MatchPhase.Over => "round over",
+                _ => $"round {m.RoundTicks / 40} s",
             };
-            string extra = host != null ? $", Ersatz {host.Substituted}, geklemmt {host.Sanitized}, Desyncs {host.Desyncs}" : "";
-            Console.WriteLine($"[net] Tick {world.Simulation.CurrentTick}, {players} Spieler, {phase}, Ping {session.RoundTripMs:F0} ms, " +
-                              $"Rollbacks {session.Rollbacks} (tiefster {session.DeepestRollback}), Warten {session.Stalls}, " +
-                              $"Reparaturen {session.Repairs}{extra}");
+            string extra = host != null ? $", substituted {host.Substituted}, clamped {host.Sanitized}, desyncs {host.Desyncs}" : "";
+            Console.WriteLine($"[net] Tick {world.Simulation.CurrentTick}, {players} players, {phase}, ping {session.RoundTripMs:F0} ms, " +
+                              $"rollbacks {session.Rollbacks} (deepest {session.DeepestRollback}), stalls {session.Stalls}, " +
+                              $"repairs {session.Repairs}{extra}");
         }
 
         static (string, int) Address(string text, int port)

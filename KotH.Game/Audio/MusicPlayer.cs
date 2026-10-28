@@ -17,25 +17,25 @@ namespace KotH.Client.Audio
     [DataContract("KotH.MusicPlayer")]
     public sealed class MusicPlayer : SyncScript
     {
-        /// <userdoc>Läuft in Schleife, solange das Hauptmenü offen ist.</userdoc>
-        [Display("Hauptmenü", "Musik")] public Sound Menu;
+        /// <userdoc>Loops while the main menu is open.</userdoc>
+        [Display("Main menu", "Music")] public Sound Menu;
 
-        /// <userdoc>Läuft in Schleife, solange kein Spiel läuft: Warten auf Spieler, Countdown und die Pause nach dem Sieg.</userdoc>
-        [Display("Vor dem Spiel", "Musik")] public Sound Lobby;
+        /// <userdoc>Loops while no game runs: waiting for players, countdown and the pause after a win.</userdoc>
+        [Display("Before the game", "Music")] public Sound Lobby;
 
-        /// <userdoc>Läuft einmal, sobald eine Runde beginnt.</userdoc>
-        [Display("Spielbeginn", "Musik")] public Sound RoundStart;
+        /// <userdoc>Plays once when a round starts.</userdoc>
+        [Display("Round start", "Music")] public Sound RoundStart;
 
-        /// <userdoc>Nach dem Spielbeginn-Track zufällig nacheinander: jeder einmal, bevor einer wiederkommt.</userdoc>
-        [Display("Danach zufällig", "Musik")] public List<Sound> Playlist = new List<Sound>();
+        /// <userdoc>After the round start track, shuffled: each once before any repeats.</userdoc>
+        [Display("Then shuffled", "Music")] public List<Sound> Playlist = new List<Sound>();
 
-        [Display("Lautstärke", "Musik")] public float Volume = 0.1224f;
+        [Display("Volume", "Music")] public float Volume = 0.1224f;
 
-        /// <userdoc>Verstärkt Musik, Umgebung und Geräusche gemeinsam, ihre Lautstärken untereinander bleiben. 2,43 hebt alles so weit an, dass ein Treffer am eigenen Ohr auch auf einer Spitze der Musik höchstens etwa −0,3 dBFS erreicht (Musik etwa −22 LUFS).</userdoc>
-        [Display("Gesamtlautstärke", "Alles")] public float MasterVolume = 2.43f;
+        /// <userdoc>Scales music, ambience and sounds together, keeping their balance. 2.43 lifts everything until a hit at one's own ear on a music peak reaches about −0.3 dBFS at most (music about −22 LUFS).</userdoc>
+        [Display("Master volume", "All")] public float MasterVolume = 2.43f;
 
-        /// <userdoc>So lange blendet ein Track in den nächsten über (Sekunden), auch wenn einer ausläuft: der nächste beginnt so lange vor dessen Ende.</userdoc>
-        [Display("Überblenden", "Musik")] public float FadeSeconds = 3.5f;
+        /// <userdoc>How long one track crossfades into the next (seconds), also when one runs out: the next starts that long before its end.</userdoc>
+        [Display("Crossfade", "Music")] public float FadeSeconds = 3.5f;
 
         [DataMemberIgnore] public HillMatch Match { get; set; }
 
@@ -84,7 +84,7 @@ namespace KotH.Client.Audio
             {
                 // No audio device or a broken asset: stay silent, never stop the game.
                 failed = true;
-                Log.Warning($"Musik fällt aus: {e.Message}");
+                Log.Warning($"Music fails: {e.Message}");
                 StopAll();
             }
         }
@@ -94,9 +94,9 @@ namespace KotH.Client.Audio
         /// <summary>For tests: what plays, how it stands and how often the music changed.</summary>
         [DataMemberIgnore]
         public string Readout
-            => failed ? "ausgefallen"
-             : $"{NameOf(playing) ?? "nichts"}, " +
-               $"{current?.PlayState.ToString() ?? "-"} seit {age:F1} von {length:F1} s, Lautstärke {current?.Volume ?? 0f:F2}, Verlauf {string.Join(" > ", history)}";
+            => failed ? "failed"
+             : $"{NameOf(playing) ?? "nothing"}, " +
+               $"{current?.PlayState.ToString() ?? "-"} for {age:F1} of {length:F1} s, volume {current?.Volume ?? 0f:F2}, history {string.Join(" > ", history)}";
 
         void Step(float dt)
         {
@@ -106,12 +106,12 @@ namespace KotH.Client.Audio
             {
                 mode = now;
                 if (now == Mode.Menu)
-                    Switch(Menu, "Hauptmenü");
+                    Switch(Menu, "main menu");
                 else
-                    Switch(now == Mode.Round ? RoundStart : Lobby, now == Mode.Round ? "Spielbeginn" : "Vor dem Spiel");
+                    Switch(now == Mode.Round ? RoundStart : Lobby, now == Mode.Round ? "round start" : "before the game");
             }
             else if (now == Mode.Round && current != null && !current.IsLooping && age >= length - Math.Min(FadeSeconds, length * 0.5))
-                Switch(Draw(), "Zufall");
+                Switch(Draw(), "shuffle");
 
             float step = FadeSeconds > 0f ? dt / FadeSeconds : 1f;
             fadeIn = Math.Min(1f, fadeIn + step);
@@ -163,7 +163,7 @@ namespace KotH.Client.Audio
             current = instance;
             if (history.Count < 16)
                 history.Add(NameOf(sound));
-            Log.Info($"Musik: {what} ({NameOf(sound)})");
+            Log.Info($"Music: {what} ({NameOf(sound)})");
         }
 
         string NameOf(Sound sound)

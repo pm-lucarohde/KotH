@@ -1,29 +1,29 @@
 [det] entering play mode
-[det] Etappe 0 endet bei Tick 42, Position (11.21, 0.90, -4.00), Ziel erreicht
-[det] Etappe 1 endet bei Tick 58, Position (12.25, 0.90, -4.00), Ziel erreicht
-[det] Etappe 2 endet bei Tick 108, Position (7.55, 0.90, -4.00), Ziel nicht erreicht
-[det] Etappe 3 endet bei Tick 158, Position (14.50, 0.90, -4.00), Ziel nicht erreicht
-[det] Etappe 4 endet bei Tick 208, Position (8.70, 0.91, -8.53), Ziel nicht erreicht
-[det] Etappe 5 endet bei Tick 278, Position (-5.35, 0.91, -12.69), Ziel erreicht
-[det] Etappe 6 endet bei Tick 363, Position (-6.28, 0.92, -3.75), Ziel erreicht
-[det] Etappe 7 endet bei Tick 387, Position (-4.08, 0.91, -4.62), Ziel erreicht
-[det] Etappe 8 endet bei Tick 475, Position (-3.50, 6.81, 11.39), Ziel erreicht
-[det] Etappe 9 endet bei Tick 512, Position (-3.04, 5.91, 19.35), Ziel erreicht
-[det] Etappe 10 endet bei Tick 547, Position (-9.28, 3.66, 20.06), Ziel erreicht
-[det] Etappe 11 endet bei Tick 573, Position (-12.00, 1.10, 16.79), Ziel erreicht
-[det] Etappe 12 endet bei Tick 613, Position (-13.43, 2.15, 11.63), Ziel nicht erreicht
-[det] Etappe 13 endet bei Tick 693, Position (-9.71, 0.94, 15.10), Ziel nicht erreicht
-[det] Etappe 14 endet bei Tick 893, Position (-3.06, 0.90, 3.05), Ziel nicht erreicht
-[det] Abdeckung: gleiten 24, Luft 192, Sprint 701, steil 4, Stufen 7, Stoesse 9, Dummy-Prozent 4,8, max y 7,96, Etappe 15/15
-[det] Schlaege 6, Treffer 4
-[det] GLEICH   Vollstaendigkeit: jedes Laufzeitfeld des Motors steht in MotorState
-[det] GLEICH   Puffer: in 1020 Ticks, davon 780 mit Bewegung, stand kein Transform vor dem Veroeffentlichen schon auf dem neuen Stand
-[det] GLEICH   Nachspielen ab Start: 1000 Ticks bitgleich
-[det] GLEICH   Rollback bei Tick 100: 900 Ticks bitgleich
-[det] GLEICH   Koerperliste umgedreht: 1000 Ticks bitgleich
-[det] GLEICH   Rollback im Gleiten (Tick 180): 820 Ticks bitgleich
-[det] GLEICH   Rollback im Steigflug (Tick 453): 547 Ticks bitgleich
-[det] GLEICH   Rollback vor einem Stoss (Tick 42): 958 Ticks bitgleich
-[det] GLEICH   Resimulate: Endzustand nach 1000 Ticks bitgleich
-[det] GLEICH   Gegenprobe: 1 Grad bei Tick 200 weicht ab Tick 201 ab, wie es muss
-[det] ALLE FAELLE DETERMINISTISCH
+[det] stage 0 ends at tick 42, position (11.21, 0.90, -4.00), target reached
+[det] stage 1 ends at tick 58, position (12.25, 0.90, -4.00), target reached
+[det] stage 2 ends at tick 108, position (7.55, 0.90, -4.00), target not reached
+[det] stage 3 ends at tick 158, position (14.50, 0.90, -4.00), target not reached
+[det] stage 4 ends at tick 208, position (8.70, 0.91, -8.53), target not reached
+[det] stage 5 ends at tick 278, position (-5.35, 0.91, -12.69), target reached
+[det] stage 6 ends at tick 363, position (-6.28, 0.92, -3.75), target reached
+[det] stage 7 ends at tick 387, position (-4.08, 0.91, -4.62), target reached
+[det] stage 8 ends at tick 475, position (-3.50, 6.81, 11.39), target reached
+[det] stage 9 ends at tick 512, position (-3.04, 5.91, 19.35), target reached
+[det] stage 10 ends at tick 547, position (-9.28, 3.66, 20.06), target reached
+[det] stage 11 ends at tick 573, position (-12.00, 1.10, 16.79), target reached
+[det] stage 12 ends at tick 613, position (-13.43, 2.15, 11.63), target not reached
+[det] stage 13 ends at tick 693, position (-9.71, 0.94, 15.10), target not reached
+[det] stage 14 ends at tick 893, position (-3.06, 0.90, 3.05), target not reached
+[det] coverage: slide 24, air 192, Sprint 701, steep 4, steps 7, pushes 9, dummy percent 4.8, max y 7.96, stage 15/15
+[det] swings 6, hits 4
+[det] SAME   completeness: every runtime field of the motor is in MotorState
+[det] SAME   buffer: in 1020 ticks, of them 780 moving, no transform was already up to date before publishing
+[det] SAME   replay from start: 1000 ticks bit-identical
+[det] SAME   rollback at tick 100: 900 ticks bit-identical
+[det] SAME   body list reversed: 1000 ticks bit-identical
+[det] SAME   rollback while sliding (tick 180): 820 ticks bit-identical
+[det] SAME   rollback while rising (tick 453): 547 ticks bit-identical
+[det] SAME   rollback before a push (tick 42): 958 ticks bit-identical
+[det] SAME   Resimulate: end state after 1000 ticks bit-identical
+[det] SAME   counter check: 1 degrees at tick 200 differs from tick 201 on, as it must
+[det] ALL CASES DETERMINISTIC

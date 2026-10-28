@@ -54,7 +54,7 @@ public static class Py
             return max;
         int maxE = Math.ILogB(max) + 1;    // frexp's exponent
         if (maxE < -1023)
-            throw new NotSupportedException("hypot subnormaler Werte");
+            throw new NotSupportedException("hypot of subnormal values");
         double scale = Math.ScaleB(1.0, -maxE);
         double csum = 1.0, frac1 = 0.0, frac2 = 0.0;
         foreach (double v in vec)

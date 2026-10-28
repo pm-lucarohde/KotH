@@ -30,26 +30,26 @@ namespace KotH.Probes.Probes
         static readonly Case[] Cases =
         {
             // Must climb.
-            C("+ Steps20 stehen",        -6f,   -11.5f, 0, 1, 0,   0,  0,   false),
-            C("+ Steps20 stehen wackel", -6f,   -11.5f, 0, 1, 0,   9f, 80f, false),
-            C("+ Steps30 stehen",        -10f,  -11.5f, 0, 1, 0,   0,  0,   false),
-            C("+ Steps20 geduckt",       -6f,   -11.5f, 0, 1, 0,   0,  0,   true),
-            C("+ Steps20 geduckt wackel",-6f,   -11.5f, 0, 1, 0,   9f, 80f, true),
-            C("+ Steps40 ruhig",         -14f,  -11.5f, 0, 1, 0,   0,  0,   false),
-            C("+ Steps40 wackeln",       -14f,  -11.5f, 0, 1, 0,   9f, 80f, false),
-            C("+ Steps40 Ecke wackeln",  -13.1f,-11.5f, 0, 1, 0,   9f, 80f, false),
+            C("+ Steps20 stand",        -6f,   -11.5f, 0, 1, 0,   0,  0,   false),
+            C("+ Steps20 stand wobble", -6f,   -11.5f, 0, 1, 0,   9f, 80f, false),
+            C("+ Steps30 stand",        -10f,  -11.5f, 0, 1, 0,   0,  0,   false),
+            C("+ Steps20 crouched",       -6f,   -11.5f, 0, 1, 0,   0,  0,   true),
+            C("+ Steps20 crouched wobble",-6f,   -11.5f, 0, 1, 0,   9f, 80f, true),
+            C("+ Steps40 still",         -14f,  -11.5f, 0, 1, 0,   0,  0,   false),
+            C("+ Steps40 wobble",       -14f,  -11.5f, 0, 1, 0,   9f, 80f, false),
+            C("+ Steps40 corner wobble",  -13.1f,-11.5f, 0, 1, 0,   9f, 80f, false),
             // Must NOT climb.
-            C("- Steps50 ruhig",         -18f,  -11.5f, 0, 1, 0,   0,  0,   false),
-            C("- Steps50 wackeln",       -18f,  -11.5f, 0, 1, 0,   9f, 80f, false),
-            C("- Steps50 Ecke wackeln",  -17.1f,-11.5f, 0, 1, 0,   9f, 80f, false),
-            C("- Steps50 Ecke langsam",  -17.1f,-11.5f, 0, 1, 0,   2f, 45f, false),
-            C("- Steps50 seitlich",      -17.1f,-9.0f,  1, 0, 0,   9f, 80f, false),
-            C("- Steps30 geduckt",       -10f,  -11.5f, 0, 1, 0,   9f, 80f, true),
-            C("- Steps30 geduckt Ecke",  -9.1f, -11.5f, 0, 1, 0,   9f, 80f, true),
+            C("- Steps50 still",         -18f,  -11.5f, 0, 1, 0,   0,  0,   false),
+            C("- Steps50 wobble",       -18f,  -11.5f, 0, 1, 0,   9f, 80f, false),
+            C("- Steps50 corner wobble",  -17.1f,-11.5f, 0, 1, 0,   9f, 80f, false),
+            C("- Steps50 corner slow",  -17.1f,-11.5f, 0, 1, 0,   2f, 45f, false),
+            C("- Steps50 sideways",      -17.1f,-9.0f,  1, 0, 0,   9f, 80f, false),
+            C("- Steps30 crouched",       -10f,  -11.5f, 0, 1, 0,   9f, 80f, true),
+            C("- Steps30 crouched corner",  -9.1f, -11.5f, 0, 1, 0,   9f, 80f, true),
             // Plateau top is y 5. Yaw 0 walks to its +z edge, the only one with
             // no ramp attached -- walking down a ramp is not falling off.
-            L("= Kante geduckt",  new Vector3(0f, 5.95f, 16f), 0f, true),
-            L("= Kante stehend",  new Vector3(0f, 5.95f, 16f), 0f, false),
+            L("= edge crouched",  new Vector3(0f, 5.95f, 16f), 0f, true),
+            L("= edge standing",  new Vector3(0f, 5.95f, 16f), 0f, false),
         };
 
         // Same struct, but free to start anywhere: the ledge guard is tested on
@@ -93,10 +93,10 @@ namespace KotH.Probes.Probes
 
         static readonly RampCase[] RampCases =
         {
-            R("Ramp45 stehen",      "Ramp45", false, false, 80),
-            R("Ramp55 stehen",      "Ramp55", false, false, 80),
-            R("Ramp45 hochgehen",   "Ramp45", true,  true,  240),
-            R("Ramp55 hochgehen",   "Ramp55", true,  true,  240),
+            R("Ramp45 stand",      "Ramp45", false, false, 80),
+            R("Ramp55 stand",      "Ramp55", false, false, 80),
+            R("Ramp45 walk up",   "Ramp45", true,  true,  240),
+            R("Ramp55 walk up",   "Ramp55", true,  true,  240),
         };
 
         static RampCase R(string name, string ramp, bool atFoot, bool walk, int ticks)
@@ -179,7 +179,7 @@ namespace KotH.Probes.Probes
                 start = UMath.Add(surface, UMath.Mul(new Vector3(0f, 1f, 0f), 0.95f));
             }
 
-            Log($"[probe] ~ {r.Name}: Start {Ref.V(Ref.Pos(start))}, bergauf-Yaw {rampYaw:F0}");
+            Log($"[probe] ~ {r.Name}: start {Ref.V(Ref.Pos(start))}, uphill yaw {rampYaw:F0}");
             Place(start);
         }
 
@@ -259,8 +259,8 @@ namespace KotH.Probes.Probes
                 Vector3 end = Ref.ToUnity(motor.Position);
                 Log($"[probe] == {c.Name}: max {maxY - startY:F3} m," +
                     $" end {end.Y - startY:F3} m," +
-                    $" steile Ticks {steepTicks}," +
-                    $" Ende bei x {end.X:F1} z {end.Z:F1}");
+                    $" steep ticks {steepTicks}," +
+                    $" end at x {end.X:F1} z {end.Z:F1}");
                 NextCase();
             }
         }
@@ -302,8 +302,8 @@ namespace KotH.Probes.Probes
             {
                 Log($"[probe] == {r.Name}: end {y - startY:+0.000;-0.000} m," +
                     $" max {maxY - startY:+0.000;-0.000}, min {minY - startY:+0.000;-0.000}," +
-                    $" maxAngle {maxAngle:F1}, steile Ticks {steepTicks}," +
-                    $" Rutsch-Ticks {slideTicks}, Luft-Ticks {airTicks} von {r.Ticks}");
+                    $" maxAngle {maxAngle:F1}, steep ticks {steepTicks}," +
+                    $" slide ticks {slideTicks}, air ticks {airTicks} of {r.Ticks}");
                 NextRampCase();
             }
         }

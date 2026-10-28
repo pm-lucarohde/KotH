@@ -255,7 +255,7 @@ namespace KotH.Shared.Net
             if (r.Failed || clients.ContainsKey(peer) || Refused(peer, build))
                 return;
 
-            name = UniqueName(string.IsNullOrWhiteSpace(name) ? "Spieler" : name.Trim());
+            name = UniqueName(string.IsNullOrWhiteSpace(name) ? "Player" : name.Trim());
             var c = new Client
             {
                 Peer = peer, NetId = nextNetId++, Slot = FreeSlot(), Name = name,

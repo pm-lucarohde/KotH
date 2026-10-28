@@ -13,11 +13,11 @@ namespace KotH.Client.Rendering
     /// Then has the voxel light baked into its lightmap, if it has one, and
     /// tells the LoadScreen once that is in.
     /// </summary>
-    /// <userdoc>Voxelisiert die Map einmal nach dem Laden; die Figuren kommen als Kapseln dazu.</userdoc>
+    /// <userdoc>Voxelises the map once after loading; the figures join as capsules.</userdoc>
     public sealed class BakeVoxels : SyncScript
     {
         /// <summary>Frames voxelised in full (clipmaps; sparse bricks say when they are done).</summary>
-        /// <userdoc>So viele Frames wird die ganze Map voxelisiert.</userdoc>
+        /// <userdoc>Over this many frames the whole map is voxelised.</userdoc>
         public int Frames { get; set; } = 2;
 
         int done;

@@ -20,14 +20,14 @@ namespace KotH.Client.Hud
     [DataContract("KotH.DamageLabel")]
     public sealed class DamageLabel : SyncScript
     {
-        /// <userdoc>Abstand über dem Scheitel, in Metern.</userdoc>
-        [Display("Abstand", "Anzeige")] public float Offset = 0.35f;
+        /// <userdoc>Height above the crown, in metres.</userdoc>
+        [Display("Offset", "Display")] public float Offset = 0.35f;
 
-        /// <userdoc>Schriftgröße in Metern. Unitys 1,2 in TextMeshPro-Punkten.</userdoc>
-        [Display("Schriftgröße", "Anzeige")] public float FontSize = 0.12f;
+        /// <userdoc>Font size in metres. Unity's 1.2 in TextMeshPro points.</userdoc>
+        [Display("Font size", "Display")] public float FontSize = 0.12f;
 
-        [Display("Farbe", "Anzeige")] public Color Color = Color.White;
-        [Display("Schrift", "Anzeige")] public SpriteFont Font;
+        [Display("Colour", "Display")] public Color Color = Color.White;
+        [Display("Font", "Display")] public SpriteFont Font;
 
         [DataMemberIgnore] public DamagePercent Target { get; set; }
         [DataMemberIgnore] public PlayerMotor Motor { get; set; }
@@ -38,7 +38,7 @@ namespace KotH.Client.Hud
         /// <summary>The camera the text turns towards.</summary>
         [DataMemberIgnore] public TransformComponent Camera { get; set; }
 
-        // Unity's rect: 4 x 1 m, wide enough for "1000,0 %" without a break.
+        // Unity's rect: 4 x 1 m, wide enough for "1000.0 %" without a break.
         static readonly Vector2 RectMeters = new Vector2(4f, 1f);
 
         // Virtual pixels per metre; only the distance field's sharpness
@@ -83,7 +83,7 @@ namespace KotH.Client.Hud
             });
 
             if (Target == null || Motor == null || Font == null)
-                Log.Warning("DamageLabel ohne Ziel oder Schrift bleibt leer.");
+                Log.Warning("DamageLabel without target or font stays empty.");
         }
 
         public override void Update()

@@ -1,7 +1,7 @@
 [melee] entering play mode
-[melee] == Deckel: nach 900 Schlägen à 1,2 % steht 1000,0 % (soll 1000,0), angenommen 834 von 900 (soll 834), IsCapped True
-[melee] == Trefferfläche: Dummy-Mitte y 0,940, bounds oben 1,840 unten 0,040 breit 0,800, aber abfragbar: Scheitel 1,840 Radius 0,400. Oberste 0,000 m sind nicht treffbar, Augenhöhe des Spielers ist 1,680
-[melee] == Reichweite: letzter Treffer bei waagerechtem Abstand 3,820 m, der Strahl lief dabei 3,484 m (Grenze 3,500), Schrittweite 0,020 m, Auge auf y 1,680
-[melee] == Takt: 131 Ticks Dauerfeuer ergeben 11 Schläge und 11 Treffer (soll je 11), Aufladung 13,2 % (soll 13,2), Dummy bei (2,00/0,94/-18,00)
-[melee] == Seitlich versetzt: Dummy bei (1,50/0,94/-17,00), Spieler blickt waagerecht nach +x, Schläge 1, Treffer 0 (soll 0), Aufladung 0,0 % (soll 0,0)
-[melee] == Schrift: "LiberationSans SDF", "1000,0 %" misst 0,510 x 0,140 Einheiten (muss über null sein), Schriftgröße 1,20, aktueller Text "0,0 %", Label auf y 2,190
+[melee] == Cap: after 900 swings of 1.2 % stands at 1000.0 % (want 1000.0), accepted 834 of 900 (want 834), IsCapped True
+[melee] == Hit area: dummy centre y 0.940, bounds top 1.840 bottom 0.040 wide 0.800, but queryable: crown 1.840 Radius 0.400. topmost 0.000 m are not hittable, eye height of the player is 1.680
+[melee] == Range: last hit at horizontal distance 3.820 m, the ray ran 3.484 m (limit 3.500), step 0.020 m, eye at y 1.680
+[melee] == Rate: 131 ticks of constant fire give 11 swings and 11 hits (want each 11), charge 13.2 % (want 13.2), dummy at (2.00/0.94/-18.00)
+[melee] == Offset sideways: dummy at (1.50/0.94/-17.00), player looks horizontally towards +x, swings 1, hits 0 (want 0), charge 0.0 % (want 0.0)
+[melee] == Font: "LiberationSans SDF", "1000.0 %" measures 0.510 x 0.140 units (must be above zero), font size 1.20, current text "0.0 %", label at y 2.190

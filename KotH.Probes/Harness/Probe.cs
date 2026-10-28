@@ -57,7 +57,7 @@ namespace KotH.Probes.Harness
 
             if (exitCode == null)
             {
-                LogError("[" + Tag + "] Watchdog: keine Rückmeldung, Abbruch");
+                LogError("[" + Tag + "] watchdog: no response, abort");
                 return 2;
             }
 

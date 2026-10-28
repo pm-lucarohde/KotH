@@ -56,4 +56,4 @@ using (var stream = new MemoryStream())
     store.Save();
     File.WriteAllBytes(output, stream.ToArray());
 }
-Console.WriteLine($"{requests.Count} Varianten nach {output}");
+Console.WriteLine($"{requests.Count} permutations to {output}");

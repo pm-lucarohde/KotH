@@ -1,4 +1,4 @@
-// KotH patch: sparse storage, see README "Dünn besetzter Speicher".
+// KotH patch: sparse storage, see README "Sparse storage".
 using System;
 using System.Collections.Generic;
 using Stride.Core;
@@ -261,7 +261,7 @@ namespace Stride.Rendering.Voxels
                     RunBufferToBricks(drawContext, data);
                     if (written && voxels > 0)
                     {
-                        Console.WriteLine($"[voxel] Scheibe {slab + 1}/{SlabCount}: {voxels} Voxel");
+                        Console.WriteLine($"[voxel] slab {slab + 1}/{SlabCount}: {voxels} voxels");
                         if (++slab >= SlabCount)
                         {
                             phase = Phase.Levels;
@@ -335,7 +335,7 @@ namespace Stride.Rendering.Voxels
             brickCount = Math.Min(count + count / 16 + 64, MaxBricks - DynamicBricks);
             slabBricks = Math.Min(brickCount, MaxFragments / (512 * Math.Max(1, storageUints)));
             slab = 0;
-            Console.WriteLine($"[voxel] {count} Bricks (Platz für {brickCount}) zu 8^3 ({voxelSize:F3} m), {SlabCount} Scheibe(n), {storageUints} uint je Voxel");
+            Console.WriteLine($"[voxel] {count} bricks (room for {brickCount}) of 8^3 ({voxelSize:F3} m), {SlabCount} slab(s), {storageUints} uint per voxel");
 
             fragmentsBuffer?.Dispose();
             fragmentsBuffer = Buffer.Typed.New(drawContext.GraphicsDevice, slabBricks * 512 * storageUints, PixelFormat.R32_UInt, true);

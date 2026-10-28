@@ -22,31 +22,31 @@ namespace KotH.Client.Rendering
     /// the ground's TerrainTriplanar, laid once like the shells.
     /// Only looks: no collision, nothing of the simulation.
     /// </summary>
-    /// <userdoc>Muscheln am Strand (nur Darstellung): Jakobsmuscheln, Herzmuscheln und kleine Schnecken.</userdoc>
-    [Display("Muscheln")]
+    /// <userdoc>Shells on the beach (visuals only): scallops, cockles and small snails.</userdoc>
+    [Display("Shells")]
     public sealed class ShellField : SyncScript
     {
         /// <summary>The shells' render group: not voxelised, not in the lightmap bake.</summary>
         public const RenderGroup Group = RenderGroup.Group6;
         const float Square = 16f;
 
-        /// <userdoc>Material der Muscheln (Farbe aus den Ecken).</userdoc>
+        /// <userdoc>Material of the shells (colour from the vertices).</userdoc>
         [DataMember(10)] public Material Material { get; set; }
-        /// <userdoc>Graskarte der Map (eingebettete Ressource, von Tools/maps/MapUV): Sand ist Boden ohne Gras.</userdoc>
-        [DataMember(11)] public string MapResource { get; set; } = "Maps/NeuGrass.bin";
-        /// <userdoc>Sand liegt zwischen diesen Höhen in Metern (x bis y).</userdoc>
+        /// <userdoc>Grass map of the map (embedded resource, from Tools/maps/MapUV): sand is ground without grass.</userdoc>
+        [DataMember(11)] public string MapResource { get; set; } = "Maps/MountDestinyGrass.bin";
+        /// <userdoc>Sand lies between these heights in metres (x to y).</userdoc>
         [DataMember(20)] public Vector2 SandHeight { get; set; } = new(0.6f, 1.3f);
-        /// <userdoc>Im Mittel so viele Quadratmeter Sand je Fundstelle.</userdoc>
+        /// <userdoc>On average this many square metres of sand per spot.</userdoc>
         [DataMember(21)] public float AreaPerShell { get; set; } = 3.5f;
-        /// <userdoc>Anteil der Fundstellen mit zwei oder drei Muscheln beieinander (0 bis 1).</userdoc>
+        /// <userdoc>Share of spots with two or three shells together (0 to 1).</userdoc>
         [DataMember(22)] public float GroupShare { get; set; } = 0.25f;
-        /// <userdoc>Kleinste und größte Muschel in Metern (quer über die breiteste Stelle).</userdoc>
+        /// <userdoc>Smallest and largest shell in metres (across the widest part).</userdoc>
         [DataMember(23)] public Vector2 Size { get; set; } = new(0.075f, 0.175f);
-        /// <userdoc>Anteile von Jakobsmuschel, Herzmuschel und Schnecke (werden auf 1 gerechnet).</userdoc>
+        /// <userdoc>Shares of scallop, cockle and snail (normalised to 1).</userdoc>
         [DataMember(24)] public Vector3 KindShares { get; set; } = new(0.4f, 0.4f, 0.2f);
-        /// <userdoc>Bis zu so vielen Metern von der Kamera sind die Muscheln zu sehen.</userdoc>
+        /// <userdoc>Up to this many metres from the camera the shells are visible.</userdoc>
         [DataMember(30)] public float Reach { get; set; } = 35f;
-        /// <userdoc>Startwert des Zufalls, der die Muscheln verteilt.</userdoc>
+        /// <userdoc>Seed of the random spread of the shells.</userdoc>
         [DataMember(31)] public int Seed { get; set; } = 1027;
 
         [StructLayout(LayoutKind.Sequential)]
@@ -92,7 +92,7 @@ namespace KotH.Client.Rendering
             foreach (var (vertices, indices) in built.Values)
                 AddSquare(vertices, indices);
             LaySpots();
-            Console.WriteLine($"[muscheln] {count} in {squares.Count} Feldern");
+            Console.WriteLine($"[shells] {count} in {squares.Count} squares");
         }
 
         /// <summary>Reads the grass map: what lies where, from above.</summary>
@@ -103,7 +103,7 @@ namespace KotH.Client.Rendering
                 return false;
             using var reader = new BinaryReader(new ZLibStream(stream, CompressionMode.Decompress));
             if (reader.ReadUInt32() != 0x5352474B || reader.ReadUInt32() != 1)   // "KGRS", version 1
-                throw new InvalidDataException($"{MapResource} hat ein unbekanntes Format.");
+                throw new InvalidDataException($"{MapResource} has an unknown format.");
             size = reader.ReadInt32();
             half = reader.ReadSingle();
             float maxHeight = reader.ReadSingle();
@@ -257,7 +257,7 @@ namespace KotH.Client.Rendering
             foreach (Entity root in Entity.Scene.Entities)
                 Hand(root, spots);
             if (dropped > 0)
-                Console.WriteLine($"[muscheln] {dropped} Schattenflecken ohne Platz");
+                Console.WriteLine($"[shells] {dropped} shadow spots without room");
         }
 
         // The models of the map's scene (the ground among them) get the spot map; materials without

@@ -14,10 +14,10 @@ namespace KotH.Client.Menu
     /// </summary>
     public partial class MainMenuView : UserControl
     {
-        /// <summary>Server erstellen was chosen.</summary>
+        /// <summary>Host server was chosen.</summary>
         public event Action HostRequested;
 
-        /// <summary>Spiel verlassen was chosen.</summary>
+        /// <summary>Quit game was chosen.</summary>
         public event Action QuitRequested;
 
         /// <summary>The height the parts are laid out for, in their units.</summary>
@@ -33,9 +33,9 @@ namespace KotH.Client.Menu
                 button.PointerEntered += (_, _) => Describe(button);
             Host.Click += (_, _) => HostRequested?.Invoke();
             Quit.Click += (_, _) => QuitRequested?.Invoke();
-            Find.Click += (_, _) => OpenPage(Find, "Server suchen", FindPage);
-            Settings.Click += (_, _) => OpenPage(Settings, "Einstellungen", SettingsPage);
-            Languages.Click += (_, _) => OpenPage(Languages, "Sprachen", LanguagesPage);
+            Find.Click += (_, _) => OpenPage(Find, "Find server", FindPage);
+            Settings.Click += (_, _) => OpenPage(Settings, "Settings", SettingsPage);
+            Languages.Click += (_, _) => OpenPage(Languages, "Languages", LanguagesPage);
             Back.Click += (_, _) => GoBack();
         }
 
@@ -111,11 +111,11 @@ namespace KotH.Client.Menu
 
         void Describe(Button button)
         {
-            Description.Text = button == Host ? "Starte eine eigene Runde auf dem Berg. Freunde treten über deine Adresse bei, Bots füllen die freien Plätze."
-                             : button == Find ? "Finde Runden anderer Spieler im Netz und tritt ihnen bei."
-                             : button == Settings ? "Grafik, Ton und Steuerung nach deinem Geschmack."
-                             : button == Languages ? "Wähle die Sprache des Spiels."
-                             : "Zurück auf den Desktop. Bis bald auf dem Gipfel!";
+            Description.Text = button == Host ? "Start your own round on the mountain. Friends join via your address, bots fill the free slots."
+                             : button == Find ? "Find other players' rounds on the network and join them."
+                             : button == Settings ? "Graphics, sound and controls to your taste."
+                             : button == Languages ? "Choose the game's language."
+                             : "Back to the desktop. See you on the summit!";
         }
     }
 }

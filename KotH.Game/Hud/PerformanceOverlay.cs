@@ -16,25 +16,25 @@ namespace KotH.Client.Hud
     [DataContract("KotH.PerformanceOverlay")]
     public sealed class PerformanceOverlay : SyncScript, IHudElement
     {
-        [Display("Umschalten", "Tasten")] public Keys ToggleKey = Keys.F3;
+        [Display("Toggle", "Keys")] public Keys ToggleKey = Keys.F3;
 
-        [Display("Fenster (s)", "Messung")] public float WindowSeconds = 10f;
+        [Display("Window (s)", "Measurement")] public float WindowSeconds = 10f;
 
         // Starting size of the ring buffer. It doubles on demand up to four
         // times this, so a fast machine does not silently end up with a
         // shorter window than it asked for.
-        [Display("Erwartete Höchst-FPS", "Messung")] public int MaxTrackedFps = 500;
+        [Display("Expected max FPS", "Measurement")] public int MaxTrackedFps = 500;
 
-        [Display("Auffrischen (s)", "Anzeige")] public float RefreshInterval = 0.25f;
+        [Display("Refresh (s)", "Display")] public float RefreshInterval = 0.25f;
 
         // The one percent low walks a ten second window, so it wanders
         // visibly when redrawn four times a second. Every few seconds says
         // the same thing and sits still while being read.
-        [Display("1%-Low auffrischen (s)", "Anzeige")] public float LowRefreshInterval = 3f;
+        [Display("1% low refresh (s)", "Display")] public float LowRefreshInterval = 3f;
 
-        [Display("Schriftgröße", "Anzeige")] public float FontSize = 18f;
-        [Display("Rand", "Anzeige")] public float Margin = 8f;
-        [Display("Schrift", "Anzeige")] public SpriteFont Font;
+        [Display("Font size", "Display")] public float FontSize = 18f;
+        [Display("Margin", "Display")] public float Margin = 8f;
+        [Display("Font", "Display")] public SpriteFont Font;
 
         // The first frames after a scene load take hundreds of milliseconds
         // and would dominate the one percent low for a whole window.

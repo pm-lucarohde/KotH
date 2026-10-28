@@ -71,7 +71,7 @@ namespace KotH.Probes.Probes
                 attackerInput.Input.AttackPresses = 0;
                 if (attack.HitCount != 1)
                 {
-                    LogError($"[wallknock] {angle:F0}° {percent:F0} %: kein Treffer");
+                    LogError($"[wallknock] {angle:F0}° {percent:F0} %: no hit");
                     failures++;
                     continue;
                 }
@@ -105,7 +105,7 @@ namespace KotH.Probes.Probes
 
                     if (Trace)
                         Log($"[wallknock] {angle:F0}° {percent:F0} % t {t,3} x {p.X:F3} z {p.Z:F3} y {p.Y:F3} vz {victim.Velocity.Z:F3} " +
-                            $"vy {victim.Velocity.Y:F3} knock {victim.KnockLeft:F3} boden {victim.IsGrounded}");
+                            $"vy {victim.Velocity.Y:F3} knock {victim.KnockLeft:F3} ground {victim.IsGrounded}");
 
                     rest = victim.IsGrounded && victim.KnockLeft == 0f &&
                            UMath.Magnitude(UMath.Sub(p, last)) < Noise ? rest + 1 : 0;
@@ -115,14 +115,14 @@ namespace KotH.Probes.Probes
                 bool ok = backAfterWall == 0;
                 if (!ok)
                     failures++;
-                Log($"[wallknock] {angle,2:F0}° {percent,4:F0} %: {(walled ? "abgeprallt" : "nicht abgeprallt")}, " +
-                    $"bis z {deepest:F2}, Ruhe nach {t} Ticks bei z {victim.Position.Z:F2}, " +
-                    $"danach zur Wand {backAfterWall} Ticks" +
-                    (ok ? "" : $", stärkster {worst / FixedDeltaTime:F2} m/s in Tick {worstTick}") +
-                    (ok ? "  ok" : "  FEHLER"));
+                Log($"[wallknock] {angle,2:F0}° {percent,4:F0} %: {(walled ? "abgeprallt" : "did not bounce")}, " +
+                    $"to z {deepest:F2}, rest after {t} ticks at z {victim.Position.Z:F2}, " +
+                    $"then towards the wall {backAfterWall} ticks" +
+                    (ok ? "" : $", strongest {worst / FixedDeltaTime:F2} m/s in tick {worstTick}") +
+                    (ok ? "  ok" : "  ERROR"));
             }
 
-            Log(failures == 0 ? "[wallknock] BESTANDEN" : $"[wallknock] {failures} Fehler");
+            Log(failures == 0 ? "[wallknock] PASSED" : $"[wallknock] {failures} errors");
             return failures == 0 ? 0 : 1;
         }
     }

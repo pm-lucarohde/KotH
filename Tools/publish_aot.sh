@@ -18,7 +18,7 @@ for t in $targets; do
     probes) proj=KotH.Probes; out=Bin/Probes/aot ;;
     windows) proj=KotH.Windows; out=Bin/Windows/aot; rid=win-x64; exe=.exe ;;
     probes-windows) proj=KotH.Probes; out=Bin/Probes/aot-win; rid=win-x64; exe=.exe ;;
-    *) echo "unbekannt: $t" >&2; exit 64 ;;
+    *) echo "unknown: $t" >&2; exit 64 ;;
   esac
   echo "== $proj -> $out"
   # The effect cache outlives the build: Stride compiles shaders on first use
@@ -30,7 +30,7 @@ for t in $targets; do
       && dotnet publish $proj -c Release -r $rid -p:PublishAot=true -o $out -v q -nologo" \
     | grep -E 'error|warning (IL|AOT)|->' || true
   name=${proj/KotH.Linux/KotH}
-  test -x "$out/${name/KotH.Windows/KotH}$exe" || { echo "$proj: kein Binary" >&2; exit 1; }
+  test -x "$out/${name/KotH.Windows/KotH}$exe" || { echo "$proj: no binary" >&2; exit 1; }
   # Stride bug: the effects of EffectCompileLog.sdeffectlog get compiled, but their index
   # entries stay in the first command's database, so the bundle lacks them. The game also
   # finds them without the index: a 16-byte object named by the input hash holds the
@@ -43,7 +43,7 @@ for t in $targets; do
       mkdir -p "$out/data/db/${f:2:2}" "$out/data/db/${id:0:2}"
       cp "$db/$f" "$out/data/db/$f"; cp "$db/$code" "$out/data/db/$code"; effects=$((effects + 1))
     done
-    echo "   $effects vorübersetzte Effekte"
+    echo "   $effects precompiled effects"
   fi
   if [ -d "$out.cache" ]; then mv "$out.cache" "$out/cache"; fi
 done

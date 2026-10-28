@@ -41,13 +41,13 @@ namespace KotH.Probes.Probes
             match = world.StartMatch();
             a = Spawn("A", SpawnA);
             b = Spawn("B", SpawnB);
-            Log($"[capture] Aufwärmen {match.WarmupTicks} Ticks, Sieg {match.WinTicks} Ticks, " +
-                $"Zeitlimit {match.LimitTicks} Ticks, Pause {match.PauseTicks} Ticks");
+            Log($"[capture] capture time {match.WarmupTicks} ticks, win {match.WinTicks} ticks, " +
+                $"time limit {match.LimitTicks} ticks, pause {match.PauseTicks} ticks");
 
             // The first tick records where both joined, before either moves.
             BodyState spawnA = a.CaptureState(), spawnB = b.CaptureState();
             Ticks(1);
-            Check(a.HasSpawn && b.HasSpawn, "Spawn gemerkt");
+            Check(a.HasSpawn && b.HasSpawn, "spawn remembered");
 
             Warmup();
             Shared();
@@ -59,7 +59,7 @@ namespace KotH.Probes.Probes
             Lobby();
             Slots();
 
-            Log(failures == 0 ? "[capture] BESTANDEN" : $"[capture] {failures} Fehler");
+            Log(failures == 0 ? "[capture] PASSED" : $"[capture] {failures} errors");
             return failures == 0 ? 0 : 1;
         }
 
@@ -77,15 +77,15 @@ namespace KotH.Probes.Probes
             a.Motor.Teleport(HillA);
             Ticks(match.WarmupTicks);
             Check(match.State.Holder == a && a.AloneTicks == match.WarmupTicks && a.ScoreTicks == 0,
-                  $"3 s allein ohne Punkte (allein {a.AloneTicks}, Punkte-Ticks {a.ScoreTicks})");
+                  $"3 s alone without points (alone {a.AloneTicks}, point ticks {a.ScoreTicks})");
 
             Ticks(1);
-            Check(a.ScoreTicks == 1, $"erster Punkte-Tick direkt danach ({a.ScoreTicks})");
+            Check(a.ScoreTicks == 1, $"first point tick right after ({a.ScoreTicks})");
 
             Ticks(3 * HillMatch.TicksPerPoint - 1);
             Check(HillMatch.Points(a.ScoreTicks) == 3 && a.ScoreTicks == 3 * HillMatch.TicksPerPoint,
-                  $"nach 6 s genau 3 Punkte ({a.ScoreTicks} Ticks)");
-            Check(b.ScoreTicks == 0 && b.AloneTicks == 0, "B draußen bekommt nichts");
+                  $"after 6 s exactly 3 points ({a.ScoreTicks} ticks)");
+            Check(b.ScoreTicks == 0 && b.AloneTicks == 0, "B outside gets nothing");
         }
 
         /// <summary>
@@ -99,48 +99,48 @@ namespace KotH.Probes.Probes
             b.Motor.Teleport(HillB);
             Ticks(1);
             Check(match.State.Inside == 2 && match.State.Holder == a && b.AloneTicks == 0 && a.ScoreTicks == before + 1,
-                  $"eingenommen: A hält mit B drin (drin {match.State.Inside}, Halter {Name(match.State.Holder)})");
+                  $"captured: A holds with B inside (inside {match.State.Inside}, holder {Name(match.State.Holder)})");
             Ticks(200);
             Check(a.ScoreTicks == before + 201 && b.ScoreTicks == 0,
-                  $"A punktet weiter, B nicht (A +{a.ScoreTicks - before}, B {b.ScoreTicks})");
+                  $"A keeps scoring, B does not (A +{a.ScoreTicks - before}, B {b.ScoreTicks})");
 
             a.Motor.Teleport(SpawnA);
             Ticks(match.WarmupTicks);
             Check(match.State.Holder == b && b.AloneTicks == match.WarmupTicks && b.ScoreTicks == 0 && a.AloneTicks == 0,
-                  $"A draußen: B nimmt erst 3 s ein (allein {b.AloneTicks}, Punkte-Ticks {b.ScoreTicks})");
+                  $"A outside: B first captures for 3 s (alone {b.AloneTicks}, point ticks {b.ScoreTicks})");
             Ticks(1);
-            Check(b.ScoreTicks == 1, $"danach punktet B ({b.ScoreTicks})");
+            Check(b.ScoreTicks == 1, $"then B scores ({b.ScoreTicks})");
 
             b.Motor.Teleport(SpawnB);
             Ticks(1);
-            Check(match.State.Inside == 0 && match.State.Holder == null, "beide draußen: frei");
+            Check(match.State.Inside == 0 && match.State.Holder == null, "both outside: free");
             a.Motor.Teleport(HillA);
             Ticks(40);
             b.Motor.Teleport(HillB);
             Ticks(1);
             Check(match.State.Inside == 2 && match.State.Holder == null && a.AloneTicks == 0 && b.AloneTicks == 0,
-                  $"beim Einnehmen umkämpft: drin {match.State.Inside}, allein A {a.AloneTicks} B {b.AloneTicks}");
+                  $"contested while capturing: inside {match.State.Inside}, alone A {a.AloneTicks} B {b.AloneTicks}");
             int scoreA = a.ScoreTicks, scoreB = b.ScoreTicks;
             Ticks(200);
             Check(a.ScoreTicks == scoreA && b.ScoreTicks == scoreB,
-                  $"umkämpft keine Punkte (A +{a.ScoreTicks - scoreA}, B +{b.ScoreTicks - scoreB})");
+                  $"contested no points (A +{a.ScoreTicks - scoreA}, B +{b.ScoreTicks - scoreB})");
 
             b.Motor.Teleport(SpawnB);
             Ticks(match.WarmupTicks);
-            Check(a.ScoreTicks == scoreA, $"nach dem Teilen wieder 3 s ohne Punkte ({a.ScoreTicks - scoreA})");
+            Check(a.ScoreTicks == scoreA, $"after sharing again 3 s without points ({a.ScoreTicks - scoreA})");
             Ticks(1);
-            Check(a.ScoreTicks == scoreA + 1, $"danach wieder Punkte ({a.ScoreTicks - scoreA})");
+            Check(a.ScoreTicks == scoreA + 1, $"then points again ({a.ScoreTicks - scoreA})");
         }
 
         /// <summary>The box against the body centre, and a jump that stays in.</summary>
         void Edges()
         {
-            Check(match.Contains(new Vector3(5.99f, 5.9f, -16f)), "knapp innerhalb des Rands");
-            Check(!match.Contains(new Vector3(6.01f, 5.9f, -16f)), "knapp außerhalb des Rands");
-            Check(!match.Contains(new Vector3(0f, 5.9f, -9.99f)), "vor der Kante zur Rampe");
-            Check(match.Contains(new Vector3(0f, 8.4f, -21.9f)), "hoch im Sprung am hinteren Rand");
-            Check(!match.Contains(new Vector3(0f, 8.6f, -16f)), "über der Zone");
-            Check(!match.Contains(new Vector3(-3.5f, 4.5f, -9f)), "auf der Rampe unterhalb");
+            Check(match.Contains(new Vector3(5.99f, 5.9f, -16f)), "just inside the edge");
+            Check(!match.Contains(new Vector3(6.01f, 5.9f, -16f)), "just outside the edge");
+            Check(!match.Contains(new Vector3(0f, 5.9f, -9.99f)), "before the edge to the ramp");
+            Check(match.Contains(new Vector3(0f, 8.4f, -21.9f)), "high in a jump at the back edge");
+            Check(!match.Contains(new Vector3(0f, 8.6f, -16f)), "above the zone");
+            Check(!match.Contains(new Vector3(-3.5f, 4.5f, -9f)), "on the ramp below");
 
             // A real jump on the hill must never break the streak.
             int alone = a.AloneTicks;
@@ -156,7 +156,7 @@ namespace KotH.Probes.Probes
             }
             a.Input.JumpHeld = false;
             Ticks(30);
-            Check(a.AloneTicks == alone + 90, $"Sprung bis y {top:F2} bleibt in der Zone (allein +{a.AloneTicks - alone})");
+            Check(a.AloneTicks == alone + 90, $"jump to y {top:F2} stays in the zone (alone +{a.AloneTicks - alone})");
         }
 
         /// <summary>To the winning points, the pause, and back to the spawn.</summary>
@@ -167,16 +167,16 @@ namespace KotH.Probes.Probes
             while (!match.State.Over && t++ < limit)
                 Ticks(1);
             Check(match.State.Over && match.State.Winner == a && a.ScoreTicks == match.WinTicks,
-                  $"Sieg bei {HillMatch.Points(a.ScoreTicks)} Punkten nach {t} Ticks, Sieger {Name(match.State.Winner)}");
+                  $"win at {HillMatch.Points(a.ScoreTicks)} points after {t} ticks, winner {Name(match.State.Winner)}");
 
             int score = a.ScoreTicks;
             Ticks(match.PauseTicks - 1);
-            Check(match.State.Over && a.ScoreTicks == score && a.AloneTicks == 0, "Pause ohne Punkte");
+            Check(match.State.Over && a.ScoreTicks == score && a.AloneTicks == 0, "pause without points");
 
             Ticks(1);
-            Check(!match.State.Over && match.State.RoundTicks == 0, "neue Runde");
+            Check(!match.State.Over && match.State.RoundTicks == 0, "new round");
             Check(SameAsSpawn(a.CaptureState(), spawnA) && SameAsSpawn(b.CaptureState(), spawnB),
-                  "beide bitgleich im Spawn-Zustand, Punkte 0");
+                  "both bit-identical in the spawn state, points 0");
         }
 
         /// <summary>Time runs out: the leader wins, an even top is a draw.</summary>
@@ -193,13 +193,13 @@ namespace KotH.Probes.Probes
             match.LimitTicks = match.State.RoundTicks + 10;
             Ticks(10);
             Check(match.State.Over && match.State.Winner == a,
-                  $"Zeit um: A {a.ScoreTicks} vor B {b.ScoreTicks}, Sieger {Name(match.State.Winner)}");
+                  $"time up: A {a.ScoreTicks} ahead of B {b.ScoreTicks}, winner {Name(match.State.Winner)}");
             Ticks(match.PauseTicks);
-            Check(!match.State.Over && a.ScoreTicks == 0 && b.ScoreTicks == 0, "danach neue Runde");
+            Check(!match.State.Over && a.ScoreTicks == 0 && b.ScoreTicks == 0, "then new round");
 
             match.LimitTicks = 50;
             Ticks(50);
-            Check(match.State.Over && match.State.Winner == null, "0 : 0 bei Zeitablauf ist unentschieden");
+            Check(match.State.Over && match.State.Winner == null, "0 : 0 at time up is a draw");
             Ticks(match.PauseTicks);
 
             match.LimitTicks = saved;
@@ -233,14 +233,14 @@ namespace KotH.Probes.Probes
 
             BodyState endA = a.CaptureState(), endB = b.CaptureState();
             MatchState end = match.State;
-            Check(endA.ScoreTicks > 0 && end.Holder == null, $"Lauf punktet und verlässt die Zone ({endA.ScoreTicks} Ticks)");
+            Check(endA.ScoreTicks > 0 && end.Holder == null, $"run scores and leaves the zone ({endA.ScoreTicks} ticks)");
 
             world.Simulation.Resimulate(snap, inputs, SimulationSystem.TickSeconds);
             MatchState again = match.State;
             Check(Same(a.CaptureState(), endA) && Same(b.CaptureState(), endB) &&
                   again.RoundTicks == end.RoundTicks && again.Inside == end.Inside &&
                   again.Holder == end.Holder && again.Over == end.Over,
-                  "Rollback und Resimulate bitgleich samt Runde");
+                  "rollback and resimulate bit-identical including the round");
         }
 
         /// <summary>
@@ -261,7 +261,7 @@ namespace KotH.Probes.Probes
             }
             float off = Vector3.Distance(a.Motor.Position, spawnA.Motor.Position);
             Check(lowest < match.RespawnBelow + 0.5f && off < 0.5f && a.ScoreTicks == carried,
-                  $"aus der Arena gefallen: zurück am Startplatz ({off:F2} m daneben), Punkte behalten");
+                  $"fell out of the arena: back at the spawn point ({off:F2} m off), points kept");
         }
 
         void Lobby()
@@ -279,49 +279,49 @@ namespace KotH.Probes.Probes
             Ticks(200);
             Check(match.State.Phase == MatchPhase.Waiting && match.State.Holder == null && a.ScoreTicks == carried &&
                   match.AcceptsJoin && HillMatch.CountPlayers(world.Simulation.Bodies) == 3,
-                  $"3 Spieler und ein Dummy: warten, die Zone zählt nicht ({a.ScoreTicks - carried})");
+                  $"3 players and a dummy: waiting, the zone does not count ({a.ScoreTicks - carried})");
 
             ScriptedBody d = Spawn("D", new Vector3(-9f, 0.9f, -2f));
             d.NetId = NetWorld.FirstPlayerId + 3;
             Ticks(1);
             Check(match.State.Phase == MatchPhase.Countdown && match.State.PhaseTicks == match.CountdownTicks,
-                  $"4. Spieler startet den Countdown ({match.State.PhaseTicks} Ticks)");
+                  $"4th player starts the countdown ({match.State.PhaseTicks} ticks)");
 
             Ticks(100);
             BodyState left = d.CaptureState();
             world.Simulation.Leave(d);
             Ticks(1);
-            Check(match.State.Phase == MatchPhase.Waiting, "einer geht: zurück zum Warten");
+            Check(match.State.Phase == MatchPhase.Waiting, "one leaves: back to waiting");
 
             world.Simulation.Rejoin(d, left);
             Ticks(1);
             Check(match.State.Phase == MatchPhase.Countdown && match.State.PhaseTicks == match.CountdownTicks,
-                  "wieder da: Countdown von vorn");
+                  "back again: countdown from the start");
 
             Ticks(match.CountdownTicks - 1);
             Check(match.State.Phase == MatchPhase.Countdown && match.State.PhaseTicks == 1 && a.ScoreTicks == carried,
-                  "Countdown läuft bis zum letzten Tick ohne Punkte");
+                  "countdown runs to the last tick without points");
             Ticks(1);
             Check(match.State.Phase == MatchPhase.Running && match.State.RoundTicks == 0 &&
                   match.State.MinPlayers == 4 && SameAsSpawn(a.CaptureState(), a.SpawnState),
-                  "bei 0 läuft die Runde, alle am Startplatz");
+                  "at 0 the round runs, all at their spawn points");
 
             Ticks(match.JoinTicks - 1);
             bool open = match.AcceptsJoin;
             Ticks(1);
-            Check(open && !match.AcceptsJoin, $"Beitritt bis Tick {match.JoinTicks} der Runde, danach zu");
+            Check(open && !match.AcceptsJoin, $"join until tick {match.JoinTicks} of the round, then closed");
 
             match.LimitTicks = match.State.RoundTicks + 1;
             Ticks(1);
-            Check(match.State.Over && match.AcceptsJoin, "Runde vorbei, Beitritt wieder offen");
+            Check(match.State.Over && match.AcceptsJoin, "round over, join open again");
             Ticks(match.PauseTicks);
-            Check(match.State.Phase == MatchPhase.Waiting, "nach der Pause wieder warten");
+            Check(match.State.Phase == MatchPhase.Waiting, "after the pause waiting again");
             Ticks(1);
-            Check(match.State.Phase == MatchPhase.Countdown, "genug Spieler: gleich wieder Countdown");
+            Check(match.State.Phase == MatchPhase.Countdown, "enough players: countdown again at once");
 
             match.LimitTicks = Math.Max(match.LimitTicks, 48000);
             match.MinPlayers = 0;
-            Check(match.State.Phase == MatchPhase.Running && match.State.RoundTicks == 0, "ohne Mindestzahl sofort wie offline");
+            Check(match.State.Phase == MatchPhase.Running && match.State.RoundTicks == 0, "without a minimum at once as offline");
         }
 
         /// <summary>All twelve slots and the dummies at once: everyone stands where placed.</summary>
@@ -349,10 +349,10 @@ namespace KotH.Probes.Probes
                 if (off > 0.05f)
                 {
                     moved++;
-                    Log($"[capture]        S{slot} bei {want} steht bei {got}");
+                    Log($"[capture]        S{slot} at {want} stands at {got}");
                 }
             }
-            Check(players.Count == 12 && moved == 0, $"12 Startplätze frei und auf dem Boden (größte Abweichung {worst * 100f:F1} cm)");
+            Check(players.Count == 12 && moved == 0, $"12 spawn points free and on the ground (largest deviation {worst * 100f:F1} cm)");
         }
 
         void Ticks(int n)
@@ -365,10 +365,10 @@ namespace KotH.Probes.Probes
         {
             if (!ok)
                 failures++;
-            Log($"[capture] {(ok ? "ok    " : "FEHLER")} {what}");
+            Log($"[capture] {(ok ? "ok    " : "ERROR ")} {what}");
         }
 
-        static string Name(SimulationBody body) => body == null ? "keiner" : body.Entity.Name;
+        static string Name(SimulationBody body) => body == null ? "nobody" : body.Entity.Name;
 
         static bool SameAsSpawn(BodyState got, BodyState spawn) => Same(got, spawn) && got.ScoreTicks == 0;
 

@@ -1,16 +1,17 @@
 #!/usr/bin/env -S dotnet run
 // Compares the NUMBERS of a probe run with tolerance against a reference set.
 // Every line is matched by its case name, tick traces (~) by case and tick. The
-// text without numbers must be equal (else STRUKTUR); every number may be 5 mm
+// text without numbers must be equal (else STRUCTURE); every number may be 5 mm
 // (0.005) off the nearest reference value or lie between the reference runs' values
 // (Ramp45/55 already scatter in Unity).
 //
-// What holds only 1 % is reported as NUR 1 % (fine for speeds and percent, never for
+// What holds only 1 % is reported as ONLY 1 % (fine for speeds and percent, never for
 // coordinates); one unit in the last printed digit counts as display rounding (Mono
 // rounded the 7-digit text). Everything is reported with both lines, to be judged by hand.
 //
-//   dotnet run Tools/Regress.cs -- ref1,ref2,ref3 new [--alle]
+//   dotnet run Tools/Regress.cs -- ref1,ref2,ref3 new [--all]
 #:include Common/Py.cs
+#:include Common/Libm.cs
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -23,7 +24,7 @@ var number = new Regex(@"(?<![\w])[+-]?\d+(?:[.,]\d+)?(?:E[+-]?\d+)?");
 
 string[] refdirs = args[0].Split(',');
 string newdir = args[1];
-bool showAll = args.Contains("--alle");
+bool showAll = args.Contains("--all");
 var totals = new Counter();
 
 foreach (string fn in Directory.GetFiles(newdir).Select(Path.GetFileName).Order(StringComparer.Ordinal))
@@ -33,7 +34,7 @@ foreach (string fn in Directory.GetFiles(newdir).Select(Path.GetFileName).Order(
     var refs = refdirs.Where(d => File.Exists(Path.Combine(d, fn))).Select(d => Cases(Path.Combine(d, fn))).ToList();
     if (refs.Count == 0)
     {
-        Console.WriteLine($"KEINE REFERENZ  {fn}");
+        Console.WriteLine($"NO REFERENCE    {fn}");
         continue;
     }
     var fresh = Cases(Path.Combine(newdir, fn));
@@ -42,19 +43,19 @@ foreach (string fn in Directory.GetFiles(newdir).Select(Path.GetFileName).Order(
 
     foreach (var (k, line) in fresh)
     {
-        stats["faelle"]++;
+        stats["cases"]++;
         var known = refs.Where(r => r.Index.ContainsKey(k)).Select(r => r.Index[k]).ToList();
         if (known.Count == 0)
         {
-            stats["neu"]++;
-            report.Add($"NEU       {k}\n    neu : {line}");
+            stats["new"]++;
+            report.Add($"NEW       {k}\n    new : {line}");
             continue;
         }
         var sameShape = known.Where(r => Skeleton(r) == Skeleton(line)).ToList();
         if (sameShape.Count == 0)
         {
-            stats["struktur"]++;
-            report.Add($"STRUKTUR  {k}\n    neu : {line}\n    ref : {string.Join("\n    ref : ", known)}");
+            stats["structure"]++;
+            report.Add($"STRUCTURE {k}\n    new : {line}\n    ref : {string.Join("\n    ref : ", known)}");
             continue;
         }
         var vals = Numbers(line);
@@ -74,39 +75,39 @@ foreach (string fn in Directory.GetFiles(newdir).Select(Path.GetFileName).Order(
             // Mono rounded the float's 7-digit text, .NET the exact value.
             if (places[i] > 0 && rv.Any(x => Math.Abs(Math.Abs(v - x) - places[i]) < places[i] * 1e-3) && places[i] <= 0.01)
             {
-                shown.Add($"#{i + 1}: {Py.G(v)} statt {refText}");
+                shown.Add($"#{i + 1}: {Py.G(v)} instead of {refText}");
                 continue;
             }
             double nearest = rv.MinBy(x => Math.Abs(x - v));
-            string text = $"#{i + 1}: {Py.G(v)} statt {refText} (Abstand {Py.G(Math.Abs(v - nearest), 4)})";
+            string text = $"#{i + 1}: {Py.G(v)} instead of {refText} (off by {Py.G(Math.Abs(v - nearest), 4)})";
             // 1 % only holds for speeds, ticks and percent, never for a
             // coordinate; which one a number is, a human decides.
             (rv.Any(x => Math.Abs(v - x) <= Rel * Math.Max(Math.Abs(v), Math.Abs(x))) ? rel : bad).Add(text);
         }
         if (shown.Count > 0 && bad.Count == 0 && rel.Count == 0)
         {
-            stats["anzeige"]++;
+            stats["display"]++;
             if (showAll)
-                report.Add($"ANZEIGE   {k}\n    {string.Join("; ", shown)}");
+                report.Add($"DISPLAY   {k}\n    {string.Join("; ", shown)}");
         }
         if (bad.Count > 0 || rel.Count > 0)
         {
-            stats[bad.Count > 0 ? "ueber" : "relativ"]++;
-            report.Add($"{(bad.Count > 0 ? "TOLERANZ" : "NUR 1 % ")}  {k}\n    {string.Join("; ", bad.Concat(rel))}\n    neu : {line}\n    ref : {string.Join("\n    ref : ", sameShape)}");
+            stats[bad.Count > 0 ? "over" : "relative"]++;
+            report.Add($"{(bad.Count > 0 ? "TOLERANCE" : "ONLY 1 % ")}  {k}\n    {string.Join("; ", bad.Concat(rel))}\n    new : {line}\n    ref : {string.Join("\n    ref : ", sameShape)}");
         }
         else if (shown.Count == 0)
         {
             stats["ok"]++;
             if (showAll && !known.Contains(line))
-                report.Add($"ok        {k}\n    neu : {line}\n    ref : {known[0]}");
+                report.Add($"ok        {k}\n    new : {line}\n    ref : {known[0]}");
         }
     }
 
     var missing = refs.SelectMany(r => r.Index.Keys).Distinct().Where(k => !fresh.Index.ContainsKey(k));
     foreach (string k in missing.Order(StringComparer.Ordinal))
     {
-        stats["fehlt"]++;
-        report.Add($"FEHLT     {k}");
+        stats["missing"]++;
+        report.Add($"MISSING   {k}");
     }
 
     Console.WriteLine($"=== {fn}: {Summary(stats)}");
@@ -115,11 +116,11 @@ foreach (string fn in Directory.GetFiles(newdir).Select(Path.GetFileName).Order(
     totals.Add(stats);
 }
 
-Console.WriteLine($"--- gesamt: {Summary(totals)}");
+Console.WriteLine($"--- total: {Summary(totals)}");
 
 static string Summary(Counter s) =>
-    $"{s["faelle"]} Faelle, {s["ok"]} in Toleranz, {s["anzeige"]} Anzeigerundung, {s["relativ"]} nur in 1 %, {s["ueber"]} darueber, " +
-    $"{s["struktur"]} Struktur, {s["neu"]} neu, {s["fehlt"]} fehlen";
+    $"{s["cases"]} cases, {s["ok"]} in tolerance, {s["display"]} display rounding, {s["relative"]} only in 1 %, {s["over"]} over, " +
+    $"{s["structure"]} structure, {s["new"]} new, {s["missing"]} missing";
 
 string KeyOf(string line)
 {
@@ -128,7 +129,7 @@ string KeyOf(string line)
         return "== " + m.Groups[2].Value.Trim();
     m = Regex.Match(line, @"^\[(\w+)\] (.+)$");
     if (m.Success && m.Groups[2].Value.StartsWith('~'))
-        // Tick traces: case name and tick, e.g. "~ Ramp45 stehen t003".
+        // Tick traces: case name and tick, e.g. "~ Ramp45 stand t003".
         return "~~ " + Regex.Split(m.Groups[2].Value, @" y |:|\|")[0].Trim();
     if (m.Success)
     {

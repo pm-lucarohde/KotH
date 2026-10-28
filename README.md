@@ -1,150 +1,50 @@
 # KotH
 
-Ein King-of-the-Hill-Spiel in der Ego-Perspektive: Wer den Gipfel hält, gewinnt. Prototyp mit
-zwei Maps (Standard `Neu`: ein 123 m hoher Berg auf einer Insel nach einer Minecraft-Map, Blöcke
-abgerundet wie im Mod NoCubes; `Test`: die alte Arena mit Rampen und Treppen), Bots und
-Fliegenpilz-Figuren mit Bambusstab. Bewegung: Sprint, Gleiten, Ducken, gestufter Sprung,
-Doppelsprung, Körperstöße. Der Schlag erhöht das Schadensprozent des Getroffenen und stößt ihn umso
-weiter, je höher es ist (bei 100 % 12 m weit und 1,2 m hoch, linear bis 1000 %); ab 10 % zählt auch
-das Tempo beider auf der Stoßlinie.
+A first-person king-of-the-hill game: whoever holds the summit wins. Built on [Stride](https://www.stride3d.net/) 4.4
+(Bepu physics, Vulkan) and .NET 11 with NativeAOT for Linux x64. Mushroom figures with bamboo canes fight on
+**Mount Destiny**, a 123 m block mountain on an island, against each other and against bots.
 
-**Spielregel.** Die Capture-Zone liegt oben auf dem Gipfel. Wer allein drin steht, nimmt sie in 3 s
-ein und punktet danach jede Sekunde, solange er drin bleibt, auch wenn andere dazukommen; geht er
-hinaus, ist sie frei. Sieg mit 100 Punkten oder nach 20 Minuten mit den meisten; nach 5 s beginnt die
-nächste Runde. Wer mehr als 5 m unter den Boden fällt, steht sofort wieder an einem Startplatz;
-Prozent und Punkte bleiben. Die Werte stehen an der Komponente `CaptureZone` der Map.
+**Rules.** The capture zone sits on the summit. Stand in it alone for 3 s to take it, then score a point per second
+while you stay inside, even when others join. 100 points or the most after 20 minutes win. Every hit raises the
+target's damage percent and pushes it further (12 m at 100 %). Whoever falls below the island respawns at the foot of
+the mountain; percent and points stay. Multiplayer waits for 4 players (bots count), then counts down 60 s.
 
-**Startplätze.** Auf `Neu` steht beim Rundenbeginn und nach jedem Sturz jeder zufällig auf der Wiese
-am Fuß (101–110 m vom Gipfel), mal nah, mal weit von den anderen, aber mindestens 6 m entfernt, und
-schaut zum Gipfel. In Lobby und Countdown und auf `Test` gelten die festen Startplätze.
-
-**Bots.** Offline und beim Host spielen 3 Bots mit (`--bots N`, `--bot-seed N`), als Spieler gezählt.
-Sie klettern über ein eigenes Kletterraster, jeder auf seiner Route, rechnen jeden Sprung in einem
-Modell des Motors vor, lernen aus Fehlsprüngen und steuern wie ein Mensch (fangen sich nach der Landung,
-kein Zappeln, Blick mit Trägheit). Auf den Berg brauchen sie im Mittel etwa 1:25.
-Weit unter dem Gipfel schlagen sie nur im Vorbeigehen, oben kämpfen sie; in Lobby und Countdown nie.
-Sie sehen die Welt 0,2 s verzögert. Einstellungen an `BotSettings` (Entity „Bots“ der Map).
-
-**Mehrspieler.** Die Runde wartet auf 4 Spieler (Bots zählen mit), dann folgt ein Countdown von 60 s.
-Beitreten geht beim Warten, im Countdown, nach einem Sieg und in der ersten Minute. Offline beginnt
-die Runde sofort. **Musik:** Lobby-Track vor dem Spiel, ein Spielbeginn-Track, danach die übrigen
-gemischt, Überblendung 3,5 s (Entity `Music`). **Geräusche:** leiser Ambient, Schritte, Sprünge, Schläge und
-Treffer aller Figuren räumlich (`SoundEffects`, Lautstärken dort; Dateien aus `Sounds/` mit `Tools/audio/Sfx.cs`).
-
-| | |
+| Key | Action |
 |---|---|
-| Engine | [Stride](https://www.stride3d.net/) 4.4 mit Bepu-Physik, Vulkan, Linux x64 |
-| Laufzeit | .NET 11 (RC2), NativeAOT, Befehlssatz x86-64-v2 |
-| Simulation | fest 40 Hz, deterministisch, rollback-fähig; Logik wie im früheren Unity-Projekt |
+| W A S D / arrows | move |
+| Mouse | look |
+| Space | jump (hold = higher), tap twice in the air = double jump |
+| Left Shift | sprint (a tap is enough) |
+| E | crouch; tap while sprinting or land holding it = slide |
+| Left click | swing |
+| Mouse wheel | third person / back to first person |
+| F3 / F11 | performance and network overlay / fullscreen or window |
+| Escape | menu: resume, settings, to desktop, main menu (the game runs on) |
 
-## Steuerung
+## Build and run
 
-| Taste | Aktion |
-|---|---|
-| W A S D / Pfeiltasten | laufen |
-| Maus | umsehen |
-| Leertaste | springen (länger halten = höher), in der Luft zweimal tippen = Doppelsprung |
-| Linke Umschalttaste | sprinten (antippen genügt) |
-| E | ducken; im Sprint antippen oder gehalten landen = gleiten |
-| Linksklick | schlagen |
-| Mausrad | Third Person / zurück in die Ego-Perspektive |
-| F3 / F11 | Leistungs- und Netzanzeige / Vollbild oder Fenster |
-| Escape | Menü: Weiterspielen, Einstellungen, Zum Desktop, Hauptmenü (das Spiel läuft weiter) |
-
-## Voraussetzungen
-
-- .NET SDK 11.0.100-rc.2 in `~/.dotnet` (`global.json`); sonst
-  `export DOTNET_ROOT=$HOME/.dotnet PATH=$HOME/.dotnet:$PATH`. Dazu ein Vulkan-Treiber.
-- NativeAOT: Distrobox `aot` (Fedora 44) mit `clang`, `lld`, `zlib-devel`, `libva`.
-- Szene, Prefabs, Tuning: Stride Game Studio 4.4 (unter Wine/Proton mit dem Windows-SDK von .NET 11
-  und dem Fix aus [stride#3600](https://github.com/stride3d/stride/pull/3600)).
-
-## Bauen und starten
+Needs the .NET SDK 11.0.100-rc.2 (`global.json`), a Vulkan driver and, for NativeAOT, a distrobox `aot` with `clang`,
+`lld`, `zlib-devel` and `libva`. Scenes and prefabs are edited in Stride Game Studio 4.4.
 
 ```bash
-dotnet build KotH.Linux -c Release && cd Bin/Linux/Release && ./KotH   # Client (JIT), Hauptmenü; --offline gleich allein
-Tools/publish_aot.sh [linux|server|probes|windows|probes-windows]   # NativeAOT -> Bin/…/aot; Windows nur auf Wunsch (xwin)
+Tools/publish_aot.sh                          # client, server and probes -> Bin/{Linux,Server,Probes}/aot
+Bin/Linux/aot/KotH                            # main menu; --offline plays alone at once
+Bin/Linux/aot/KotH --host --name Luca         # host and play (UDP 7777, up to 12 players, same build for all)
+Bin/Linux/aot/KotH --join 192.168.0.5         # join, also ADDRESS:PORT
+Bin/Server/aot/KotH.Server --host --bot       # the same without a window
 ```
 
-Stürzt ILC beim Publish ab (kommt vor), einfach erneut starten. `--map NAME` wählt die Map. **Server** (ohne Fenster und GPU, 40 Hz, dieselbe Schleife wie ein hostender Peer):
+Project layout: `KotH.Shared` (the whole simulation, no graphics), `KotH.Game` (client, scene, shaders), `KotH.Linux`
+(executable), `KotH.Server` (headless host), `KotH.Probes` (measurements against the frozen Unity reference in
+`Reference/`), `Tools/` (map generators, regression tools), `ThirdParty/Stride.Voxels` (voxel GI). Developer notes,
+test aids and the probe list are in [`CLAUDE.md`](CLAUDE.md); regressions in [`Reference/REGRESSION.md`](Reference/REGRESSION.md).
 
-```bash
-Bin/Server/Release/KotH.Server [--seconds 30 | --ticks 2000] [--bots 3] [--map Test]
-Bin/Server/Release/KotH.Server --bodies 64 --warmup 400 --ticks 4000 --map Test   # Lasttest
-```
+## License
 
-`--ticks` rechnet so schnell wie möglich, mit µs/Tick und Hash des Endzustands (JIT = AOT).
+KotH is free software under the **GNU Lesser General Public License, version 3 or later** ([`COPYING.LESSER`](COPYING.LESSER),
+supplementing the GPL v3 in [`COPYING`](COPYING)). Copyright © 2026 Luca Rohde. Bundled third-party parts keep their licenses:
 
-**Mehrspieler** über UDP (Port 7777), bis 12 Spieler, alle mit demselben Build:
-
-```bash
-./KotH --host --name Luca                    # hosten und mitspielen (--port, --min-players, --map)
-./KotH --join 192.168.0.5 --name Gast        # beitreten, auch ADRESSE:PORT
-Tools/two_clients.sh [aot|jit] [MAP]         # zwei Fenster auf einem PC (--display 0 / 1)
-Bin/Server/Release/KotH.Server --host --bot  # dasselbe ohne Fenster (--join ADRESSE --bot)
-```
-
-Gäste bekommen die Map vom Host. **Testhilfen** im Client (`KOTH_SHOT=bild.png` und Verwandte für
-Screenshots, Videos und gescriptete Tasten, `KOTH_SIZE`, `KOTH_VSYNC`, `KOTH_FRAMELOG`) stehen in
-`CLAUDE.md`.
-
-## Projektstruktur
-
-```
-KotH.Shared/   die gesamte Simulation ohne Grafik; Kollisions-Prefabs ohne Modelle
-KotH.Game/     Client: Eingabe, Kamera, Darstellung, HUD, Szene, Shader
-KotH.Linux/    ausführbarer Client (Vulkan, NativeAOT)
-KotH.Server/   Konsolen-Host ohne GPU
-KotH.Probes/   Messproben gegen die Unity-Referenz
-Tools/         Regressionsvergleich, AOT-Publish, Generatoren der Map Neu
-Reference/     eingefrorene Unity-Messungen und der Regressionsbericht
-```
-
-- **Simulation:** `SimulationSystem` tickt alle Körper in festen Phasen, Rollback über `WorldSnapshot`;
-  `UMath` rechnet Unitys Formeln nach, `WorldQueries` fragt Bepu mit PhysX-Semantik.
-- **Assets:** Game Studio ist die einzige Quelle. Jede Map hat `Maps/NAME` mit `NAMECollision`
-  (KotH.Shared, ohne Grafik ladbar) und `NAMEVisual` (KotH.Game), beide als Root-Asset.
-- **Map Neu:** `dotnet run Tools/maps/Mountain.cs` erzeugt Berg, Meer und Kollision (keine vorgefertigten
-  Wege, prüft die Erreichbarkeit des Gipfels), `dotnet run Tools/maps/Textures.cs` malt die Texturen.
-  Danach alles neu bauen.
-
-## Proben und Regression
-
-Keine Unit-Tests: Proben fahren den Motor mit geskripteter Eingabe; Exit-Code 0 heißt bestanden.
-
-```bash
-export DOTNET_EnableAVX=0                         # JIT rechnet sonst anders als AOT
-Bin/Probes/Release/KotH.Probes step               # eine Probe; Liste in CLAUDE.md
-.work/tools/stride_runs.sh 3                     # alle Bewegungsproben dreimal
-R=Reference/unity/runs; dotnet run Tools/Verdict.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1
-```
-
-Stand: alle 94 Urteile wie in Unity; Abweichungen mit Ursache in
-[`Reference/REGRESSION.md`](Reference/REGRESSION.md). Alle AOT-Builds sind fest auf x86-64-v2 gebaut,
-die Hashkette der DeterminismProbe (`C857D39208F53C83`) muss unter JIT und AOT gleich sein; im
-Netz brauchen alle Peers dasselbe Binary.
-
-## Lizenz
-
-KotH ist freie Software unter der **GNU Lesser General Public License, Version 3 oder später**
-(LGPL-3.0-or-later, [`COPYING.LESSER`](COPYING.LESSER), ergänzt die GPL v3 in [`COPYING`](COPYING)).
-
-Copyright © 2026 Luca Rohde
-
-Ausgenommen sind mitgelieferte Fremdbestandteile unter ihren eigenen Lizenzen:
-
-- `KotH.Game/Resources/Fonts/FiraCode-Regular.ttf`: Fira Code 6.2, SIL Open Font License 1.1
-  (`KotH.Game/Resources/Fonts/FiraCode-OFL.txt`).
-- `KotH.Game/Resources/skybox_texture_*.dds`: aus der Stride-Projektvorlage, MIT.
-- `KotH.Game/Resources/Music/*.mp3`: von Pixabay unter der
-  [Pixabay Content License](https://pixabay.com/service/license-summary/), auf −15,5 LUFS normalisiert:
-  - Hauptmenü: [Jazz Fusion Piano Cocktail Bar](https://pixabay.com/music/modern-jazz-jazz-fusion-piano-cocktail-bar-560074/)
-  - Vor dem Spiel: [Jazz Piano](https://pixabay.com/music/small-drama-jazz-piano-585359/)
-  - Spielbeginn: [Fun and Quirky Jazz](https://pixabay.com/music/modern-jazz-fun-and-quirky-jazz-583916/)
-  - Während des Spiels: [Jazz Cocktail Bar Music](https://pixabay.com/music/modern-jazz-jazz-cocktail-bar-music-556247/),
-    [Acid Jazz Restaurant](https://pixabay.com/music/modern-jazz-acid-jazz-restaurant-552301/),
-    [Swing Jazz Sunny Cafe](https://pixabay.com/music/modern-jazz-swing-jazz-sunny-cafe-568159/),
-    [Jazz Cocktail Bar Funk](https://pixabay.com/music/funk-jazz-cocktail-bar-funk-559987/),
-    [Stylish Funk Smooth Party](https://pixabay.com/music/funk-stylish-funk-smooth-party-no-copyright-620664/),
-    [Retro House](https://pixabay.com/music/soft-house-retro-house-201792/),
-    [Jazz Coffee Shop Music](https://pixabay.com/music/modern-jazz-jazz-coffee-shop-music-556234/)
+- `KotH.Game/Resources/Fonts/FiraCode-Regular.ttf`: Fira Code 6.2, SIL Open Font License 1.1 (`FiraCode-OFL.txt` next to it).
+- `KotH.Game/Resources/skybox_texture_*.dds`: from the Stride project template, MIT.
+- `KotH.Game/Resources/Music/*.mp3`: from [Pixabay](https://pixabay.com/service/license-summary/) (Pixabay Content License),
+  normalised to −15.5 LUFS; the file names name the artist and the track's Pixabay ID.

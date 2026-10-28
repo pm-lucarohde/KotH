@@ -74,20 +74,20 @@ namespace KotH.Probes.Probes
                     {
                         sunk++;
                         if (logged++ < 3)
-                            Log($"[rampfoot]    eingesunken: x {start.X:F1} Blick {yaw:F0}°, tiefste Höhe {lowest:F3} " +
-                                $"in Tick {lowestAt}, Ende bei {Ref.V(motor.Position)} -> ABWEICHUNG");
+                            Log($"[rampfoot]    sunk in: x {start.X:F1} view {yaw:F0}°, lowest height {lowest:F3} " +
+                                $"in tick {lowestAt}, end at {Ref.V(motor.Position)} -> DEVIATION");
                     }
                 }
 
                 failures += sunk;
-                Log($"[rampfoot] == {ramp.name} geduckt{(sprint ? " mit Sprint" : "")}: {runs} Läufe, " +
-                    $"{sunk} eingesunken -> {(sunk == 0 ? "ok" : "ABWEICHUNG")}");
+                Log($"[rampfoot] == {ramp.name} crouched{(sprint ? " with sprint" : "")}: {runs} runs, " +
+                    $"{sunk} sunk in -> {(sunk == 0 ? "ok" : "ABWEICHUNG")}");
             }
 
             failures += SideEdges(motor);
             failures += Crowds(world, motor);
 
-            Log(failures == 0 ? "[rampfoot] KEIN KÖRPER UNTER DEM BODEN" : $"[rampfoot] {failures} LÄUFE EINGESUNKEN");
+            Log(failures == 0 ? "[rampfoot] NO BODY BELOW THE GROUND" : $"[rampfoot] {failures} RUNS SUNK IN");
             return failures == 0 ? 0 : 1;
         }
 
@@ -132,14 +132,14 @@ namespace KotH.Probes.Probes
                     {
                         sunk++;
                         if (logged++ < 3)
-                            Log($"[rampfoot]    eingesunken: x {start.X:F1} z {start.Z:F1} Blick {yaw:F0}°, " +
-                                $"Ende bei {Ref.V(motor.Position)} -> ABWEICHUNG");
+                            Log($"[rampfoot]    sunk in: x {start.X:F1} z {start.Z:F1} view {yaw:F0}°, " +
+                                $"end at {Ref.V(motor.Position)} -> DEVIATION");
                     }
                 }
 
                 failures += sunk;
-                Log($"[rampfoot] == {ramp.name} Kante {(side < 0 ? "links" : "rechts")}: {runs} Läufe " +
-                    $"({skipped} Starts ohne Halt), {sunk} eingesunken -> {(sunk == 0 ? "ok" : "ABWEICHUNG")}");
+                Log($"[rampfoot] == {ramp.name} edge {(side < 0 ? "links" : "rechts")}: {runs} runs " +
+                    $"({skipped} starts without hold), {sunk} sunk in -> {(sunk == 0 ? "ok" : "ABWEICHUNG")}");
             }
             return failures;
         }
@@ -204,8 +204,8 @@ namespace KotH.Probes.Probes
                 bool sunk = lowest < 0.5f;
                 if (sunk)
                     failures++;
-                Log($"[rampfoot] == {ramp.name} Pulk {round + 1}: {CrowdSize} Körper, tiefste Höhe {lowest:F3}" +
-                    (sunk ? $" (Körper {lowestBody}, Tick {lowestTick}) -> ABWEICHUNG" : " -> ok"));
+                Log($"[rampfoot] == {ramp.name} crowd {round + 1}: {CrowdSize} bodies, lowest height {lowest:F3}" +
+                    (sunk ? $" (body {lowestBody}, tick {lowestTick}) -> DEVIATION" : " -> ok"));
             }
             return failures;
         }

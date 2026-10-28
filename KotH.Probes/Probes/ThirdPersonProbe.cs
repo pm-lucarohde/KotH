@@ -44,7 +44,7 @@ namespace KotH.Probes.Probes
 
             float near = ViewMath.NearPlane(Radius, Fov, Aspect, NearMargin);
             float corner = near * ViewMath.Corner(Fov, Aspect);
-            Log($"[thirdperson] Nahebene {near:F4} m, Ecke {corner:F4} m vom Auge, Kugel {Radius:F2} m");
+            Log($"[thirdperson] near plane {near:F4} m, corner {corner:F4} m from the eye, sphere {Radius:F2} m");
             int failures = corner < Radius - Grazing ? 0 : 1;
 
             int spots = 0, views = 0, logged = 0;
@@ -80,14 +80,14 @@ namespace KotH.Probes.Probes
 
                     failures++;
                     if (logged++ < 20)
-                        LogError($"[thirdperson] FEHLER {fault}: Auge ({eye.X:F2}; {eye.Y:F2}; {eye.Z:F2}) " +
-                                 $"Gier {yaw} Nick {pitch:F0}, Kamera ({cam.X:F2}; {cam.Y:F2}; {cam.Z:F2}), frei {path.Free:F3}");
+                        LogError($"[thirdperson] ERROR {fault}: eye ({eye.X:F2}; {eye.Y:F2}; {eye.Z:F2}) " +
+                                 $"yaw {yaw} pitch {pitch:F0}, camera ({cam.X:F2}; {cam.Y:F2}; {cam.Z:F2}), free {path.Free:F3}");
                 }
             }
 
-            Log($"[thirdperson] {spots} freie Stellen, {views} Blicke, Abstand im Mittel {total / views:F2} m, " +
-                $"kürzester {shortest:F3} m");
-            Log(failures == 0 ? "[thirdperson] BESTANDEN" : $"[thirdperson] {failures} Fehler");
+            Log($"[thirdperson] {spots} free spots, {views} views, mean distance {total / views:F2} m, " +
+                $"shortest {shortest:F3} m");
+            Log(failures == 0 ? "[thirdperson] PASSED" : $"[thirdperson] {failures} errors");
             return failures == 0 ? 0 : 1;
         }
 
@@ -95,10 +95,10 @@ namespace KotH.Probes.Probes
         string Fault(WorldQueries q, Vector3 eye, ThirdPersonPath path, Vector3 cam)
         {
             if (q.OverlapCapsule(cam, cam, Radius - Grazing, WorldQueries.WorldMask, overlaps) > 0)
-                return "Kugel steckt in " + overlaps[0].Entity?.Name;
+                return "sphere stuck in " + overlaps[0].Entity?.Name;
 
             if (Blocked(q, eye, path.Pivot) || Blocked(q, path.Pivot, cam))
-                return "Weg verdeckt";
+                return "path blocked";
 
             return null;
         }

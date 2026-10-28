@@ -15,7 +15,7 @@ namespace KotH.Client.Rendering
     /// They darken the bounce and the sky round a figure. Runs after
     /// PlayerVisualSystem.
     /// </summary>
-    /// <userdoc>Gibt die Figuren als Kapseln an das Voxel-Licht (weicher Schatten im indirekten Licht).</userdoc>
+    /// <userdoc>Hands the figures to the voxel light as capsules (soft shadow in indirect light).</userdoc>
     public sealed class FigureOccluders : SyncScript
     {
         // Ends in the figure's rest pose (model space, standing, centre at 0),
@@ -118,7 +118,7 @@ namespace KotH.Client.Rendering
             for (int i = 0; i < nodes.Length; i++)
                 if (nodes[i].Name == name)
                     return i;
-            throw new InvalidOperationException($"Knochen {name} fehlt");
+            throw new InvalidOperationException($"Bone {name} is missing");
         }
 
         PlayerVisualSystem Find()

@@ -37,62 +37,62 @@ namespace KotH.Client
     [DataContract("KotH.GameRoot")]
     public sealed class GameRoot : StartupScript, INetWorld
     {
-        [Display("Körpermodell", "Darstellung")] public Model BodyModel;
-        [Display("Schrift der Schadensanzeige", "Darstellung")] public SpriteFont LabelFont;
+        [Display("Body model", "Visuals")] public Model BodyModel;
+        [Display("Damage label font", "Visuals")] public SpriteFont LabelFont;
 
-        /// <userdoc>Atmen und leichtes Wiegen, solange eine Figur still steht.</userdoc>
-        [Display("Ruhe", "Animation")] public AnimationClip IdleAnimation;
+        /// <userdoc>Breathing and slight swaying while a figure stands still.</userdoc>
+        [Display("Idle", "Animation")] public AnimationClip IdleAnimation;
 
-        /// <userdoc>Grundhaltung in der Luft und beim Rutschen am Steilhang.</userdoc>
-        [Display("Grundhaltung", "Animation")] public AnimationClip RestAnimation;
+        /// <userdoc>Base pose in the air and when sliding down a steep slope.</userdoc>
+        [Display("Rest", "Animation")] public AnimationClip RestAnimation;
 
-        [Display("Gehen vorwärts", "Animation")] public AnimationClip WalkForward;
-        [Display("Gehen rückwärts", "Animation")] public AnimationClip WalkBack;
-        [Display("Gehen links", "Animation")] public AnimationClip WalkLeft;
-        [Display("Gehen rechts", "Animation")] public AnimationClip WalkRight;
-        [Display("Rennen vorwärts", "Animation")] public AnimationClip RunForward;
-        [Display("Rennen rückwärts", "Animation")] public AnimationClip RunBack;
-        [Display("Rennen links", "Animation")] public AnimationClip RunLeft;
-        [Display("Rennen rechts", "Animation")] public AnimationClip RunRight;
+        [Display("Walk forward", "Animation")] public AnimationClip WalkForward;
+        [Display("Walk back", "Animation")] public AnimationClip WalkBack;
+        [Display("Walk left", "Animation")] public AnimationClip WalkLeft;
+        [Display("Walk right", "Animation")] public AnimationClip WalkRight;
+        [Display("Run forward", "Animation")] public AnimationClip RunForward;
+        [Display("Run back", "Animation")] public AnimationClip RunBack;
+        [Display("Run left", "Animation")] public AnimationClip RunLeft;
+        [Display("Run right", "Animation")] public AnimationClip RunRight;
 
-        /// <userdoc>Hocke mit Atmen, geduckt im Stand und in der Luft.</userdoc>
-        [Display("Geduckt", "Animation")] public AnimationClip CrouchAnimation;
+        /// <userdoc>Crouch with breathing, crouched standing and in the air.</userdoc>
+        [Display("Crouch", "Animation")] public AnimationClip CrouchAnimation;
 
-        /// <userdoc>Schleichschritte geduckt, ein Clip für alle Richtungen.</userdoc>
-        [Display("Geduckt gehen", "Animation")] public AnimationClip CrouchWalk;
+        /// <userdoc>Crouched sneaking steps, one clip for all directions.</userdoc>
+        [Display("Crouch walk", "Animation")] public AnimationClip CrouchWalk;
 
-        /// <userdoc>Gleiten aus dem Sprint: ein Bein flach nach vorn gestreckt.</userdoc>
-        [Display("Gleiten", "Animation")] public AnimationClip SlideAnimation;
+        /// <userdoc>Slide out of the sprint: one leg stretched flat forward.</userdoc>
+        [Display("Slide", "Animation")] public AnimationClip SlideAnimation;
 
-        /// <userdoc>Haltung beim Fallen: Arme schräg zur Seite und nach vorn, leichtes Balancieren.</userdoc>
-        [Display("Fallen", "Animation")] public AnimationClip FallAnimation;
+        /// <userdoc>Falling pose: arms out to the side and forward, slight balancing.</userdoc>
+        [Display("Fall", "Animation")] public AnimationClip FallAnimation;
 
-        /// <userdoc>Tiefster Punkt beim Einfedern nach der Landung; das Spiel blendet ihn kurz ein.</userdoc>
-        [Display("Landen", "Animation")] public AnimationClip LandAnimation;
+        /// <userdoc>Lowest point of the landing squash; the game blends it in briefly.</userdoc>
+        [Display("Land", "Animation")] public AnimationClip LandAnimation;
 
-        /// <userdoc>Haltung beim Aufsteigen nach dem Absprung (nach Sanji): ein Bein gestreckt, das andere Knie hoch.</userdoc>
-        [Display("Springen", "Animation")] public AnimationClip JumpAnimation;
+        /// <userdoc>Pose rising after take-off (after Sanji): one leg stretched, the other knee up.</userdoc>
+        [Display("Jump", "Animation")] public AnimationClip JumpAnimation;
 
-        /// <userdoc>Tritt in die Luft beim Doppelsprung (Sanjis Sky Walk); das Spiel blendet ihn kurz ein.</userdoc>
-        [Display("Doppelsprung", "Animation")] public AnimationClip SkyWalkAnimation;
+        /// <userdoc>Kick into the air on the double jump (Sanji's Sky Walk); the game blends it in briefly.</userdoc>
+        [Display("Double jump", "Animation")] public AnimationClip SkyWalkAnimation;
 
-        /// <userdoc>Nur die Arme der Pilzfigur; in First Person hängen sie vor der Kamera.</userdoc>
-        [Display("Arme in First Person", "Darstellung")] public Model ArmsModel;
+        /// <userdoc>Only the mushroom figure's arms; in first person they hang in front of the camera.</userdoc>
+        [Display("First person arms", "Visuals")] public Model ArmsModel;
 
-        /// <userdoc>Arme in First Person im Stehen und in der Luft: ruhiges Atmen.</userdoc>
-        [Display("Arme Ruhe", "First-Person-Arme")] public AnimationClip ArmsIdle;
+        /// <userdoc>First person arms standing and in the air: calm breathing.</userdoc>
+        [Display("Arms idle", "First person arms")] public AnimationClip ArmsIdle;
 
-        /// <userdoc>Arme in First Person beim Gehen, im Takt der Schritte.</userdoc>
-        [Display("Arme Gehen", "First-Person-Arme")] public AnimationClip ArmsWalk;
+        /// <userdoc>First person arms walking, in step.</userdoc>
+        [Display("Arms walk", "First person arms")] public AnimationClip ArmsWalk;
 
-        /// <userdoc>Arme in First Person beim Rennen, im Takt der Schritte.</userdoc>
-        [Display("Arme Rennen", "First-Person-Arme")] public AnimationClip ArmsRun;
+        /// <userdoc>First person arms running, in step.</userdoc>
+        [Display("Arms run", "First person arms")] public AnimationClip ArmsRun;
 
-        /// <userdoc>Was jede Figur in der rechten Hand hält (der Bambusstab), auch an den Armen in First Person. In der Ruhelage der Figur modelliert; ein Knochen „Leaf“ weht wie die Blätter der Figur.</userdoc>
-        [Display("Gehaltenes Objekt", "Darstellung")] public Model HeldModel;
+        /// <userdoc>What each figure holds in its right hand (the bamboo cane), also on the first person arms. Modelled in the figure's rest pose; a bone "Leaf" sways like the figure's leaves.</userdoc>
+        [Display("Held object", "Visuals")] public Model HeldModel;
 
-        /// <userdoc>Knochen der Figur, dem das gehaltene Objekt folgt: Grip.R ist die Mitte der rechten Faust; in First Person dreht ihn der Arm-Clip, damit der Stab nach rechts oben zeigt.</userdoc>
-        [Display("Knochen des Objekts", "Darstellung")] public string HeldBone = "Grip.R";
+        /// <userdoc>Bone of the figure the held object follows: Grip.R is the centre of the right fist; in first person the arm clip turns it so the cane points up and right.</userdoc>
+        [Display("Held object bone", "Visuals")] public string HeldBone = "Grip.R";
 
         /// <summary>Render group of the own figure, see PlayerCamera.</summary>
         const RenderGroup OwnFigureGroup = RenderGroup.Group1;
@@ -127,7 +127,7 @@ namespace KotH.Client
                 string map = options.Map;
                 if (!builder.HasMap(map))
                 {
-                    Log.Error($"Unbekannte Map {map}, lade {Maps.Default}");
+                    Log.Error($"Unknown map {map}, loading {Maps.Default}");
                     map = Maps.Default;
                 }
                 LoadMap(map);
@@ -193,7 +193,7 @@ namespace KotH.Client
         /// The main menu over the flight round the map, with its music; no
         /// body yet and nothing ticks. Both start behind the load screen, which
         /// stays until the menu's first frames and the flight's first views are
-        /// done (no stutter in sight). Server erstellen hosts on this map.
+        /// done (no stutter in sight). Host server hosts on this map.
         /// </summary>
         void ShowMenu()
         {
@@ -204,7 +204,7 @@ namespace KotH.Client
             SetMenuOpen(true);
         }
 
-        /// <summary>Server erstellen: as if started with --host and the defaults.</summary>
+        /// <summary>Host server: as if started with --host and the defaults.</summary>
         void HostFromMenu()
         {
             if (menu == null)
@@ -219,7 +219,7 @@ namespace KotH.Client
         }
 
         /// <summary>
-        /// Hauptmenü in the pause menu: the game is taken down - connection,
+        /// Main menu in the pause menu: the game is taken down - connection,
         /// bots, bodies and what shows them - and the main menu flies over the
         /// map again, which stays loaded (a guest without one loads its own).
         /// </summary>
@@ -258,7 +258,7 @@ namespace KotH.Client
             // The game's garbage goes now, not as a stutter in the menu.
             GC.Collect();
             ShowMenu();
-            Log.Info("Zurück im Hauptmenü");
+            Log.Info("Back in the main menu");
         }
 
         /// <summary>Camera, arms and displays let go of the game, as before the first one.</summary>
@@ -331,9 +331,9 @@ namespace KotH.Client
                 BotDirector director = BotDirector.Create(builder, simulation, net.Session, options.BotSeed);
                 net.AddBots(director, options.Bots);
                 WorkAhead(director);
-                Log.Info($"Netzwerk: {options.Bots} Bots, Seed {options.BotSeed}");
+                Log.Info($"Network: {options.Bots} bots, seed {options.BotSeed}");
             }
-            Log.Info($"Netzwerk: {(options.Host ? "Host" : "Gast")} als {options.Name}, Build {NetProtocol.BuildText}");
+            Log.Info($"Network: {(options.Host ? "host" : "guest")} as {options.Name}, build {NetProtocol.BuildText}");
         }
 
         /// <summary>The map's collision, its round and what is drawn of it; once per game.</summary>
@@ -353,8 +353,8 @@ namespace KotH.Client
                 LeafRenderFeature.Install(SceneSystem);
             }
             else
-                Log.Warning($"Map {map} hat keine Optik ({url})");
-            Log.Info($"Map {map} geladen");
+                Log.Warning($"Map {map} has no visuals ({url})");
+            Log.Info($"Map {map} loaded");
         }
 
         string INetWorld.Map => builder.Map;

@@ -52,85 +52,85 @@ namespace KotH.Probes.Probes
 
         static readonly Case[] Cases =
         {
-            new Case { name = "Flach, Dauer", surface = 0, runup = 30,
+            new Case { name = "Flat, duration", surface = 0, runup = 30,
                        crouchHold = -1, steer = true, jumpAt = -1,
                        shouldStart = true, check = Check.Duration },
-            new Case { name = "Angetippt, Augenhöhe", surface = 0, runup = 30,
+            new Case { name = "Tapped, eye height", surface = 0, runup = 30,
                        crouchHold = 1, steer = true, jumpAt = -1,
                        shouldStart = true, check = Check.Eyes },
-            new Case { name = "Angetippt, Dauer", surface = 0, runup = 30,
+            new Case { name = "Tapped, duration", surface = 0, runup = 30,
                        crouchHold = 1, steer = true, jumpAt = -1,
                        shouldStart = true, check = Check.Duration },
-            new Case { name = "Gehalten, Dauer", surface = 0, runup = 30,
+            new Case { name = "Held, duration", surface = 0, runup = 30,
                        crouchHold = -1, steer = true, jumpAt = -1,
                        shouldStart = true, check = Check.Duration },
             // GuardLedge is off during a slide, so this must fly off the edge
             // with its speed instead of stopping dead on it. Started at 4 m of
             // the 8 m face, not 2: from 2 the slide decayed to walking speed
             // one centimetre short of the edge and never measured the edge.
-            new Case { name = "Über die Kante", surface = 4, runup = 12,
+            new Case { name = "Over the edge", surface = 4, runup = 12,
                        crouchHold = 1, steer = true, jumpAt = -1, startAt = 4f,
                        shouldStart = true, check = Check.CarriesOverEdge },
-            new Case { name = "Ohne Richtungstaste", surface = 0, runup = 30,
+            new Case { name = "Without direction key", surface = 0, runup = 30,
                        crouchHold = -1, steer = false, jumpAt = -1,
                        shouldStart = true, check = Check.RollsOut },
-            new Case { name = "Lenken um 90 Grad", surface = 0, runup = 30,
+            new Case { name = "Steer by 90 degrees", surface = 0, runup = 30,
                        crouchHold = -1, steer = true, yawTurn = 90f, jumpAt = -1,
                        shouldStart = true, check = Check.Turns },
             // The first jump press only cancels, the next one jumps.
-            new Case { name = "Leertaste bricht ab", surface = 0, runup = 30,
+            new Case { name = "Space cancels", surface = 0, runup = 30,
                        crouchHold = 1, steer = true, jumpAt = 6,
                        shouldStart = true, check = Check.JumpCancels },
-            new Case { name = "Zweiter Druck springt", surface = 0, runup = 30,
+            new Case { name = "Second press jumps", surface = 0, runup = 30,
                        crouchHold = 1, steer = true, jumpAt = 6, jumpTwice = true,
                        shouldStart = true, check = Check.JumpAfterCancel },
-            new Case { name = "Rampe 20 bergab", surface = 1, runup = 30,
+            new Case { name = "Ramp 20 downhill", surface = 1, runup = 30,
                        crouchHold = -1, steer = true, jumpAt = -1,
                        shouldStart = true, check = Check.SpeedRises },
-            new Case { name = "Rampe 35 bergab", surface = 2, runup = 30,
+            new Case { name = "Ramp 35 downhill", surface = 2, runup = 30,
                        crouchHold = -1, steer = true, jumpAt = -1,
                        shouldStart = true, check = Check.SpeedCapped },
             // Downhill the slide borrows speed from the slope; the cancel has
             // to hand it back, or the next press would carry it into flight.
-            new Case { name = "Bergab abgebrochen", surface = 2, runup = 30,
+            new Case { name = "Downhill cancelled", surface = 2, runup = 30,
                        crouchHold = 1, steer = true, jumpAt = 30,
                        shouldStart = true, check = Check.JumpCancels },
-            new Case { name = "Bergab, dann springen", surface = 2, runup = 30,
+            new Case { name = "Downhill, then jump", surface = 2, runup = 30,
                        crouchHold = 1, steer = true, jumpAt = 30, jumpTwice = true,
                        shouldStart = true, check = Check.JumpAfterCancel },
-            new Case { name = "Rampe 20 bergauf", surface = 1, uphill = true,
+            new Case { name = "Ramp 20 uphill", surface = 1, uphill = true,
                        runup = 30, crouchHold = -1, steer = true, jumpAt = -1,
                        shouldStart = true, check = Check.EndsEarly },
-            new Case { name = "Aus dem Anlauf", surface = 0, runup = 1,
+            new Case { name = "From the run-up", surface = 0, runup = 1,
                        crouchHold = -1, steer = true, jumpAt = -1,
                        shouldStart = false, check = Check.NoStart },
-            new Case { name = "Gegen eine Wand", surface = 0, wall = true,
+            new Case { name = "Against a wall", surface = 0, wall = true,
                        runup = 60, crouchHold = -1, steer = true, jumpAt = -1,
                        shouldStart = false, check = Check.NoStart },
-            new Case { name = "Auf 55 Grad, zu steil", surface = 3, runup = 30,
+            new Case { name = "At 55 degrees, too steep", surface = 3, runup = 30,
                        crouchHold = -1, steer = true, jumpAt = -1,
                        shouldStart = false, check = Check.NoStart },
             // Only a cancelled slide can be followed by another one: a slide
             // that runs out ends at walkSpeed, below its own start threshold.
             // So both cases cancel at tick 6 and press again, once inside
             // the 20 tick pause and once after it.
-            new Case { name = "Erneut 4 Ticks nach Abbruch", surface = 0,
+            new Case { name = "Again 4 ticks after cancel", surface = 0,
                        runup = 30, crouchHold = 1, steer = true, jumpAt = 6,
                        retryAt = 10,
                        shouldStart = true, check = Check.CooldownBlocks },
-            new Case { name = "Erneut 16 Ticks nach Abbruch", surface = 0,
+            new Case { name = "Again 16 ticks after cancel", surface = 0,
                        runup = 30, crouchHold = 1, steer = true, jumpAt = 6,
                        retryAt = 22,
                        shouldStart = true, check = Check.CooldownClears },
             // Out of a sprint jump: crouch goes down in the air, eight ticks
             // after take-off, and the slide starts on landing if still held.
-            new Case { name = "Aus dem Sprung, gehalten gelandet", surface = 0,
+            new Case { name = "From a jump, landed holding", surface = 0,
                        runup = 38, takeoff = 8, crouchHold = -1, steer = true, jumpAt = -1,
                        shouldStart = true, check = Check.FromJump },
-            new Case { name = "Aus dem Sprung, in der Luft losgelassen", surface = 0,
+            new Case { name = "From a jump, released in the air", surface = 0,
                        runup = 38, takeoff = 8, crouchHold = 4, steer = true, jumpAt = -1,
                        shouldStart = false, check = Check.NoStart },
-            new Case { name = "Aus dem Sprung ohne Sprint", surface = 0,
+            new Case { name = "From a jump without sprint", surface = 0,
                        runup = 38, takeoff = 8, noSprint = true, crouchHold = -1, steer = true,
                        jumpAt = -1, shouldStart = false, check = Check.NoStart },
         };
@@ -185,15 +185,15 @@ namespace KotH.Probes.Probes
 
             float ticks = (sprintSpeed - walkSpeed) / slideDeceleration
                         / FixedDeltaTime;
-            Log($"[slide] Sollwerte: gehen {walkSpeed:F3}," +
-                $" sprint {sprintSpeed:F3}, Reibung {slideDeceleration:F1}," +
-                $" Deckel {maxSlideSpeed:F1} m/s," +
-                $" Pause {slideCooldown * 1000f:F0} ms" +
-                $" ({slideCooldown / FixedDeltaTime:F0} Ticks)");
-            Log($"[slide] flach erwartet: {ticks:F1} Ticks," +
+            Log($"[slide] targets: walk {walkSpeed:F3}," +
+                $" sprint {sprintSpeed:F3}, friction {slideDeceleration:F1}," +
+                $" cap {maxSlideSpeed:F1} m/s," +
+                $" pause {slideCooldown * 1000f:F0} ms" +
+                $" ({slideCooldown / FixedDeltaTime:F0} ticks)");
+            Log($"[slide] flat expected: {ticks:F1} ticks," +
                 $" {(sprintSpeed + walkSpeed) * 0.5f * ticks * FixedDeltaTime:F2} m;" +
-                $" Auge {standEye:F3} stehend, {crouchEye:F3} geduckt;" +
-                $" Schub ab {(float)Math.Asin(slideDeceleration / 20f) * UMath.Rad2Deg:F1}°");
+                $" eye {standEye:F3} standing, {crouchEye:F3} crouched;" +
+                $" push from {(float)Math.Asin(slideDeceleration / 20f) * UMath.Rad2Deg:F1}°");
 
             // The first case waits for FixedUpdate, as in Unity, where PhysX
             // did not yet know the ground created a moment ago.
@@ -238,8 +238,8 @@ namespace KotH.Probes.Probes
             if (caseIndex >= Cases.Length)
             {
                 Log(failures == 0
-                    ? "[slide] ALLE FÄLLE WIE ERWARTET"
-                    : $"[slide] {failures} ABWEICHUNGEN");
+                    ? "[slide] ALL CASES AS EXPECTED"
+                    : $"[slide] {failures} DEVIATIONS");
                 Exit(failures == 0 ? 0 : 1);
                 return;
             }
@@ -265,8 +265,8 @@ namespace KotH.Probes.Probes
 
             if (!motor.IsGrounded && c.surface != 3)
             {
-                LogError($"[slide] {c.name}: kein Boden bei" +
-                         $" {Ref.V(motor.Position)}, Messung sinnlos");
+                LogError($"[slide] {c.name}: no ground at" +
+                         $" {Ref.V(motor.Position)}, measuring pointless");
                 Exit(4);
                 return;
             }
@@ -293,7 +293,7 @@ namespace KotH.Probes.Probes
             slideFrom = Vector3.Zero;
 
             Log($"[slide] == {c.name} ({Surfaces[c.surface]:F0}°" +
-                $"{(c.uphill ? " bergauf" : "")}), Boden bei" +
+                $"{(c.uphill ? " uphill" : "")}), ground at" +
                 $" {motor.GroundAngle:F1}°");
         }
 
@@ -431,14 +431,14 @@ namespace KotH.Probes.Probes
             if (started != c.shouldStart)
             {
                 failures++;
-                Log($"[slide]    {(started ? "startete, sollte nicht" : "startete NICHT, sollte")}" +
-                    $" -> ABWEICHUNG");
+                Log($"[slide]    {(started ? "started, should not" : "did NOT start, should")}" +
+                    $" -> DEVIATION");
                 return;
             }
 
             if (!started)
             {
-                Log("[slide]    kein Slide, wie erwartet -> ok");
+                Log("[slide]    no slide, as expected -> ok");
                 return;
             }
 
@@ -452,81 +452,81 @@ namespace KotH.Probes.Probes
                 case Check.Duration:
                     ok = UMath.Abs(slideTicks - wantTicks) <= 2f
                          && speedEnd < walkSpeed + 0.3f;
-                    note = $"{slideTicks} Ticks gegen {wantTicks:F1} erwartet";
+                    note = $"{slideTicks} ticks vs {wantTicks:F1} expected";
                     break;
                 case Check.SpeedRises:
                     ok = speedMax > speedStart + 0.2f;
-                    note = $"von {speedStart:F3} auf {speedMax:F3} m/s";
+                    note = $"from {speedStart:F3} to {speedMax:F3} m/s";
                     break;
                 case Check.SpeedCapped:
                     ok = speedMax > sprintSpeed && speedMax <= maxSlideSpeed + 0.3f;
-                    note = $"Spitze {speedMax:F3} gegen Deckel {maxSlideSpeed:F1}";
+                    note = $"peak {speedMax:F3} against cap {maxSlideSpeed:F1}";
                     break;
                 case Check.EndsEarly:
                     ok = slideTicks < wantTicks - 2f;
-                    note = $"{slideTicks} Ticks, flach waeren {wantTicks:F1}";
+                    note = $"{slideTicks} ticks, flat would be {wantTicks:F1}";
                     break;
                 case Check.JumpCancels:
                     // Cancelled, still standing, and the slope's loan handed back.
                     ok = !liftedOff && cancelSpeed <= sprintSpeed + 0.05f;
-                    note = $"abgebrochen bei {speedEnd:F3}, danach" +
-                           $" {cancelSpeed:F3} gegen {sprintSpeed:F3} erlaubt," +
-                           $" abgehoben {(liftedOff ? "JA" : "nein")}";
+                    note = $"cancelled at {speedEnd:F3}, then" +
+                           $" {cancelSpeed:F3} vs {sprintSpeed:F3} allowed," +
+                           $" lifted off {(liftedOff ? "YES" : "no")}";
                     break;
                 case Check.JumpAfterCancel:
                     ok = liftedOff && airSpeed <= sprintSpeed + 0.05f;
-                    note = $"zweiter Druck hob {(liftedOff ? "ab" : "NICHT ab")}," +
-                           $" in der Luft {airSpeed:F3} gegen {sprintSpeed:F3}";
+                    note = $"second press lifted {(liftedOff ? "off" : "NOT off")}," +
+                           $" in the air {airSpeed:F3} vs {sprintSpeed:F3}";
                     break;
                 case Check.FromJump:
                     // Started in the landing tick, with the sprint's speed
                     // carried through the crouched flight, and ran a full slide.
                     ok = startedOnLanding && speedStart > sprintSpeed - 0.3f
                          && UMath.Abs(slideTicks - wantTicks) <= 2f;
-                    note = $"Start {(startedOnLanding ? "bei der Landung" : "NICHT bei der Landung")}," +
-                           $" {slideTicks} Ticks gegen {wantTicks:F1} erwartet";
+                    note = $"start {(startedOnLanding ? "on landing" : "NOT on landing")}," +
+                           $" {slideTicks} ticks vs {wantTicks:F1} expected";
                     break;
                 case Check.Turns:
                     float turned = UMath.Abs(UMath.DeltaAngle(headingStart, headingEnd));
                     ok = turned > 60f;
-                    note = $"Bahn drehte {turned:F1}° von {c.yawTurn:F0}° Blick";
+                    note = $"path turned {turned:F1}° of {c.yawTurn:F0}° view";
                     break;
                 case Check.CooldownBlocks:
                     ok = slideCount == 1;
-                    note = $"{slideCount} Slide(s), erneut {c.retryAt} Ticks" +
-                           $" nach dem Start versucht, Pause ist" +
-                           $" {slideCooldown / FixedDeltaTime:F0} Ticks";
+                    note = $"{slideCount} slide(s), again {c.retryAt} ticks" +
+                           $" after the start tried, pause is" +
+                           $" {slideCooldown / FixedDeltaTime:F0} ticks";
                     break;
                 case Check.CooldownClears:
                     ok = slideCount == 2;
-                    note = $"{slideCount} Slide(s), erneut {c.retryAt} Ticks" +
-                           $" nach dem Start versucht, Pause ist" +
-                           $" {slideCooldown / FixedDeltaTime:F0} Ticks";
+                    note = $"{slideCount} slide(s), again {c.retryAt} ticks" +
+                           $" after the start tried, pause is" +
+                           $" {slideCooldown / FixedDeltaTime:F0} ticks";
                     break;
                 case Check.CarriesOverEdge:
                     // Ended by losing the ground, and still carrying speed.
                     ok = !groundedAtEnd && speedEnd > walkSpeed;
-                    note = $"verliess die Kante mit {speedEnd:F3} m/s," +
-                           $" Boden dabei {(groundedAtEnd ? "ja" : "nein")}";
+                    note = $"left the edge at {speedEnd:F3} m/s," +
+                           $" ground meanwhile {(groundedAtEnd ? "yes" : "no")}";
                     break;
                 case Check.RollsOut:
                     ok = distance > 2.5f && slideTicks > wantTicks - 3f;
-                    note = $"{distance:F2} m ohne Taste, {slideTicks} Ticks";
+                    note = $"{distance:F2} m without key, {slideTicks} ticks";
                     break;
                 default:   // Eyes
                     ok = UMath.Abs(eyeLow - crouchEye) < 0.02f
                          && !float.IsNaN(eyeAfter);
-                    note = $"Auge sank auf {eyeLow:F3} (soll {crouchEye:F3})," +
-                           $" danach {(float.IsNaN(eyeAfter) ? "NICHT zurueck" : $"zurueck auf {eyeAfter:F3}")}";
+                    note = $"eye sank to {eyeLow:F3} (want {crouchEye:F3})," +
+                           $" then {(float.IsNaN(eyeAfter) ? "NOT back" : $"back to {eyeAfter:F3}")}";
                     break;
             }
 
             if (!ok)
                 failures++;
 
-            Log($"[slide]    {note}; Start {speedStart:F3}," +
-                $" Spitze {speedMax:F3}, Ende {speedEnd:F3} m/s," +
-                $" {distance:F2} m -> {(ok ? "ok" : "ABWEICHUNG")}");
+            Log($"[slide]    {note}; start {speedStart:F3}," +
+                $" peak {speedMax:F3}, end {speedEnd:F3} m/s," +
+                $" {distance:F2} m -> {(ok ? "ok" : "DEVIATION")}");
         }
     }
 }

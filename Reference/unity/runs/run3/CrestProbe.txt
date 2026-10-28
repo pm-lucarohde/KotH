@@ -1,19 +1,19 @@
 [crest] entering play mode
-[crest] == Versatz  0,00 Winkel    0 gehen  : oben bei Tick  87, max 5,031 m, längster Stillstand 0 Ticks
-[crest] == Versatz  0,00 Winkel    0 sprint : oben bei Tick  52, max 5,049 m, längster Stillstand 1 Ticks
-[crest] == Versatz -1,50 Winkel    0 sprint : oben bei Tick  48, max 5,040 m, längster Stillstand 0 Ticks
-[crest] == Versatz  1,50 Winkel    0 sprint : oben bei Tick  48, max 5,040 m, längster Stillstand 0 Ticks
-[crest] == Versatz  0,00 Winkel    5 gehen  : oben bei Tick  78, max 5,029 m, längster Stillstand 0 Ticks
-[crest] == Versatz  0,00 Winkel   -5 gehen  : oben bei Tick  84, max 5,031 m, längster Stillstand 0 Ticks
-[crest] == Versatz  0,00 Winkel    5 sprint : oben bei Tick  52, max 5,045 m, längster Stillstand 0 Ticks
-[crest] == Versatz  0,00 Winkel   -5 sprint : oben bei Tick  49, max 5,047 m, längster Stillstand 0 Ticks
-[crest] == Versatz  0,00 Winkel   10 gehen  : oben bei Tick  79, max 5,030 m, längster Stillstand 0 Ticks
-[crest] == Versatz  0,00 Winkel  -10 sprint : oben bei Tick  53, max 5,046 m, längster Stillstand 0 Ticks
-[crest] == Versatz -1,00 Winkel    8 sprint : oben bei Tick  49, max 5,045 m, längster Stillstand 0 Ticks
-[crest] == Versatz  1,00 Winkel   -8 sprint : oben bei Tick  49, max 5,046 m, längster Stillstand 0 Ticks
-[crest] == Versatz  0,00 Winkel    0 gehen   wackel 30°: oben bei Tick  83, max 5,030 m, längster Stillstand 0 Ticks
-[crest] == Versatz  0,00 Winkel    0 sprint  wackel 30°: oben bei Tick  55, max 5,044 m, längster Stillstand 0 Ticks
-[crest] == Versatz  0,00 Winkel    0 sprint  wackel 60°: oben bei Tick  60, max 5,032 m, längster Stillstand 0 Ticks
-[crest] == Versatz -1,00 Winkel    0 sprint  wackel 60°: oben bei Tick  61, max 5,038 m, längster Stillstand 0 Ticks
-[crest] == Versatz  0,00 Winkel    0 geduckt: oben bei Tick 195, max 5,033 m, längster Stillstand 0 Ticks
-[crest] == Versatz  0,00 Winkel    5 geduckt: oben bei Tick 211, max 5,034 m, längster Stillstand 0 Ticks
+[crest] == offset  0.00 angle    0 walk   : top at tick  87, max 5.031 m, longest stall 0 ticks
+[crest] == offset  0.00 angle    0 sprint : top at tick  52, max 5.049 m, longest stall 1 ticks
+[crest] == offset -1.50 angle    0 sprint : top at tick  48, max 5.040 m, longest stall 0 ticks
+[crest] == offset  1.50 angle    0 sprint : top at tick  48, max 5.040 m, longest stall 0 ticks
+[crest] == offset  0.00 angle    5 walk   : top at tick  78, max 5.029 m, longest stall 0 ticks
+[crest] == offset  0.00 angle   -5 walk   : top at tick  84, max 5.031 m, longest stall 0 ticks
+[crest] == offset  0.00 angle    5 sprint : top at tick  52, max 5.045 m, longest stall 0 ticks
+[crest] == offset  0.00 angle   -5 sprint : top at tick  49, max 5.047 m, longest stall 0 ticks
+[crest] == offset  0.00 angle   10 walk   : top at tick  79, max 5.030 m, longest stall 0 ticks
+[crest] == offset  0.00 angle  -10 sprint : top at tick  53, max 5.046 m, longest stall 0 ticks
+[crest] == offset -1.00 angle    8 sprint : top at tick  49, max 5.045 m, longest stall 0 ticks
+[crest] == offset  1.00 angle   -8 sprint : top at tick  49, max 5.046 m, longest stall 0 ticks
+[crest] == offset  0.00 angle    0 walk    wobble 30°: top at tick  83, max 5.030 m, longest stall 0 ticks
+[crest] == offset  0.00 angle    0 sprint  wobble 30°: top at tick  55, max 5.044 m, longest stall 0 ticks
+[crest] == offset  0.00 angle    0 sprint  wobble 60°: top at tick  60, max 5.032 m, longest stall 0 ticks
+[crest] == offset -1.00 angle    0 sprint  wobble 60°: top at tick  61, max 5.038 m, longest stall 0 ticks
+[crest] == offset  0.00 angle    0 crouched: top at tick 195, max 5.033 m, longest stall 0 ticks
+[crest] == offset  0.00 angle    5 crouched: top at tick 211, max 5.034 m, longest stall 0 ticks

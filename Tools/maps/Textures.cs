@@ -1,5 +1,5 @@
 #!/usr/bin/env -S dotnet run
-// Painted textures for map "Neu", in the style of the mushroom figures: saturated colours,
+// Painted textures for map "Mount Destiny", in the style of the mushroom figures: saturated colours,
 // clear shapes with a darker rim, a light plane and broad brush strokes inside every shape,
 // like Mushroom.png (Luca, 22.10.2026: "not washed out", then "a touch softer and more like
 // a comic"). Seeded, so every run paints the same; painted with Pillow's algorithms
@@ -50,7 +50,7 @@ for (int n = 0; n < painters.Length; n++)
     if (relief != null)
     {
         NormalMap(relief).ToPng().Write(Path.Combine(outDir, painters[n].Name + "Normal.png"));
-        Console.WriteLine($"{painters[n].Name}Normal.png: Relief {relief.Min() * 1000:F1} bis {relief.Max() * 1000:F1} mm");
+        Console.WriteLine($"{painters[n].Name}Normal.png: relief {relief.Min() * 1000:F1} to {relief.Max() * 1000:F1} mm");
     }
 }
 

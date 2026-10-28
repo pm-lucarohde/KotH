@@ -82,17 +82,17 @@ namespace KotH.Probes.Probes
                     {
                         jittered++;
                         if (logged++ < 3)
-                            Log($"[crouchedge]    zappelt: x {start.X:F1} Blick {yaw:F0}°, {y.Jitter} schnelle Umkehrungen " +
-                                $"senkrecht, {z.Jitter} vorwärts, Ende bei {Ref.V(motor.Position)} -> ABWEICHUNG");
+                            Log($"[crouchedge]    jitters: x {start.X:F1} view {yaw:F0}°, {y.Jitter} fast reversals " +
+                                $"vertical, {z.Jitter} forward, end at {Ref.V(motor.Position)} -> DEVIATION");
                     }
                 }
 
                 failures += jittered;
-                Log($"[crouchedge] == {flight.name} geduckt: {runs} Läufe, {jittered} zappeln -> " +
+                Log($"[crouchedge] == {flight.name} crouched: {runs} runs, {jittered} jitter -> " +
                     (jittered == 0 ? "ok" : "ABWEICHUNG"));
             }
 
-            Log(failures == 0 ? "[crouchedge] KEIN ZAPPELN AN DEN STUFEN" : $"[crouchedge] {failures} LÄUFE ZAPPELN");
+            Log(failures == 0 ? "[crouchedge] NO JITTER AT THE STEPS" : $"[crouchedge] {failures} RUNS JITTER");
             return failures == 0 ? 0 : 1;
         }
 

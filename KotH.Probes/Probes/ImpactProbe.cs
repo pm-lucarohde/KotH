@@ -35,19 +35,19 @@ namespace KotH.Probes.Probes
 
         static readonly Case[] Cases =
         {
-            new Case { name = "Sprint frontal", start = new Vector3(-6f, 0.9f, -18f),
+            new Case { name = "Sprint head-on", start = new Vector3(-6f, 0.9f, -18f),
                        yaw = 90f, move = new Vector2(0f, 1f), sprint = true, ticks = 70 },
-            new Case { name = "Gehen frontal", start = new Vector3(-4f, 0.9f, -18f),
+            new Case { name = "Walk head-on", start = new Vector3(-4f, 0.9f, -18f),
                        yaw = 90f, move = new Vector2(0f, 1f), ticks = 70 },
-            new Case { name = "Schleichen frontal", start = new Vector3(-2f, 0.9f, -18f),
+            new Case { name = "Sneak head-on", start = new Vector3(-2f, 0.9f, -18f),
                        yaw = 90f, move = new Vector2(0f, 1f), crouch = true, ticks = 70 },
-            new Case { name = "Schräg versetzt", start = new Vector3(-4f, 0.9f, -18.5f),
+            new Case { name = "Diagonal offset", start = new Vector3(-4f, 0.9f, -18.5f),
                        yaw = 90f, move = new Vector2(0f, 1f), ticks = 70 },
-            new Case { name = "Von oben drauf", start = new Vector3(0f, 4f, -18f),
+            new Case { name = "Onto from above", start = new Vector3(0f, 4f, -18f),
                        yaw = 90f, ticks = 70 },
-            new Case { name = "Ruhig draufstehen", start = new Vector3(0f, 2.74f, -18f),
+            new Case { name = "Stand still on top", start = new Vector3(0f, 2.74f, -18f),
                        yaw = 90f, ticks = 100, settle = 20 },
-            new Case { name = "Dauerdruck", start = new Vector3(-2f, 0.9f, -18f),
+            new Case { name = "Constant push", start = new Vector3(-2f, 0.9f, -18f),
                        yaw = 90f, move = new Vector2(0f, 1f), ticks = 150, trace = 10 },
         };
 
@@ -68,7 +68,7 @@ namespace KotH.Probes.Probes
 
             if (World.Simulation == null)
             {
-                LogError("[impact] kein SimulationSystem in der Szene");
+                LogError("[impact] no SimulationSystem in the scene");
                 Exit(3);
                 return;
             }
@@ -76,7 +76,7 @@ namespace KotH.Probes.Probes
             TrainingDummy target = proto.Dummy?.Get<TrainingDummy>();
             if (target == null)
             {
-                LogError("[impact] kein TrainingDummy in der Szene");
+                LogError("[impact] no TrainingDummy in the scene");
                 Exit(3);
                 return;
             }
@@ -117,8 +117,8 @@ namespace KotH.Probes.Probes
             Case c = Cases[caseIndex];
 
             if (c.trace > 0 && tick % c.trace == 0)
-                Log($"[impact] {c.name} Tick {tick}:" +
-                    $" Spieler x {Ref.ToUnity(player.Position).X:F3}" +
+                Log($"[impact] {c.name} tick {tick}:" +
+                    $" Player x {Ref.ToUnity(player.Position).X:F3}" +
                     $" v {Show(Ref.ToUnity(player.Velocity))}," +
                     $" Dummy x {Ref.ToUnity(dummy.Position).X:F3}" +
                     $" v {Show(Ref.ToUnity(dummy.Velocity))}");
@@ -169,16 +169,16 @@ namespace KotH.Probes.Probes
 
                     // Separation must be 2 * bounce * approach, and the sum along
                     // the normal must survive the hit - that is the momentum.
-                    Log($"[impact] {c.name}: erster Stoß bei Tick {tick}," +
-                        $" Normale {Show(n)}, Annäherung {approach:F3} m/s," +
-                        $" Spieler entlang n {alongPlayer:F3}," +
-                        $" Dummy entlang n {alongDummy:F3}," +
-                        $" Trennung {alongDummy - alongPlayer:F3}" +
-                        $" (geteilt durch Annäherung" +
+                    Log($"[impact] {c.name}: first push at tick {tick}," +
+                        $" normal {Show(n)}, approach {approach:F3} m/s," +
+                        $" Player along n {alongPlayer:F3}," +
+                        $" Dummy along n {alongDummy:F3}," +
+                        $" separation {alongDummy - alongPlayer:F3}" +
+                        $" (divided by approach" +
                         $" {(alongDummy - alongPlayer) / approach:F3}," +
-                        $" soll 2*bounce)," +
-                        $" Summe entlang n {alongPlayer + alongDummy:F3}," +
-                        $" Spieler {Show(vPlayer)}, Dummy {Show(vDummy)}");
+                        $" want 2*bounce)," +
+                        $" sum along n {alongPlayer + alongDummy:F3}," +
+                        $" Player {Show(vPlayer)}, Dummy {Show(vDummy)}");
                 }
             }
         }
@@ -210,11 +210,11 @@ namespace KotH.Probes.Probes
             Vector3 d = Ref.ToUnity(dummy.Position);
             Vector3 gap = UMath.Sub(d, p);
 
-            Log($"[impact] == {c.name}: Stöße {pushes}," +
-                $" Spieler ({p.X:F2}/{p.Y:F2}/{p.Z:F2})," +
+            Log($"[impact] == {c.name}: pushes {pushes}," +
+                $" Player ({p.X:F2}/{p.Y:F2}/{p.Z:F2})," +
                 $" Dummy ({d.X:F2}/{d.Y:F2}/{d.Z:F2})," +
-                $" waagerecht {UMath.Magnitude(new Vector2(gap.X, gap.Z)):F3} m," +
-                $" senkrecht {gap.Y:F3} m");
+                $" horizontal {UMath.Magnitude(new Vector2(gap.X, gap.Z)):F3} m," +
+                $" vertical {gap.Y:F3} m");
         }
 
         /// <summary>

@@ -506,7 +506,7 @@ namespace KotH.Shared.Net
             int slot = from % Ring;
             int until = sim.CurrentTick;
             if (snapTicks[slot] != from)
-                throw new InvalidOperationException($"Kein Snapshot für Tick {from} zum Zurückrollen.");
+                throw new InvalidOperationException($"No snapshot for tick {from} to roll back to.");
 
             // Where the guess had the other players: the jump a correction shows.
             guessed.Clear();

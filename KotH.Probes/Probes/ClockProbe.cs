@@ -98,18 +98,18 @@ namespace KotH.Probes.Probes
                 if (!tickOk || dAlpha > AlphaTolerance || dCamera > PositionTolerance || dEye > PositionTolerance
                     || dNear > NearTolerance)
                 {
-                    Log($"[clock] ABWEICHUNG f {u.Index}: Ticks {due} (Unity {u.Fixed}), Zähler {system.CurrentTick} " +
-                        $"(Unity {u.Tick}), Alpha {alpha:F6} (Unity {u.Alpha:F6}), Kamera {Ref.V(Ref.Pos(camera))} " +
-                        $"(Unity {Ref.V(Ref.Pos(u.Camera))}), Nahebene {near:F6} (Unity {u.Near:F6})");
+                    Log($"[clock] DEVIATION f {u.Index}: ticks {due} (Unity {u.Fixed}), counter {system.CurrentTick} " +
+                        $"(Unity {u.Tick}), Alpha {alpha:F6} (Unity {u.Alpha:F6}), camera {Ref.V(Ref.Pos(camera))} " +
+                        $"(Unity {Ref.V(Ref.Pos(u.Camera))}), near plane {near:F6} (Unity {u.Near:F6})");
                 }
             }
 
             bool ok = tickMisses == 0 && alphaMax <= AlphaTolerance && eyeMax <= PositionTolerance
                       && cameraMax <= PositionTolerance && nearMax <= NearTolerance;
-            Log($"[clock] == {compared} Frames, Ticks je Frame abweichend {tickMisses}, " +
-                $"Alpha max {alphaMax:E2}, Auge max {eyeMax:E2} m, Kamera max {cameraMax:E2} m, " +
-                $"Nahebene max {nearMax:E2} m");
-            Log(ok ? "[clock] UHR WIE UNITY" : "[clock] UHR WEICHT AB");
+            Log($"[clock] == {compared} frames, ticks per frame differing {tickMisses}, " +
+                $"Alpha max {alphaMax:E2}, eye max {eyeMax:E2} m, camera max {cameraMax:E2} m, " +
+                $"near plane max {nearMax:E2} m");
+            Log(ok ? "[clock] CLOCK AS IN UNITY" : "[clock] CLOCK DIFFERS");
             return ok ? 0 : 1;
         }
 

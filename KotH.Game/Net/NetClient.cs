@@ -71,19 +71,19 @@ namespace KotH.Client.Net
         public string Notice
             => Session.Rejected switch
             {
-                RejectReason.Version => "Abgelehnt: anderer Build als der Host",
-                RejectReason.Full => "Abgelehnt: das Spiel ist voll",
-                RejectReason.Closed => "Abgelehnt: die Runde läuft schon zu lange",
-                _ => Session.HostLost ? "Der Host ist weg, das Spiel ist vorbei"
-                   : !Session.Joined ? $"Verbinde mit {address} ..."
+                RejectReason.Version => "Rejected: different build than the host",
+                RejectReason.Full => "Rejected: the game is full",
+                RejectReason.Closed => "Rejected: the round has run too long",
+                _ => Session.HostLost ? "The host is gone, the game is over"
+                   : !Session.Joined ? $"Connecting to {address} ..."
                    : null,
             };
 
         /// <summary>The F3 line: ping, lead, rollbacks, waits.</summary>
         public string Readout
             => string.Format(Hud.HudRenderer.Numbers,
-                             "{0} | Ping {1:F0} ms | Vorlauf {2:F1} | Rollback {3} (max {4}) | Warten {5}",
-                             Host != null ? "Host" : "Gast", Session.RoundTripMs, Session.Lead,
+                             "{0} | Ping {1:F0} ms | Lead {2:F1} | Rollback {3} (max {4}) | Stalls {5}",
+                             Host != null ? "Host" : "Guest", Session.RoundTripMs, Session.Lead,
                              Session.LastRollback, Session.DeepestRollback, Session.Stalls);
 
         public void Dispose() => transport.Dispose();

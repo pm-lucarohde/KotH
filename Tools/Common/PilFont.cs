@@ -95,7 +95,7 @@ public sealed unsafe class PilFont
     static void Check(int error)
     {
         if (error != 0)
-            throw new InvalidOperationException($"FreeType-Fehler {error}");
+            throw new InvalidOperationException($"FreeType error {error}");
     }
 
     static int Pixel(long x) => (int)(((x + 32) & -64) >> 6);

@@ -15,60 +15,57 @@ namespace KotH.Shared.Combat
     /// so a dedicated server computes the same ray.
     /// </summary>
     [DataContract("KotH.MeleeAttack")]
-    [Display("Nahkampf")]
+    [Display("Melee")]
     [ComponentCategory("KotH")]
     public sealed class MeleeAttack : EntityComponent
     {
-        /// <userdoc>Reichweite ab Augenhöhe, in Metern.</userdoc>
-        [Display("Reichweite", "Schlag")] public float Range = 3.5f;
+        /// <userdoc>Reach from eye height, in metres.</userdoc>
+        [Display("Range", "Swing")] public float Range = 3.5f;
 
-        /// <userdoc>Wie viel Prozent ein Treffer dem Getroffenen auflädt.</userdoc>
-        [Display("Schadensprozent", "Schlag")] public float DamagePercent = 1.2f;
-
-        /// <userdoc>
-        /// Wie weit ein Getroffener bei 100 % waagerecht fliegt, in Metern, ohne
-        /// Gegensteuern auf ebenem Boden. Wächst linear mit dem Prozent vor dem
-        /// Treffer: 0 % stößt waagerecht gar nicht, 1000 % zehnmal so weit.
-        /// </userdoc>
-        [Display("Weite bei 100 %", "Rückstoß")] public float KnockbackDistance = 12f;
+        /// <userdoc>How many percent a hit adds to the target.</userdoc>
+        [Display("Damage percent", "Swing")] public float DamagePercent = 1.2f;
 
         /// <userdoc>
-        /// Wie hoch ein Getroffener bei 100 % steigt, in Metern. Linear wie die Weite.
-        /// Steigt oder fällt er beim Treffer in der Luft, kommt der Stoß auf dieses
-        /// Tempo obendrauf.
+        /// How far a target at 100 % flies horizontally, in metres, without steering
+        /// against it on flat ground. Grows linearly with the percent before the
+        /// hit: 0 % does not push horizontally at all, 1000 % ten times as far.
         /// </userdoc>
-        [Display("Höhe bei 100 %", "Rückstoß")] public float KnockbackHeight = 1.2f;
+        [Display("Distance at 100 %", "Knockback")] public float KnockbackDistance = 12f;
 
         /// <userdoc>
-        /// Darunter steigt ein Getroffener so hoch wie bei diesem Prozent, auch
-        /// bei 0 %. Nur die Höhe: waagerecht stößt 0 % weiter gar nicht.
+        /// How high a target at 100 % rises, in metres. Linear like the distance.
+        /// Rising or falling in the air when hit, the push adds to that speed.
         /// </userdoc>
-        [Display("Höhe mindestens wie bei %", "Rückstoß")] public float KnockbackHeightFloor = 1f;
+        [Display("Height at 100 %", "Knockback")] public float KnockbackHeight = 1.2f;
 
         /// <userdoc>
-        /// Ab diesem Prozent vor dem Treffer zählt beim Treffer auch das Tempo
-        /// beider auf der Stoßlinie, zunächst mit dem Anteil „Tempoanteil am
-        /// Anfang“: Läuft der Schläger auf den Getroffenen zu, stößt er
-        /// stärker; läuft der Getroffene auf ihn zu, schwächer. Darunter zählt
-        /// es nicht.
+        /// Below this a target rises as high as at this percent, even at 0 %.
+        /// Height only: horizontally 0 % still does not push at all.
         /// </userdoc>
-        [Display("Tempo zählt ab %", "Rückstoß")] public float CarryFromPercent = 10f;
-
-        /// <userdoc>Anteil beider Tempi ab „Tempo zählt ab %“, 0 bis 1.</userdoc>
-        [Display("Tempoanteil am Anfang", "Rückstoß")] public float CarryStartShare = 0.5f;
+        [Display("Min height as at %", "Knockback")] public float KnockbackHeightFloor = 1f;
 
         /// <userdoc>
-        /// Ab diesem Prozent zählen beide Tempi voll; dazwischen steigt der
-        /// Anteil linear. Gehen sie gegeneinander auf, fliegt der Getroffene
-        /// wie im Stand; der Stoß zeigt nie zum Schläger hin.
+        /// From this percent before the hit, both speeds along the push line count,
+        /// first with "Carry share at start": an attacker running at the target
+        /// pushes harder, a target running at him less. Below it they do not count.
         /// </userdoc>
-        [Display("Tempo voll ab %", "Rückstoß")] public float CarryFullPercent = 20f;
+        [Display("Speed counts from %", "Knockback")] public float CarryFromPercent = 10f;
+
+        /// <userdoc>Share of both speeds from "Speed counts from %", 0 to 1.</userdoc>
+        [Display("Carry share at start", "Knockback")] public float CarryStartShare = 0.5f;
+
+        /// <userdoc>
+        /// From this percent both speeds count fully; in between the share rises
+        /// linearly. If they cancel, the target flies as if standing; the push
+        /// never points towards the attacker.
+        /// </userdoc>
+        [Display("Speed full from %", "Knockback")] public float CarryFullPercent = 20f;
 
         // Ticks, not seconds: a third of a second is 13.33 ticks at 40 Hz and
         // would silently round up to 14. Counting ticks is also what a server
         // can replay without an argument about rounding.
-        /// <userdoc>Ticks zwischen zwei Schlägen. 13 Ticks sind 3,08 pro Sekunde.</userdoc>
-        [Display("Abklingzeit (Ticks)", "Schlag")] public int CooldownTicks = 13;
+        /// <userdoc>Ticks between two swings. 13 ticks are 3.08 per second.</userdoc>
+        [Display("Cooldown (ticks)", "Swing")] public int CooldownTicks = 13;
 
         PlayerMotor motor;
         int ticksUntilReady;

@@ -102,7 +102,7 @@ namespace KotH.Probes.Probes
                     float want = Ref.Angle(Bits(c[1]));
                     float got = UMath.YawOf(rot);
                     yawOk = Same(want, got);
-                    Log($"[rot] YawOf Dummy: Unity {Bits(c[1])} gespiegelt {want} UMath {got} {(yawOk ? "bitgleich" : "ABWEICHUNG")}");
+                    Log($"[rot] YawOf Dummy: Unity {Bits(c[1])} mirrored {want} UMath {got} {(yawOk ? "bitgleich" : "ABWEICHUNG")}");
                     continue;
                 }
 
@@ -113,7 +113,7 @@ namespace KotH.Probes.Probes
                 Quaternion q = MirrorQ(c, 2), qy = MirrorQ(c, 6);
                 Vector3 fwd = MirrorV(c, 10), right = MirrorV(c, 13);
                 Vector3 yFwd = MirrorV(c, 16), yRight = MirrorV(c, 19);
-                string at = $"Nick {Bits(c[0])} Gier {Bits(c[1])}";
+                string at = $"pitch {Bits(c[0])} yaw {Bits(c[1])}";
 
                 Quaternion e = UMath.Euler(pitch, yaw);
                 euler.Add(Same(e, q), Ulp(e, q), at + $" Unity {q} UMath {e}");
@@ -127,7 +127,7 @@ namespace KotH.Probes.Probes
                 Vector3 mya = RotateMono(qy, UMath.Forward), myb = RotateMono(qy, UMath.Right);
                 mono.Add(Same(ma, fwd) && Same(mb, right) && Same(mya, yFwd) && Same(myb, yRight),
                          Math.Max(Math.Max(Ulp(ma, fwd), Ulp(mb, right)), Math.Max(Ulp(mya, yFwd), Ulp(myb, yRight))),
-                         at + $" vorn Unity {fwd} Mono {ma}");
+                         at + $" forward Unity {fwd} Mono {ma}");
 
                 Vector3 a = UMath.Rotate(q, UMath.Forward), b = UMath.Rotate(q, UMath.Right);
                 rotate.Add(Same(a, fwd) && Same(b, right), Math.Max(Ulp(a, fwd), Ulp(b, right)), at);
@@ -140,17 +140,17 @@ namespace KotH.Probes.Probes
             }
 
             bool ok = yawOk;
-            ok &= Report("Euler(Nick, Gier)", euler);
-            ok &= Report("EulerYaw(Gier)", eulerYaw);
-            ok &= Report("Rotate mit Monos Rundung", mono);
+            ok &= Report("Euler(pitch, yaw)", euler);
+            ok &= Report("EulerYaw(yaw)", eulerYaw);
+            ok &= Report("Rotate with Mono's rounding", mono);
 
             // Plain float may differ from the editor's reference in the last
             // bits only; anything near a millimetre would be a real error.
             Report("Rotate in float", rotate);
-            Report("Euler dann Rotate in float", chain);
-            Log($"[rot] float gegen Mono: größter Unterschied {maxRotate:G3} bzw. {maxChain:G3}");
+            Report("Euler then Rotate in float", chain);
+            Log($"[rot] float vs Mono: largest difference {maxRotate:G3} resp. {maxChain:G3}");
             ok &= maxRotate < 1e-6f && maxChain < 1e-6f;
-            Log(ok ? "[rot] ROTATIONEN STIMMEN: Euler bitgleich, Rotate bis auf Monos Rundung" : "[rot] ROTATIONEN WEICHEN AB");
+            Log(ok ? "[rot] ROTATIONS MATCH: Euler bit-identical, Rotate up to Mono's rounding" : "[rot] ROTATIONS DIFFER");
             Exit(ok ? 0 : 1);
         }
 
@@ -173,9 +173,9 @@ namespace KotH.Probes.Probes
 
         bool Report(string name, Count c)
         {
-            Log($"[rot] {name}: {c.Equal}/{c.Cases} bitgleich, größte Abweichung {c.MaxUlp} ULP");
+            Log($"[rot] {name}: {c.Equal}/{c.Cases} bit-identical, largest deviation {c.MaxUlp} ULP");
             if (c.First != null)
-                Log($"[rot]    erste Abweichung: {c.First}");
+                Log($"[rot]    first deviation: {c.First}");
             return c.Equal == c.Cases;
         }
     }

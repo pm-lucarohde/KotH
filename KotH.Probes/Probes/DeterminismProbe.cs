@@ -122,7 +122,7 @@ namespace KotH.Probes.Probes
             dummy = dummyEntity.Get<TrainingDummy>();
             if (sim == null || dummy == null)
             {
-                LogError("[det] SimulationSystem oder TrainingDummy fehlt");
+                LogError("[det] SimulationSystem or TrainingDummy missing");
                 Exit(3);
                 return;
             }
@@ -136,7 +136,7 @@ namespace KotH.Probes.Probes
 
             if (sim.Bodies.Count != 2)
             {
-                LogError($"[det] {sim.Bodies.Count} Körper statt 2");
+                LogError($"[det] {sim.Bodies.Count} bodies instead of 2");
                 Exit(3);
                 return;
             }
@@ -210,7 +210,7 @@ namespace KotH.Probes.Probes
             }
 
             bool ok = Report();
-            Log(ok ? "[det] ALLE FAELLE DETERMINISTISCH" : "[det] FEHLER");
+            Log(ok ? "[det] ALL CASES DETERMINISTIC" : "[det] ERROR");
             Exit(ok ? 0 : 1);
             failed = true;
         }
@@ -232,13 +232,13 @@ namespace KotH.Probes.Probes
             }
 
             // The chain depends on the instruction set the code runs with.
-            Log($"[det] Befehlssatz: AVX {System.Runtime.Intrinsics.X86.Avx.IsSupported}, " +
+            Log($"[det] instruction set: AVX {System.Runtime.Intrinsics.X86.Avx.IsSupported}, " +
                 $"AVX2 {System.Runtime.Intrinsics.X86.Avx2.IsSupported}, " +
                 $"FMA {System.Runtime.Intrinsics.X86.Fma.IsSupported}, " +
-                $"Vector<float> {System.Numerics.Vector<float>.Count} breit");
+                $"Vector<float> {System.Numerics.Vector<float>.Count} wide");
             for (int t = 0; t <= Ticks; t += Ticks / 4)
-                Log($"[det] Hash Tick {t}: {reference[t]:X16}");
-            Log($"[det] Hashkette über {reference.Length} Ticks: {chain:X16}");
+                Log($"[det] hash tick {t}: {reference[t]:X16}");
+            Log($"[det] hash chain over {reference.Length} ticks: {chain:X16}");
         }
 
         // DetMath over a fixed spread of arguments: the hash must be the same
@@ -275,7 +275,7 @@ namespace KotH.Probes.Probes
                 Take(DetMath.Atan2(y, x), Math.Atan2(y, x));
                 Take(DetMath.Acos(c), Math.Acos(c));
             }
-            Log($"[det] Trigonometrie: Hash {hash:X16}, {differ} von {count} weichen von der C-Laufzeit ab, höchstens {worst} ulp");
+            Log($"[det] trigonometry: hash {hash:X16}, {differ} of {count} differ from the C runtime, at most {worst} ulp");
         }
 
         MoveInput Steer()
@@ -326,8 +326,8 @@ namespace KotH.Probes.Probes
             float distance = UMath.Magnitude(to);
             if (distance < 0.8f || legTick >= l.MaxTicks)
             {
-                Log($"[det] Etappe {leg} endet bei Tick {tick}, Position {Ref.V(stride)}," +
-                    $" Ziel {(distance < 0.8f ? "erreicht" : "nicht erreicht")}");
+                Log($"[det] stage {leg} ends at tick {tick}, position {Ref.V(stride)}," +
+                    $" target {(distance < 0.8f ? "reached" : "not reached")}");
                 leg++;
                 legTick = 0;
             }
@@ -351,36 +351,36 @@ namespace KotH.Probes.Probes
             ok &= Complete();
 
             if (bufferLeaks == 0 && bufferMoved > Ticks / 2)
-                Log($"[det] GLEICH   Puffer: in {bufferChecks} Ticks, davon {bufferMoved}" +
-                    " mit Bewegung, stand kein Transform vor dem Veroeffentlichen" +
-                    " schon auf dem neuen Stand");
+                Log($"[det] SAME      buffer: in {bufferChecks} ticks, {bufferMoved} of them" +
+                    " moving, no transform was already up to date" +
+                    " before publishing");
             else
             {
-                Log($"[det] ANDERS   Puffer: {bufferLeaks} von {bufferChecks} Ticks" +
-                    $" zeigten den neuen Stand zu frueh, {bufferMoved} mit Bewegung");
+                Log($"[det] DIFFERENT buffer: {bufferLeaks} of {bufferChecks} ticks" +
+                    $" showed the new state too early, {bufferMoved} moving");
                 ok = false;
             }
 
-            ok &= Replay("Nachspielen ab Start", 0);
-            ok &= Replay($"Rollback bei Tick {RollbackTick}", RollbackTick);
+            ok &= Replay("replay from start", 0);
+            ok &= Replay($"rollback at tick {RollbackTick}", RollbackTick);
 
             // Restore puts the recorded order back, so the dummy moves to
             // the end of the list only after it; the next restore undoes it.
-            ok &= Replay("Koerperliste umgedreht", 0, () =>
+            ok &= Replay("body list reversed", 0, () =>
             {
                 sim.Unregister(dummy);
                 sim.Register(dummy);
             });
 
-            ok &= ReplayAt("Rollback im Gleiten", RollbackTick + 1,
+            ok &= ReplayAt("rollback while sliding", RollbackTick + 1,
                            t => snaps[t].StateAt(Index(t)).Motor.Sliding);
-            ok &= ReplayAt("Rollback im Steigflug", RollbackTick + 1, t =>
+            ok &= ReplayAt("rollback while rising", RollbackTick + 1, t =>
             {
                 MotorState m = snaps[t].StateAt(Index(t)).Motor;
                 return !m.TouchingGround && m.Velocity.Y > 1f;
             });
             // From the start: the dummy is met first thing on the route.
-            ok &= ReplayAt("Rollback vor einem Stoss", 1, t => contactAt[t]);
+            ok &= ReplayAt("rollback before a push", 1, t => contactAt[t]);
             ok &= ResimulateApi();
             ok &= TwoWorlds();
             ok &= CounterProbe();
@@ -402,9 +402,9 @@ namespace KotH.Probes.Probes
         {
             for (int t = first; t < Ticks - 1; t++)
                 if (pick(t))
-                    return Replay($"{name} (Tick {t})", t);
+                    return Replay($"{name} (tick {t})", t);
 
-            Log($"[det] FEHLT    {name}: kein passender Tick in der Aufnahme");
+            Log($"[det] MISSING   {name}: no matching tick in the recording");
             return false;
         }
 
@@ -413,7 +413,7 @@ namespace KotH.Probes.Probes
             sim.Restore(snaps[from]);
             afterRestore?.Invoke();
             if (Hash() != reference[from])
-                return Fail(name, from, "schon direkt nach dem Restore");
+                return Fail(name, from, "right after the restore already");
 
             for (int t = from; t < Ticks; t++)
             {
@@ -422,7 +422,7 @@ namespace KotH.Probes.Probes
                     return Fail(name, t + 1, Diff(t + 1));
             }
 
-            Log($"[det] GLEICH   {name}: {Ticks - from} Ticks bitgleich");
+            Log($"[det] SAME      {name}: {Ticks - from} ticks bit-identical");
             return true;
         }
 
@@ -442,7 +442,7 @@ namespace KotH.Probes.Probes
             if (Hash() != reference[Ticks])
                 return Fail("Resimulate", Ticks, Diff(Ticks));
 
-            Log($"[det] GLEICH   Resimulate: Endzustand nach {Ticks} Ticks bitgleich");
+            Log($"[det] SAME      Resimulate: end state after {Ticks} ticks bit-identical");
             return true;
         }
 
@@ -479,19 +479,19 @@ namespace KotH.Probes.Probes
 
             sim.Restore(snaps[0]);
             if (Hash(sim2, player2, dummy2) != reference[0])
-                return Fail("Zwei Welten", 0, "zweite Welt schon nach dem Einschwingen anders");
+                return Fail("two worlds", 0, "second world differs after settling already");
 
             for (int t = 0; t < Ticks; t++)
             {
                 StepWith(inputs[t]);
                 Step2(inputs[t]);
                 if (Hash() != reference[t + 1])
-                    return Fail("Zwei Welten", t + 1, "erste Welt: " + Diff(t + 1));
+                    return Fail("two worlds", t + 1, "first world: " + Diff(t + 1));
                 if (Hash(sim2, player2, dummy2) != reference[t + 1])
-                    return Fail("Zwei Welten", t + 1, "zweite Welt weicht ab");
+                    return Fail("two worlds", t + 1, "second world differs");
             }
 
-            Log($"[det] GLEICH   Zwei Welten im Wechsel: {Ticks} Ticks, beide bitgleich mit der Aufnahme");
+            Log($"[det] SAME      two worlds alternating: {Ticks} ticks, both bit-identical with the recording");
             return true;
         }
 
@@ -509,19 +509,19 @@ namespace KotH.Probes.Probes
 
                 if (Hash() != reference[t + 1])
                 {
-                    Log($"[det] GLEICH   Gegenprobe: 1 Grad bei Tick {CounterTick}" +
-                        $" weicht ab Tick {t + 1} ab, wie es muss");
+                    Log($"[det] SAME      counter check: 1 degree at tick {CounterTick}" +
+                        $" differs from tick {t + 1} on, as it must");
                     return true;
                 }
             }
 
-            Log("[det] FEHLER   Gegenprobe: veraenderte Eingabe blieb unsichtbar");
+            Log("[det] ERROR     counter check: changed input stayed invisible");
             return false;
         }
 
         bool Fail(string name, int t, string detail)
         {
-            Log($"[det] ANDERS   {name}: ab Tick {t} - {detail}");
+            Log($"[det] DIFFERENT {name}: from tick {t} - {detail}");
             return false;
         }
 
@@ -556,11 +556,11 @@ namespace KotH.Probes.Probes
 
             if (missing.Count == 0)
             {
-                Log($"[det] GLEICH   Vollstaendigkeit: jedes Laufzeitfeld des Motors steht in MotorState");
+                Log($"[det] SAME      completeness: every runtime field of the motor is in MotorState");
                 return true;
             }
 
-            Log($"[det] FEHLT    Vollstaendigkeit: nicht in MotorState: {string.Join(", ", missing)}");
+            Log($"[det] MISSING   completeness: not in MotorState: {string.Join(", ", missing)}");
             return false;
         }
 
@@ -589,23 +589,23 @@ namespace KotH.Probes.Probes
                 if (last.BodyAt(i) == dummy)
                     percent = last.StateAt(i).DamagePercent;
 
-            Log($"[det] Abdeckung: gleiten {sliding}, Luft {air}, Sprint {sprint}," +
-                $" steil {steep}, Stufen {steps}, Stoesse {contacts}," +
-                $" Dummy-Prozent {percent:F1}, max y {maxY:F2}, Etappe {leg}/{Route.Length}");
+            Log($"[det] coverage: slide {sliding}, air {air}, sprint {sprint}," +
+                $" steep {steep}, steps {steps}, pushes {contacts}," +
+                $" dummy percent {percent:F1}, max y {maxY:F2}, stage {leg}/{Route.Length}");
 
             int held = 0;
             for (int t = 1; t <= Ticks; t++)
                 if (snaps[t].Match.Holder != null)
                     held++;
-            Log($"[det] Zone: {held} Ticks allein gehalten, Punkte-Ticks {last.StateAt(Index(Ticks)).ScoreTicks}");
+            Log($"[det] zone: {held} ticks held alone, point ticks {last.StateAt(Index(Ticks)).ScoreTicks}");
 
             var attack = playerEntity.Get<MeleeAttack>();
-            Log($"[det] Schlaege {attack.SwingCount}, Treffer {attack.HitCount}");
+            Log($"[det] swings {attack.SwingCount}, hits {attack.HitCount}");
 
             bool ok = sliding > 0 && air > 0 && sprint > 0 && steep > 0
                    && steps > 0 && contacts > 0 && percent > 0f;
             if (!ok)
-                Log("[det] ABDECKUNG FEHLT: mindestens ein Zustand kam nie vor");
+                Log("[det] COVERAGE MISSING: at least one state never occurred");
             return ok;
         }
 
@@ -681,7 +681,7 @@ namespace KotH.Probes.Probes
         static FieldInfo[] Fields(Type t)
             => Layouts.TryGetValue(t, out FieldInfo[] fields)
                 ? fields
-                : throw new InvalidOperationException($"[det] kein Feldlayout für {t}");
+                : throw new InvalidOperationException($"[det] no field layout for {t}");
 
         static FieldInfo[] AllFields(
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields
@@ -696,7 +696,7 @@ namespace KotH.Probes.Probes
             for (int i = 0; i < s.Count; i++)
             {
                 SimulationBody body = s.BodyAt(i);
-                string who = body == scripted ? "Spieler" : "Dummy";
+                string who = body == scripted ? "Player" : "Dummy";
                 DiffObject(sb, who, s.StateAt(i), body.CaptureState());
             }
 
@@ -704,9 +704,9 @@ namespace KotH.Probes.Probes
             if (want.RoundTicks != got.RoundTicks || want.Phase != got.Phase || want.PhaseTicks != got.PhaseTicks ||
                 want.MinPlayers != got.MinPlayers ||
                 want.Inside != got.Inside || want.Winner != got.Winner || want.Holder != got.Holder)
-                sb.Append($" Runde {want.RoundTicks}/{want.Inside}/{Who(want.Holder)}->{got.RoundTicks}/{got.Inside}/{Who(got.Holder)}");
+                sb.Append($" round {want.RoundTicks}/{want.Inside}/{Who(want.Holder)}->{got.RoundTicks}/{got.Inside}/{Who(got.Holder)}");
 
-            return sb.Length == 0 ? "nur CurrentTick" : sb.ToString();
+            return sb.Length == 0 ? "CurrentTick only" : sb.ToString();
         }
 
         static void DiffObject(StringBuilder sb, string path, object want, object got)

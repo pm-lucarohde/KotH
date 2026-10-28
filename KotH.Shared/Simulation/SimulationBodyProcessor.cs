@@ -18,7 +18,7 @@ namespace KotH.Shared.Simulation
             if (system == null)
             {
                 // Without a driver nothing moves at all and nothing says why.
-                Log.Warning($"Kein SimulationSystem, {entity.Name} wird nicht getickt.");
+                Log.Warning($"No SimulationSystem, {entity.Name} is not ticked.");
                 return;
             }
 

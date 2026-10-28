@@ -23,30 +23,30 @@ namespace KotH.Client.Player
     public sealed class PlayerCamera : SyncScript
     {
         // How much of the room around the eye the near plane may use.
-        [Display("Nahebenen-Spielraum", "Kamera")] public float NearClipMargin = 0.7f;
+        [Display("Near clip margin", "Camera")] public float NearClipMargin = 0.7f;
 
-        [Display("Abstand", "Third-Person")] public float Distance = 3.5f;
+        [Display("Distance", "Third person")] public float Distance = 3.5f;
 
-        /// <userdoc>Wie hoch über dem Auge der Drehpunkt der Kamera liegt, damit die Kappe die Bildmitte frei lässt</userdoc>
-        [Display("Höhe über dem Auge", "Third-Person")] public float Lift = 0.6f;
+        /// <userdoc>How high above the eye the camera pivots, so the cap leaves the centre of the view free</userdoc>
+        [Display("Lift above eye", "Third person")] public float Lift = 0.6f;
 
-        /// <userdoc>Radius der Kugel, mit der die Kamera Wänden und Decken ausweicht</userdoc>
-        [Display("Kugelradius", "Third-Person")] public float Radius = 0.1f;
+        /// <userdoc>Radius of the sphere the camera dodges walls and ceilings with</userdoc>
+        [Display("Sphere radius", "Third person")] public float Radius = 0.1f;
 
-        /// <userdoc>Wie schnell die Kamera nach einem Hindernis wieder auf ihren Abstand zurückgleitet, in m/s</userdoc>
-        [Display("Rücklauftempo", "Third-Person")] public float ReturnSpeed = 6f;
+        /// <userdoc>How fast the camera glides back to its distance after an obstacle, in m/s</userdoc>
+        [Display("Return speed", "Third person")] public float ReturnSpeed = 6f;
 
-        /// <userdoc>Ab diesem Abstand vom Auge wird die eigene Figur gezeichnet, darunter nur ihr Schatten</userdoc>
-        [Display("Figur ab Abstand", "Third-Person")] public float ShowFigureFrom = 1.6f;
+        /// <userdoc>From this distance to the eye the own figure is drawn, below it only its shadow</userdoc>
+        [Display("Figure from distance", "Third person")] public float ShowFigureFrom = 1.6f;
 
-        /// <userdoc>So lange wackelt das Bild nach einem Treffer, in Sekunden. 0 schaltet das Wackeln aus.</userdoc>
-        [Display("Dauer", "Wackeln bei Treffer")] public float ShakeSeconds = 0.3f;
+        /// <userdoc>How long the view shakes after a hit, in seconds. 0 turns shaking off.</userdoc>
+        [Display("Duration", "Shake on hit")] public float ShakeSeconds = 0.3f;
 
-        /// <userdoc>Wie weit das Bild am Anfang höchstens kippt, in Grad; danach klingt es ab. Unabhängig vom Schadenswert.</userdoc>
-        [Display("Stärke", "Wackeln bei Treffer")] public float ShakeDegrees = 1.125f;
+        /// <userdoc>How far the view tilts at most at first, in degrees; then it fades. Independent of the damage percent.</userdoc>
+        [Display("Strength", "Shake on hit")] public float ShakeDegrees = 1.125f;
 
-        /// <userdoc>Wie oft das Bild pro Sekunde hin und her geht.</userdoc>
-        [Display("Tempo", "Wackeln bei Treffer")] public float ShakeHertz = 8f;
+        /// <userdoc>How often per second the view goes back and forth.</userdoc>
+        [Display("Rate", "Shake on hit")] public float ShakeHertz = 8f;
 
         [DataMemberIgnore] public PlayerMotor Motor { get; set; }
         [DataMemberIgnore] public PlayerInputReader Reader { get; set; }

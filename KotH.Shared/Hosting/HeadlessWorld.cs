@@ -71,7 +71,7 @@ namespace KotH.Shared.Hosting
         public HillMatch StartMatch()
         {
             if (Zone == null)
-                throw new InvalidOperationException("Die Arena hat keine Capture-Zone.");
+                throw new InvalidOperationException("The arena has no capture zone.");
             Simulation.Match = new HillMatch(Zone);
             return Simulation.Match;
         }

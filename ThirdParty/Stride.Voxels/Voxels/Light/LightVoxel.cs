@@ -34,13 +34,13 @@ namespace Stride.Rendering.Voxels.VoxelGI
 
         // KotH patch: sky light that only reaches where the cones get out.
         /// <userdoc>
-        /// Skybox, deren Licht durch die Lücken der Kegel fällt (diffus und gespiegelt), statt eines eigenen Skybox-Lichts.
+        /// Skybox whose light falls through the gaps of the cones (diffuse and specular), instead of a separate skybox light.
         /// </userdoc>
         [DataMember(60)]
         public Skybox Sky { get; set; }
 
         /// <userdoc>
-        /// Stärke des Himmelslichts, unabhängig von der Intensität des Lichts.
+        /// Strength of the sky light, independent of the light's intensity.
         /// </userdoc>
         [DataMember(70)]
         public float SkyIntensity { get; set; } = 1.0f;
@@ -50,7 +50,7 @@ namespace Stride.Rendering.Voxels.VoxelGI
         /// meshes with a second UV set (0 = none, they are lit live like the rest).
         /// </summary>
         /// <userdoc>
-        /// Kantenlänge der Lightmap in Texeln: Meshes mit zweitem UV-Set bekommen das Licht einmal gebacken statt jeden Frame (0 = aus).
+        /// Side of the lightmap in texels: meshes with a second UV set get the light baked once instead of every frame (0 = off).
         /// </userdoc>
         [DataMember(80)]
         public int LightmapSize { get; set; }

@@ -1,24 +1,24 @@
-M:System.Math.Sin(System.Double);C-Laufzeit, auf Linux und Windows verschieden: DetMath.Sin
-M:System.Math.Cos(System.Double);C-Laufzeit, auf Linux und Windows verschieden: DetMath.Cos
-M:System.Math.Tan(System.Double);C-Laufzeit, auf Linux und Windows verschieden
-M:System.Math.Asin(System.Double);C-Laufzeit, auf Linux und Windows verschieden
-M:System.Math.Acos(System.Double);C-Laufzeit, auf Linux und Windows verschieden: DetMath.Acos
-M:System.Math.Atan(System.Double);C-Laufzeit, auf Linux und Windows verschieden: DetMath.Atan
-M:System.Math.Atan2(System.Double,System.Double);C-Laufzeit, auf Linux und Windows verschieden: DetMath.Atan2
-M:System.Math.SinCos(System.Double);C-Laufzeit, auf Linux und Windows verschieden
-M:System.Math.Pow(System.Double,System.Double);C-Laufzeit, auf Linux und Windows verschieden
-M:System.Math.Exp(System.Double);C-Laufzeit, auf Linux und Windows verschieden
-M:System.Math.Log(System.Double);C-Laufzeit, auf Linux und Windows verschieden
-M:System.Math.Log10(System.Double);C-Laufzeit, auf Linux und Windows verschieden
-M:System.Math.Cbrt(System.Double);C-Laufzeit, auf Linux und Windows verschieden
-M:System.MathF.Sin(System.Single);C-Laufzeit, auf Linux und Windows verschieden: DetMath.SinF
-M:System.MathF.Cos(System.Single);C-Laufzeit, auf Linux und Windows verschieden: DetMath.CosF
-M:System.MathF.Tan(System.Single);C-Laufzeit, auf Linux und Windows verschieden
-M:System.MathF.Asin(System.Single);C-Laufzeit, auf Linux und Windows verschieden
-M:System.MathF.Acos(System.Single);C-Laufzeit, auf Linux und Windows verschieden
-M:System.MathF.Atan(System.Single);C-Laufzeit, auf Linux und Windows verschieden
-M:System.MathF.Atan2(System.Single,System.Single);C-Laufzeit, auf Linux und Windows verschieden
-M:System.MathF.SinCos(System.Single);C-Laufzeit, auf Linux und Windows verschieden
-M:System.MathF.Pow(System.Single,System.Single);C-Laufzeit, auf Linux und Windows verschieden
-M:System.MathF.Exp(System.Single);C-Laufzeit, auf Linux und Windows verschieden
-M:System.MathF.Log(System.Single);C-Laufzeit, auf Linux und Windows verschieden
+M:System.Math.Sin(System.Double);C runtime, differs between Linux and Windows: DetMath.Sin
+M:System.Math.Cos(System.Double);C runtime, differs between Linux and Windows: DetMath.Cos
+M:System.Math.Tan(System.Double);C runtime, differs between Linux and Windows
+M:System.Math.Asin(System.Double);C runtime, differs between Linux and Windows
+M:System.Math.Acos(System.Double);C runtime, differs between Linux and Windows: DetMath.Acos
+M:System.Math.Atan(System.Double);C runtime, differs between Linux and Windows: DetMath.Atan
+M:System.Math.Atan2(System.Double,System.Double);C runtime, differs between Linux and Windows: DetMath.Atan2
+M:System.Math.SinCos(System.Double);C runtime, differs between Linux and Windows
+M:System.Math.Pow(System.Double,System.Double);C runtime, differs between Linux and Windows
+M:System.Math.Exp(System.Double);C runtime, differs between Linux and Windows
+M:System.Math.Log(System.Double);C runtime, differs between Linux and Windows
+M:System.Math.Log10(System.Double);C runtime, differs between Linux and Windows
+M:System.Math.Cbrt(System.Double);C runtime, differs between Linux and Windows
+M:System.MathF.Sin(System.Single);C runtime, differs between Linux and Windows: DetMath.SinF
+M:System.MathF.Cos(System.Single);C runtime, differs between Linux and Windows: DetMath.CosF
+M:System.MathF.Tan(System.Single);C runtime, differs between Linux and Windows
+M:System.MathF.Asin(System.Single);C runtime, differs between Linux and Windows
+M:System.MathF.Acos(System.Single);C runtime, differs between Linux and Windows
+M:System.MathF.Atan(System.Single);C runtime, differs between Linux and Windows
+M:System.MathF.Atan2(System.Single,System.Single);C runtime, differs between Linux and Windows
+M:System.MathF.SinCos(System.Single);C runtime, differs between Linux and Windows
+M:System.MathF.Pow(System.Single,System.Single);C runtime, differs between Linux and Windows
+M:System.MathF.Exp(System.Single);C runtime, differs between Linux and Windows
+M:System.MathF.Log(System.Single);C runtime, differs between Linux and Windows

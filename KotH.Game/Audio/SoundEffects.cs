@@ -21,47 +21,47 @@ namespace KotH.Client.Audio
     [DataContract("KotH.SoundEffects")]
     public sealed class SoundEffects : SyncScript
     {
-        /// <userdoc>Läuft von Anfang an in Schleife, im Menü wie im Spiel.</userdoc>
-        [Display("Ambient", "Umgebung")] public Sound Ambient;
+        /// <userdoc>Loops from the start, in the menu and in the game.</userdoc>
+        [Display("Ambient", "Ambience")] public Sound Ambient;
 
-        /// <userdoc>Deutlich leiser als die Musik (0,1224).</userdoc>
-        [Display("Lautstärke Ambient", "Umgebung")] public float AmbientVolume = 0.00765f;
+        /// <userdoc>Much quieter than the music (0.1224).</userdoc>
+        [Display("Ambient volume", "Ambience")] public float AmbientVolume = 0.00765f;
 
-        [Display("Schritt", "Figuren")] public Sound Step;
-        [Display("Lautstärke Schritt", "Figuren")] public float StepVolume = 0.154f;
+        [Display("Step", "Figures")] public Sound Step;
+        [Display("Step volume", "Figures")] public float StepVolume = 0.154f;
 
-        [Display("Sprung", "Figuren")] public Sound Jump;
-        [Display("Lautstärke Sprung", "Figuren")] public float JumpVolume = 0.08f;
+        [Display("Jump", "Figures")] public Sound Jump;
+        [Display("Jump volume", "Figures")] public float JumpVolume = 0.08f;
 
-        /// <userdoc>Beim Doppelsprung, wenn die Sporen stieben.</userdoc>
-        [Display("Doppelsprung", "Figuren")] public Sound DoubleJump;
-        [Display("Lautstärke Doppelsprung", "Figuren")] public float DoubleJumpVolume = 0.08f;
+        /// <userdoc>On the double jump, when the spores burst.</userdoc>
+        [Display("Double jump", "Figures")] public Sound DoubleJump;
+        [Display("Double jump volume", "Figures")] public float DoubleJumpVolume = 0.08f;
 
-        /// <userdoc>Bei der Landung nach einem tiefen Fall; nach kleineren Sprüngen klingt ein Schritt.</userdoc>
-        [Display("Aufprall", "Figuren")] public Sound Fall;
-        [Display("Lautstärke Aufprall", "Figuren")] public float FallVolume = 0.16f;
+        /// <userdoc>On landing after a deep fall; after smaller jumps a step sounds.</userdoc>
+        [Display("Impact", "Figures")] public Sound Fall;
+        [Display("Impact volume", "Figures")] public float FallVolume = 0.16f;
 
-        /// <userdoc>Ab dieser Fallhöhe (Meter vom höchsten Punkt) klingt der Aufprall. Ein Doppelsprung auf ebenem Boden erreicht etwa 2,7 m.</userdoc>
-        [Display("Aufprall ab (m)", "Figuren")] public float FallHeight = 5.0f;
+        /// <userdoc>From this fall height (metres from the highest point) the impact sounds. A double jump on flat ground reaches about 2.7 m.</userdoc>
+        [Display("Impact from (m)", "Figures")] public float FallHeight = 5.0f;
 
-        /// <userdoc>Einmal, wenn die Figur aus dem Sprint ins Gleiten geht.</userdoc>
-        [Display("Gleiten", "Figuren")] public Sound Slide;
-        [Display("Lautstärke Gleiten", "Figuren")] public float SlideVolume = 0.083f;
+        /// <userdoc>Once, when the figure goes from sprint into a slide.</userdoc>
+        [Display("Slide", "Figures")] public Sound Slide;
+        [Display("Slide volume", "Figures")] public float SlideVolume = 0.083f;
 
-        /// <userdoc>Der Stab saust bei jedem Schlag, ob er trifft oder nicht.</userdoc>
-        [Display("Schlag", "Figuren")] public Sound Swing;
-        [Display("Lautstärke Schlag", "Figuren")] public float SwingVolume = 0.07f;
+        /// <userdoc>The cane whooshes on every swing, hit or not.</userdoc>
+        [Display("Swing", "Figures")] public Sound Swing;
+        [Display("Swing volume", "Figures")] public float SwingVolume = 0.07f;
 
-        /// <userdoc>Einer davon zufällig, wenn eine andere Figur getroffen wird.</userdoc>
-        [Display("Treffer", "Figuren")] public List<Sound> Hits = new List<Sound>();
-        [Display("Lautstärke Treffer", "Figuren")] public float HitVolume = 0.645f;
+        /// <userdoc>One of these at random when another figure is hit.</userdoc>
+        [Display("Hits", "Figures")] public List<Sound> Hits = new List<Sound>();
+        [Display("Hit volume", "Figures")] public float HitVolume = 0.645f;
 
-        /// <userdoc>Wenn man selbst getroffen wird.</userdoc>
-        [Display("Selbst getroffen", "Figuren")] public Sound Hurt;
-        [Display("Lautstärke selbst getroffen", "Figuren")] public float HurtVolume = 0.645f;
+        /// <userdoc>When one is hit oneself.</userdoc>
+        [Display("Hurt", "Figures")] public Sound Hurt;
+        [Display("Hurt volume", "Figures")] public float HurtVolume = 0.645f;
 
-        /// <userdoc>Schritte und Schläge klingen je um bis zu diesen Anteil höher oder tiefer, damit sie sich nicht gleich anhören.</userdoc>
-        [Display("Tonhöhe streut", "Figuren")] public float PitchSpread = 0.05f;
+        /// <userdoc>Steps and swings sound up to this share higher or lower, so they do not sound the same.</userdoc>
+        [Display("Pitch spread", "Figures")] public float PitchSpread = 0.05f;
 
         /// <summary>Test aid: logs every sound the figures make.</summary>
         [DataMemberIgnore] public bool Trace { get; set; }
@@ -163,7 +163,7 @@ namespace KotH.Client.Audio
             if (failed || sound == null || listener == null)
                 return;
             if (Trace)
-                Console.WriteLine($"[ton] {what} bei {at.X:F1} {at.Y:F1} {at.Z:F1}, vom Ohr {FromEar(at).X:F1} {FromEar(at).Y:F1} {FromEar(at).Z:F1}, Lautstärke {volume:F2}");
+                Console.WriteLine($"[sound] {what} at {at.X:F1} {at.Y:F1} {at.Z:F1}, from ear {FromEar(at).X:F1} {FromEar(at).Y:F1} {FromEar(at).Z:F1}, volume {volume:F2}");
             Guard(() =>
             {
                 SoundInstance voice = Voice(sound);
@@ -220,7 +220,7 @@ namespace KotH.Client.Audio
             catch (Exception e)
             {
                 failed = true;
-                Log.Warning($"Geräusche fallen aus: {e.Message}");
+                Log.Warning($"Sounds fail: {e.Message}");
             }
         }
     }

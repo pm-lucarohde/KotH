@@ -17,7 +17,7 @@ public sealed class Glb
     {
         byte[] file = File.ReadAllBytes(path);
         if (BinaryPrimitives.ReadUInt32LittleEndian(file) != 0x46546C67)
-            throw new InvalidDataException($"{path}: kein glb");
+            throw new InvalidDataException($"{path}: not a glb");
         int jsonLength = BinaryPrimitives.ReadInt32LittleEndian(file.AsSpan(12));
         var glb = new Glb { Json = JsonNode.Parse(Encoding.UTF8.GetString(file, 20, jsonLength)).AsObject() };
         int at = 20 + jsonLength;

@@ -16,7 +16,7 @@ namespace KotH.Probes.Probes
 {
     public sealed partial class BotProbe
     {
-        /// <summary>Links for "bots jumplab N": how jumps up the mountain of map Neu land.</summary>
+        /// <summary>Links for "bots jumplab N": how jumps up the mountain of map MountDestiny land.</summary>
         public int Lab = 0;
 
         struct Way
@@ -70,7 +70,7 @@ namespace KotH.Probes.Probes
                         string roof = q.Raycast(foot, new Vector3(0f, 1f, 0f), 6f, KotH.Shared.Physics.WorldQueries.WorldMask, out var ceil) ? FormattableString.Invariant($"^{ceil.Distance + 0.2f:F1}") : "";
                         row.Add(FormattableString.Invariant($"{y,5:F1}{roof,-5}"));
                     }
-                    Log(FormattableString.Invariant($"[labor] z{dz,5:F1}: {string.Join(" ", row)}"));
+                    Log(FormattableString.Invariant($"[lab] z{dz,5:F1}: {string.Join(" ", row)}"));
                 }
                 return 0;
             }
@@ -102,28 +102,28 @@ namespace KotH.Probes.Probes
                             world.Simulation.Tick();
                         }
                         MotorState m = body.Motor.CaptureState();
-                        Log(FormattableString.Invariant($"[labor] klemmt bei {settled.X:F2} {settled.Y:F2} {settled.Z:F2}: Richtung {d * 45}°{(jump ? " mit Sprung" : "")} -> {m.Position.X:F2} {m.Position.Y:F2} {m.Position.Z:F2}, Boden {m.Grounded}, steil {m.OnSteepGround}"));
+                        Log(FormattableString.Invariant($"[lab] jammed at {settled.X:F2} {settled.Y:F2} {settled.Z:F2}: direction {d * 45}°{(jump ? " with jump" : "")} -> {m.Position.X:F2} {m.Position.Y:F2} {m.Position.Z:F2}, ground {m.Grounded}, steep {m.OnSteepGround}"));
                     }
                 return 0;
             }
 
             var ways = new List<Way>
             {
-                new Way { Name = "Pilot, sieht sofort", Pilot = 1 },
-                new Way { Name = "Pilot, 8 Ticks spät", Pilot = 9 },
-                new Way { Name = "Stand, vorwärts 6", Hold = 6, Double = 6, Wait = 8 },
-                new Way { Name = "Stand, vorwärts 6, Doppel 8", Hold = 6, Double = 8, Wait = 8 },
-                new Way { Name = "Stand, vorwärts 0, Doppel 8", Hold = 0, Double = 8, Wait = 8 },
-                new Way { Name = "Stand, vorwärts 6, immer Doppel 6", Hold = 6, Double = 6, Wait = 8, Always = true },
-                new Way { Name = "Stand, vorwärts 6, immer Doppel 8", Hold = 6, Double = 8, Wait = 8, Always = true },
-                new Way { Name = "Stand, vorwärts 3, immer Doppel 6", Hold = 3, Double = 6, Wait = 8, Always = true },
-                new Way { Name = "Stand, vorwärts 0, immer Doppel 10", Hold = 0, Double = 10, Wait = 8, Always = true },
-                new Way { Name = "Gehen 2,5 m/s, immer Doppel 6", Speed = 2.5f, Hold = 0, Double = 6, Always = true },
-                new Way { Name = "Gehen 2,5 m/s", Speed = 2.5f, Back = 0f, Hold = 0, Double = 6 },
-                new Way { Name = "Gehen 5 m/s", Speed = 5f, Back = 0f, Hold = 0, Double = 6 },
-                new Way { Name = "Gehen 5 m/s, vorwärts 4", Speed = 5f, Back = 0f, Hold = 4, Double = 6 },
-                new Way { Name = "Sprint 8,6 m/s", Speed = 8.6f, Back = 0f, Hold = 0, Double = 6, Sprint = true },
-                new Way { Name = "Gehen 5 m/s, 0,5 m zurück", Speed = 5f, Back = 0.5f, Hold = 0, Double = 6 },
+                new Way { Name = "pilot, sees at once", Pilot = 1 },
+                new Way { Name = "pilot, 8 ticks late", Pilot = 9 },
+                new Way { Name = "standing, forward 6", Hold = 6, Double = 6, Wait = 8 },
+                new Way { Name = "standing, forward 6, double 8", Hold = 6, Double = 8, Wait = 8 },
+                new Way { Name = "standing, forward 0, double 8", Hold = 0, Double = 8, Wait = 8 },
+                new Way { Name = "standing, forward 6, always double 6", Hold = 6, Double = 6, Wait = 8, Always = true },
+                new Way { Name = "standing, forward 6, always double 8", Hold = 6, Double = 8, Wait = 8, Always = true },
+                new Way { Name = "standing, forward 3, always double 6", Hold = 3, Double = 6, Wait = 8, Always = true },
+                new Way { Name = "standing, forward 0, always double 10", Hold = 0, Double = 10, Wait = 8, Always = true },
+                new Way { Name = "walk 2.5 m/s, always double 6", Speed = 2.5f, Hold = 0, Double = 6, Always = true },
+                new Way { Name = "walk 2.5 m/s", Speed = 2.5f, Back = 0f, Hold = 0, Double = 6 },
+                new Way { Name = "walk 5 m/s", Speed = 5f, Back = 0f, Hold = 0, Double = 6 },
+                new Way { Name = "walk 5 m/s, forward 4", Speed = 5f, Back = 0f, Hold = 4, Double = 6 },
+                new Way { Name = "sprint 8.6 m/s", Speed = 8.6f, Back = 0f, Hold = 0, Double = 6, Sprint = true },
+                new Way { Name = "walk 5 m/s, 0.5 m back", Speed = 5f, Back = 0.5f, Hold = 0, Double = 6 },
             };
 
             var gain = new double[ways.Count, 2];
@@ -159,8 +159,8 @@ namespace KotH.Probes.Probes
                         prof.Add($"{grid.SurfaceAt(px, pz, from.Y + 3f) - from.Y:F1}");
                     }
                     float dx = lf.X - to.X, dz = lf.Z - to.Z;
-                    string res = MathF.Sqrt(dx * dx + dz * dz) < 0.6f && MathF.Abs(lf.Y - to.Y) < 0.3f ? "ZIEL" : lf.Y > from.Y + 0.3f ? "höher" : lf.Y > from.Y - 0.3f ? "gleich" : "tiefer";
-                    Log(FormattableString.Invariant($"[labor] {kind} weite {reach:F2} anstieg {to.Y - from.Y:F2} -> {res} (ab Ziel {dx:F2} {lf.Y - to.Y:F2} {dz:F2}, {dt} Ticks) profil {string.Join(' ', prof)}"));
+                    string res = MathF.Sqrt(dx * dx + dz * dz) < 0.6f && MathF.Abs(lf.Y - to.Y) < 0.3f ? "TARGET" : lf.Y > from.Y + 0.3f ? "higher" : lf.Y > from.Y - 0.3f ? "level" : "lower";
+                    Log(FormattableString.Invariant($"[lab] {kind} distance {reach:F2} rise {to.Y - from.Y:F2} -> {res} (from target {dx:F2} {lf.Y - to.Y:F2} {dz:F2}, {dt} ticks) profile {string.Join(' ', prof)}"));
                 }
                 for (int w = 0; w < ways.Count; w++)
                 {
@@ -179,11 +179,11 @@ namespace KotH.Probes.Probes
 
             for (int k = 0; k < 2; k++)
             {
-                Log($"[labor] {(k == 0 ? "Sprung" : "Doppelsprung")}: {total[k]} Links");
+                Log($"[lab] {(k == 0 ? "jump" : "double jump")}: {total[k]} links");
                 for (int w = 0; w < ways.Count; w++)
-                    Log($"[labor]   {ways[w].Name}: {up[w, k] * 100 / Math.Max(1, total[k])} % höher, " +
-                        $"gewinnt {gain[w, k] / Math.Max(1, total[k]):F2} s in {spent[w, k] / Math.Max(1, total[k]):F2} s, " +
-                        $"also {gain[w, k] / Math.Max(1e-6, spent[w, k]):F2} s je s; nach Weite " +
+                    Log($"[lab]   {ways[w].Name}: {up[w, k] * 100 / Math.Max(1, total[k])} % higher, " +
+                        $"gains {gain[w, k] / Math.Max(1, total[k]):F2} s in {spent[w, k] / Math.Max(1, total[k]):F2} s, " +
+                        $"so {gain[w, k] / Math.Max(1e-6, spent[w, k]):F2} s per s; by distance " +
                         string.Join(" ", System.Linq.Enumerable.Range(0, 5).Where(b => binN[k, b] > 0)
                             .Select(b => $"{b * 0.5f:F1}+:{binGain[w, k, b] / binSpent[w, k, b]:F2}")));
             }

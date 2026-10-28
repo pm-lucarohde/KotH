@@ -5,10 +5,9 @@ using KotH.Probes.Harness;
 using KotH.Probes.Probes;
 using KotH.Shared.Hosting;
 
-// Unity logged with the system culture, de-DE here; the reference logs
-// carry decimal commas, so these have to as well.
-CultureInfo.DefaultThreadCurrentCulture = CultureInfo.GetCultureInfo("de-DE");
-CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("de-DE");
+// Decimal points everywhere; the Unity reference logs were converted to match.
+CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
 string name = args.Length > 0 ? args[0] : "";
 string repo = FindRepo();
@@ -48,7 +47,7 @@ Probe probe = name switch
 
 if (probe == null)
 {
-    Console.Error.WriteLine("Aufruf: KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|step|determinism|clock|stairrun|rampfoot|crouchedge|knockback|thirdperson|wallknock|capture|netstate|netplay|bots>");
+    Console.Error.WriteLine("Usage: KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|step|determinism|clock|stairrun|rampfoot|crouchedge|knockback|thirdperson|wallknock|capture|netstate|netplay|bots>");
     return 64;
 }
 

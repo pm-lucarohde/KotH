@@ -1,42 +1,42 @@
 [slide] entering play mode
-[slide] Sollwerte: gehen 5,175, sprint 8,625, Reibung 6,0, Deckel 15,0 m/s, Pause 500 ms (20 Ticks)
-[slide] flach erwartet: 23,0 Ticks, 3,97 m; Auge 0,780 stehend, -0,120 geduckt; Schub ab 17,5°
-[slide] == Flach, Dauer (0°), Boden bei 0,0°
-[slide]    24 Ticks gegen 23,0 erwartet; Start 8,625, Spitze 8,625, Ende 5,175 m/s, 4,14 m -> ok
-[slide] == Angetippt, Augenhöhe (0°), Boden bei 0,0°
-[slide]    Auge sank auf -0,120 (soll -0,120), danach zurueck auf 0,780; Start 8,625, Spitze 8,625, Ende 5,175 m/s, 4,14 m -> ok
-[slide] == Angetippt, Dauer (0°), Boden bei 0,0°
-[slide]    24 Ticks gegen 23,0 erwartet; Start 8,625, Spitze 8,625, Ende 5,175 m/s, 4,14 m -> ok
-[slide] == Gehalten, Dauer (0°), Boden bei 0,0°
-[slide]    24 Ticks gegen 23,0 erwartet; Start 8,625, Spitze 8,625, Ende 5,175 m/s, 4,14 m -> ok
-[slide] == Über die Kante (0°), Boden bei 0,0°
-[slide]    verliess die Kante mit 6,986 m/s, Boden dabei nein; Start 8,625, Spitze 8,625, Ende 6,986 m/s, 2,34 m -> ok
-[slide] == Ohne Richtungstaste (0°), Boden bei 0,0°
-[slide]    4,14 m ohne Taste, 24 Ticks; Start 8,625, Spitze 8,625, Ende 5,175 m/s, 4,14 m -> ok
-[slide] == Lenken um 90 Grad (0°), Boden bei 0,0°
-[slide]    Bahn drehte 90,0° von 90° Blick; Start 8,625, Spitze 8,625, Ende 5,175 m/s, 3,54 m -> ok
-[slide] == Leertaste bricht ab (0°), Boden bei 0,0°
-[slide]    abgebrochen bei 7,875, danach 7,725 gegen 8,625 erlaubt, abgehoben nein; Start 8,625, Spitze 8,625, Ende 7,875 m/s, 1,24 m -> ok
-[slide] == Zweiter Druck springt (0°), Boden bei 0,0°
-[slide]    zweiter Druck hob ab, in der Luft 8,625 gegen 8,625; Start 8,625, Spitze 8,625, Ende 7,875 m/s, 1,24 m -> ok
-[slide] == Rampe 20 bergab (20°), Boden bei 20,0°
-[slide]    von 8,625 auf 10,326 m/s; Start 8,625, Spitze 10,326, Ende 10,326 m/s, 37,90 m -> ok
-[slide] == Rampe 35 bergab (35°), Boden bei 35,0°
-[slide]    Spitze 14,655 gegen Deckel 15,0; Start 8,625, Spitze 14,655, Ende 14,655 m/s, 20,95 m -> ok
-[slide] == Bergab abgebrochen (35°), Boden bei 35,0°
-[slide]    abgebrochen bei 11,088, danach 8,625 gegen 8,625 erlaubt, abgehoben nein; Start 8,625, Spitze 11,088, Ende 11,088 m/s, 7,39 m -> ok
-[slide] == Bergab, dann springen (35°), Boden bei 35,0°
-[slide]    zweiter Druck hob ab, in der Luft 8,625 gegen 8,625; Start 8,625, Spitze 11,088, Ende 11,088 m/s, 7,39 m -> ok
-[slide] == Rampe 20 bergauf (20° bergauf), Boden bei 20,0°
-[slide]    13 Ticks, flach waeren 23,0; Start 7,616, Spitze 7,616, Ende 4,324 m/s, 1,94 m -> ok
-[slide] == Aus dem Anlauf (0°), Boden bei 0,0°
-[slide]    kein Slide, wie erwartet -> ok
-[slide] == Gegen eine Wand (0°), Boden bei 0,0°
-[slide]    kein Slide, wie erwartet -> ok
-[slide] == Auf 55 Grad, zu steil (55°), Boden bei 55,0°
-[slide]    kein Slide, wie erwartet -> ok
-[slide] == Erneut 4 Ticks nach Abbruch (0°), Boden bei 0,0°
-[slide]    1 Slide(s), erneut 10 Ticks nach dem Start versucht, Pause ist 20 Ticks; Start 8,625, Spitze 8,625, Ende 7,875 m/s, 1,24 m -> ok
-[slide] == Erneut 16 Ticks nach Abbruch (0°), Boden bei 0,0°
-[slide]    2 Slide(s), erneut 22 Ticks nach dem Start versucht, Pause ist 20 Ticks; Start 8,625, Spitze 8,625, Ende 7,875 m/s, 1,24 m -> ok
-[slide] ALLE FÄLLE WIE ERWARTET
+[slide] targets: walk 5.175, sprint 8.625, friction 6.0, cap 15.0 m/s, pause 500 ms (20 ticks)
+[slide] flat expected: 23.0 ticks, 3.97 m; eye 0.780 standing, -0.120 crouched; push from 17.5°
+[slide] == Flat, duration (0°), ground at 0.0°
+[slide]    24 ticks vs 23.0 expected; start 8.625, peak 8.625, end 5.175 m/s, 4.14 m -> ok
+[slide] == Tapped, eye height (0°), ground at 0.0°
+[slide]    eye sank to -0.120 (want -0.120), then back to 0.780; start 8.625, peak 8.625, end 5.175 m/s, 4.14 m -> ok
+[slide] == Tapped, duration (0°), ground at 0.0°
+[slide]    24 ticks vs 23.0 expected; start 8.625, peak 8.625, end 5.175 m/s, 4.14 m -> ok
+[slide] == Held, duration (0°), ground at 0.0°
+[slide]    24 ticks vs 23.0 expected; start 8.625, peak 8.625, end 5.175 m/s, 4.14 m -> ok
+[slide] == Over the edge (0°), ground at 0.0°
+[slide]    left the edge at 6.986 m/s, ground meanwhile no; start 8.625, peak 8.625, end 6.986 m/s, 2.34 m -> ok
+[slide] == Without direction key (0°), ground at 0.0°
+[slide]    4.14 m without key, 24 ticks; start 8.625, peak 8.625, end 5.175 m/s, 4.14 m -> ok
+[slide] == Steer by 90 degrees (0°), ground at 0.0°
+[slide]    path turned 90.0° of 90° view; start 8.625, peak 8.625, end 5.175 m/s, 3.54 m -> ok
+[slide] == Space cancels (0°), ground at 0.0°
+[slide]    cancelled at 7.875, then 7.725 vs 8.625 allowed, lifted off no; start 8.625, peak 8.625, end 7.875 m/s, 1.24 m -> ok
+[slide] == Second press jumps (0°), ground at 0.0°
+[slide]    second press lifted off, in the air 8.625 vs 8.625; start 8.625, peak 8.625, end 7.875 m/s, 1.24 m -> ok
+[slide] == Ramp 20 downhill (20°), ground at 20.0°
+[slide]    from 8.625 to 10.326 m/s; start 8.625, peak 10.326, end 10.326 m/s, 37.90 m -> ok
+[slide] == Ramp 35 downhill (35°), ground at 35.0°
+[slide]    peak 14.655 against cap 15.0; start 8.625, peak 14.655, end 14.655 m/s, 20.95 m -> ok
+[slide] == Downhill cancelled (35°), ground at 35.0°
+[slide]    cancelled at 11.088, then 8.625 vs 8.625 allowed, lifted off no; start 8.625, peak 11.088, end 11.088 m/s, 7.39 m -> ok
+[slide] == Downhill, then jump (35°), ground at 35.0°
+[slide]    second press lifted off, in the air 8.625 vs 8.625; start 8.625, peak 11.088, end 11.088 m/s, 7.39 m -> ok
+[slide] == Ramp 20 uphill (20° uphill), ground at 20.0°
+[slide]    13 ticks, flat would be 23.0; start 7.616, peak 7.616, end 4.324 m/s, 1.94 m -> ok
+[slide] == From the run-up (0°), ground at 0.0°
+[slide]    no slide, as expected -> ok
+[slide] == Against a wall (0°), ground at 0.0°
+[slide]    no slide, as expected -> ok
+[slide] == At 55 degrees, too steep (55°), ground at 55.0°
+[slide]    no slide, as expected -> ok
+[slide] == Again 4 ticks after cancel (0°), ground at 0.0°
+[slide]    1 slide(s), again 10 ticks after the start tried, pause is 20 ticks; start 8.625, peak 8.625, end 7.875 m/s, 1.24 m -> ok
+[slide] == Again 16 ticks after cancel (0°), ground at 0.0°
+[slide]    2 slide(s), again 22 ticks after the start tried, pause is 20 ticks; start 8.625, peak 8.625, end 7.875 m/s, 1.24 m -> ok
+[slide] ALL CASES AS EXPECTED

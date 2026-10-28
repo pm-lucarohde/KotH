@@ -15,7 +15,7 @@ namespace KotH.Shared.Dummy
     /// motor that is never ticked hangs in the air at a body centre of zero.
     /// </summary>
     [DataContract("KotH.TrainingDummy")]
-    [Display("Trainingspuppe")]
+    [Display("Training dummy")]
     [ComponentCategory("KotH")]
     public sealed class TrainingDummy : SimulationBody
     {

@@ -16,19 +16,19 @@ namespace KotH.Client.Hud
     [DataContract("KotH.Crosshair")]
     public sealed class Crosshair : StartupScript, IHudElement
     {
-        [Display("Farbe", "Farben")] public Color Color = Color.White;
+        [Display("Colour", "Colours")] public Color Color = Color.White;
 
         // A dark backing behind every part, so the mark stays readable on
         // sky and on pale rock without a second mechanism.
-        [Display("Umrissfarbe", "Farben")] public Color OutlineColor = new Color(0f, 0f, 0f, 0.65f);
-        [Display("Umriss", "Farben")] public float Outline = 1f;
+        [Display("Outline colour", "Colours")] public Color OutlineColor = new Color(0f, 0f, 0f, 0.65f);
+        [Display("Outline", "Colours")] public float Outline = 1f;
 
-        [Display("Punktgröße", "Maße (Pixel)")] public float DotSize = 3f;
-        [Display("Armlänge", "Maße (Pixel)")] public float ArmLength = 7f;
-        [Display("Armdicke", "Maße (Pixel)")] public float ArmThickness = 2f;
+        [Display("Dot size", "Size (pixels)")] public float DotSize = 3f;
+        [Display("Arm length", "Size (pixels)")] public float ArmLength = 7f;
+        [Display("Arm thickness", "Size (pixels)")] public float ArmThickness = 2f;
 
-        /// <userdoc>Abstand von der Mitte bis zum Beginn eines Arms</userdoc>
-        [Display("Lücke", "Maße (Pixel)")] public float Gap = 4f;
+        /// <userdoc>Distance from the centre to the start of an arm</userdoc>
+        [Display("Gap", "Size (pixels)")] public float Gap = 4f;
 
         /// <summary>Not drawn, such as while the main menu is open.</summary>
         [DataMemberIgnore] public bool Hidden { get; set; }

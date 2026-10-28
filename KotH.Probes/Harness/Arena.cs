@@ -39,7 +39,7 @@ namespace KotH.Probes.Harness
         /// <summary>GameObject.Find(name).transform, null-safe by throwing.</summary>
         public static UnityTransform Find(HeadlessWorld world, string name)
         {
-            Entity e = world.Find(name) ?? throw new System.InvalidOperationException("Kein Objekt " + name + " in der Arena");
+            Entity e = world.Find(name) ?? throw new System.InvalidOperationException("No object " + name + " in the arena");
             Vector3 scale = new Vector3(1f, 1f, 1f);
             if (e.Get<StaticComponent>()?.Collider is CompoundCollider compound)
                 foreach (ColliderBase c in compound.Colliders)

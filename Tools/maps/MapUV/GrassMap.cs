@@ -1,7 +1,7 @@
 using System.IO.Compression;
 
 /// <summary>
-/// The grass map of Neu for the client's GrassField: the ground seen from above in
+/// The grass map of Mount Destiny for the client's GrassField: the ground seen from above in
 /// cells of 25 cm over ±128 m, per cell the topmost terrain face's height, its share
 /// of grass that faces up (none round the trunks), its shade (TEXCOORD_0.x) and its
 /// lightmap UV, so the blades take the light of the ground they stand on.
@@ -87,7 +87,7 @@ static class GrassMap
                 output.Write((ushort)(Unorm8(amount[i]) << 8 | Unorm8(ground ? shade[i] : 1)));
             }
         }
-        Console.WriteLine($"{path}: {new FileInfo(path).Length / 1e6:F1} MB, Gras auf {grassy * cell * cell:F0} m², {trunks} Stämme ausgespart");
+        Console.WriteLine($"{path}: {new FileInfo(path).Length / 1e6:F1} MB, grass on {grassy * cell * cell:F0} m², {trunks} trunks left out");
     }
 
     /// <summary>
@@ -125,7 +125,7 @@ static class GrassMap
     const double ContactDepth = 0.6, ContactFall = 0.7, ContactReach = 2.2;
 
     /// <summary>
-    /// Writes the contact map (NeuContact.png, grey): the ground's darkening round the
+    /// Writes the contact map (MountDestinyContact.png, grey): the ground's darkening round the
     /// trunks' feet, 255 untouched. TerrainTriplanar darkens the ground with it; seen from
     /// above like the grass map, row 0 at z = -Half.
     /// </summary>
@@ -154,7 +154,7 @@ static class GrassMap
             png.Pixels[i] = (byte)Math.Round(Math.Clamp(light[i], 0, 1) * 255);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         png.Write(path);
-        Console.WriteLine($"{path}: {feet.Count} Stammfüße abgedunkelt");
+        Console.WriteLine($"{path}: {feet.Count} trunk feet darkened");
     }
 
     /// <summary>Clears the grass in and round every trunk: a disc as wide as its foot.</summary>

@@ -69,9 +69,9 @@ namespace KotH.Probes.Probes
             body.Name = "Victim";
             victim = body.Get<PlayerMotor>();
 
-            Log($"[knockback] Weite bei 100 % {attack.KnockbackDistance:F2} m, Höhe {attack.KnockbackHeight:F2} m, " +
-                $"Tempo zählt ab {attack.CarryFromPercent:F0} % mit Anteil {attack.CarryStartShare:F2}, " +
-                $"voll ab {attack.CarryFullPercent:F0} %");
+            Log($"[knockback] distance at 100 % {attack.KnockbackDistance:F2} m, height {attack.KnockbackHeight:F2} m, " +
+                $"speed counts from {attack.CarryFromPercent:F0} % with share {attack.CarryStartShare:F2}, " +
+                $"full from {attack.CarryFullPercent:F0} %");
 
             int failures = 0;
             float shortFlight = 0f;
@@ -92,9 +92,9 @@ namespace KotH.Probes.Probes
                 if (percent == 100f)
                     shortFlight = f.Distance;
 
-                Log($"[knockback] == {percent,6:F1} %: Weite {f.Distance:F3} m (soll {wantDistance:F3}), " +
-                    $"Höhe {f.Rise:F3} m (soll {wantRise:F3}), Richtung {f.Angle:F2}°, danach {f.After:F1} %" +
-                    (f.Off ? ", über den Rand der Arena (in der Luft gemessen)" : "") + " -> " +
+                Log($"[knockback] == {percent,6:F1} %: distance {f.Distance:F3} m (want {wantDistance:F3}), " +
+                    $"height {f.Rise:F3} m (want {wantRise:F3}), direction {f.Angle:F2}°, then {f.After:F1} %" +
+                    (f.Off ? ", over the arena's edge (measured in the air)" : "") + " -> " +
                     (ok ? "ok" : "ABWEICHUNG"));
             }
 
@@ -112,8 +112,8 @@ namespace KotH.Probes.Probes
                 bool ok = MathF.Abs(f.Distance - want) <= 0.01f && !f.Off;
                 if (!ok)
                     failures++;
-                Log($"[knockback] == 100,0 % {(run < 0f ? "gegen den Stoß gelaufen" : "mit dem Stoß gelaufen")}: " +
-                    $"{f.Distance:F3} m in {f.Ticks} Ticks (Stoß {shortFlight:F3} + eigenes Laufen {own:F3} = {want:F3}) -> " +
+                Log($"[knockback] == 100.0 % {(run < 0f ? "ran against the push" : "ran with the push")}: " +
+                    $"{f.Distance:F3} m in {f.Ticks} ticks (push {shortFlight:F3} + own running {own:F3} = {want:F3}) -> " +
                     (ok ? "ok" : "ABWEICHUNG"));
             }
             attack.KnockbackHeight = height;
@@ -124,21 +124,21 @@ namespace KotH.Probes.Probes
             // running is left; holding on it runs on against the knock.
             var carried = new (float percent, float attacker, float victim, bool sprint, float holds, string what)[]
             {
-                (0f, 1f, 0f, true, 0f, "Schläger sprintet heran"),
-                (5f, 1f, 0f, false, 0f, "Schläger geht heran"),
-                (10f, 1f, 0f, false, 0f, "Schläger geht heran"),
-                (15f, 1f, 0f, false, 0f, "Schläger geht heran"),
-                (20f, 1f, 0f, false, 0f, "Schläger geht heran"),
-                (100f, 1f, 0f, false, 0f, "Schläger geht heran"),
-                (100f, 1f, 0f, true, 0f, "Schläger sprintet heran"),
-                (100f, -1f, 0f, false, 0f, "Schläger geht rückwärts weg"),
-                (10f, -1f, 0f, false, 0f, "Schläger geht rückwärts weg"),
-                (100f, 0f, -1f, false, 0f, "Getroffener geht heran"),
-                (100f, 0f, 1f, false, 0f, "Getroffener geht weg"),
-                (100f, 1f, -1f, false, 0f, "beide gehen aufeinander zu"),
-                (20f, 1f, -1f, false, 0f, "beide gehen aufeinander zu"),
-                (15f, 1f, -1f, false, 0f, "beide gehen aufeinander zu"),
-                (100f, 1f, -1f, false, -1f, "beide gehen aufeinander zu, Getroffener hält weiter"),
+                (0f, 1f, 0f, true, 0f, "attacker sprints in"),
+                (5f, 1f, 0f, false, 0f, "attacker walks in"),
+                (10f, 1f, 0f, false, 0f, "attacker walks in"),
+                (15f, 1f, 0f, false, 0f, "attacker walks in"),
+                (20f, 1f, 0f, false, 0f, "attacker walks in"),
+                (100f, 1f, 0f, false, 0f, "attacker walks in"),
+                (100f, 1f, 0f, true, 0f, "attacker sprints in"),
+                (100f, -1f, 0f, false, 0f, "attacker walks back away"),
+                (10f, -1f, 0f, false, 0f, "attacker walks back away"),
+                (100f, 0f, -1f, false, 0f, "target walks in"),
+                (100f, 0f, 1f, false, 0f, "target walks away"),
+                (100f, 1f, -1f, false, 0f, "both walk towards each other"),
+                (20f, 1f, -1f, false, 0f, "both walk towards each other"),
+                (15f, 1f, -1f, false, 0f, "both walk towards each other"),
+                (100f, 1f, -1f, false, -1f, "both walk towards each other, target keeps holding"),
             };
             foreach (var c in carried)
             {
@@ -157,10 +157,10 @@ namespace KotH.Probes.Probes
                     : MathF.Abs(f.Distance - want) <= MathF.Max(0.02f, want * 0.01f) && MathF.Abs(f.Angle) < 1f;
                 if (!ok)
                     failures++;
-                Log($"[knockback] == {c.percent,5:F1} %, {c.what} (Schläger {f.Along:F3} m/s, Getroffener {f.Fleeing:F3} m/s), " +
-                    $"Anteil {share:F3}: Weite {f.Distance:F3} m ({(exact ? "soll" : "unter")} {want:F3}, " +
-                    $"im Stand {Travel(c.percent, 0f):F3})" +
-                    (f.Off ? ", über den Rand der Arena (in der Luft gemessen)" : "") + " -> " +
+                Log($"[knockback] == {c.percent,5:F1} %, {c.what} (attacker {f.Along:F3} m/s, target {f.Fleeing:F3} m/s), " +
+                    $"share {share:F3}: distance {f.Distance:F3} m ({(exact ? "want" : "below")} {want:F3}, " +
+                    $"standing{Travel(c.percent, 0f):F3})" +
+                    (f.Off ? ", over the arena's edge (measured in the air)" : "") + " -> " +
                     (ok ? "ok" : "ABWEICHUNG"));
             }
 
@@ -171,9 +171,9 @@ namespace KotH.Probes.Probes
             float hop = PlayerMotor.LaunchSpeed(attack.KnockbackHeight, -victim.Gravity, FixedDeltaTime);
             var jumps = new (int ticks, int hold, string what)[]
             {
-                (4, 99, "Getroffener springt und steigt noch"),
-                (2, 3, "Getroffener springt kurz und lässt nach dem Treffer los"),
-                (20, 99, "Getroffener fällt nach dem Sprung"),
+                (4, 99, "target jumps and is still rising"),
+                (2, 3, "target jumps short and lets go after the hit"),
+                (20, 99, "target falls after the jump"),
             };
             foreach (var j in jumps)
             {
@@ -187,12 +187,12 @@ namespace KotH.Probes.Probes
                     && MathF.Abs(f.Distance - shortFlight) <= 0.02f && !f.Off;
                 if (!ok)
                     failures++;
-                Log($"[knockback] == 100,0 %, {j.what}: eigenes Tempo nach oben {f.Climb:F3} m/s (übernommen {own:F3}), " +
-                    $"Höhe {f.Rise:F3} m (soll {want:F3}, im Stand {attack.KnockbackHeight:F3}), Weite {f.Distance:F3} m" +
-                    (hit ? "" : ", NICHT GETROFFEN") + " -> " + (ok ? "ok" : "ABWEICHUNG"));
+                Log($"[knockback] == 100.0 %, {j.what}: own speed upwards {f.Climb:F3} m/s (carried {own:F3}), " +
+                    $"height {f.Rise:F3} m (want {want:F3}, standing {attack.KnockbackHeight:F3}), distance {f.Distance:F3} m" +
+                    (hit ? "" : ", NOT HIT") + " -> " + (ok ? "ok" : "ABWEICHUNG"));
             }
 
-            Log(failures == 0 ? "[knockback] RÜCKSTOSS WIE VORGEGEBEN" : $"[knockback] {failures} FÄLLE WEICHEN AB");
+            Log(failures == 0 ? "[knockback] KNOCKBACK AS SPECIFIED" : $"[knockback] {failures} CASES DIFFER");
             return failures == 0 ? 0 : 1;
         }
 

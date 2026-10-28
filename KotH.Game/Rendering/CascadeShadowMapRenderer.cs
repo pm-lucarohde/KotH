@@ -39,17 +39,17 @@ namespace KotH.Client.Rendering
         static readonly ObjectParameterKey<Texture> CloudShadowMap = ParameterKeys.NewObject<Texture>(null, "CascadeShadowReceiver.CloudShadowMap");
 
         /// <summary>Angular radius of the sun in degrees: the penumbra per metre between blocker and receiver.</summary>
-        /// <userdoc>Scheinbarer Radius der Sonne in Grad: Je größer, desto breiter der Halbschatten pro Meter Abstand zum Werfer.</userdoc>
+        /// <userdoc>Apparent radius of the sun in degrees: the larger, the wider the penumbra per metre from the caster.</userdoc>
         [DataMember(100)]
         public float SunAngle { get; set; } = 1.0f;
 
         /// <summary>Widest penumbra radius in shadow map texels; the blockers are searched as far (cascades: at most 4, every texel).</summary>
-        /// <userdoc>Größter Radius des Halbschattens in Texeln der Schattenkarte; so weit wird auch nach Werfern gesucht (Kaskaden höchstens 4, lückenlos).</userdoc>
+        /// <userdoc>Largest penumbra radius in shadow map texels; casters are searched this far too (cascades at most 4, without gaps).</userdoc>
         [DataMember(110)]
         public float MaxPenumbra { get; set; } = 4.0f;
 
         /// <summary>Share of Stride's size for each cascade's map (1 = as Stride picks it).</summary>
-        /// <userdoc>Anteil der von Stride gewählten Größe jeder Kaskade (1 = unverändert); kleiner ist günstiger und weicher.</userdoc>
+        /// <userdoc>Share of the size Stride picks for each cascade (1 = unchanged); smaller is cheaper and softer.</userdoc>
         [DataMember(120)]
         public float Resolution { get; set; } = 1.0f;
 

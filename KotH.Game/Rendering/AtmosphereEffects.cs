@@ -17,9 +17,9 @@ namespace KotH.Client.Rendering
     /// full resolution, in place. Without an Atmosphere in the scene it passes
     /// straight on.
     /// </summary>
-    /// <userdoc>Nebel und Wolken der Map vor den übrigen Post-Effekten.</userdoc>
+    /// <userdoc>The map's fog and clouds before the other post effects.</userdoc>
     [DataContract("AtmosphereEffects")]
-    [Display("Atmosphäre und Post-Effekte")]
+    [Display("Atmosphere and post effects")]
     public sealed class AtmosphereEffects : ImageEffect, IPostProcessingEffects
     {
         static readonly ValueParameterKey<Matrix> ClipToRay = ParameterKeys.NewValue<Matrix>(default, "AtmosphereMarch.ClipToRay");
@@ -55,7 +55,7 @@ namespace KotH.Client.Rendering
         public Guid Id { get; set; } = Guid.NewGuid();
 
         /// <summary>Stride's post effects, drawn after the atmosphere.</summary>
-        /// <userdoc>Die übrigen Post-Effekte (FXAA), nach Nebel und Wolken.</userdoc>
+        /// <userdoc>The other post effects (FXAA), after fog and clouds.</userdoc>
         [DataMember(10)]
         public IPostProcessingEffects Inner { get; set; }
 

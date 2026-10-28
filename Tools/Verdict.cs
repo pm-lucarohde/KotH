@@ -6,6 +6,7 @@
 //
 //   dotnet run Tools/Verdict.cs -- ref1,ref2,ref3 new
 #:include Common/Py.cs
+#:include Common/Libm.cs
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -42,11 +43,11 @@ foreach (string k in reference.Keys.Union(neu.Keys).Order(StringComparer.Ordinal
         continue;
     }
     diff++;
-    Console.WriteLine($"URTEIL   {k}\n    gestern: {(a != null ? string.Join(" | ", a) : "-")}\n    heute  : {b ?? "-"}");
+    Console.WriteLine($"VERDICT  {k}\n    before: {(a != null ? string.Join(" | ", a) : "-")}\n    now   : {b ?? "-"}");
 }
-Console.WriteLine($"--- {same + diff} Urteile, {same} gleich, {diff} anders");
+Console.WriteLine($"--- {same + diff} verdicts, {same} same, {diff} different");
 
-static double Num(string s) => Py.Float(s.TrimEnd(',').Replace(',', '.'));
+static double Num(string s) => Py.Float(s.TrimEnd('.'));
 
 static Dictionary<string, string> Verdicts(string path)
 {
@@ -63,39 +64,39 @@ static Dictionary<string, string> Verdicts(string path)
             string name = m.Groups[2].Value.Trim(), rest = m.Groups[3].Value;
             string v = null;
             if (probe.StartsWith("Crest"))
-                v = rest.Contains("oben bei") ? "oben" : "NIE OBEN";
+                v = rest.Contains("top at") ? "top" : "NEVER ON TOP";
             else if (probe.StartsWith("SlopeJump"))
-                v = "ohne Boden " + Find(rest, @"ohne Boden (\d+)");
+                v = "without ground " + Find(rest, @"without ground (\d+)");
             else if (probe.StartsWith("Step") && name.Length > 0 && "+-".Contains(name[0]))
-                v = Num(Find(rest, @"max ([\d,]+)")) > 0.1 ? "steigt" : "steigt nicht";
+                v = Num(Find(rest, @"max ([\d.]+)")) > 0.1 ? "climbs" : "does not climb";
             else if (probe.StartsWith("Step") && name.StartsWith('='))
-                v = Num(Find(rest, @"end (-?[\d,]+)")) > -0.5 ? "bleibt oben" : "faellt";
+                v = Num(Find(rest, @"end (-?[\d.]+)")) > -0.5 ? "stays on top" : "falls";
             else if (probe.StartsWith("Step"))
             {
-                double max = Num(Find(rest, @"max ([+-]?[\d,]+)"));
-                int slid = int.Parse(Find(rest, @"Rutsch-Ticks (\d+)"));
-                v = (max > 4.5 ? "oben" : "unten") + (slid != 0 ? ", rutscht" : ", rutscht nicht");
+                double max = Num(Find(rest, @"max ([+-]?[\d.]+)"));
+                int slid = int.Parse(Find(rest, @"slide ticks (\d+)"));
+                v = (max > 4.5 ? "top" : "bottom") + (slid != 0 ? ", slides" : ", does not slide");
             }
             else if (probe.StartsWith("Impact"))
-                v = Num(Find(rest, @"senkrecht (-?[\d,]+)")) > 1.0 ? "obendrauf" : "daneben";
+                v = Num(Find(rest, @"vertical (-?[\d.]+)")) > 1.0 ? "on top" : "beside";
             else if (probe.StartsWith("Melee"))
             {
-                var pairs = Regex.Matches(rest, @"([\d,]+)\s*%?\s*\(soll (?:je )?([\d,]+)\)");
+                var pairs = Regex.Matches(rest, @"([\d.]+)\s*%?\s*\(want (?:each )?([\d.]+)\)");
                 if (pairs.Count > 0)
-                    v = pairs.All(p => Num(p.Groups[1].Value) == Num(p.Groups[2].Value)) ? "soll erfuellt" : "soll VERFEHLT";
+                    v = pairs.All(p => Num(p.Groups[1].Value) == Num(p.Groups[2].Value)) ? "target met" : "target MISSED";
             }
             if (v != null)
                 output[probe + " " + name] = v;
         }
         else if (m2.Success)
         {
-            string key = Regex.Split(m2.Groups[2].Value, @"\s+nach\s+|;|:")[0].Trim();
+            string key = Regex.Split(m2.Groups[2].Value, @"\s+after\s+|;|:")[0].Trim();
             output[probe + " " + key[..Math.Min(40, key.Length)]] = "-> " + m2.Groups[3].Value;
         }
-        else if (Regex.IsMatch(line, "ALLE F|FAELLE WIE|WIE ERWARTET"))
+        else if (Regex.IsMatch(line, "ALL CASES"))
         {
             int at = line.IndexOf("] ", StringComparison.Ordinal);
-            output[probe + " GESAMT"] = at < 0 ? line : line[(at + 2)..];
+            output[probe + " TOTAL"] = at < 0 ? line : line[(at + 2)..];
         }
     }
     return output;
@@ -106,6 +107,6 @@ static string Find(string text, string pattern)
 {
     Match m = Regex.Match(text, pattern);
     if (!m.Success)
-        throw new FormatException($"'{pattern}' fehlt in: {text}");
+        throw new FormatException($"'{pattern}' missing in: {text}");
     return m.Groups[1].Value;
 }

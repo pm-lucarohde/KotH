@@ -15,7 +15,7 @@
             <Panel Name="NameTag" Width="340" Height="58" Margin="90,62,0,0"
                    HorizontalAlignment="Left" VerticalAlignment="Top">
                 <Image Source="/Menu/Art/Ribbon.png" Margin="-24" Stretch="Fill" />
-                <TextBlock Name="PlayerName" Text="Spieler" Foreground="{StaticResource CreamBrush}"
+                <TextBlock Name="PlayerName" Text="Player" Foreground="{StaticResource CreamBrush}"
                            FontSize="27" FontWeight="SemiBold" Margin="28,0,20,10"
                            VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
             </Panel>
@@ -27,11 +27,11 @@
                     <Image Source="/Menu/Art/Panel.png" Margin="-24" Stretch="Fill" />
                     <StackPanel Name="Buttons" Spacing="18" HorizontalAlignment="Center" VerticalAlignment="Center"
                                 KeyboardNavigation.TabNavigation="Cycle">
-                        <Button Name="Host" Classes="Menu" Content="Server erstellen" />
-                        <Button Name="Find" Classes="Menu" Content="Server suchen" />
-                        <Button Name="Settings" Classes="Menu" Content="Einstellungen" />
-                        <Button Name="Languages" Classes="Menu" Content="Sprachen" />
-                        <Button Name="Quit" Classes="Menu" Content="Spiel verlassen" />
+                        <Button Name="Host" Classes="Menu" Content="Host server" />
+                        <Button Name="Find" Classes="Menu" Content="Find server" />
+                        <Button Name="Settings" Classes="Menu" Content="Settings" />
+                        <Button Name="Languages" Classes="Menu" Content="Languages" />
+                        <Button Name="Quit" Classes="Menu" Content="Quit game" />
                     </StackPanel>
                 </Panel>
                 <Panel Name="Note" Width="460" Height="112" Margin="-10,30,0,0" HorizontalAlignment="Left">
@@ -43,46 +43,46 @@
             </StackPanel>
         </Grid>
 
-        <!-- The pages behind Server suchen, Einstellungen and Sprachen: only to look at for now -->
+        <!-- The pages behind Find server, Settings and Languages: only to look at for now -->
         <Grid Name="PagePart" Width="870" Height="610">
             <Panel Name="Page" Width="820" Height="560" Margin="24,24,0,0"
                    HorizontalAlignment="Left" VerticalAlignment="Top">
                 <Image Source="/Menu/Art/Wide.png" Margin="-24" Stretch="Fill" />
                 <Grid RowDefinitions="Auto,*,Auto" Margin="50,36,50,34">
-                    <TextBlock Name="PageTitle" Classes="Title" Text="Seite" />
+                    <TextBlock Name="PageTitle" Classes="Title" Text="Page" />
 
-                    <!-- Server suchen -->
+                    <!-- Find server -->
                     <Grid Name="FindPage" Grid.Row="1" RowDefinitions="*,Auto" Margin="0,20,0,0">
                         <Border Classes="Well">
                             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8">
-                                <TextBlock Classes="Label" Text="Keine Server gefunden" HorizontalAlignment="Center" FontSize="28" />
-                                <TextBlock Classes="Hint" Text="Die Suche nach Runden kommt bald." HorizontalAlignment="Center" />
+                                <TextBlock Classes="Label" Text="No servers found" HorizontalAlignment="Center" FontSize="28" />
+                                <TextBlock Classes="Hint" Text="Searching for rounds is coming soon." HorizontalAlignment="Center" />
                             </StackPanel>
                         </Border>
                         <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,20,0,0">
-                            <TextBox Classes="Field" Watermark="IP-Adresse oder Name" IsEnabled="False" />
-                            <Button Grid.Column="1" Classes="Menu Small" Content="Beitreten" IsEnabled="False" Margin="18,0,0,0" />
+                            <TextBox Classes="Field" Watermark="IP address or name" IsEnabled="False" />
+                            <Button Grid.Column="1" Classes="Menu Small" Content="Join" IsEnabled="False" Margin="18,0,0,0" />
                         </Grid>
                     </Grid>
 
-                    <!-- Einstellungen -->
+                    <!-- Settings -->
                     <menu:SettingsPage Name="SettingsPage" Grid.Row="1" Margin="0,20,0,0" />
 
-                    <!-- Sprachen -->
+                    <!-- Languages -->
                     <Border Name="LanguagesPage" Grid.Row="1" Classes="Well" Margin="0,20,0,0">
                         <StackPanel Spacing="14" VerticalAlignment="Top">
                             <Border Classes="Tab Chosen" HorizontalAlignment="Left" Padding="24,10,30,10">
                                 <StackPanel Orientation="Horizontal" Spacing="14">
                                     <Path Data="M 2,11 L 9,18 L 22,4" Stroke="{StaticResource CreamBrush}" StrokeThickness="4.5"
                                           StrokeLineCap="Round" StrokeJoin="Round" VerticalAlignment="Center" />
-                                    <TextBlock Text="Deutsch" FontSize="26" />
+                                    <TextBlock Text="English" FontSize="26" />
                                 </StackPanel>
                             </Border>
-                            <TextBlock Classes="Hint" Text="Weitere Sprachen folgen später." Margin="6,6,0,0" />
+                            <TextBlock Classes="Hint" Text="More languages will follow." Margin="6,6,0,0" />
                         </StackPanel>
                     </Border>
 
-                    <Button Name="Back" Grid.Row="2" Classes="Menu Small" Content="Zurück"
+                    <Button Name="Back" Grid.Row="2" Classes="Menu Small" Content="Back"
                             HorizontalAlignment="Right" Margin="0,18,0,0" />
                 </Grid>
             </Panel>

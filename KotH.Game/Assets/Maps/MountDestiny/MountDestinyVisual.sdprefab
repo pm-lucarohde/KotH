@@ -8,7 +8,7 @@ Hierarchy:
     Parts:
         -   Entity:
                 Id: 6B6B6AD6-1A68-4011-A6F9-5A42DF987319
-                Name: NeuVisual
+                Name: MountDestinyVisual
                 Components:
                     4bb4a807dd03419e8651f137bd533afb: !TransformComponent
                         Id: BA9EC212-7F62-4EDF-8023-D01559827468

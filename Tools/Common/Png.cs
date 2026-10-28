@@ -32,7 +32,7 @@ public sealed class Png
     public static Png Decode(byte[] file, string path = "PNG")
     {
         if (!file.AsSpan(0, 8).SequenceEqual(Signature))
-            throw new InvalidDataException($"{path}: kein PNG");
+            throw new InvalidDataException($"{path}: not a PNG");
         int width = 0, height = 0, depth = 0, type = 0;
         byte[] palette = null, alpha = null;
         var data = new MemoryStream();
@@ -49,7 +49,7 @@ public sealed class Png
                     depth = body[8];
                     type = body[9];
                     if (depth != 8 || body[12] != 0)
-                        throw new NotSupportedException($"{path}: nur 8 Bit ohne Interlacing");
+                        throw new NotSupportedException($"{path}: only 8 bit without interlacing");
                     break;
                 case "PLTE": palette = body.ToArray(); break;
                 case "tRNS": alpha = body.ToArray(); break;
@@ -57,7 +57,7 @@ public sealed class Png
             }
             at += 12 + length;
         }
-        int channels = type switch { 0 => 1, 4 => 2, 2 => 3, 6 => 4, 3 => 1, _ => throw new NotSupportedException($"{path}: Farbtyp {type}") };
+        int channels = type switch { 0 => 1, 4 => 2, 2 => 3, 6 => 4, 3 => 1, _ => throw new NotSupportedException($"{path}: colour type {type}") };
         int stride = width * channels;
         var raw = new byte[height * stride];
         data.Position = 0;
@@ -101,7 +101,7 @@ public sealed class Png
                 2 => b,
                 3 => (a + b) >> 1,
                 4 => Paeth(a, b, c),
-                _ => throw new InvalidDataException($"PNG-Filter {filter}"),
+                _ => throw new InvalidDataException($"PNG filter {filter}"),
             };
             row[i] = (byte)(line[i] + predicted);
         }

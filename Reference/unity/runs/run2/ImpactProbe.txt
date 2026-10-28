@@ -1,29 +1,29 @@
 [impact] entering play mode
-[impact] Sprint frontal: erster Stoß bei Tick 29, Normale (1,00/0,00/0,00), Annäherung 8,625 m/s, Spieler entlang n 2,875, Dummy entlang n 5,750, Trennung 2,875 (geteilt durch Annäherung 0,333, soll 2*bounce), Summe entlang n 8,625, Spieler (2,88/-2,50/0,00), Dummy (5,75/-2,50/0,00)
-[impact] == Sprint frontal: Stöße 11, Spieler (3,93/0,90/-18,00), Dummy (4,73/0,90/-18,00), waagerecht 0,800 m, senkrecht 0,000 m
-[impact] Gehen frontal: erster Stoß bei Tick 24, Normale (1,00/0,00/0,00), Annäherung 8,625 m/s, Spieler entlang n 2,875, Dummy entlang n 5,750, Trennung 2,875 (geteilt durch Annäherung 0,333, soll 2*bounce), Summe entlang n 8,625, Spieler (2,88/-2,50/0,00), Dummy (5,75/-2,50/0,00)
-[impact] == Gehen frontal: Stöße 17, Spieler (3,37/0,90/-18,00), Dummy (4,17/0,90/-18,00), waagerecht 0,800 m, senkrecht 0,000 m
-[impact] Schleichen frontal: erster Stoß bei Tick 26, Normale (1,00/0,00/0,00), Annäherung 2,100 m/s, Spieler entlang n 0,700, Dummy entlang n 1,400, Trennung 0,700 (geteilt durch Annäherung 0,333, soll 2*bounce), Summe entlang n 2,100, Spieler (0,70/-2,50/0,00), Dummy (1,40/-2,50/0,00)
-[impact] == Schleichen frontal: Stöße 15, Spieler (0,32/0,93/-18,00), Dummy (1,12/0,90/-18,00), waagerecht 0,800 m, senkrecht -0,031 m
-[impact] Schräg versetzt: erster Stoß bei Tick 33, Normale (0,83/0,00/0,56), Annäherung 4,282 m/s, Spieler entlang n 1,427, Dummy entlang n 2,854, Trennung 1,427 (geteilt durch Annäherung 0,333, soll 2*bounce), Summe entlang n 4,282, Spieler (2,81/-2,50/-1,60), Dummy (2,36/-2,50/1,60)
-[impact] == Schräg versetzt: Stöße 1, Spieler (3,72/0,92/-18,73), Dummy (0,34/0,90/-17,77), waagerecht 3,507 m, senkrecht -0,017 m
-[impact] Von oben drauf: erster Stoß bei Tick 14, Normale (0,00/-1,00/0,00), Annäherung 4,500 m/s, Spieler entlang n 4,000, Dummy entlang n 5,500, Trennung 1,500 (geteilt durch Annäherung 0,333, soll 2*bounce), Summe entlang n 9,500, Spieler (0,00/-4,00/0,00), Dummy (0,00/-5,50/0,00)
-[impact] == Von oben drauf: Stöße 2, Spieler (-0,42/0,94/-18,00), Dummy (0,42/0,90/-18,00), waagerecht 0,847 m, senkrecht -0,040 m
-[impact] == Ruhig draufstehen: Stöße 0, Spieler (-0,41/0,94/-18,00), Dummy (0,41/0,90/-18,00), waagerecht 0,811 m, senkrecht -0,040 m
-[impact] Dauerdruck Tick 0: Spieler x -2,000 v (0,00/-0,50/0,00), Dummy x 0,000 v (0,00/-0,50/0,00)
-[impact] Dauerdruck Tick 10: Spieler x -0,911 v (5,18/-2,50/0,00), Dummy x 0,000 v (0,00/-2,50/0,00)
-[impact] Dauerdruck: erster Stoß bei Tick 12, Normale (1,00/0,00/0,00), Annäherung 5,175 m/s, Spieler entlang n 1,725, Dummy entlang n 3,450, Trennung 1,725 (geteilt durch Annäherung 0,333, soll 2*bounce), Summe entlang n 5,175, Spieler (1,73/-2,50/0,00), Dummy (3,45/-2,50/0,00)
-[impact] Dauerdruck Tick 20: Spieler x -0,228 v (2,68/-2,50/0,00), Dummy x 0,610 v (2,50/-2,50/0,00)
-[impact] Dauerdruck Tick 30: Spieler x 0,438 v (2,68/-2,50/0,00), Dummy x 1,238 v (2,49/-2,50/0,00)
-[impact] Dauerdruck Tick 40: Spieler x 1,085 v (2,68/-2,50/0,00), Dummy x 1,885 v (2,49/-2,50/0,00)
-[impact] Dauerdruck Tick 50: Spieler x 1,732 v (2,68/-2,50/0,00), Dummy x 2,532 v (2,49/-2,50/0,00)
-[impact] Dauerdruck Tick 60: Spieler x 2,379 v (2,68/-2,50/0,00), Dummy x 3,179 v (2,49/-2,50/0,00)
-[impact] Dauerdruck Tick 70: Spieler x 3,026 v (2,68/-2,50/0,00), Dummy x 3,826 v (2,49/-2,50/0,00)
-[impact] Dauerdruck Tick 80: Spieler x 3,672 v (2,68/-2,50/0,00), Dummy x 4,472 v (2,49/-2,50/0,00)
-[impact] Dauerdruck Tick 90: Spieler x 4,319 v (2,68/-2,50/0,00), Dummy x 5,119 v (2,49/-2,50/0,00)
-[impact] Dauerdruck Tick 100: Spieler x 4,966 v (2,68/-2,50/0,00), Dummy x 5,766 v (2,49/-2,50/0,00)
-[impact] Dauerdruck Tick 110: Spieler x 5,613 v (2,68/-2,50/0,00), Dummy x 6,413 v (2,49/-2,50/0,00)
-[impact] Dauerdruck Tick 120: Spieler x 6,260 v (2,68/-2,50/0,00), Dummy x 7,060 v (2,49/-2,50/0,00)
-[impact] Dauerdruck Tick 130: Spieler x 6,907 v (2,68/-2,50/0,00), Dummy x 7,707 v (2,49/-2,50/0,00)
-[impact] Dauerdruck Tick 140: Spieler x 7,554 v (2,68/-2,50/0,00), Dummy x 8,354 v (2,49/-2,50/0,00)
-[impact] == Dauerdruck: Stöße 67, Spieler (8,14/0,90/-18,00), Dummy (8,94/0,90/-18,00), waagerecht 0,800 m, senkrecht 0,000 m
+[impact] Sprint head-on: first push at tick 29, normal (1.00/0.00/0.00), approach 8.625 m/s, Player along n 2.875, Dummy along n 5.750, separation 2.875 (divided by approach 0.333, want 2*bounce), sum along n 8.625, Player (2.88/-2.50/0.00), Dummy (5.75/-2.50/0.00)
+[impact] == Sprint head-on: pushes 11, Player (3.93/0.90/-18.00), Dummy (4.73/0.90/-18.00), horizontal 0.800 m, vertical 0.000 m
+[impact] Walk head-on: first push at tick 24, normal (1.00/0.00/0.00), approach 8.625 m/s, Player along n 2.875, Dummy along n 5.750, separation 2.875 (divided by approach 0.333, want 2*bounce), sum along n 8.625, Player (2.88/-2.50/0.00), Dummy (5.75/-2.50/0.00)
+[impact] == Walk head-on: pushes 17, Player (3.37/0.90/-18.00), Dummy (4.17/0.90/-18.00), horizontal 0.800 m, vertical 0.000 m
+[impact] Sneak head-on: first push at tick 26, normal (1.00/0.00/0.00), approach 2.100 m/s, Player along n 0.700, Dummy along n 1.400, separation 0.700 (divided by approach 0.333, want 2*bounce), sum along n 2.100, Player (0.70/-2.50/0.00), Dummy (1.40/-2.50/0.00)
+[impact] == Sneak head-on: pushes 15, Player (0.32/0.93/-18.00), Dummy (1.12/0.90/-18.00), horizontal 0.800 m, vertical -0.031 m
+[impact] Diagonal offset: first push at tick 33, normal (0.83/0.00/0.56), approach 4.282 m/s, Player along n 1.427, Dummy along n 2.854, separation 1.427 (divided by approach 0.333, want 2*bounce), sum along n 4.282, Player (2.81/-2.50/-1.60), Dummy (2.36/-2.50/1.60)
+[impact] == Diagonal offset: pushes 1, Player (3.72/0.92/-18.73), Dummy (0.34/0.90/-17.77), horizontal 3.507 m, vertical -0.017 m
+[impact] Onto from above: first push at tick 14, normal (0.00/-1.00/0.00), approach 4.500 m/s, Player along n 4.000, Dummy along n 5.500, separation 1.500 (divided by approach 0.333, want 2*bounce), sum along n 9.500, Player (0.00/-4.00/0.00), Dummy (0.00/-5.50/0.00)
+[impact] == Onto from above: pushes 2, Player (-0.42/0.94/-18.00), Dummy (0.42/0.90/-18.00), horizontal 0.847 m, vertical -0.040 m
+[impact] == Stand still on top: pushes 0, Player (-0.41/0.94/-18.00), Dummy (0.41/0.90/-18.00), horizontal 0.811 m, vertical -0.040 m
+[impact] Constant push tick 0: Player x -2.000 v (0.00/-0.50/0.00), Dummy x 0.000 v (0.00/-0.50/0.00)
+[impact] Constant push tick 10: Player x -0.911 v (5.18/-2.50/0.00), Dummy x 0.000 v (0.00/-2.50/0.00)
+[impact] Constant push: first push at tick 12, normal (1.00/0.00/0.00), approach 5.175 m/s, Player along n 1.725, Dummy along n 3.450, separation 1.725 (divided by approach 0.333, want 2*bounce), sum along n 5.175, Player (1.73/-2.50/0.00), Dummy (3.45/-2.50/0.00)
+[impact] Constant push tick 20: Player x -0.228 v (2.68/-2.50/0.00), Dummy x 0.610 v (2.50/-2.50/0.00)
+[impact] Constant push tick 30: Player x 0.438 v (2.68/-2.50/0.00), Dummy x 1.238 v (2.49/-2.50/0.00)
+[impact] Constant push tick 40: Player x 1.085 v (2.68/-2.50/0.00), Dummy x 1.885 v (2.49/-2.50/0.00)
+[impact] Constant push tick 50: Player x 1.732 v (2.68/-2.50/0.00), Dummy x 2.532 v (2.49/-2.50/0.00)
+[impact] Constant push tick 60: Player x 2.379 v (2.68/-2.50/0.00), Dummy x 3.179 v (2.49/-2.50/0.00)
+[impact] Constant push tick 70: Player x 3.026 v (2.68/-2.50/0.00), Dummy x 3.826 v (2.49/-2.50/0.00)
+[impact] Constant push tick 80: Player x 3.672 v (2.68/-2.50/0.00), Dummy x 4.472 v (2.49/-2.50/0.00)
+[impact] Constant push tick 90: Player x 4.319 v (2.68/-2.50/0.00), Dummy x 5.119 v (2.49/-2.50/0.00)
+[impact] Constant push tick 100: Player x 4.966 v (2.68/-2.50/0.00), Dummy x 5.766 v (2.49/-2.50/0.00)
+[impact] Constant push tick 110: Player x 5.613 v (2.68/-2.50/0.00), Dummy x 6.413 v (2.49/-2.50/0.00)
+[impact] Constant push tick 120: Player x 6.260 v (2.68/-2.50/0.00), Dummy x 7.060 v (2.49/-2.50/0.00)
+[impact] Constant push tick 130: Player x 6.907 v (2.68/-2.50/0.00), Dummy x 7.707 v (2.49/-2.50/0.00)
+[impact] Constant push tick 140: Player x 7.554 v (2.68/-2.50/0.00), Dummy x 8.354 v (2.49/-2.50/0.00)
+[impact] == Constant push: pushes 67, Player (8.14/0.90/-18.00), Dummy (8.94/0.90/-18.00), horizontal 0.800 m, vertical 0.000 m

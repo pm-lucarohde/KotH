@@ -11,7 +11,7 @@ namespace KotH.Client.Rendering
     /// Stride's vignette, but starting later at top and bottom than at the sides
     /// (Luca); in the compositor's colour transforms. Shader: OvalVignette.sdsl.
     /// </summary>
-    /// <userdoc>Vignette mit eigenem Beginn an den Seiten und oben/unten.</userdoc>
+    /// <userdoc>Vignette with its own start at the sides and at top/bottom.</userdoc>
     [DataContract("OvalVignette")]
     [Display("Vignette (oval)")]
     public sealed class OvalVignette : ColorTransform
@@ -25,22 +25,22 @@ namespace KotH.Client.Rendering
         {
         }
 
-        /// <userdoc>Stärke: 1 = in den Ecken ganz die Farbe.</userdoc>
+        /// <userdoc>Strength: 1 = fully the colour in the corners.</userdoc>
         [DataMember(10)]
         [DataMemberRange(0.0, 1.0, 0.01, 0.1, 3)]
         public float Amount { get; set; } = 1f;
 
-        /// <userdoc>Wo sie an den Seiten beginnt (0 = Mitte, 1 = Ecke).</userdoc>
+        /// <userdoc>Where it starts at the sides (0 = centre, 1 = corner).</userdoc>
         [DataMember(20)]
         [DataMemberRange(0.0, 1.0, 0.01, 0.1, 3)]
         public float RadiusSides { get; set; } = 0.25f;
 
-        /// <userdoc>Wo sie oben und unten beginnt (0 = Mitte, 1 = Ecke).</userdoc>
+        /// <userdoc>Where it starts at top and bottom (0 = centre, 1 = corner).</userdoc>
         [DataMember(30)]
         [DataMemberRange(0.0, 1.0, 0.01, 0.1, 3)]
         public float RadiusTopBottom { get; set; } = 0.5f;
 
-        /// <userdoc>Farbe zum Rand hin.</userdoc>
+        /// <userdoc>Colour towards the edge.</userdoc>
         [DataMember(40)]
         public Color3 Color { get; set; } = new Color3(0f);
 

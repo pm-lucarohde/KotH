@@ -10,7 +10,7 @@ namespace KotH.Shared.Hosting
     public static class Maps
     {
         /// <summary>The map without --map.</summary>
-        public const string Default = "Neu";
+        public const string Default = "MountDestiny";
 
         /// <summary>The test ground the probes measure on, as it came from Unity.</summary>
         public const string Test = "Test";

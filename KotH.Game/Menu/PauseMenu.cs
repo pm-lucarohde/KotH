@@ -10,8 +10,8 @@ using Stride.Input;
 namespace KotH.Client.Menu
 {
     /// <summary>
-    /// What Escape opens in a game (Luca): Weiterspielen, Einstellungen,
-    /// Zum Desktop and Hauptmenü on a board in the middle, over a dark veil
+    /// What Escape opens in a game (Luca): Resume, Settings,
+    /// To desktop and Main menu on a board in the middle, over a dark veil
     /// and in front of the load screen too. The game runs on behind it, the
     /// own figure lets go of every key (SimulationDriver.Paused). Closed it
     /// costs nothing: its parts are only ticked and uploaded while open.
@@ -24,7 +24,7 @@ namespace KotH.Client.Menu
         const float PopSeconds = 0.16f;
         const float Veil = 0.6f;
 
-        /// <summary>Hauptmenü: GameRoot takes the game down.</summary>
+        /// <summary>Main menu: GameRoot takes the game down.</summary>
         [DataMemberIgnore] public Action ToMainMenu { get; set; }
 
         /// <summary>The driver it pauses the own input with; it stays shut while the main menu is open.</summary>

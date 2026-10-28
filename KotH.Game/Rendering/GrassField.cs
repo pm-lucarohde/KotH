@@ -20,8 +20,8 @@ namespace KotH.Client.Rendering
     /// no collision, nothing of the simulation. Hands the shader the wind of
     /// the Atmosphere and the figures' feet every frame.
     /// </summary>
-    /// <userdoc>Grashalme auf der Wiese (nur Darstellung), mit Wind, Blumen und Figuren, die sie wegdrücken.</userdoc>
-    [Display("Gras")]
+    /// <userdoc>Grass blades on the meadow (visuals only), with wind, flowers and figures pushing them aside.</userdoc>
+    [Display("Grass")]
     public sealed class GrassField : SyncScript
     {
         /// <summary>The grass's render group: not voxelised, not in the lightmap bake.</summary>
@@ -38,37 +38,37 @@ namespace KotH.Client.Rendering
         // The figure's feet below its centre (Mushroom, 1.8 m).
         const float FeetBelow = 0.9f;
 
-        /// <userdoc>Material der Halme (GrassColor).</userdoc>
+        /// <userdoc>Material of the blades (GrassColor).</userdoc>
         [DataMember(10)] public Material Material { get; set; }
-        /// <userdoc>Graskarte der Map (eingebettete Ressource, von Tools/maps/MapUV).</userdoc>
-        [DataMember(11)] public string MapResource { get; set; } = "Maps/NeuGrass.bin";
-        /// <userdoc>Bis zu so vielen Metern von der Kamera stehen die Halme voll dicht.</userdoc>
+        /// <userdoc>Grass map of the map (embedded resource, from Tools/maps/MapUV).</userdoc>
+        [DataMember(11)] public string MapResource { get; set; } = "Maps/MountDestinyGrass.bin";
+        /// <userdoc>Up to this many metres from the camera the blades stand fully dense.</userdoc>
         [DataMember(20)] public float FullReach { get; set; } = 25f;
-        /// <userdoc>Ab so vielen Metern sind die Halme ganz weg (dazwischen dünner), dort bleibt nur die Bodentextur.</userdoc>
+        /// <userdoc>From this many metres the blades are gone (thinner in between), only the ground texture remains.</userdoc>
         [DataMember(21)] public float FarReach { get; set; } = 90f;
-        /// <userdoc>Höhe der kürzesten Halme in Metern.</userdoc>
+        /// <userdoc>Height of the shortest blades in metres.</userdoc>
         [DataMember(22)] public float HeightMin { get; set; } = 0.125f;
-        /// <userdoc>Höhe der längsten Halme in Metern.</userdoc>
+        /// <userdoc>Height of the tallest blades in metres.</userdoc>
         [DataMember(23)] public float HeightMax { get; set; } = 0.225f;
-        /// <userdoc>Breite eines Halms am Fuß in Metern.</userdoc>
+        /// <userdoc>Width of a blade at its foot in metres.</userdoc>
         [DataMember(24)] public float Width { get; set; } = 0.03f;
-        /// <userdoc>Radius einer Blüte in Metern.</userdoc>
+        /// <userdoc>Radius of a flower in metres.</userdoc>
         [DataMember(25)] public float PetalRadius { get; set; } = 0.08f;
-        /// <userdoc>Anteil der 4-m-Flecken mit Blumen (0 bis 1).</userdoc>
+        /// <userdoc>Share of the 4 m patches with flowers (0 to 1).</userdoc>
         [DataMember(26)] public float FlowerShare { get; set; } = 0.3f;
-        /// <userdoc>Tempo der Böenwellen über das Feld in m/s.</userdoc>
+        /// <userdoc>Speed of the gust waves across the field in m/s.</userdoc>
         [DataMember(30)] public float GustSpeed { get; set; } = 3.5f;
-        /// <userdoc>Abstand der Böenwellen in Metern.</userdoc>
+        /// <userdoc>Spacing of the gust waves in metres.</userdoc>
         [DataMember(31)] public float GustLength { get; set; } = 14f;
-        /// <userdoc>Eigene Neigung der Halme (Anteil der Höhe).</userdoc>
+        /// <userdoc>The blades' own lean (share of height).</userdoc>
         [DataMember(32)] public float StillLean { get; set; } = 0.12f;
-        /// <userdoc>Neigung in einer Böe (Anteil der Höhe).</userdoc>
+        /// <userdoc>Lean in a gust (share of height).</userdoc>
         [DataMember(33)] public float GustLean { get; set; } = 0.45f;
-        /// <userdoc>Flattern der einzelnen Halme (Anteil der Höhe).</userdoc>
+        /// <userdoc>Flutter of single blades (share of height).</userdoc>
         [DataMember(34)] public float Flutter { get; set; } = 0.05f;
-        /// <userdoc>Wie stark Figuren die Halme wegdrücken (Anteil der Höhe).</userdoc>
+        /// <userdoc>How strongly figures push the blades aside (share of height).</userdoc>
         [DataMember(35)] public float FigurePush { get; set; } = 2f;
-        /// <userdoc>Bis zu so vielen Metern um eine Figur biegen sich die Halme weg.</userdoc>
+        /// <userdoc>Up to this many metres around a figure the blades bend away.</userdoc>
         [DataMember(36)] public float FigureReach { get; set; } = 0.7f;
 
         Texture map;
@@ -103,7 +103,7 @@ namespace KotH.Client.Rendering
                 return false;
             using var reader = new BinaryReader(new ZLibStream(stream, CompressionMode.Decompress));
             if (reader.ReadUInt32() != 0x5352474B || reader.ReadUInt32() != 1)   // "KGRS", version 1
-                throw new InvalidDataException($"{MapResource} hat ein unbekanntes Format.");
+                throw new InvalidDataException($"{MapResource} has an unknown format.");
             int size = reader.ReadInt32();
             half = reader.ReadSingle();
             maxHeight = reader.ReadSingle();

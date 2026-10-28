@@ -62,9 +62,9 @@ namespace KotH.Shared.Hosting
         public void LoadArena(string map)
         {
             if (Map != null)
-                throw new InvalidOperationException($"Die Map {Map} ist schon geladen.");
+                throw new InvalidOperationException($"Map {Map} is already loaded.");
             if (!HasMap(map))
-                throw new ArgumentException($"Unbekannte Map: {map}");
+                throw new ArgumentException($"Unknown map: {map}");
             Map = map;
             foreach (Entity e in content.Load<Prefab>(Maps.CollisionUrl(map)).Instantiate())
             {
@@ -88,7 +88,7 @@ namespace KotH.Shared.Hosting
                 return;
             using var reader = new BinaryReader(new ZLibStream(stream, CompressionMode.Decompress));
             if (reader.ReadUInt32() != 0x4E52544B || reader.ReadUInt32() != 1)   // "KTRN", version 1
-                throw new InvalidDataException($"{Maps.TerrainResource(map)} hat ein unbekanntes Format.");
+                throw new InvalidDataException($"{Maps.TerrainResource(map)} has an unknown format.");
 
             var vertices = new Vector3[reader.ReadUInt32()];
             for (int i = 0; i < vertices.Length; i++)

@@ -21,6 +21,10 @@ using Stride.Input;
 StdCxxPreload.Run();
 #endif
 
+// Logs with decimal points, whatever the machine's locale.
+CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
+
 // Six render threads instead of all 24: Stride's workers spin after every
 // parallel loop, and on this scene fewer of them are faster and far lighter
 // on the CPU (measured 20.10.2026, Luca's choice). The variable still wins.
@@ -211,7 +215,7 @@ sealed class KotHGame : Game
             if (LaunchOptions.Current.Display != null)
             {
                 SdlGrab.SDL_GetWindowPosition(sdl.SdlHandle, out int fx, out int fy);
-                Console.WriteLine($"[monitor] Vollbild bei {fx},{fy} (Monitor {LaunchOptions.Current.Display} von links gewünscht)");
+                Console.WriteLine($"[monitor] fullscreen at {fx},{fy} (monitor {LaunchOptions.Current.Display} from the left wanted)");
             }
         }
 
@@ -290,7 +294,7 @@ sealed class KotHGame : Game
         using var writer = new StreamWriter(frameLogPath);
         for (int i = 0; i < frameCount; i++)
             writer.WriteLine(frameLog[i].ToString("R", CultureInfo.InvariantCulture));
-        Console.WriteLine($"[frames] {frameCount} Frames nach {frameLogPath}");
+        Console.WriteLine($"[frames] {frameCount} frames to {frameLogPath}");
     }
 
     protected override void Update(GameTime gameTime)
@@ -345,7 +349,7 @@ sealed class KotHGame : Game
                             parts.Length > 2 && parts[2] == "sprint");
                 shotMove = null;
             }
-            // Also after the round has put everyone at its start (Neu: at random).
+            // Also after the round has put everyone at its start (MountDestiny: at random).
             if (shotAt.HasValue && player.PlacedTick != shotPlaced &&
                 player.Entity.Get<KotH.Shared.Player.PlayerMotor>() is { } motor)
             {
@@ -497,7 +501,7 @@ sealed class KotHGame : Game
         if (frameLog != null && frameCount < frameLog.Length)
         {
             if (frameCount == 0)
-                Console.WriteLine($"[frames] erster Frame {(DateTime.Now - System.Diagnostics.Process.GetCurrentProcess().StartTime).TotalMilliseconds:F0} ms nach Prozessstart");
+                Console.WriteLine($"[frames] first frame {(DateTime.Now - System.Diagnostics.Process.GetCurrentProcess().StartTime).TotalMilliseconds:F0} ms after process start");
             frameLog[frameCount++] = (float)gameTime.Elapsed.TotalMilliseconds;
         }
 
@@ -520,18 +524,18 @@ sealed class KotHGame : Game
             image.Save(f, ImageFileType.Png);
         }
 
-        Console.WriteLine($"[shot] {shotPath} nach {TestSeconds(gameTime):F1} s, {gameTime.FramePerSecond:F0} fps, " +
-                          $"Gier {Find<PlayerInputReader>()?.Yaw:F2}°");
+        Console.WriteLine($"[shot] {shotPath} after {TestSeconds(gameTime):F1} s, {gameTime.FramePerSecond:F0} fps, " +
+                          $"yaw {Find<PlayerInputReader>()?.Yaw:F2}°");
         if (Find<MusicPlayer>() is { } music)
-            Console.WriteLine($"[musik] {music.Readout}");
+            Console.WriteLine($"[music] {music.Readout}");
         if (Find<PlayerInputReader>()?.Entity.Get<KotH.Shared.Combat.MeleeAttack>() is { } melee)
-            Console.WriteLine($"[swing] {melee.SwingCount} Schläge, {melee.HitCount} Treffer, " +
-                              $"zuletzt {melee.LastHitDistance:F3} m");
+            Console.WriteLine($"[swing] {melee.SwingCount} swings, {melee.HitCount} hits, " +
+                              $"last {melee.LastHitDistance:F3} m");
         if (Find<PlayerInputReader>() is { } look && Find<PlayerCamera>() is { } view)
         {
             Quaternion still = KotH.Shared.Mathematics.UMath.Euler(look.Pitch, look.Yaw);
             float dot = MathF.Min(1f, MathF.Abs(Quaternion.Dot(still, view.Entity.Transform.Rotation)));
-            Console.WriteLine(string.Format(HudRenderer.Numbers, "[wackeln] Bild um {0:F2}° gegen den Blick gekippt",
+            Console.WriteLine(string.Format(HudRenderer.Numbers, "[shake] view tilted {0:F2}° against the aim",
                                             2f * MathF.Acos(dot) * 180f / MathF.PI));
         }
         ReportFont();
@@ -585,21 +589,21 @@ sealed class KotHGame : Game
         DamageLabel label = Find<DamageLabel>();
         if (label == null)
         {
-            Console.WriteLine("[schrift] kein DamageLabel in der Szene");
+            Console.WriteLine("[font] no DamageLabel in the scene");
             return;
         }
 
-        Vector2 size = label.Measure("1000,0 %");
+        Vector2 size = label.Measure("1000.0 %");
         Console.WriteLine(string.Format(HudRenderer.Numbers,
-            "[schrift] {0}, \"1000,0 %\" misst {1:F3} x {2:F3} m (muss über null sein), " +
-            "Schriftgröße {3:F2} m, aktueller Text \"{4}\", Label auf y {5:F3}",
+            "[font] {0}, \"1000.0 %\" measures {1:F3} x {2:F3} m (must be above zero), " +
+            "font size {3:F2} m, current text \"{4}\", label at y {5:F3}",
             label.Font?.FontType, size.X, size.Y, label.FontSize, label.Text, label.Entity.Transform.Position.Y));
 
         foreach (Entity e in SceneSystem.SceneInstance.RootScene.Entities)
             if (e.Get<DamageLabel>() is { } l)
-                Console.WriteLine(string.Format(HudRenderer.Numbers, "[schild] {0}: \"{1}\" bei {2:F1} {3:F1} {4:F1}, UI {5}, Welt-y {6:F1}, Breite {7:F0}",
+                Console.WriteLine(string.Format(HudRenderer.Numbers, "[label] {0}: \"{1}\" at {2:F1} {3:F1} {4:F1}, UI {5}, world y {6:F1}, width {7:F0}",
                     e.Name, l.Text, e.Transform.Position.X, e.Transform.Position.Y, e.Transform.Position.Z,
-                    e.Get<Stride.Engine.UIComponent>() is { } ui ? (ui.Enabled ? "an" : "aus") : "fehlt",
+                    e.Get<Stride.Engine.UIComponent>() is { } ui ? (ui.Enabled ? "on" : "off") : "missing",
                     e.Transform.WorldMatrix.TranslationVector.Y,
                     e.Get<Stride.Engine.UIComponent>()?.Page?.RootElement?.ActualWidth ?? -1f));
     }
@@ -613,13 +617,13 @@ sealed class KotHGame : Game
         if (posLog == null)
         {
             posLog = new StreamWriter(posLogPath, append: true) { AutoFlush = true };
-            posLog.WriteLine("# Tick x y z vx vy vz Boden (Stride-Meter)");
+            posLog.WriteLine("# tick x y z vx vy vz grounded (Stride metres)");
         }
         Vector3 p = motor.Position, v = motor.Velocity;
         if (KeyPresses.Pressed(Input, Keys.F8))
         {
-            posLog.WriteLine(FormattableString.Invariant($"# Markierung {simulation.CurrentTick} {p.X:F3} {p.Y:F3} {p.Z:F3}"));
-            Console.WriteLine(FormattableString.Invariant($"[poslog] Markierung bei {p.X:F2}, {p.Y:F2}, {p.Z:F2}"));
+            posLog.WriteLine(FormattableString.Invariant($"# mark {simulation.CurrentTick} {p.X:F3} {p.Y:F3} {p.Z:F3}"));
+            Console.WriteLine(FormattableString.Invariant($"[poslog] mark at {p.X:F2}, {p.Y:F2}, {p.Z:F2}"));
         }
         if (simulation.CurrentTick == posTick)
             return;
@@ -657,7 +661,7 @@ static class StdCxxPreload
     public static void Run()
     {
         if (DlOpen("libstdc++.so.6", RtldNow | RtldGlobal) == IntPtr.Zero)
-            Console.Error.WriteLine("libstdc++.so.6 konnte nicht geladen werden, Audio fällt aus.");
+            Console.Error.WriteLine("libstdc++.so.6 could not be loaded, audio is off.");
     }
 }
 #endif

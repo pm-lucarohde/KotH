@@ -39,7 +39,7 @@ namespace Stride.Rendering.Voxels
         /// KotH patch: draws the meshes with a second UV set into the voxel light's lightmap
         /// (<c>LightmapBakeEffect</c>) once it is asked for (<see cref="LightmapRequestKey"/>).
         /// </summary>
-        /// <userdoc>Stufe, in der das Voxel-Licht einmal in die Lightmap gebacken wird.</userdoc>
+        /// <userdoc>Stage in which the voxel light is baked into the lightmap once.</userdoc>
         public RenderStage LightmapBakeRenderStage { get; set; }
 
         /// <summary>KotH patch: the voxel light whose lightmap is to be baked, in the render context's tags.</summary>

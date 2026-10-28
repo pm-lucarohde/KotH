@@ -55,14 +55,14 @@ namespace KotH.Probes.Probes
                     sum.Hits += r.Hits; sum.Swings += r.Swings; sum.Points += r.Points; sum.ZoneTicks += r.ZoneTicks;
                 }
                 float per = Stats * 3 * PlayTicks / 2400f;
-                Log($"[bots] je Bot und Minute über {Stats} Seeds: {sum.Jumps / per:F1} Sprünge, {sum.Doubles / per:F1} Doppelsprünge, " +
-                    $"{sum.Slides / per:F1} Gleiten, {sum.Swings / per:F1} Schläge, {sum.Hits / per:F1} Treffer; " +
-                    $"Punkte je Runde {sum.Points / (float)Stats:F1}, erster in der Zone im Mittel nach {sum.ZoneTicks / 40f / Stats:F1} s");
+                Log($"[bots] per bot and minute over {Stats} seeds: {sum.Jumps / per:F1} jumps, {sum.Doubles / per:F1} double jumps, " +
+                    $"{sum.Slides / per:F1} slides, {sum.Swings / per:F1} swings, {sum.Hits / per:F1} hits; " +
+                    $"points per round {sum.Points / (float)Stats:F1}, first in the zone on average after {sum.ZoneTicks / 40f / Stats:F1} s");
                 return 0;
             }
             world.LoadArena(Maps.Test);
             world.StartMatch();
-            Check(world.Builder.Bots != null, "Bot-Einstellungen im Arena-Prefab");
+            Check(world.Builder.Bots != null, "bot settings in the arena prefab");
             var states = new LocalFinalStates(world.Simulation);
             long started = System.Diagnostics.Stopwatch.GetTimestamp();
             BotDirector director = BotDirector.Create(world.Builder, world.Simulation, states, Seed);
@@ -73,55 +73,55 @@ namespace KotH.Probes.Probes
             Result second = Play(Seed);
             Result other = Play(Seed + 1);
             Check(first.Inputs == second.Inputs && first.End == second.End,
-                  $"gleicher Seed, gleiche Eingaben ({first.Inputs:X16} / {second.Inputs:X16})");
-            Check(first.Inputs != other.Inputs, "anderer Seed, andere Eingaben");
+                  $"same seed, same inputs ({first.Inputs:X16} / {second.Inputs:X16})");
+            Check(first.Inputs != other.Inputs, "other seed, other inputs");
             // Worked out ahead, on a thread or a little each frame: the same bits.
             Result threaded = Play(Seed, ahead: 1), pumped = Play(Seed, ahead: 2);
             Check(threaded.Inputs == first.Inputs && threaded.End == first.End &&
                   pumped.Inputs == first.Inputs && pumped.End == first.End,
-                  $"voraus gerechnet gleich ({threaded.Inputs:X16} Thread, {pumped.Inputs:X16} Pump)");
-            Log($"[bots] Hashkette Eingaben {first.Inputs:X16}, Endzustand {first.End:X16}");
+                  $"computed ahead the same ({threaded.Inputs:X16} thread, {pumped.Inputs:X16} pump)");
+            Log($"[bots] hash chain inputs {first.Inputs:X16}, end state {first.End:X16}");
 
             Lobby();
 
             // On a host: the same inputs however the frames fall, and a guest stays in step.
             ulong steady = Hosted(16.7, 1, guest: false, out _, out _);
             ulong ragged = Hosted(7.3, 2, guest: false, out _, out _);
-            Check(steady == ragged, $"Host-Bots unabhängig vom Bildtakt ({steady:X16} / {ragged:X16})");
+            Check(steady == ragged, $"host bots independent of the frame rate ({steady:X16} / {ragged:X16})");
             ulong hostThread = Hosted(16.7, 1, guest: false, out _, out _, ahead: 1);
             ulong hostPump = Hosted(7.3, 2, guest: false, out _, out _, ahead: 2);
             Check(hostThread == steady && hostPump == steady,
-                  $"Host-Bots voraus gerechnet gleich ({hostThread:X16} Thread, {hostPump:X16} Pump)");
+                  $"host bots computed ahead the same ({hostThread:X16} thread, {hostPump:X16} pump)");
             Hosted(16.7, 3, guest: true, out PeerSession founder, out PeerSession guest);
             Hosted(16.7, 4, guest: false, out PeerSession paused, out _, pause: 3000.0);
             Check(paused.Stalls < 200 && Math.Abs(paused.Lead - PeerSession.LeadTarget) <= 1.0,
-                  $"Host mit Bots nach 3 s Ladepause: {paused.Stalls}-mal gewartet, Vorlauf {paused.Lead:F1}");
-            Log($"[bots] Host: {founder.Rollbacks} Rollbacks; Gast: {guest.Rollbacks} Rollbacks, tiefster {guest.DeepestRollback}, " +
-                $"{guest.Repairs} Reparaturen");
+                  $"host with bots after 3 s load pause: {paused.Stalls} stalls, lead {paused.Lead:F1}");
+            Log($"[bots] Host: {founder.Rollbacks} rollbacks; guest: {guest.Rollbacks} rollbacks, deepest {guest.DeepestRollback}, " +
+                $"{guest.Repairs} repairs");
 
-            Log(failures == 0 ? "[bots] BESTANDEN" : $"[bots] {failures} Fehler");
+            Log(failures == 0 ? "[bots] PASSED" : $"[bots] {failures} errors");
             return failures == 0 ? 0 : 1;
         }
 
         void Navmesh(BotNavigation nav, double ms)
         {
             ClimbGrid g = nav.Grid;
-            Log($"[bots] Kletterraster {g.FloorCount} Böden in {ms:F0} ms, Züge: {g.Drops} Fallen, {g.Jumps} Sprung, " +
-                $"{g.DoubleJumps} Doppelsprung, {g.Gaps} Lücke, {g.Variants} Wegvarianten");
-            Check(g.FloorCount > 20 && g.Drops > 10, "Raster mit Kanten zum Herunterfallen");
+            Log($"[bots] climb grid {g.FloorCount} floors in {ms:F0} ms, moves: {g.Drops} drop, {g.Jumps} jump, " +
+                $"{g.DoubleJumps} double jump, {g.Gaps} gap, {g.Variants} route variants");
+            Check(g.FloorCount > 20 && g.Drops > 10, "grid with edges to drop down");
 
             var corners = new List<Corner>();
             foreach (Vector3 start in Starts)
             {
                 bool found = nav.Plan(start, Hill, corners);
                 Vector3 end = found ? corners[^1].Position : start;
-                Log($"[bots] Weg von {start.X:F1} {start.Z:F1}: {corners.Count} Ecken, endet bei {end.X:F2} {end.Y:F2} {end.Z:F2}");
-                Check(found && Vector3.Distance(end, Hill) < 0.6f, $"Weg von {start.X:F1} {start.Z:F1} aufs Plateau");
+                Log($"[bots] path from {start.X:F1} {start.Z:F1}: {corners.Count} corners, ends at {end.X:F2} {end.Y:F2} {end.Z:F2}");
+                Check(found && Vector3.Distance(end, Hill) < 0.6f, $"path from {start.X:F1} {start.Z:F1} onto the plateau");
             }
 
             // Down again: the way off the hill drops or walks a ramp.
             bool back = nav.Plan(Hill, Starts[0], corners);
-            Check(back && Vector3.Distance(corners[^1].Position, Starts[0]) < 0.6f, "Weg vom Plateau herunter");
+            Check(back && Vector3.Distance(corners[^1].Position, Starts[0]) < 0.6f, "path down from the plateau");
         }
 
         struct Result
@@ -152,7 +152,7 @@ namespace KotH.Probes.Probes
             var still = new ScriptedBody { NetId = NetWorld.FirstPlayerId };
             Entity stillEntity = world.SpawnBody(HeadlessWorld.PlayerBodyUrl, new Vector3(2f, 5.95f, -14f), Quaternion.Identity,
                                                  still, new DamagePercent());
-            stillEntity.Name = "Ziel";
+            stillEntity.Name = "Target";
 
             var bots = new List<BotBody>();
             for (int i = 0; i < 3; i++)
@@ -216,7 +216,7 @@ namespace KotH.Probes.Probes
             if (ahead > 0)
             {
                 int share = director.StepsAhead * 100 / Math.Max(1, director.StepsAhead + director.StepsAsked);
-                Check(share >= 90, $"{(ahead == 1 ? "Thread" : "Pump")} rechnet {share} % der Schritte voraus");
+                Check(share >= 90, $"{(ahead == 1 ? "Thread" : "Pump")} computes {share} % of the steps ahead");
             }
             var snap = new WorldSnapshot();
             world.Simulation.Capture(snap);
@@ -235,33 +235,33 @@ namespace KotH.Probes.Probes
                     swings += fists.SwingCount;
                     score += bot.ScoreTicks;
                     BotBrain brain = director.BrainOf(bot.NetId);
-                    Log($"[bots] {bot.Entity.Name}: {fists.SwingCount} Schläge, {fists.HitCount} Treffer, " +
-                        $"{HillMatch.Points(bot.ScoreTicks)} Punkte, {bot.Entity.Get<DamagePercent>().Percent:F1} %, " +
-                        $"zuletzt {brain.Intent} bei {bot.Motor.Position.X:F1} {bot.Motor.Position.Y:F1} {bot.Motor.Position.Z:F1}");
+                    Log($"[bots] {bot.Entity.Name}: {fists.SwingCount} swings, {fists.HitCount} hits, " +
+                        $"{HillMatch.Points(bot.ScoreTicks)} points, {bot.Entity.Get<DamagePercent>().Percent:F1} %, " +
+                        $"last {brain.Intent} at {bot.Motor.Position.X:F1} {bot.Motor.Position.Y:F1} {bot.Motor.Position.Z:F1}");
                 }
-                Log($"[bots] Ziel: {stillEntity.Get<DamagePercent>().Percent:F1} %, bei {still.Motor.Position.X:F1} {still.Motor.Position.Y:F1} {still.Motor.Position.Z:F1}; " +
-                    $"erster Bot in der Zone nach {firstInZone / 40.0:F1} s");
+                Log($"[bots] target: {stillEntity.Get<DamagePercent>().Percent:F1} %, at {still.Motor.Position.X:F1} {still.Motor.Position.Y:F1} {still.Motor.Position.Z:F1}; " +
+                    $"first bot in the zone after {firstInZone / 40.0:F1} s");
                 var shares = new List<string>();
                 for (int i = 0; i < intents.Length; i++)
                     shares.Add($"{(BotIntent)i} {intents[i] * 100 / (PlayTicks * 3)} %");
-                Log("[bots] Absichten: " + string.Join(", ", shares));
+                Log("[bots] intents: " + string.Join(", ", shares));
                 shares.Clear();
                 for (int i = 0; i < maneuvers.Length; i++)
                     shares.Add($"{(Maneuver)i} {maneuvers[i] * 100 / (PlayTicks * 3)} %");
-                Log("[bots] Manöver: " + string.Join(", ", shares));
-                Log($"[bots] im Motor ausgeführt: {jumps} Sprünge, {doubles} Doppelsprünge, {slides} Gleiten, " +
-                    $"Sprint {sprintTicks * 100 / (PlayTicks * 3)} % der Zeit");
-                Check(doubles > 0 && slides > 0, "Bots nutzen Doppelsprung und Gleiten");
+                Log("[bots] manoeuvres: " + string.Join(", ", shares));
+                Log($"[bots] executed in the motor: {jumps} jumps, {doubles} double jumps, {slides} slides, " +
+                    $"sprint {sprintTicks * 100 / (PlayTicks * 3)} % of the time");
+                Check(doubles > 0 && slides > 0, "bots use double jump and slide");
                 int lost = 0;
                 foreach (BotBody bot in bots)
                     lost += bot.Motor.Position.Y < -1f ? 1 : 0;
-                Log($"[bots] {respawns}-mal aus der Arena gefallen und am Startplatz wieder da");
-                Check(lost == 0, $"kein Bot fällt endlos ({lost} unter der Arena)");
-                Check(firstInZone >= 0 && firstInZone < 40 * 20, "ein Bot in höchstens 20 s in der Zone");
-                Log($"[bots] Punkte zusammen {HillMatch.Points(score)}; allein zählt nur, wer die anderen hinausstößt");
-                Check(zoneTicks > PlayTicks, $"Bots stehen über ein Drittel der Zeit in der Zone ({zoneTicks * 100 / (PlayTicks * 3)} %)");
-                Check(hits > 0, $"Bots treffen ({hits} von {swings})");
-                Check(stillEntity.Get<DamagePercent>().Percent > 0f, "der stehende Körper wird getroffen");
+                Log($"[bots] {respawns} times fell out of the arena and back at the spawn");
+                Check(lost == 0, $"no bot falls forever ({lost} below the arena)");
+                Check(firstInZone >= 0 && firstInZone < 40 * 20, "a bot in the zone within 20 s");
+                Log($"[bots] points together {HillMatch.Points(score)}; alone counts only who pushes the others out");
+                Check(zoneTicks > PlayTicks, $"bots stand in the zone over a third of the time ({zoneTicks * 100 / (PlayTicks * 3)} %)");
+                Check(hits > 0, $"bots hit ({hits} of {swings})");
+                Check(stillEntity.Get<DamagePercent>().Percent > 0f, "the standing body is hit");
             }
             int allHits = 0, allSwings = 0, allScore = 0;
             foreach (BotBody bot in bots)
@@ -307,8 +307,8 @@ namespace KotH.Probes.Probes
                 world.Simulation.Tick();
             foreach (MeleeAttack f in fists)
                 swings += f.SwingCount;
-            Log($"[bots] Lobby 30 s: Phase {match.State.Phase}, {swings} Schläge, Ziel {stillEntity.Get<DamagePercent>().Percent:F1} %");
-            Check(match.State.Phase == MatchPhase.Waiting && swings == 0, "in der Lobby schlägt kein Bot");
+            Log($"[bots] lobby 30 s: phase {match.State.Phase}, {swings} swings, target {stillEntity.Get<DamagePercent>().Percent:F1} %");
+            Check(match.State.Phase == MatchPhase.Waiting && swings == 0, "no bot swings in the lobby");
         }
 
         /// <summary>
@@ -391,10 +391,10 @@ namespace KotH.Probes.Probes
             foreach (int id in ids)
                 if (home.Simulation.Match.Contains(founder.BodyOf(id).Motor.Position))
                     inZone++;
-            Log($"[bots] Host mit {ids.Count} Bots, Takt {frameMs} ms, Ladepause {pause} ms: {hashed} Ticks bestätigt, " +
-                $"{founder.Stalls}-mal gewartet, Vorlauf {founder.Lead:F1}, {inZone} Bots in der Zone, " +
-                $"Phase {home.Simulation.Match.State.Phase}");
-            Check(inZone > 0, "Host-Bots kommen in die Zone");
+            Log($"[bots] host with {ids.Count} bots, frame {frameMs} ms, load pause {pause} ms: {hashed} ticks confirmed, " +
+                $"{founder.Stalls} stalls, lead {founder.Lead:F1}, {inZone} bots in the zone, " +
+                $"phase {home.Simulation.Match.State.Phase}");
+            Check(inZone > 0, "host bots reach the zone");
 
             if (guest)
             {
@@ -405,14 +405,14 @@ namespace KotH.Probes.Probes
                         compared++;
                         differ += m == h.Value ? 0 : 1;
                     }
-                Check(compared > 20 && differ == 0 && host.Desyncs == 0, $"Gast und Host gleich ({compared} Prüfsummen, {differ} verschieden)");
-                Check(founder.Rollbacks == 0, $"Host kennt seine Bots, kein Rollback ({founder.Rollbacks})");
+                Check(compared > 20 && differ == 0 && host.Desyncs == 0, $"guest and host the same ({compared} checksums, {differ} different)");
+                Check(founder.Rollbacks == 0, $"host knows its bots, no rollback ({founder.Rollbacks})");
             }
             director.Dispose();
             if (ahead > 0)
             {
                 int share = director.StepsAhead * 100 / Math.Max(1, director.StepsAhead + director.StepsAsked);
-                Check(share >= 90, $"Host: {(ahead == 1 ? "Thread" : "Pump")} rechnet {share} % der Schritte voraus");
+                Check(share >= 90, $"Host: {(ahead == 1 ? "Thread" : "Pump")} computes {share} % of the steps ahead");
             }
             foreach (HeadlessWorld w in worlds)
                 w.Dispose();
@@ -421,7 +421,7 @@ namespace KotH.Probes.Probes
 
         void Check(bool ok, string what)
         {
-            Log((ok ? "[bots] ok: " : "[bots] FEHLER: ") + what);
+            Log((ok ? "[bots] ok: " : "[bots] ERROR: ") + what);
             if (!ok)
                 failures++;
         }

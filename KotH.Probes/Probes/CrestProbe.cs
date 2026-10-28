@@ -158,13 +158,13 @@ namespace KotH.Probes.Probes
             if (tick < TicksPerCase)
                 return;
 
-            string how = c.Crouch ? "geduckt" : c.Sprint ? "sprint " : "gehen  ";
-            string shakeTag = c.WiggleHz > 0f ? $" wackel {c.WiggleDeg:F0}°" : "";
-            Log($"[crest] == Versatz {c.Offset,5:F2} Winkel {c.YawBias,4:F0}" +
+            string how = c.Crouch ? "crouched" : c.Sprint ? "sprint " : "walk   ";
+            string shakeTag = c.WiggleHz > 0f ? $" wobble {c.WiggleDeg:F0}°" : "";
+            Log($"[crest] == offset {c.Offset,5:F2} angle {c.YawBias,4:F0}" +
                 $" {how}{shakeTag}:" +
-                $" {(reachedAt >= 0 ? $"oben bei Tick {reachedAt,3}" : "NIE OBEN")}," +
+                $" {(reachedAt >= 0 ? $"top at tick {reachedAt,3}" : "NEVER ON TOP")}," +
                 $" max {maxY - 0.9f:F3} m," +
-                $" längster Stillstand {worstStall} Ticks");
+                $" longest stall {worstStall} ticks");
             Next();
         }
     }

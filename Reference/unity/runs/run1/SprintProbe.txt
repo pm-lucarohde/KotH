@@ -1,112 +1,112 @@
 [sprint] entering play mode
-[sprint] gehen/sprint 0,600 gegen cos(50°) = 0,643: Luft da
-[sprint] Sollwerte: gehen 5,175, sprint 8,625, geduckt 2,100 m/s
-[sprint] == Einmal tippen
-[sprint]    tippen, 1 Tick       nach   1 Ticks: sprint AN , wunsch  1,250, echt  1,250 (waagerecht  1,250) (min letztes Drittel  1,250), x/y/z  -110,00/  0,90/ -119,97  -> ok
-[sprint]    Taste los, vorwärts  nach  40 Ticks: sprint AN , wunsch  8,625, echt  8,625 (waagerecht  8,625) (min letztes Drittel  8,625), x/y/z  -110,00/  0,90/ -111,80  -> ok
-[sprint] == Loslassen beendet
-[sprint]    tippen + anlaufen    nach  40 Ticks: sprint AN , wunsch  8,625, echt  8,625 (waagerecht  8,625) (min letztes Drittel  8,625), x/y/z  -110,00/  0,90/ -111,06  -> ok
-[sprint]    stehen bleiben       nach  30 Ticks: sprint aus (erlosch bei Tick   4), wunsch  0,000, echt  0,000 (waagerecht  0,000) (min letztes Drittel  0,000), x/y/z  -110,00/  0,90/ -110,10  -> ok
-[sprint]    wieder vorwärts      nach  40 Ticks: sprint aus, wunsch  5,175, echt  5,175 (waagerecht  5,175) (min letztes Drittel  5,175), x/y/z  -110,00/  0,90/ -105,13  -> ok
-[sprint] == Halten endet nie
-[sprint]    halten + anlaufen    nach  40 Ticks: sprint AN , wunsch  8,625, echt  8,625 (waagerecht  8,625) (min letztes Drittel  8,625), x/y/z  -110,00/  0,90/ -111,69  -> ok
-[sprint]    halten, stehen       nach  30 Ticks: sprint AN , wunsch  0,000, echt  0,000 (waagerecht  0,000) (min letztes Drittel  0,000), x/y/z  -110,00/  0,90/ -110,74  -> ok
-[sprint]    halten, vorwärts     nach  40 Ticks: sprint AN , wunsch  8,625, echt  8,625 (waagerecht  8,625) (min letztes Drittel  8,625), x/y/z  -110,00/  0,90/ -102,75  -> ok
-[sprint] == Ducken beendet
-[sprint]    tippen + anlaufen    nach  40 Ticks: sprint AN , wunsch  8,625, echt  8,625 (waagerecht  8,625) (min letztes Drittel  8,625), x/y/z  -110,00/  0,90/ -111,06  -> ok
-[sprint]    ducken               nach  30 Ticks: sprint aus (erlosch bei Tick   3), wunsch  2,100, echt  2,100 (waagerecht  2,100) (min letztes Drittel  2,100), x/y/z  -110,00/  0,92/ -109,13  -> ok
-[sprint]    aufrichten           nach  40 Ticks: sprint aus, wunsch  5,175, echt  5,175 (waagerecht  5,175) (min letztes Drittel  5,175), x/y/z  -110,00/  0,92/ -104,02  -> ok
-[sprint] == Ducken mit Halten
-[sprint]    halten + anlaufen    nach  40 Ticks: sprint AN , wunsch  8,625, echt  8,625 (waagerecht  8,625) (min letztes Drittel  8,625), x/y/z  -110,00/  0,90/ -111,69  -> ok
-[sprint]    halten + ducken      nach  30 Ticks: sprint AN , wunsch  2,100, echt  2,100 (waagerecht  2,100) (min letztes Drittel  2,100), x/y/z  -110,00/  0,92/ -109,77  -> ok
-[sprint]    halten, aufrichten   nach  40 Ticks: sprint AN , wunsch  8,625, echt  8,625 (waagerecht  8,625) (min letztes Drittel  8,625), x/y/z  -110,00/  0,91/ -101,49  -> ok
-[sprint] == Stoß beendet
-[sprint]    tippen + anlaufen    nach  40 Ticks: sprint AN , wunsch  8,625, echt  8,625 (waagerecht  8,625) (min letztes Drittel  8,625), x/y/z  -110,00/  0,90/ -111,06  -> ok
-[sprint]    Stoß entgegen        nach   2 Ticks: sprint aus (erlosch bei Tick   1), wunsch  3,247, echt  3,247 (waagerecht  3,247) (min letztes Drittel  3,247), x/y/z  -110,00/  0,90/ -110,90  -> ok
-[sprint]    danach vorwärts      nach  40 Ticks: sprint aus, wunsch  5,175, echt  5,175 (waagerecht  5,175) (min letztes Drittel  5,175), x/y/z  -110,00/  0,90/ -105,91  -> ok
-[sprint] == Wand, getippt
-[sprint]    tippen + anlaufen    nach  40 Ticks: sprint AN , wunsch  8,625, echt  8,625 (waagerecht  8,625) (min letztes Drittel  8,625), x/y/z  -110,00/  0,90/ -111,69  -> ok
-[sprint]    in die Wand rennen   nach  40 Ticks: sprint aus (erlosch bei Tick   6), wunsch  0,000, echt  0,000 (waagerecht  0,000) (min letztes Drittel  0,000), x/y/z  -110,00/  0,90/ -110,69  -> ok
-[sprint]    zurück, vorwärts     nach  40 Ticks: sprint aus, wunsch  5,175, echt  5,175 (waagerecht  5,175) (min letztes Drittel  5,175), x/y/z  -110,00/  0,90/ -115,66  -> ok
-[sprint] == Wand, gehalten
-[sprint]    halten + anlaufen    nach  40 Ticks: sprint AN , wunsch  8,625, echt  8,625 (waagerecht  8,625) (min letztes Drittel  8,625), x/y/z  -110,00/  0,90/ -112,33  -> ok
-[sprint]    in die Wand rennen   nach  40 Ticks: sprint AN , wunsch  0,000, echt  0,000 (waagerecht  0,000) (min letztes Drittel  0,000), x/y/z  -110,00/  0,90/ -110,69  -> ok
-[sprint]    halten, zurück       nach  40 Ticks: sprint AN , wunsch  8,625, echt  8,625 (waagerecht  8,625) (min letztes Drittel  8,625), x/y/z  -110,00/  0,90/ -118,68  -> ok
-[sprint] == Rampe 20 getippt
-[sprint]    tippen + anlaufen    nach  20 Ticks: sprint AN , wunsch  8,625, echt  8,625 (waagerecht  8,625) (min letztes Drittel  8,625), x/y/z    -3,50/  0,90/   -5,02  -> ok
-[sprint]    Rampe hoch           nach  30 Ticks: sprint AN , wunsch  8,625, echt  8,105 (waagerecht  7,616) (min letztes Drittel  8,105), x/y/z    -3,50/  2,60/    0,83  -> ok
-[sprint] == Rampe 35 getippt
-[sprint]    tippen + anlaufen    nach  20 Ticks: sprint AN , wunsch  8,625, echt  7,065 (waagerecht  5,787) (min letztes Drittel  7,065), x/y/z     3,50/  1,27/    3,23  -> ok
-[sprint]    Rampe hoch           nach  30 Ticks: sprint AN , wunsch  8,625, echt  7,065 (waagerecht  5,787) (min letztes Drittel  7,065), x/y/z     3,50/  4,31/    7,57  -> ok
-[sprint] == Rampe 45 getippt
-[sprint]    tippen + anlaufen    nach  20 Ticks: sprint AN , wunsch  8,625, echt  8,625 (waagerecht  8,625) (min letztes Drittel  8,625), x/y/z    11,33/  0,90/   16,96  -> ok
-[sprint]    Rampe hoch           nach  30 Ticks: sprint AN , wunsch  8,625, echt  6,099 (waagerecht  4,313) (min letztes Drittel  6,099), x/y/z     8,03/  4,07/   16,96  -> ok
-[sprint] == Rampe 20 gehalten
-[sprint]    anlaufen             nach  20 Ticks: sprint AN , wunsch  8,625, echt  8,625 (waagerecht  8,625) (min letztes Drittel  8,625), x/y/z    -4,46/  0,90/   -4,06  -> ok
-[sprint]       Tick   0: echt  8,620      , waagerecht  8,620, sprint AN , y   0,90, boden ja 
-[sprint]       Tick   1: echt  8,105      , waagerecht  7,616, sprint AN , y   0,97, boden ja 
-[sprint]       Tick   2: echt  8,105      , waagerecht  7,616, sprint AN , y   1,04, boden ja 
-[sprint]       Tick   3: echt  8,105      , waagerecht  7,616, sprint AN , y   1,11, boden ja 
-[sprint]       Tick   4: echt  8,105      , waagerecht  7,616, sprint AN , y   1,18, boden ja 
-[sprint]       Tick   5: echt  8,105      , waagerecht  7,616, sprint AN , y   1,25, boden ja 
-[sprint]       Tick   6: echt  8,105      , waagerecht  7,616, sprint AN , y   1,32, boden ja 
-[sprint]       Tick   7: echt  8,105      , waagerecht  7,616, sprint AN , y   1,39, boden ja 
-[sprint]       Tick   8: echt  8,105      , waagerecht  7,616, sprint AN , y   1,45, boden ja 
-[sprint]       Tick   9: echt  8,105      , waagerecht  7,616, sprint AN , y   1,52, boden ja 
-[sprint]       Tick  10: echt  8,105      , waagerecht  7,616, sprint AN , y   1,59, boden ja 
-[sprint]       Tick  11: echt  8,105      , waagerecht  7,616, sprint AN , y   1,66, boden ja 
-[sprint]       Tick  12: echt  8,105      , waagerecht  7,616, sprint AN , y   1,73, boden ja 
-[sprint]       Tick  13: echt  8,105      , waagerecht  7,616, sprint AN , y   1,80, boden ja 
-[sprint]    Rampe hoch           nach  30 Ticks: sprint AN , wunsch  8,625, echt  8,105 (waagerecht  7,616) (min letztes Drittel  8,105), x/y/z    -4,46/  2,91/    1,67  -> ok
-[sprint] == Rampe 35 gehalten
-[sprint]    anlaufen             nach  20 Ticks: sprint AN , wunsch  8,625, echt  7,065 (waagerecht  5,787) (min letztes Drittel  7,065), x/y/z     3,50/  1,27/    3,23  -> ok
-[sprint]       Tick   0: echt  7,065      , waagerecht  5,787, sprint AN , y   1,38, boden ja 
-[sprint]       Tick   1: echt  7,065      , waagerecht  5,787, sprint AN , y   1,48, boden ja 
-[sprint]       Tick   2: echt  7,065      , waagerecht  5,787, sprint AN , y   1,58, boden ja 
-[sprint]       Tick   3: echt  7,065      , waagerecht  5,787, sprint AN , y   1,68, boden ja 
-[sprint]       Tick   4: echt  7,065      , waagerecht  5,787, sprint AN , y   1,78, boden ja 
-[sprint]       Tick   5: echt  7,065      , waagerecht  5,787, sprint AN , y   1,88, boden ja 
-[sprint]       Tick   6: echt  7,065      , waagerecht  5,787, sprint AN , y   1,98, boden ja 
-[sprint]       Tick   7: echt  7,065      , waagerecht  5,787, sprint AN , y   2,09, boden ja 
-[sprint]       Tick   8: echt  7,065      , waagerecht  5,787, sprint AN , y   2,19, boden ja 
-[sprint]       Tick   9: echt  7,065      , waagerecht  5,787, sprint AN , y   2,29, boden ja 
-[sprint]       Tick  10: echt  7,065      , waagerecht  5,787, sprint AN , y   2,39, boden ja 
-[sprint]       Tick  11: echt  7,065      , waagerecht  5,787, sprint AN , y   2,49, boden ja 
-[sprint]       Tick  12: echt  7,065      , waagerecht  5,787, sprint AN , y   2,59, boden ja 
-[sprint]       Tick  13: echt  7,065      , waagerecht  5,787, sprint AN , y   2,69, boden ja 
-[sprint]    Rampe hoch           nach  30 Ticks: sprint AN , wunsch  8,625, echt  7,065 (waagerecht  5,787) (min letztes Drittel  7,065), x/y/z     3,50/  4,31/    7,57  -> ok
-[sprint] == Rampe 45 gehalten
-[sprint]    anlaufen             nach  20 Ticks: sprint AN , wunsch  8,625, echt  8,625 (waagerecht  8,625) (min letztes Drittel  8,625), x/y/z    11,33/  0,90/   16,96  -> ok
-[sprint]       Tick   0: echt  6,970      , waagerecht  6,699, sprint AN , y   0,95, boden ja 
-[sprint]       Tick   1: echt  6,099      , waagerecht  4,313, sprint AN , y   1,06, boden ja 
-[sprint]       Tick   2: echt  6,099      , waagerecht  4,313, sprint AN , y   1,16, boden ja 
-[sprint]       Tick   3: echt  6,099      , waagerecht  4,313, sprint AN , y   1,27, boden ja 
-[sprint]       Tick   4: echt  6,099      , waagerecht  4,313, sprint AN , y   1,38, boden ja 
-[sprint]       Tick   5: echt  6,099      , waagerecht  4,313, sprint AN , y   1,49, boden ja 
-[sprint]       Tick   6: echt  6,099      , waagerecht  4,313, sprint AN , y   1,60, boden ja 
-[sprint]       Tick   7: echt  6,099      , waagerecht  4,313, sprint AN , y   1,70, boden ja 
-[sprint]       Tick   8: echt  6,099      , waagerecht  4,313, sprint AN , y   1,81, boden ja 
-[sprint]       Tick   9: echt  6,099      , waagerecht  4,313, sprint AN , y   1,92, boden ja 
-[sprint]       Tick  10: echt  6,099      , waagerecht  4,313, sprint AN , y   2,03, boden ja 
-[sprint]       Tick  11: echt  6,099      , waagerecht  4,313, sprint AN , y   2,13, boden ja 
-[sprint]       Tick  12: echt  6,099      , waagerecht  4,313, sprint AN , y   2,24, boden ja 
-[sprint]       Tick  13: echt  6,099      , waagerecht  4,313, sprint AN , y   2,35, boden ja 
-[sprint]    Rampe hoch           nach  30 Ticks: sprint AN , wunsch  8,625, echt  6,099 (waagerecht  4,313) (min letztes Drittel  6,099), x/y/z     8,03/  4,07/   16,96  -> ok
-[sprint] == Wand gehalten, Verlauf
-[sprint]    anlaufen             nach  40 Ticks: sprint AN , wunsch  8,625, echt  8,625 (waagerecht  8,625) (min letztes Drittel  8,625), x/y/z  -110,96/  0,90/ -112,01  -> ok
-[sprint]       Tick   0: echt  8,625      , waagerecht  8,625, sprint AN , y   0,90, boden ja 
-[sprint]       Tick   1: echt  8,625      , waagerecht  8,625, sprint AN , y   0,90, boden ja 
-[sprint]       Tick   2: echt  8,625      , waagerecht  8,625, sprint AN , y   0,90, boden ja 
-[sprint]       Tick   3: echt  8,625      , waagerecht  8,625, sprint AN , y   0,90, boden ja 
-[sprint]       Tick   4: echt  8,625      , waagerecht  8,625, sprint AN , y   0,90, boden ja 
-[sprint]       Tick   5: echt  8,625      , waagerecht  8,625, sprint AN , y   0,90, boden ja 
-[sprint]       Tick   6: echt  1,155 UNTER, waagerecht  1,155, sprint AN , y   0,90, boden ja 
-[sprint]       Tick   7: echt  0,000 UNTER, waagerecht  0,000, sprint AN , y   0,90, boden ja 
-[sprint]       Tick   8: echt  0,000 UNTER, waagerecht  0,000, sprint AN , y   0,90, boden ja 
-[sprint]       Tick   9: echt  0,000 UNTER, waagerecht  0,000, sprint AN , y   0,90, boden ja 
-[sprint]       Tick  10: echt  0,000 UNTER, waagerecht  0,000, sprint AN , y   0,90, boden ja 
-[sprint]       Tick  11: echt  0,000 UNTER, waagerecht  0,000, sprint AN , y   0,90, boden ja 
-[sprint]       Tick  12: echt  0,000 UNTER, waagerecht  0,000, sprint AN , y   0,90, boden ja 
-[sprint]       Tick  13: echt  0,000 UNTER, waagerecht  0,000, sprint AN , y   0,90, boden ja 
-[sprint]    in die Wand          nach  40 Ticks: sprint AN , wunsch  0,000, echt  0,000 (waagerecht  0,000) (min letztes Drittel  0,000), x/y/z  -110,96/  0,90/ -110,69  -> ok
-[sprint] ALLE FÄLLE WIE ERWARTET
+[sprint] walk/sprint 0.600 vs cos(50°) = 0.643: room left
+[sprint] targets: walk 5.175, sprint 8.625, crouched 2.100 m/s
+[sprint] == Tap once
+[sprint]    tap, 1 tick          after   1 ticks: sprint ON , wanted  1.250, real  1.250 (horizontal  1.250) (min last third  1.250), x/y/z  -110.00/  0.90/ -119.97  -> ok
+[sprint]    key up, forward      after  40 ticks: sprint ON , wanted  8.625, real  8.625 (horizontal  8.625) (min last third  8.625), x/y/z  -110.00/  0.90/ -111.80  -> ok
+[sprint] == Release ends
+[sprint]    tap + run-up         after  40 ticks: sprint ON , wanted  8.625, real  8.625 (horizontal  8.625) (min last third  8.625), x/y/z  -110.00/  0.90/ -111.06  -> ok
+[sprint]    stop                 after  30 ticks: sprint off (ended at tick   4), wanted  0.000, real  0.000 (horizontal  0.000) (min last third  0.000), x/y/z  -110.00/  0.90/ -110.10  -> ok
+[sprint]    forward again        after  40 ticks: sprint off, wanted  5.175, real  5.175 (horizontal  5.175) (min last third  5.175), x/y/z  -110.00/  0.90/ -105.13  -> ok
+[sprint] == Holding never ends
+[sprint]    hold + run-up        after  40 ticks: sprint ON , wanted  8.625, real  8.625 (horizontal  8.625) (min last third  8.625), x/y/z  -110.00/  0.90/ -111.69  -> ok
+[sprint]    hold, stand          after  30 ticks: sprint ON , wanted  0.000, real  0.000 (horizontal  0.000) (min last third  0.000), x/y/z  -110.00/  0.90/ -110.74  -> ok
+[sprint]    hold, forward        after  40 ticks: sprint ON , wanted  8.625, real  8.625 (horizontal  8.625) (min last third  8.625), x/y/z  -110.00/  0.90/ -102.75  -> ok
+[sprint] == Crouch ends
+[sprint]    tap + run-up         after  40 ticks: sprint ON , wanted  8.625, real  8.625 (horizontal  8.625) (min last third  8.625), x/y/z  -110.00/  0.90/ -111.06  -> ok
+[sprint]    crouch               after  30 ticks: sprint off (ended at tick   3), wanted  2.100, real  2.100 (horizontal  2.100) (min last third  2.100), x/y/z  -110.00/  0.92/ -109.13  -> ok
+[sprint]    stand up             after  40 ticks: sprint off, wanted  5.175, real  5.175 (horizontal  5.175) (min last third  5.175), x/y/z  -110.00/  0.92/ -104.02  -> ok
+[sprint] == Crouch while holding
+[sprint]    hold + run-up        after  40 ticks: sprint ON , wanted  8.625, real  8.625 (horizontal  8.625) (min last third  8.625), x/y/z  -110.00/  0.90/ -111.69  -> ok
+[sprint]    hold + crouch        after  30 ticks: sprint ON , wanted  2.100, real  2.100 (horizontal  2.100) (min last third  2.100), x/y/z  -110.00/  0.92/ -109.77  -> ok
+[sprint]    hold, stand up       after  40 ticks: sprint ON , wanted  8.625, real  8.625 (horizontal  8.625) (min last third  8.625), x/y/z  -110.00/  0.91/ -101.49  -> ok
+[sprint] == Push ends
+[sprint]    tap + run-up         after  40 ticks: sprint ON , wanted  8.625, real  8.625 (horizontal  8.625) (min last third  8.625), x/y/z  -110.00/  0.90/ -111.06  -> ok
+[sprint]    push against         after   2 ticks: sprint off (ended at tick   1), wanted  3.247, real  3.247 (horizontal  3.247) (min last third  3.247), x/y/z  -110.00/  0.90/ -110.90  -> ok
+[sprint]    then forward         after  40 ticks: sprint off, wanted  5.175, real  5.175 (horizontal  5.175) (min last third  5.175), x/y/z  -110.00/  0.90/ -105.91  -> ok
+[sprint] == Wall, tapped
+[sprint]    tap + run-up         after  40 ticks: sprint ON , wanted  8.625, real  8.625 (horizontal  8.625) (min last third  8.625), x/y/z  -110.00/  0.90/ -111.69  -> ok
+[sprint]    run into the wall    after  40 ticks: sprint off (ended at tick   6), wanted  0.000, real  0.000 (horizontal  0.000) (min last third  0.000), x/y/z  -110.00/  0.90/ -110.69  -> ok
+[sprint]    back, forward        after  40 ticks: sprint off, wanted  5.175, real  5.175 (horizontal  5.175) (min last third  5.175), x/y/z  -110.00/  0.90/ -115.66  -> ok
+[sprint] == Wall, held
+[sprint]    hold + run-up        after  40 ticks: sprint ON , wanted  8.625, real  8.625 (horizontal  8.625) (min last third  8.625), x/y/z  -110.00/  0.90/ -112.33  -> ok
+[sprint]    run into the wall    after  40 ticks: sprint ON , wanted  0.000, real  0.000 (horizontal  0.000) (min last third  0.000), x/y/z  -110.00/  0.90/ -110.69  -> ok
+[sprint]    hold, back           after  40 ticks: sprint ON , wanted  8.625, real  8.625 (horizontal  8.625) (min last third  8.625), x/y/z  -110.00/  0.90/ -118.68  -> ok
+[sprint] == Ramp 20 tapped
+[sprint]    tap + run-up         after  20 ticks: sprint ON , wanted  8.625, real  8.625 (horizontal  8.625) (min last third  8.625), x/y/z    -3.50/  0.90/   -5.02  -> ok
+[sprint]    ramp up              after  30 ticks: sprint ON , wanted  8.625, real  8.105 (horizontal  7.616) (min last third  8.105), x/y/z    -3.50/  2.60/    0.83  -> ok
+[sprint] == Ramp 35 tapped
+[sprint]    tap + run-up         after  20 ticks: sprint ON , wanted  8.625, real  7.065 (horizontal  5.787) (min last third  7.065), x/y/z     3.50/  1.27/    3.23  -> ok
+[sprint]    ramp up              after  30 ticks: sprint ON , wanted  8.625, real  7.065 (horizontal  5.787) (min last third  7.065), x/y/z     3.50/  4.31/    7.57  -> ok
+[sprint] == Ramp 45 tapped
+[sprint]    tap + run-up         after  20 ticks: sprint ON , wanted  8.625, real  8.625 (horizontal  8.625) (min last third  8.625), x/y/z    11.33/  0.90/   16.96  -> ok
+[sprint]    ramp up              after  30 ticks: sprint ON , wanted  8.625, real  6.099 (horizontal  4.313) (min last third  6.099), x/y/z     8.03/  4.07/   16.96  -> ok
+[sprint] == Ramp 20 held
+[sprint]    run-up               after  20 ticks: sprint ON , wanted  8.625, real  8.625 (horizontal  8.625) (min last third  8.625), x/y/z    -4.46/  0.90/   -4.06  -> ok
+[sprint]       tick   0: real  8.620      , horizontal  8.620, sprint ON , y   0.90, ground yes 
+[sprint]       tick   1: real  8.105      , horizontal  7.616, sprint ON , y   0.97, ground yes 
+[sprint]       tick   2: real  8.105      , horizontal  7.616, sprint ON , y   1.04, ground yes 
+[sprint]       tick   3: real  8.105      , horizontal  7.616, sprint ON , y   1.11, ground yes 
+[sprint]       tick   4: real  8.105      , horizontal  7.616, sprint ON , y   1.18, ground yes 
+[sprint]       tick   5: real  8.105      , horizontal  7.616, sprint ON , y   1.25, ground yes 
+[sprint]       tick   6: real  8.105      , horizontal  7.616, sprint ON , y   1.32, ground yes 
+[sprint]       tick   7: real  8.105      , horizontal  7.616, sprint ON , y   1.39, ground yes 
+[sprint]       tick   8: real  8.105      , horizontal  7.616, sprint ON , y   1.45, ground yes 
+[sprint]       tick   9: real  8.105      , horizontal  7.616, sprint ON , y   1.52, ground yes 
+[sprint]       tick  10: real  8.105      , horizontal  7.616, sprint ON , y   1.59, ground yes 
+[sprint]       tick  11: real  8.105      , horizontal  7.616, sprint ON , y   1.66, ground yes 
+[sprint]       tick  12: real  8.105      , horizontal  7.616, sprint ON , y   1.73, ground yes 
+[sprint]       tick  13: real  8.105      , horizontal  7.616, sprint ON , y   1.80, ground yes 
+[sprint]    ramp up              after  30 ticks: sprint ON , wanted  8.625, real  8.105 (horizontal  7.616) (min last third  8.105), x/y/z    -4.46/  2.91/    1.67  -> ok
+[sprint] == Ramp 35 held
+[sprint]    run-up               after  20 ticks: sprint ON , wanted  8.625, real  7.065 (horizontal  5.787) (min last third  7.065), x/y/z     3.50/  1.27/    3.23  -> ok
+[sprint]       tick   0: real  7.065      , horizontal  5.787, sprint ON , y   1.38, ground yes 
+[sprint]       tick   1: real  7.065      , horizontal  5.787, sprint ON , y   1.48, ground yes 
+[sprint]       tick   2: real  7.065      , horizontal  5.787, sprint ON , y   1.58, ground yes 
+[sprint]       tick   3: real  7.065      , horizontal  5.787, sprint ON , y   1.68, ground yes 
+[sprint]       tick   4: real  7.065      , horizontal  5.787, sprint ON , y   1.78, ground yes 
+[sprint]       tick   5: real  7.065      , horizontal  5.787, sprint ON , y   1.88, ground yes 
+[sprint]       tick   6: real  7.065      , horizontal  5.787, sprint ON , y   1.98, ground yes 
+[sprint]       tick   7: real  7.065      , horizontal  5.787, sprint ON , y   2.09, ground yes 
+[sprint]       tick   8: real  7.065      , horizontal  5.787, sprint ON , y   2.19, ground yes 
+[sprint]       tick   9: real  7.065      , horizontal  5.787, sprint ON , y   2.29, ground yes 
+[sprint]       tick  10: real  7.065      , horizontal  5.787, sprint ON , y   2.39, ground yes 
+[sprint]       tick  11: real  7.065      , horizontal  5.787, sprint ON , y   2.49, ground yes 
+[sprint]       tick  12: real  7.065      , horizontal  5.787, sprint ON , y   2.59, ground yes 
+[sprint]       tick  13: real  7.065      , horizontal  5.787, sprint ON , y   2.69, ground yes 
+[sprint]    ramp up              after  30 ticks: sprint ON , wanted  8.625, real  7.065 (horizontal  5.787) (min last third  7.065), x/y/z     3.50/  4.31/    7.57  -> ok
+[sprint] == Ramp 45 held
+[sprint]    run-up               after  20 ticks: sprint ON , wanted  8.625, real  8.625 (horizontal  8.625) (min last third  8.625), x/y/z    11.33/  0.90/   16.96  -> ok
+[sprint]       tick   0: real  6.970      , horizontal  6.699, sprint ON , y   0.95, ground yes 
+[sprint]       tick   1: real  6.099      , horizontal  4.313, sprint ON , y   1.06, ground yes 
+[sprint]       tick   2: real  6.099      , horizontal  4.313, sprint ON , y   1.16, ground yes 
+[sprint]       tick   3: real  6.099      , horizontal  4.313, sprint ON , y   1.27, ground yes 
+[sprint]       tick   4: real  6.099      , horizontal  4.313, sprint ON , y   1.38, ground yes 
+[sprint]       tick   5: real  6.099      , horizontal  4.313, sprint ON , y   1.49, ground yes 
+[sprint]       tick   6: real  6.099      , horizontal  4.313, sprint ON , y   1.60, ground yes 
+[sprint]       tick   7: real  6.099      , horizontal  4.313, sprint ON , y   1.70, ground yes 
+[sprint]       tick   8: real  6.099      , horizontal  4.313, sprint ON , y   1.81, ground yes 
+[sprint]       tick   9: real  6.099      , horizontal  4.313, sprint ON , y   1.92, ground yes 
+[sprint]       tick  10: real  6.099      , horizontal  4.313, sprint ON , y   2.03, ground yes 
+[sprint]       tick  11: real  6.099      , horizontal  4.313, sprint ON , y   2.13, ground yes 
+[sprint]       tick  12: real  6.099      , horizontal  4.313, sprint ON , y   2.24, ground yes 
+[sprint]       tick  13: real  6.099      , horizontal  4.313, sprint ON , y   2.35, ground yes 
+[sprint]    ramp up              after  30 ticks: sprint ON , wanted  8.625, real  6.099 (horizontal  4.313) (min last third  6.099), x/y/z     8.03/  4.07/   16.96  -> ok
+[sprint] == Wall held, trace
+[sprint]    run-up               after  40 ticks: sprint ON , wanted  8.625, real  8.625 (horizontal  8.625) (min last third  8.625), x/y/z  -110.96/  0.90/ -112.01  -> ok
+[sprint]       tick   0: real  8.625      , horizontal  8.625, sprint ON , y   0.90, ground yes 
+[sprint]       tick   1: real  8.625      , horizontal  8.625, sprint ON , y   0.90, ground yes 
+[sprint]       tick   2: real  8.625      , horizontal  8.625, sprint ON , y   0.90, ground yes 
+[sprint]       tick   3: real  8.625      , horizontal  8.625, sprint ON , y   0.90, ground yes 
+[sprint]       tick   4: real  8.625      , horizontal  8.625, sprint ON , y   0.90, ground yes 
+[sprint]       tick   5: real  8.625      , horizontal  8.625, sprint ON , y   0.90, ground yes 
+[sprint]       tick   6: real  1.155 BELOW, horizontal  1.155, sprint ON , y   0.90, ground yes 
+[sprint]       tick   7: real  0.000 BELOW, horizontal  0.000, sprint ON , y   0.90, ground yes 
+[sprint]       tick   8: real  0.000 BELOW, horizontal  0.000, sprint ON , y   0.90, ground yes 
+[sprint]       tick   9: real  0.000 BELOW, horizontal  0.000, sprint ON , y   0.90, ground yes 
+[sprint]       tick  10: real  0.000 BELOW, horizontal  0.000, sprint ON , y   0.90, ground yes 
+[sprint]       tick  11: real  0.000 BELOW, horizontal  0.000, sprint ON , y   0.90, ground yes 
+[sprint]       tick  12: real  0.000 BELOW, horizontal  0.000, sprint ON , y   0.90, ground yes 
+[sprint]       tick  13: real  0.000 BELOW, horizontal  0.000, sprint ON , y   0.90, ground yes 
+[sprint]    into the wall        after  40 ticks: sprint ON , wanted  0.000, real  0.000 (horizontal  0.000) (min last third  0.000), x/y/z  -110.96/  0.90/ -110.69  -> ok
+[sprint] ALL CASES AS EXPECTED

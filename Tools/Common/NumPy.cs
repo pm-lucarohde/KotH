@@ -133,14 +133,14 @@ public sealed class NumPyFft
     public NumPyFft(int length)
     {
         if (length < 1)
-            throw new NotSupportedException($"FFT der Länge {length}");
+            throw new NotSupportedException($"FFT of length {length}");
         this.length = length;
         if (length == 1)
             return;
         // pocketfft_c: Bluestein only for a large prime factor; then refused.
         long lpf = length < 50 ? 0 : LargestPrimeFactor(length);
         if (lpf * lpf > length && 1.5 * 2 * CostGuess(GoodSizeComplex(2 * length - 1)) < CostGuess(length))
-            throw new NotSupportedException($"FFT der Länge {length}: Bluestein fehlt");
+            throw new NotSupportedException($"FFT of length {length}: Bluestein missing");
         // cfftp::factorize: eights, then fours, a two goes to the front, then odd divisors.
         var factors = new List<int>();
         int rest = length;
@@ -161,7 +161,7 @@ public sealed class NumPyFft
         if (rest > 1)
             factors.Add(rest);
         if (factors.Contains(7) || factors.Contains(11))
-            throw new NotSupportedException($"FFT der Länge {length}: Faktor 7 oder 11 fehlt");
+            throw new NotSupportedException($"FFT of length {length}: factor 7 or 11 missing");
         var twiddle = new SinCos2PiByN(length);
         int l1 = 1;
         foreach (int ip in factors)
@@ -708,7 +708,7 @@ public static class NumPyConvolve
         if (v.Length > a.Length)
             (a, v) = (v, a);
         if (v.Length <= 11)
-            throw new NotSupportedException("small_correlate fehlt");
+            throw new NotSupportedException("small_correlate missing");
         var w = (double[])v.Clone();
         Array.Reverse(w);
         int n1 = a.Length, n2 = w.Length;

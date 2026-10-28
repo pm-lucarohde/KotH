@@ -44,137 +44,137 @@ namespace KotH.Client.Player
         readonly List<Quaternion> toRotations = new List<Quaternion>();
         int seenTick = -1;
 
-        /// <userdoc>Kürzeste Pause in Sekunden zwischen zwei Lidschlägen einer Figur; jede Pause wird zufällig zwischen kürzester und längster gewählt.</userdoc>
-        [Display("Blinzelabstand kürzester", "Animation")] public float BlinkMin = 2f;
+        /// <userdoc>Shortest pause in seconds between two blinks of a figure; each pause is random between shortest and longest.</userdoc>
+        [Display("Blink pause min", "Animation")] public float BlinkMin = 2f;
 
-        /// <userdoc>Längste Pause in Sekunden zwischen zwei Lidschlägen einer Figur.</userdoc>
-        [Display("Blinzelabstand längster", "Animation")] public float BlinkMax = 10f;
+        /// <userdoc>Longest pause in seconds between two blinks of a figure.</userdoc>
+        [Display("Blink pause max", "Animation")] public float BlinkMax = 10f;
 
-        /// <userdoc>Wie lange ein Lidschlag dauert, zu und wieder auf.</userdoc>
-        [Display("Blinzeldauer", "Animation")] public float BlinkSeconds = 0.15f;
+        /// <userdoc>How long a blink takes, closed and open again.</userdoc>
+        [Display("Blink duration", "Animation")] public float BlinkSeconds = 0.15f;
 
-        /// <userdoc>Überblendzeit zwischen Ruhe, Gehen, Rennen, Ducken, Gleiten und Grundhaltung.</userdoc>
-        [Display("Überblenden", "Animation")] public float BlendSeconds = 0.25f;
+        /// <userdoc>Blend time between idle, walk, run, crouch, slide and rest pose.</userdoc>
+        [Display("Blend", "Animation")] public float BlendSeconds = 0.25f;
 
-        /// <userdoc>Schritte pro Sekunde bei Gehtempo; die Füße rutschen etwas, wenn das kleiner ist als das Tempo verlangt.</userdoc>
-        [Display("Schritte Gehen", "Animation")] public float WalkSteps = 3.5f;
+        /// <userdoc>Steps per second at walk speed; the feet slip a little if this is lower than the speed asks for.</userdoc>
+        [Display("Walk steps", "Animation")] public float WalkSteps = 3.5f;
 
-        /// <userdoc>Schritte pro Sekunde bei Sprinttempo.</userdoc>
-        [Display("Schritte Rennen", "Animation")] public float RunSteps = 6f;
+        /// <userdoc>Steps per second at sprint speed.</userdoc>
+        [Display("Run steps", "Animation")] public float RunSteps = 6f;
 
-        /// <userdoc>Schritte pro Sekunde beim geduckten Gehen.</userdoc>
-        [Display("Schritte geduckt", "Animation")] public float CrouchSteps = 3f;
+        /// <userdoc>Steps per second when crouch walking.</userdoc>
+        [Display("Crouch steps", "Animation")] public float CrouchSteps = 3f;
 
-        /// <userdoc>Höhe der Figur geduckt und beim Gleiten, als Anteil der Pose (1 = ungestaucht). Kopf und Kappe ragen über die Hülle hinaus; dort zählt kein Treffer.</userdoc>
-        [Display("Höhe geduckt", "Animation")] public float CrouchSquash = 0.75f;
+        /// <userdoc>Height of the figure crouched and sliding, as a share of the pose (1 = unsquashed). Head and cap reach past the hull; hits there do not count.</userdoc>
+        [Display("Crouch height", "Animation")] public float CrouchSquash = 0.75f;
 
-        /// <userdoc>Breite der Figur geduckt und beim Gleiten (1 = wie stehend). Schmaler wirkt die gestauchte Figur weniger platt.</userdoc>
-        [Display("Breite geduckt", "Animation")] public float CrouchWidth = 0.9f;
+        /// <userdoc>Width of the figure crouched and sliding (1 = as standing). Narrower makes the squashed figure look less flat.</userdoc>
+        [Display("Crouch width", "Animation")] public float CrouchWidth = 0.9f;
 
-        /// <userdoc>Wie weit sich der Mund im Atemrhythmus öffnet und schließt (0,1 = um 10 % seiner Höhe).</userdoc>
-        [Display("Mund", "Animation")] public float MouthBreath = 0.12f;
+        /// <userdoc>How far the mouth opens and closes with the breath (0.1 = by 10 % of its height).</userdoc>
+        [Display("Mouth", "Animation")] public float MouthBreath = 0.12f;
 
-        /// <userdoc>Wie lange die Figur nach einer Landung einfedert, in Sekunden; jede Landung gleich stark.</userdoc>
-        [Display("Einfedern", "Animation")] public float LandSeconds = 0.3f;
+        /// <userdoc>How long the figure squashes after landing, in seconds; every landing equally strong.</userdoc>
+        [Display("Land squash", "Animation")] public float LandSeconds = 0.3f;
 
-        /// <userdoc>Wie tief sie dabei einfedert (1 = ganz in die Landepose).</userdoc>
-        [Display("Aufprall", "Animation")] public float LandStrength = 1f;
+        /// <userdoc>How deep it squashes (1 = fully into the landing pose).</userdoc>
+        [Display("Land strength", "Animation")] public float LandStrength = 1f;
 
-        /// <userdoc>Wie lange der Tritt in die Luft beim Doppelsprung dauert, in Sekunden.</userdoc>
-        [Display("Doppelsprung-Tritt", "Animation")] public float KickSeconds = 0.35f;
+        /// <userdoc>How long the kick into the air on the double jump takes, in seconds.</userdoc>
+        [Display("Double jump kick", "Animation")] public float KickSeconds = 0.35f;
 
-        /// <userdoc>Wie weit die Blätter des Rocks bei Sprinttempo nach hinten wehen, in Grad; langsamer entsprechend weniger, im Stand gar nicht.</userdoc>
-        [Display("Wehen", "Blätter")] public float LeafSwing = 60f;
+        /// <userdoc>How far the skirt leaves blow back at sprint speed, in degrees; slower accordingly less, standing not at all.</userdoc>
+        [Display("Swing", "Leaves")] public float LeafSwing = 60f;
 
-        /// <userdoc>Anteil, mit dem der Kragen mitweht (1 = so stark wie der Rock).</userdoc>
-        [Display("Kragen", "Blätter")] public float CollarShare = 0.45f;
+        /// <userdoc>Share the collar blows along with (1 = as strong as the skirt).</userdoc>
+        [Display("Collar", "Leaves")] public float CollarShare = 0.45f;
 
-        /// <userdoc>Flattern der Blätter bei Sprinttempo, in Grad.</userdoc>
-        [Display("Flattern", "Blätter")] public float LeafFlutter = 10f;
+        /// <userdoc>Flutter of the leaves at sprint speed, in degrees.</userdoc>
+        [Display("Flutter", "Leaves")] public float LeafFlutter = 10f;
 
-        /// <userdoc>Wie weit sich der Rock beim Fallen nach außen hebt, in Grad.</userdoc>
-        [Display("Fallwind", "Blätter")] public float LeafLift = 40f;
+        /// <userdoc>How far the skirt lifts outwards when falling, in degrees.</userdoc>
+        [Display("Fall lift", "Leaves")] public float LeafLift = 40f;
 
-        /// <userdoc>Wie sehr Drehen die Blätter mitnimmt: so viele Meter vom Körper weg wirkt die Drehung wie Fahrtwind.</userdoc>
-        [Display("Drehwind", "Blätter")] public float TurnRadius = 1f;
+        /// <userdoc>How much turning drags the leaves: this many metres from the body the turn acts like headwind.</userdoc>
+        [Display("Turn wind", "Leaves")] public float TurnRadius = 1f;
 
-        /// <userdoc>Tempo der Arme in First Person im Verhältnis zur Figur: 0,5 = halb so viele Armschwünge wie Schritte, halb so schnelles Atmen.</userdoc>
-        [Display("Tempo Arme", "First-Person-Arme")] public float ArmsPace = 0.5f;
+        /// <userdoc>Pace of the first person arms relative to the figure: 0.5 = half as many arm swings as steps, half as fast breathing.</userdoc>
+        [Display("Arms pace", "First person arms")] public float ArmsPace = 0.5f;
 
-        /// <userdoc>Wie weit Hände und Stab in First Person in Ruhe schwanken, in Zentimetern (wie der Körper im Stand).</userdoc>
-        [Display("Schwanken Arme", "First-Person-Arme")] public float ArmsSway = 0.6f;
+        /// <userdoc>How far hands and cane sway at rest in first person, in centimetres (like the body standing).</userdoc>
+        [Display("Arms sway", "First person arms")] public float ArmsSway = 0.6f;
 
-        /// <userdoc>Sekunden für ein Hin und Her des Schwankens der Arme.</userdoc>
-        [Display("Schwanken Dauer", "First-Person-Arme")] public float ArmsSwayPeriod = 4f;
+        /// <userdoc>Seconds for one back and forth of the arms' sway.</userdoc>
+        [Display("Sway period", "First person arms")] public float ArmsSwayPeriod = 4f;
 
-        /// <userdoc>Partikeleffekt, der beim Doppelsprung an den Füßen der Figur startet.</userdoc>
-        [Display("Sporen beim Doppelsprung", "Effekte")] public Prefab SporeBurst;
+        /// <userdoc>Particle effect starting at the figure's feet on the double jump.</userdoc>
+        [Display("Double jump spores", "Effects")] public Prefab SporeBurst;
 
-        /// <userdoc>Partikeleffekt, der an der getroffenen Figur dort startet, wo der Schlag sie trifft, und vom Schläger weg stiebt.</userdoc>
-        [Display("Partikel beim Treffer", "Effekte")] public Prefab HitSparkles;
+        /// <userdoc>Particle effect starting where the swing hits the figure, bursting away from the attacker.</userdoc>
+        [Display("Hit particles", "Effects")] public Prefab HitSparkles;
 
-        /// <userdoc>Wie weit der Kopf dem Blick nach oben und unten folgt (1 = ganz).</userdoc>
-        [Display("Kopf folgt Blick", "Animation")] public float HeadFollow = 0.5f;
+        /// <userdoc>How far the head follows the view up and down (1 = fully).</userdoc>
+        [Display("Head follows view", "Animation")] public float HeadFollow = 0.5f;
 
-        /// <userdoc>Stärkste Neigung des Kopfes in Grad.</userdoc>
-        [Display("Kopfneigung höchstens", "Animation")] public float HeadMaxDegrees = 40f;
+        /// <userdoc>Strongest head tilt in degrees.</userdoc>
+        [Display("Max head tilt", "Animation")] public float HeadMaxDegrees = 40f;
 
-        /// <userdoc>So weit kippt der Oberkörper weg vom Schlag, wenn die Figur getroffen wird, in Grad. Die Richtung folgt dem Schlag in acht Stufen: von vorn nach hinten, von hinten nach vorn, von der Seite zur anderen Seite und schräg dazwischen.</userdoc>
-        [Display("Oberkörper", "Treffer")] public float HitLeanDegrees = 12f;
+        /// <userdoc>How far the torso tilts away from the swing when the figure is hit, in degrees. The direction follows the swing in eight steps: front to back, back to front, side to side and diagonally between.</userdoc>
+        [Display("Torso", "Hit")] public float HitLeanDegrees = 12f;
 
-        /// <userdoc>So weit kippt der Kopf beim Treffer zusätzlich weg vom Schlag, in Grad.</userdoc>
-        [Display("Kopf", "Treffer")] public float HitHeadDegrees = 10f;
+        /// <userdoc>How far the head additionally tilts away from the swing on a hit, in degrees.</userdoc>
+        [Display("Head", "Hit")] public float HitHeadDegrees = 10f;
 
-        /// <userdoc>So schnell ist der Treffer ganz ausgeschlagen, in Sekunden.</userdoc>
-        [Display("Ausschlag", "Treffer")] public float HitRiseSeconds = 0.06f;
+        /// <userdoc>How fast the hit reaches full deflection, in seconds.</userdoc>
+        [Display("Rise", "Hit")] public float HitRiseSeconds = 0.06f;
 
-        /// <userdoc>So lange dauert es danach zurück in die Haltung, in Sekunden.</userdoc>
-        [Display("Zurück", "Treffer")] public float HitSettleSeconds = 0.4f;
+        /// <userdoc>How long it then takes back into the pose, in seconds.</userdoc>
+        [Display("Settle", "Hit")] public float HitSettleSeconds = 0.4f;
 
-        /// <userdoc>Anteil der Schläge, die oben rechts ausholen und nach unten links schlagen; die übrigen gehen von unten links nach oben rechts.</userdoc>
-        [Display("Anteil von oben", "Schlag")] public float SwingDownShare = 0.75f;
+        /// <userdoc>Share of swings that wind up top right and strike down left; the rest go from bottom left to top right.</userdoc>
+        [Display("Share from above", "Swing")] public float SwingDownShare = 0.75f;
 
-        /// <userdoc>So lange holt die Figur aus, in Sekunden. Der Treffer zählt schon beim Klick.</userdoc>
-        [Display("Ausholen", "Schlag")] public float SwingWindupSeconds = 0.08f;
+        /// <userdoc>How long the figure winds up, in seconds. The hit already counts on the click.</userdoc>
+        [Display("Wind-up", "Swing")] public float SwingWindupSeconds = 0.08f;
 
-        /// <userdoc>So lange zieht sie den Stab durch, in Sekunden; er wird dabei schneller.</userdoc>
-        [Display("Durchziehen", "Schlag")] public float SwingStrikeSeconds = 0.14f;
+        /// <userdoc>How long it strikes through with the cane, in seconds; it speeds up meanwhile.</userdoc>
+        [Display("Strike", "Swing")] public float SwingStrikeSeconds = 0.14f;
 
-        /// <userdoc>So lange bleibt der Arm am Ende des Schlags, in Sekunden.</userdoc>
-        [Display("Nachschwingen", "Schlag")] public float SwingFollowSeconds = 0.075f;
+        /// <userdoc>How long the arm stays at the end of the swing, in seconds.</userdoc>
+        [Display("Follow-through", "Swing")] public float SwingFollowSeconds = 0.075f;
 
-        /// <userdoc>So lange dauert es zurück in die Haltung, in Sekunden.</userdoc>
-        [Display("Zurück", "Schlag")] public float SwingBackSeconds = 0.335f;
+        /// <userdoc>How long it takes back into the pose, in seconds.</userdoc>
+        [Display("Back", "Swing")] public float SwingBackSeconds = 0.335f;
 
-        /// <userdoc>Wie verschieden die Schläge sind: Ausholpunkt, Endpunkt, Bogen, Tempo und Oberkörper streuen (0 = jeder gleich, 1 = normal).</userdoc>
-        [Display("Variation", "Schlag")] public float SwingVariation = 1f;
+        /// <userdoc>How different the swings are: wind-up point, end point, arc, pace and torso scatter (0 = all alike, 1 = normal).</userdoc>
+        [Display("Variation", "Swing")] public float SwingVariation = 1f;
 
-        /// <userdoc>So weit dreht der Oberkörper beim Ausholen und Durchziehen mit, in Grad; der Kopf bleibt beim Blick.</userdoc>
-        [Display("Oberkörper", "Schlag")] public float SwingTorsoDegrees = 5f;
+        /// <userdoc>How far the torso turns along when winding up and striking, in degrees; the head stays with the view.</userdoc>
+        [Display("Torso", "Swing")] public float SwingTorsoDegrees = 5f;
 
-        /// <userdoc>So weit beugt sich der Oberkörper beim Durchziehen vor, in Grad.</userdoc>
-        [Display("Vorbeugen", "Schlag")] public float SwingBendDegrees = 2f;
+        /// <userdoc>How far the torso bends forward when striking, in degrees.</userdoc>
+        [Display("Bend", "Swing")] public float SwingBendDegrees = 2f;
 
-        /// <userdoc>Anteil der Oberkörperdrehung an den Armen in First Person.</userdoc>
-        [Display("Oberkörper First Person", "Schlag")] public float SwingArmsTorsoShare = 0.5f;
+        /// <userdoc>Share of the torso turn applied to the first person arms.</userdoc>
+        [Display("Torso first person", "Swing")] public float SwingArmsTorsoShare = 0.5f;
 
-        /// <userdoc>Schlägt die Figur zur Seite (Third Person), drehen sich Oberkörper und Kopf weich bis zu so vielen Grad zum Ziel, die Beine bleiben; darüber dreht der ganze Körper mit.</userdoc>
-        [Display("Drehung zum Ziel höchstens", "Schlag")] public float SwingTurnDegrees = 60f;
+        /// <userdoc>When the figure swings sideways (third person), torso and head turn smoothly up to this many degrees to the target, the legs stay; beyond it the whole body turns.</userdoc>
+        [Display("Max turn to target", "Swing")] public float SwingTurnDegrees = 60f;
 
-        /// <userdoc>Anteil des Oberkörpers an dieser Drehung, den Rest dreht der Kopf.</userdoc>
-        [Display("Oberkörper an der Drehung", "Schlag")] public float SwingTurnTorsoShare = 0.5f;
+        /// <userdoc>The torso's share of this turn; the head turns the rest.</userdoc>
+        [Display("Torso turn share", "Swing")] public float SwingTurnTorsoShare = 0.5f;
 
-        /// <userdoc>So weich dreht die Figur zum Ziel: in dieser Zeit (Sekunden) etwa zu zwei Dritteln.</userdoc>
-        [Display("Eindrehen", "Schlag")] public float SwingTurnSeconds = 0.06f;
+        /// <userdoc>How smoothly the figure turns to the target: about two thirds within this time (seconds).</userdoc>
+        [Display("Turn in", "Swing")] public float SwingTurnSeconds = 0.06f;
 
-        /// <userdoc>So lange dreht sie nach dem Schlag zurück in die Laufrichtung, in Sekunden.</userdoc>
-        [Display("Zurückdrehen", "Schlag")] public float SwingTurnBackSeconds = 0.3f;
+        /// <userdoc>How long it turns back to the running direction after the swing, in seconds.</userdoc>
+        [Display("Turn back", "Swing")] public float SwingTurnBackSeconds = 0.3f;
 
-        /// <userdoc>Im Stehen dreht nur der Kopf mit dem Blick, bis zu so vielen Grad zur Seite; darüber hinaus wird der Körper mitgezogen.</userdoc>
-        [Display("Kopfdrehung höchstens", "Animation")] public float HeadTurnDegrees = 40f;
+        /// <userdoc>Standing, only the head turns with the view, up to this many degrees aside; beyond it the body is pulled along.</userdoc>
+        [Display("Max head turn", "Animation")] public float HeadTurnDegrees = 40f;
 
-        /// <userdoc>In Bewegung dreht sich der Körper in den Blick nach, in dieser Zeit (Sekunden) etwa zu zwei Dritteln.</userdoc>
-        [Display("Körper folgt Blick", "Animation")] public float BodyFollowSeconds = 0.15f;
+        /// <userdoc>Moving, the body turns after the view, about two thirds within this time (seconds).</userdoc>
+        [Display("Body follows view", "Animation")] public float BodyFollowSeconds = 0.15f;
 
         /// <summary>
         /// Clip names in every visual's AnimationComponent: idle, rest,

@@ -236,7 +236,7 @@ namespace KotH.Probes.Probes
         /// </summary>
         void FromBelow(WorldQueries q, CollisionMask mask, QueryHit[] hits)
         {
-            Stat s = S("vonunten");
+            Stat s = S("frombelow");
             var rng = new Random(17);
             int sweepsHit = 0;
             for (int i = 0; i < 200; i++)
@@ -246,7 +246,7 @@ namespace KotH.Probes.Probes
                 if (q.Raycast(o, UMath.Up, 0.6f, mask, out QueryHit h) && h.Collider.Entity.Name == "Ground")
                 {
                     s.HitSetDiffers++;
-                    Note(s, $"Strahl von unten bei {Ref.V(o)} trifft den Boden bei {h.Distance:F4}");
+                    Note(s, $"ray from below at {Ref.V(o)} hits the ground at {h.Distance:F4}");
                     continue;
                 }
 
@@ -257,7 +257,7 @@ namespace KotH.Probes.Probes
                         sweepsHit++;
             }
 
-            Log($"[wq] Kugelsweeps von unten, die den Boden treffen: {sweepsHit} von 200");
+            Log($"[wq] sphere sweeps from below that hit the ground: {sweepsHit} of 200");
         }
 
         /// <summary>
@@ -268,7 +268,7 @@ namespace KotH.Probes.Probes
         void ShortSweeps(WorldQueries q, CollisionMask mask, string kind, string index, Vector3 p, Vector3 d,
                          float height, List<RefHit> reference, QueryHit[] hits)
         {
-            Stat s = S(kind + "kurz");
+            Stat s = S(kind + "short");
             Vector3 bottom = UMath.Add(p, UMath.Mul(UMath.Up, 0.4f));
             Vector3 top = UMath.Add(p, UMath.Mul(UMath.Up, height - 0.4f));
             foreach (RefHit r in reference)
@@ -285,13 +285,13 @@ namespace KotH.Probes.Probes
                         continue;
                     found = true;
                     s.Agree++;
-                    Compare(s, $"{kind}kurz {index} {r.Name}", r.Dist, Ref.Pos(r.Normal), hits[i].Distance, hits[i].Normal);
+                    Compare(s, $"{kind}short {index} {r.Name}", r.Dist, Ref.Pos(r.Normal), hits[i].Distance, hits[i].Normal);
                 }
 
                 if (!found)
                 {
                     s.HitSetDiffers++;
-                    Note(s, $"{kind}kurz {index} {r.Name} bei {r.Dist:F4} mit Länge {r.Dist + 0.01f:F4} nicht gefunden");
+                    Note(s, $"{kind}short {index} {r.Name} at {r.Dist:F4} with length {r.Dist + 0.01f:F4} not found");
                 }
             }
         }
@@ -358,8 +358,8 @@ namespace KotH.Probes.Probes
             foreach (var kv in stats)
             {
                 Stat s = kv.Value;
-                Log($"[wq] == {kv.Key}: {s.Agree}/{s.Cases} gleich, {s.HitSetDiffers} andere Treffermenge, "
-                    + $"Abstand {Quantiles(s.DistDiff)} m, Normale {Quantiles(s.NormalDiff)} °");
+                Log($"[wq] == {kv.Key}: {s.Agree}/{s.Cases} same, {s.HitSetDiffers} other hit set, "
+                    + $"distance {Quantiles(s.DistDiff)} m, normal {Quantiles(s.NormalDiff)} °");
                 foreach (string w in s.Worst)
                     Log("[wq]    " + w);
             }

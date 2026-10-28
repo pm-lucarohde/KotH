@@ -8,8 +8,8 @@
 //
 // --size is the lightmap's side in texels the margins are meant for, --pad the
 // texels kept free round every chart. Everything else in the file stays as it was.
-// It also writes the grass map (NeuGrass.bin, GrassField) and the contact map round the
-// trunks (NeuContact.png); --grass writes only those, from a Mountain.glb that has its
+// It also writes the grass map (MountDestinyGrass.bin, GrassField) and the contact map round the
+// trunks (MountDestinyContact.png); --grass writes only those, from a Mountain.glb that has its
 // lightmap UVs already.
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -25,8 +25,8 @@ const double SeaShrink = 4.0;
 
 var mountain = new Glb(Path.Combine(root, "KotH.Game/Resources/Models/Mountain.glb"));
 var sea = new Glb(Path.Combine(root, "KotH.Game/Resources/Models/Sea.glb"));
-string grassPath = Path.Combine(root, "KotH.Game/Resources/Maps/NeuGrass.bin");
-string contactPath = Path.Combine(root, "KotH.Game/Resources/Textures/Terrain/NeuContact.png");
+string grassPath = Path.Combine(root, "KotH.Game/Resources/Maps/MountDestinyGrass.bin");
+string contactPath = Path.Combine(root, "KotH.Game/Resources/Textures/Terrain/MountDestinyContact.png");
 if (args.Contains("--grass") && mountain.HadSecondUV)
 {
     GrassMap.Write(grassPath, mountain.Primitives);
@@ -36,7 +36,7 @@ if (args.Contains("--grass") && mountain.HadSecondUV)
 if (mountain.HadSecondUV || sea.HadSecondUV)
 {
     // Its corners are split along the old charts already; unwrapped again, they would stay split.
-    Console.Error.WriteLine("Mountain.glb/Sea.glb haben schon Lightmap-UVs: erst Tools/maps/Mountain.cs laufen lassen.");
+    Console.Error.WriteLine("Mountain.glb/Sea.glb already have lightmap UVs: run Tools/maps/Mountain.cs first.");
     return 1;
 }
 var primitives = mountain.Primitives;
@@ -71,7 +71,7 @@ foreach (var (x, z) in new[] { (-1, -1), (1, -1), (1, 1), (-1, 1) })
     normals.Add(new Double3(0, 1, 0));
 }
 triangles.AddRange([quad, quad + 3, quad + 2, quad, quad + 2, quad + 1]);
-Console.WriteLine($"Abwickeln: {triangles.Count / 3} Dreiecke, {positions.Count} Ecken ...");
+Console.WriteLine($"Unwrapping: {triangles.Count / 3} triangles, {positions.Count} vertices ...");
 var watch = System.Diagnostics.Stopwatch.StartNew();
 UnwrapResult result = new UnwrapMesh(positions.ToArray(), triangles.ToArray())
     .WithNormals(normals.ToArray())
@@ -81,8 +81,8 @@ UnwrapResult result = new UnwrapMesh(positions.ToArray(), triangles.ToArray())
         Method = args.Contains("--conformal") ? UnwrapMethod.Conformal : UnwrapMethod.Projection,
         Projection = { UseDiagonalAxes = args.Contains("--diagonal") },
     });
-Console.WriteLine($"fertig nach {watch.Elapsed.TotalSeconds:F1} s, {result.DegenerateTriangleIndices?.Length ?? 0} entartete Dreiecke");
-Console.WriteLine($"davon {MapDegenerates()} auf die Ebene eines Nachbarn gelegt");
+Console.WriteLine($"done after {watch.Elapsed.TotalSeconds:F1} s, {result.DegenerateTriangleIndices?.Length ?? 0} degenerate triangles");
+Console.WriteLine($"of them {MapDegenerates()} laid onto a neighbour's plane");
 
 // Metres per texel from the areas in the world and in the atlas.
 double world = 0, atlas = 0;
@@ -93,7 +93,7 @@ for (int t = 0; t < litTriangles; t += 3)
     Double2 u = result.PerCornerUVs[t], v = result.PerCornerUVs[t + 1], w = result.PerCornerUVs[t + 2];
     atlas += Math.Abs((v.X - u.X) * (w.Y - u.Y) - (w.X - u.X) * (v.Y - u.Y)) / 2;
 }
-Console.WriteLine($"Fläche {world:F0} m², Atlas zu {atlas * 100:F0} % belegt, " +
+Console.WriteLine($"area {world:F0} m², atlas {atlas * 100:F0} % used, " +
     string.Join(", ", new[] { 2048, 4096, 8192 }.Select(n => $"{n}²: {Math.Sqrt(world / atlas) / n * 100:F1} cm/Texel")));
 
 // Each corner keeps its vertex unless the vertex has another UV there: then a copy.
@@ -125,7 +125,7 @@ foreach (Primitive prim in primitives.Where(p => lit.Contains(p.Material)))
         prim.Attributes[name] = from.SelectMany(v => old.AsSpan(v * width, width).ToArray()).ToArray();
     }
     prim.Attributes["TEXCOORD_1"] = uv1.ToArray();
-    Console.WriteLine($"{prim.Material}: {from.Count} Ecken statt {before}");
+    Console.WriteLine($"{prim.Material}: {from.Count} vertices instead of {before}");
     prim.Indices = indices;
 }
 
@@ -144,7 +144,7 @@ for (int v = 0; v < seaPos.Length / 3; v++)
 water.Attributes["TEXCOORD_1"] = seaUV;
 // Stride's importer fails on a second UV set without a first one; the sea's material reads none.
 water.Attributes["TEXCOORD_0"] = seaUV;
-Console.WriteLine($"Meer: ±{half:F0} m, {Math.Sqrt(world / atlas) / size * SeaShrink * 100:F0} cm/Texel bei {size}²");
+Console.WriteLine($"Sea: ±{half:F0} m, {Math.Sqrt(world / atlas) / size * SeaShrink * 100:F0} cm/texel at {size}²");
 
 mountain.Write();
 sea.Write();

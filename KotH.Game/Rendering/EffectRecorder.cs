@@ -31,7 +31,7 @@ namespace KotH.Client.Rendering
                 return;
             file = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.Read);
             EffectUsed(system) += Record;
-            Console.WriteLine($"[effekte] Aufnahme nach {path}");
+            Console.WriteLine($"[effects] recording to {path}");
         }
 
         // Called from the render threads; each record is its length, then the request.
@@ -50,7 +50,7 @@ namespace KotH.Client.Rendering
                 file.Write(BitConverter.GetBytes((int)memory.Length));
                 memory.WriteTo(file);
                 file.Flush();
-                Console.WriteLine($"[effekte] {seen.Count}: {request.EffectName}");
+                Console.WriteLine($"[effects] {seen.Count}: {request.EffectName}");
             }
         }
     }

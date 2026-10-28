@@ -28,8 +28,8 @@ using Stride.Engine;
 //   --map NAME                  the map (Maps.Default); the load test was laid out for Test
 //   --host / --join ADDRESS     a networked peer instead, see NetPlay
 
-CultureInfo.DefaultThreadCurrentCulture = CultureInfo.GetCultureInfo("de-DE");
-CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("de-DE");
+CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 
 if (NetPlay.Wanted(args))
     return NetPlay.Run(args);
@@ -46,7 +46,7 @@ string map = Text(args, "--map") ?? Maps.Default;
 using var world = new HeadlessWorld();
 if (!world.Builder.HasMap(map))
 {
-    Console.WriteLine($"[server] unbekannte Map: {map}");
+    Console.WriteLine($"[server] unknown map: {map}");
     return 1;
 }
 world.LoadArena(map);
@@ -82,7 +82,7 @@ for (int i = 0; i < botCount; i++)
     bot.Name = "Bot" + i;
 }
 
-Console.WriteLine($"[server] Map {map} geladen, {world.Simulation.Bodies.Count} Körper, {1.0 / TickClock.TickSeconds:F0} Hz");
+Console.WriteLine($"[server] map {map} loaded, {world.Simulation.Bodies.Count} bodies, {1.0 / TickClock.TickSeconds:F0} Hz");
 
 var timing = new TickTiming((int)(fastTicks ?? 0));
 
@@ -98,7 +98,7 @@ if (fastTicks.HasValue)
         {
             MotorState t = m.CaptureState();
             Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                "[spur] {0} pos {1:F4} {2:F4} {3:F4} v {4:F3} {5:F3} {6:F3} g {7} t {8} c {9} s {10} h {11:F3} w {12} st {13} kb {14:F3} kontakte {15}",
+                "[trace] {0} pos {1:F4} {2:F4} {3:F4} v {4:F3} {5:F3} {6:F3} g {7} t {8} c {9} s {10} h {11:F3} w {12} st {13} kb {14:F3} contacts {15}",
                 world.Simulation.CurrentTick, t.Position.X, t.Position.Y, t.Position.Z, t.Velocity.X, t.Velocity.Y, t.Velocity.Z,
                 t.Grounded ? 1 : 0, t.TouchingGround ? 1 : 0, t.IsCrouching ? 1 : 0, t.Sliding ? 1 : 0, t.CurrentHeight,
                 t.Wedged ? 1 : 0, t.SteppedUp ? 1 : 0, t.KnockbackTime, world.Simulation.LastContactCount));
@@ -120,11 +120,11 @@ if (fastTicks.HasValue)
             hash = (hash ^ BitConverter.SingleToUInt32Bits(f)) * 1099511628211UL;
         if (s.Position.Y < -1f && fallen++ < 3)
             Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                "[server] {0} unter der Arena: Position {1:F1} {2:F1} {3:F1}, Ziel {4}",
+                "[server] {0} below the arena: position {1:F1} {2:F1} {3:F1}, target {4}",
                 body.Entity.Name, s.Position.X, s.Position.Y, s.Position.Z, (body as BenchBot)?.Target));
         if (world.Simulation.Bodies.Count <= 4)
             Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
-                "[server] {0}: Position {1:R} {2:R} {3:R}, Tempo {4:R} {5:R} {6:R}",
+                "[server] {0}: position {1:R} {2:R} {3:R}, velocity {4:R} {5:R} {6:R}",
                 body.Entity.Name, s.Position.X, s.Position.Y, s.Position.Z, s.Velocity.X, s.Velocity.Y, s.Velocity.Z));
     }
     int respawns = 0;
@@ -135,8 +135,8 @@ if (fastTicks.HasValue)
             foreach (Vector3 f in b.Falls)
                 Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "[fall] {0} {1:F2} {2:F2} {3:F2}", body.Entity.Name, f.X, f.Y, f.Z));
     }
-    Console.WriteLine($"[server] Endzustand {hash:X16}, {fallen} von {world.Simulation.Bodies.Count} Körpern unter der Arena, " +
-                      $"{respawns} Bots zurückgesetzt");
+    Console.WriteLine($"[server] end state {hash:X16}, {fallen} of {world.Simulation.Bodies.Count} bodies below the arena, " +
+                      $"{respawns} bots reset");
     ReportMatch(world.Simulation, match);
     return 0;
 }
@@ -179,7 +179,7 @@ while (!stop.IsCancellationRequested)
 
 timing.Report();
 ReportMatch(world.Simulation, match);
-Console.WriteLine("[server] beendet");
+Console.WriteLine("[server] stopped");
 return 0;
 
 // The round in one line: time, who holds the zone and the best three.
@@ -187,11 +187,11 @@ static void ReportMatch(SimulationSystem simulation, HillMatch match)
 {
     MatchState m = match.State;
     int left = Math.Max(0, match.LimitTicks - m.RoundTicks) / 40;
-    string zone = m.Over ? (m.Winner != null ? m.Winner.Entity.Name + " gewinnt" : "unentschieden")
-                : m.Phase == MatchPhase.Waiting ? $"warte auf Spieler ({HillMatch.CountPlayers(simulation.Bodies)} / {m.MinPlayers})"
+    string zone = m.Over ? (m.Winner != null ? m.Winner.Entity.Name + " wins" : "draw")
+                : m.Phase == MatchPhase.Waiting ? $"waiting for players ({HillMatch.CountPlayers(simulation.Bodies)} / {m.MinPlayers})"
                 : m.Phase == MatchPhase.Countdown ? $"Start in {(m.PhaseTicks + 39) / 40} s"
-                : m.Holder != null ? m.Holder.Entity.Name + (m.Inside > 1 ? $" hält ({m.Inside} drin)" : " allein")
-                : m.Inside > 1 ? $"umkämpft ({m.Inside})" : "frei";
+                : m.Holder != null ? m.Holder.Entity.Name + (m.Inside > 1 ? $" holds ({m.Inside} inside)" : " alone")
+                : m.Inside > 1 ? $"contested ({m.Inside})" : "free";
 
     var bodies = new List<SimulationBody>(simulation.Bodies);
     bodies.Sort((x, y) => y.ScoreTicks.CompareTo(x.ScoreTicks));
@@ -199,7 +199,7 @@ static void ReportMatch(SimulationSystem simulation, HillMatch match)
     for (int i = 0; i < Math.Min(3, bodies.Count); i++)
         best.Add($"{bodies[i].Entity.Name} {HillMatch.Points(bodies[i].ScoreTicks)}");
 
-    Console.WriteLine($"[server] Runde noch {left / 60}:{left % 60:D2}, Zone {zone}, Beste: {string.Join(", ", best)}");
+    Console.WriteLine($"[server] round left {left / 60}:{left % 60:D2}, zone {zone}, best: {string.Join(", ", best)}");
 }
 
 static double? Option(string[] args, string name)
@@ -247,7 +247,7 @@ sealed class TickTiming
         if (ticks == 0)
             return;
         Console.WriteLine($"[server] Tick {lastTick}: Ø {sumMicros / ticks:F1} µs, " +
-                          $"max {maxMicros:F1} µs, {(double)allocated / ticks:F1} B je Tick");
+                          $"max {maxMicros:F1} µs, {(double)allocated / ticks:F1} B per tick");
     }
 
     /// <summary>Median and 99th percentile of the recorded ticks.</summary>

@@ -34,7 +34,7 @@ shader TerrainTriplanar<LinkType GrassKey, LinkType DirtKey, LinkType SandKey, L
     // so the 4 m tiles of the relief do not repeat alike (Luca: "not so sterile").
     static const float ReliefPatch = 9.0;
     static const float ReliefSpread = 0.45;
-    // The contact map (MapUV, NeuContact.png): the ground darker round the trunks' feet,
+    // The contact map (MapUV, MountDestinyContact.png): the ground darker round the trunks' feet,
     // over the square of ±ContactHalf metres.
     static const float ContactHalf = 128.0;
     // ShellField's spot map (its constants): cells of ShellCell metres, ShellSlots shells each;

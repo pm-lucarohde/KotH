@@ -1,140 +1,140 @@
 [probe] entering play mode
-[probe] stepOffset 0,45, height 1,8, slopeLimit 50
-[probe] ~ Ramp45 stehen: Start (8.50, 3.45, 16.00), bergauf-Yaw -90
-[probe] ~ Ramp45 stehen t000 y 3,524 | touching False | angle 0,0 | grounded False | sliding False
-[probe] ~ Ramp45 stehen t001 y 3,520 | touching True | angle 0,0 | grounded False | sliding False
-[probe] ~ Ramp45 stehen t002 y 3,520 | touching True | angle 45,0 | grounded True | sliding False
-[probe] ~ Ramp45 stehen t003 y 3,520 | touching True | angle 45,0 | grounded True | sliding False
-[probe] ~ Ramp45 stehen t004 y 3,520 | touching True | angle 45,0 | grounded True | sliding False
-[probe] ~ Ramp45 stehen t005 y 3,520 | touching True | angle 45,0 | grounded True | sliding False
-[probe] ~ Ramp45 stehen t006 y 3,520 | touching True | angle 45,0 | grounded True | sliding False
-[probe] ~ Ramp45 stehen t007 y 3,520 | touching True | angle 45,0 | grounded True | sliding False
-[probe] ~ Ramp45 stehen t008 y 3,520 | touching True | angle 45,0 | grounded True | sliding False
-[probe] ~ Ramp45 stehen t009 y 3,520 | touching True | angle 45,0 | grounded True | sliding False
-[probe] ~ Ramp45 stehen t010 y 3,520 | touching True | angle 45,0 | grounded True | sliding False
-[probe] ~ Ramp45 stehen t011 y 3,520 | touching True | angle 45,0 | grounded True | sliding False
-[probe] ~ Ramp45 stehen t012 y 3,520 | touching True | angle 45,0 | grounded True | sliding False
-[probe] ~ Ramp45 stehen t013 y 3,520 | touching True | angle 45,0 | grounded True | sliding False
-[probe] ~ Ramp45 stehen t014 y 3,520 | touching True | angle 45,0 | grounded True | sliding False
-[probe] ~ Ramp45 stehen t015 y 3,520 | touching True | angle 45,0 | grounded True | sliding False
-[probe] == Ramp45 stehen: end +0,070 m, max +0,074, min +0,000, maxAngle 45,0, steile Ticks 0, Rutsch-Ticks 0, Luft-Ticks 1 von 80
-[probe] ~ Ramp55 stehen: Start (-7.75, 3.45, 16.00), bergauf-Yaw 90
-[probe] ~ Ramp55 stehen t000 y 3,503 | touching True | angle 45,0 | grounded True | sliding False
-[probe] ~ Ramp55 stehen t001 y 3,452 | touching True | angle 55,0 | grounded False | sliding False
-[probe] ~ Ramp55 stehen t002 y 3,394 | touching True | angle 55,0 | grounded False | sliding False
-[probe] ~ Ramp55 stehen t003 y 3,324 | touching False | angle 55,0 | grounded False | sliding True
-[probe] ~ Ramp55 stehen t004 y 3,241 | touching False | angle 0,0 | grounded False | sliding False
-[probe] ~ Ramp55 stehen t005 y 3,149 | touching True | angle 0,0 | grounded False | sliding False
-[probe] ~ Ramp55 stehen t006 y 3,054 | touching True | angle 55,0 | grounded False | sliding False
-[probe] ~ Ramp55 stehen t007 y 2,950 | touching True | angle 55,0 | grounded False | sliding False
-[probe] ~ Ramp55 stehen t008 y 2,839 | touching False | angle 55,0 | grounded False | sliding True
-[probe] ~ Ramp55 stehen t009 y 2,717 | touching True | angle 0,0 | grounded False | sliding False
-[probe] ~ Ramp55 stehen t010 y 2,588 | touching True | angle 55,0 | grounded False | sliding False
-[probe] ~ Ramp55 stehen t011 y 2,451 | touching True | angle 55,0 | grounded False | sliding False
-[probe] ~ Ramp55 stehen t012 y 2,306 | touching False | angle 55,0 | grounded False | sliding True
-[probe] ~ Ramp55 stehen t013 y 2,152 | touching True | angle 0,0 | grounded False | sliding False
-[probe] ~ Ramp55 stehen t014 y 1,990 | touching True | angle 55,0 | grounded False | sliding False
-[probe] ~ Ramp55 stehen t015 y 1,819 | touching True | angle 55,0 | grounded False | sliding False
-[probe] == Ramp55 stehen: end -2,532 m, max +0,053, min -2,532, maxAngle 55,0, steile Ticks 15, Rutsch-Ticks 5, Luft-Ticks 5 von 80
-[probe] ~ Ramp45 hochgehen: Start (12.50, 0.90, 16.00), bergauf-Yaw -90
-[probe] ~ Ramp45 hochgehen t000 y 0,900 | touching True | angle 0,0 | grounded True | sliding False
-[probe] ~ Ramp45 hochgehen t001 y 0,900 | touching True | angle 0,0 | grounded True | sliding False
-[probe] ~ Ramp45 hochgehen t002 y 0,900 | touching True | angle 0,0 | grounded True | sliding False
-[probe] ~ Ramp45 hochgehen t003 y 0,900 | touching True | angle 0,0 | grounded True | sliding False
-[probe] ~ Ramp45 hochgehen t004 y 0,900 | touching True | angle 0,0 | grounded True | sliding False
-[probe] ~ Ramp45 hochgehen t005 y 0,900 | touching True | angle 0,0 | grounded True | sliding False
-[probe] ~ Ramp45 hochgehen t006 y 0,900 | touching True | angle 0,0 | grounded True | sliding False
-[probe] ~ Ramp45 hochgehen t007 y 0,900 | touching True | angle 0,0 | grounded True | sliding False
-[probe] ~ Ramp45 hochgehen t008 y 0,900 | touching True | angle 0,0 | grounded True | sliding False
-[probe] ~ Ramp45 hochgehen t009 y 0,900 | touching True | angle 0,0 | grounded True | sliding False
-[probe] ~ Ramp45 hochgehen t010 y 0,900 | touching True | angle 0,0 | grounded True | sliding False
-[probe] ~ Ramp45 hochgehen t011 y 0,927 | touching True | angle 0,0 | grounded True | sliding False
-[probe] ~ Ramp45 hochgehen t012 y 0,991 | touching True | angle 0,0 | grounded True | sliding False
-[probe] ~ Ramp45 hochgehen t013 y 1,056 | touching True | angle 45,0 | grounded True | sliding False
-[probe] ~ Ramp45 hochgehen t014 y 1,121 | touching True | angle 45,0 | grounded True | sliding False
-[probe] ~ Ramp45 hochgehen t015 y 1,185 | touching True | angle 45,0 | grounded True | sliding False
-[probe] == Ramp45 hochgehen: end +0,015 m, max +5,031, min +0,000, maxAngle 55,0, steile Ticks 4, Rutsch-Ticks 1, Luft-Ticks 20 von 240
-[probe] ~ Ramp55 hochgehen: Start (-11.00, 0.90, 16.00), bergauf-Yaw 90
-[probe] ~ Ramp55 hochgehen t000 y 0,900 | touching True | angle 0,0 | grounded True | sliding False
-[probe] ~ Ramp55 hochgehen t001 y 0,900 | touching True | angle 0,0 | grounded True | sliding False
-[probe] ~ Ramp55 hochgehen t002 y 0,900 | touching True | angle 0,0 | grounded True | sliding False
-[probe] ~ Ramp55 hochgehen t003 y 0,900 | touching True | angle 0,0 | grounded True | sliding False
-[probe] ~ Ramp55 hochgehen t004 y 0,900 | touching True | angle 0,0 | grounded True | sliding False
-[probe] ~ Ramp55 hochgehen t005 y 0,900 | touching True | angle 0,0 | grounded True | sliding False
-[probe] ~ Ramp55 hochgehen t006 y 0,900 | touching True | angle 0,0 | grounded True | sliding False
-[probe] ~ Ramp55 hochgehen t007 y 0,900 | touching True | angle 0,0 | grounded True | sliding False
-[probe] ~ Ramp55 hochgehen t008 y 0,900 | touching True | angle 0,0 | grounded True | sliding False
-[probe] ~ Ramp55 hochgehen t009 y 0,900 | touching True | angle 0,0 | grounded True | sliding False
-[probe] ~ Ramp55 hochgehen t010 y 0,900 | touching True | angle 0,0 | grounded True | sliding False
-[probe] ~ Ramp55 hochgehen t011 y 0,900 | touching True | angle 0,0 | grounded True | sliding False
-[probe] ~ Ramp55 hochgehen t012 y 0,900 | touching True | angle 0,0 | grounded True | sliding False
-[probe] ~ Ramp55 hochgehen t013 y 0,900 | touching True | angle 0,0 | grounded True | sliding False
-[probe] ~ Ramp55 hochgehen t014 y 0,900 | touching True | angle 0,0 | grounded True | sliding False
-[probe] ~ Ramp55 hochgehen t015 y 0,900 | touching True | angle 0,0 | grounded True | sliding False
-[probe] == Ramp55 hochgehen: end +0,033 m, max +0,093, min +0,000, maxAngle 55,0, steile Ticks 85, Rutsch-Ticks 28, Luft-Ticks 0 von 240
-[probe] + Steps20 stehen t009 +0,240 m -> y 1,140 | angle 0,0 | grounded True | sliding False | yaw 0
-[probe] + Steps20 stehen t012 +0,024 m -> y 1,126 | angle 0,0 | grounded False | sliding False | yaw 0
-[probe] + Steps20 stehen t014 +0,223 m -> y 1,340 | angle 0,0 | grounded True | sliding False | yaw 0
-[probe] + Steps20 stehen t017 +0,025 m -> y 1,328 | angle 0,0 | grounded False | sliding False | yaw 0
-[probe] + Steps20 stehen t018 +0,212 m -> y 1,540 | angle 11,5 | grounded True | sliding False | yaw 0
-[probe] + Steps20 stehen t023 +0,212 m -> y 1,740 | angle 6,0 | grounded True | sliding False | yaw 0
-[probe] == + Steps20 stehen: max 1,240 m, end 0,017 m, steile Ticks 0, Ende bei x -6,4 z 17,9
-[probe] + Steps20 stehen wackel t010 +0,240 m -> y 1,140 | angle 0,0 | grounded True | sliding False | yaw 80
-[probe] + Steps20 stehen wackel t014 +0,024 m -> y 1,122 | angle 23,3 | grounded True | sliding False | yaw 65
-[probe] + Steps20 stehen wackel t018 +0,218 m -> y 1,340 | angle 0,0 | grounded True | sliding False | yaw 25
-[probe] + Steps20 stehen wackel t026 +0,204 m -> y 1,540 | angle 0,0 | grounded True | sliding False | yaw -65
-[probe] + Steps20 stehen wackel t029 +0,024 m -> y 1,527 | angle 12,3 | grounded True | sliding False | yaw -13
-[probe] + Steps20 stehen wackel t031 +0,217 m -> y 1,740 | angle 0,0 | grounded True | sliding False | yaw -13
-[probe] == + Steps20 stehen wackel: max 1,240 m, end 4,514 m, steile Ticks 0, Ende bei x -5,3 z 8,6
-[probe] + Steps30 stehen t008 +0,340 m -> y 1,240 | angle 0,0 | grounded True | sliding False | yaw 0
-[probe] + Steps30 stehen t011 +0,025 m -> y 1,228 | angle 9,1 | grounded True | sliding False | yaw 0
-[probe] + Steps30 stehen t012 +0,312 m -> y 1,540 | angle 11,6 | grounded True | sliding False | yaw 0
-[probe] + Steps30 stehen t017 +0,316 m -> y 1,840 | angle 3,7 | grounded True | sliding False | yaw 0
-[probe] + Steps30 stehen t020 +0,024 m -> y 1,826 | angle 0,0 | grounded False | sliding False | yaw 0
-[probe] + Steps30 stehen t022 +0,323 m -> y 2,140 | angle 0,0 | grounded True | sliding False | yaw 0
-[probe] == + Steps30 stehen: max 1,840 m, end 0,017 m, steile Ticks 0, Ende bei x -10,0 z 19,5
-[probe] + Steps20 geduckt t004 +0,352 m -> y 1,253 | angle 0,0 | grounded True | sliding False | yaw 0
-[probe] + Steps20 geduckt t018 +0,209 m -> y 1,140 | angle 0,0 | grounded True | sliding False | yaw 0
-[probe] + Steps20 geduckt t023 +0,075 m -> y 1,140 | angle 36,6 | grounded True | sliding False | yaw 0
-[probe] + Steps20 geduckt t029 +0,214 m -> y 1,340 | angle 0,0 | grounded True | sliding False | yaw 0
-[probe] + Steps20 geduckt t034 +0,099 m -> y 1,340 | angle 40,4 | grounded True | sliding False | yaw 0
-[probe] + Steps20 geduckt t041 +0,212 m -> y 1,540 | angle 0,0 | grounded True | sliding False | yaw 0
-[probe] == + Steps20 geduckt: max 1,240 m, end 1,221 m, steile Ticks 0, Ende bei x -6,0 z -6,3
-[probe] + Steps20 geduckt wackel t031 +0,240 m -> y 1,140 | angle 0,0 | grounded True | sliding False | yaw -13
-[probe] + Steps20 geduckt wackel t036 +0,072 m -> y 1,140 | angle 36,2 | grounded True | sliding False | yaw 47
-[probe] + Steps20 geduckt wackel t045 +0,210 m -> y 1,340 | angle 0,0 | grounded True | sliding False | yaw 57
-[probe] + Steps20 geduckt wackel t053 +0,206 m -> y 1,340 | angle 0,0 | grounded True | sliding False | yaw -36
-[probe] + Steps20 geduckt wackel t058 +0,064 m -> y 1,340 | angle 32,4 | grounded True | sliding False | yaw 25
-[probe] + Steps20 geduckt wackel t069 +0,208 m -> y 1,540 | angle 0,0 | grounded True | sliding False | yaw -13
-[probe] == + Steps20 geduckt wackel: max 1,240 m, end 1,223 m, steile Ticks 2, Ende bei x -6,7 z -6,3
-[probe] + Steps40 ruhig t001 +0,040 m -> y 0,940 | angle 0,0 | grounded True | sliding False | yaw 0
-[probe] + Steps40 ruhig t009 +0,423 m -> y 1,340 | angle 0,0 | grounded True | sliding False | yaw 0
-[probe] + Steps40 ruhig t012 +0,023 m -> y 1,326 | angle 0,0 | grounded False | sliding False | yaw 0
-[probe] + Steps40 ruhig t014 +0,423 m -> y 1,740 | angle 0,0 | grounded True | sliding False | yaw 0
-[probe] + Steps40 ruhig t017 +0,026 m -> y 1,728 | angle 0,0 | grounded False | sliding False | yaw 0
-[probe] + Steps40 ruhig t018 +0,412 m -> y 2,140 | angle 11,7 | grounded True | sliding False | yaw 0
-[probe] == + Steps40 ruhig: max 2,440 m, end 0,017 m, steile Ticks 0, Ende bei x -14,0 z 19,3
-[probe] + Steps40 wackeln t010 +0,440 m -> y 1,340 | angle 0,0 | grounded True | sliding False | yaw 80
-[probe] + Steps40 wackeln t014 +0,024 m -> y 1,322 | angle 23,3 | grounded True | sliding False | yaw 65
-[probe] + Steps40 wackeln t018 +0,418 m -> y 1,740 | angle 0,0 | grounded True | sliding False | yaw 25
-[probe] + Steps40 wackeln t026 +0,415 m -> y 2,140 | angle 0,0 | grounded True | sliding False | yaw -65
-[probe] + Steps40 wackeln t032 +0,418 m -> y 2,540 | angle 0,9 | grounded True | sliding False | yaw 76
-[probe] + Steps40 wackeln t036 +0,061 m -> y 2,540 | angle 27,0 | grounded True | sliding False | yaw 47
-[probe] == + Steps40 wackeln: max 2,440 m, end 0,019 m, steile Ticks 0, Ende bei x -13,7 z 9,9
-[probe] + Steps40 Ecke wackeln t013 +0,440 m -> y 1,340 | angle 0,0 | grounded True | sliding False | yaw -36
-[probe] + Steps40 Ecke wackeln t016 +0,022 m -> y 1,324 | angle 0,0 | grounded False | sliding False | yaw -47
-[probe] + Steps40 Ecke wackeln t018 +0,416 m -> y 1,740 | angle 2,0 | grounded True | sliding False | yaw 25
-[probe] + Steps40 Ecke wackeln t022 +0,060 m -> y 1,740 | angle 26,7 | grounded True | sliding False | yaw -25
-[probe] + Steps40 Ecke wackeln t025 +0,431 m -> y 2,140 | angle 0,0 | grounded True | sliding False | yaw -57
-[probe] + Steps40 Ecke wackeln t029 +0,023 m -> y 2,132 | angle 19,6 | grounded True | sliding False | yaw -13
-[probe] == + Steps40 Ecke wackeln: max 2,440 m, end 0,017 m, steile Ticks 0, Ende bei x -13,7 z 10,2
-[probe] == - Steps50 ruhig: max 0,000 m, end 0,000 m, steile Ticks 0, Ende bei x -18,0 z -10,4
-[probe] == - Steps50 wackeln: max 0,000 m, end 0,000 m, steile Ticks 0, Ende bei x -17,9 z -10,4
-[probe] == - Steps50 Ecke wackeln: max 0,000 m, end 0,000 m, steile Ticks 0, Ende bei x -17,1 z -10,4
-[probe] == - Steps50 Ecke langsam: max 0,000 m, end 0,000 m, steile Ticks 0, Ende bei x -16,6 z 14,4
-[probe] == - Steps50 seitlich: max 0,000 m, end 0,000 m, steile Ticks 0, Ende bei x -15,4 z -8,2
-[probe] == - Steps30 geduckt: max 0,045 m, end 0,038 m, steile Ticks 0, Ende bei x -10,0 z -10,4
-[probe] == - Steps30 geduckt Ecke: max 0,045 m, end 0,038 m, steile Ticks 0, Ende bei x -9,1 z -10,4
-[probe] == = Kante geduckt: max 0,000 m, end -0,026 m, steile Ticks 0, Ende bei x 0,0 z 22,1
-[probe] == = Kante stehend: max 0,000 m, end -238,751 m, steile Ticks 1, Ende bei x 0,0 z 46,9
+[probe] stepOffset 0.45, height 1.8, slopeLimit 50
+[probe] ~ Ramp45 stand: start (8.50, 3.45, 16.00), uphill yaw -90
+[probe] ~ Ramp45 stand t000 y 3.524 | touching False | angle 0.0 | grounded False | sliding False
+[probe] ~ Ramp45 stand t001 y 3.520 | touching True | angle 0.0 | grounded False | sliding False
+[probe] ~ Ramp45 stand t002 y 3.520 | touching True | angle 45.0 | grounded True | sliding False
+[probe] ~ Ramp45 stand t003 y 3.520 | touching True | angle 45.0 | grounded True | sliding False
+[probe] ~ Ramp45 stand t004 y 3.520 | touching True | angle 45.0 | grounded True | sliding False
+[probe] ~ Ramp45 stand t005 y 3.520 | touching True | angle 45.0 | grounded True | sliding False
+[probe] ~ Ramp45 stand t006 y 3.520 | touching True | angle 45.0 | grounded True | sliding False
+[probe] ~ Ramp45 stand t007 y 3.520 | touching True | angle 45.0 | grounded True | sliding False
+[probe] ~ Ramp45 stand t008 y 3.520 | touching True | angle 45.0 | grounded True | sliding False
+[probe] ~ Ramp45 stand t009 y 3.520 | touching True | angle 45.0 | grounded True | sliding False
+[probe] ~ Ramp45 stand t010 y 3.520 | touching True | angle 45.0 | grounded True | sliding False
+[probe] ~ Ramp45 stand t011 y 3.520 | touching True | angle 45.0 | grounded True | sliding False
+[probe] ~ Ramp45 stand t012 y 3.520 | touching True | angle 45.0 | grounded True | sliding False
+[probe] ~ Ramp45 stand t013 y 3.520 | touching True | angle 45.0 | grounded True | sliding False
+[probe] ~ Ramp45 stand t014 y 3.520 | touching True | angle 45.0 | grounded True | sliding False
+[probe] ~ Ramp45 stand t015 y 3.520 | touching True | angle 45.0 | grounded True | sliding False
+[probe] == Ramp45 stand: end +0.070 m, max +0.074, min +0.000, maxAngle 45.0, steep ticks 0, slide ticks 0, air ticks 1 of 80
+[probe] ~ Ramp55 stand: start (-7.75, 3.45, 16.00), uphill yaw 90
+[probe] ~ Ramp55 stand t000 y 3.503 | touching True | angle 45.0 | grounded True | sliding False
+[probe] ~ Ramp55 stand t001 y 3.452 | touching True | angle 55.0 | grounded False | sliding False
+[probe] ~ Ramp55 stand t002 y 3.394 | touching True | angle 55.0 | grounded False | sliding False
+[probe] ~ Ramp55 stand t003 y 3.324 | touching False | angle 55.0 | grounded False | sliding True
+[probe] ~ Ramp55 stand t004 y 3.241 | touching False | angle 0.0 | grounded False | sliding False
+[probe] ~ Ramp55 stand t005 y 3.149 | touching True | angle 0.0 | grounded False | sliding False
+[probe] ~ Ramp55 stand t006 y 3.054 | touching True | angle 55.0 | grounded False | sliding False
+[probe] ~ Ramp55 stand t007 y 2.950 | touching True | angle 55.0 | grounded False | sliding False
+[probe] ~ Ramp55 stand t008 y 2.839 | touching False | angle 55.0 | grounded False | sliding True
+[probe] ~ Ramp55 stand t009 y 2.717 | touching True | angle 0.0 | grounded False | sliding False
+[probe] ~ Ramp55 stand t010 y 2.588 | touching True | angle 55.0 | grounded False | sliding False
+[probe] ~ Ramp55 stand t011 y 2.451 | touching True | angle 55.0 | grounded False | sliding False
+[probe] ~ Ramp55 stand t012 y 2.306 | touching False | angle 55.0 | grounded False | sliding True
+[probe] ~ Ramp55 stand t013 y 2.152 | touching True | angle 0.0 | grounded False | sliding False
+[probe] ~ Ramp55 stand t014 y 1.990 | touching True | angle 55.0 | grounded False | sliding False
+[probe] ~ Ramp55 stand t015 y 1.819 | touching True | angle 55.0 | grounded False | sliding False
+[probe] == Ramp55 stand: end -2.532 m, max +0.053, min -2.532, maxAngle 55.0, steep ticks 15, slide ticks 5, air ticks 5 of 80
+[probe] ~ Ramp45 walk up: start (12.50, 0.90, 16.00), uphill yaw -90
+[probe] ~ Ramp45 walk up t000 y 0.900 | touching True | angle 0.0 | grounded True | sliding False
+[probe] ~ Ramp45 walk up t001 y 0.900 | touching True | angle 0.0 | grounded True | sliding False
+[probe] ~ Ramp45 walk up t002 y 0.900 | touching True | angle 0.0 | grounded True | sliding False
+[probe] ~ Ramp45 walk up t003 y 0.900 | touching True | angle 0.0 | grounded True | sliding False
+[probe] ~ Ramp45 walk up t004 y 0.900 | touching True | angle 0.0 | grounded True | sliding False
+[probe] ~ Ramp45 walk up t005 y 0.900 | touching True | angle 0.0 | grounded True | sliding False
+[probe] ~ Ramp45 walk up t006 y 0.900 | touching True | angle 0.0 | grounded True | sliding False
+[probe] ~ Ramp45 walk up t007 y 0.900 | touching True | angle 0.0 | grounded True | sliding False
+[probe] ~ Ramp45 walk up t008 y 0.900 | touching True | angle 0.0 | grounded True | sliding False
+[probe] ~ Ramp45 walk up t009 y 0.900 | touching True | angle 0.0 | grounded True | sliding False
+[probe] ~ Ramp45 walk up t010 y 0.900 | touching True | angle 0.0 | grounded True | sliding False
+[probe] ~ Ramp45 walk up t011 y 0.927 | touching True | angle 0.0 | grounded True | sliding False
+[probe] ~ Ramp45 walk up t012 y 0.991 | touching True | angle 0.0 | grounded True | sliding False
+[probe] ~ Ramp45 walk up t013 y 1.056 | touching True | angle 45.0 | grounded True | sliding False
+[probe] ~ Ramp45 walk up t014 y 1.121 | touching True | angle 45.0 | grounded True | sliding False
+[probe] ~ Ramp45 walk up t015 y 1.185 | touching True | angle 45.0 | grounded True | sliding False
+[probe] == Ramp45 walk up: end +0.015 m, max +5.031, min +0.000, maxAngle 55.0, steep ticks 4, slide ticks 1, air ticks 20 of 240
+[probe] ~ Ramp55 walk up: start (-11.00, 0.90, 16.00), uphill yaw 90
+[probe] ~ Ramp55 walk up t000 y 0.900 | touching True | angle 0.0 | grounded True | sliding False
+[probe] ~ Ramp55 walk up t001 y 0.900 | touching True | angle 0.0 | grounded True | sliding False
+[probe] ~ Ramp55 walk up t002 y 0.900 | touching True | angle 0.0 | grounded True | sliding False
+[probe] ~ Ramp55 walk up t003 y 0.900 | touching True | angle 0.0 | grounded True | sliding False
+[probe] ~ Ramp55 walk up t004 y 0.900 | touching True | angle 0.0 | grounded True | sliding False
+[probe] ~ Ramp55 walk up t005 y 0.900 | touching True | angle 0.0 | grounded True | sliding False
+[probe] ~ Ramp55 walk up t006 y 0.900 | touching True | angle 0.0 | grounded True | sliding False
+[probe] ~ Ramp55 walk up t007 y 0.900 | touching True | angle 0.0 | grounded True | sliding False
+[probe] ~ Ramp55 walk up t008 y 0.900 | touching True | angle 0.0 | grounded True | sliding False
+[probe] ~ Ramp55 walk up t009 y 0.900 | touching True | angle 0.0 | grounded True | sliding False
+[probe] ~ Ramp55 walk up t010 y 0.900 | touching True | angle 0.0 | grounded True | sliding False
+[probe] ~ Ramp55 walk up t011 y 0.900 | touching True | angle 0.0 | grounded True | sliding False
+[probe] ~ Ramp55 walk up t012 y 0.900 | touching True | angle 0.0 | grounded True | sliding False
+[probe] ~ Ramp55 walk up t013 y 0.900 | touching True | angle 0.0 | grounded True | sliding False
+[probe] ~ Ramp55 walk up t014 y 0.900 | touching True | angle 0.0 | grounded True | sliding False
+[probe] ~ Ramp55 walk up t015 y 0.900 | touching True | angle 0.0 | grounded True | sliding False
+[probe] == Ramp55 walk up: end +0.033 m, max +0.093, min +0.000, maxAngle 55.0, steep ticks 85, slide ticks 28, air ticks 0 of 240
+[probe] + Steps20 stand t009 +0.240 m -> y 1.140 | angle 0.0 | grounded True | sliding False | yaw 0
+[probe] + Steps20 stand t012 +0.024 m -> y 1.126 | angle 0.0 | grounded False | sliding False | yaw 0
+[probe] + Steps20 stand t014 +0.223 m -> y 1.340 | angle 0.0 | grounded True | sliding False | yaw 0
+[probe] + Steps20 stand t017 +0.025 m -> y 1.328 | angle 0.0 | grounded False | sliding False | yaw 0
+[probe] + Steps20 stand t018 +0.212 m -> y 1.540 | angle 11.5 | grounded True | sliding False | yaw 0
+[probe] + Steps20 stand t023 +0.212 m -> y 1.740 | angle 6.0 | grounded True | sliding False | yaw 0
+[probe] == + Steps20 stand: max 1.240 m, end 0.017 m, steep ticks 0, end at x -6.4 z 17.9
+[probe] + Steps20 stand wobble t010 +0.240 m -> y 1.140 | angle 0.0 | grounded True | sliding False | yaw 80
+[probe] + Steps20 stand wobble t014 +0.024 m -> y 1.122 | angle 23.3 | grounded True | sliding False | yaw 65
+[probe] + Steps20 stand wobble t018 +0.218 m -> y 1.340 | angle 0.0 | grounded True | sliding False | yaw 25
+[probe] + Steps20 stand wobble t026 +0.204 m -> y 1.540 | angle 0.0 | grounded True | sliding False | yaw -65
+[probe] + Steps20 stand wobble t029 +0.024 m -> y 1.527 | angle 12.3 | grounded True | sliding False | yaw -13
+[probe] + Steps20 stand wobble t031 +0.217 m -> y 1.740 | angle 0.0 | grounded True | sliding False | yaw -13
+[probe] == + Steps20 stand wobble: max 1.240 m, end 4.514 m, steep ticks 0, end at x -5.3 z 8.6
+[probe] + Steps30 stand t008 +0.340 m -> y 1.240 | angle 0.0 | grounded True | sliding False | yaw 0
+[probe] + Steps30 stand t011 +0.025 m -> y 1.228 | angle 9.1 | grounded True | sliding False | yaw 0
+[probe] + Steps30 stand t012 +0.312 m -> y 1.540 | angle 11.6 | grounded True | sliding False | yaw 0
+[probe] + Steps30 stand t017 +0.316 m -> y 1.840 | angle 3.7 | grounded True | sliding False | yaw 0
+[probe] + Steps30 stand t020 +0.024 m -> y 1.826 | angle 0.0 | grounded False | sliding False | yaw 0
+[probe] + Steps30 stand t022 +0.323 m -> y 2.140 | angle 0.0 | grounded True | sliding False | yaw 0
+[probe] == + Steps30 stand: max 1.840 m, end 0.017 m, steep ticks 0, end at x -10.0 z 19.5
+[probe] + Steps20 crouched t004 +0.352 m -> y 1.253 | angle 0.0 | grounded True | sliding False | yaw 0
+[probe] + Steps20 crouched t018 +0.209 m -> y 1.140 | angle 0.0 | grounded True | sliding False | yaw 0
+[probe] + Steps20 crouched t023 +0.075 m -> y 1.140 | angle 36.6 | grounded True | sliding False | yaw 0
+[probe] + Steps20 crouched t029 +0.214 m -> y 1.340 | angle 0.0 | grounded True | sliding False | yaw 0
+[probe] + Steps20 crouched t034 +0.099 m -> y 1.340 | angle 40.4 | grounded True | sliding False | yaw 0
+[probe] + Steps20 crouched t041 +0.212 m -> y 1.540 | angle 0.0 | grounded True | sliding False | yaw 0
+[probe] == + Steps20 crouched: max 1.240 m, end 1.221 m, steep ticks 0, end at x -6.0 z -6.3
+[probe] + Steps20 crouched wobble t031 +0.240 m -> y 1.140 | angle 0.0 | grounded True | sliding False | yaw -13
+[probe] + Steps20 crouched wobble t036 +0.072 m -> y 1.140 | angle 36.2 | grounded True | sliding False | yaw 47
+[probe] + Steps20 crouched wobble t045 +0.210 m -> y 1.340 | angle 0.0 | grounded True | sliding False | yaw 57
+[probe] + Steps20 crouched wobble t053 +0.206 m -> y 1.340 | angle 0.0 | grounded True | sliding False | yaw -36
+[probe] + Steps20 crouched wobble t058 +0.064 m -> y 1.340 | angle 32.4 | grounded True | sliding False | yaw 25
+[probe] + Steps20 crouched wobble t069 +0.208 m -> y 1.540 | angle 0.0 | grounded True | sliding False | yaw -13
+[probe] == + Steps20 crouched wobble: max 1.240 m, end 1.223 m, steep ticks 2, end at x -6.7 z -6.3
+[probe] + Steps40 still t001 +0.040 m -> y 0.940 | angle 0.0 | grounded True | sliding False | yaw 0
+[probe] + Steps40 still t009 +0.423 m -> y 1.340 | angle 0.0 | grounded True | sliding False | yaw 0
+[probe] + Steps40 still t012 +0.023 m -> y 1.326 | angle 0.0 | grounded False | sliding False | yaw 0
+[probe] + Steps40 still t014 +0.423 m -> y 1.740 | angle 0.0 | grounded True | sliding False | yaw 0
+[probe] + Steps40 still t017 +0.026 m -> y 1.728 | angle 0.0 | grounded False | sliding False | yaw 0
+[probe] + Steps40 still t018 +0.412 m -> y 2.140 | angle 11.7 | grounded True | sliding False | yaw 0
+[probe] == + Steps40 still: max 2.440 m, end 0.017 m, steep ticks 0, end at x -14.0 z 19.3
+[probe] + Steps40 wobble t010 +0.440 m -> y 1.340 | angle 0.0 | grounded True | sliding False | yaw 80
+[probe] + Steps40 wobble t014 +0.024 m -> y 1.322 | angle 23.3 | grounded True | sliding False | yaw 65
+[probe] + Steps40 wobble t018 +0.418 m -> y 1.740 | angle 0.0 | grounded True | sliding False | yaw 25
+[probe] + Steps40 wobble t026 +0.415 m -> y 2.140 | angle 0.0 | grounded True | sliding False | yaw -65
+[probe] + Steps40 wobble t032 +0.418 m -> y 2.540 | angle 0.9 | grounded True | sliding False | yaw 76
+[probe] + Steps40 wobble t036 +0.061 m -> y 2.540 | angle 27.0 | grounded True | sliding False | yaw 47
+[probe] == + Steps40 wobble: max 2.440 m, end 0.019 m, steep ticks 0, end at x -13.7 z 9.9
+[probe] + Steps40 corner wobble t013 +0.440 m -> y 1.340 | angle 0.0 | grounded True | sliding False | yaw -36
+[probe] + Steps40 corner wobble t016 +0.022 m -> y 1.324 | angle 0.0 | grounded False | sliding False | yaw -47
+[probe] + Steps40 corner wobble t018 +0.416 m -> y 1.740 | angle 2.0 | grounded True | sliding False | yaw 25
+[probe] + Steps40 corner wobble t022 +0.060 m -> y 1.740 | angle 26.7 | grounded True | sliding False | yaw -25
+[probe] + Steps40 corner wobble t025 +0.431 m -> y 2.140 | angle 0.0 | grounded True | sliding False | yaw -57
+[probe] + Steps40 corner wobble t029 +0.023 m -> y 2.132 | angle 19.6 | grounded True | sliding False | yaw -13
+[probe] == + Steps40 corner wobble: max 2.440 m, end 0.017 m, steep ticks 0, end at x -13.7 z 10.2
+[probe] == - Steps50 still: max 0.000 m, end 0.000 m, steep ticks 0, end at x -18.0 z -10.4
+[probe] == - Steps50 wobble: max 0.000 m, end 0.000 m, steep ticks 0, end at x -17.9 z -10.4
+[probe] == - Steps50 corner wobble: max 0.000 m, end 0.000 m, steep ticks 0, end at x -17.1 z -10.4
+[probe] == - Steps50 corner slow: max 0.000 m, end 0.000 m, steep ticks 0, end at x -16.6 z 14.4
+[probe] == - Steps50 sideways: max 0.000 m, end 0.000 m, steep ticks 0, end at x -15.4 z -8.2
+[probe] == - Steps30 crouched: max 0.045 m, end 0.038 m, steep ticks 0, end at x -10.0 z -10.4
+[probe] == - Steps30 crouched corner: max 0.045 m, end 0.038 m, steep ticks 0, end at x -9.1 z -10.4
+[probe] == = edge crouched: max 0.000 m, end -0.026 m, steep ticks 0, end at x 0.0 z 22.1
+[probe] == = edge standing: max 0.000 m, end -238.751 m, steep ticks 1, end at x 0.0 z 46.9
 [probe] done

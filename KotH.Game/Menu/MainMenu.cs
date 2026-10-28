@@ -43,7 +43,7 @@ namespace KotH.Client.Menu
         const float DropDelay = 0.35f, DropSeconds = 0.9f, DropFrom = 80f;
         const float FadeSeconds = 0.4f;
 
-        /// <summary>Server erstellen: GameRoot hosts on the loaded map.</summary>
+        /// <summary>Host server: GameRoot hosts on the loaded map.</summary>
         [DataMemberIgnore] public Action StartHost { get; set; }
 
         /// <summary>The name on the band.</summary>
@@ -158,7 +158,7 @@ namespace KotH.Client.Menu
                 GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
                 GC.Collect();
                 Ready = true;
-                Console.WriteLine($"[menü] bereit {waited:F1} s nach dem Laden{(calm >= CalmFrames ? "" : ", ohne ruhige Bilder")}");
+                Console.WriteLine($"[menu] ready {waited:F1} s after loading{(calm >= CalmFrames ? "" : ", without calm frames")}");
             }
         }
 

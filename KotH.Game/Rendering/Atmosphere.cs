@@ -17,78 +17,78 @@ namespace KotH.Client.Rendering
     /// wisps (the map's blue) drifting with the wind. Only for the picture; maps
     /// without it have none of them.
     /// </summary>
-    /// <userdoc>Höhennebel, Küstennebel und Wolkenschicht der Map (nur Darstellung).</userdoc>
+    /// <userdoc>Height fog, coastal fog and cloud layer of the map (visuals only).</userdoc>
     [DataContract("Atmosphere")]
-    [Display("Atmosphäre")]
+    [Display("Atmosphere")]
     public sealed class Atmosphere : SyncScript
     {
         public static readonly PropertyKey<Atmosphere> Key = new("Atmosphere", typeof(Atmosphere));
 
-        /// <userdoc>Höhe in Metern, ab der der Nebel beginnt.</userdoc>
+        /// <userdoc>Height in metres where the fog starts.</userdoc>
         [DataMember(10)] public float FogStart { get; set; } = 30f;
-        /// <userdoc>Höhe in Metern, in der der Nebel am dichtesten ist.</userdoc>
+        /// <userdoc>Height in metres where the fog is densest.</userdoc>
         [DataMember(11)] public float FogPeak { get; set; } = 123f;
-        /// <userdoc>Höhe in Metern, bis zu der der Nebel über dem dichtesten Punkt ausläuft.</userdoc>
+        /// <userdoc>Height in metres up to which the fog fades out above the densest point.</userdoc>
         [DataMember(12)] public float FogTop { get; set; } = 165f;
-        /// <userdoc>Dichte pro Meter am dichtesten Punkt in der Mitte (0,008: auf 100 m gut die Hälfte Nebel).</userdoc>
+        /// <userdoc>Density per metre at the densest point in the centre (0.008: over 100 m a good half fog).</userdoc>
         [DataMember(13)] public float FogDensity { get; set; } = 0.008f;
-        /// <userdoc>Anteil der Dichte fern von der Mitte (1 = überall gleich, 0 = nur um die Mitte).</userdoc>
+        /// <userdoc>Share of the density far from the centre (1 = the same everywhere, 0 = only around the centre).</userdoc>
         [DataMember(14)] public float FogBase { get; set; } = 0.1f;
-        /// <userdoc>Mitte des Nebels (x, z in Metern), etwa der Berg.</userdoc>
+        /// <userdoc>Centre of the fog (x, z in metres), about the mountain.</userdoc>
         [DataMember(15)] public Vector2 FogCentre { get; set; }
-        /// <userdoc>Radius in Metern, über den der Nebel zur Mitte hin dichter wird.</userdoc>
+        /// <userdoc>Radius in metres over which the fog thickens towards the centre.</userdoc>
         [DataMember(16)] public float FogRadius { get; set; } = 110f;
-        /// <userdoc>Farbe des Nebels (linear), etwa der Horizont des Himmels.</userdoc>
+        /// <userdoc>Fog colour (linear), about the sky's horizon.</userdoc>
         [DataMember(17)] public Color3 FogColor { get; set; } = new(0.56f, 0.68f, 0.84f);
-        /// <userdoc>Wie viel Sonnenlicht der Nebel zur Sonne hin streut.</userdoc>
+        /// <userdoc>How much sunlight the fog scatters towards the sun.</userdoc>
         [DataMember(18)] public float FogSun { get; set; } = 0.35f;
-        /// <userdoc>Weiter als so viele Meter rechnet der Nebel nicht (Himmel, Horizont).</userdoc>
+        /// <userdoc>The fog is not computed beyond this many metres (sky, horizon).</userdoc>
         [DataMember(19)] public float FogDistance { get; set; } = 1500f;
-        /// <userdoc>Strahlen zur Sonne hin im Bild (Berg, Wolken, Bäume schatten sie ab), nur mit Blick Richtung Sonne (0 = keine).</userdoc>
+        /// <userdoc>Rays towards the sun on screen (mountain, clouds, trees shade them), only when looking towards the sun (0 = none).</userdoc>
         [DataMember(20)] public float SunRays { get; set; } = 0.35f;
 
-        /// <userdoc>Wolkenkarte: rot die Wölkchen (Höhe), grün die großen Streifen und Lücken, blau die Schwaden des Küstennebels (Tools/maps/Clouds.cs).</userdoc>
+        /// <userdoc>Cloud map: red the cloudlets (height), green the large bands and gaps, blue the coastal fog wisps (Tools/maps/Clouds.cs).</userdoc>
         [DataMember(30)] public Texture CloudMap { get; set; }
-        /// <userdoc>Untere Kante der Wolkenschicht in Metern.</userdoc>
+        /// <userdoc>Lower edge of the cloud layer in metres.</userdoc>
         [DataMember(31)] public float CloudBase { get; set; } = 78f;
-        /// <userdoc>Höhe der größten Wölkchen über der Unterkante in Metern.</userdoc>
+        /// <userdoc>Height of the largest cloudlets above the lower edge in metres.</userdoc>
         [DataMember(32)] public float CloudThickness { get; set; } = 7.0f;
-        /// <userdoc>Meter, nach denen sich die Wölkchen wiederholen.</userdoc>
+        /// <userdoc>Metres after which the cloudlets repeat.</userdoc>
         [DataMember(33)] public float CloudTile { get; set; } = 540f;
-        /// <userdoc>Meter, nach denen sich die großen Streifen wiederholen.</userdoc>
+        /// <userdoc>Metres after which the large bands repeat.</userdoc>
         [DataMember(34)] public float BandTile { get; set; } = 900f;
-        /// <userdoc>Bedeckung von 0 (klar) bis 1 (geschlossen).</userdoc>
+        /// <userdoc>Coverage from 0 (clear) to 1 (overcast).</userdoc>
         [DataMember(35)] public float CloudCoverage { get; set; } = 0.1f;
-        /// <userdoc>Dichte pro Meter im Inneren eines Wölkchens.</userdoc>
+        /// <userdoc>Density per metre inside a cloudlet.</userdoc>
         [DataMember(36)] public float CloudDensity { get; set; } = 0.2f;
-        /// <userdoc>Farbe der sonnigen Oberseite (linear).</userdoc>
+        /// <userdoc>Colour of the sunny top (linear).</userdoc>
         [DataMember(37)] public Color3 CloudTop { get; set; } = new(0.97f, 0.95f, 0.91f);
-        /// <userdoc>Farbe der Unterseite im Schatten (linear), bläulich grau.</userdoc>
+        /// <userdoc>Colour of the shaded underside (linear), bluish grey.</userdoc>
         [DataMember(38)] public Color3 CloudBottom { get; set; } = new(0.50f, 0.56f, 0.70f);
-        /// <userdoc>Weiter als so viele Meter blendet die Wolkenschicht aus.</userdoc>
+        /// <userdoc>Beyond this many metres the cloud layer fades out.</userdoc>
         [DataMember(39)] public float CloudDistance { get; set; } = 3000f;
-        /// <userdoc>Windrichtung in Grad (0 = nach −Z, 90 = nach +X).</userdoc>
+        /// <userdoc>Wind direction in degrees (0 = towards −Z, 90 = towards +X).</userdoc>
         [DataMember(40)] public float WindHeading { get; set; } = 60f;
-        /// <userdoc>Windgeschwindigkeit in m/s, mit der die Wolken ziehen.</userdoc>
+        /// <userdoc>Wind speed in m/s the clouds drift with.</userdoc>
         [DataMember(41)] public float WindSpeed { get; set; } = 1.0f;
-        /// <userdoc>Wie dunkel der Schatten einer Wolke ist (0 = keiner, 1 = ganz).</userdoc>
+        /// <userdoc>How dark a cloud's shadow is (0 = none, 1 = full).</userdoc>
         [DataMember(42)] public float CloudShadow { get; set; } = 0.45f;
 
-        /// <userdoc>Dichte pro Meter des Küstennebels in seinen Schwaden, direkt über dem Wasser (0 = kein Küstennebel).</userdoc>
+        /// <userdoc>Density per metre of the coastal fog in its wisps, right above the water (0 = no coastal fog).</userdoc>
         [DataMember(50)] public float CoastDensity { get; set; } = 0.06f;
-        /// <userdoc>Anteil des gleichmäßigen Dunsts zwischen den Schwaden (0 = nur Schwaden, 1 = überall gleich).</userdoc>
+        /// <userdoc>Share of even haze between the wisps (0 = wisps only, 1 = the same everywhere).</userdoc>
         [DataMember(51)] public float CoastHaze { get; set; } = 0.15f;
-        /// <userdoc>Höhe des Wassers in Metern, auf dem der Küstennebel liegt.</userdoc>
+        /// <userdoc>Height of the water in metres the coastal fog lies on.</userdoc>
         [DataMember(52)] public float CoastLevel { get; set; } = 0.4f;
-        /// <userdoc>Meter über dem Wasser, bis zu denen der Küstennebel ausläuft.</userdoc>
+        /// <userdoc>Metres above the water up to which the coastal fog fades out.</userdoc>
         [DataMember(53)] public float CoastTop { get; set; } = 4.5f;
-        /// <userdoc>Abstand zur Mitte in Metern, ab dem der Küstennebel einsetzt (x) und voll ist (y): die Küste.</userdoc>
+        /// <userdoc>Distance from the centre in metres where the coastal fog starts (x) and is full (y): the coast.</userdoc>
         [DataMember(54)] public Vector2 CoastInner { get; set; } = new(118f, 135f);
-        /// <userdoc>Abstand zur Mitte in Metern, ab dem der Küstennebel dünner wird (x) und weg ist (y).</userdoc>
+        /// <userdoc>Distance from the centre in metres where the coastal fog thins (x) and is gone (y).</userdoc>
         [DataMember(55)] public Vector2 CoastOuter { get; set; } = new(270f, 520f);
-        /// <userdoc>Meter, nach denen sich die Schwaden wiederholen.</userdoc>
+        /// <userdoc>Metres after which the wisps repeat.</userdoc>
         [DataMember(56)] public float CoastTile { get; set; } = 260f;
-        /// <userdoc>Farbe des Küstennebels (linear), heller als der Höhennebel.</userdoc>
+        /// <userdoc>Colour of the coastal fog (linear), lighter than the height fog.</userdoc>
         [DataMember(57)] public Color3 CoastColor { get; set; } = new(0.82f, 0.86f, 0.90f);
 
         /// <summary>The wind's direction in x, z: texture x of the cloud map runs along it.</summary>

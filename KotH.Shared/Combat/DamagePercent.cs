@@ -12,12 +12,12 @@ namespace KotH.Shared.Combat
     /// flying later on. Belongs on the body that gets hit.
     /// </summary>
     [DataContract("KotH.DamagePercent")]
-    [Display("Schadenswert")]
+    [Display("Damage percent")]
     [ComponentCategory("KotH")]
     public sealed class DamagePercent : EntityComponent
     {
-        /// <userdoc>Obergrenze. Darüber nimmt der Körper nichts mehr auf.</userdoc>
-        [Display("Obergrenze", "Schadenswert")] public float MaxPercent = 1000f;
+        /// <userdoc>Upper limit. Above it the body takes nothing more.</userdoc>
+        [Display("Maximum", "Damage percent")] public float MaxPercent = 1000f;
 
         float percent;
 

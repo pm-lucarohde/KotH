@@ -68,7 +68,7 @@ namespace KotH.Shared.Net
         {
             var t = new LiteNetTransport(hosting: true);
             if (!t.manager.Start(port))
-                throw new InvalidOperationException($"Port {port} ist belegt.");
+                throw new InvalidOperationException($"Port {port} is in use.");
             return t;
         }
 
@@ -79,7 +79,7 @@ namespace KotH.Shared.Net
             t.manager.Start();
             t.host = t.manager.Connect(address, port, Key);
             if (t.host == null)
-                throw new InvalidOperationException($"Keine Verbindung zu {address}:{port} möglich.");
+                throw new InvalidOperationException($"Cannot connect to {address}:{port}.");
             return t;
         }
 
