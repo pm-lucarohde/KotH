@@ -1,0 +1,28 @@
+!MaterialAsset
+Id: CBCBC09B-EE42-4A41-A7AD-6D16EEEAD66F
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Attributes:
+    Diffuse: !MaterialDiffuseMapFeature
+        DiffuseMap: !ComputeTextureColor
+            Texture: 37F8422F-0FF0-4FCD-B139-62008699C724:Textures/Blaster
+            FallbackValue:
+                Value: {R: 1.0, G: 1.0, B: 1.0, A: 1.0}
+            Scale: {X: 1.0, Y: 1.0}
+            Offset: {X: 0.0, Y: 0.0}
+            Swizzle: null
+    DiffuseModel: !MaterialDiffuseLambertModelFeature {}
+    Emissive: !MaterialEmissiveMapFeature
+        EmissiveMap: !ComputeTextureColor
+            Texture: 04A074FE-CB2D-4025-9E74-A75CF518B5F8:Textures/BlasterGlow
+            FallbackValue:
+                Value: {R: 0.0, G: 0.0, B: 0.0, A: 1.0}
+            Scale: {X: 1.0, Y: 1.0}
+            Offset: {X: 0.0, Y: 0.0}
+            Swizzle: null
+        Intensity: !ComputeFloat
+            Value: 2.0
+        UseAlpha: false
+    Overrides:
+        UVScale: {X: 1.0, Y: 1.0}
+Layers: {}

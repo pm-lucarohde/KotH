@@ -52,7 +52,7 @@ namespace KotH.Client.Hud
 
         HudView view;
         HudRenderer hud;
-        MenuOverlay top, points, status, track, fill, board, ranks, hurt, banner, countdown, notice;
+        MenuOverlay top, points, status, track, fill, board, ranks, hurt, ammo, banner, countdown, notice;
         MenuOverlay[] overlays;
         readonly List<SimulationBody> ranking = new List<SimulationBody>();
 
@@ -60,6 +60,10 @@ namespace KotH.Client.Hud
         int builtTick = -1;
         string statusText = "", bannerText = "";
         float warmup, popped = -1f;
+
+        // The own blaster's shots and progress as last shown.
+        Blaster blaster;
+        int shownShots = -1, shownNext = -1;
 
         // The own damage percent, its text rebuilt only when it changes.
         SimulationBody damageOf;
@@ -84,11 +88,12 @@ namespace KotH.Client.Hud
             board = new MenuOverlay(view.BoardPart, Corner.TopRight, 8f, 8f, Size);
             ranks = new MenuOverlay(view.RanksPart, Corner.TopRight, 8f, 8f, Size);
             hurt = new MenuOverlay(view.DamagePart, Corner.BottomCenter, 0f, 16f, Size);
+            ammo = new MenuOverlay(view.AmmoPart, Corner.BottomRight, 8f, 12f, Size);
             // The middle ones stay at a third of the height however small: 322 / Size.
             banner = new MenuOverlay(view.BannerPart, Corner.TopCenter, 0f, 358f, Size);
             countdown = new MenuOverlay(view.CountdownPart, Corner.TopCenter, 0f, 470f, Size);
             notice = new MenuOverlay(view.NoticePart, Corner.TopCenter, 0f, 358f, Size);
-            overlays = new[] { top, points, status, track, fill, board, ranks, hurt, banner, countdown, notice };
+            overlays = new[] { top, points, status, track, fill, board, ranks, hurt, ammo, banner, countdown, notice };
             foreach (MenuOverlay overlay in overlays)
             {
                 overlay.Visible = false;
@@ -168,6 +173,7 @@ namespace KotH.Client.Hud
             track.Visible = fill.Visible = round && warmup > 0f;
             fill.Reveal = warmup;
             hurt.Visible = round && ShowDamage();
+            ammo.Visible = round && ShowShots();
 
             bool won = round && bannerText.Length > 0 && says == null;
             banner.Visible = countdown.Visible = won;
@@ -270,6 +276,26 @@ namespace KotH.Client.Hud
             {
                 shownDamage = damage.Percent;
                 view.Hurt(shownDamage.ToString("F1", HudRenderer.Numbers) + " %");
+            }
+            return true;
+        }
+
+        /// <summary>The own blaster's shots to the view when they changed; false while it is not up.</summary>
+        bool ShowShots()
+        {
+            if (Self != damageOf || blaster?.Entity != Self?.Entity)
+                blaster = Self?.Entity.Get<Blaster>();
+            if (blaster == null || !blaster.State.Selected)
+                return false;
+            BlasterState s = blaster.State;
+            int per = blaster.PointsPerShot * HillMatch.TicksPerPoint;
+            // In whole pixels of the bar, so a tick only redraws when it shows.
+            int next = s.Shots >= blaster.MaxShots || per <= 0 ? 0 : s.Progress * 170 / per;
+            if (s.Shots != shownShots || next != shownNext)
+            {
+                shownShots = s.Shots;
+                shownNext = next;
+                view.Shots(s.Shots, next / 170.0);
             }
             return true;
         }

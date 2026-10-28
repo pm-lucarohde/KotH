@@ -1,0 +1,15 @@
+!Skeleton
+Id: E87A4D51-FCAE-4AAB-9BBC-B254CB7A02B1
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: ../../Resources/Models/Blaster.glb
+PivotPosition: {X: 0.0, Y: 0.0, Z: 0.0}
+Nodes:
+    7c40d2bd85c556979853bd6e668a5cb2: {Name: BlasterRig, Depth: 0, Preserve: true}
+    d9efab989bfe5cb89856967cc4aa829c: {Name: Blaster, Depth: 1, Preserve: true}
+    a3ca86f9594052949eb0e2942f6ed6eb: {Name: Gun, Depth: 1, Preserve: true}
+    3d0ce7ffb4ab5c5bad14f0d609f673bd: {Name: Ammo1, Depth: 2, Preserve: true}
+    77f754c85b5355fba233204e60073da5: {Name: Ammo2, Depth: 2, Preserve: true}
+    25234c773fad5019a924ecc679c4cfed: {Name: Ammo3, Depth: 2, Preserve: true}
+    99192157dca15d7cb361929350145b12: {Name: Breech, Depth: 2, Preserve: true}
+    4bc950137aee5956bb2bd47d98ecb632: {Name: Muzzle, Depth: 2, Preserve: true}

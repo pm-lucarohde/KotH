@@ -46,16 +46,17 @@ namespace KotH.Probes.Probes
             public float Wiggle;
             public int SlideAt;      // ticks into the leg, -1 for none
             public bool Calm;        // no random jumps
+            public bool Blaster;     // blaster in hand, the attacks shoot
         }
 
         static Leg L(float x, float z, int ticks, bool sprint = false,
                      float attack = 0f, float wiggle = 0f, int slideAt = -1,
-                     bool calm = false)
+                     bool calm = false, bool blaster = false)
             => new Leg
             {
                 Target = new Vector2(x, z), MaxTicks = ticks, Sprint = sprint,
                 AttackRate = attack, Wiggle = wiggle, SlideAt = slideAt,
-                Calm = calm || attack > 0f,
+                Calm = calm || attack > 0f, Blaster = blaster,
             };
 
         static readonly Leg[] Route =
@@ -63,8 +64,8 @@ namespace KotH.Probes.Probes
             L(12f, -4f, 60, attack: 0.15f),
             L(13f, -4f, 30, attack: 0.5f),   // behind the dummy, never reached
             L(5f, -4f, 50),
-            L(16f, -4f, 50, sprint: true, attack: 0.1f),
-            L(8f, -9f, 50, sprint: true, slideAt: 20),
+            L(16f, -4f, 50, sprint: true, attack: 0.1f, blaster: true),
+            L(8f, -9f, 50, sprint: true, slideAt: 20, blaster: true),
             L(-6f, -13f, 160, wiggle: 20f, calm: true),
             L(-6f, -3f, 100, wiggle: 40f, calm: true),
             L(-3.5f, -5f, 60),
@@ -294,6 +295,7 @@ namespace KotH.Probes.Probes
                 Yaw = Ref.Angle(yaw),
                 Pitch = Ref.Angle(10f),
                 Sprint = l.Sprint,
+                Blaster = l.Blaster,
             };
 
             if (l.SlideAt >= 0 && legTick >= l.SlideAt && legTick < l.SlideAt + 25)
@@ -596,8 +598,15 @@ namespace KotH.Probes.Probes
             var attack = playerEntity.Get<MeleeAttack>();
             Log($"[det] swings {attack.SwingCount}, hits {attack.HitCount}");
 
+            int flying = 0;
+            for (int t = 1; t <= Ticks; t++)
+                if (snaps[t].StateAt(Index(t)).Blaster.Shot0.Age > 0)
+                    flying++;
+            var blaster = playerEntity.Get<Blaster>();
+            Log($"[det] shots {blaster.ShotCount}, hits {blaster.HitCount}, {flying} ticks with a spore in flight");
+
             bool ok = sliding > 0 && air > 0 && sprint > 0 && steep > 0
-                   && steps > 0 && contacts > 0 && percent > 0f;
+                   && steps > 0 && contacts > 0 && percent > 0f && flying > 0;
             if (!ok)
                 Log("[det] COVERAGE MISSING: at least one state never occurred");
             return ok;
@@ -665,6 +674,8 @@ namespace KotH.Probes.Probes
         {
             Keep(typeof(BodyState));
             Keep(typeof(MotorState));
+            Keep(typeof(BlasterState));
+            Keep(typeof(BlasterShot));
             Keep(typeof(Vector3));
             Keep(typeof(Quaternion));
         }

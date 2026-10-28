@@ -43,5 +43,9 @@ namespace KotH.Shared.Player
 
         public bool Sprint;
         public bool Crouch;
+
+        /// <summary>The blaster is wanted in hand (key 2), else the cane (key 1). Absolute
+        /// like Yaw, so a lost packet cannot flip the choice.</summary>
+        public bool Blaster;
     }
 }

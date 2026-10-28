@@ -86,7 +86,7 @@ namespace KotH.Shared.Net
         }
 
         // Flags of a packed input.
-        const byte Sprint = 1, Crouch = 2, CrouchPressed = 4, JumpHeld = 8, GridMove = 16;
+        const byte Sprint = 1, Crouch = 2, CrouchPressed = 4, JumpHeld = 8, GridMove = 16, Blaster = 32;
 
         /// <summary>
         /// One input in 12 bytes when the move is on the keyboard grid
@@ -97,7 +97,7 @@ namespace KotH.Shared.Net
             bool grid = OnGrid(m.Move.X) && OnGrid(m.Move.Y);
             byte flags = (byte)((m.Sprint ? Sprint : 0) | (m.Crouch ? Crouch : 0) |
                                 (m.CrouchPressed ? CrouchPressed : 0) | (m.JumpHeld ? JumpHeld : 0) |
-                                (grid ? GridMove : 0));
+                                (grid ? GridMove : 0) | (m.Blaster ? Blaster : 0));
             w.Byte(flags);
             w.Byte(m.JumpPresses);
             w.Byte(m.AttackPresses);
@@ -121,6 +121,7 @@ namespace KotH.Shared.Net
                 Crouch = (flags & Crouch) != 0,
                 CrouchPressed = (flags & CrouchPressed) != 0,
                 JumpHeld = (flags & JumpHeld) != 0,
+                Blaster = (flags & Blaster) != 0,
                 JumpPresses = r.Byte(),
                 AttackPresses = r.Byte(),
             };
@@ -173,7 +174,7 @@ namespace KotH.Shared.Net
                Bits(a.Yaw) == Bits(b.Yaw) && Bits(a.Pitch) == Bits(b.Pitch) &&
                a.JumpPresses == b.JumpPresses && a.AttackPresses == b.AttackPresses &&
                a.JumpHeld == b.JumpHeld && a.CrouchPressed == b.CrouchPressed &&
-               a.Sprint == b.Sprint && a.Crouch == b.Crouch;
+               a.Sprint == b.Sprint && a.Crouch == b.Crouch && a.Blaster == b.Blaster;
 
         static int Bits(float f) => BitConverter.SingleToInt32Bits(f);
 

@@ -26,7 +26,7 @@ Tools/publish_aot.sh windows probes-windows  # on request only (lld-link, xwin)
 - Server: real time, `--seconds N` or `--ticks N` (fast, exact end state); `--map`, `--bots`, load test `--bodies N`
   (`--map Test`); network `--host`/`--join`/`--bot` (`NetPlay.cs`). Traces `KOTH_TRACE=BotName`, `KOTH_FALLS=1`.
 - Test aids (`KotHApp.cs` fields, times from the end of the load screen): `KOTH_SHOT=shot.png` (+ `_SECONDS`, `_YAW`,
-  `_AT`, `_MOVE`, `_VIDEO` …), `KOTH_HEADLESS=1`, `KOTH_SIZE`, `KOTH_MUSIC_VOLUME=0` (mute), `KOTH_EFFECTLOG`,
+  `_AT`, `_MOVE`, `_BLASTER`, `_FIRE`, `_VIDEO` …), `KOTH_HEADLESS=1`, `KOTH_SIZE`, `KOTH_MUSIC_VOLUME=0` (mute), `KOTH_EFFECTLOG`,
   `KOTH_POSLOG`; menu shots `KOTH_SHOT_MENU`, `_PAUSE`, `_HUD=banner`, `_LOAD`.
 
 ## Tests: probes and regression
@@ -34,9 +34,9 @@ Tools/publish_aot.sh windows probes-windows  # on request only (lld-link, xwin)
 No unit tests; probes against the frozen Unity reference, exit 0 = passed (`netstate` fails since 5c95973, known).
 
 ```bash
-Bin/Probes/aot/KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|step|
+Bin/Probes/aot/KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|blaster|step|
   determinism|clock|stairrun|rampfoot|crouchedge|knockback|thirdperson|wallknock|capture|netstate|netplay|bots>
-Bin/Probes/aot/KotH.Probes determinism hashes   # hash chain C857D39208F53C83
+Bin/Probes/aot/KotH.Probes determinism hashes   # hash chain A044A364063D4C04
 Bin/Probes/aot/KotH.Probes bots climb 12        # MountDestiny, mean ≤ 140 s; also bots stats 12, bots jumplab
 .work/tools/climb_many.sh DIR 8 13 && dotnet run .work/tools/climb_many.cs -- DIR   # 104 seeds, each bot
 .work/tools/stride_runs.sh 3; R=Reference/unity/runs
@@ -67,13 +67,13 @@ dotnet run Tools/Regress.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # nu
 ### Network
 - Rollback in a star: `HostSession` confirms ticks (inputs, joins, leaves), checksums every 40 ticks, state on desync;
   `PeerSession` (host too, `LocalTransport`) predicts and rolls back (ring 128, ≤ 15 ticks ahead).
-- `StateCodec` (version 3), bodies by `NetId` (players from 4), same `BuildId` needed (MVID, instruction set, assets).
+- `StateCodec` (version 4), bodies by `NetId` (players from 4), same `BuildId` needed (MVID, instruction set, assets).
 - UDP via LiteNetLib 2.1.4, datagrams ≤ 1200 B, inputs clamped (`Sanitize`). Client: `GameRoot` is the `INetWorld`,
   `NetClient` holds the sessions; wins shown only confirmed; never smooth corrections.
 
 ### Round (`KotH.Shared/Match`)
 - `HillMatch`: 3 s alone takes the zone, the holder scores while inside; phases `Running`/`Over`, networked also
-  `Waiting`/`Countdown`. Respawn below `RespawnBelow`, percent and points stay. Spawns random on a ring round the zone
+  `Waiting`/`Countdown`. Respawn below `RespawnBelow`, percent, points and shots stay. Spawns random on a ring round the zone
   (seed from `MatchState.Seed`), lobby on markers. Probe `capture`.
 
 ### Maps and assets
@@ -97,4 +97,4 @@ dotnet run Tools/Regress.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # nu
 - `ClimbGrid` (0.5 m columns, floors, moves in seconds), RTAA* to the zone, `JumpPilot` flies every jump in the motor
   model first (no jitter, Luca), `BotBrain` utility AI with `ManeuverWfc`. Status: 312/312 on top, mean 90 s.
 - Figure (visuals only): `Mushroom.glb` (17 clips, `.work/rig/build.sh`), FP arms in render group 2. The game moves
-  `Mouth`, `Leaf.*`, lids, `Look`, `Recoil`, `*ArmSwing.R`: **clips must have no channels for them.** Cane on `Grip.R`.
+  `Mouth`, `Leaf.*`, lids, `Look`, `Recoil`, `*ArmSwing.R`: **clips must have no channels for them.** Cane/`Blaster` (1/2) on `Grip.R`.

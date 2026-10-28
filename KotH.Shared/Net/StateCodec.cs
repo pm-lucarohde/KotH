@@ -15,7 +15,7 @@ namespace KotH.Shared.Net
     public static class StateCodec
     {
         const uint Magic = 0x4B6F5448; // "KoTH"
-        const int Version = 3;
+        const int Version = 4;
 
         /// <summary>Bytes before the round: magic, version, tick, body count.</summary>
         public const int HeadBytes = 16;

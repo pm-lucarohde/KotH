@@ -1,0 +1,8 @@
+!Texture
+Id: 04A074FE-CB2D-4025-9E74-A75CF518B5F8
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Models/BlasterGlow.png
+IsCompressed: true
+Type: !ColorTextureType
+    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}

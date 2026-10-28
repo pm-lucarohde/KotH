@@ -90,6 +90,9 @@ namespace KotH.Client
         /// <userdoc>Bone of the figure the held object follows: Grip.R is the centre of the right fist; in first person the arm clip turns it so the cane points up and right.</userdoc>
         [Display("Held object bone", "Visuals")] public string HeldBone = "Grip.R";
 
+        /// <userdoc>The mushroom blaster, held instead of the cane on key 2; modelled in the rest pose like the cane (.work/rig/blaster.py), bones Breech and Muzzle give its barrel.</userdoc>
+        [Display("Blaster", "Visuals")] public Model BlasterModel;
+
         /// <summary>Render group of the own figure, see PlayerCamera.</summary>
         const RenderGroup OwnFigureGroup = RenderGroup.Group1;
 
@@ -430,7 +433,8 @@ namespace KotH.Client
             arms = new Entity("Arms") { model, animation };
             arms.Transform.Position = new Vector3(0f, -ArmsEye, 0f);
             camera.AddChild(arms);
-            AttachHeld(arms, ArmsGroup, false);
+            AttachHeld(arms, ArmsGroup, false, HeldModel, PlayerVisualSystem.CaneEntity);
+            AttachHeld(arms, ArmsGroup, false, BlasterModel, PlayerVisualSystem.BlasterEntity);
             visuals.RegisterArms(arms, player.Get<PlayerMotor>());
         }
 
@@ -580,22 +584,23 @@ namespace KotH.Client
                         animation.Animations[PlayerVisualSystem.Clips[i]] = clips[i];
                 visual.Add(animation);
             }
-            AttachHeld(visual, group, true);
+            AttachHeld(visual, group, true, HeldModel, PlayerVisualSystem.CaneEntity);
+            AttachHeld(visual, group, true, BlasterModel, PlayerVisualSystem.BlasterEntity);
             Entity.Scene.Entities.Add(visual);
             visuals.Register(visual, body.Get<PlayerMotor>());
             return visual;
         }
 
-        /// <summary>Hangs HeldModel on HeldBone of figure's model, as a child so it goes
+        /// <summary>Hangs model on HeldBone of figure's model, as a child named name so it goes
         /// with it. The object is modelled in the figure's rest pose
         /// (.work/rig/bamboo.py): its local transform undoes the bone's rest, so at rest
         /// it sits as modelled and then follows the bone.</summary>
-        void AttachHeld(Entity figure, RenderGroup group, bool shadow)
+        void AttachHeld(Entity figure, RenderGroup group, bool shadow, Model model, string name)
         {
             var target = figure.Get<ModelComponent>();
             Skeleton skeleton = target?.Model?.Skeleton;
             int bone = skeleton == null ? -1 : Array.FindIndex(skeleton.Nodes, n => n.Name == HeldBone);
-            if (HeldModel == null || bone < 0)
+            if (model == null || bone < 0)
                 return;
             // The bone's rest in model space, child first (row vectors).
             Matrix rest = Matrix.Identity;
@@ -605,9 +610,9 @@ namespace KotH.Client
                 rest *= Matrix.Scaling(node.Scale) * Matrix.RotationQuaternion(node.Rotation) * Matrix.Translation(node.Position);
             }
             rest.Invert();
-            var held = new Entity("Held")
+            var held = new Entity(name)
             {
-                new ModelComponent(HeldModel) { RenderGroup = group, IsShadowCaster = shadow },
+                new ModelComponent(model) { RenderGroup = group, IsShadowCaster = shadow },
                 new ModelNodeLinkComponent { Target = target, NodeName = HeldBone },
             };
             rest.Decompose(out Vector3 scale, out Quaternion rotation, out Vector3 position);

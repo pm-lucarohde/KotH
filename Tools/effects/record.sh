@@ -1,6 +1,6 @@
 #!/bin/bash
 # Records the effect permutations the game uses (KOTH_EFFECTLOG) on a headless, silent tour of
-# the AOT client (menus, rounds with bots, Esc menu, banner, Test map), then merges them into
+# the AOT client (menus, rounds with bots, blaster, Esc menu, banner, Test map), then merges them into
 # KotH.Game/Assets/EffectCompileLog.sdeffectlog (EffectLog.cs).
 #   Tools/effects/record.sh [BIN]   (default Bin/Linux/aot; then publish again)
 set -e
@@ -18,6 +18,8 @@ run "KOTH_SHOT_MENU=1 KOTH_SHOT_MENU_PAGE=0 KOTH_SHOT_SECONDS=10"
 run "KOTH_SHOT_LOAD=1 KOTH_SHOT_SECONDS=2" --offline
 run "KOTH_SHOT_SECONDS=14 KOTH_SHOT_STRIKE=2,4,6 KOTH_SHOT_HIT=0,0.5 KOTH_SHOT_MOVE=0,1,sprint KOTH_SHOT_CROUCH=8 KOTH_SHOT_JUMP=10,10.3" --offline --bots 3
 run "KOTH_SHOT_SECONDS=14 KOTH_SHOT_THIRD=1 KOTH_SHOT_STRIKE=2,4 KOTH_SHOT_HIT=90 KOTH_SHOT_BLINK=1 KOTH_SHOT_TURN=180,6,90" --offline --bots 3
+run "KOTH_SHOT_SECONDS=8 KOTH_SHOT_BLASTER=1 KOTH_SHOT_FIRE=3,4,5" --offline --bots 3
+run "KOTH_SHOT_SECONDS=8 KOTH_SHOT_THIRD=1 KOTH_SHOT_BLASTER=1 KOTH_SHOT_FIRE=3,4,5" --offline --bots 3
 run "KOTH_SHOT_SECONDS=6 KOTH_SHOT_PAUSE=open" --offline --bots 3
 run "KOTH_SHOT_SECONDS=6 KOTH_SHOT_PAUSE=settings" --offline --bots 3
 run "KOTH_SHOT_SECONDS=6 KOTH_SHOT_HUD=banner" --offline --bots 3

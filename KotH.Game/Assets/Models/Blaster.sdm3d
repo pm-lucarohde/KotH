@@ -1,0 +1,14 @@
+!Model
+Id: 5942B4E1-B131-45B5-B5EA-B7483D477679
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Models/Blaster.glb
+PivotPosition: {X: 0.0, Y: 0.0, Z: 0.0}
+Materials:
+    4b866f9837484826906e5fc11399d299:
+        Name: Blaster
+        MaterialInstance:
+            Material: CBCBC09B-EE42-4A41-A7AD-6D16EEEAD66F:Materials/Blaster
+            IsShadowCaster: true
+Skeleton: E87A4D51-FCAE-4AAB-9BBC-B254CB7A02B1:Models/BlasterSkeleton
+Modifiers: {}

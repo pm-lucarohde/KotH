@@ -16,10 +16,10 @@ namespace KotH.Client.Player
 {
     /// <summary>Interpolates every player body in one update spread across worker threads; each
     /// visual is its own root entity, so the 40 Hz snap never shows. Plays the figure's clips by
-    /// weight (idle, walk and run in four directions by speed and heading, blinks), swings the
-    /// leaves, the cane's leaf and the mouth on springs, and the cane on every swing (ArmSwing).</summary>
+    /// weight, swings the leaves, the cane's leaf and the mouth on springs, and the cane on every
+    /// swing (ArmSwing); the blaster in PlayerVisualSystem.Blaster.cs.</summary>
     [DataContract("KotH.PlayerVisualSystem")]
-    public sealed class PlayerVisualSystem : SyncScript
+    public sealed partial class PlayerVisualSystem : SyncScript
     {
         readonly List<Entity> visuals = new List<Entity>();
 
@@ -228,6 +228,7 @@ namespace KotH.Client.Player
         AnimationComponent arms;
         PlayerMotor armsMotor;
         HeldLeaf armsLeaf;
+        Gun armsGun;
         ModelComponent armsModel;
         MeleeAttack armsMelee;
         int armsNetId, forcedSwing;
@@ -275,6 +276,7 @@ namespace KotH.Client.Player
             public Vector3 ShownAt;
             public Entity Spores, Sparkles;
             public HeldLeaf Held;
+            public Gun Gun;
             public MeleeAttack Melee;
             public readonly ArmSwing Swing = new ArmSwing();
         }
@@ -293,11 +295,12 @@ namespace KotH.Client.Player
             public float Clock;
         }
 
-        /// <summary>The leaf of the object visual holds (GameRoot.AttachHeld), null without.</summary>
-        static HeldLeaf FindHeld(Entity visual)
+        /// <summary>The object visual holds by this name (GameRoot.AttachHeld), null without.</summary>
+        static HeldLeaf FindHeld(Entity visual, string name)
         {
             foreach (TransformComponent child in visual.Transform.Children)
-                if (child.Entity.Get<ModelNodeLinkComponent>() != null && child.Entity.Get<ModelComponent>() is { } model)
+                if (child.Entity.Name == name && child.Entity.Get<ModelNodeLinkComponent>() != null &&
+                    child.Entity.Get<ModelComponent>() is { } model)
                     return new HeldLeaf { Model = model };
             return null;
         }
@@ -328,7 +331,8 @@ namespace KotH.Client.Player
                 // Figures side by side never blink together.
                 BlinkWait = BlinkPause(),
                 MouthClock = (float)random.NextDouble() * 30f,
-                Held = FindHeld(visual),
+                Held = FindHeld(visual, CaneEntity),
+                Gun = FindGun(visual, motor),
                 Melee = motor.Entity.Get<MeleeAttack>(),
             });
         }
@@ -340,7 +344,8 @@ namespace KotH.Client.Player
             armsTransform = visual.Transform;
             armsRest = visual.Transform.Position;
             armsMotor = motor;
-            armsLeaf = FindHeld(visual);
+            armsLeaf = FindHeld(visual, CaneEntity);
+            armsGun = FindGun(visual, motor);
             armsModel = visual.Get<ModelComponent>();
             armsMelee = motor.Entity.Get<MeleeAttack>();
             armsNetId = motor.Entity.Get<SimulationBody>()?.NetId ?? 0;
@@ -354,6 +359,7 @@ namespace KotH.Client.Player
             armsTransform = null;
             armsMotor = null;
             armsLeaf = null;
+            armsGun = null;
             armsModel = null;
         }
 
@@ -418,6 +424,7 @@ namespace KotH.Client.Player
                 spores.Scene?.Entities.Remove(spores);
             if (figures[i].Sparkles is { } sparkles)
                 sparkles.Scene?.Entities.Remove(sparkles);
+            DropGun(figures[i].Gun);
             figures.RemoveAt(i);
         }
 
@@ -459,8 +466,13 @@ namespace KotH.Client.Player
                 Sway(armsLeaf, armsMotor, dt);
             if (armsModel?.Skeleton is { } armsSkeleton)
             {
-                // The own swing in front of the eye, with less of the torso.
+                // The own swing in front of the eye, with less of the torso; the arms
+                // hang from the camera, so the view is straight ahead.
+                if (armsGun != null)
+                    HoldGun(armsGun, armsSwing, HoldPath.Arms, -Vector3.UnitZ, dt);
                 armsSwing.Update(armsSkeleton, armsMelee, armsNetId, Swing(), SwingPath.Arms, dt);
+                if (armsGun != null)
+                    ShowGun(armsGun, armsSwing, dt);
                 if (armsSwing.RecoilNode >= 0)
                     armsSkeleton.NodeTransformations[armsSwing.RecoilNode].Transform.Rotation =
                         Quaternion.Slerp(Quaternion.Identity, armsSwing.Torso, SwingArmsTorsoShare);
@@ -485,6 +497,14 @@ namespace KotH.Client.Player
             t.Position.Y += 0.5f * (motor.StandHeight * scale - motor.Height);
             Blink(f, dt);
             Breathe(f, dt);
+            if (f.Gun != null && f.Body != null)
+            {
+                // The view in the chest's frame: the head's turn less the torso's, and the pitch.
+                float pitch = f.Body.PreviousLookPitch + (f.Body.LookPitch - f.Body.PreviousLookPitch) * alpha;
+                Vector3 aim = Vector3.Transform(-Vector3.UnitZ, Quaternion.RotationYawPitchRoll(
+                    f.HeadYaw - f.TorsoYaw, MathUtil.DegreesToRadians(pitch), 0f));
+                HoldGun(f.Gun, f.Swing, HoldPath.Figure, aim, dt);
+            }
             f.Swing.Update(f.Model?.Skeleton, f.Melee, f.Body?.NetId ?? 0, Swing(), SwingPath.Figure, dt);
             if (f.Swing.Started != f.SwingsHeard)
             {
@@ -498,6 +518,14 @@ namespace KotH.Client.Player
             {
                 Tip(f.Held, f.Swing.CaneTip);
                 Sway(f.Held, motor, dt);
+            }
+            if (f.Gun != null)
+            {
+                ShowGun(f.Gun, f.Swing, dt);
+                // The own shots leave the gun the eye sees: the arms' in first person.
+                bool own = armsGun != null && armsMotor == motor &&
+                           motor.Entity.Get<PlayerInputReader>() is { ThirdPerson: false };
+                Flights(f.Gun, own ? armsGun : f.Gun, alpha);
             }
         }
 
@@ -728,7 +756,8 @@ namespace KotH.Client.Player
             off = Math.Clamp(off, -most, most);
             f.BodyYaw = f.View - off;
             f.HeadYaw = off;
-            f.TorsoYaw = off * SwingTurnTorsoShare * twist;
+            // The blaster up, the chest turns with the view like in a swing.
+            f.TorsoYaw = off * SwingTurnTorsoShare * MathF.Max(twist, f.Gun?.Raise ?? 0f);
             t.Rotation = Quaternion.RotationY(f.BodyYaw);
         }
 

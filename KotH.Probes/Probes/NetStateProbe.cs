@@ -46,7 +46,7 @@ namespace KotH.Probes.Probes
             using var second = new HeadlessWorld();
             Side b = Build(second, 3);
             Log($"[netstate] BodyState {StateCodec.BodyStateSize} bytes, {a.Sim.Bodies.Count} bodies per world");
-            Check(StateCodec.BodyStateSize == 202, "BodyState without padding (202 bytes)");
+            Check(StateCodec.BodyStateSize == 307, "BodyState without padding (307 bytes)");
 
             Transfer(a, b);
             JoinRollback(a);

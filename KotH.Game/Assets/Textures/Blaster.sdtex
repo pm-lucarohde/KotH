@@ -1,0 +1,8 @@
+!Texture
+Id: 37F8422F-0FF0-4FCD-B139-62008699C724
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Models/Blaster.png
+IsCompressed: true
+Type: !ColorTextureType
+    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}

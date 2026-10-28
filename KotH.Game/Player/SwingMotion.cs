@@ -75,6 +75,8 @@ namespace KotH.Client.Player
         Vector3 from, high, bulgeHigh, bulgeLow, low, pole, caneHigh, caneLow;
         float startWeight, pace = 1f, torso = 1f;
         float yawNow, bendNow, startYaw, startBend;
+        Vector3 holdHand, holdAim, holdUp, holdGrip, barrel, gunUp;
+        float holdWeight;
 
         /// <summary>The hand's goal relative to the shoulder and how much it counts.</summary>
         public Vector3 Hand { get; private set; }
@@ -85,6 +87,9 @@ namespace KotH.Client.Player
 
         /// <summary>The cane's tip in the fist, in the grip bone's frame; identity at rest.</summary>
         public Quaternion CaneTip { get; private set; } = Quaternion.Identity;
+
+        /// <summary>The gun's turn in the fist onto Hold's aim, in the grip bone's frame like CaneTip.</summary>
+        public Quaternion GunTip { get; private set; } = Quaternion.Identity;
 
         /// <summary>The torso's share of the swing, already weighted; identity at rest.</summary>
         public Quaternion Torso { get; private set; } = Quaternion.Identity;
@@ -113,6 +118,21 @@ namespace KotH.Client.Player
             }
             Step(settings, dt);
             Pose(skeleton);
+        }
+
+        /// <summary>While no swing runs the hand goes to hand (shoulder frame), blended in by weight.
+        /// With an aim the forearm turns the gun near it, and GunTip turns the rest in the fist:
+        /// barrel and gunUp are the gun's in the grip bone's frame, up is where its top should face.</summary>
+        public void Hold(Vector3 hand, float weight, Vector3 aim, Vector3 up, Vector3 barrel, Vector3 gunUp)
+        {
+            holdHand = hand;
+            holdWeight = weight;
+            holdAim = aim;
+            this.barrel = barrel;
+            this.gunUp = gunUp;
+            holdUp = Vector3.Normalize(up - aim * Vector3.Dot(aim, up));
+            // The grip bone's Y in the gun's frame, carried over onto the aim.
+            holdGrip = aim == Vector3.Zero ? Vector3.Zero : aim * barrel.Y + holdUp * gunUp.Y;
         }
 
         /// <summary>Starts a swing now whatever melee says, for KOTH_SHOT_STRIKE.</summary>
@@ -193,7 +213,9 @@ namespace KotH.Client.Player
         {
             if (age == float.MaxValue)
             {
-                Weight = 0f;
+                Weight = holdWeight;
+                Hand = holdHand;
+                Cane = holdGrip;
                 Torso = Quaternion.Identity;
                 return;
             }
@@ -274,6 +296,7 @@ namespace KotH.Client.Player
         {
             ModelNodeTransformation[] t = skeleton.NodeTransformations;
             CaneTip = Quaternion.Identity;
+            GunTip = Quaternion.Identity;
             if (Weight < 1e-3f)
             {
                 t[upperSwing].Transform.Rotation = Quaternion.Identity;
@@ -340,6 +363,18 @@ namespace KotH.Client.Player
                     float tip = MathF.Min(MathF.Atan2(sin, Vector3.Dot(now, wish)), MaxTip) * Weight;
                     CaneTip = held * Quaternion.RotationAxis(axis / sin, tip) * Quaternion.Invert(held);
                 }
+            }
+            if (age == float.MaxValue && holdAim != Vector3.Zero)
+            {
+                // What the forearm left, the gun turns in the fist: barrel onto the aim,
+                // then about it until its top faces up.
+                Quaternion held = t[grip].Transform.Rotation * lowerGoal;
+                Quaternion onAim = Between(Vector3.Normalize(Vector3.Transform(barrel, held)), holdAim);
+                Vector3 top = Vector3.Transform(Vector3.Transform(gunUp, held), onAim);
+                top -= holdAim * Vector3.Dot(holdAim, top);
+                float spin = MathF.Atan2(Vector3.Dot(holdAim, Vector3.Cross(top, holdUp)), Vector3.Dot(top, holdUp));
+                Quaternion full = onAim * Quaternion.RotationAxis(holdAim, spin);
+                GunTip = held * Quaternion.Slerp(Quaternion.Identity, full, Weight) * Quaternion.Invert(held);
             }
             Quaternion q1 = upperGoal * Quaternion.Invert(a);
             Quaternion q2 = lowerGoal * Quaternion.Invert(b * upperGoal);

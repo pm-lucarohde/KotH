@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Controls.Shapes;
 using Avalonia.Media;
 
 namespace KotH.Client.Hud
@@ -92,6 +93,25 @@ namespace KotH.Client.Hud
         }
 
         public void Hurt(string percent) => Set(Damage, percent);
+
+        static readonly IBrush Spore = new SolidColorBrush(Color.FromRgb(0xA8, 0xF0, 0x60));
+
+        /// <summary>The blaster's shots left as filled spores, and the share towards the next.</summary>
+        public void Shots(int shots, double next)
+        {
+            Ellipse[] dots = { Shot1, Shot2, Shot3 };
+            for (int i = 0; i < dots.Length; i++)
+            {
+                IBrush fill = i < shots ? Spore : null;
+                if (dots[i].Fill != fill)
+                    dots[i].Fill = fill;
+                if (dots[i].Stroke != Spore)
+                    dots[i].Stroke = Spore;
+            }
+            double width = 170 * System.Math.Clamp(next, 0, 1);
+            if (Next.Width != width)
+                Next.Width = width;
+        }
 
         /// <summary>The winner, in the own colour when it is this screen's, and the time to the next round.</summary>
         public void Win(string title, bool isOwn, string countdown)

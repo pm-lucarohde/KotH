@@ -191,7 +191,7 @@ namespace KotH.Shared.Combat
         }
 
         // Unity's GetComponentInParent: the entity itself, then upwards.
-        static DamagePercent FindInParents(Entity entity)
+        internal static DamagePercent FindInParents(Entity entity)
         {
             for (Entity e = entity; e != null; e = e.GetParent())
             {

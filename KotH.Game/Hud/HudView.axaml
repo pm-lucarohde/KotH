@@ -57,6 +57,24 @@
             </Border>
         </Grid>
 
+        <!-- The blaster's shots, only with it up: a spore per shot, the bar fills with
+             points in the zone towards the next -->
+        <Grid Name="AmmoPart" Width="262" Height="104">
+            <Border Classes="Glass" Margin="24" CornerRadius="11" Padding="18,0">
+                <StackPanel Spacing="5" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
+                        <TextBlock Classes="Hud Soft" Text="Spores" FontSize="22" Margin="0,0,4,2" />
+                        <Ellipse Name="Shot1" Width="16" Height="16" StrokeThickness="2" VerticalAlignment="Center" />
+                        <Ellipse Name="Shot2" Width="16" Height="16" StrokeThickness="2" VerticalAlignment="Center" />
+                        <Ellipse Name="Shot3" Width="16" Height="16" StrokeThickness="2" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <Border Width="170" Height="4" CornerRadius="2" Background="#40FFFFFF">
+                        <Border Name="Next" Width="0" CornerRadius="2" Background="#A8F060" HorizontalAlignment="Left" />
+                    </Border>
+                </StackPanel>
+            </Border>
+        </Grid>
+
         <Grid Name="BannerPart" Width="1100" Height="150">
             <Border Classes="Glass" Margin="24" CornerRadius="24" HorizontalAlignment="Center" Padding="48,0">
                 <TextBlock Name="Banner" Classes="Hud" Text="Draw" FontSize="66" Margin="0,0,0,8" />

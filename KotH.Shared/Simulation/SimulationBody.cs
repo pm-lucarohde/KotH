@@ -26,6 +26,7 @@ namespace KotH.Shared.Simulation
 
         // Optional: a body without fists does not have to say so.
         MeleeAttack attack;
+        Blaster blaster;
         DamagePercent damage;
 
         // Where the body joined, for the next round of a HillMatch.
@@ -106,6 +107,7 @@ namespace KotH.Shared.Simulation
         {
             Motor = Wire(Entity, world);
             attack = Entity.Get<MeleeAttack>();
+            blaster = Entity.Get<Blaster>();
             damage = Entity.Get<DamagePercent>();
         }
 
@@ -117,6 +119,7 @@ namespace KotH.Shared.Simulation
             PlayerMotor motor = entity.Get<PlayerMotor>();
             motor.Initialize(world);
             entity.Get<MeleeAttack>()?.Initialize(motor);
+            entity.Get<Blaster>()?.Initialize(motor);
             entity.Get<Hittable>()?.Check(motor.Hull);
             return motor;
         }
@@ -131,6 +134,7 @@ namespace KotH.Shared.Simulation
                 DamagePercent = damage != null ? damage.Percent : 0f,
                 ScoreTicks = ScoreTicks,
                 AloneTicks = AloneTicks,
+                Blaster = blaster != null ? blaster.State : default,
             };
         }
 
@@ -140,6 +144,7 @@ namespace KotH.Shared.Simulation
             spawn = CaptureState();
             spawn.ScoreTicks = 0;
             spawn.AloneTicks = 0;
+            spawn.Blaster.ScoreSeen = 0;
             HasSpawn = true;
         }
 
@@ -152,7 +157,7 @@ namespace KotH.Shared.Simulation
 
         /// <summary>
         /// Back to where it joined after falling out of the arena: the motor
-        /// only, so percent, points and the swing's cooldown carry on.
+        /// only, so percent, points, shots and the swing's cooldown carry on.
         /// </summary>
         public void Respawn()
         {
@@ -179,6 +184,8 @@ namespace KotH.Shared.Simulation
             if (attack != null)
                 attack.TicksUntilReady = state.AttackCooldown;
 
+            blaster?.Restore(state.Blaster);
+
             if (damage != null)
                 damage.Restore(state.DamagePercent);
 
@@ -191,7 +198,18 @@ namespace KotH.Shared.Simulation
         /// happened to be.</summary>
         public void TickCombat(in MoveInput input, float dt)
         {
-            attack?.Tick(input, dt);
+            if (blaster == null)
+            {
+                attack?.Tick(input, dt);
+                return;
+            }
+
+            // The blaster first, so a switch takes the cane out of hand in the same tick.
+            blaster.Tick(input, ScoreTicks, Simulation?.CurrentTick ?? 0, dt);
+            MoveInput swing = input;
+            if (!blaster.CaneReady)
+                swing.AttackPresses = 0;
+            attack?.Tick(swing, dt);
         }
     }
 }

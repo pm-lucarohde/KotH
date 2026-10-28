@@ -53,6 +53,9 @@ namespace KotH.Client.Player
         Vector2 move;
         bool jumpHeld, sprintHeld, crouchHeld;
 
+        // Blaster in hand, else the cane: keys 1 and 2 switch, nothing else does.
+        bool blaster;
+
         /// <summary>Stride angles: yaw about +Y, pitch positive looks up.</summary>
         [DataMemberIgnore] public float Yaw => yaw;
         [DataMemberIgnore] public float Pitch => pitch;
@@ -86,6 +89,13 @@ namespace KotH.Client.Player
         {
             crouchPressed = true;
             heldCrouch = true;
+        }
+
+        /// <summary>The blaster in hand (key 2) or the cane (key 1); set as a test aid.</summary>
+        [DataMemberIgnore] public bool Blaster
+        {
+            get => blaster;
+            set => blaster = value;
         }
 
         /// <summary>One swing in the next tick, as a test aid: hits checked from a screenshot run.</summary>
@@ -145,6 +155,12 @@ namespace KotH.Client.Player
 
             if (KeyPresses.Pressed(input, CrouchKey))
                 crouchPressed = true;
+
+            // 1 the cane, 2 the blaster; the choice stays until the other key.
+            if (input.IsKeyPressed(Keys.D1) || input.IsKeyPressed(Keys.NumPad1))
+                blaster = false;
+            else if (input.IsKeyPressed(Keys.D2) || input.IsKeyPressed(Keys.NumPad2))
+                blaster = true;
 
             move = new Vector2(Axis(input, Keys.D, Keys.Right, Keys.A, Keys.Left),
                                Axis(input, Keys.W, Keys.Up, Keys.S, Keys.Down));
@@ -207,6 +223,7 @@ namespace KotH.Client.Player
                 CrouchPressed = crouchPressed,
                 Sprint = sprintHeld,
                 Crouch = crouchHeld,
+                Blaster = blaster,
             };
 
             // Cleared on read, so a press is consumed by exactly one tick.

@@ -89,5 +89,18 @@ Hierarchy:
                         Range: 3.5
                         DamagePercent: 1.2
                         CooldownTicks: 13
+                    2b8197925ca64d2ca52f11f500824c0a: !KotH.Blaster
+                        Id: 3F3B073C-BCA4-4B47-A890-310FAC1F4F28
+                        Speed: 130.0
+                        Gravity: 9.81
+                        LifetimeTicks: 80
+                        CooldownTicks: 10
+                        DrawTicks: 8
+                        MaxShots: 3
+                        PointsPerShot: 30
+                        DamagePercent: 1.2
+                        KnockbackDistance: 18.0
+                        KnockbackHeight: 1.8
+                        KnockbackHeightFloor: 1.0
                     8b6c924086f0522dbd20f55e780fd49d: !KotH.Hittable
                         Id: C85214C0-0EB6-5BEF-9DD2-6BFBA18EF2E4

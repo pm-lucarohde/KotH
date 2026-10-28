@@ -67,6 +67,11 @@ sealed class KotHGame : Game
     readonly Queue<double> shotJumps = new Queue<double>(
         (Environment.GetEnvironmentVariable("KOTH_SHOT_JUMP") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)
             .Select(s => double.Parse(s, CultureInfo.InvariantCulture)));
+    // KOTH_SHOT_BLASTER=s draws the blaster at s, KOTH_SHOT_FIRE=s[,s2] presses the trigger (or swings).
+    double? shotBlaster = Number("KOTH_SHOT_BLASTER");
+    readonly Queue<double> shotFires = new Queue<double>(
+        (Environment.GetEnvironmentVariable("KOTH_SHOT_FIRE") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(s => double.Parse(s, CultureInfo.InvariantCulture)));
     readonly Queue<double> shotStrikes = new Queue<double>(
         (Environment.GetEnvironmentVariable("KOTH_SHOT_STRIKE") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)
             .Select(s => double.Parse(s, CultureInfo.InvariantCulture)));
@@ -335,6 +340,16 @@ sealed class KotHGame : Game
             {
                 player.Jump();
                 shotJumps.Dequeue();
+            }
+            if (shotBlaster.HasValue && TestSeconds(gameTime) >= shotBlaster.Value)
+            {
+                player.Blaster = true;
+                shotBlaster = null;
+            }
+            while (shotFires.Count > 0 && TestSeconds(gameTime) >= shotFires.Peek())
+            {
+                player.Swing();
+                shotFires.Dequeue();
             }
             if (shotSwing && TestSeconds(gameTime) >= shotSeconds - 1.0)
             {

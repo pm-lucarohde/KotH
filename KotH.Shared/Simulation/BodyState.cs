@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using KotH.Shared.Combat;
 using KotH.Shared.Player;
 
 namespace KotH.Shared.Simulation
@@ -17,5 +18,7 @@ namespace KotH.Shared.Simulation
         // King of the hill, in ticks: points earned and time holding the zone.
         public int ScoreTicks;
         public int AloneTicks;
+
+        public BlasterState Blaster;
     }
 }
