@@ -76,7 +76,10 @@ namespace KotH.Client.Player
         float startWeight, pace = 1f, torso = 1f;
         float yawNow, bendNow, startYaw, startBend;
         Vector3 holdHand, holdAim, holdUp, holdGrip, barrel, gunUp;
-        float holdWeight;
+        float holdWeight, holdFollow;
+        // The clip's hand and its slow mean: what it swings walking and running.
+        Vector3 clipHand, clipMean;
+        bool hasClip;
 
         /// <summary>The hand's goal relative to the shoulder and how much it counts.</summary>
         public Vector3 Hand { get; private set; }
@@ -109,6 +112,9 @@ namespace KotH.Client.Player
         {
             if (skeleton == null || !Bind(skeleton))
                 return;
+            clipHand = ClipHand(skeleton);
+            clipMean = hasClip ? clipMean + (clipHand - clipMean) * (1f - MathF.Exp(-dt / 0.5f)) : clipHand;
+            hasClip = true;
             if (melee != null && (!watching || melee.LastSwingTick != seen))
             {
                 if (watching && melee.LastSwingTick > seen)
@@ -120,12 +126,15 @@ namespace KotH.Client.Player
             Pose(skeleton);
         }
 
-        /// <summary>While no swing runs the hand goes to hand (shoulder frame), blended in by weight.
-        /// With an aim the forearm turns the gun near it, and GunTip turns the rest in the fist:
-        /// barrel and gunUp are the gun's in the grip bone's frame, up is where its top should face.</summary>
-        public void Hold(Vector3 hand, float weight, Vector3 aim, Vector3 up, Vector3 barrel, Vector3 gunUp)
+        /// <summary>While no swing runs the hand goes to hand (shoulder frame), blended in by weight,
+        /// moved by follow times the clip's own swing about its mean, so the gun bobs in step.
+        /// With an aim GunTip turns the gun onto it in the fist: barrel and gunUp are the gun's in the
+        /// grip bone's frame, up is where its top should face.</summary>
+        public void Hold(Vector3 hand, float weight, Vector3 aim, Vector3 up, Vector3 barrel, Vector3 gunUp,
+                         float follow = 0f)
         {
             holdHand = hand;
+            holdFollow = follow;
             holdWeight = weight;
             holdAim = aim;
             this.barrel = barrel;
@@ -214,7 +223,7 @@ namespace KotH.Client.Player
             if (age == float.MaxValue)
             {
                 Weight = holdWeight;
-                Hand = holdHand;
+                Hand = holdHand + (clipHand - clipMean) * holdFollow;
                 Cane = holdGrip;
                 Torso = Quaternion.Identity;
                 return;

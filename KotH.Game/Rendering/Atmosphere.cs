@@ -68,9 +68,9 @@ namespace KotH.Client.Rendering
         [DataMember(42)] public float CloudShadow { get; set; } = 0.45f;
 
         /// <userdoc>Density per metre of the coastal fog in its wisps, right above the water (0 = no coastal fog).</userdoc>
-        [DataMember(50)] public float CoastDensity { get; set; } = 0.06f;
+        [DataMember(50)] public float CoastDensity { get; set; } = 0.035f;
         /// <userdoc>Share of even haze between the wisps (0 = wisps only, 1 = the same everywhere).</userdoc>
-        [DataMember(51)] public float CoastHaze { get; set; } = 0.15f;
+        [DataMember(51)] public float CoastHaze { get; set; } = 0.10f;
         /// <userdoc>Height of the water in metres the coastal fog lies on.</userdoc>
         [DataMember(52)] public float CoastLevel { get; set; } = 0.4f;
         /// <userdoc>Metres above the water up to which the coastal fog fades out.</userdoc>

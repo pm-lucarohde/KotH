@@ -33,6 +33,9 @@ namespace KotH.Client.Player
         /// <userdoc>How far a shot tips the barrel up, in degrees.</userdoc>
         [Display("Kick tilt", "Blaster")] public float KickDegrees = 12f;
 
+        /// <userdoc>How much the held blaster follows the arms' swing walking and running (1 = as the cane).</userdoc>
+        [Display("Bob", "Blaster")] public float GunBob = 0.20f;
+
         /// <userdoc>How far a shot pushes the hand back, in metres.</userdoc>
         [Display("Kick back", "Blaster")] public float KickBack = 0.05f;
 
@@ -132,7 +135,7 @@ namespace KotH.Client.Player
             if (shown && g.Barrel == Vector3.Zero)
                 Axes(g);
             swing.Hold(hand, Smooth(g.Draw), shown && g.Barrel != Vector3.Zero ? aim : Vector3.Zero,
-                       Vector3.UnitY, g.Barrel, g.Top);
+                       Vector3.UnitY, g.Barrel, g.Top, GunBob);
         }
 
         /// <summary>After the arm's IK: shows cane or gun, turns the gun onto the aim in the fist,
