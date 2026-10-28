@@ -11,11 +11,6 @@ UsedParameters: {}
 EffectName: ColorTransformGroupEffect
 UsedParameters:
     ColorTransformGroup.Transforms:
-        - !OvalVignette
-            Amount: 0.5
-            RadiusSides: 0.25
-            RadiusTopBottom: 0.5
-            Color: {R: 0.0, G: 0.0, B: 0.0}
         - !LuminanceToChannelTransform {}
 ---
 !EffectCompileRequest
