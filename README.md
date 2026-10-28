@@ -45,6 +45,5 @@ KotH is free software under the **GNU Lesser General Public License, version 3 o
 supplementing the GPL v3 in [`COPYING`](COPYING)). Copyright © 2026 Luca Rohde. Bundled third-party parts keep their licenses:
 
 - `KotH.Game/Resources/Fonts/FiraCode-Regular.ttf`: Fira Code 6.2, SIL Open Font License 1.1 (`FiraCode-OFL.txt` next to it).
-- `KotH.Game/Resources/skybox_texture_*.dds`: from the Stride project template, MIT.
 - `KotH.Game/Resources/Music/*.mp3`: from [Pixabay](https://pixabay.com/service/license-summary/) (Pixabay Content License),
   normalised to −15.5 LUFS; the file names name the artist and the track's Pixabay ID.

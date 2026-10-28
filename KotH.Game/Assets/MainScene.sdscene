@@ -173,7 +173,7 @@ Hierarchy:
                         Children: {}
                     50ab9d07393b0d80a6cff9ffb3104e4a: !BackgroundComponent
                         Id: F22FCA71-C8F9-4653-8466-CE6945A2DAB3
-                        Texture: C8F1566C-4832-4943-B46D-E72AD417E250:Skybox texture
+                        Texture: C8F1566C-4832-4943-B46D-E72AD417E250:Textures/Sky
                         Intensity: 0.35
         -   Entity:
                 Id: 1CF3AC48-0B2B-50ED-B2FD-A700E4F2FAA4

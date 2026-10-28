@@ -1,6 +1,6 @@
 using Stride.Input;
 
-namespace KotH.Client
+namespace KotH.Client.Player
 {
     /// <summary>Key presses without the operating system's auto-repeat. Stride's
     /// IsKeyPressed also reports every repeat of a held key, so a held Space turned into

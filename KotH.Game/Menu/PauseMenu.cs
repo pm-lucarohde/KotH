@@ -1,5 +1,6 @@
 using System;
 using KotH.Client.Hud;
+using KotH.Client.Player;
 using Stride.Core;
 using Stride.Core.Mathematics;
 using Stride.Engine;

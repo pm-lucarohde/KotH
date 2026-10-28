@@ -2,6 +2,7 @@ using System;
 using System.Runtime;
 using KotH.Client.Hud;
 using KotH.Client.Net;
+using KotH.Client.Player;
 using KotH.Client.Rendering;
 using KotH.Shared.Net;
 using Stride.Core;
