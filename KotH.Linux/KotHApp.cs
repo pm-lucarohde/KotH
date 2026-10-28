@@ -61,6 +61,7 @@ game.Run();
 /// ambient and the figures' sounds (silent with KOTH_MUSIC_VOLUME=0 unless set), KOTH_SOUNDLOG=1
 /// logs each of those. KOTH_HEADLESS=1 never shows
 /// the window and renders into a texture of KOTH_SIZE (default 2560x1440), for shots.
+/// KOTH_EFFECTLOG=path records the effect permutations used (EffectRecorder).
 /// </summary>
 sealed class KotHGame : Game
 {
@@ -179,6 +180,7 @@ sealed class KotHGame : Game
     protected override void Initialize()
     {
         base.Initialize();
+        KotH.Client.Rendering.EffectRecorder.Attach(EffectSystem);
         if (headless)
             return;
         if (Window.NativeWindow?.NativeWindow is not Stride.Graphics.SDL.Window sdl)

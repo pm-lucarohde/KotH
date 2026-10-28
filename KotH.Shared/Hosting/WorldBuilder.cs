@@ -4,6 +4,7 @@ using System.IO;
 using System.IO.Compression;
 using KotH.Shared.Bots;
 using KotH.Shared.Match;
+using KotH.Shared.Net;
 using KotH.Shared.Physics;
 using Stride.BepuPhysics;
 using Stride.BepuPhysics.Definitions.Colliders;
@@ -32,6 +33,7 @@ namespace KotH.Shared.Hosting
             Scene = scene;
             this.content = content;
             this.queries = queries;
+            NetProtocol.AddAssets(content);
         }
 
         public Scene Scene { get; }

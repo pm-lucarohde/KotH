@@ -1,11 +1,16 @@
 using System;
 using System.Buffers;
 using System.Buffers.Binary;
+using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.Intrinsics.X86;
+using System.Security.Cryptography;
 using System.Text;
 using KotH.Shared.Player;
 using KotH.Shared.Simulation;
+using Stride.Core.IO;
+using Stride.Core.Serialization.Contents;
+using Stride.Core.Storage;
 
 namespace KotH.Shared.Net
 {
@@ -43,13 +48,16 @@ namespace KotH.Shared.Net
         /// <summary>
         /// Which build this is. Peers only play with an identical one: the
         /// simulation module's id plus the instruction set it runs with,
-        /// since float results depend on both.
+        /// since float results depend on both; then the shared assets (AddAssets).
         /// </summary>
         public static readonly byte[] BuildId = MakeBuildId();
 
+        const string SharedAssets = "/KotH.Shared/";
+        static bool assetsAdded;
+
         static byte[] MakeBuildId()
         {
-            var id = new byte[20];
+            var id = new byte[28];
             typeof(SimulationSystem).Module.ModuleVersionId.TryWriteBytes(id);
             id[16] = (byte)Vector<float>.Count;
             id[17] = (byte)((Avx.IsSupported ? 1 : 0) | (Avx2.IsSupported ? 2 : 0) | (Fma.IsSupported ? 4 : 0));
@@ -58,6 +66,28 @@ namespace KotH.Shared.Net
         }
 
         public static string BuildText => Convert.ToHexString(BuildId);
+
+        /// <summary>
+        /// Adds the shared assets to the build id, once: map collisions, spawns and
+        /// bodies live in the bundle, not in the module, and a peer with other ones
+        /// would desync. Stride names each object by the hash of its bytes, so their
+        /// content ids, sorted by URL, are the same for client and server.
+        /// </summary>
+        public static void AddAssets(ContentManager content)
+        {
+            if (assetsAdded || content.FileProvider is not DatabaseFileProvider provider)
+                return;
+            var shared = new List<KeyValuePair<string, ObjectId>>();
+            foreach (KeyValuePair<string, ObjectId> entry in provider.ContentIndexMap.GetMergedIdMap())
+                if (entry.Key.StartsWith(SharedAssets, StringComparison.Ordinal))
+                    shared.Add(entry);
+            shared.Sort((a, b) => string.CompareOrdinal(a.Key, b.Key));
+            using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+            foreach (KeyValuePair<string, ObjectId> entry in shared)
+                hash.AppendData(Encoding.UTF8.GetBytes($"{entry.Key} {entry.Value}\n"));
+            hash.GetHashAndReset().AsSpan(0, 8).CopyTo(BuildId.AsSpan(20));
+            assetsAdded = true;
+        }
 
         // Flags of a packed input.
         const byte Sprint = 1, Crouch = 2, CrouchPressed = 4, JumpHeld = 8, GridMove = 16;

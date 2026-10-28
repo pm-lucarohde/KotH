@@ -31,5 +31,19 @@ for t in $targets; do
     | grep -E 'error|warning (IL|AOT)|->' || true
   name=${proj/KotH.Linux/KotH}
   test -x "$out/${name/KotH.Windows/KotH}$exe" || { echo "$proj: kein Binary" >&2; exit 1; }
+  # Stride bug: the effects of EffectCompileLog.sdeffectlog get compiled, but their index
+  # entries stay in the first command's database, so the bundle lacks them. The game also
+  # finds them without the index: a 16-byte object named by the input hash holds the
+  # bytecode's id. Both go as loose objects into data/db.
+  db=KotH.Game/obj/stride/assetbuild/data/db; effects=0
+  if [ "$t" = linux ] || [ "$t" = windows ]; then
+    for f in $(cd $db && find . -type f -size 16c -path "./??/*"); do
+      id=$(od -An -tx1 -N16 "$db/$f" | tr -d ' \n'); code=${id:0:2}/${id:2}
+      [ -f "$db/$code" ] || continue
+      mkdir -p "$out/data/db/${f:2:2}" "$out/data/db/${id:0:2}"
+      cp "$db/$f" "$out/data/db/$f"; cp "$db/$code" "$out/data/db/$code"; effects=$((effects + 1))
+    done
+    echo "   $effects vorübersetzte Effekte"
+  fi
   if [ -d "$out.cache" ]; then mv "$out.cache" "$out/cache"; fi
 done

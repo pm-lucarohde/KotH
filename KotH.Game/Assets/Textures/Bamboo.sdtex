@@ -3,6 +3,6 @@ Id: B3925482-29CB-4013-B268-AD73F4A4D57B
 SerializedVersion: {Stride: 2.0.0.0}
 Tags: []
 Source: !file ../../Resources/Models/Bamboo.png
-IsCompressed: false
+IsCompressed: true
 Type: !ColorTextureType
     ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}

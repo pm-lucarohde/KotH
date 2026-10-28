@@ -3,5 +3,5 @@ Id: C03625BA-C088-464B-BC04-DE438E449A44
 SerializedVersion: {Stride: 2.0.0.0}
 Tags: []
 Source: !file ../../../Resources/Textures/Terrain/NeuContact.png
-IsCompressed: false
+IsCompressed: true
 Type: !GrayscaleTextureType {}

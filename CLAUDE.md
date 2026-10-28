@@ -21,7 +21,7 @@ Tools/publish_aot.sh windows probes-windows  # nur auf Wunsch: Bin/Windows/aot, 
 ```
 
 - AOT linkt in der Distrobox `aot` (clang, lld, zlib-devel, libva); ILC stürzt manchmal ab, dann neu starten. Immer
-  `--no-incremental` (sonst altes Szenen-Bundle, Client stürzt). Shader-Cache `aot/cache` überlebt den Build.
+  `--no-incremental` (sonst altes Szenen-Bundle, Client stürzt). Shader-Cache `aot/cache` überlebt den Build. Effekte vorübersetzt: `Tools/effects/record.sh` nach neuen Materialien/Effekten; publish kopiert sie lose nach `data/db` (Stride-Bug, Memory).
 - Server: Echtzeit bis Strg+C, `--seconds N` oder `--ticks N` (so schnell wie möglich, µs/Tick, B/Tick,
   exakter Endzustand); `--map NAME` (Standard `Neu`); `--bots N --bot-seed N`; Lasttest `--bodies N --warmup N`
   (für `--map Test`, `BenchBot`s); `KOTH_TRACE=BotName`, `KOTH_FALLS=1`. Endzustands-Hash JIT = AOT.
@@ -32,7 +32,7 @@ Tools/publish_aot.sh windows probes-windows  # nur auf Wunsch: Bin/Windows/aot, 
 - Testhilfen (`KotHApp.cs`, Zeiten ab Ende des Ladebilds): `KOTH_SHOT=bild.png` (nach `_SECONDS`, F3 an), `_YAW`/`_PITCH`/`_FOV`,
   `_THIRD`, `_AT=x,y,z`, `_FACE=grad`, `_SWING`, `_SHAKE`, `_HIT=grad[,s]`, `_BLINK`, `_STRIKE=s,…`, `_MOVE=x,y[,sprint]`, `_CROUCH=s`,
   `_JUMP=s,…`, `_TURN=grad,s[,kreis]`, `_VIDEO=s` (30 fps nach `bild.png.rgba`, Format im Log); `KOTH_HEADLESS=1` (ohne Fenster),
-  `KOTH_SIZE`, `KOTH_VSYNC`, `KOTH_FRAMELOG`, `KOTH_BOT_THREAD`, `KOTH_MUSIC_VOLUME` (stumm, auch Geräusche), `KOTH_MUSIC_TAIL`, `KOTH_SFX_VOLUME`, `KOTH_SOUNDLOG`, Ton `ALSOFT_DRIVERS=wave`. Kein Splash, 6 Render-Threads.
+  `KOTH_SIZE`, `KOTH_VSYNC`, `KOTH_FRAMELOG`, `KOTH_BOT_THREAD`, `KOTH_MUSIC_VOLUME` (stumm, auch Geräusche), `KOTH_MUSIC_TAIL`, `KOTH_SFX_VOLUME`, `KOTH_SOUNDLOG`, Ton `ALSOFT_DRIVERS=wave`, `KOTH_EFFECTLOG` (Effekt-Varianten). Kein Splash, 6 Render-Threads.
 
 ## Tests: Proben und Regression
 
@@ -80,7 +80,7 @@ Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall 
   Prüfsummen alle 40 Ticks, schickt bei Desync den Zustand; `PeerSession` (auch der Host über `LocalTransport`)
   sagt fremde Eingaben vorher und rollt zurück (Ring 128, höchstens 15 Ticks voraus, dann steht die Uhr).
 - `StateCodec` (Snapshot als Bytes, Version 3), Körper nach `NetId` (Spieler ab 4, Dummys 1–3 nur in Proben), in
-  NetId-Reihenfolge angelegt. Mitspielen nur mit gleicher `BuildId` (MVID + Befehlssatz).
+  NetId-Reihenfolge angelegt. Mitspielen nur mit gleicher `BuildId` (MVID + Befehlssatz + Hash der Shared-Assets).
 - UDP über LiteNetLib 2.1.4, Datagramme ≤ `NetProtocol.MaxDatagram` (1200 B); Host und Peer klemmen Eingaben
   (`Sanitize`). Client: `GameRoot` ist die `INetWorld`, `NetClient` hält die Sessions; HUD zeigt den Sieg nur bestätigt
   (`TryConfirmedMatch`); Korrekturen nie glätten. Gast `Ask` → `Map`, lädt, dann `Hello` (`Join`); Host öffnet nach dem Laden.
@@ -106,7 +106,7 @@ Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall 
   `TEXCOORD_0.x` = AO), `Sea.glb` und `NeuTerrain.bin` (Kollision, eingebettet, 4-m-Chunks, `WorldBuilder.AddTerrain`).
   Surface Nets 70 %, Säulen 2 × 1, ohne Wege, Gipfel aus ≥ 9/12 Richtungen; Bäume: Stamm gabelt in Äste, Kronen aus
   Blattbüscheln (Karten innen, Einzelblätter außen, Zweige; durchlässig, Wind `LeafSway`). Danach `Tools/maps/MapUV` (Lightmap-UVs, Graskarte `NeuGrass.bin`), `publish_aot.sh`. Sichtweite ≤ 20 km.
-- Gras: `GrassField` (Gruppe 5, Kacheln instanziert, Halme in `GrassBlade` gebaut, Licht der Lightmap); Muscheln `ShellField` (Gruppe 6). Texturen: `Tools/maps/Textures.cs` (comichaft), Himmel `Tools/maps/Sky.cs` (Sonne = Licht der MainScene),
+- Gras: `GrassField` (Gruppe 5, Kacheln instanziert, Halme in `GrassBlade` gebaut, Licht der Lightmap); Muscheln `ShellField` (Gruppe 6). Texturen: `Tools/maps/Textures.cs` (comichaft, BC-komprimiert), Himmel `Tools/maps/Sky.cs` (Sonne = Licht der MainScene),
   Shader in `KotH.Game/Effects`. Fallen: kein `Texture2D` als Generic (`LinkType` + `[Link]`), verschachteltes `ComputeColorParameterTexture`; Import merged.
 
 ### Game Studio (Wine/Proton)

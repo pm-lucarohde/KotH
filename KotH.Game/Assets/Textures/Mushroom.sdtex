@@ -3,6 +3,6 @@ Id: E3587F24-3AD4-451E-8F99-0C866B64DD4D
 SerializedVersion: {Stride: 2.0.0.0}
 Tags: []
 Source: !file ../../Resources/Models/Mushroom.png
-IsCompressed: false
+IsCompressed: true
 Type: !ColorTextureType
     ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}

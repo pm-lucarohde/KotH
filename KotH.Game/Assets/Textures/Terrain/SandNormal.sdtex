@@ -3,6 +3,6 @@ Id: D6A82179-F0C5-474D-8627-18CA177CB7C0
 SerializedVersion: {Stride: 2.0.0.0}
 Tags: []
 Source: !file ../../../Resources/Textures/Terrain/SandNormal.png
-IsCompressed: false
+IsCompressed: true
 Type: !NormalMapTextureType
     InvertY: false

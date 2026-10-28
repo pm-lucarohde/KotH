@@ -3,6 +3,6 @@ Id: 9B82F2BA-7CAE-4B2D-973B-414ACC0465D2
 SerializedVersion: {Stride: 2.0.0.0}
 Tags: []
 Source: !file ../../../Resources/Textures/Terrain/Dirt.png
-IsCompressed: false
+IsCompressed: true
 Type: !ColorTextureType
     ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}

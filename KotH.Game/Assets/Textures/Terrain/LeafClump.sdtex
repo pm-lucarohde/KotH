@@ -3,7 +3,7 @@ Id: 470FB6F5-4DA3-4AC3-9335-8933C2CDFADF
 SerializedVersion: {Stride: 2.0.0.0}
 Tags: []
 Source: !file ../../../Resources/Textures/Terrain/LeafClump.png
-IsCompressed: false
+IsCompressed: true
 Type: !ColorTextureType
     ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}
     PremultiplyAlpha: false

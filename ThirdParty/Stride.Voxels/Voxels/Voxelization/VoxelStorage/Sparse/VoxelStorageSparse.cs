@@ -548,7 +548,9 @@ namespace Stride.Rendering.Voxels
         /// <summary>
         /// Reads the counter back without stalling: a copy into a staging buffer,
         /// mapped a few frames later once the GPU is past it. A count holds when
-        /// two readings of the same step in a row agree.
+        /// two readings of the same step in a row agree within 0.1 %: the voxel count
+        /// wavers by a few thousand from frame to frame, an exact match took up to 11 s,
+        /// while a frame still missing an effect lacks whole meshes.
         /// </summary>
         sealed class CountReader
         {
@@ -595,7 +597,7 @@ namespace Stride.Rendering.Voxels
                     pending--;
                     if (readTag != tag)
                         continue;
-                    agreeing = readTag == lastTag && read == last ? agreeing + 1 : 0;
+                    agreeing = readTag == lastTag && read > 0 && Math.Abs((long)read - last) * 1000 <= last ? agreeing + 1 : 0;
                     lastTag = readTag;
                     last = read;
                 }
