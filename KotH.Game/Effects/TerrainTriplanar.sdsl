@@ -15,6 +15,10 @@ shader TerrainTriplanar<LinkType GrassKey, LinkType DirtKey, LinkType SandKey, L
     static const float TileSize = 4.0;
     // A quarter mip level sharper than the hardware picks: painted edges stay clear.
     static const float Bias = -0.25;
+    // The snow's albedo against its texture: in full sun it clipped to plain white
+    // (no tonemapping); now about 8 % of a view over the summit stays white (Luca:
+    // 5-10 %). The light itself stays as it is.
+    static const float SnowAlbedo = 0.8;
     // Lichen (Luca: first the shape, then the colour): a group of round spots
     // in a cube of LichenCell metres, shown where the surface passes within
     // LichenDepth of its middle, about two groups in 16 m² as the texture had.
@@ -160,6 +164,7 @@ shader TerrainTriplanar<LinkType GrassKey, LinkType DirtKey, LinkType SandKey, L
         float4 dirt = b.x * Dirt.SampleBias(AnisotropicRepeatSampler, ux, Bias) + b.y * Dirt.SampleBias(AnisotropicRepeatSampler, uy, Bias) + b.z * Dirt.SampleBias(AnisotropicRepeatSampler, uz, Bias);
         float4 sand = b.x * Sand.SampleBias(AnisotropicRepeatSampler, ux, Bias) + b.y * Sand.SampleBias(AnisotropicRepeatSampler, uy, Bias) + b.z * Sand.SampleBias(AnisotropicRepeatSampler, uz, Bias);
         float4 snow = b.x * Snow.SampleBias(AnisotropicRepeatSampler, ux, Bias) + b.y * Snow.SampleBias(AnisotropicRepeatSampler, uy, Bias) + b.z * Snow.SampleBias(AnisotropicRepeatSampler, uz, Bias);
+        snow.rgb *= SnowAlbedo;
         float4 stone = b.x * Rock.SampleBias(AnisotropicRepeatSampler, ux, Bias) + b.y * Rock.SampleBias(AnisotropicRepeatSampler, uy, Bias) + b.z * Rock.SampleBias(AnisotropicRepeatSampler, uz, Bias);
         if (rock + w.w > 0.0)
         {
