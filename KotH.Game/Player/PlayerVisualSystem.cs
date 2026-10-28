@@ -166,6 +166,18 @@ namespace KotH.Client.Player
         /// <userdoc>Moving, the body turns after the view, about two thirds within this time (seconds).</userdoc>
         [Display("Body follows view", "Animation")] public float BodyFollowSeconds = 0.15f;
 
+        /// <userdoc>How far the whole figure leans into speeding up, braking and curves, in degrees per m/s² (ground acceleration is 50). 0 = no lean.</userdoc>
+        [Display("Lean", "Motion")] public float LeanPerAcceleration = 0.12f;
+
+        /// <userdoc>Strongest lean in degrees.</userdoc>
+        [Display("Max lean", "Motion")] public float LeanMaxDegrees = 8f;
+
+        /// <userdoc>How far the head lags behind the body's speed changes and nods on landing, in degrees per m/s². 0 = no lag.</userdoc>
+        [Display("Head lag", "Motion")] public float HeadLagPerAcceleration = 0.1f;
+
+        /// <userdoc>Strongest head lag in degrees.</userdoc>
+        [Display("Max head lag", "Motion")] public float HeadLagMaxDegrees = 10f;
+
         /// <summary>Clip names in every visual's AnimationComponent: idle, rest, walking
         /// and running forward, back, left and right, then crouched still, crouched
         /// walking, the slide, falling, the landing's give, rising after a jump and the
@@ -195,6 +207,9 @@ namespace KotH.Client.Player
         const string LookBone = "Look";
         const string MouthBone = "Mouth";
         const string RecoilBone = "Recoil";
+        const string LeanBone = "Lean";
+        // Lean and head lag springs, a little under critical: a stop sways back once.
+        const float LeanSpring = 80f, LeanDamping = 12f, HeadSpring = 120f, HeadDamping = 10f;
 
         // Leaf bones from .work/rig/rig.py, evenly round the body from the
         // front to the right: six on the skirt, four on the collar.
@@ -230,6 +245,7 @@ namespace KotH.Client.Player
             public ModelComponent Model;
             public PlayingAnimation[] Plays;
             public readonly float[] Weights = new float[Clips.Length];
+            public readonly float[] WeightRates = new float[Clips.Length];
             public SimulationBody Body;
             public PlayerMotor Motor;
             public TransformComponent Transform;
@@ -237,7 +253,7 @@ namespace KotH.Client.Player
             public float AirTime, LandAge = float.MaxValue, KickAge = float.MaxValue, LastClimb, Peak;
             public int SwingsHeard, SeenPlaced = -1;
             public int[] Lids;
-            public int Look = -2, Mouth = -2, Recoil = -2;
+            public int Look = -2, Mouth = -2, Recoil = -2, Lean = -2;
             public DamagePercent Damage;
             public int SeenHit = int.MinValue;
             public float HitAge = float.MaxValue;
@@ -246,7 +262,10 @@ namespace KotH.Client.Player
             public int[] Leaves;
             public Vector2[] LeafBend, LeafRate;
             public float LeafClock, Yaw, Spin, MouthClock;
-            public bool HasYaw, Kicked, HasBody, WasSliding;
+            public bool HasYaw, Kicked, HasBody, WasSliding, Placed;
+            // Lean and head lag: tilts as rotation vectors (radians, X right, Y back) on springs.
+            public Vector2 LeanBend, LeanRate, HeadBend, HeadRate;
+            public Vector3 LastVelocity;
             public float BodyYaw, HeadYaw;
             // The turn to a swing's aim: the shown view, the aim and the torso's
             // part of the head turn; a ramp from 0 to 1 while the swing lasts.
@@ -451,6 +470,7 @@ namespace KotH.Client.Player
         void Animate(Figure f, PlayerMotor motor, TransformComponent t, float dt, float alpha)
         {
             Turn(f, motor, t, dt);
+            Lean(f, motor, dt);
             if (f.Animation != null)
                 Blend(f, motor, dt);
             // Crouched the figure is squashed a little and narrower, feet kept
@@ -580,9 +600,6 @@ namespace KotH.Client.Player
             }
         }
 
-        /// <summary>The leaf on the held cane swings like the figure's: its tip trails the wind of its
-        /// own motion, measured where it grows, so walking, turning and the arm's swing all move it;
-        /// faster means a little flutter and a twist. Same springs as the figure's leaves.</summary>
         /// <summary>Tips the held object about the grip bone's origin, the point in the fist.</summary>
         static void Tip(HeldLeaf h, Quaternion tip)
         {
@@ -597,6 +614,9 @@ namespace KotH.Client.Player
             t.Position = Vector3.Transform(h.GripAt, tip);
         }
 
+        /// <summary>The leaf on the held cane swings like the figure's: its tip trails the wind of its
+        /// own motion, measured where it grows, so walking, turning and the arm's swing all move it;
+        /// faster means a little flutter and a twist. Same springs as the figure's leaves.</summary>
         void Sway(HeldLeaf h, PlayerMotor motor, float dt)
         {
             SkeletonUpdater skeleton = h.Model.Skeleton;
@@ -683,7 +703,8 @@ namespace KotH.Client.Player
             bool jumped = Vector3.DistanceSquared(f.ShownAt, t.Position) > 4f;
             f.ShownAt = t.Position;
             float twist = Twist(f, motor, dt);
-            if (!f.HasBody || jumped)
+            f.Placed = !f.HasBody || jumped;
+            if (f.Placed)
             {
                 f.BodyYaw = view;
                 f.View = view;
@@ -709,6 +730,54 @@ namespace KotH.Client.Player
             f.HeadYaw = off;
             f.TorsoYaw = off * SwingTurnTorsoShare * twist;
             t.Rotation = Quaternion.RotationY(f.BodyYaw);
+        }
+
+        /// <summary>The body's change of speed, curves included, leans the figure about its soles
+        /// (bone Lean) and lets the head lag behind and nod on landing (on Look, see LookUpDown).
+        /// Both on springs fed by the velocity's steps, so any frame rate gives the same swing;
+        /// in the air and while knocked back they settle to upright.</summary>
+        void Lean(Figure f, PlayerMotor motor, float dt)
+        {
+            dt = MathF.Min(dt, 1f / 30f);
+            Vector3 v = motor.Velocity;
+            Vector3 dv = f.Placed ? Vector3.Zero : v - f.LastVelocity;
+            f.LastVelocity = v;
+            if (dt <= 0f)
+                return;
+            bool footing = motor.IsGrounded && motor.KnockLeft <= 0f;
+            // The step in the shown body's frame: X right, Z back.
+            Vector3 a = footing ? Vector3.Transform(dv, Quaternion.Invert(Quaternion.RotationY(f.BodyYaw))) / dt : Vector3.Zero;
+            var flat = new Vector2(a.X, a.Z);
+            // The top leans with the push; the head stays behind it and dips when the fall stops.
+            Vector2 lean = flat * MathUtil.DegreesToRadians(LeanPerAcceleration);
+            Vector2 head = (-flat + new Vector2(0f, -MathF.Max(0f, a.Y))) * MathUtil.DegreesToRadians(HeadLagPerAcceleration);
+            Spring(ref f.LeanBend, ref f.LeanRate, lean, LeanSpring, LeanDamping, LeanMaxDegrees, dt);
+            Spring(ref f.HeadBend, ref f.HeadRate, head, HeadSpring, HeadDamping, HeadLagMaxDegrees, dt);
+
+            SkeletonUpdater skeleton = f.Model?.Skeleton;
+            if (skeleton == null)
+                return;
+            if (f.Lean == -2)
+                f.Lean = Array.FindIndex(skeleton.Nodes, n => n.Name == LeanBone);
+            if (f.Lean >= 0)
+                skeleton.NodeTransformations[f.Lean].Transform.Rotation = Tilt(f.LeanBend) * skeleton.Nodes[f.Lean].Transform.Rotation;
+        }
+
+        static void Spring(ref Vector2 bend, ref Vector2 rate, Vector2 target, float k, float d, float maxDegrees, float dt)
+        {
+            rate += (k * (target - bend) - d * rate) * dt;
+            bend += rate * dt;
+            float most = MathUtil.DegreesToRadians(maxDegrees);
+            if (bend.LengthSquared() > most * most)
+                bend *= most / bend.Length();
+        }
+
+        /// <summary>Turns an upright bone's top along m (X right, Y back), by |m| radians. Bone frames
+        /// here are the body's: up crossed with the tip is the axis.</summary>
+        static Quaternion Tilt(Vector2 m)
+        {
+            float angle = m.Length();
+            return angle > 1e-5f ? Quaternion.RotationAxis(new Vector3(m.Y / angle, 0f, -m.X / angle), angle) : Quaternion.Identity;
         }
 
         /// <summary>How far a figure is turned to its last swing's aim, 0 to 1: up while
@@ -845,7 +914,7 @@ namespace KotH.Client.Player
             // taken back out, so the head keeps to the view.
             skeleton.NodeTransformations[f.Look].Transform.Rotation =
                 Quaternion.RotationYawPitchRoll(f.HeadYaw - f.TorsoYaw, MathUtil.DegreesToRadians(tilt), 0f) * f.HitHead
-                * Quaternion.Invert(f.Swing.Torso);
+                * Tilt(f.HeadBend) * Quaternion.Invert(f.Swing.Torso);
         }
 
         /// <summary>Sets the clip weights.</summary>
@@ -963,9 +1032,17 @@ namespace KotH.Client.Player
             float kick = f.KickAge < KickAttack ? f.KickAge / KickAttack
                        : 1f - Smooth(KickAttack, MathF.Max(KickAttack + 1e-3f, KickSeconds), f.KickAge);
             kick *= stand;
+            // The weights follow critically damped (Unity's SmoothDamp): a change starts as
+            // softly as it ends, as Unreal's inertial blends do. Same pace as BlendSeconds.
+            float omega = 3f * 2f / MathF.Max(1e-3f, BlendSeconds);
+            float x = omega * dt;
+            float decay = 1f / (1f + x + 0.48f * x * x + 0.235f * x * x * x);
             for (int i = 0; i < Clips.Length; i++)
             {
-                f.Weights[i] += (target[i] - f.Weights[i]) * follow;
+                float change = f.Weights[i] - target[i];
+                float push = (f.WeightRates[i] + omega * change) * dt;
+                f.WeightRates[i] = (f.WeightRates[i] - omega * push) * decay;
+                f.Weights[i] = target[i] + (change + push) * decay;
                 if (f.Plays[i] is not { } play)
                     continue;
                 float weight = i == LandIndex ? land : i == KickIndex ? kick

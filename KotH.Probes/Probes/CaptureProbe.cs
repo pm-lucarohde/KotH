@@ -237,9 +237,6 @@ namespace KotH.Probes.Probes
                   "rollback and resimulate bit-identical including the round");
         }
 
-        /// <summary>Waiting for four players, the countdown, its stop when one leaves, the start
-        /// from the spawns, the join window, and back to waiting after a round. Dummies (NetId 1 to
-        /// 3) never count.</summary>
         /// <summary>Off the edge of the arena: back at the spawn below -5 m, points kept.</summary>
         void OutOfArena(in BodyState spawnA)
         {
@@ -256,6 +253,9 @@ namespace KotH.Probes.Probes
                   $"fell out of the arena: back at the spawn point ({off:F2} m off), points kept");
         }
 
+        /// <summary>Waiting for four players, the countdown, its stop when one leaves, the start
+        /// from the spawns, the join window, and back to waiting after a round. Dummies (NetId 1 to
+        /// 3) never count.</summary>
         void Lobby()
         {
             match.MinPlayers = 4;
