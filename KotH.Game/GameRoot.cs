@@ -6,6 +6,7 @@ using KotH.Client.Match;
 using KotH.Client.Menu;
 using KotH.Client.Net;
 using KotH.Client.Player;
+using KotH.Client.Rendering;
 using KotH.Shared.Bots;
 using KotH.Shared.Combat;
 using KotH.Shared.Hosting;
@@ -251,8 +252,11 @@ namespace KotH.Client
                 simulation.Match = new HillMatch(builder.Zone) { Seed = (uint)Random.Shared.Next() };  // a guest takes the host's
             string url = Maps.VisualUrl(map);
             if (Content.Exists(url))
+            {
                 foreach (Entity e in Content.Load<Prefab>(url).Instantiate())
                     Entity.Scene.Entities.Add(e);
+                LeafRenderFeature.Install(SceneSystem);
+            }
             else
                 Log.Warning($"Map {map} hat keine Optik ({url})");
             Log.Info($"Map {map} geladen");

@@ -1,0 +1,28 @@
+/// <summary>
+/// Moves the crowns' leaves in the wind (LeafRenderFeature mixes it in after the vertex
+/// stage, in every pass): whole clumps sway with LeafWind at their place, each quad the
+/// more the farther from where it is held, and every leaf flaps along its normal in its
+/// own phase. COLOR0 as LeafCluster reads it: shade, tint, sway, phase.
+/// </summary>
+shader LeafSway : TransformationBase, PositionStream4, NormalStream, LeafWind
+{
+    // LeafWind's reach (made for the old leaves' pattern) times this, in metres here.
+    static const float Reach = 2.5;
+    // How far a free end flaps along its normal, and how fast (radians per second of wind time).
+    static const float Flap = 0.025;
+    static const float FlapPace = 8.0;
+    static const float Pi2 = 6.2831853;
+
+    stage stream float4 LeafData : COLOR0;
+
+    stage override void PreTransformPosition()
+    {
+        base.PreTransformPosition();
+        float3 q = streams.PositionWS.xyz;
+        float4 d = streams.LeafData;
+        float t = Global.Time * WindPace;
+        float3 move = Wind(q, t) * Reach * (0.35 + 0.65 * d.z);
+        move += streams.meshNormal * (Flap * d.z * sin(t * FlapPace + d.w * Pi2));
+        streams.PositionWS = float4(q + move, 1.0);
+    }
+};

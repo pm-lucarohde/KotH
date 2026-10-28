@@ -8,11 +8,11 @@ Attributes:
             Value: 0.1
     Diffuse: !MaterialDiffuseMapFeature
         DiffuseMap: !ComputeShaderClassColor
-            MixinReference: LeafCard
+            MixinReference: LeafCluster
             Generics:
                 68f8fb0c43364c389161f3e89f75c085~PaintKey: !ComputeColorParameterTexture
                     Texture:
-                        Texture: 7BE39B29-A016-4E2A-8B01-53C4F7E6211D:Textures/Terrain/LeafSprig
+                        Texture: 470FB6F5-4DA3-4AC3-9335-8933C2CDFADF:Textures/Terrain/LeafClump
             CompositionNodes: {}
     DiffuseModel: !MaterialDiffuseLambertModelFeature {}
     Specular: !MaterialMetalnessMapFeature

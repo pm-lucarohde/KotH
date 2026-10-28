@@ -98,21 +98,31 @@ public static class M
     public static double TrunkFoot = 0.55;      // and this thick at the ground, widening over TrunkFlare like roots
     public static double TrunkFlare = 0.5;
     public static int TrunkSides = 16;
-    public static double CrownStep = 0.35;      // crowns are soft lobes run together (Luca), meshed this fine
-    public static double CrownMelt = 0.6;       // metres over which the lobes run together
-    public static double CrownNoise = 0.12;     // lumps on the lobes, metres
-    public static double CrownWidth = 1.1;      // crowns this much wider than the lobes say (Luca: 10 % more)
-    public static double CrownBlocky = 0.5;     // share of the old leaf blocks in the crown's shape (Luca)
-    public static double CrownClear = 2.3;      // undersides stay this high over the ground: bodies (1.8 m) wedged under low rims
-    public static double CrownFloorRound = 0.4; // metres over which the cut underside rounds into the lobes
-    public static int Cards = 200;              // twigs standing out of every crown, evenly all round (Luca)
-    public static readonly (double Min, double Max) CardLength = (0.72, 1.035);  // metres, a third of it inside the crown
-    // The leaves are cut out of their texture (Luca); the crown's surface this far
-    // in, this much darker, fills it behind the gaps. Only drawn, not in the collision.
-    public static readonly (double Depth, double Dark)[] LeafShells = [(0.3, 0.8), (0.6, 0.62)];
+    public static double CrownClear = 2.3;      // the leaves stay this high over the ground: heads pass under them
+    // Trees after Luca's picture (28.10.2026): the trunk forks into limbs that fork again,
+    // round clumps of leaves on their tips. Only trunk and main limbs are solid (Luca:
+    // one walks through the crowns).
+    public static readonly (int Min, int Max) Limbs = (3, 4);
+    public static readonly (double Min, double Max) LimbTilt = (0.5, 0.75);       // radians from upright
+    public static readonly (double Min, double Max) LimbLength = (1.7, 2.2);
+    public static readonly (double Min, double Max) BranchLength = (1.1, 1.5);
+    public static readonly (double Root, double Tip) LimbRadius = (0.3, 0.19), BranchRadius = (0.17, 0.08);
+    public static readonly (double Min, double Max) ClumpRadius = (1.1, 1.45);     // across; 0.8 of it up
+    // Every clump of leaves (Luca: a mix, fuller and denser): cards with painted clumps
+    // (LeafClump.png) fill it inside, single leaves from Leaves.png make its outside, now
+    // and then a twig card stands out.
+    public static double LeafDensity = 24;      // single leaves per square metre of a clump's surface
+    public static readonly (double Min, double Max) LeafLength = (0.32, 0.46);
+    public static readonly (double Min, double Max) LeafDepth = (0.62, 1.0);       // share of the clump's radius
+    public static double CardDensity = 1.6;     // clump cards per square metre
+    public static readonly (double Min, double Max) CardSize = (1.0, 1.25);
+    public static readonly (double Min, double Max) CardDepth = (0.3, 0.75);
+    public static double SprigDensity = 1.46;   // twig cards (Luca: the twig texture now and then, 200 a tree)
+    public static readonly (double Min, double Max) SprigLength = (0.75, 1.0);
+    public static readonly (double Min, double Max) SprigDepth = (0.75, 0.95);
 
     // What a block is; -1 is air.
-    public const int Air = -1, Ground = 0, Foliage = 1, Trunk = 2, Card = 3, Shell = 4;
+    public const int Air = -1, Ground = 0, Trunk = 2, Leaf = 3, Clump = 4;
 
     // The ground's surfaces in the order of TerrainTriplanar's weights; rock is the rest.
     public static readonly (Rgb Top, Rgb Side)[] Paints = [(Grass, Dirt), (Sand, Sand), (Snow, Snow), (Snow, Stone), (Stone, Stone)];
@@ -495,8 +505,6 @@ public sealed class Terrain
             return M.Ground;
         if (Wood.Contains((x, y, z)))
             return M.Trunk;
-        if (Trees.Contains((x, y, z)))
-            return M.Foliage;
         return M.Air;
     }
 }
@@ -780,27 +788,22 @@ public sealed class Mesh
             }
         }
         mesh.Finish();
-        var shells = new List<Action>();
-        foreach (var (x, z, top, blocks, n) in t.Crowns)
-        {
-            int bottom = t.Height[(x, z)];
-            // The trunk reaches into the crown's middle.
-            Trees.RoundTrunk(mesh, x, z, bottom, top - 1.3);
-            shells.Add(Trees.RoundCrown(mesh, new PyRandom((long)t.Seed * 1000 + n), x, z, bottom, top, blocks));
-        }
-        // The shells last: everything before keeps its numbers, the collision its bytes.
-        foreach (var shell in shells)
-            shell();
+        var crowns = new List<Action>();
+        foreach (var (x, z, top, _, n) in t.Crowns)
+            crowns.Add(Trees.Grow(mesh, new PyRandom((long)t.Seed * 1000 + n), x, z, t.Height[(x, z)], top));
         Simplifier.Run(mesh);
+        // The leaves after the simplifier and last: they keep their corners and stay out of the collision.
+        foreach (var leaves in crowns)
+            leaves();
         return mesh;
     }
 }
 
 public static class Trees
 {
-    // A round trunk of TrunkSides from under the ground at base into the leaves at top,
-    // widened at the foot like roots. Shaded as the blocks' corners were: darker where
-    // ground or leaves meet it.
+    // A round trunk of TrunkSides from under the ground at base up to the fork at top,
+    // widened at the foot like roots and closed above by a dome the limbs grow out of.
+    // Shaded as the blocks' corners were: darker where the ground meets it.
     public static void RoundTrunk(Mesh mesh, int x, int z, int bottom, double top)
     {
         double cx = x + 0.5, cz = z + 0.5;
@@ -812,7 +815,7 @@ public static class Trees
             double w = Py.Pow(1.0 - s, 2);
             heights.Add((bottom + M.TrunkFlare * s, w * M.TrunkFoot + (1 - w) * M.TrunkRadius, 1.0 - M.AoStep * w));
         }
-        heights.AddRange([(top - 0.5, M.TrunkRadius, 1.0), (top, M.TrunkRadius, dark), (top + 0.3, M.TrunkRadius, dark)]);
+        heights.AddRange([(top - 0.5, M.TrunkRadius, 1.0), (top, M.TrunkRadius * 0.94, 1.0), (top + 0.25, M.TrunkRadius * 0.72, 0.95), (top + 0.42, M.TrunkRadius * 0.36, 0.9), (top + 0.48, 0.03, 0.9)]);
         int first = mesh.Pos.Count;
         foreach (var (y, r, shade) in heights)
             for (int k = 0; k < M.TrunkSides; k++)
@@ -839,284 +842,238 @@ public static class Trees
             mesh.Nrm[i] = Mesh.Unit(mesh.Nrm[i]);
     }
 
-    // A body round the trunk's top and 6 to 8 smaller lobes round it, one on top, each
-    // as (centre, radii) of an ellipsoid as it shows on its own.
-    static List<(V3 C, V3 R)> CrownLobes(PyRandom rng, int x, int z, int top)
+    static V3 Add(V3 a, V3 b) => new(a.X + b.X, a.Y + b.Y, a.Z + b.Z);
+    static V3 Scale(V3 a, double k) => new(a.X * k, a.Y * k, a.Z * k);
+    static double Dot(V3 a, V3 b) => a.X * b.X + a.Y * b.Y + a.Z * b.Z;
+    static V3 Unit(V3 v) => Mesh.Unit(v);
+
+    // Out of the upright by tilt, round towards angle a.
+    static V3 Leaning(double tilt, double a) => new(Libm.sin(tilt) * Libm.cos(a), Libm.cos(tilt), Libm.sin(tilt) * Libm.sin(a));
+
+    static V3 RandomUnit(PyRandom rng)
     {
-        double cx = x + 0.5 + rng.Uniform(-0.25, 0.25);
-        double cz = z + 0.5 + rng.Uniform(-0.25, 0.25);
-        double cy = top - 1.0;
-        var lobes = new List<(V3 C, V3 R)> { (new V3(cx, cy, cz), new V3(2.1, 1.5, 2.1)) };
-        int count = rng.RandInt(6, 8);
+        while (true)
+        {
+            var v = new V3(rng.Gauss(0, 1), rng.Gauss(0, 1), rng.Gauss(0, 1));
+            double length = Math.Sqrt(Dot(v, v));
+            if (length > 1e-6)
+                return Scale(v, 1 / length);
+        }
+    }
+
+    /// <summary>
+    /// A limb as a tapering tube along the curve from p0 over p1 to p2 (a quadratic Bezier),
+    /// its root sunk into what it grows from, its tip closed by a short cone. Returns the
+    /// tip and the direction there. Not solid ones are only to be seen.
+    /// </summary>
+    static (V3 At, V3 Dir) Limb(Mesh mesh, V3 p0, V3 p1, V3 p2, double r0, double r1, bool solid)
+    {
+        const int sides = 10, rings = 7;
+        V3 Point(double t) => Add(Add(Scale(p0, (1 - t) * (1 - t)), Scale(p1, 2 * t * (1 - t))), Scale(p2, t * t));
+        V3 Tangent(double t) => Unit(Add(Scale(Sub(p1, p0), 2 * (1 - t)), Scale(Sub(p2, p1), 2 * t)));
+        // A frame carried along the curve, so the rings do not twist.
+        V3 along = Tangent(0);
+        V3 side = Unit(V3.Cross(along, Math.Abs(along.Y) < 0.9 ? new V3(0, 1, 0) : new V3(1, 0, 0)));
+        int first = mesh.Pos.Count;
+        for (int k = 0; k <= rings; k++)
+        {
+            double t = (double)k / rings;
+            V3 c = Point(t), d = Tangent(t);
+            side = Unit(Sub(side, Scale(d, Dot(side, d))));
+            V3 up = V3.Cross(d, side);
+            double r = r0 + (r1 - r0) * t;
+            for (int j = 0; j < sides; j++)
+            {
+                double a = 2 * Math.PI * j / sides;
+                V3 n = Add(Scale(side, Libm.cos(a)), Scale(up, Libm.sin(a)));
+                mesh.AddVertex(Add(c, Scale(n, r)), n, (0.0, 0.0, 0.0, 0.0), (0.92, 0.0), M.Trunk);
+            }
+        }
+        V3 tipDir = Tangent(1);
+        mesh.AddVertex(Add(p2, Scale(tipDir, r1 * 0.8)), tipDir, (0.0, 0.0, 0.0, 0.0), (0.92, 0.0), M.Trunk);
+        int tip = mesh.Pos.Count - 1;
+        void Tri(int a, int b, int c)
+        {
+            // Counter-clockwise from outside: the face's normal along the corners'.
+            V3 n = V3.Cross(V3.Sub(mesh.Pos[b], mesh.Pos[a]), V3.Sub(mesh.Pos[c], mesh.Pos[a]));
+            if (Dot(n, Add(Add(mesh.Nrm[a], mesh.Nrm[b]), mesh.Nrm[c])) < 0)
+                (b, c) = (c, b);
+            if (!solid)
+                mesh.Unsolid.Add(mesh.Idx.Count / 3);
+            mesh.Idx.AddRange([a, b, c]);
+        }
+        for (int k = 0; k < rings; k++)
+            for (int j = 0; j < sides; j++)
+            {
+                int a = first + k * sides + j, b = first + k * sides + (j + 1) % sides;
+                Tri(a, b, b + sides);
+                Tri(a, b + sides, a + sides);
+            }
+        for (int j = 0; j < sides; j++)
+            Tri(first + rings * sides + j, first + rings * sides + (j + 1) % sides, tip);
+        return (p2, tipDir);
+    }
+
+    static V3 Sub(V3 a, V3 b) => V3.Sub(a, b);
+
+    /// <summary>
+    /// A tree at column (x, z): trunk up to the fork, Limbs main limbs leaning out all round
+    /// and bending up, two thinner ones from each tip; a clump of leaves on every tip and one
+    /// on top. Builds the wood now; returns what adds the leaves, after the simplifier.
+    /// </summary>
+    public static Action Grow(Mesh mesh, PyRandom rng, int x, int z, int bottom, int top)
+    {
+        double cx = x + 0.5, cz = z + 0.5;
+        double fork = bottom + 1.4 + 0.3 * (top - bottom);
+        RoundTrunk(mesh, x, z, bottom, fork);
+        var clumps = new List<(V3 C, double R)>();
+        int count = rng.RandInt(M.Limbs.Min, M.Limbs.Max);
         double turn = rng.Uniform(0.0, 2 * Math.PI);
         for (int i = 0; i < count; i++)
         {
-            // Some hang lower at the rim, some sit up on the shoulders.
-            double a = turn + 2 * Math.PI * i / count + rng.Uniform(-0.35, 0.35);
-            double up = rng.Uniform(-0.35, 0.8);
-            double d = rng.Uniform(1.5, 2.0);
-            double r = rng.Uniform(0.9, 1.3);
-            var centre = new V3(cx + d * Libm.cos(up) * Libm.cos(a), cy + 0.8 * d * Libm.sin(up), cz + d * Libm.cos(up) * Libm.sin(a));
-            lobes.Add((centre, new V3(r, 0.85 * r, r)));
+            double a = turn + 2 * Math.PI * i / count + rng.Uniform(-0.3, 0.3);
+            double tilt = rng.Uniform(M.LimbTilt.Min, M.LimbTilt.Max);
+            double length = rng.Uniform(M.LimbLength.Min, M.LimbLength.Max);
+            var root = new V3(cx, fork - 0.15, cz);
+            // Leaning out more at the root, bending up towards the tip.
+            V3 bend = Add(root, Scale(Leaning(tilt + 0.2, a), length * 0.5));
+            V3 end = Add(root, Scale(Leaning(tilt, a), length));
+            var (at, dir) = Limb(mesh, root, bend, end, M.LimbRadius.Root, M.LimbRadius.Tip, true);
+            clumps.Add((Add(at, new V3(0, 0.25, 0)), rng.Uniform(M.ClumpRadius.Min, M.ClumpRadius.Max)));
+            foreach (int s in new[] { -1, 1 })
+            {
+                double a2 = a + s * rng.Uniform(0.45, 0.85);
+                double tilt2 = rng.Uniform(0.5, 0.95);
+                double length2 = rng.Uniform(M.BranchLength.Min, M.BranchLength.Max);
+                V3 start = Sub(at, Scale(dir, 0.15));
+                V3 mid = Add(start, Scale(Leaning(tilt2 + 0.15, a2), length2 * 0.5));
+                V3 tip = Add(start, Scale(Leaning(tilt2, a2), length2));
+                var (tat, tdir) = Limb(mesh, start, mid, tip, M.BranchRadius.Root, M.BranchRadius.Tip, false);
+                clumps.Add((Add(tat, Scale(tdir, 0.3)), rng.Uniform(M.ClumpRadius.Min, M.ClumpRadius.Max)));
+            }
         }
-        double tx = cx + rng.Uniform(-0.5, 0.5);
-        double tz = cz + rng.Uniform(-0.5, 0.5);
-        lobes.Add((new V3(tx, cy + 1.3, tz), new V3(1.2, 0.95, 1.2)));
-        double w = M.CrownWidth;
-        return lobes.Select(l => (new V3(cx + (l.C.X - cx) * w, l.C.Y, cz + (l.C.Z - cz) * w), new V3(l.R.X * w, l.R.Y, l.R.Z * w))).ToList();
+        double highest = clumps.Max(c => c.C.Y);
+        clumps.Add((new V3(cx + rng.Uniform(-0.4, 0.4), highest + 0.45, cz + rng.Uniform(-0.4, 0.4)), rng.Uniform(1.3, 1.5)));
+        // No clump hangs lower than CrownClear (plus its own height) over the ground.
+        clumps = [.. clumps.Select(c => (new V3(c.C.X, Math.Max(c.C.Y, bottom + M.CrownClear + 0.8 * c.R), c.C.Z), c.R))];
+        long seed = rng.RandRange(1L << 30);
+        return () => Leaves(mesh, new PyRandom(seed), clumps);
     }
 
-    static double MinOf(V3 r) => Py.Min(Py.Min(r.X, r.Y), r.Z);
+    // Leaves.png: four leaves in a 2 x 2 atlas of 1024 px, along x, LeafFill of their quarter
+    // long, LeafWidth of that wide (Textures.cs); a quad takes its leaf with a little margin.
+    // LeafClump.png: three painted clumps and a twig (tip up) in its quarters.
+    const double AtlasSize = 1024, LeafPx = 512 * 0.94, LeafHalfPx = 512 * 0.94 * 0.43 / 2 + 10, LeafMarginPx = 4;
+    const int ClumpCard = 0, SprigCard = 1, SingleLeaf = 2;
 
     /// <summary>
-    /// A crown as one smooth surface (Surface Nets, CrownStep), CrownBlocky of the way from
-    /// the lobes (run together over CrownMelt, a little noise for lumps) to the old leaf
-    /// blocks. Normals from the field, lighter on top; solid like the leaf blocks were.
-    /// Returns what adds its inner shells.
+    /// The leaves of a crown, in every clump (an ellipsoid 0.8 as high as wide): cards with
+    /// painted clumps inside, here and there a twig card standing out (Luca), single leaves
+    /// in the outer shell; none deep inside another clump. Lit as the clump and the crown
+    /// are round (their directions out, a little the leaf's own), darker deeper in and lower
+    /// down. Every quad wound both ways (Stride turns a back face's normal round). COLOR_0:
+    /// shade, tint, sway (0 where it is held, 1 at the free end), phase.
     /// </summary>
-    public static Action RoundCrown(Mesh mesh, PyRandom rng, int x, int z, int bottom, int top, List<(int X, int Y, int Z)> blocks)
+    static void Leaves(Mesh mesh, PyRandom rng, List<(V3 C, double R)> clumps)
     {
-        var lobes = CrownLobes(rng, x, z, top);
-        long seed = rng.RandRange(1L << 30);
-
-        double Field(V3 p)
+        var centre = Scale(clumps.Aggregate(new V3(0, 0, 0), (s, c) => Add(s, c.C)), 1.0 / clumps.Count);
+        double low = clumps.Min(c => c.C.Y - 0.8 * c.R), high = clumps.Max(c => c.C.Y + 0.8 * c.R);
+        foreach (var (c, r) in clumps)
+        foreach (int kind in new[] { ClumpCard, SprigCard, SingleLeaf })
         {
-            // Into the lobes: an ellipsoid's distance roughly, smooth minimum.
-            double near = 0;
-            bool first = true;
-            foreach (var (c, r) in lobes)
+            var radii = new V3(r, 0.8 * r, r);
+            double area = 4 * Math.PI * r * r * 0.87;
+            int n = (int)Math.Round(area * (kind == ClumpCard ? M.CardDensity : kind == SprigCard ? M.SprigDensity : M.LeafDensity));
+            var (inner, outer) = kind == ClumpCard ? M.CardDepth : kind == SprigCard ? M.SprigDepth : M.LeafDepth;
+            for (int i = 0; i < n; i++)
             {
-                double q = Math.Sqrt(Py.Sum([Py.Pow((p.X - c.X) / r.X, 2), Py.Pow((p.Y - c.Y) / r.Y, 2), Py.Pow((p.Z - c.Z) / r.Z, 2)]));
-                double d = (q - 1.0) * MinOf(r);
-                if (first)
+                V3 dir = RandomUnit(rng);
+                double u = rng.Random();
+                // The single leaves crowd towards the outside.
+                double depth = kind == SingleLeaf ? outer - (outer - inner) * u * u : inner + (outer - inner) * u;
+                var p = new V3(c.X + dir.X * radii.X * depth, c.Y + dir.Y * radii.Y * depth, c.Z + dir.Z * radii.Z * depth);
+                V3 spin = RandomUnit(rng);
+                double turn = rng.Uniform(-0.6, 0.6);
+                var (smallest, largest) = kind == ClumpCard ? M.CardSize : kind == SprigCard ? M.SprigLength : M.LeafLength;
+                double size = rng.Uniform(smallest, largest);
+                int quarter = (int)rng.RandRange(kind == SingleLeaf ? 4 : 3);
+                bool mirror = rng.Random() < 0.5;
+                double tint = rng.Random(), phase = rng.Random();
+                // Hidden inside another clump: left out.
+                if (clumps.Any(o => o.C != c && Math.Pow((p.X - o.C.X) / o.R, 2) + Math.Pow((p.Y - o.C.Y) / (0.8 * o.R), 2) + Math.Pow((p.Z - o.C.Z) / o.R, 2) < 0.6))
+                    continue;
+                V3 outward = Unit(new V3(dir.X / radii.X, dir.Y / radii.Y, dir.Z / radii.Z));
+                V3 crownOut = Unit(new V3((p.X - centre.X) / 1.0, (p.Y - centre.Y) / 0.7, (p.Z - centre.Z) / 1.0));
+                V3 normal = Unit(Add(Add(Scale(outward, 0.45), Scale(crownOut, 0.3)), Scale(Unit(Add(outward, Scale(spin, 0.5))), 0.25)));
+                double height = Math.Clamp((p.Y - low) / (high - low), 0, 1);
+                double inside = Math.Clamp((depth - M.CardDepth.Min) / (M.LeafDepth.Max - M.CardDepth.Min), 0, 1);
+                double shade = (0.55 + 0.45 * inside) * (0.68 + 0.32 * height);
+                V3 face, along, across;
+                (double U, double V)[] uvs;
+                double length, width;
+                V3 start;
+                if (kind == ClumpCard)
                 {
-                    near = d;
-                    first = false;
+                    // A card facing out, turned at random about its face.
+                    face = Unit(Add(outward, Scale(spin, 0.5)));
+                    V3 any = Math.Abs(face.Y) < 0.9 ? new V3(0, 1, 0) : new V3(1, 0, 0);
+                    V3 a0 = Unit(V3.Cross(face, any)), b0 = V3.Cross(face, a0);
+                    double ang = rng.Uniform(0, 2 * Math.PI);
+                    along = Add(Scale(a0, Libm.cos(ang)), Scale(b0, Libm.sin(ang)));
+                    across = V3.Cross(face, along);
+                    double u0 = (quarter % 2) * 0.5 + 2 / AtlasSize, v0 = (quarter / 2) * 0.5 + 2 / AtlasSize, w = 0.5 - 4 / AtlasSize;
+                    uvs = [(u0, v0), (u0 + w, v0), (u0 + w, v0 + w), (u0, v0 + w)];
+                    length = width = size;
+                    start = Sub(p, Scale(along, length / 2));
+                }
+                else if (kind == SprigCard)
+                {
+                    // Out of the clump and to a side, a third of it inside; its base (v 1) held.
+                    along = Unit(Add(outward, Scale(spin, 0.9)));
+                    across = Unit(V3.Cross(along, RandomUnit(rng)));
+                    face = V3.Cross(along, across);
+                    double u0 = 0.5 + 2 / AtlasSize, w = 0.5 - 4 / AtlasSize;
+                    if (mirror)
+                        uvs = [(u0 + w, 0.5 + w), (u0 + w, 0.5 + 2 / AtlasSize), (u0, 0.5 + 2 / AtlasSize), (u0, 0.5 + w)];
+                    else
+                        uvs = [(u0, 0.5 + w), (u0, 0.5 + 2 / AtlasSize), (u0 + w, 0.5 + 2 / AtlasSize), (u0 + w, 0.5 + w)];
+                    length = size;
+                    width = 0.8 * size;
+                    start = Sub(p, Scale(along, length / 3));
                 }
                 else
                 {
-                    double h = Py.Max(M.CrownMelt - Math.Abs(near - d), 0.0) / M.CrownMelt;
-                    near = Py.Min(near, d) - h * h * M.CrownMelt / 4;
+                    // Stem in, tip out and to a side; its face turned towards the outside.
+                    along = Unit(Add(Scale(outward, 0.7), Scale(spin, 0.7)));
+                    V3 flat = Sub(outward, Scale(along, Dot(outward, along)));
+                    face = Dot(flat, flat) > 1e-6 ? Unit(flat) : Unit(V3.Cross(along, spin));
+                    face = Add(Scale(face, Libm.cos(turn)), Scale(V3.Cross(along, face), Libm.sin(turn)));
+                    across = V3.Cross(face, along);
+                    double ox = (quarter % 2) * 512 + (512 - LeafPx) / 2, oy = (quarter / 2) * 512 + 256;
+                    double u0 = (ox - LeafMarginPx) / AtlasSize, u1 = (ox + LeafPx + LeafMarginPx) / AtlasSize;
+                    double va = (oy - LeafHalfPx) / AtlasSize, vb = (oy + LeafHalfPx) / AtlasSize;
+                    if (mirror)
+                        (va, vb) = (vb, va);
+                    uvs = [(u0, va), (u1, va), (u1, vb), (u0, vb)];
+                    length = size * (LeafPx + 2 * LeafMarginPx) / LeafPx;
+                    width = length * 2 * LeafHalfPx / (LeafPx + 2 * LeafMarginPx);
+                    start = Sub(p, Scale(along, length * 0.3));
                 }
+                V3[] quad =
+                [
+                    Add(start, Scale(across, -width / 2)), Add(Add(start, Scale(along, length)), Scale(across, -width / 2)),
+                    Add(Add(start, Scale(along, length)), Scale(across, width / 2)), Add(start, Scale(across, width / 2)),
+                ];
+                int at = mesh.Pos.Count;
+                for (int k = 0; k < 4; k++)
+                {
+                    double sway = kind == ClumpCard ? 1.0 : (k == 1 || k == 2 ? 1.0 : 0.0);
+                    mesh.AddVertex(quad[k], normal, (shade, tint, sway, phase), uvs[k], kind == SingleLeaf ? M.Leaf : M.Clump);
+                }
+                foreach (var (a, b, d) in new[] { (at, at + 1, at + 2), (at, at + 2, at + 3), (at, at + 2, at + 1), (at, at + 3, at + 2) })
+                    mesh.Idx.AddRange([a, b, d]);
             }
-            double rounded = -near + M.CrownNoise * M.Noise3(seed, p.X / 0.9, p.Y / 0.9, p.Z / 0.9);
-            // Into the blocks: the nearest block's box distance.
-            double box = 0;
-            bool any = false;
-            foreach (var b in blocks)
-            {
-                double o0 = Math.Abs(p.X - b.X - 0.5) - 0.5, o1 = Math.Abs(p.Y - b.Y - 0.5) - 0.5, o2 = Math.Abs(p.Z - b.Z - 0.5) - 0.5;
-                double big = Py.Max(Py.Max(o0, o1), o2);
-                double d = Math.Sqrt(Py.Sum([Py.Pow(Py.Max(o0, 0.0), 2), Py.Pow(Py.Max(o1, 0.0), 2), Py.Pow(Py.Max(o2, 0.0), 2)])) + Py.Min(big, 0.0);
-                box = any ? Py.Min(box, d) : d;
-                any = true;
-            }
-            double crown = (1 - M.CrownBlocky) * rounded - M.CrownBlocky * box;
-            // Cut flat CrownClear over the ground, rounded like the lobes melt.
-            double above = p.Y - bottom - M.CrownClear;
-            double hh = Py.Max(M.CrownFloorRound - Math.Abs(crown - above), 0.0) / M.CrownFloorRound;
-            return Py.Min(crown, above) - hh * hh * M.CrownFloorRound / 4;
         }
-
-        double[] lo = new double[3], hi = new double[3];
-        for (int k = 0; k < 3; k++)
-        {
-            double lobeLo = lobes.Select(l => l.C[k] - l.R[k]).Aggregate((m, v) => Py.Min(m, v));
-            int blockLo = blocks.Select(b => k == 0 ? b.X : k == 1 ? b.Y : b.Z).Aggregate((m, v) => v < m ? v : m);
-            lo[k] = Py.Min(lobeLo, blockLo) - M.CrownStep;
-            double lobeHi = lobes.Select(l => l.C[k] + l.R[k]).Aggregate((m, v) => Py.Max(m, v));
-            int blockHi = blocks.Select(b => (k == 0 ? b.X : k == 1 ? b.Y : b.Z) + 1).Aggregate((m, v) => v > m ? v : m);
-            hi[k] = Py.Max(lobeHi, blockHi) + M.CrownStep;
-        }
-        int[] size = [.. Enumerable.Range(0, 3).Select(k => (int)Math.Ceiling((hi[k] - lo[k]) / M.CrownStep) + 1)];
-        V3 Point(int i, int j, int k) => new(lo[0] + i * M.CrownStep, lo[1] + j * M.CrownStep, lo[2] + k * M.CrownStep);
-        var values = new double[size[0], size[1], size[2]];
-        for (int i = 0; i < size[0]; i++)
-            for (int j = 0; j < size[1]; j++)
-                for (int k = 0; k < size[2]; k++)
-                    values[i, j, k] = Field(Point(i, j, k));
-
-        void Surface(double level, int kind, double dark)
-        {
-            // The field's surface at level (metres inside), shaded dark.
-            var cell = new Dictionary<(int, int, int), int>();
-            for (int i = 0; i < size[0] - 1; i++)
-                for (int j = 0; j < size[1] - 1; j++)
-                    for (int k = 0; k < size[2] - 1; k++)
-                    {
-                        // The mean of the crossings on the cell's edges.
-                        double sx = 0, sy = 0, sz = 0;
-                        int n = 0;
-                        foreach (var (u, v) in Mesh.Edges)
-                        {
-                            double fu = values[i + u.Item1, j + u.Item2, k + u.Item3] - level;
-                            double fv = values[i + v.Item1, j + v.Item2, k + v.Item3] - level;
-                            if ((fu > 0) != (fv > 0))
-                            {
-                                double s = fu / (fu - fv);
-                                V3 pu = Point(i + u.Item1, j + u.Item2, k + u.Item3), pv = Point(i + v.Item1, j + v.Item2, k + v.Item3);
-                                sx += pu.X + s * (pv.X - pu.X);
-                                sy += pu.Y + s * (pv.Y - pu.Y);
-                                sz += pu.Z + s * (pv.Z - pu.Z);
-                                n++;
-                            }
-                        }
-                        if (n == 0)
-                            continue;
-                        var p = new V3(sx / n, sy / n, sz / n);
-                        const double h = 0.05;
-                        double[] g = new double[3];
-                        for (int a = 0; a < 3; a++)
-                        {
-                            V3 plus = new(p.X + (a == 0 ? h : 0.0), p.Y + (a == 1 ? h : 0.0), p.Z + (a == 2 ? h : 0.0));
-                            V3 minus = new(p.X - (a == 0 ? h : 0.0), p.Y - (a == 1 ? h : 0.0), p.Z - (a == 2 ? h : 0.0));
-                            g[a] = Field(plus) - Field(minus);
-                        }
-                        double length = Math.Sqrt(Py.Sum(g.Select(v => v * v)));
-                        if (length == 0)
-                            length = 1.0;
-                        var normal = new V3(-g[0] / length, -g[1] / length, -g[2] / length);
-                        cell[(i, j, k)] = mesh.Pos.Count;
-                        mesh.AddVertex(p, normal, (0.0, 0.0, 0.0, 0.0), ((0.72 + 0.28 * (0.5 + 0.5 * normal.Y)) * dark, 0.0), kind);
-                    }
-            // A quad round every grid edge the surface crosses, of the four cells sharing it.
-            for (int i = 0; i < size[0]; i++)
-                for (int j = 0; j < size[1]; j++)
-                    for (int k = 0; k < size[2]; k++)
-                    {
-                        double f = values[i, j, k];
-                        for (int axis = 0; axis < 3; axis++)
-                        {
-                            int[] o = [i, j, k];
-                            o[axis]++;
-                            if (o[axis] >= size[axis] || (f > level) == (values[o[0], o[1], o[2]] > level))
-                                continue;
-                            int[] bc = [.. Enumerable.Range(0, 3).Where(m => m != axis)];
-                            var ring = new int?[4];
-                            int at = 0;
-                            foreach (var (db, dc) in new[] { (0, 0), (1, 0), (1, 1), (0, 1) })
-                            {
-                                int[] q = [i, j, k];
-                                q[bc[0]] -= db;
-                                q[bc[1]] -= dc;
-                                ring[at++] = cell.TryGetValue((q[0], q[1], q[2]), out int vi) ? vi : null;
-                            }
-                            if (ring.Contains(null))
-                                continue;
-                            double[] outward = [0.0, 0.0, 0.0];
-                            outward[axis] = f > level ? 1.0 : -1.0;
-                            foreach (var tri0 in new[] { (ring[0].Value, ring[1].Value, ring[2].Value), (ring[0].Value, ring[2].Value, ring[3].Value) })
-                            {
-                                var tri = tri0;
-                                V3 p0 = mesh.Pos[tri.Item1], p1 = mesh.Pos[tri.Item2], p2 = mesh.Pos[tri.Item3];
-                                V3 c = V3.Cross(V3.Sub(p1, p0), V3.Sub(p2, p0));
-                                if (Py.Sum([c.X * outward[0], c.Y * outward[1], c.Z * outward[2]]) < 0)
-                                    tri = (tri.Item1, tri.Item3, tri.Item2);
-                                if (kind == M.Shell)
-                                    mesh.Unsolid.Add(mesh.Idx.Count / 3);
-                                mesh.Idx.AddRange([tri.Item1, tri.Item2, tri.Item3]);
-                            }
-                        }
-                    }
-        }
-
-        int faces = mesh.Idx.Count;
-        Surface(0.0, M.Foliage, 1.0);
-        LeafCards(mesh, rng, faces);
-        // The field's own surfaces further in: inside wherever the crown is that thick,
-        // none where it is thinner (copies along the normal turned inside out there and
-        // stood out as dark lumps and smears, Luca).
-        return () =>
-        {
-            foreach (var (depth, dark) in M.LeafShells)
-                Surface(depth, M.Shell, dark);
-        };
-    }
-
-    static V3? UnitOrNone(V3 v)
-    {
-        double length = Math.Sqrt(Py.Sum([v.X * v.X, v.Y * v.Y, v.Z * v.Z]));
-        return length > 1e-6 ? new V3(v.X / length, v.Y / length, v.Z / length) : null;
-    }
-
-    // Cards twigs on the crown whose triangles start at index faces, as many per square
-    // metre on top, at the sides and below: each a card leaning out of the surface, a third
-    // inside, lit with the crown's normal there; only to be seen. u runs from a whole
-    // number k (LeafCard's wind pace) to k + 1, mirrored at random; v from tip (0) to base (1).
-    static void LeafCards(Mesh mesh, PyRandom rng, int faces)
-    {
-        var tris = new List<int[]>();
-        for (int i = faces; i < mesh.Idx.Count; i += 3)
-            tris.Add([mesh.Idx[i], mesh.Idx[i + 1], mesh.Idx[i + 2]]);
-        double total = 0.0;
-        var upto = new List<double>();
-        foreach (var t in tris)
-        {
-            V3 c = V3.Cross(V3.Sub(mesh.Pos[t[1]], mesh.Pos[t[0]]), V3.Sub(mesh.Pos[t[2]], mesh.Pos[t[0]]));
-            total += 0.5 * Math.Sqrt(Py.Sum([c.X * c.X, c.Y * c.Y, c.Z * c.Z]));
-            upto.Add(total);
-        }
-        int placed = 0;
-        while (placed < M.Cards)
-        {
-            // A point on the surface by area, its normal blended from the corners.
-            int[] tri = tris[Math.Min(BisectRight(upto, rng.Random() * total), tris.Count - 1)];
-            double r1 = Math.Sqrt(rng.Random()), r2 = rng.Random();
-            double[] wts = [1 - r1, r1 * (1 - r2), r1 * r2];
-            double Blend(Func<int, double> value) => Py.Sum([wts[0] * value(0), wts[1] * value(1), wts[2] * value(2)]);
-            var p = new V3(Blend(m => mesh.Pos[tri[m]].X), Blend(m => mesh.Pos[tri[m]].Y), Blend(m => mesh.Pos[tri[m]].Z));
-            V3? n = UnitOrNone(new V3(Blend(m => mesh.Nrm[tri[m]].X), Blend(m => mesh.Nrm[tri[m]].Y), Blend(m => mesh.Nrm[tri[m]].Z)));
-            if (n == null)
-                continue;
-            double g0 = rng.Gauss(0, 1), g1 = rng.Gauss(0, 1), g2 = rng.Gauss(0, 1);
-            V3? lean = UnitOrNone(new V3(g0, g1, g2));
-            double g3 = rng.Gauss(0, 1), g4 = rng.Gauss(0, 1), g5 = rng.Gauss(0, 1);
-            V3? side = UnitOrNone(new V3(g3, g4, g5));
-            if (lean == null || side == null)
-                continue;
-            V3 nv = n.Value, lv = lean.Value;
-            V3? d = UnitOrNone(new V3(nv.X + 0.9 * lv.X, nv.Y + 0.9 * lv.Y, nv.Z + 0.9 * lv.Z));
-            V3? w = d == null ? null : UnitOrNone(V3.Cross(d.Value, side.Value));
-            if (w == null)
-                continue;
-            V3 dv = d.Value, wv = w.Value;
-            double length = rng.Uniform(M.CardLength.Min, M.CardLength.Max);
-            double width = 0.8 * length;
-            var bottom = new V3(p.X - dv.X * length / 3, p.Y - dv.Y * length / 3, p.Z - dv.Z * length / 3);
-            var quad = new[] { (-1, 0), (1, 0), (1, 1), (-1, 1) }.Select(st => new V3(
-                bottom.X + st.Item1 * wv.X * width / 2 + st.Item2 * dv.X * length,
-                bottom.Y + st.Item1 * wv.Y * width / 2 + st.Item2 * dv.Y * length,
-                bottom.Z + st.Item1 * wv.Z * width / 2 + st.Item2 * dv.Z * length)).ToArray();
-            long card = rng.RandRange(8);
-            var (u0, u1) = rng.Random() < 0.5 ? (card + 1, card) : (card, card + 1);
-            int at = mesh.Pos.Count;
-            (double, double)[] uvs = [(u0, 1.0), (u1, 1.0), (u1, 0.0), (u0, 0.0)];
-            for (int i = 0; i < 4; i++)
-                mesh.AddVertex(quad[i], nv, (0.0, 0.0, 0.0, 0.0), uvs[i], M.Card);
-            // Both sides wound as fronts (LeafCards culls backs): Stride turns a back
-            // face's normal round, and a twig seen from behind went dark.
-            foreach (var (a, b, c) in new[] { (at, at + 1, at + 2), (at, at + 2, at + 3), (at, at + 2, at + 1), (at, at + 3, at + 2) })
-            {
-                mesh.Unsolid.Add(mesh.Idx.Count / 3);
-                mesh.Idx.AddRange([a, b, c]);
-            }
-            placed++;
-        }
-    }
-
-    // bisect.bisect: how many values are <= x.
-    static int BisectRight(List<double> values, double x)
-    {
-        int lo = 0, hi = values.Count;
-        while (lo < hi)
-        {
-            int mid = (lo + hi) / 2;
-            if (x < values[mid])
-                hi = mid;
-            else
-                lo = mid + 1;
-        }
-        return lo;
     }
 }
 
@@ -1183,8 +1140,7 @@ public static class Simplifier
             }
         // Faces only to be seen keep their corners: no collision face shrinks under them.
         foreach (int f in mesh.Unsolid)
-            if (mesh.Keys[faces[f][0]].Kind != M.Shell)
-                border.UnionWith(faces[f]);
+            border.UnionWith(faces[f]);
         var alive = Enumerable.Repeat(true, faces.Count).ToArray();
         var gone = new bool[pos.Count];
         var version = new int[pos.Count];
@@ -1380,12 +1336,12 @@ public static class Output
         Glb.Write(path, json, blob.ToArray());
     }
 
-    // The mesh split by kind of block, each with only its own vertices; the leaves with
-    // their inner shells (LeafShells).
+    // The mesh split by kind, each with only its own vertices; the single leaves and the
+    // clump cards each in their own material.
     public static List<Part> Parts(Mesh mesh)
     {
         var output = new List<Part>();
-        foreach (var (kinds, name) in new[] { (new[] { M.Ground }, "Terrain"), (new[] { M.Foliage, M.Shell }, "Leaves"), (new[] { M.Trunk }, "Bark"), (new[] { M.Card }, "LeafCards") })
+        foreach (var (kinds, name) in new[] { (new[] { M.Ground }, "Terrain"), (new[] { M.Leaf }, "Leaves"), (new[] { M.Trunk }, "Bark"), (new[] { M.Clump }, "LeafCards") })
         {
             var faces = new List<int[]>();
             for (int i = 0; i < mesh.Idx.Count; i += 3)
@@ -1396,9 +1352,6 @@ public static class Output
             for (int i = 0; i < used.Count; i++)
                 renumber[used[i]] = i;
             var uv = used.Select(v => mesh.Uv[v]).ToList();
-            if (kinds.Contains(M.Foliage))
-                // TEXCOORD_0.y = 1 marks the leaves (LeafSplat needs it no more).
-                uv = [.. uv.Select(u => (u.U, 1.0))];
             output.Add(new Part(name, [.. used.Select(v => mesh.Pos[v])], [.. used.Select(v => mesh.Nrm[v])],
                 [.. faces.SelectMany(f => f.Select(v => renumber[v]))], [.. used.Select(v => mesh.Col[v])], [.. uv.Select(u => (u.U, u.V))]));
         }
@@ -1479,10 +1432,11 @@ public static class Output
                 chunks[key] = list = new List<(int, int, int)>();
             list.Add(tri);
         }
-        // The leaf shells come last (Build) and are not solid.
-        int solid = mesh.Keys.Count(k => k.Kind != M.Shell);
-        if (mesh.Keys.Skip(solid).Any(k => k.Kind != M.Shell))
-            throw new Exception("Schalen nicht am Ende");
+        // The leaves come last (Build) and are not solid.
+        static bool Leafy(int kind) => kind == M.Leaf || kind == M.Clump;
+        int solid = mesh.Keys.Count(k => !Leafy(k.Kind));
+        if (mesh.Keys.Skip(solid).Any(k => !Leafy(k.Kind)))
+            throw new Exception("Blätter nicht am Ende");
         var raw = new MemoryStream();
         var w = new BinaryWriter(raw);
         w.Write("KTRN"u8);

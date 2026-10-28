@@ -1,0 +1,31 @@
+/// <summary>
+/// The leaves of the crowns (Mountain.cs: single leaves from Leaves.png, or cards with
+/// painted clumps): the atlas' colour, cut out by its alpha, shaded and tinted per leaf.
+/// The normals come lit as the clumps are round (Mountain.cs). COLOR0: shade, tint, sway
+/// (0 at the stem, 1 at the tip), phase.
+/// </summary>
+shader LeafCluster<LinkType PaintKey>
+    : ComputeColor, Texturing
+{
+    // Texels along the atlas (Textures.cs: Small). The alpha is raised with the mip
+    // level, so far leaves keep their size instead of melting away under the cutoff.
+    static const float AtlasSize = 1024.0;
+    static const float MipKeep = 0.3;
+
+    rgroup PerMaterial
+    {
+        [Link("PaintKey")] stage Texture2D Paint;
+    }
+
+    stage stream float4 LeafData : COLOR0;
+
+    override float4 Compute()
+    {
+        float2 uv = streams.TexCoord;
+        float2 t = uv * AtlasSize;
+        float lod = max(0.0, 0.5 * log2(max(dot(ddx(t), ddx(t)), dot(ddy(t), ddy(t)))));
+        float4 c = Paint.Sample(AnisotropicRepeatSampler, uv);
+        float tint = lerp(0.9, 1.1, streams.LeafData.y);
+        return float4(c.rgb * streams.LeafData.x * tint, c.a * (1.0 + MipKeep * lod));
+    }
+};

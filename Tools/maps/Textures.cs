@@ -6,8 +6,8 @@
 // (Common/Pil.cs), so the pictures are the ones the Python script made.
 //
 // Writes tileable PNGs to KotH.Game/Resources/Textures/Terrain (grass, dirt, sand, snow, rock
-// for TerrainTriplanar; bark for PaintedTriplanar, single leaves for LeafSplat; the sea is
-// one plain colour, Luca's wish). Sizes below are in pixels of a 1024 texture, scaled by K.
+// for TerrainTriplanar; bark for PaintedTriplanar, single leaves, clumps and a twig for
+// LeafCluster; the sea is one plain colour, Luca's wish). Sizes below are in pixels of a 1024 texture, scaled by K.
 //
 //   dotnet run Tools/maps/Textures.cs [-- --preview]
 #:include ../Common/Libm.cs
@@ -27,8 +27,8 @@ const int Small = Size / 2;          // leaves and bark: 2 m per repeat (Painted
 const double K = Size / 1024.0;
 const double Edge = 1.0 * K;         // blur of an edge: soft, but the shape stays clear
 const int Seed = 22;
-const double LeafFill = 0.94;        // a leaf's length in its quarter of the atlas (LeafSplat.sdsl: Fill)
-const double LeafWidth = 0.43;       // its width over its length (LeafSplat.sdsl: Width)
+const double LeafFill = 0.94;        // a leaf's length in its quarter of the atlas (Mountain: LeafPx)
+const double LeafWidth = 0.43;       // its width over its length (Mountain: LeafHalfPx)
 
 string root = Path.GetFullPath(Path.Combine(Here(), "../.."));
 string outDir = Path.Combine(root, "KotH.Game/Resources/Textures/Terrain");
@@ -37,7 +37,7 @@ string outDir = Path.Combine(root, "KotH.Game/Resources/Textures/Terrain");
 var painters = new (string Name, Func<PyRandom, (PilImage Image, double[] Relief)> Paint)[]
 {
     ("Grass", Grass), ("Dirt", Flat(Dirt)), ("Sand", Sand), ("Snow", Flat(Snow)), ("Rock", Flat(Rock)),
-    ("Leaves", Flat(Leaves)), ("Bark", Flat(Bark)), ("LeafSprig", Flat(Sprig)),
+    ("Leaves", Flat(Leaves)), ("Bark", Flat(Bark)), ("LeafClump", Flat(Clump)),
 };
 Directory.CreateDirectory(outDir);
 var painted = new List<PilImage>();
@@ -564,9 +564,8 @@ static PilImage Rock(PyRandom rng)
     return img.Convert("RGB");
 }
 
-// Four single leaves in a 2 x 2 atlas, one per quarter, lying along x. LeafSplat places
-// every leaf on the crown and cuts its outline itself (LeafWidth, the same curve), so it
-// only takes the colours from here.
+// Four single leaves in a 2 x 2 atlas, one per quarter, lying along x, for the crowns'
+// single leaves (Mountain.cs): a quad takes one leaf, the material cuts out its outline.
 static PilImage Leaves(PyRandom rng)
 {
     int size = Small, quarter = size / 2;
@@ -605,8 +604,8 @@ static PilImage Leaves(PyRandom rng)
     return img;
 }
 
-// A twig with leaves for the cards that stand out of the crowns (Luca, after the "bushy
-// leaves" resource packs): base at the bottom middle, tip at the top, leaves alternating
+// A twig with leaves for the cards that stand out of the crowns' clumps (Clump; Luca, after
+// the "bushy leaves" resource packs): base at the bottom middle, tip at the top, leaves alternating
 // and smaller to the tip; painted like Leaves().
 static PilImage Sprig(PyRandom rng)
 {
@@ -647,6 +646,51 @@ static PilImage Sprig(PyRandom rng)
     double tipAngle = -Math.PI / 2 + rng.Uniform(-0.2, 0.2);
     Leaf(tx, ty + size * 0.02, tipAngle, size * 0.14, Mix([58, 128, 46], [110, 178, 66], rng.Random()));
     img.AlphaComposite(Blur(lay, Edge * 3));
+    return img;
+}
+
+// Three clumps of leaves and a twig in a 2 x 2 atlas for the cards in the crowns' clumps
+// (Mountain.cs): leaves all over the clump, pointing out from its middle, painted like
+// the leaves of Leaves().
+static PilImage Clump(PyRandom rng)
+{
+    int size = Small, quarter = size / 2;
+    var img = new PilImage("RGBA", size, size, 40, 96, 36, 0);
+    var (lay, d) = Layer(size);
+    void Leaf(double x, double y, double angle, double length, int[] body)
+    {
+        double width = length * LeafWidth;
+        Pts half = [.. Enumerable.Range(0, 33).Select(k => k / 32.0).Select(t => (t * length, width * 0.5 * Py.Pow(Libm.sin(Math.PI * t), 0.8)))];
+        Pts outline = [.. half, .. Enumerable.Reverse(half).Select(p => (p.X, -p.Y))];
+        double ca = Libm.cos(angle), sa = Libm.sin(angle);
+        (double, double) At(double px, double py) => (x + px * ca - py * sa, y + px * sa + py * ca);
+        d.Polygon([.. outline.Select(p => At(p.X, p.Y))], Ink(Shade(body, 0.55), 255));
+        d.Polygon([.. outline.Select(p => At(p.X * 0.94 + length * 0.03, p.Y * 0.82))], Ink(body, 255));
+        d.Polygon([.. half.Select(p => At(p.X * 0.94 + length * 0.03, p.Y * 0.82)), At(length * 0.97, 0)], Ink(Shade(body, 1.18), 255));
+        d.Line([At(length * 0.06, 0), At(length * 0.9, 0)], Ink(Shade(body, 0.62), 255), Math.Max(1, (int)(5 * K)));
+    }
+    for (int n = 0; n < 3; n++)
+    {
+        double cx = (n % 2) * quarter + quarter / 2.0, cy = (n / 2) * quarter + quarter / 2.0;
+        // Leaves all over the clump, each about its place, pointing out from the middle; the outer ones first.
+        var leaves = new List<(double R, double A)>();
+        for (int k = 0; k < 18; k++)
+            leaves.Add((quarter * 0.24 * Math.Sqrt(rng.Random()), rng.Uniform(0, 2 * Math.PI)));
+        foreach (var (r, a) in leaves.OrderByDescending(l => l.R))
+        {
+            double angle = a + rng.Uniform(-0.6, 0.6);
+            double length = quarter * rng.Uniform(0.27, 0.34);
+            // Kept inside the quarter: the tip at most 0.47 of it from the middle.
+            double x = cx + r * Libm.cos(a) - 0.4 * length * Libm.cos(angle), y = cy + r * Libm.sin(a) - 0.4 * length * Libm.sin(angle);
+            double over = Math.Sqrt(Math.Pow(x + length * Libm.cos(angle) - cx, 2) + Math.Pow(y + length * Libm.sin(angle) - cy, 2)) - quarter * 0.47;
+            if (over > 0)
+                length -= over;
+            Leaf(x, y, angle, length, Mix([58, 128, 46], [110, 178, 66], rng.Random() * (1 - r / (quarter * 0.24)) * 0.6 + rng.Random() * 0.4));
+        }
+    }
+    img.AlphaComposite(Blur(lay, Edge * 1.5));
+    // The last quarter: the twig, painted at full size.
+    img.Paste(Sprig(rng).Resize(quarter, quarter, PilImage.Filter.Lanczos), quarter, quarter);
     return img;
 }
 

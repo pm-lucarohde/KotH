@@ -3,8 +3,8 @@
 /// texture where the ground faces up, the side texture on slopes and walls.
 /// COLOR0 weighs the surfaces (grass, sand, snow, snow cap; the rest is rock),
 /// TEXCOORD0.x is the shade (soft AO). The lichen on the rock is laid on
-/// spot by spot, like LeafSplat's leaves, so it never stretches. Sand and meadow
-/// have a relief (normal maps from Textures.cs) that tilts the normal for the sun.
+/// spot by spot, so it never stretches. Sand and meadow have a relief
+/// (normal maps from Textures.cs) that tilts the normal for the sun.
 /// Round the trunks' feet the ground is darker (the contact map), the sand
 /// under every shell too (ShellField's spot map).
 /// </summary>

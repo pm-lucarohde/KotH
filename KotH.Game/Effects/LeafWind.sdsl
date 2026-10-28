@@ -1,6 +1,6 @@
 /// <summary>
-/// The wind in the crowns, shared by LeafSplat's leaves and LeafCard's twigs,
-/// so both move alike at the same place.
+/// The wind in the crowns: LeafSway moves the leaves, clump and twig cards
+/// with it, so all move alike at the same place.
 /// </summary>
 shader LeafWind
 {

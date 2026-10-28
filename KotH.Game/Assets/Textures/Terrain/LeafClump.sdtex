@@ -1,8 +1,8 @@
 !Texture
-Id: 7BE39B29-A016-4E2A-8B01-53C4F7E6211D
+Id: 470FB6F5-4DA3-4AC3-9335-8933C2CDFADF
 SerializedVersion: {Stride: 2.0.0.0}
 Tags: []
-Source: !file ../../../Resources/Textures/Terrain/LeafSprig.png
+Source: !file ../../../Resources/Textures/Terrain/LeafClump.png
 IsCompressed: false
 Type: !ColorTextureType
     ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}

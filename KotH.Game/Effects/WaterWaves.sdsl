@@ -1,5 +1,5 @@
 /// <summary>
-/// Waves on the sea drawn into the light only, like the wind in LeafSplat:
+/// Waves on the sea drawn into the light only:
 /// a few sine waves over the world position and Global.Time tilt the normal
 /// (the sea is flat and has no tangents, so the shading normal is set here;
 /// without a normal map Stride keeps it) and lift the crests a little.

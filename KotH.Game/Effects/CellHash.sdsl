@@ -1,6 +1,6 @@
 /// <summary>
-/// Random values for things laid out in cubes of the world (LeafSplat's
-/// leaves, TerrainTriplanar's lichen).
+/// Random values for things laid out in cubes of the world (TerrainTriplanar's
+/// lichen, GrassBlade's blades).
 /// </summary>
 shader CellHash
 {

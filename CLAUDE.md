@@ -104,8 +104,8 @@ Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall 
   schickt den Namen im `Welcome` (`INetWorld.LoadMap`). Proben laden `Maps.Test`, außer `bots climb`/`jumplab`.
 - **Neu** (Minecraft-Berg, 123 m): `Tools/maps/Mountain.cs` schreibt **nur** `Mountain.glb` (`COLOR_0` = Oberflächen,
   `TEXCOORD_0.x` = AO), `Sea.glb` und `NeuTerrain.bin` (Kollision, eingebettet, 4-m-Chunks, `WorldBuilder.AddTerrain`).
-  Surface Nets 70 %, Säulen 2 × 1, ohne Wege, Gipfel aus ≥ 9/12 Richtungen; Stämme rund (kein Boden im Stamm), Kronen halb
-  Blöcke, halb Büschel, mit Zweig-Karten. Danach `Tools/maps/MapUV` (Lightmap-UVs, Graskarte `NeuGrass.bin`), `publish_aot.sh`. Sichtweite ≤ 20 km.
+  Surface Nets 70 %, Säulen 2 × 1, ohne Wege, Gipfel aus ≥ 9/12 Richtungen; Bäume: Stamm gabelt in Äste, Kronen aus
+  Blattbüscheln (Karten innen, Einzelblätter außen, Zweige; durchlässig, Wind `LeafSway`). Danach `Tools/maps/MapUV` (Lightmap-UVs, Graskarte `NeuGrass.bin`), `publish_aot.sh`. Sichtweite ≤ 20 km.
 - Gras: `GrassField` (Gruppe 5, Kacheln instanziert, Halme in `GrassBlade` gebaut, Licht der Lightmap); Muscheln `ShellField` (Gruppe 6). Texturen: `Tools/maps/Textures.cs` (comichaft),
   Shader in `KotH.Game/Effects`. Fallen: kein `Texture2D` als Generic (`LinkType` + `[Link]`), verschachteltes `ComputeColorParameterTexture`; Import merged.
 
