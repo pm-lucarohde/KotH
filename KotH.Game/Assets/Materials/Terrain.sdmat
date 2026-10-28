@@ -31,6 +31,9 @@ Attributes:
                 ac2ed081f1b947f1a08d2be512f92ea5~SandReliefKey: !ComputeColorParameterTexture
                     Texture:
                         Texture: D6A82179-F0C5-474D-8627-18CA177CB7C0:Textures/Terrain/SandNormal
+                324dbffe6f72405aa242f0c6ddb60e95~ContactKey: !ComputeColorParameterTexture
+                    Texture:
+                        Texture: C03625BA-C088-464B-BC04-DE438E449A44:Textures/Terrain/NeuContact
             CompositionNodes: {}
     DiffuseModel: !MaterialDiffuseLambertModelFeature {}
     Specular: !MaterialMetalnessMapFeature

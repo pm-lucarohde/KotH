@@ -8,8 +8,9 @@
 //
 // --size is the lightmap's side in texels the margins are meant for, --pad the
 // texels kept free round every chart. Everything else in the file stays as it was.
-// It also writes the grass map (NeuGrass.bin, GrassField); --grass writes only that,
-// from a Mountain.glb that has its lightmap UVs already.
+// It also writes the grass map (NeuGrass.bin, GrassField) and the contact map round the
+// trunks (NeuContact.png); --grass writes only those, from a Mountain.glb that has its
+// lightmap UVs already.
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Prowl.Unwrapper;
@@ -25,9 +26,11 @@ const double SeaShrink = 4.0;
 var mountain = new Glb(Path.Combine(root, "KotH.Game/Resources/Models/Mountain.glb"));
 var sea = new Glb(Path.Combine(root, "KotH.Game/Resources/Models/Sea.glb"));
 string grassPath = Path.Combine(root, "KotH.Game/Resources/Maps/NeuGrass.bin");
+string contactPath = Path.Combine(root, "KotH.Game/Resources/Textures/Terrain/NeuContact.png");
 if (args.Contains("--grass") && mountain.HadSecondUV)
 {
     GrassMap.Write(grassPath, mountain.Primitives);
+    GrassMap.WriteContact(contactPath, mountain.Primitives);
     return 0;
 }
 if (mountain.HadSecondUV || sea.HadSecondUV)
@@ -146,6 +149,7 @@ Console.WriteLine($"Meer: ±{half:F0} m, {Math.Sqrt(world / atlas) / size * SeaS
 mountain.Write();
 sea.Write();
 GrassMap.Write(grassPath, primitives);
+GrassMap.WriteContact(contactPath, primitives);
 return 0;
 
 // The unwrapper drops slivers (the flat beach has some a few centimetres wide) with

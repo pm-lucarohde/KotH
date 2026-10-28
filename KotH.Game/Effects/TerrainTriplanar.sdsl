@@ -5,8 +5,10 @@
 /// TEXCOORD0.x is the shade (soft AO). The lichen on the rock is laid on
 /// spot by spot, like LeafSplat's leaves, so it never stretches. Sand and meadow
 /// have a relief (normal maps from Textures.cs) that tilts the normal for the sun.
+/// Round the trunks' feet the ground is darker (the contact map), the sand
+/// under every shell too (ShellField's spot map).
 /// </summary>
-shader TerrainTriplanar<LinkType GrassKey, LinkType DirtKey, LinkType SandKey, LinkType SnowKey, LinkType RockKey, LinkType GrassReliefKey, LinkType SandReliefKey>
+shader TerrainTriplanar<LinkType GrassKey, LinkType DirtKey, LinkType SandKey, LinkType SnowKey, LinkType RockKey, LinkType GrassReliefKey, LinkType SandReliefKey, LinkType ContactKey>
     : ComputeColor, PositionStream4, NormalStream, Texturing, CellHash
 {
     // Metres per repeat of the textures.
@@ -28,6 +30,16 @@ shader TerrainTriplanar<LinkType GrassKey, LinkType DirtKey, LinkType SandKey, L
     // so the 4 m tiles of the relief do not repeat alike (Luca: "not so sterile").
     static const float ReliefPatch = 9.0;
     static const float ReliefSpread = 0.45;
+    // The contact map (MapUV, NeuContact.png): the ground darker round the trunks' feet,
+    // over the square of ±ContactHalf metres.
+    static const float ContactHalf = 128.0;
+    // ShellField's spot map (its constants): cells of ShellCell metres, ShellSlots shells each;
+    // a shell darkens the sand by ShellDepth at its middle, a Gaussian of ShellSigma radii.
+    static const float ShellCell = 0.5;
+    static const int ShellCells = 512;
+    static const int ShellSlots = 4;
+    static const float ShellDepth = 0.5;
+    static const float ShellSigma = 0.8;
 
     rgroup PerMaterial
     {
@@ -38,6 +50,8 @@ shader TerrainTriplanar<LinkType GrassKey, LinkType DirtKey, LinkType SandKey, L
         [Link("RockKey")] stage Texture2D Rock;
         [Link("GrassReliefKey")] stage Texture2D GrassRelief;
         [Link("SandReliefKey")] stage Texture2D SandRelief;
+        [Link("ContactKey")] stage Texture2D Contact;
+        stage Texture2D ShellSpots;
     }
 
     stage stream float4 TerrainWeights : COLOR0;
@@ -63,6 +77,26 @@ shader TerrainTriplanar<LinkType GrassKey, LinkType DirtKey, LinkType SandKey, L
     float2 GrassSlope(float2 uv, float2 dx, float2 dy)
     {
         return (GrassRelief.SampleGrad(LinearRepeatSampler, uv, dx, dy).xy - 128.0 / 255.0) * 2.0;
+    }
+
+    // The light left on the sand at xz under the shells of its cell (1: none).
+    float ShellShade(float2 xz)
+    {
+        int2 c = int2(floor((xz + ContactHalf) / ShellCell));
+        if (any(c < 0) || any(c >= ShellCells))
+            return 1.0;
+        float2 corner = float2(c) * ShellCell - ContactHalf;
+        float light = 1.0;
+        for (int k = 0; k < ShellSlots; k++)
+        {
+            float4 s = ShellSpots.Load(int3(c.x * ShellSlots + k, c.y, 0));
+            if (s.a < 0.5)
+                break;
+            float2 d = xz - (corner + s.xy * 2.0 - 0.5);
+            float sigma = ShellSigma * s.z * 0.25;
+            light *= 1.0 - ShellDepth * exp(-dot(d, d) / (2.0 * sigma * sigma));
+        }
+        return light;
     }
 
     // The lichen over a point, premultiplied: half the groups yellow, half
@@ -170,6 +204,11 @@ shader TerrainTriplanar<LinkType GrassKey, LinkType DirtKey, LinkType SandKey, L
         float strength = Relief * (1.0 + ReliefSpread * (2.0 * Patchy(q.xz) - 1.0));
         streams.normalWS = normalize(n + strength * tilt);
 #endif
-        return float4(c.rgb * shade, 1.0);
+        float contact = Contact.Sample(LinearSampler, (q.xz + ContactHalf) / (2.0 * ContactHalf)).r;
+#ifndef KOTH_LIGHTMAP_BAKE
+        if (w.y > 0.004)
+            contact *= lerp(1.0, ShellShade(q.xz), w.y);
+#endif
+        return float4(c.rgb * shade * contact, 1.0);
     }
 };

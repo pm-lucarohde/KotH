@@ -323,7 +323,42 @@ static (PilImage, double[]) Grass(PyRandom rng)
         double s = Vary(k, 23, 20, 40) * K, h = Vary(k, 24, 0.003, 0.007);
         Stamp(relief, Vary(k, 25, 0, Size), Vary(k, 26, 0, Size), 3 * s, (dx, dy) => h * Math.Exp(-(dx * dx + dy * dy) / (2 * s * s)));
     }
-    return (img.Convert("RGB"), Warp(relief, 4 * K, 31));
+    return (RootSpots(img.Convert("RGB")), Warp(relief, 4 * K, 31));
+}
+
+// The ground darker under every blade of grass (Luca): GrassBlade sets each root in its cell of
+// 10 x 9.5 cm by RootHash, the same every 4 m, so a soft spot lies under each one here.
+static PilImage RootSpots(PilImage img)
+{
+    const int cellsX = 20, cellsZ = 21;           // per 2 m patch, as GrassPatch
+    const double depth = 0.125, sigma = 0.015 * Size / 4;
+    var dark = new double[Size * Size];          // log of the light, spots multiply
+    for (int cz = 0; cz < 2 * cellsZ; cz++)
+        for (int cx = 0; cx < 2 * cellsX; cx++)
+        {
+            var (hx, hy) = RootHash(cx, cz);
+            double x = (cx + hx) * 2.0 / cellsX * Size / 4, y = (cz + hy) * 2.0 / cellsZ * Size / 4;
+            Stamp(dark, x, y, 3 * sigma, (dx, dy) => Math.Log(1 - depth * Math.Exp(-(dx * dx + dy * dy) / (2 * sigma * sigma))));
+        }
+    for (int i = 0; i < dark.Length; i++)
+        for (int b = 0; b < 3; b++)
+            img.Data[4 * i + b] = (byte)Math.Round(img.Data[4 * i + b] * Math.Exp(dark[i]));
+    return img;
+}
+
+// GrassBlade's place of a root in its cell (x, z over two patches): CellHash.Hash3((x, z, 0), 5).xy.
+static (double X, double Y) RootHash(int x, int z)
+{
+    uint vx = unchecked((uint)x * 1664525u + 1013904223u + 5u * 2654435761u);
+    uint vy = unchecked((uint)z * 1664525u + 1013904223u + 5u * 2246822519u);
+    uint vz = unchecked(1013904223u + 5u * 3266489917u);
+    unchecked
+    {
+        vx += vy * vz; vy += vz * vx; vz += vx * vy;
+        vx ^= vx >> 16; vy ^= vy >> 16; vz ^= vz >> 16;
+        vx += vy * vz; vy += vz * vx;
+    }
+    return ((vx >> 8) / 16777216.0, (vy >> 8) / 16777216.0);
 }
 
 static PilImage Dirt(PyRandom rng)

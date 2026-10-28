@@ -18,6 +18,8 @@ namespace KotH.Client.Rendering
     /// (grassless ground at the beach's height), alone or two or three together.
     /// Built once into meshes of 16 m squares, drawn only near the camera. They
     /// take the light of the sand under them from the lightmap (ShellRenderFeature).
+    /// Under each shell the sand is darker: a map of their places (SpotsKey) for
+    /// the ground's TerrainTriplanar, laid once like the shells.
     /// Only looks: no collision, nothing of the simulation.
     /// </summary>
     /// <userdoc>Muscheln am Strand (nur Darstellung): Jakobsmuscheln, Herzmuscheln und kleine Schnecken.</userdoc>
@@ -61,6 +63,15 @@ namespace KotH.Client.Rendering
                 VertexElement.TextureCoordinate<Vector2>(2));
         }
 
+        // The shells' spots for TerrainTriplanar (its ShellSpots, same constants): cells of
+        // SpotCell metres over the grass map, up to SpotSlots shells each (texels side by side),
+        // a shell in every cell its spot reaches: (x, z) from the cell's corner - 0.5 m over
+        // 2 m, radius over SpotRadius, alpha 1.
+        static readonly ObjectParameterKey<Texture> SpotsKey = ParameterKeys.NewObject<Texture>(null, "TerrainTriplanar.ShellSpots");
+        const float SpotCell = 0.5f, SpotRadius = 0.25f, SpotReach = 2.4f;   // reach: 3 ShellSigma
+        const int SpotSlots = 4;
+        readonly List<(Vector2 At, float Radius)> placed = new List<(Vector2, float)>();
+
         // The grass map: per cell lightmap uv, height (none: NaN), grass, shade.
         int size;
         float half, cell;
@@ -80,6 +91,7 @@ namespace KotH.Client.Rendering
             int count = Scatter(built);
             foreach (var (vertices, indices) in built.Values)
                 AddSquare(vertices, indices);
+            LaySpots();
             Console.WriteLine($"[muscheln] {count} in {squares.Count} Feldern");
         }
 
@@ -206,8 +218,62 @@ namespace KotH.Client.Rendering
             }
             foreach (int index in piece.Indices)
                 square.Indices.Add(first + index);
+            placed.Add((p, 0.5f * scale));
             return true;
         }
+
+        /// <summary>
+        /// The spot map from the placed shells, handed to the map's models; a cell
+        /// with more shells than slots keeps the first ones (logged).
+        /// </summary>
+        void LaySpots()
+        {
+            int cells = (int)MathF.Round(2f * half / SpotCell), dropped = 0;
+            var texels = new byte[cells * SpotSlots * cells * 4];
+            foreach (var (at, radius) in placed)
+            {
+                float reach = SpotReach * radius;
+                int x0 = (int)MathF.Floor((at.X - reach + half) / SpotCell), x1 = (int)MathF.Floor((at.X + reach + half) / SpotCell);
+                int z0 = (int)MathF.Floor((at.Y - reach + half) / SpotCell), z1 = (int)MathF.Floor((at.Y + reach + half) / SpotCell);
+                for (int z = Math.Max(0, z0); z <= Math.Min(cells - 1, z1); z++)
+                    for (int x = Math.Max(0, x0); x <= Math.Min(cells - 1, x1); x++)
+                    {
+                        int slot = 0, row = (z * cells + x) * SpotSlots * 4;
+                        while (slot < SpotSlots && texels[row + 4 * slot + 3] != 0)
+                            slot++;
+                        if (slot == SpotSlots)
+                        {
+                            dropped++;
+                            continue;
+                        }
+                        int t = row + 4 * slot;
+                        texels[t] = Unorm8((at.X - (x * SpotCell - half) + 0.5f) / 2f);
+                        texels[t + 1] = Unorm8((at.Y - (z * SpotCell - half) + 0.5f) / 2f);
+                        texels[t + 2] = Unorm8(radius / SpotRadius);
+                        texels[t + 3] = 255;
+                    }
+            }
+            Texture spots = Texture.New2D(GraphicsDevice, cells * SpotSlots, cells, PixelFormat.R8G8B8A8_UNorm, texels);
+            foreach (Entity root in Entity.Scene.Entities)
+                Hand(root, spots);
+            if (dropped > 0)
+                Console.WriteLine($"[muscheln] {dropped} Schattenflecken ohne Platz");
+        }
+
+        // The models of the map's scene (the ground among them) get the spot map; materials without
+        // ShellSpots ignore it. The model loads its own material, not one named here.
+        static void Hand(Entity entity, Texture spots)
+        {
+            if (entity.Get<ModelComponent>() is { Model: { } model })
+                foreach (MaterialInstance m in model.Materials)
+                    if (m.Material != null)
+                        foreach (MaterialPass pass in m.Material.Passes)
+                            pass.Parameters.Set(SpotsKey, spots);
+            foreach (TransformComponent child in entity.Transform.Children)
+                Hand(child.Entity, spots);
+        }
+
+        static byte Unorm8(float v) => (byte)MathF.Round(Math.Clamp(v, 0f, 1f) * 255f);
 
         static float Height(ShellShapes.Piece piece)
         {

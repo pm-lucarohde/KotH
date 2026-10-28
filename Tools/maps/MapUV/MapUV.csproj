@@ -8,5 +8,7 @@
   <ItemGroup>
     <!-- MIT, pure C# (github.com/ProwlEngine/Anthology). -->
     <PackageReference Include="Prowl.Unwrapper" Version="3.7.2" />
+    <!-- The tools' PNG writer, for the contact map. -->
+    <Compile Include="../../Common/Png.cs" />
   </ItemGroup>
 </Project>

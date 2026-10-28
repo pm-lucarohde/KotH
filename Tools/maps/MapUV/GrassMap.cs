@@ -91,10 +91,10 @@ static class GrassMap
     }
 
     /// <summary>
-    /// Clears the grass in and round every trunk: the bark's corners near the
-    /// ground, gathered by trunk (2 m cells), each a disc as wide as its foot.
+    /// The trunks' feet in the meadow: the bark's corners near the ground, gathered
+    /// by trunk (2 m cells), each its middle and the radius of its widest corner.
     /// </summary>
-    static int ClearTrunks(List<Primitive> primitives, float[] amount, float cell)
+    static List<(double X, double Z, double R)> Feet(List<Primitive> primitives)
     {
         var feet = new List<(double X, double Z, List<(float X, float Z)> Corners)>();
         foreach (Primitive prim in primitives.Where(p => p.Material == "Bark"))
@@ -112,10 +112,58 @@ static class GrassMap
                     feet[k].Corners.Add((x, z));
             }
         }
-        foreach (var (_, _, corners) in feet)
+        return [.. feet.Select(f =>
         {
-            double mx = corners.Average(c => c.X), mz = corners.Average(c => c.Z);
-            double r = corners.Max(c => Math.Sqrt((c.X - mx) * (c.X - mx) + (c.Z - mz) * (c.Z - mz))) + TrunkMargin;
+            double mx = f.Corners.Average(c => c.X), mz = f.Corners.Average(c => c.Z);
+            return (mx, mz, f.Corners.Max(c => Math.Sqrt((c.X - mx) * (c.X - mx) + (c.Z - mz) * (c.Z - mz))));
+        })];
+    }
+
+    // The contact map: cells of 12.5 cm over the grass map's square; the ground this much
+    // darker right at a trunk, fading out with ContactFall metres away from it (Luca).
+    const int ContactSize = 2048;
+    const double ContactDepth = 0.6, ContactFall = 0.7, ContactReach = 2.2;
+
+    /// <summary>
+    /// Writes the contact map (NeuContact.png, grey): the ground's darkening round the
+    /// trunks' feet, 255 untouched. TerrainTriplanar darkens the ground with it; seen from
+    /// above like the grass map, row 0 at z = -Half.
+    /// </summary>
+    public static void WriteContact(string path, List<Primitive> primitives)
+    {
+        double cell = 2.0 * Half / ContactSize;
+        var light = new double[ContactSize * ContactSize];
+        Array.Fill(light, 1.0);
+        var feet = Feet(primitives);
+        foreach (var (mx, mz, foot) in feet)
+        {
+            double r = foot + ContactReach;
+            int x0 = (int)Math.Floor((mx - r + Half) / cell), x1 = (int)Math.Ceiling((mx + r + Half) / cell);
+            int z0 = (int)Math.Floor((mz - r + Half) / cell), z1 = (int)Math.Ceiling((mz + r + Half) / cell);
+            for (int z = Math.Max(0, z0); z <= Math.Min(ContactSize - 1, z1); z++)
+                for (int x = Math.Max(0, x0); x <= Math.Min(ContactSize - 1, x1); x++)
+                {
+                    double px = (x + 0.5) * cell - Half - mx, pz = (z + 0.5) * cell - Half - mz;
+                    double away = Math.Max(0, Math.Sqrt(px * px + pz * pz) - foot);
+                    if (away < ContactReach)
+                        light[z * ContactSize + x] *= 1 - ContactDepth * Math.Exp(-away / ContactFall) * (1 - away / ContactReach);
+                }
+        }
+        var png = new KotH.Tools.Png(ContactSize, ContactSize, 1);
+        for (int i = 0; i < light.Length; i++)
+            png.Pixels[i] = (byte)Math.Round(Math.Clamp(light[i], 0, 1) * 255);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        png.Write(path);
+        Console.WriteLine($"{path}: {feet.Count} Stammfüße abgedunkelt");
+    }
+
+    /// <summary>Clears the grass in and round every trunk: a disc as wide as its foot.</summary>
+    static int ClearTrunks(List<Primitive> primitives, float[] amount, float cell)
+    {
+        var feet = Feet(primitives);
+        foreach (var (mx, mz, foot) in feet)
+        {
+            double r = foot + TrunkMargin;
             int x0 = (int)Math.Floor((mx - r + Half) / cell), x1 = (int)Math.Ceiling((mx + r + Half) / cell);
             int z0 = (int)Math.Floor((mz - r + Half) / cell), z1 = (int)Math.Ceiling((mz + r + Half) / cell);
             for (int z = Math.Max(0, z0); z <= Math.Min(Size - 1, z1); z++)

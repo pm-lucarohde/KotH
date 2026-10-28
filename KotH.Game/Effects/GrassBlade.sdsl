@@ -1,8 +1,9 @@
 /// <summary>
 /// Builds the grass blades of GrassField's patches, as Ghost of Tsushima does:
 /// each vertex knows only its blade (a cell of the patch) and its place on it;
-/// root, height, facing and lean come from whole-number hashes of patch and
-/// blade, the ground from the grass map (height, amount, shade, lightmap UV).
+/// height, facing and lean come from whole-number hashes of patch and blade,
+/// the root's place in its cell repeats every 4 m (its spot in the ground's
+/// texture), the ground from the grass map (height, amount, shade, lightmap UV).
 /// The blade is a curve from the root to a tip bent by its lean, the gusts
 /// that run across the field with the wind and the figures walking through.
 /// Blades thin out with distance and are gone at the far reach, where the
@@ -85,7 +86,11 @@ shader GrassBlade : TransformationBase, PositionStream4, Transformation, Texturi
         int id = int(data.w);
         float3 h0 = Hash3(int3(patch, id), 0u);
         float3 h1 = Hash3(int3(patch, id), 1u);
-        root.xz += (h0.xy - 0.5) * (PatchSize / Cells);
+        // A blade's place in its cell repeats every two patches, with the ground's 4 m texture:
+        // Textures.cs paints a dark spot under every root (RootHash there). Flowers stay free.
+        int2 cell = (patch & 1) * int2(Cells) + int2(floor(streams.Position.xz * Cells / PatchSize));
+        float2 jitter = kind > 0.5 ? h0.xy : Hash3(int3(cell, 0), 5u).xy;
+        root.xz += (jitter - 0.5) * (PatchSize / Cells);
 
         float height, amount, shade;
         float2 uv;
