@@ -1390,7 +1390,7 @@ namespace KotH.Shared.Player
                     {
                         Vector3 dir = UMath.Add(UMath.Mul(n, JamTurns[d].X), UMath.Mul(p, JamTurns[d].Y));
                         Vector3 to = UMath.Add(position, UMath.Add(UMath.Mul(dir, side), UMath.Mul(UMath.Up, up)));
-                        if (!Fits(to))
+                        if (!Fits(to) || !Reaches(to))
                             continue;
                         position = to;
                         velocity = Vector3.Zero;
@@ -1399,6 +1399,20 @@ namespace KotH.Shared.Player
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Is the way from the body's centre to the same point at <paramref name="at"/>
+        /// open? Fits alone passed a pose inside the mountain: its collision is a
+        /// hollow shell of triangles, and a capsule within touches none of them
+        /// (Luca fell through there). The ray crosses that shell from outside.
+        /// </summary>
+        bool Reaches(Vector3 at)
+        {
+            Vector3 from = UMath.Add(position, UMath.Mul(UMath.Up, CenterY));
+            Vector3 way = UMath.Sub(at, position);
+            float length = UMath.Magnitude(way);
+            return !world.Raycast(from, UMath.Mul(way, 1f / length), length, WorldMask, out _);
         }
 
         /// <summary>Does the current shape fit whole, at full radius, at this position?</summary>

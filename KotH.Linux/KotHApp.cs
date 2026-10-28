@@ -62,6 +62,8 @@ game.Run();
 /// logs each of those. KOTH_HEADLESS=1 never shows
 /// the window and renders into a texture of KOTH_SIZE (default 2560x1440), for shots.
 /// KOTH_EFFECTLOG=path records the effect permutations used (EffectRecorder).
+/// KOTH_POSLOG=path writes the own body every tick (tick, position, velocity, grounded) and
+/// a marker line on F8, to find where a player fell through the map.
 /// </summary>
 sealed class KotHGame : Game
 {
@@ -94,6 +96,9 @@ sealed class KotHGame : Game
         (Environment.GetEnvironmentVariable("KOTH_SHOT_STRIKE") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)
             .Select(s => double.Parse(s, CultureInfo.InvariantCulture)));
     readonly string frameLogPath = Environment.GetEnvironmentVariable("KOTH_FRAMELOG");
+    readonly string posLogPath = Environment.GetEnvironmentVariable("KOTH_POSLOG");
+    StreamWriter posLog;
+    int posTick = int.MinValue;
     readonly double? musicVolume = Number("KOTH_MUSIC_VOLUME");
     readonly double? musicTail = Number("KOTH_MUSIC_TAIL");
     readonly double? sfxVolume = Number("KOTH_SFX_VOLUME");
@@ -314,6 +319,7 @@ sealed class KotHGame : Game
             ToggleFullscreen();
         RestoreWindowSize();
         ConfinePointer();
+        LogPosition();
 
         if (shotPath == null)
             return;
@@ -596,6 +602,30 @@ sealed class KotHGame : Game
                     e.Get<Stride.Engine.UIComponent>() is { } ui ? (ui.Enabled ? "an" : "aus") : "fehlt",
                     e.Transform.WorldMatrix.TranslationVector.Y,
                     e.Get<Stride.Engine.UIComponent>()?.Page?.RootElement?.ActualWidth ?? -1f));
+    }
+
+    /// <summary>KOTH_POSLOG: one line per new tick of the own body, a marker on F8.</summary>
+    void LogPosition()
+    {
+        if (posLogPath == null || Find<PlayerCamera>()?.Motor is not { } motor
+            || Find<HillBoard>()?.Simulation is not { } simulation)
+            return;
+        if (posLog == null)
+        {
+            posLog = new StreamWriter(posLogPath, append: true) { AutoFlush = true };
+            posLog.WriteLine("# Tick x y z vx vy vz Boden (Stride-Meter)");
+        }
+        Vector3 p = motor.Position, v = motor.Velocity;
+        if (KeyPresses.Pressed(Input, Keys.F8))
+        {
+            posLog.WriteLine(FormattableString.Invariant($"# Markierung {simulation.CurrentTick} {p.X:F3} {p.Y:F3} {p.Z:F3}"));
+            Console.WriteLine(FormattableString.Invariant($"[poslog] Markierung bei {p.X:F2}, {p.Y:F2}, {p.Z:F2}"));
+        }
+        if (simulation.CurrentTick == posTick)
+            return;
+        posTick = simulation.CurrentTick;
+        posLog.WriteLine(FormattableString.Invariant(
+            $"{posTick} {p.X:F3} {p.Y:F3} {p.Z:F3} {v.X:F2} {v.Y:F2} {v.Z:F2} {(motor.IsGrounded ? 1 : 0)}"));
     }
 
     T Find<T>() where T : EntityComponent

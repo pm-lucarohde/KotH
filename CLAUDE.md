@@ -32,7 +32,7 @@ Tools/publish_aot.sh windows probes-windows  # nur auf Wunsch: Bin/Windows/aot, 
 - Testhilfen (`KotHApp.cs`, Zeiten ab Ende des Ladebilds): `KOTH_SHOT=bild.png` (nach `_SECONDS`, F3 an), `_YAW`/`_PITCH`/`_FOV`,
   `_THIRD`, `_AT=x,y,z`, `_FACE=grad`, `_SWING`, `_SHAKE`, `_HIT=grad[,s]`, `_BLINK`, `_STRIKE=s,…`, `_MOVE=x,y[,sprint]`, `_CROUCH=s`,
   `_JUMP=s,…`, `_TURN=grad,s[,kreis]`, `_SPIN=grad/s`, `_VIDEO=s` (30 fps nach `bild.png.rgba`, Format im Log); `KOTH_HEADLESS=1` (ohne Fenster),
-  `KOTH_SIZE`, `KOTH_VSYNC`, `KOTH_FRAMELOG`, `KOTH_BOT_THREAD`, `KOTH_MUSIC_VOLUME` (stumm, auch Geräusche), `KOTH_MUSIC_TAIL`, `KOTH_SFX_VOLUME`, `KOTH_SOUNDLOG`, Ton `ALSOFT_DRIVERS=wave`, `KOTH_EFFECTLOG` (Effekt-Varianten). Kein Splash, 6 Render-Threads.
+  `KOTH_SIZE`, `KOTH_VSYNC`, `KOTH_FRAMELOG`, `KOTH_BOT_THREAD`, `KOTH_MUSIC_VOLUME` (stumm, auch Geräusche), `KOTH_MUSIC_TAIL`, `KOTH_SFX_VOLUME`, `KOTH_SOUNDLOG`, Ton `ALSOFT_DRIVERS=wave`, `KOTH_EFFECTLOG` (Effekt-Varianten), `KOTH_POSLOG` (eigene Position je Tick, F8 markiert). Kein Splash, 6 Render-Threads.
 
 ## Tests: Proben und Regression
 
@@ -72,7 +72,7 @@ Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall 
   `WorldQueries`: Bepu mit PhysX-Semantik (Startüberlappung = Abstand 0, Strahl aus dem Inneren sieht nichts, stabile
   Sortierung); Körperhüllen sind Statics auf Layer 6 (`Hittable`). Nie aus `TransformComponent` lesen.
 - Klemmen (Lucas Wahl): Kapsel steil ≥ 0,25 s in einem Schacht schmaler als sie, nicht am Boden, `wedged`, < 0,4 m/s
-  → `PlayerMotor.EscapeJam`: 0,1–0,8 m hoch, 0,3/0,6 m seitlich, Tempo 0; nie in Regression/Proben, ohne Zustandsfeld.
+  → `PlayerMotor.EscapeJam`: 0,1–0,8 m hoch, 0,3/0,6 m seitlich, Weg frei (Strahl, sonst ins Berginnere), Tempo 0; nie in Regression/Proben, ohne Zustandsfeld.
 - Koordinaten: Stride (−Z vorn); Unity → Stride `z → −z`, Gier → −Gier, Quaternion `(x,y,z,w) → (−x,−y,z,w)`.
 
 ### Netz
