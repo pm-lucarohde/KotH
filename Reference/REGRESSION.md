@@ -1,14 +1,12 @@
 # Regression Unity → Stride
 
-All eight movement and combat probes plus the DeterminismProbe against the frozen Unity reference in
-`Reference/unity/runs/run1..3`, each probe run three times. `Tools/Regress.cs` compares numbers (5 mm, per-tick lines
-included), `Tools/Verdict.cs` the verdicts. On 28.10.2026 the reference logs were translated to English with decimal
-points (`.work/english/probe_table.py`); verdicts and numbers stayed identical.
+The eight movement and combat probes and the DeterminismProbe against the frozen Unity reference
+(`Reference/unity/runs/run1..3`, three runs each): `Tools/Regress.cs` compares numbers (5 mm), `Tools/Verdict.cs` verdicts.
 
 ## Result (stage 6, 15.10.2026; still holds)
 
-**94 of 94 verdicts as in Unity** (the 95th, "start on landing", has no Unity counterpart). The DeterminismProbe is
-bit-exact and line-identical, its mutation tests fire, three runs of each probe are byte-identical.
+**94 of 94 verdicts as in Unity** (the 95th has no Unity counterpart); the DeterminismProbe is bit-exact, three runs
+of each probe are byte-identical.
 
 | Probe | Cases | within 5 mm | display rounding | only 1 % | over | Note |
 |---|---|---|---|---|---|---|
@@ -26,10 +24,8 @@ bit-exact and line-identical, its mutation tests fire, three runs of each probe 
 1. **Display rounding:** Mono formats floats to 7 digits first, .NET rounds the exact value (2.87499… → "2.87"; also "-0.00").
 2. **Precision:** Unity's editor Mono evaluates expressions in double (`RotationProbe`), the port in float like IL2CPP:
    Crest crouched one tick later (5.034 instead of 5.033 m).
-3. **Step, crouching/standing right after a teleport:** feet exactly at y = 0; whether an overlap reports mere touching
-   is float noise in PhysX and Bepu alike, so the push up comes in another tick. Only "+ Steps40 still" ends elsewhere
-   (x −14.1 / z 19.0 instead of −14.0 / 19.3), same peak and verdict. A touch filter made it worse (rejected). In the
-   game a landed body rests a skin width above the ground.
+3. **Step, right after a teleport:** feet exactly at y = 0, so whether an overlap reports mere touching is float noise
+   (PhysX and Bepu alike); only "+ Steps40 still" ends elsewhere (x −14.1 / z 19.0 instead of −14.0 / 19.3), same verdict.
 4. **Step, ground angle in wobble cases:** last displayed digit (2.1 instead of 2.0° at t018), from point 2.
 
 ## Bugs found during the regression
@@ -42,14 +38,12 @@ bit-exact and line-identical, its mutation tests fire, three runs of each probe 
 | d1999a5 | Single `CapsuleCast` (TryStepUp) counted a start overlap as blocked; Unity ignores colliders it starts in |
 | d9d3b23 | Penetration direction pointed to the Bepu side instead of the PhysX side |
 
-World queries against PhysX (`worldquery`, 6,500 per kind): identical hit sets, distances p99 < 5 µm, penetrations
-≤ 0.4 mm and 0.17°. An independent line-by-line port review found nothing behaviour-changing besides d1999a5.
+World queries against PhysX (`worldquery`, 6,500 per kind): identical hit sets, distances p99 < 5 µm.
 
 ## NativeAOT
 
-All builds use **x86-64-v2** (Luca, `Directory.Build.props`); floats depend on the instruction set, so JIT only matches
-with `DOTNET_EnableAVX=0` and all peers need the same binary. AOT and JIT are byte-identical on every probe. The 8
-remaining AOT warnings are in third-party code (Silk.NET, Stride.Graphics, Stride.BepuPhysics).
+All builds use **x86-64-v2** (`Directory.Build.props`); JIT matches only with `DOTNET_EnableAVX=0`, then AOT and JIT
+are byte-identical on every probe. All peers need the same binary.
 
 ## Intended changes since the move (hash chain now `C857D39208F53C83`)
 
