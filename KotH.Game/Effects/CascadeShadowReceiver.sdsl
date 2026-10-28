@@ -11,7 +11,9 @@
 /// filtered over a disk. The scene's shadow filter must be PCF (size unused).
 /// With a static map (StaticSunShadowRenderer) the cascades hold only what
 /// moves, and the map's shadow from the static map is multiplied in, filtered alike;
-/// lightmapped meshes (KOTH_LIGHTMAP) read it baked per texel instead.
+/// lightmapped meshes (KOTH_LIGHTMAP) read it baked per texel instead, as a cubic
+/// B-spline (four bilinear reads), so the texels do not show as steps. Both
+/// disks turn by a noise angle per pixel: steps at their rims become fine grain.
 /// The clouds' shadow (Atmosphere) is multiplied in last, never baked: they drift.
 /// </summary>
 shader CascadeShadowReceiver<int TCascadeCount,
@@ -21,7 +23,7 @@ shader CascadeShadowReceiver<int TCascadeCount,
                              bool TCascadeDebug,
                              bool TComputeTransmittance> :
     ShadowMapReceiverDirectional<TCascadeCount, TLightCount, TBlendCascades, TDepthRangeAuto, TCascadeDebug, TComputeTransmittance>,
-    Texturing, LightmapBakeStream, CloudLayer
+    Texturing, ShaderBaseStream, LightmapBakeStream, CloudLayer
 {
     cbuffer PerView.Lighting
     {
@@ -30,6 +32,7 @@ shader CascadeShadowReceiver<int TCascadeCount,
         float MaxPenumbra;    // widest penumbra radius in texels, also the blocker search's reach
         float4x4 WorldToStaticUV;
         float2 StaticTexelSize;   // 0 without a static map
+        float2 SunLightmapTexelSize;
         float4 CloudShadowLayer;  // base, thickness, coverage, density
         float4 CloudShadowScale;  // 1 / repeat of cloudlets and streaks, strength (0: no clouds), 0
         float4 CloudShadowOffset;
@@ -65,7 +68,7 @@ shader CascadeShadowReceiver<int TCascadeCount,
 #else
         float3 shadow = base.ComputeShadow(position, lightIndex);
 #ifdef KOTH_LIGHTMAP
-        shadow *= SunLightmap.SampleLevel(LinearSampler, streams.TexCoord1, 0).r;
+        shadow *= SunLightmapCubic(streams.TexCoord1);
 #else
         if (StaticTexelSize.x > 0.0)
             shadow *= StaticShadow(position, lightIndex);
@@ -185,18 +188,52 @@ shader CascadeShadowReceiver<int TCascadeCount,
         return count == 0 ? -1.0 : count == 64 ? -2.0 : sum / count;
     }
 
-    // 32 bilinear comparisons on a Vogel disk of the radius (texels), weighted
+    // The baked sun as a cubic B-spline: four bilinear reads, each placed between
+    // two texels so its weights come out (GPU Gems 2, ch. 20).
+    float SunLightmapCubic(float2 uv)
+    {
+        float2 p = uv / SunLightmapTexelSize - 0.5;
+        float2 f = frac(p);
+        p -= f;
+        float2 g = 1.0 - f;
+        float2 w0 = g * g * g / 6.0, w3 = f * f * f / 6.0;
+        float2 w1 = (4.0 - 6.0 * f * f + 3.0 * f * f * f) / 6.0, w2 = 1.0 - w0 - w1 - w3;
+        float2 s0 = w0 + w1, s1 = w2 + w3;
+        float2 a = (p - 0.5 + w1 / s0) * SunLightmapTexelSize;
+        float2 b = (p + 1.5 + w3 / s1) * SunLightmapTexelSize;
+        return s0.y * (s0.x * SunLightmap.SampleLevel(LinearSampler, a, 0).r + s1.x * SunLightmap.SampleLevel(LinearSampler, float2(b.x, a.y), 0).r)
+             + s1.y * (s0.x * SunLightmap.SampleLevel(LinearSampler, float2(a.x, b.y), 0).r + s1.x * SunLightmap.SampleLevel(LinearSampler, b, 0).r);
+    }
+
+    // A noise turn per pixel (interleaved gradient noise) as cos, sin, one of two:
+    // the 64 taps are two disks of 32, each with its own turn (Luca); their angles
+    // stay constants. The bake keeps them still, the second half a golden angle on.
+    float2 Twist(float which)
+    {
+#ifdef KOTH_LIGHTMAP_BAKE
+        float angle = which * 1.19998;
+#else
+        float2 pixel = streams.ShadingPosition.xy + which * float2(47.0, 17.0);
+        float angle = 6.2831853 * frac(52.9829189 * frac(dot(pixel, float2(0.06711056, 0.00583715))));
+#endif
+        return float2(cos(angle), sin(angle));
+    }
+
+    // 64 bilinear comparisons on two Vogel disks of the radius (texels), weighted
     // towards the centre like a tent, so the penumbra fades without a rim.
     float FilterDisk(float3 position, float2 gradient, float radius, float4 rect)
     {
         float2 scale = radius * ShadowMapTextureTexelSize;
         float shadow = 0;
         float total = 0;
-        for (int k = 0; k < 32; k++)
+        float2 twists[2] = { Twist(0.0), Twist(1.0) };
+        for (int k = 0; k < 64; k++)
         {
-            float r2 = (k + 0.5) / 32.0;
-            float a = k * 2.39996;
-            float2 d = sqrt(r2) * float2(cos(a), sin(a));
+            float r2 = ((k >> 1) + 0.5) / 32.0;
+            float a = (k >> 1) * 2.39996;
+            float2 e = float2(cos(a), sin(a));
+            float2 twist = twists[k & 1];
+            float2 d = sqrt(r2) * float2(e.x * twist.x - e.y * twist.y, e.x * twist.y + e.y * twist.x);
             float weight = 1.0 - 0.75 * r2;
             float2 uv = clamp(position.xy + d * scale, rect.xy, rect.zw);
             shadow += weight * Tap(uv, position, gradient);
@@ -237,18 +274,21 @@ shader CascadeShadowReceiver<int TCascadeCount,
         return count == 0 ? -1.0 : count == 64 ? -2.0 : sum / count;
     }
 
-    // 32 bilinear comparisons on a Vogel disk of the radius (texels), weighted
+    // 64 bilinear comparisons on two Vogel disks of the radius (texels), weighted
     // towards the centre like a tent, so the penumbra fades without a rim.
     float StaticFilterDisk(float3 position, float2 gradient, float radius, float4 rect)
     {
         float2 scale = radius * StaticTexelSize;
         float shadow = 0;
         float total = 0;
-        for (int k = 0; k < 32; k++)
+        float2 twists[2] = { Twist(0.0), Twist(1.0) };
+        for (int k = 0; k < 64; k++)
         {
-            float r2 = (k + 0.5) / 32.0;
-            float a = k * 2.39996;
-            float2 d = sqrt(r2) * float2(cos(a), sin(a));
+            float r2 = ((k >> 1) + 0.5) / 32.0;
+            float a = (k >> 1) * 2.39996;
+            float2 e = float2(cos(a), sin(a));
+            float2 twist = twists[k & 1];
+            float2 d = sqrt(r2) * float2(e.x * twist.x - e.y * twist.y, e.x * twist.y + e.y * twist.x);
             float weight = 1.0 - 0.75 * r2;
             float2 uv = clamp(position.xy + d * scale, rect.xy, rect.zw);
             shadow += weight * StaticTap(uv, position, gradient);

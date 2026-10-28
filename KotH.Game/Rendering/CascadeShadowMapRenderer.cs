@@ -30,6 +30,7 @@ namespace KotH.Client.Rendering
         static readonly ValueParameterKey<Vector2> StaticTexelSize = ParameterKeys.NewValue<Vector2>(default, "CascadeShadowReceiver.StaticTexelSize");
         static readonly ObjectParameterKey<Texture> StaticShadowMap = ParameterKeys.NewObject<Texture>(null, "CascadeShadowReceiver.StaticShadowMap");
         static readonly ObjectParameterKey<Texture> SunLightmap = ParameterKeys.NewObject<Texture>(null, "CascadeShadowReceiver.SunLightmap");
+        static readonly ValueParameterKey<Vector2> SunLightmapTexelSize = ParameterKeys.NewValue<Vector2>(default, "CascadeShadowReceiver.SunLightmapTexelSize");
         static readonly ValueParameterKey<Vector4> CloudShadowLayer = ParameterKeys.NewValue<Vector4>(default, "CascadeShadowReceiver.CloudShadowLayer");
         static readonly ValueParameterKey<Vector4> CloudShadowScale = ParameterKeys.NewValue<Vector4>(default, "CascadeShadowReceiver.CloudShadowScale");
         static readonly ValueParameterKey<Vector4> CloudShadowOffset = ParameterKeys.NewValue<Vector4>(default, "CascadeShadowReceiver.CloudShadowOffset");
@@ -70,6 +71,7 @@ namespace KotH.Client.Rendering
             ValueParameterKey<Vector2> staticTexelKey;
             ObjectParameterKey<Texture> staticMapKey;
             ObjectParameterKey<Texture> sunLightmapKey;
+            ValueParameterKey<Vector2> sunLightmapTexelKey;
             ValueParameterKey<Vector4> cloudLayerKey, cloudScaleKey, cloudOffsetKey;
             ValueParameterKey<Vector2> cloudWindKey;
             ValueParameterKey<Vector3> cloudSunKey;
@@ -87,6 +89,7 @@ namespace KotH.Client.Rendering
                 staticTexelKey = StaticTexelSize.ComposeWith(compositionName);
                 staticMapKey = StaticShadowMap.ComposeWith(compositionName);
                 sunLightmapKey = SunLightmap.ComposeWith(compositionName);
+                sunLightmapTexelKey = SunLightmapTexelSize.ComposeWith(compositionName);
                 cloudLayerKey = CloudShadowLayer.ComposeWith(compositionName);
                 cloudScaleKey = CloudShadowScale.ComposeWith(compositionName);
                 cloudOffsetKey = CloudShadowOffset.ComposeWith(compositionName);
@@ -122,7 +125,9 @@ namespace KotH.Client.Rendering
                 bool ready = still is { Ready: true, Texture: not null };
                 Texture stand = currentLights.Count > 0 ? ((ShaderData)currentLights[0].ShadowMapTexture.ShaderData).Texture : null;
                 parameters.Set(staticMapKey, ready ? still.Texture : stand);
-                parameters.Set(sunLightmapKey, context.RenderContext.Tags.Get(Stride.Rendering.Voxels.ForwardRendererVoxels.SunLightmapKey) ?? stand);
+                var sunmap = context.RenderContext.Tags.Get(Stride.Rendering.Voxels.ForwardRendererVoxels.SunLightmapKey) ?? stand;
+                parameters.Set(sunLightmapKey, sunmap);
+                parameters.Set(sunLightmapTexelKey, sunmap != null ? new Vector2(1f / sunmap.Width, 1f / sunmap.Height) : Vector2.Zero);
                 parameters.Set(staticUVKey, ready ? still.WorldToUV : Matrix.Identity);
                 parameters.Set(staticTexelKey, ready ? new Vector2(1f / still.Texture.Width) : Vector2.Zero);
 
