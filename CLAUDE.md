@@ -106,7 +106,7 @@ Projekte (`KotH.slnx`): **KotH.Shared** (ganze Simulation ohne Grafik, überall 
   `TEXCOORD_0.x` = AO), `Sea.glb` und `NeuTerrain.bin` (Kollision, eingebettet, 4-m-Chunks, `WorldBuilder.AddTerrain`).
   Surface Nets 70 %, Säulen 2 × 1, ohne Wege, Gipfel aus ≥ 9/12 Richtungen; Bäume: Stamm gabelt in Äste, Kronen aus
   Blattbüscheln (Karten innen, Einzelblätter außen, Zweige; durchlässig, Wind `LeafSway`). Danach `Tools/maps/MapUV` (Lightmap-UVs, Graskarte `NeuGrass.bin`), `publish_aot.sh`. Sichtweite ≤ 20 km.
-- Gras: `GrassField` (Gruppe 5, Kacheln instanziert, Halme in `GrassBlade` gebaut, Licht der Lightmap); Muscheln `ShellField` (Gruppe 6). Texturen: `Tools/maps/Textures.cs` (comichaft),
+- Gras: `GrassField` (Gruppe 5, Kacheln instanziert, Halme in `GrassBlade` gebaut, Licht der Lightmap); Muscheln `ShellField` (Gruppe 6). Texturen: `Tools/maps/Textures.cs` (comichaft), Himmel `Tools/maps/Sky.cs` (Sonne = Licht der MainScene),
   Shader in `KotH.Game/Effects`. Fallen: kein `Texture2D` als Generic (`LinkType` + `[Link]`), verschachteltes `ComputeColorParameterTexture`; Import merged.
 
 ### Game Studio (Wine/Proton)

@@ -2,7 +2,7 @@
 Id: C8F1566C-4832-4943-B46D-E72AD417E250
 SerializedVersion: {Stride: 2.0.0.0}
 Tags: []
-Source: !file ../Resources/skybox_texture_hdr.dds
+Source: !file ../Resources/Sky.dds
 Type: !ColorTextureType
     UseSRgbSampling: false
     ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}
