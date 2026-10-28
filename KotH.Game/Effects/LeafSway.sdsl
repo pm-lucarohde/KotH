@@ -1,9 +1,7 @@
-/// <summary>
-/// Moves the crowns' leaves in the wind (LeafRenderFeature mixes it in after the vertex
-/// stage, in every pass): whole clumps sway with LeafWind at their place, each quad the
-/// more the farther from where it is held, and every leaf flaps along its normal in its
-/// own phase. COLOR0 as LeafCluster reads it: shade, tint, sway, phase.
-/// </summary>
+/// <summary>Moves the crowns' leaves in the wind (LeafRenderFeature mixes it in after the
+/// vertex stage, in every pass): whole clumps sway with LeafWind at their place, each
+/// quad the more the farther from where it is held, and every leaf flaps along its normal
+/// in its own phase. COLOR0 as LeafCluster reads it: shade, tint, sway, phase.</summary>
 shader LeafSway : TransformationBase, PositionStream4, NormalStream, LeafWind
 {
     // LeafWind's reach (made for the old leaves' pattern) times this, in metres here.

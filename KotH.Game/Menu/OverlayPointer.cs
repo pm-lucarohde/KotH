@@ -4,11 +4,9 @@ using Stride.Input;
 
 namespace KotH.Client.Menu
 {
-    /// <summary>
-    /// Hands the mouse to the overlay under it (a pressed one keeps it until
-    /// the release, so a click completes), only when something happened; for
-    /// the main menu and the pause menu.
-    /// </summary>
+    /// <summary>Hands the mouse to the overlay under it (a pressed one keeps it until the
+    /// release, so a click completes), only when something happened; for the main menu
+    /// and the pause menu.</summary>
     public sealed class OverlayPointer
     {
         MenuOverlay hovered, pressed;

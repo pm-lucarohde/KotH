@@ -6,11 +6,10 @@ using Stride.Shaders;
 
 namespace KotH.Client.Rendering
 {
-    /// <summary>
-    /// Mixes LeafSway into every pass of the crowns' leaves (after the vertex stage, the hook
-    /// GrassRenderFeature uses): the meshes of the map's model without lightmap UVs, which
-    /// are the leaves and the clump cards (MapUV gives the rest a second uv). Added at run time.
-    /// </summary>
+    /// <summary>Mixes LeafSway into every pass of the crowns' leaves (after the vertex stage,
+    /// the hook GrassRenderFeature uses): the meshes of the map's model without lightmap UVs,
+    /// which are the leaves and the clump cards (MapUV gives the rest a second uv). Added at run
+    /// time.</summary>
     public sealed class LeafRenderFeature : SubRenderFeature
     {
         static readonly ShaderClassSource Sway = new ShaderClassSource("LeafSway");

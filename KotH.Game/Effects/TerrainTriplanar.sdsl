@@ -1,13 +1,7 @@
-/// <summary>
-/// Painted ground of a map, projected from three sides (triplanar): the top
-/// texture where the ground faces up, the side texture on slopes and walls.
-/// COLOR0 weighs the surfaces (grass, sand, snow, snow cap; the rest is rock),
-/// TEXCOORD0.x is the shade (soft AO). The lichen on the rock is laid on
-/// spot by spot, so it never stretches. Sand and meadow have a relief
-/// (normal maps from Textures.cs) that tilts the normal for the sun.
-/// Round the trunks' feet the ground is darker (the contact map), the sand
-/// under every shell too (ShellField's spot map).
-/// </summary>
+/// <summary>A map's painted ground, triplanar: top texture facing up, side texture on slopes.
+/// COLOR0 weighs the surfaces (grass, sand, snow, snow cap; rest rock), TEXCOORD0.x is the AO.
+/// Lichen is laid spot by spot; sand and meadow tilt the normal for the sun (relief maps);
+/// the contact map darkens trunk feet, ShellField's spot map the sand under shells.</summary>
 shader TerrainTriplanar<LinkType GrassKey, LinkType DirtKey, LinkType SandKey, LinkType SnowKey, LinkType RockKey, LinkType GrassReliefKey, LinkType SandReliefKey, LinkType ContactKey>
     : ComputeColor, PositionStream4, NormalStream, Texturing, CellHash
 {

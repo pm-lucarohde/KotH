@@ -7,11 +7,9 @@ using KotH.Shared.Player;
 
 namespace KotH.Client.Net
 {
-    /// <summary>
-    /// The client's share of a networked game: its session and, when it
-    /// hosts, the host session beside it. The driver calls Update once per
-    /// frame instead of ticking the world itself; everything else reads.
-    /// </summary>
+    /// <summary>The client's share of a networked game: its session and, when it hosts,
+    /// the host session beside it. The driver calls Update once per frame instead of
+    /// ticking the world itself; everything else reads.</summary>
     public sealed class NetClient : IDisposable
     {
         readonly Stopwatch wall = Stopwatch.StartNew();

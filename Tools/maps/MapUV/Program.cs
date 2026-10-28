@@ -1,16 +1,7 @@
-// Adds a second UV set (TEXCOORD_1) to Mountain.glb and Sea.glb: the terrain's and
-// the bark's faces unwrapped into one atlas, which the client fills with the voxel
-// light once it is baked (a lightmap), and the inner sea as one square of it, laid
-// on from above (the outer sea clamped to its rim). Leaves keep none. Run after
-// Tools/maps/Mountain.cs, on its fresh output:
-//
+// Adds TEXCOORD_1 to Mountain.glb and Sea.glb: terrain and bark unwrapped into one lightmap
+// atlas, the inner sea as one square from above (outer sea clamped); writes MountDestinyGrass.bin
+// and MountDestinyContact.png too (--grass: only those). Run on Mountain.cs's fresh output.
 //   dotnet run --project Tools/maps/MapUV -c Release [-- --size 4096 --pad 3]
-//
-// --size is the lightmap's side in texels the margins are meant for, --pad the
-// texels kept free round every chart. Everything else in the file stays as it was.
-// It also writes the grass map (MountDestinyGrass.bin, GrassField) and the contact map round the
-// trunks (MountDestinyContact.png); --grass writes only those, from a Mountain.glb that has its
-// lightmap UVs already.
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Prowl.Unwrapper;

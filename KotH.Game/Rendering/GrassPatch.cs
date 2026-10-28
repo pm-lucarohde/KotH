@@ -8,11 +8,9 @@ using Buffer = Stride.Graphics.Buffer;
 
 namespace KotH.Client.Rendering
 {
-    /// <summary>
-    /// The one patch of grass GrassField draws many times (2 × 2 m, 20 × 21
-    /// blades, five flower places): every vertex only says which blade it
-    /// belongs to and where on it, GrassBlade builds the blade from that.
-    /// </summary>
+    /// <summary>The one patch of grass GrassField draws many times (2 × 2 m, 20 × 21
+    /// blades, five flower places): every vertex only says which blade it belongs to and
+    /// where on it, GrassBlade builds the blade from that.</summary>
     static class GrassPatch
     {
         public const float Size = 2f;
@@ -36,12 +34,10 @@ namespace KotH.Client.Rendering
         /// <summary>Blades in a patch; GrassBlade's rank of a blade is its number over this.</summary>
         public const int Blades = CellsX * CellsZ;
 
-        /// <summary>
-        /// The patch's mesh with the blades numbered below count (and the
-        /// flowers): far off GrassBlade keeps only the low numbers, so a far
-        /// patch can leave the rest out. Its box takes the ground's heights and
-        /// the blades' lean.
-        /// </summary>
+        /// <summary>The patch's mesh with the blades numbered below count (and the
+        /// flowers): far off GrassBlade keeps only the low numbers, so a far patch can
+        /// leave the rest out. Its box takes the ground's heights and the blades'
+        /// lean.</summary>
         public static Mesh Build(GraphicsDevice device, int count)
         {
             var vertices = new List<Vertex>();
@@ -72,11 +68,9 @@ namespace KotH.Client.Rendering
             };
         }
 
-        /// <summary>
-        /// The cells by blade number: first every other cell of every other row,
-        /// then the rest likewise, each group shuffled; so the low numbers a far
-        /// patch keeps are spread evenly over it.
-        /// </summary>
+        /// <summary>The cells by blade number: first every other cell of every other row,
+        /// then the rest likewise, each group shuffled; so the low numbers a far patch
+        /// keeps are spread evenly over it.</summary>
         static int[] Order()
         {
             var random = new Random(7);

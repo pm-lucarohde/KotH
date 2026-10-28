@@ -7,11 +7,9 @@ using Stride.Engine;
 
 namespace KotH.Probes.Harness
 {
-    /// <summary>
-    /// A transform as Unity's probes saw it: position, rotation and scale in
-    /// Unity's coordinates. Boxes in the arena carry their size in the
-    /// collider with scale 1, so a box's size stands in for localScale.
-    /// </summary>
+    /// <summary>A transform as Unity's probes saw it: position, rotation and scale in
+    /// Unity's coordinates. Boxes in the arena carry their size in the collider with
+    /// scale 1, so a box's size stands in for localScale.</summary>
     public readonly struct UnityTransform
     {
         public readonly Vector3 position;
@@ -50,11 +48,9 @@ namespace KotH.Probes.Harness
                                       Ref.ToUnity(e.Transform.Rotation), scale);
         }
 
-        /// <summary>
-        /// GameObject.CreatePrimitive(Cube) with its pose and scale, already
-        /// synced: the unit cube's collider takes the scale as its size.
-        /// Registered after everything before it in the stable query order.
-        /// </summary>
+        /// <summary>GameObject.CreatePrimitive(Cube) with its pose and scale, already
+        /// synced: the unit cube's collider takes the scale as its size. Registered after
+        /// everything before it in the stable query order.</summary>
         public static Entity AddBox(HeadlessWorld world, string name, Vector3 unityPosition,
                                     Quaternion unityRotation, Vector3 unityScale)
         {

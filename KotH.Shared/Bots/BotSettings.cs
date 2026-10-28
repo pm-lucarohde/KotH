@@ -4,11 +4,9 @@ using Stride.Engine.Design;
 
 namespace KotH.Shared.Bots
 {
-    /// <summary>
-    /// How the bots play and how their climbing grid is cut. Sits on an entity of
-    /// the arena prefab, so it loads headless with the arena; an arena
-    /// without one plays with these defaults.
-    /// </summary>
+    /// <summary>How the bots play and how their climbing grid is cut. Sits on an entity
+    /// of the arena prefab, so it loads headless with the arena; an arena without one
+    /// plays with these defaults.</summary>
     [DataContract("KotH.BotSettings")]
     [Display("Bot Settings")]
     [ComponentCategory("KotH")]

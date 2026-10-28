@@ -12,16 +12,10 @@ using Stride.Core.Mathematics;
 
 namespace KotH.Probes.Probes
 {
-    /// <summary>
-    /// A whole rollback game in one process over a seeded network in memory:
-    /// a host with its own player and up to eleven peers, 15 to 75 ms one
-    /// way, jitter and 5 % loss. Peers join at the start and mid-game, one
-    /// leaves, one gets its state damaged, one brings a wrong build, one
-    /// comes after the join window. The round waits for four players and
-    /// counts down first (shortened here). Every final state any peer
-    /// reports must equal the host's, apart from the damaged peer until its
-    /// repair; rollbacks must really have happened.
-    /// </summary>
+    /// <summary>A whole rollback game over a seeded in-memory network: host and up to eleven peers,
+    /// 15-75 ms one way, jitter, 5 % loss; joins at start and mid-game, a leave, a damaged state, a
+    /// wrong build, a late joiner, lobby and countdown. Every final state a peer reports must equal
+    /// the host's (the damaged one after repair), and rollbacks must have happened.</summary>
     public sealed class NetPlayProbe : Probe
     {
         protected override string Tag => "netplay";
@@ -205,12 +199,10 @@ namespace KotH.Probes.Probes
             return p;
         }
 
-        /// <summary>
-        /// A hosting client says hello while still loading and runs its first
-        /// frame 1.5 s later: its clock starts far ahead and has to come back,
-        /// not wobble on stale measurements. Waiting is fine while it settles,
-        /// not after the first 6 s.
-        /// </summary>
+        /// <summary>A hosting client says hello while still loading and runs its first
+        /// frame 1.5 s later: its clock starts far ahead and has to come back, not wobble
+        /// on stale measurements. Waiting is fine while it settles, not after the first 6
+        /// s.</summary>
         void LoadPause()
         {
             peers.Clear();

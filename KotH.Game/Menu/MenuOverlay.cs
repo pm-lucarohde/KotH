@@ -23,15 +23,10 @@ using Color = Stride.Core.Mathematics.Color;
 
 namespace KotH.Client.Menu
 {
-    /// <summary>
-    /// One part of an Avalonia page over the screen: an offscreen top level just
-    /// as big as the part, which Skia renders on the CPU only when something in
-    /// it changed, always into the same buffer; each new frame is uploaded once
-    /// and drawn by the HUD. Headless windows took a fresh 3.5 MB bitmap for
-    /// every frame, and the memory pressure forced a full collection every few
-    /// frames of a hover (50-120 ms each). Placed in units of a screen 1080
-    /// high, measured from one corner of the screen or its top middle.
-    /// </summary>
+    /// <summary>One part of an Avalonia page over the screen: an offscreen top level as big as the
+    /// part, rendered by Skia only on change into one buffer, uploaded once per new frame and drawn
+    /// by the HUD (headless windows took a fresh 3.5 MB bitmap per frame, forcing full collections).
+    /// Placed in units of a screen 1080 high from a corner or the top middle.</summary>
     public sealed class MenuOverlay : IHudElement, IDisposable
     {
         /// <summary>The screen corner a part is placed from; the centres centre it, x moves it right.</summary>
@@ -73,8 +68,7 @@ namespace KotH.Client.Menu
 
         /// <param name="part">The part, sized in units of a screen 1080 high.</param>
         /// <param name="corner">The screen corner it is placed from.</param>
-        /// <param name="x">Its distance from that corner sideways, in the same units.</param>
-        /// <param name="y">And up or down.</param>
+        /// <param name="x">Its distance from that corner sideways (y: up or down), in the same units.</param>
         /// <param name="zoom">Part and distances this much bigger, such as the whole HUD.</param>
         public MenuOverlay(Control part, Corner corner, float x, float y, float zoom = 1f)
         {
@@ -207,11 +201,9 @@ namespace KotH.Client.Menu
             texture = null;
         }
 
-        /// <summary>
-        /// The top level's platform side: one pixel buffer, kept and cleared for
-        /// every frame (Skia draws onto what is there), and pointer input.
-        /// Avalonia renders on the thread that ticks it, so no locks.
-        /// </summary>
+        /// <summary>The top level's platform side: one pixel buffer, kept and cleared for
+        /// every frame (Skia draws onto what is there), and pointer input. Avalonia
+        /// renders on the thread that ticks it, so no locks.</summary>
         sealed class Surface : OffscreenTopLevelImplBase, IFramebufferPlatformSurface
         {
             readonly Stopwatch clock = Stopwatch.StartNew();

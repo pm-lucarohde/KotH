@@ -2,12 +2,10 @@ using Stride.Input;
 
 namespace KotH.Client
 {
-    /// <summary>
-    /// Key presses without the operating system's auto-repeat. Stride's
-    /// IsKeyPressed also reports every repeat of a held key, so a held
-    /// Space turned into a stream of taps and fired the double jump.
-    /// Unity's GetKeyDown never saw repeats; this is the same rule.
-    /// </summary>
+    /// <summary>Key presses without the operating system's auto-repeat. Stride's
+    /// IsKeyPressed also reports every repeat of a held key, so a held Space turned into
+    /// a stream of taps and fired the double jump. Unity's GetKeyDown never saw repeats;
+    /// this is the same rule.</summary>
     public static class KeyPresses
     {
         /// <summary>How often key went down this frame, repeats left out.</summary>

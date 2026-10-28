@@ -17,13 +17,10 @@ namespace KotH.Shared.Physics
         public CollidableComponent Collider;
     }
 
-    /// <summary>
-    /// The physics queries the simulation asks, answered by Bepu but with the
-    /// PhysX semantics the motor was tuned on: a cast that starts inside a
-    /// collider reports it at distance zero with the normal against the cast,
-    /// and a ray that starts inside a collider does not see it at all.
-    /// Every query is a pure function of the world, no state is kept here.
-    /// </summary>
+    /// <summary>The simulation's physics queries, answered by Bepu with the PhysX semantics the
+    /// motor was tuned on: a cast starting inside a collider reports it at distance zero with the
+    /// normal against the cast, a ray starting inside one does not see it. Pure functions of the
+    /// world, no state.</summary>
     public sealed class WorldQueries
     {
         /// <summary>Layer of every body's hit hull, Unity's "Hittable" (6).</summary>
@@ -70,11 +67,9 @@ namespace KotH.Shared.Physics
         public int IdOf(CollidableComponent collider)
             => ids.TryGetValue(collider, out int id) ? id : int.MaxValue;
 
-        /// <summary>
-        /// Closest hit along a ray, PhysX style: colliders the ray starts in
-        /// are not reported. One can be skipped explicitly, for a swing that
-        /// starts inside its own body's hull.
-        /// </summary>
+        /// <summary>Closest hit along a ray, PhysX style: colliders the ray starts in are
+        /// not reported. One can be skipped explicitly, for a swing that starts inside
+        /// its own body's hull.</summary>
         public bool Raycast(Vector3 origin, Vector3 direction, float maxDistance,
                             CollisionMask mask, out QueryHit hit,
                             CollidableComponent ignore = null)
@@ -109,11 +104,9 @@ namespace KotH.Shared.Physics
             return SweepAll(shape, pose, direction, maxDistance, mask, results);
         }
 
-        /// <summary>
-        /// Every hit of an upright capsule swept along direction, like
-        /// CapsuleCastNonAlloc. bottom and top are the centres of its end
-        /// spheres, top straight above bottom.
-        /// </summary>
+        /// <summary>Every hit of an upright capsule swept along direction, like
+        /// CapsuleCastNonAlloc. bottom and top are the centres of its end spheres, top
+        /// straight above bottom.</summary>
         public int CapsuleCastAll(Vector3 bottom, Vector3 top, float radius,
                                   Vector3 direction, float maxDistance,
                                   CollisionMask mask, QueryHit[] results)
@@ -122,12 +115,10 @@ namespace KotH.Shared.Physics
             return SweepAll(shape, pose, direction, maxDistance, mask, results);
         }
 
-        /// <summary>
-        /// Whether an upright capsule sweep hits anything, like the single
-        /// Physics.CapsuleCast: colliders it starts inside are not reported,
-        /// measured in Unity (CapsuleCastAll gives them at distance 0, the
-        /// single cast returns false). Anything further along still counts.
-        /// </summary>
+        /// <summary>Whether an upright capsule sweep hits anything, like the single
+        /// Physics.CapsuleCast: colliders it starts inside are not reported, measured in
+        /// Unity (CapsuleCastAll gives them at distance 0, the single cast returns
+        /// false). Anything further along still counts.</summary>
         public bool CapsuleCastAny(Vector3 bottom, Vector3 top, float radius,
                                    Vector3 direction, float maxDistance, CollisionMask mask)
         {
@@ -163,11 +154,9 @@ namespace KotH.Shared.Physics
             return count;
         }
 
-        /// <summary>
-        /// How far an upright capsule has to move to leave one collider, like
-        /// Physics.ComputePenetration. Bepu answers per contact; the deepest
-        /// contact of that collider stands for the whole overlap.
-        /// </summary>
+        /// <summary>How far an upright capsule has to move to leave one collider, like
+        /// Physics.ComputePenetration. Bepu answers per contact; the deepest contact of
+        /// that collider stands for the whole overlap.</summary>
         public bool ComputePenetration(Vector3 bottom, Vector3 top, float radius,
                                        CollidableComponent other,
                                        out Vector3 direction, out float depth)
@@ -225,11 +214,9 @@ namespace KotH.Shared.Physics
                 };
             }
 
-            // The whole move as velocity over one unit of time. Bepu's compound
-            // sweep prefilters its children with a ray of sweep * maximumT,
-            // the sweep already scaled by maximumT: with unit speed it only
-            // looked maximumT squared ahead and missed close boxes on short
-            // moves. At maximumT 1 both agree; its thresholds scale along.
+            // The whole move as velocity over one unit of time: Bepu's compound sweep prefilters with a
+            // ray of sweep * maximumT, the sweep already scaled by maximumT, so at unit speed it looked
+            // only maximumT² ahead and missed close boxes. At maximumT 1 both agree.
             int started = count;
             hitBuffer.Clear();
             var velocity = new BodyVelocity(UMath.Mul(direction, maxDistance), Vector3.Zero);

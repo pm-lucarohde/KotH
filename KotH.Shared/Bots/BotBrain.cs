@@ -12,12 +12,10 @@ namespace KotH.Shared.Bots
     /// <summary>What a bot wants right now; the utility AI picks one per think.</summary>
     public enum BotIntent : byte { Idle, Capture, Hold, Attack, Recover }
 
-    /// <summary>
-    /// One bot's mind. Sees only a final state ReactionTicks old, steps once
-    /// per tick in tick order, and keeps everything else to itself: the
-    /// intent, the path, the maneuver plan and its xorshift. Called with the
-    /// same states it always answers the same, which is all the netcode needs.
-    /// </summary>
+    /// <summary>One bot's mind. Sees only a final state ReactionTicks old, steps once per
+    /// tick in tick order, and keeps everything else to itself: the intent, the path, the
+    /// maneuver plan and its xorshift. Called with the same states it always answers the
+    /// same, which is all the netcode needs.</summary>
     public sealed class BotBrain
     {
         const float Dt = SimulationSystem.TickSeconds;
@@ -240,11 +238,9 @@ namespace KotH.Shared.Bots
             return UMath.Sqrt(dx * dx + dz * dz);
         }
 
-        /// <summary>
-        /// The utility AI: every intent and every target gets a score, the
-        /// running one a bonus; among those close to the best the xorshift
-        /// picks, weighted by score.
-        /// </summary>
+        /// <summary>The utility AI: every intent and every target gets a score, the
+        /// running one a bonus; among those close to the best the xorshift picks,
+        /// weighted by score.</summary>
         void Think(WorldSnapshot view, int self, Vector3 at, MatchPhase phase, bool knocked)
         {
             int n = 0;
@@ -391,11 +387,9 @@ namespace KotH.Shared.Bots
             hasSpot = true;
         }
 
-        /// <summary>
-        /// A fresh maneuver plan by wave function collapse. Attacking, the
-        /// slot in which the target should come within reach must swing,
-        /// mostly after a slide; in the air no jump may start.
-        /// </summary>
+        /// <summary>A fresh maneuver plan by wave function collapse. Attacking, the slot
+        /// in which the target should come within reach must swing, mostly after a slide;
+        /// in the air no jump may start.</summary>
         void Replan(int u, WorldSnapshot view, Vector3 at, bool airborne)
         {
             Array.Clear(allowed);
@@ -428,11 +422,9 @@ namespace KotH.Shared.Bots
         const float NoProgress = 2f;
         const int ProgressTicks = 160;
 
-        /// <summary>
-        /// Learns on the way up, besides what each search teaches: a floor
-        /// counts as further away when the time to the zone has not dropped
-        /// for a while.
-        /// </summary>
+        /// <summary>Learns on the way up, besides what each search teaches: a floor
+        /// counts as further away when the time to the zone has not dropped for a
+        /// while.</summary>
         void Progress(int u, Vector3 feet)
         {
             float left = nav.Grid.TimeToZone(feet, variant);
@@ -467,11 +459,9 @@ namespace KotH.Shared.Bots
         const float RunUp = 2f;
         const int HopPatience = 120;
 
-        /// <summary>
-        /// Where the own body is now: the seen state carried forward over the
-        /// reaction time with the bot's own keys since, in the pilot's model
-        /// of the motor, as a body knows its own steps.
-        /// </summary>
+        /// <summary>Where the own body is now: the seen state carried forward over the
+        /// reaction time with the bot's own keys since, in the pilot's model of the
+        /// motor, as a body knows its own steps.</summary>
         JumpPilot.Body Predict(int u, in MotorState m)
         {
             JumpPilot.Body b = pilot.From(m, body.StandHeight);
@@ -481,12 +471,10 @@ namespace KotH.Shared.Bots
             return b;
         }
 
-        /// <summary>
-        /// Climbing: the way and nothing else. Walks from corner to corner;
-        /// a jump on the way is the pilot's (JumpPilot): it takes off when
-        /// its model lands the jump on the top and steers the flight there.
-        /// A jump that does not end up there costs this bot more next time.
-        /// </summary>
+        /// <summary>Climbing: the way and nothing else. Walks from corner to corner; a
+        /// jump on the way is the pilot's (JumpPilot): it takes off when its model lands
+        /// the jump on the top and steers the flight there. A jump that does not end up
+        /// there costs this bot more next time.</summary>
         MoveInput Climb(int u, in BodyState me)
         {
             // Jammed off the ground (a body can wedge between steep faces and
@@ -598,11 +586,9 @@ namespace KotH.Shared.Bots
             verifyAt = -1;
         }
 
-        /// <summary>
-        /// Climbing far below the zone a bot swings only at whoever is right
-        /// in front of it, within reach and at most 60° off its view: a flick
-        /// for that one tick, its way and its view stay as they are.
-        /// </summary>
+        /// <summary>Climbing far below the zone a bot swings only at whoever is right in
+        /// front of it, within reach and at most 60° off its view: a flick for that one
+        /// tick, its way and its view stay as they are.</summary>
         MoveInput Passing(int u, WorldSnapshot view, int self, in BodyState me, MatchPhase phase, MoveInput input)
         {
             if (!farBelow || phase != MatchPhase.Running || input.JumpPresses > 0 || u < lastStrike + fists.CooldownTicks)
@@ -648,11 +634,9 @@ namespace KotH.Shared.Bots
         // How fast the hand takes up a new turn rate, per tick.
         const float Grip = 0.6f;
 
-        /// <summary>
-        /// The view as a hand moves a mouse: it speeds up into a turn, slows
-        /// into the target, overshoots a little and never rests perfectly
-        /// still (a slow wander of a degree or two). At most maxRate a tick.
-        /// </summary>
+        /// <summary>The view as a hand moves a mouse: it speeds up into a turn, slows
+        /// into the target, overshoots a little and never rests perfectly still (a slow
+        /// wander of a degree or two). At most maxRate a tick.</summary>
         void Look(int u, float wantYaw, float wantPitch, float maxRate)
         {
             double t = u * Dt, phase = netId * 1.618;

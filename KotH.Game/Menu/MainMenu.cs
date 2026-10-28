@@ -12,22 +12,16 @@ using Stride.Input;
 
 namespace KotH.Client.Menu
 {
-    /// <summary>
-    /// The main menu over the scene: MainMenuView's four parts as overlays of
-    /// their own (MenuOverlay), drawn last by the HUD. GameRoot creates it with
-    /// the map, behind the load screen, which waits for <see cref="Ready"/>:
-    /// the first Avalonia frames and the flight's first views are done there,
-    /// not in sight; back from a game over the loaded map it shows at once.
-    /// GameRoot removes it when a game starts.
-    /// </summary>
+    /// <summary>The main menu over the scene: MainMenuView's four parts as overlays of their own,
+    /// drawn last by the HUD. GameRoot creates it with the map behind the load screen, which waits
+    /// for <see cref="Ready"/> (first frames out of sight); back from a game it shows at once.
+    /// GameRoot removes it when a game starts.</summary>
     [DataContract("KotH.MainMenu")]
     public sealed class MainMenu : SyncScript
     {
-        /// <summary>
-        /// The map behind the menu needs no more frames than this (Luca); the
-        /// menu itself runs at the game's own limit (--fps, KOTH_FPS or none).
-        /// Behind the load screen the map runs free, its bake not slowed.
-        /// </summary>
+        /// <summary>The map behind the menu needs no more frames than this (Luca); the
+        /// menu itself runs at the game's own limit (--fps, KOTH_FPS or none). Behind the
+        /// load screen the map runs free, its bake not slowed.</summary>
         public const int MapFps = 30;
 
         // Ready once the map is loaded and then this many frames in a row came
@@ -173,11 +167,9 @@ namespace KotH.Client.Menu
                 view.Pretend(open, true);
         }
 
-        /// <summary>
-        /// The entrance, by moving the finished pictures only: the buttons slide
-        /// in from the left, the title drops in and springs, the corner fades.
-        /// Animated in Avalonia it redrew both parts every frame (15-20 ms).
-        /// </summary>
+        /// <summary>The entrance, by moving the finished pictures only: the buttons slide
+        /// in from the left, the title drops in and springs, the corner fades. Animated
+        /// in Avalonia it redrew both parts every frame (15-20 ms).</summary>
         void Enter(float seconds, float scale)
         {
             if (since > DropDelay + DropSeconds)

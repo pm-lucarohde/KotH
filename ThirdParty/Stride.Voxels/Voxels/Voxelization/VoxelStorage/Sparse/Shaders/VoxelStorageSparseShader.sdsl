@@ -1,9 +1,7 @@
-// KotH patch: voxelisation into sparse bricks (VoxelStorageSparse). The view
-// (viewScale/viewOffset: the whole volume, or a box round a moving group) is
-// rasterised; a fragment lands in the brick (8^3 voxels) of its cell.
-// With SparseMark it only marks the cell as used (marks bound); otherwise it is
-// written to the fragments of the cell's slot (pages bound), if that slot is in
-// the slab done this frame.
+// KotH patch: voxelisation into sparse bricks (VoxelStorageSparse). The view (viewScale/
+// viewOffset: the whole volume or a box round a moving group) is rasterised into the 8^3 brick
+// of each fragment's cell: with SparseMark it only marks the cell (marks bound), else it writes
+// to the cell slot's fragments (pages bound) if the slot is in this frame's slab.
 shader VoxelStorageSparseShader : VoxelStorageShader, Texturing, ShaderBaseStream, Transformation
 {
     cbuffer PerView.VoxelizerStorer

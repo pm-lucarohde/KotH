@@ -3,11 +3,9 @@ using System.Runtime.InteropServices;
 
 namespace KotH.Tools;
 
-/// <summary>
-/// ImageFont.truetype of Pillow 12.3.0 with the raqm layout (_imagingft.c): the system's
-/// FreeType and raqm, called the way Pillow calls them, so text comes out as Pillow draws it.
-/// Only what the tools use: one line, horizontal, anchor "la", mode L.
-/// </summary>
+/// <summary>ImageFont.truetype of Pillow 12.3.0 with the raqm layout (_imagingft.c): the
+/// system's FreeType and raqm, called the way Pillow calls them, so text comes out as Pillow
+/// draws it. Only what the tools use: one line, horizontal, anchor "la", mode L.</summary>
 public sealed unsafe class PilFont
 {
     const string FT = "libfreetype.so.6", Raqm = "libraqm.so.0";

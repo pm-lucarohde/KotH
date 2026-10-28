@@ -1,10 +1,6 @@
-/// <summary>
-/// The grass blades' colour (GrassBlade builds them): the meadow texture's
-/// colour where the blade stands, so near and far blend into the ground, dark
-/// at the root, lighter and warmer to the tip, brighter where a gust runs over.
-/// The shading normal leans mostly to the sky, so the blades shade as softly
-/// as the painted ground. Flowers: red, yellow or white petals round a darker eye.
-/// </summary>
+/// <summary>The blades' colour: the meadow texture's colour where the blade stands, dark at the
+/// root, lighter and warmer to the tip, brighter under a gust; the normal leans to the sky so
+/// they shade as softly as the ground. Flowers: red, yellow or white petals round a dark eye.</summary>
 shader GrassColor<LinkType GrassKey>
     : ComputeColor, PositionStream4, NormalStream, Texturing, Transformation, GrassStreams
 {

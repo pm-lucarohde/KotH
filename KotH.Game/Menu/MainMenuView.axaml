@@ -1,9 +1,7 @@
-<!-- The main menu over the flight round the mountain, in four parts that
-     MainMenu shows as small overlays of their own (MenuOverlay), so a change
-     redraws only its part. Laid out for a screen 1080 high and scaled to the
-     real one; the pictures carry 24 px of shadow on every side, hence their
-     margins. Parts: the buttons at the top left, the page beside them, the
-     title at the top right, the small print at the bottom right. -->
+<!-- The main menu over the flight round the mountain, in four parts that MainMenu shows as
+     overlays of their own: buttons top left, the page beside them, title top right, small print
+     bottom right. Laid out for a screen 1080 high and scaled; pictures carry 24 px of shadow on
+     every side, hence their margins. -->
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:menu="using:KotH.Client.Menu"

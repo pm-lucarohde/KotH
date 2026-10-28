@@ -34,63 +34,34 @@ if (Environment.GetEnvironmentVariable("STRIDE_MAX_PARALLELISM") == null)
 using var game = new KotHGame();
 game.Run();
 
-/// <summary>
-/// The game: starts in borderless fullscreen, F11 switches to the window and
-/// back. Plus test aids. With KOTH_SHOT set to a path it shows the
-/// F3 readout, holds the view at KOTH_SHOT_YAW / _PITCH / _FOV if given,
-/// KOTH_SHOT_THIRD=1 steps back into third person, KOTH_SHOT_AT=x,y,z puts
-/// the player's body there, again whenever the round places it (Stride metres), KOTH_SHOT_FACE=deg
-/// turns it that way when it does (the figure stays so in third person), KOTH_SHOT_SWING=1 swings
-/// once a second before the shot and reports the hit, KOTH_SHOT_SHAKE=1 takes a hit
-/// just before it and reports how far the camera shake tilts the view,
-/// KOTH_SHOT_HIT=deg[,s] hits every figure s (default 0.1) seconds before it, from deg round its body (0 front, 90 right),
-/// KOTH_SHOT_BLINK=1 has every figure blink so the shot shows shut lids,
-/// KOTH_SHOT_STRIKE=s[,s2] has every figure swing its cane at these times (only shown),
-/// KOTH_SHOT_MOVE=x,y[,sprint] holds the move keys (D and W are +1),
-/// KOTH_SHOT_CROUCH=s presses crouch at s seconds and holds it (out of a sprint: a slide),
-/// KOTH_SHOT_JUMP=s[,s2] presses jump at s seconds (and again at s2: the double jump),
-/// KOTH_SHOT_TURN=deg,s[,orbit] turns the held view by deg at s seconds in first person
-/// (with KOTH_SHOT_THIRD the step back comes 0.2 s later, the camera circling the
-/// figure by orbit degrees, to see head and body), KOTH_SHOT_SPIN=deg turns it steadily by deg per second, KOTH_SHOT_VIDEO=s also writes the last s seconds
-/// before the shot as raw frames at 30 fps (path.rgba, size and format in the log, for ffmpeg),
-/// saves the back buffer as PNG after KOTH_SHOT_SECONDS (default 3), reports
-/// the label font and quits. Taken from
-/// inside the game on purpose, a desktop screenshot would capture whatever
-/// else is on the screen. For performance runs: KOTH_SIZE=1920x1080 sets the
-/// window, KOTH_VSYNC=0 or 1 overrides V-Sync, KOTH_FPS=N caps the frame rate
-/// like --fps, and KOTH_FRAMELOG=path writes
-/// every frame time in milliseconds, one per line, when the game ends. For the music:
-/// KOTH_MUSIC_VOLUME=0..1 overrides the volume, KOTH_MUSIC_TAIL=s starts every single-play
-/// track s seconds before its end, so the changes come quickly. KOTH_SFX_VOLUME=0..1 scales the
-/// ambient and the figures' sounds (silent with KOTH_MUSIC_VOLUME=0 unless set), KOTH_SOUNDLOG=1
-/// logs each of those. KOTH_HEADLESS=1 never shows
-/// the window and renders into a texture of KOTH_SIZE (default 2560x1440), for shots.
-/// KOTH_EFFECTLOG=path records the effect permutations used (EffectRecorder).
-/// KOTH_POSLOG=path writes the own body every tick (tick, position, velocity, grounded) and
-/// a marker line on F8, to find where a player fell through the map.
-/// </summary>
+/// <summary>The game: borderless fullscreen, F11 toggles the window. Plus test aids (KOTH_*
+/// below, times from the end of the load screen): KOTH_SHOT=path saves the back buffer as PNG
+/// after KOTH_SHOT_SECONDS with the F3 readout and quits; taken inside the game on purpose, a
+/// desktop screenshot would capture whatever else is on the screen.</summary>
 sealed class KotHGame : Game
 {
     readonly string shotPath = Environment.GetEnvironmentVariable("KOTH_SHOT");
     readonly double shotSeconds = Number("KOTH_SHOT_SECONDS") ?? 3.0;
-    readonly double? shotYaw = Number("KOTH_SHOT_YAW");
-    readonly double shotSpin = Number("KOTH_SHOT_SPIN") ?? 0.0;
+    readonly double? shotYaw = Number("KOTH_SHOT_YAW"); // view held there, with _PITCH and _FOV
+    readonly double shotSpin = Number("KOTH_SHOT_SPIN") ?? 0.0; // turns the view steadily, deg/s
     readonly double shotPitch = Number("KOTH_SHOT_PITCH") ?? 0.0;
     readonly double? shotFov = Number("KOTH_SHOT_FOV");
-    readonly bool shotThird = Environment.GetEnvironmentVariable("KOTH_SHOT_THIRD") == "1";
-    Vector3? shotAt = Point("KOTH_SHOT_AT");
-    readonly double? shotFace = Number("KOTH_SHOT_FACE");
+    readonly bool shotThird = Environment.GetEnvironmentVariable("KOTH_SHOT_THIRD") == "1"; // third person
+    Vector3? shotAt = Point("KOTH_SHOT_AT"); // body there (Stride metres), again on every placing
+    readonly double? shotFace = Number("KOTH_SHOT_FACE"); // turned this way (deg) when placed
     int shotPlaced = -1;
-    bool shotSwing = Environment.GetEnvironmentVariable("KOTH_SHOT_SWING") == "1";
-    bool shotShake = Environment.GetEnvironmentVariable("KOTH_SHOT_SHAKE") == "1";
-    bool shotBlink = Environment.GetEnvironmentVariable("KOTH_SHOT_BLINK") == "1";
-    double? shotHit = Number("KOTH_SHOT_HIT", 0);
-    readonly double shotHitLead = Number("KOTH_SHOT_HIT", 1) ?? 0.1;
-    string shotMove = Environment.GetEnvironmentVariable("KOTH_SHOT_MOVE");
-    double? shotCrouch = Number("KOTH_SHOT_CROUCH");
-    readonly double shotVideo = Number("KOTH_SHOT_VIDEO") ?? 0.0;
+    bool shotSwing = Environment.GetEnvironmentVariable("KOTH_SHOT_SWING") == "1"; // swings 1 s before, reports the hit
+    bool shotShake = Environment.GetEnvironmentVariable("KOTH_SHOT_SHAKE") == "1"; // takes a hit, reports the shake
+    bool shotBlink = Environment.GetEnvironmentVariable("KOTH_SHOT_BLINK") == "1"; // every figure shows shut lids
+    double? shotHit = Number("KOTH_SHOT_HIT", 0); // deg[,s]: hits every figure from deg (0 front, 90 right)
+    readonly double shotHitLead = Number("KOTH_SHOT_HIT", 1) ?? 0.1; // s before the shot
+    string shotMove = Environment.GetEnvironmentVariable("KOTH_SHOT_MOVE"); // x,y[,sprint] held (D and W +1)
+    double? shotCrouch = Number("KOTH_SHOT_CROUCH"); // crouch held from s (out of a sprint: slide)
+    readonly double shotVideo = Number("KOTH_SHOT_VIDEO") ?? 0.0; // last s as raw 30 fps frames, path.rgba
     FileStream video;
     double videoAt = double.NaN;
+    // KOTH_SHOT_TURN=deg,s[,orbit] turns the view at s (third person: the camera circles by orbit),
+    // KOTH_SHOT_JUMP=s[,s2] jumps (s2: double jump), KOTH_SHOT_STRIKE=s[,s2] swings every cane.
     readonly double[] shotTurn = Environment.GetEnvironmentVariable("KOTH_SHOT_TURN")?.Split(',')
         .Select(s => double.Parse(s, CultureInfo.InvariantCulture)).ToArray();
     readonly Queue<double> shotJumps = new Queue<double>(
@@ -99,16 +70,16 @@ sealed class KotHGame : Game
     readonly Queue<double> shotStrikes = new Queue<double>(
         (Environment.GetEnvironmentVariable("KOTH_SHOT_STRIKE") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)
             .Select(s => double.Parse(s, CultureInfo.InvariantCulture)));
-    readonly string frameLogPath = Environment.GetEnvironmentVariable("KOTH_FRAMELOG");
-    readonly string posLogPath = Environment.GetEnvironmentVariable("KOTH_POSLOG");
+    readonly string frameLogPath = Environment.GetEnvironmentVariable("KOTH_FRAMELOG"); // frame times (ms) at the end
+    readonly string posLogPath = Environment.GetEnvironmentVariable("KOTH_POSLOG"); // own body per tick, F8 marks
     StreamWriter posLog;
     int posTick = int.MinValue;
-    readonly double? musicVolume = Number("KOTH_MUSIC_VOLUME");
-    readonly double? musicTail = Number("KOTH_MUSIC_TAIL");
-    readonly double? sfxVolume = Number("KOTH_SFX_VOLUME");
-    readonly bool soundLog = Environment.GetEnvironmentVariable("KOTH_SOUNDLOG") == "1";
+    readonly double? musicVolume = Number("KOTH_MUSIC_VOLUME"); // 0..1; 0 mutes the sounds too
+    readonly double? musicTail = Number("KOTH_MUSIC_TAIL"); // tracks start s before their end
+    readonly double? sfxVolume = Number("KOTH_SFX_VOLUME"); // 0..1 for ambience and figures
+    readonly bool soundLog = Environment.GetEnvironmentVariable("KOTH_SOUNDLOG") == "1"; // logs every sound
     bool sfxSet;
-    readonly bool headless = Environment.GetEnvironmentVariable("KOTH_HEADLESS") == "1";
+    readonly bool headless = Environment.GetEnvironmentVariable("KOTH_HEADLESS") == "1"; // no window, renders KOTH_SIZE
     bool musicSet;
     Int2 windowedSize;
     bool confined;
@@ -131,7 +102,7 @@ sealed class KotHGame : Game
         ConsoleLogLevel = LogMessageType.Warning;
 
         // Renders as fast as it can, without waiting for the display's
-        // refresh (Luca's choice, earlier it waited like Unity's "Ultra").
+        // refresh (Luca's choice, earlier it waited like Unity's "Ultra"); KOTH_VSYNC=1 waits.
         GraphicsDeviceManager.SynchronizeWithVerticalRetrace =
             Number("KOTH_VSYNC") is { } vsync && vsync != 0.0;
 
@@ -180,13 +151,9 @@ sealed class KotHGame : Game
         }
     }
 
-    /// <summary>
-    /// Waits for the window manager to show and focus the window, then goes
-    /// fullscreen at once and captures the mouse, each wait two seconds at
-    /// most. Both used to wait for the first frame after loading: until then
-    /// the pointer could leave for the other screen, and a grab only holds it
-    /// in a window that covers the whole screen.
-    /// </summary>
+    /// <summary>Waits for the window manager to show and focus the window (two seconds at most),
+    /// then goes fullscreen and captures the mouse. Waiting for the first frame after loading let
+    /// the pointer leave for the other screen, and a grab only holds in a window covering the screen.</summary>
     protected override void Initialize()
     {
         base.Initialize();
@@ -410,11 +377,9 @@ sealed class KotHGame : Game
         }
     }
 
-    /// <summary>
-    /// SDL's relative mode only hides the pointer here (X11 on Wayland): it
-    /// never grabs, so the pointer left the fullscreen window for the other
-    /// screen. While the game has the mouse, the window grabs it as well.
-    /// </summary>
+    /// <summary>SDL's relative mode only hides the pointer here (X11 on Wayland): it
+    /// never grabs, so the pointer left the fullscreen window for the other screen. While
+    /// the game has the mouse, the window grabs it as well.</summary>
     void ConfinePointer()
     {
         bool confine = Input.IsMousePositionLocked && Window.Focused;
@@ -424,13 +389,9 @@ sealed class KotHGame : Game
         confined = confine;
     }
 
-    /// <summary>
-    /// Borderless instead of exclusive: no mode switch, so toggling is quick
-    /// and other windows can still be reached. The back buffer follows the
-    /// window, so the desktop size never has to be asked for. Set on the
-    /// device manager: Stride 4.4 drops Window.IsFullscreen, its handler runs
-    /// the orientation update instead of the fullscreen one.
-    /// </summary>
+    /// <summary>Borderless instead of exclusive: no mode switch, quick to toggle, other windows
+    /// reachable; the back buffer follows the window. Set on the device manager: Stride 4.4's
+    /// Window.IsFullscreen handler runs the orientation update instead.</summary>
     void ToggleFullscreen()
     {
         GraphicsDeviceManager manager = GraphicsDeviceManager;
@@ -452,11 +413,9 @@ sealed class KotHGame : Game
         manager.ApplyChanges();
     }
 
-    /// <summary>
-    /// Stride asks for the old window size while the window is still
-    /// fullscreen, and the window manager then brings back the fullscreen
-    /// size. Asked again once the window is back, for half a second at most.
-    /// </summary>
+    /// <summary>Stride asks for the old window size while the window is still fullscreen,
+    /// and the window manager then brings back the fullscreen size. Asked again once the
+    /// window is back, for half a second at most.</summary>
     void RestoreWindowSize()
     {
         if (restoreFrames <= 0)
@@ -579,11 +538,9 @@ sealed class KotHGame : Game
             video.Write(data);
     }
 
-    /// <summary>
-    /// MeleeProbe's font check, moved here because measuring needs the
-    /// loaded font and so a graphics device: a font without glyphs draws
-    /// nothing while every other check stays green.
-    /// </summary>
+    /// <summary>MeleeProbe's font check, moved here because measuring needs the loaded
+    /// font and so a graphics device: a font without glyphs draws nothing while every
+    /// other check stays green.</summary>
     void ReportFont()
     {
         DamageLabel label = Find<DamageLabel>();
@@ -645,11 +602,9 @@ sealed class KotHGame : Game
 }
 
 #if !WINDOWS
-/// <summary>
-/// The .NET 11 apphost and NativeAOT binaries no longer pull in libstdc++,
-/// but Stride's libstrideaudio.so expects its symbols in the global scope.
-/// Loading it RTLD_GLOBAL before the engine starts restores that.
-/// </summary>
+/// <summary>The .NET 11 apphost and NativeAOT binaries no longer pull in libstdc++, but
+/// Stride's libstrideaudio.so expects its symbols in the global scope. Loading it
+/// RTLD_GLOBAL before the engine starts restores that.</summary>
 static class StdCxxPreload
 {
     const int RtldNow = 0x002;

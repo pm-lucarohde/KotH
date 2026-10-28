@@ -1,9 +1,7 @@
-/// <summary>
-/// The open sky near the sun at a quarter of the resolution, for SunShaftBlur:
-/// Texture0 is the full depth (the mountain, trees and figures hide the sky),
-/// Texture1 the half resolution atmosphere (its alpha: how much sky shows past
-/// clouds and fog).
-/// </summary>
+/// <summary>The open sky near the sun at a quarter of the resolution, for SunShaftBlur:
+/// Texture0 is the full depth (the mountain, trees and figures hide the sky), Texture1
+/// the half resolution atmosphere (its alpha: how much sky shows past clouds and
+/// fog).</summary>
 shader SunShaftMask : ImageEffectShader
 {
     float2 SunUV;           // the sun on screen; it may lie outside

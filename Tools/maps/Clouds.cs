@@ -1,15 +1,7 @@
 #!/usr/bin/env -S dotnet run
-// The cloud map for map "Mount Destiny": a sheet of small, soft cloudlets in rows and waves with
-// blue lanes between them, like Luca's photo (altocumulus, 24.10.2026). Painted, few
-// details, soft but clear edges. Writes KotH.Game/Resources/Textures/CloudMap.png,
-// tileable, linear; texture x runs with the wind. Seeded, so every run paints the same:
-// the numbers are numpy's (Common/NumPy.cs), the picture the one the Python script made.
-//
-//   red    the cloudlets: one dome per cloudlet (1 at its top, 0 at its rim); the shader
-//          takes it as the height of the cloudlet over the layer's base
-//   green  the large streaks and lanes, read again at a larger scale (Atmosphere)
-//   blue   the coastal fog's wisps over the sea, at their own scale (Atmosphere)
-//
+// The cloud map of Mount Destiny (Luca's altocumulus photo): red = cloudlet domes (height over
+// the layer's base), green = streaks and lanes, blue = coastal fog wisps; tileable, linear,
+// texture x runs with the wind. Seeded (numpy's numbers) -> KotH.Game/Resources/Textures/CloudMap.png.
 //   dotnet run Tools/maps/Clouds.cs [-- --preview]
 #:include ../Common/Libm.cs
 #:include ../Common/NumPy.cs

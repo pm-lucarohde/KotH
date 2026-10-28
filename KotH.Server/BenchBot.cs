@@ -7,12 +7,10 @@ using Stride.Core.Mathematics;
 
 namespace KotH.Server
 {
-    /// <summary>
-    /// A load-test body: roams the arena between waypoints and sprints,
-    /// jumps, double jumps, slides and swings at random, so a benchmark
-    /// runs every motor path instead of standing bodies. The randomness is
-    /// a seeded xorshift and reads no clock, so every run ticks the same.
-    /// </summary>
+    /// <summary>A load-test body: roams the arena between waypoints and sprints, jumps,
+    /// double jumps, slides and swings at random, so a benchmark runs every motor path
+    /// instead of standing bodies. The randomness is a seeded xorshift and reads no
+    /// clock, so every run ticks the same.</summary>
     [DataContract]
     public sealed class BenchBot : SimulationBody
     {

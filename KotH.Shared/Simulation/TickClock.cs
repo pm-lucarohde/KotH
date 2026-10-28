@@ -1,12 +1,9 @@
 namespace KotH.Shared.Simulation
 {
-    /// <summary>
-    /// Turns variable frame times into fixed 40 Hz ticks the way Unity's
-    /// player loop did: game time advances by the frame time capped at
-    /// Maximum Allowed Timestep, and a tick runs whenever a full tick of
-    /// game time has piled up. After a hitch the game slows down instead of
-    /// bursting through catch-up ticks. Measured against Unity: ClockProbe.
-    /// </summary>
+    /// <summary>Turns frame times into fixed 40 Hz ticks like Unity's player loop: game time
+    /// advances by the frame time capped at Maximum Allowed Timestep, a tick runs per full tick
+    /// piled up. After a hitch the game slows down instead of bursting through catch-up ticks
+    /// (ClockProbe).</summary>
     public sealed class TickClock
     {
         /// <summary>Unity's Maximum Allowed Timestep, a float there.</summary>

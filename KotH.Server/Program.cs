@@ -14,19 +14,10 @@ using KotH.Shared.Simulation;
 using Stride.Core.Mathematics;
 using Stride.Engine;
 
-// The headless host: the arena, the training dummy and the 40 Hz tick, no
-// window and no GPU. Players and netcode come later; the loop is the one a
-// peer acting as host will run.
-//
-//   KotH.Server                 runs in real time until Ctrl+C
-//   KotH.Server --seconds N     runs in real time for N seconds
-//   KotH.Server --ticks N       runs N ticks as fast as it can, then prints
-//                               the timing and every body's exact state
-//   --bodies N                  adds N roaming BenchBots (load test)
-//   --bots N, --bot-seed N      N bots play for the hill instead of the dummy
-//   --warmup N                  leaves the first N fast ticks out of the timing
-//   --map NAME                  the map (Maps.Default); the load test was laid out for Test
-//   --host / --join ADDRESS     a networked peer instead, see NetPlay
+// The headless host (arena, dummy or bots, 40 Hz), no window and no GPU: real time until
+// Ctrl+C or --seconds N; --ticks N as fast as it can, then timing and exact end state;
+// --bodies N BenchBots (load test, --map Test) with --warmup N; --bots N --bot-seed N;
+// --map NAME (Maps.Default); --host / --join ADDRESS see NetPlay.
 
 CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
 CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;

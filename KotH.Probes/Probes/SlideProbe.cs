@@ -7,11 +7,9 @@ using Stride.Engine;
 
 namespace KotH.Probes.Probes
 {
-    /// <summary>
-    /// Measures the crouch slide. Brings its own ramps: every ramp in the scene
-    /// leads up to the plateau, while a slide needs a descent with run-up in
-    /// front of it. Expectations are computed from the motor's own fields.
-    /// </summary>
+    /// <summary>Measures the crouch slide. Brings its own ramps: every ramp in the scene
+    /// leads up to the plateau, while a slide needs a descent with run-up in front of it.
+    /// Expectations are computed from the motor's own fields.</summary>
     public sealed class SlideProbe : Probe
     {
         protected override string Tag => "slide";

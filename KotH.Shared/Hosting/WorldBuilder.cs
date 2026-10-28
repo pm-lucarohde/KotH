@@ -14,12 +14,10 @@ using Stride.Engine;
 
 namespace KotH.Shared.Hosting
 {
-    /// <summary>
-    /// Puts the arena and the bodies into a scene, the same way for the game,
-    /// the server and the probes. Colliders get their place in the stable
-    /// query order in the order they are added, so every host that builds
-    /// the same world in the same order gets bit-identical answers.
-    /// </summary>
+    /// <summary>Puts the arena and the bodies into a scene, the same way for the game,
+    /// the server and the probes. Colliders get their place in the stable query order in
+    /// the order they are added, so every host that builds the same world in the same
+    /// order gets bit-identical answers.</summary>
     public sealed class WorldBuilder
     {
         public const string PlayerBodyUrl = "/KotH.Shared/Bodies/PlayerBody";
@@ -54,11 +52,9 @@ namespace KotH.Shared.Hosting
 
         public bool HasMap(string map) => !string.IsNullOrEmpty(map) && content.Exists(Maps.CollisionUrl(map));
 
-        /// <summary>
-        /// Adds every collider of the map's arena prefab, then of its generated
-        /// terrain if it has one, in prefab order, and gives each its place in
-        /// the stable query order. Once per world.
-        /// </summary>
+        /// <summary>Adds every collider of the map's arena prefab, then of its generated
+        /// terrain if it has one, in prefab order, and gives each its place in the stable
+        /// query order. Once per world.</summary>
         public void LoadArena(string map)
         {
             if (Map != null)
@@ -76,11 +72,9 @@ namespace KotH.Shared.Hosting
             AddTerrain(map);
         }
 
-        /// <summary>
-        /// The generated ground (Tools/maps/Mountain.cs), if the map has one:
-        /// per chunk, in file order, one static compound of its triangles, wound
-        /// into the solid like the test arena's. Too many for a prefab.
-        /// </summary>
+        /// <summary>The generated ground (Tools/maps/Mountain.cs), if the map has one:
+        /// per chunk, in file order, one static compound of its triangles, wound into the
+        /// solid like the test arena's. Too many for a prefab.</summary>
         void AddTerrain(string map)
         {
             using Stream stream = typeof(WorldBuilder).Assembly.GetManifestResourceStream(Maps.TerrainResource(map));

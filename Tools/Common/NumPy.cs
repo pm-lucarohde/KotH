@@ -120,11 +120,9 @@ public sealed class NumPyRandom
     }
 }
 
-/// <summary>
-/// numpy.fft: pocketfft's cfftp (numpy 2.5.4), pass for pass, so the sums round as there.
-/// Factors 2, 3, 4, 5, 8 and the generic pass for primes above 11; lengths that would need
-/// pass7, pass11 or Bluestein are not needed and refused.
-/// </summary>
+/// <summary>numpy.fft: pocketfft's cfftp (numpy 2.5.4), pass for pass, so the sums round
+/// as there. Factors 2, 3, 4, 5, 8 and the generic pass for primes above 11; lengths that
+/// would need pass7, pass11 or Bluestein are not needed and refused.</summary>
 public sealed class NumPyFft
 {
     readonly int length;
@@ -694,12 +692,10 @@ public sealed class NumPyFft
     }
 }
 
-/// <summary>
-/// np.convolve(a, v) of float64 arrays as numpy 2.5.4 computes it on this machine: _pyarray_correlate
-/// with the kernel reversed, every output a cblas_ddot of OpenBLAS 0.3.34 (DYNAMIC_ARCH, Zen/Haswell
-/// kernel: 16 products at a time in four FMA registers, then the rest one by one, not fused). Kernels
-/// of up to 11 elements take numpy's small_correlate instead, which is not needed and refused.
-/// </summary>
+/// <summary>np.convolve(a, v) of float64 arrays as numpy 2.5.4 computes it here: the kernel
+/// reversed, every output a cblas_ddot of OpenBLAS 0.3.34 (Zen/Haswell kernel: 16 products at a
+/// time in four FMA registers, then the rest one by one, unfused). Kernels of up to 11 elements
+/// (numpy's small_correlate) are refused.</summary>
 public static class NumPyConvolve
 {
     /// <summary>np.convolve(a, v, 'same').</summary>

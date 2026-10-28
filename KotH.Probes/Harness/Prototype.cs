@@ -5,12 +5,10 @@ using Stride.Engine;
 
 namespace KotH.Probes.Harness
 {
-    /// <summary>
-    /// What opening Prototype.unity and ProbeSubject.TryBind gave a probe:
-    /// the arena, the training dummy in the tick, and the player's motor out
-    /// of it. Unity's probes switched the player's input reader off and
-    /// ticked the motor themselves; here the player simply has no reader.
-    /// </summary>
+    /// <summary>What opening Prototype.unity and ProbeSubject.TryBind gave a probe: the
+    /// arena, the training dummy in the tick, and the player's motor out of it. Unity's
+    /// probes switched the player's input reader off and ticked the motor themselves;
+    /// here the player simply has no reader.</summary>
     public sealed class Prototype
     {
         public Entity Player { get; private set; }

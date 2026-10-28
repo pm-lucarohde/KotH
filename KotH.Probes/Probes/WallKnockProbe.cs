@@ -9,13 +9,9 @@ using Stride.Engine;
 
 namespace KotH.Probes.Probes
 {
-    /// <summary>
-    /// Knocks a body hard into the Plateau's wall, straight on and at angles,
-    /// and follows it until it rests. Once the wall has stopped it, nothing
-    /// may carry it towards the wall again: not in the air, not when it
-    /// lands. Found in play: above 100 % a dummy came off the wall and on
-    /// touching the ground flew back along the hit.
-    /// </summary>
+    /// <summary>Knocks a body hard into the Plateau's wall, straight and at angles, until it rests:
+    /// once the wall stopped it, nothing may carry it back towards the wall, in the air or landing
+    /// (in play a dummy above 100 % flew back along the hit on touching ground).</summary>
     public sealed class WallKnockProbe : Probe
     {
         protected override string Tag => "wallknock";

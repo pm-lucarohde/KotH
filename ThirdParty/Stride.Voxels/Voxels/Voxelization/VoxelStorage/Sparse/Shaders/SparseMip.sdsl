@@ -1,8 +1,7 @@
-// KotH patch: the coarser levels of VoxelStorageSparse. Bricks: one thread per
-// texel (border included) of the next level for the slots from slotStart on, from
-// 2^3 voxels of the finer one, found through the pages. Dense (one voxel per cell,
-// in the box from cellOffset): from the 2^3 voxels of the cell's brick at 0.5 m;
-// an empty cell is 0.
+// KotH patch: the coarser levels of VoxelStorageSparse. Bricks: one thread per texel (border
+// included) of the next level for the slots from slotStart on, from 2^3 finer voxels found
+// through the pages. Dense (one voxel per cell from cellOffset): from the 2^3 voxels of the
+// cell's 0.5 m brick level; an empty cell is 0.
 namespace Stride.Rendering.Voxels
 {
     shader SparseMip : ComputeShaderBase, SparseBricks

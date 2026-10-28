@@ -1,15 +1,7 @@
 #!/usr/bin/env -S dotnet run
-// Art for the main menu in the figures' colours (Mushroom.png), clean and chunky: smooth faces
-// with a soft gradient, a thin darker rim, a lighter top edge, and a solid lip underneath that
-// gives every board and button depth, as if moulded from plastic; the big boards sit in a frame
-// of round bamboo poles tied at the corners. No brush strokes, no black outlines. The title is
-// lettering with a bevelled face, a brown extrusion and a cast shadow.
-//
-// Writes PNGs at twice the menu's design size (1080 px high) to KotH.Game/Menu/Art, each with
-// room for its soft shadow (Pad design pixels on every side; MainMenuView.axaml places them by
-// that). Painted with Pillow's algorithms (Common/Pil.cs, PilFont.cs), so the pictures are the
-// ones the Python script made.
-//
+// Main menu art in the figures' colours: smooth gradient faces, thin dark rim, a solid lip
+// underneath, boards in a bamboo frame, a bevelled title; PNGs at twice the design size (1080
+// high) with Pad of shadow room to KotH.Game/Menu/Art. Pillow's algorithms (Common/Pil.cs).
 //   dotnet run Tools/menu/MenuArt.cs [-- --preview]
 #:include ../Common/Libm.cs
 #:include ../Common/Py.cs

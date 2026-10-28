@@ -11,19 +11,10 @@ using Stride.Core.Mathematics;
 
 namespace KotH.Server
 {
-    /// <summary>
-    /// The server as a networked peer, for tests over real UDP:
-    ///
-    ///   --host [--port N] [--min-players N]   hosts a game; its own player stands still
-    ///   --join ADDRESS[:PORT]                 joins one
-    ///   --bot                                 the own player roams at random instead
-    ///   --bots N, --bot-seed N                the host's bots (3 by default) and their seed
-    ///   --name NAME, --seconds N              shown name; stops after N seconds
-    ///   --map NAME                            the host's map (Maps.Default); joiners take the host's
-    ///
-    /// Logs the round every 10 s and every 400th tick's checksum, so the
-    /// logs of all processes can be compared line by line.
-    /// </summary>
+    /// <summary>The server as a networked peer over real UDP: --host [--port N] [--min-players N]
+    /// (own player stands still), --join ADDRESS[:PORT], --bot (own player roams), --bots N,
+    /// --bot-seed N, --name NAME, --seconds N, --map NAME. Logs the round every 10 s and every
+    /// 400th tick's checksum, so all processes' logs compare line by line.</summary>
     static class NetPlay
     {
         public static bool Wanted(string[] args)

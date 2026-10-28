@@ -45,11 +45,9 @@ namespace KotH.Shared.Net
     /// </summary>
     public static class NetProtocol
     {
-        /// <summary>
-        /// Which build this is. Peers only play with an identical one: the
-        /// simulation module's id plus the instruction set it runs with,
-        /// since float results depend on both; then the shared assets (AddAssets).
-        /// </summary>
+        /// <summary>Which build this is. Peers only play with an identical one: the
+        /// simulation module's id plus the instruction set it runs with, since float
+        /// results depend on both; then the shared assets (AddAssets).</summary>
         public static readonly byte[] BuildId = MakeBuildId();
 
         const string SharedAssets = "/KotH.Shared/";
@@ -67,12 +65,10 @@ namespace KotH.Shared.Net
 
         public static string BuildText => Convert.ToHexString(BuildId);
 
-        /// <summary>
-        /// Adds the shared assets to the build id, once: map collisions, spawns and
-        /// bodies live in the bundle, not in the module, and a peer with other ones
+        /// <summary>Adds the shared assets to the build id, once: map collisions, spawns
+        /// and bodies live in the bundle, not in the module, and a peer with other ones
         /// would desync. Stride names each object by the hash of its bytes, so their
-        /// content ids, sorted by URL, are the same for client and server.
-        /// </summary>
+        /// content ids, sorted by URL, are the same for client and server.</summary>
         public static void AddAssets(ContentManager content)
         {
             if (assetsAdded || content.FileProvider is not DatabaseFileProvider provider)
@@ -153,12 +149,10 @@ namespace KotH.Shared.Net
         /// <summary>Furthest a yaw may have turned; no mouse gets there in a match.</summary>
         public const float MaxYaw = 1e6f;
 
-        /// <summary>
-        /// What the host lets into the game: moves within -1..1, a finite view
-        /// with the pitch within 89 degrees, a few presses per tick. Anything
-        /// else is clamped, NaN becomes 0. A valid input comes back bit for
-        /// bit, so an honest peer never sees its own input corrected.
-        /// </summary>
+        /// <summary>What the host lets into the game: moves within -1..1, a finite view
+        /// with the pitch within 89 degrees, a few presses per tick. Anything else is
+        /// clamped, NaN becomes 0. A valid input comes back bit for bit, so an honest
+        /// peer never sees its own input corrected.</summary>
         public static MoveInput Sanitize(in MoveInput m)
         {
             MoveInput s = m;

@@ -63,11 +63,9 @@ namespace Stride.Rendering.Voxels
         [DataMember(52)]
         public RenderGroupMask StaticGroups { get; set; } = RenderGroupMask.All;
 
-        /// <summary>
-        /// KotH patch: the render groups voxelised again every frame while
-        /// <see cref="Voxelize"/> is off: only the boxes round them change,
-        /// the rest keeps the last full voxelisation. None: nothing moves.
-        /// </summary>
+        /// <summary>KotH patch: the render groups voxelised again every frame while
+        /// <see cref="Voxelize"/> is off: only the boxes round them change, the rest
+        /// keeps the last full voxelisation. None: nothing moves.</summary>
         [DataMember(54)]
         public RenderGroupMask DynamicGroups { get; set; }
 

@@ -8,13 +8,9 @@ using Stride.Shaders.Compiler;
 
 namespace KotH.Client.Rendering
 {
-    /// <summary>
-    /// KOTH_EFFECTLOG=path: appends every effect permutation the game asks for
-    /// to path, once each, in Stride's binary form (what the remote effect compiler
-    /// sends Game Studio). Tools/effects/EffectLog.cs turns the recordings into
-    /// Assets/EffectCompileLog.sdeffectlog, whose permutations the asset compiler
-    /// then builds into the bundle: no PC compiles them at runtime any more.
-    /// </summary>
+    /// <summary>KOTH_EFFECTLOG=path: appends every effect permutation the game asks for, once
+    /// each, in Stride's binary form. Tools/effects/EffectLog.cs turns them into
+    /// Assets/EffectCompileLog.sdeffectlog, built into the bundle: no runtime compiles.</summary>
     public static class EffectRecorder
     {
         [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "EffectUsed")]

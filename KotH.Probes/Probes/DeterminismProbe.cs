@@ -17,12 +17,10 @@ using Stride.Engine;
 
 namespace KotH.Probes.Probes
 {
-    /// <summary>
-    /// Proves the simulation deterministic: a live run steered along a route
-    /// records its inputs, then every replay - from the start, after a rollback,
-    /// in reversed body order - must reproduce its state bit for bit. Bits, not
-    /// a tolerance: a determinism test with a tolerance tests nothing.
-    /// </summary>
+    /// <summary>Proves the simulation deterministic: a live run steered along a route
+    /// records its inputs, then every replay - from the start, after a rollback, in
+    /// reversed body order - must reproduce its state bit for bit. Bits, not a tolerance:
+    /// a determinism test with a tolerance tests nothing.</summary>
     public sealed class DeterminismProbe : Probe
     {
         protected override string Tag => "det";
@@ -215,11 +213,9 @@ namespace KotH.Probes.Probes
             failed = true;
         }
 
-        /// <summary>
-        /// Prints the recorded hash chain, for comparing builds: the same
-        /// run under JIT and NativeAOT must give the same chain. Off by
-        /// default, so the log stays line for line Unity's.
-        /// </summary>
+        /// <summary>Prints the recorded hash chain, for comparing builds: the same run
+        /// under JIT and NativeAOT must give the same chain. Off by default, so the log
+        /// stays line for line Unity's.</summary>
         public bool PrintHashes { get; init; }
 
         void LogChain()
@@ -446,12 +442,10 @@ namespace KotH.Probes.Probes
             return true;
         }
 
-        /// <summary>
-        /// A second world in the same process, built the same way, stepped
-        /// in turn with this one through the whole recording. Both must
-        /// match it tick for tick: nothing of one world may leak into the
-        /// other, which a host and its peers in one probe rely on.
-        /// </summary>
+        /// <summary>A second world in the same process, built the same way, stepped in
+        /// turn with this one through the whole recording. Both must match it tick for
+        /// tick: nothing of one world may leak into the other, which a host and its peers
+        /// in one probe rely on.</summary>
         bool TwoWorlds()
         {
             using var second = new HeadlessWorld();

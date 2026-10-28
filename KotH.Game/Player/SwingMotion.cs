@@ -5,14 +5,10 @@ using Stride.Rendering;
 
 namespace KotH.Client.Player
 {
-    /// <summary>
-    /// Where the right hand goes in a swing, relative to the shoulder in the
-    /// chest's frame (X right, Y up, Z back). The downward swing runs from
-    /// High through the two bulges to Low; the upward one runs it back.
-    /// CaneHigh and CaneLow, where given, are where the cane points there:
-    /// the forearm turns about itself and the cane tips in the fist to come
-    /// as near as they can; the hand then keeps its distance from the shoulder.
-    /// </summary>
+    /// <summary>Where the right hand goes in a swing, relative to the shoulder in the chest's frame
+    /// (X right, Y up, Z back): down from High through the two bulges to Low, up the other way.
+    /// CaneHigh/CaneLow, where given, aim the cane there: the forearm turns and the cane tips in
+    /// the fist as near as they can.</summary>
     readonly struct SwingPath
     {
         public readonly Vector3 High, Low, BulgeHigh, BulgeLow, Pole, CaneHigh, CaneLow;
@@ -55,16 +51,10 @@ namespace KotH.Client.Player
         public float DownShare, Variation, TorsoDegrees, BendDegrees;
     }
 
-    /// <summary>
-    /// The swing of one right arm with the cane, on the game bones
-    /// UpperArmSwing.R and LowerArmSwing.R (.work/rig/rig.py): a quick
-    /// windup, a stroke along a bowed path that speeds up, a little follow
-    /// through and an easy way back. Each swing draws its direction (mostly
-    /// from the upper right down to the lower left) and small variations
-    /// from the body's NetId and the swing's tick, so every client shows the
-    /// same one. A two-bone IK puts the hand on the path; the clip's own arm
-    /// pose of the frame before is taken out, so walking never doubles it.
-    /// </summary>
+    /// <summary>One right arm's swing with the cane on UpperArmSwing.R/LowerArmSwing.R: quick
+    /// windup, a speeding stroke along a bowed path, follow-through, easy way back. Direction and
+    /// variations come from NetId and tick (same on every client); a two-bone IK puts the hand on
+    /// the path, minus the clip's own arm pose of the frame before.</summary>
     sealed class ArmSwing
     {
         const string UpperBone = "UpperArm.R", UpperSwingBone = "UpperArmSwing.R";
@@ -276,13 +266,10 @@ namespace KotH.Client.Player
             return elbow + Vector3.Transform(t[grip].Transform.Position, b * a);
         }
 
-        /// <summary>
-        /// Two-bone IK in the chest's frame, from the clip's own arm: bend
-        /// the elbow until the hand is as far from the shoulder as the goal,
-        /// turn the arm onto the goal, then about that line so the elbow
-        /// points to the pole. Both swing bones take what is left after the
-        /// clip, blended in by Weight.
-        /// </summary>
+        /// <summary>Two-bone IK in the chest's frame, from the clip's own arm: bend the
+        /// elbow until the hand is as far from the shoulder as the goal, turn the arm
+        /// onto the goal, then about that line so the elbow points to the pole. Both
+        /// swing bones take what is left after the clip, blended in by Weight.</summary>
         void Pose(SkeletonUpdater skeleton)
         {
             ModelNodeTransformation[] t = skeleton.NodeTransformations;

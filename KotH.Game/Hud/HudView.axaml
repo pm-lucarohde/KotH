@@ -1,9 +1,7 @@
-<!-- The round on screen in parts that HillBoard shows as overlays of their own
-     (MenuOverlay), so a change redraws only its part: the bar with the points
-     and the time at the top, the zone under it with the warm-up bar, the best
-     four at the top right, the own damage at the bottom, the winner and
-     notices in the middle. Laid out for a screen 1080 high; every glass piece keeps 24 of
-     room round it for its shadow. -->
+<!-- The round on screen in parts that HillBoard shows as overlays of their own (MenuOverlay),
+     so a change redraws only its part: points and time, the zone with the warm-up bar, the best
+     four, own damage, winner and notices. Laid out for a screen 1080 high; every glass piece
+     keeps 24 of room round it for its shadow. -->
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="KotH.Client.Hud.HudView"

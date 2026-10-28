@@ -8,12 +8,10 @@ using Stride.Media;
 
 namespace KotH.Client.Audio
 {
-    /// <summary>
-    /// The music: one looping piece in the main menu, one before the round
-    /// (lobby, countdown and the pause after a win), a fixed piece when a round
-    /// starts and then the playlist in shuffled order; every change crossfades. Follows the confirmed
-    /// round when networked, so no rollback flips it. Presentation only.
-    /// </summary>
+    /// <summary>The music: one looping piece in the main menu, one before the round (lobby, countdown
+    /// and the pause after a win), a fixed piece when a round starts and then the playlist in
+    /// shuffled order; every change crossfades. Follows the confirmed round when networked, so no
+    /// rollback flips it. Presentation only.</summary>
     [DataContract("KotH.MusicPlayer")]
     public sealed class MusicPlayer : SyncScript
     {
@@ -48,11 +46,9 @@ namespace KotH.Client.Audio
         /// <summary>Test aid: start every track this many seconds before its end.</summary>
         [DataMemberIgnore] public double TailSeconds { get; set; }
 
-        // A streamed instance keeps reporting Playing after its end, so the
-        // player times the piece itself and starts the next one a fade before.
-        // Every start gets a new instance: a streamed one played again after
-        // Stop replayed old buffers for seconds (the lobby over the second
-        // round's start).
+        // A streamed instance keeps reporting Playing after its end, so the player times the piece
+        // itself and starts the next one a fade before. Every start gets a new instance: one played
+        // again after Stop replayed old buffers for seconds.
 
         readonly List<Sound> deck = new List<Sound>();
         readonly Random random = new Random();

@@ -7,16 +7,9 @@ using Stride.Rendering;
 
 namespace KotH.Client.Rendering
 {
-    /// <summary>
-    /// A map's height fog and cloud layer, drawn by <see cref="AtmosphereEffects"/>
-    /// (the clouds' shadow by <c>CascadeShadowReceiver</c>). The fog starts at
-    /// <see cref="FogStart"/>, grows to <see cref="FogPeak"/> and fades out by
-    /// <see cref="FogTop"/>, gathered round <see cref="FogCentre"/>. The clouds are
-    /// a thin sheet of cloudlets from <see cref="CloudMap"/> drifting with the wind.
-    /// A low coastal fog lies on the water in a ring round the centre, haze and
-    /// wisps (the map's blue) drifting with the wind. Only for the picture; maps
-    /// without it have none of them.
-    /// </summary>
+    /// <summary>A map's height fog (from <see cref="FogStart"/> to <see cref="FogPeak"/>, gone by
+    /// <see cref="FogTop"/>, round <see cref="FogCentre"/>), cloudlet sheet from
+    /// <see cref="CloudMap"/> and coastal fog, drifting with the wind; drawn by AtmosphereEffects.</summary>
     /// <userdoc>Height fog, coastal fog and cloud layer of the map (visuals only).</userdoc>
     [DataContract("Atmosphere")]
     [Display("Atmosphere")]

@@ -6,11 +6,10 @@ using System.Numerics;
 
 namespace KotH.Tools;
 
-/// <summary>
-/// Python's arithmetic and formatting where it differs from C#'s, so a ported script
-/// computes and prints the same: float sum() is compensated (CPython 3.12+), hypot has
-/// its own algorithm, % and // floor, round() and "%f" round half to even on the exact value.
-/// </summary>
+/// <summary>Python's arithmetic and formatting where it differs from C#'s, so a ported script
+/// computes and prints the same: float sum() is compensated (CPython 3.12+), hypot has its
+/// own algorithm, % and // floor, round() and "%f" round half to even on the exact
+/// value.</summary>
 public static class Py
 {
     static readonly CultureInfo Inv = CultureInfo.InvariantCulture;

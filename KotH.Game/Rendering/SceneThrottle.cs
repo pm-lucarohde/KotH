@@ -5,13 +5,9 @@ using Stride.Rendering.Compositing;
 
 namespace KotH.Client.Rendering
 {
-    /// <summary>
-    /// Draws the scene at most once per <see cref="Interval"/>, into a picture of
-    /// its own that every frame draws over the back buffer (the swap chain
-    /// keeps no frame); the HUD after it still draws every frame. The main menu runs
-    /// so (Luca): the map behind it at 30 fps, the buttons free. HudRenderer.Of
-    /// puts it round the compositor's scene and registers it as a service.
-    /// </summary>
+    /// <summary>Draws the scene at most once per <see cref="Interval"/> into its own picture that
+    /// every frame draws over the back buffer; the HUD still draws every frame. The main menu runs
+    /// so (Luca: map at 30 fps, buttons free); HudRenderer.Of wraps the compositor's scene.</summary>
     public sealed class SceneThrottle : SceneRendererBase
     {
         /// <summary>The scene renderer it wraps.</summary>

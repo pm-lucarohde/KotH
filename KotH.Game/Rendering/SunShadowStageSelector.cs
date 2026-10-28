@@ -5,14 +5,9 @@ using Stride.Rendering.Voxels.VoxelGI;
 
 namespace KotH.Client.Rendering
 {
-    /// <summary>
-    /// Stride's shadow caster selector, split for the static sun shadow: the meshes
-    /// of a model with lightmap UVs (the map's terrain, trunks and leaves, which never
-    /// move; the leaves' shadow keeps the wind of the moment it is drawn) go to
-    /// <see cref="StaticRenderStage"/>, drawn once after loading; all others (the
-    /// figures) stay in the shadow map stage of every frame. Without a static stage
-    /// everything casts as before.
-    /// </summary>
+    /// <summary>Stride's shadow caster selector, split: meshes with lightmap UVs (terrain, trunks,
+    /// leaves; their shadow keeps the wind of its moment) go to <see cref="StaticRenderStage"/>,
+    /// drawn once; the rest (figures) to the per-frame stage. Without a static stage as before.</summary>
     [DataContract("SunShadowStageSelector")]
     public sealed class SunShadowStageSelector : ShadowMapRenderStageSelector
     {

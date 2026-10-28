@@ -11,14 +11,10 @@ using Stride.Engine;
 
 namespace KotH.Probes.Probes
 {
-    /// <summary>
-    /// Plays the hill with two scripted bodies and checks every rule tick by
-    /// tick: three seconds alone before the first point, one point a second,
-    /// nothing while shared, the warm-up starting over, the zone's edges,
-    /// the win, the time limit with a leader and a draw, the reset to the
-    /// spawn, and a rollback through all of it. Then the lobby of a
-    /// networked round and the twelve player slots. No Unity reference: new.
-    /// </summary>
+    /// <summary>Plays the hill with two scripted bodies and checks every rule tick by tick: 3 s
+    /// alone, a point a second, nothing while shared, warm-up restarts, zone edges, win, time limit
+    /// with leader and draw, spawn reset and a rollback through it all; then a networked round's
+    /// lobby and the twelve slots. No Unity reference.</summary>
     public sealed class CaptureProbe : Probe
     {
         protected override string Tag => "capture";
@@ -88,11 +84,9 @@ namespace KotH.Probes.Probes
             Check(b.ScoreTicks == 0 && b.AloneTicks == 0, "B outside gets nothing");
         }
 
-        /// <summary>
-        /// Taken, the zone stays its holder's with others inside (Luca's rule);
-        /// the holder gone, the other takes it in 3 s first; two inside while
-        /// it is being taken: nobody scores and the warm-up starts over.
-        /// </summary>
+        /// <summary>Taken, the zone stays its holder's with others inside (Luca's rule);
+        /// the holder gone, the other takes it in 3 s first; two inside while it is being
+        /// taken: nobody scores and the warm-up starts over.</summary>
         void Shared()
         {
             int before = a.ScoreTicks;
@@ -243,11 +237,9 @@ namespace KotH.Probes.Probes
                   "rollback and resimulate bit-identical including the round");
         }
 
-        /// <summary>
-        /// Waiting for four players, the countdown, its stop when one
-        /// leaves, the start from the spawns, the join window, and back to
-        /// waiting after a round. Dummies (NetId 1 to 3) never count.
-        /// </summary>
+        /// <summary>Waiting for four players, the countdown, its stop when one leaves, the start
+        /// from the spawns, the join window, and back to waiting after a round. Dummies (NetId 1 to
+        /// 3) never count.</summary>
         /// <summary>Off the edge of the arena: back at the spawn below -5 m, points kept.</summary>
         void OutOfArena(in BodyState spawnA)
         {

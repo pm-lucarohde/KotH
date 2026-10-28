@@ -30,16 +30,10 @@ namespace KotH.Shared.Bots
         bool TryInput(int netId, int tick, out MoveInput input);
     }
 
-    /// <summary>
-    /// Runs every bot of a world. Each input is worked out exactly once, in
-    /// tick order, from the final state ReactionTicks before, and kept: the
-    /// host confirms it, the host's own peer predicts with it, and asking
-    /// again, even after a rollback, gives the same bits.
-    /// Since a state is final that long before its bots' inputs are due,
-    /// they can be worked out ahead: on a thread of their own (StartWorker)
-    /// or a little each frame (Pump), from copies of the final states. What
-    /// is not ready when asked is worked out then, as without either.
-    /// </summary>
+    /// <summary>Runs every bot of a world. Each input is worked out once, in tick order, from the
+    /// final state ReactionTicks before, and kept: the host confirms it, its own peer predicts with
+    /// it, and asking again after a rollback gives the same bits. Being final early, it can be
+    /// worked out ahead on a thread (StartWorker) or a little each frame (Pump).</summary>
     public sealed class BotDirector : IBotInputs, IDisposable
     {
         const int Memo = 256;
@@ -148,11 +142,9 @@ namespace KotH.Shared.Bots
 
         public BotBrain BrainOf(int netId) => bots.TryGetValue(netId, out Bot b) ? b.Brain : null;
 
-        /// <summary>
-        /// The bot's input for a tick; false while the state it needs is not
-        /// final yet. Starts where it is first asked: a bot is asked from the
-        /// tick it joins, and sees itself only ReactionTicks later.
-        /// </summary>
+        /// <summary>The bot's input for a tick; false while the state it needs is not
+        /// final yet. Starts where it is first asked: a bot is asked from the tick it
+        /// joins, and sees itself only ReactionTicks later.</summary>
         public bool TryInput(int netId, int tick, out MoveInput input)
         {
             input = default;
@@ -198,11 +190,9 @@ namespace KotH.Shared.Bots
             }
         }
 
-        /// <summary>
-        /// Once per frame on the game's thread, after its ticks: hands the
-        /// newly final states on, then wakes the worker, or without one works
-        /// ahead itself for up to budget milliseconds (at least one step).
-        /// </summary>
+        /// <summary>Once per frame on the game's thread, after its ticks: hands the newly
+        /// final states on, then wakes the worker, or without one works ahead itself for
+        /// up to budget milliseconds (at least one step).</summary>
         public void Pump(double budget)
         {
             if (Feed() && worker != null)
@@ -344,11 +334,9 @@ namespace KotH.Shared.Bots
         public int NewestFinal => recorded;
     }
 
-    /// <summary>
-    /// A bot's body where the world has no netcode: offline and headless.
-    /// Notes the tick for the director, then asks it, like a player asks
-    /// the keyboard.
-    /// </summary>
+    /// <summary>A bot's body where the world has no netcode: offline and headless. Notes
+    /// the tick for the director, then asks it, like a player asks the
+    /// keyboard.</summary>
     [Stride.Core.DataContract]
     public sealed class BotBody : SimulationBody
     {

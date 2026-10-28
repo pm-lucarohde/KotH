@@ -14,13 +14,10 @@ using Stride.Engine;
 
 namespace KotH.Probes.Probes
 {
-    /// <summary>
-    /// The bots, headless: the climbing grid reaches the hill over every ramp,
-    /// three bots and a body standing on the hill play a round, the bots get
-    /// up, score and hit it, and a second run with the same seed gives the
-    /// same inputs bit for bit. Prints the hash for JIT against AOT. New, no
-    /// Unity reference.
-    /// </summary>
+    /// <summary>The bots, headless: the climbing grid reaches the hill over every ramp,
+    /// three bots and a body standing on the hill play a round, the bots get up, score
+    /// and hit it, and a second run with the same seed gives the same inputs bit for bit.
+    /// Prints the hash for JIT against AOT. New, no Unity reference.</summary>
     public sealed partial class BotProbe : Probe
     {
         protected override string Tag => "bots";
@@ -133,11 +130,9 @@ namespace KotH.Probes.Probes
         /// <summary>Averages over many seeds, for tuning: "bots stats N".</summary>
         public int Stats = 0;
 
-        /// <summary>
-        /// A round with three bots and a still body on the hill. The bots must
-        /// get up there, take points and hit the body; their inputs go into
-        /// a hash chain, tick by tick.
-        /// </summary>
+        /// <summary>A round with three bots and a still body on the hill. The bots must
+        /// get up there, take points and hit the body; their inputs go into a hash chain,
+        /// tick by tick.</summary>
         // ahead: 0 as the server does, 1 on the bots' own thread, 2 a little each tick (Pump).
         Result Play(int seed, int ahead = 0)
         {
@@ -311,12 +306,10 @@ namespace KotH.Probes.Probes
             Check(match.State.Phase == MatchPhase.Waiting && swings == 0, "no bot swings in the lobby");
         }
 
-        /// <summary>
-        /// A host with bots over the memory network, 40 s. Returns the hash
-        /// chain of the bot inputs the host confirmed. With a guest, checks
-        /// the checksums agree and the host never had to roll back: its own
-        /// player and the guest stand still, and the bots it knows. ahead as in Play.
-        /// </summary>
+        /// <summary>A host with bots over the memory network, 40 s. Returns the hash
+        /// chain of the bot inputs the host confirmed. With a guest, checks the checksums
+        /// agree and the host never had to roll back: its own player and the guest stand
+        /// still, and the bots it knows. ahead as in Play.</summary>
         ulong Hosted(double frameMs, int netSeed, bool guest, out PeerSession founder, out PeerSession visitor, double pause = 0.0,
                      int ahead = 0)
         {

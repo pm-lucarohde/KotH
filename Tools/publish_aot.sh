@@ -1,11 +1,7 @@
 #!/bin/bash
-# NativeAOT builds of client, server and probes, linked in the distrobox "aot"
-# (clang, lld, zlib-devel). Output: Bin/Linux/aot, Bin/Server/aot, Bin/Probes/aot.
-# Building with the runtime identifier first is required: publish alone finds
-# no assembly for the asset compiler. Never incremental: a new script field
-# leaves the old scene bundle in place, and loading MainScene then crashes.
-# ILC occasionally crashes; then run again. Windows only on request: linked with
-# lld-link against the CRT and SDK libraries of "xwin splat" (Directory.Build.targets).
+# NativeAOT builds linked in the distrobox "aot" -> Bin/{Linux,Server,Probes}/aot. Builds with
+# the RID first (publish alone finds no assembly for the asset compiler), never incrementally
+# (old scene bundle); ILC sometimes crashes, run again. Windows on request (lld-link + xwin).
 #   Tools/publish_aot.sh [linux|server|probes|windows|probes-windows ...]   (default: the first three)
 set -e
 cd "$(dirname "$0")/.."

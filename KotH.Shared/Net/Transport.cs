@@ -13,12 +13,10 @@ namespace KotH.Shared.Net
         public byte[] Data;
     }
 
-    /// <summary>
-    /// What the sessions need from a network: send to a peer, reliably in
-    /// order or as a datagram that may get lost or overtaken, and hear what
-    /// arrived. A peer sees the host as peer 0; the host numbers its peers.
-    /// LiteNetLib, Steam and the in-memory network all fit behind it.
-    /// </summary>
+    /// <summary>What the sessions need from a network: send to a peer, reliably in order
+    /// or as a datagram that may get lost or overtaken, and hear what arrived. A peer
+    /// sees the host as peer 0; the host numbers its peers. LiteNetLib, Steam and the
+    /// in-memory network all fit behind it.</summary>
     public interface INetTransport
     {
         void Send(int peer, ReadOnlySpan<byte> data, bool reliable);
@@ -26,12 +24,10 @@ namespace KotH.Shared.Net
         void Disconnect(int peer);
     }
 
-    /// <summary>
-    /// A network in memory for probes: every link has a seeded one-way
-    /// latency, jitter and loss. Reliable messages never get lost and keep
-    /// their order; datagrams may do neither. Time is whatever the probe
-    /// says it is, so a run is the same every time.
-    /// </summary>
+    /// <summary>A network in memory for probes: every link has a seeded one-way latency,
+    /// jitter and loss. Reliable messages never get lost and keep their order; datagrams
+    /// may do neither. Time is whatever the probe says it is, so a run is the same every
+    /// time.</summary>
     public sealed class MemoryNetwork
     {
         internal sealed class Link

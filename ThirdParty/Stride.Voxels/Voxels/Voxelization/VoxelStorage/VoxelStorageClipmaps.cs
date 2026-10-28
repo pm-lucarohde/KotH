@@ -196,15 +196,8 @@ namespace Stride.Rendering.Voxels
             BaseVoxelMatrix = BaseVoxelMatrix * Matrix.Scaling(2f, 2f, 2f);
             if (UpdatesPerFrame != UpdateMethods.AllClipmapsMultipleRenders)
             {
-                /*
-                 * Having trouble with shadow culling when this is enabled - currently performed in vertex shader instead
-                if (UpdateMethod == UpdateMethods.OneClipPerFrame)
-                {
-                    BaseVoxelMatrix = Matrix.Scaling(PerMapOffsetScale[ClipMapCurrent].W) * Matrix.Translation(PerMapOffsetScale[ClipMapCurrent].XYZ());
-                    BaseVoxelMatrix = BaseVoxelMatrix * Matrix.Translation(-0.5f,-0.5f,-0.5f);
-                    BaseVoxelMatrix = BaseVoxelMatrix * Matrix.Scaling(2f, 2f, 2f);
-                }
-                */
+                // KotH patch: upstream's disabled OneClipPerFrame matrix (shadow culling trouble,
+                // done in the vertex shader instead) removed.
                 VoxelStorerClipmap Storer = new VoxelStorerClipmap
                 {
                     storageUints = storageUints,
@@ -247,12 +240,9 @@ namespace Stride.Rendering.Voxels
         Stride.Rendering.ComputeEffect.ComputeEffectShader ClearBuffer;
 
 
-        /// <summary>
-        /// Computes the thread group counts for clearing <paramref name="elementCount"/> buffer elements, spread over two dispatch dimensions.
-        /// </summary>
-        /// <param name="elementCount">How many elements the clear covers.</param>
-        /// <param name="rowLength">How many elements one row of groups covers, for the shader to recompose a linear index.</param>
-        /// <returns>The group counts to dispatch <c>ClearBuffer</c> with.</returns>
+        /// <summary>The thread group counts for clearing <paramref name="elementCount"/> buffer
+        /// elements over two dispatch dimensions (rowLength elements per row of groups, for the shader
+        /// to rebuild a linear index); dispatch <c>ClearBuffer</c> with the result.</summary>
         static Int3 ClearDispatch(int elementCount, out int rowLength)
         {
             // Every API caps a dispatch at 65535 groups per dimension, which caps a one-dimensional

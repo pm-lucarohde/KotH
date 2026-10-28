@@ -1,10 +1,7 @@
 #!/usr/bin/env -S dotnet run
-// The game's sounds out of Luca's picks in Sounds/ (kept as they are, not in Git).
-// Writes KotH.Game/Resources/Sounds/NAME.wav, 48 kHz 16 bit: silence cut off both ends,
-// a short fade at the end, mono for the sounds placed in the world, every one at the same
-// loudness (SFX_LOUD, the loudest 400 ms; never over PEAK), so SoundEffects' volumes alone
-// set the mix. The ambient stays stereo at the music's loudness and loops seamlessly.
-//
+// The game's sounds from Luca's picks in Sounds/ (not in Git) to KotH.Game/Resources/Sounds/
+// NAME.wav, 48 kHz 16 bit: silence cut, short end fade, world sounds mono at equal loudness
+// (SFX_LOUD over the loudest 400 ms, never over PEAK); the ambience stereo, seamless loop.
 //   dotnet run Tools/audio/Sfx.cs        needs ffmpeg
 #:include ../Common/Py.cs
 using System;

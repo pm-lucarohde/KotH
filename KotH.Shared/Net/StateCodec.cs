@@ -8,12 +8,10 @@ using KotH.Shared.Simulation;
 
 namespace KotH.Shared.Net
 {
-    /// <summary>
-    /// A snapshot as bytes and back, bit for bit: what a joining peer and a
-    /// desync repair receive. Body states go over as their packed memory,
-    /// which every peer reads the same way because all run the same build.
-    /// Bodies are named by NetId, in tick order; the round names them too.
-    /// </summary>
+    /// <summary>A snapshot as bytes and back, bit for bit: what a joining peer and a
+    /// desync repair receive. Body states go over as their packed memory, which every
+    /// peer reads the same way because all run the same build. Bodies are named by NetId,
+    /// in tick order; the round names them too.</summary>
     public static class StateCodec
     {
         const uint Magic = 0x4B6F5448; // "KoTH"
@@ -54,11 +52,9 @@ namespace KotH.Shared.Net
             }
         }
 
-        /// <summary>
-        /// Fills a snapshot from bytes, finding each body by its NetId, and
-        /// hands the spawn states over. False for bytes of another build or
-        /// a body this peer does not have. SimulationSystem.Restore applies it.
-        /// </summary>
+        /// <summary>Fills a snapshot from bytes, finding each body by its NetId, and
+        /// hands the spawn states over. False for bytes of another build or a body this
+        /// peer does not have. SimulationSystem.Restore applies it.</summary>
         public static bool Read(ReadOnlySpan<byte> data, Func<int, SimulationBody> bodyOf, WorldSnapshot into)
         {
             into.Clear();

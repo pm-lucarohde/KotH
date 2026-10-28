@@ -1,9 +1,6 @@
 #!/usr/bin/env -S dotnet run
-// Compares the VERDICTS of two measured states, not the numbers. Every probe has
-// its own rule for what a case's verdict is (up or not, climbed or not, -> ok,
-// target met ...). Prints every case whose verdict differs between the reference
-// set and the new state, with both full lines.
-//
+// Compares the VERDICTS of two measured states, not the numbers, by each probe's own rule (up
+// or not, climbed or not, ok, target met ...); prints every differing case with both lines.
 //   dotnet run Tools/Verdict.cs -- ref1,ref2,ref3 new
 #:include Common/Py.cs
 #:include Common/Libm.cs

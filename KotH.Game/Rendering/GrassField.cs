@@ -12,14 +12,9 @@ using Stride.Rendering.Materials;
 
 namespace KotH.Client.Rendering
 {
-    /// <summary>
-    /// Grass blades on the meadow, after Ghost of Tsushima (Luca): GrassPatch
-    /// drawn instanced on the map's grassy 2 m patches in reach and in view,
-    /// two draws (far patches with a quarter of the blades); GrassBlade builds the blades on the ground of the grass
-    /// map (Tools/maps/MapUV writes it), GrassColor paints them. Only looks:
-    /// no collision, nothing of the simulation. Hands the shader the wind of
-    /// the Atmosphere and the figures' feet every frame.
-    /// </summary>
+    /// <summary>Grass blades on the meadow after Ghost of Tsushima (Luca): GrassPatch instanced on
+    /// the grassy 2 m patches in reach and view (far ones with a quarter of the blades), built by
+    /// GrassBlade on the grass map, painted by GrassColor; wind and feet every frame. Looks only.</summary>
     /// <userdoc>Grass blades on the meadow (visuals only), with wind, flowers and figures pushing them aside.</userdoc>
     [Display("Grass")]
     public sealed class GrassField : SyncScript
@@ -173,13 +168,9 @@ namespace KotH.Client.Rendering
             far.Show(commandList);
         }
 
-        /// <summary>
-        /// One patch mesh drawn instanced on an entity, and where it stands now.
-        /// Its own buffers, three pairs in turn: Stride's Vulkan writes a dynamic
-        /// buffer (InstancingUserArray's) straight into the memory the frame before
-        /// may still draw from, so its depth prepass and colour pass could see two
-        /// lists, and a patch with depth but no colour flashed in the clear colour.
-        /// </summary>
+        /// <summary>One patch mesh drawn instanced on an entity. Three buffer pairs in turn: Stride's
+        /// Vulkan writes a dynamic buffer into memory the previous frame may still draw from, so
+        /// prepass and colour pass saw two lists and patches flashed in the clear colour.</summary>
         sealed class Patches
         {
             // Stride keeps at most two frames in flight (two frame fences).

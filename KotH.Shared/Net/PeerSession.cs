@@ -9,14 +9,10 @@ using Stride.Core.Mathematics;
 
 namespace KotH.Shared.Net
 {
-    /// <summary>
-    /// One peer's side of a rollback game, the host's own player included.
-    /// Steps the world at once with the inputs it has: its own, the ones the
-    /// host confirmed, and for everyone else a guess. When a confirmed tick
-    /// shows a guess was wrong, it goes back to that tick and steps again.
-    /// Keeps its clock just far enough ahead of the host that its own inputs
-    /// arrive in time, and reports a checksum of every 40th final state.
-    /// </summary>
+    /// <summary>One peer's side of a rollback game, the host's player included: steps at once with
+    /// its own inputs, the confirmed ones and a guess for everyone else, and goes back and steps
+    /// again when a confirmed tick shows a wrong guess. Keeps its clock just far enough ahead of
+    /// the host, and reports a checksum of every 40th final state.</summary>
     public sealed class PeerSession : IFinalStates
     {
         /// <summary>Ticks between sampling an input and stepping with it.</summary>
@@ -90,12 +86,10 @@ namespace KotH.Shared.Net
         double lastSent = double.MinValue;
         bool sendNow;
 
-        /// <summary>
-        /// A peer that joins: says hello and waits for the host's state. A
-        /// founder is the host's own peer, whose world is the start of the game.
-        /// With join false a guest only asks for the map first and joins with
-        /// Join once it has loaded it, so it never stands in the game half ready.
-        /// </summary>
+        /// <summary>A peer that joins: says hello and waits for the host's state. A
+        /// founder is the host's own peer, whose world is the start of the game. With
+        /// join false a guest only asks for the map first and joins with Join once it has
+        /// loaded it, so it never stands in the game half ready.</summary>
         public PeerSession(INetWorld world, INetTransport transport, Func<MoveInput> sampleLocal,
                            string name, bool founder, double now, bool join = true)
         {
@@ -336,11 +330,9 @@ namespace KotH.Shared.Net
                 Repairs++;
         }
 
-        /// <summary>
-        /// Builds the world a transfer describes: spawns every player of the
-        /// roster this peer lacks, in NetId order like everyone else did, and
-        /// restores. Confirmed history before the state no longer matters.
-        /// </summary>
+        /// <summary>Builds the world a transfer describes: spawns every player of the
+        /// roster this peer lacks, in NetId order like everyone else did, and restores.
+        /// Confirmed history before the state no longer matters.</summary>
         bool TakeState(ref Reader r, int length)
         {
             ReadOnlySpan<byte> state = r.Bytes(length);
@@ -440,11 +432,9 @@ namespace KotH.Shared.Net
             }
         }
 
-        /// <summary>
-        /// Takes every confirmed tick that follows on from the last one. Any
-        /// already stepped with a different guess, or with a join or leave
-        /// it did not know of, is where the world has to go back to.
-        /// </summary>
+        /// <summary>Takes every confirmed tick that follows on from the last one. Any
+        /// already stepped with a different guess, or with a join or leave it did not
+        /// know of, is where the world has to go back to.</summary>
         void ApplyConfirmed()
         {
             int from = int.MaxValue;
@@ -625,11 +615,9 @@ namespace KotH.Shared.Net
             return lastConfirmed.TryGetValue(id, out Known known) ? Guess(known, tick) : default;
         }
 
-        /// <summary>
-        /// What another player does in a tick not yet confirmed: the last
-        /// input without its presses, still turning as fast as between its
-        /// last two inputs, for at most TurnAhead ticks.
-        /// </summary>
+        /// <summary>What another player does in a tick not yet confirmed: the last input
+        /// without its presses, still turning as fast as between its last two inputs, for
+        /// at most TurnAhead ticks.</summary>
         MoveInput Guess(in Known k, int tick)
         {
             MoveInput m = NetProtocol.Hold(k.Last);

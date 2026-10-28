@@ -23,13 +23,9 @@ namespace KotH.Client.Hud
         bool Covers { get; }
     }
 
-    /// <summary>
-    /// Draws the screen HUD with one sprite batch after the scene, in exactly
-    /// the order elements were added and without depth. Stride's UI orders
-    /// overlapping parts by a depth bias whose sign flips under Vulkan, so
-    /// an outline or a text band ends up on top of what it should back.
-    /// Sizes are pixels, like Unity's overlay canvas without a scaler.
-    /// </summary>
+    /// <summary>Draws the screen HUD with one sprite batch after the scene, in the order added and
+    /// without depth: Stride's UI orders overlaps by a depth bias whose sign flips under Vulkan.
+    /// Sizes are pixels.</summary>
     public sealed class HudRenderer : SceneRendererBase
     {
         /// <summary>

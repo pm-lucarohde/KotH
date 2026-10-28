@@ -32,12 +32,10 @@ namespace KotH.Probes.Probes
             public int Pilot;        // flown by the JumpPilot, seeing this many ticks late (0: none, else delay + 1)
         }
 
-        /// <summary>
-        /// A lab for the climb, no bot and no reaction time: random jumps and
-        /// double jumps of the climbing grid on the mountain, each tried in
-        /// several ways with the real motor. Scores a way by the seconds to
-        /// the zone it gains per second spent, landing anywhere higher up.
-        /// </summary>
+        /// <summary>A lab for the climb, no bot and no reaction time: random jumps and
+        /// double jumps of the climbing grid on the mountain, each tried in several ways
+        /// with the real motor. Scores a way by the seconds to the zone it gains per
+        /// second spent, landing anywhere higher up.</summary>
         int Labs(int links)
         {
             using var world = new HeadlessWorld();

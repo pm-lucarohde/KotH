@@ -7,12 +7,10 @@ using Stride.Core.Mathematics;
 
 namespace KotH.Probes.Probes
 {
-    /// <summary>
-    /// Checks UMath's rotations bit for bit against Unity's, dumped over a
-    /// grid of pitch and yaw. Every Unity value is mirrored into Stride
-    /// first; the mirror itself is exact, so any differing bit is a formula
-    /// that rounds differently.
-    /// </summary>
+    /// <summary>Checks UMath's rotations bit for bit against Unity's, dumped over a grid
+    /// of pitch and yaw. Every Unity value is mirrored into Stride first; the mirror
+    /// itself is exact, so any differing bit is a formula that rounds
+    /// differently.</summary>
     public sealed class RotationProbe : Probe
     {
         protected override string Tag => "rot";
@@ -154,11 +152,9 @@ namespace KotH.Probes.Probes
             Exit(ok ? 0 : 1);
         }
 
-        /// <summary>
-        /// Rotate the way Unity's editor Mono ran it: locals rounded to
-        /// float, every expression summed in double. Proves the formula is
-        /// Unity's; only the rounding differs.
-        /// </summary>
+        /// <summary>Rotate the way Unity's editor Mono ran it: locals rounded to float,
+        /// every expression summed in double. Proves the formula is Unity's; only the
+        /// rounding differs.</summary>
         static Vector3 RotateMono(Quaternion r, Vector3 p)
         {
             float num = r.X * 2f, num2 = r.Y * 2f, num3 = r.Z * 2f;

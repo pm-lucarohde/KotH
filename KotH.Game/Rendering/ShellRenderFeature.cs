@@ -6,12 +6,10 @@ using Stride.Shaders;
 
 namespace KotH.Client.Rendering
 {
-    /// <summary>
-    /// Once the lightmap is baked, mixes ShellLight and KOTH_LIGHTMAP into the
-    /// colour pass of the shells' group: they read the light of the sand under
-    /// them. Their lightmap uv is not TEXCOORD1, so LightmapRenderFeature leaves
-    /// them out (the bake waits for every mesh with one). Added at run time.
-    /// </summary>
+    /// <summary>Once the lightmap is baked, mixes ShellLight and KOTH_LIGHTMAP into the
+    /// colour pass of the shells' group: they read the light of the sand under them.
+    /// Their lightmap uv is not TEXCOORD1, so LightmapRenderFeature leaves them out (the
+    /// bake waits for every mesh with one). Added at run time.</summary>
     public sealed class ShellRenderFeature : SubRenderFeature
     {
         static readonly ShaderSource Lit = LitSource();

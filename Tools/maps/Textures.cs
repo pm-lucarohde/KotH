@@ -1,14 +1,7 @@
 #!/usr/bin/env -S dotnet run
-// Painted textures for map "Mount Destiny", in the style of the mushroom figures: saturated colours,
-// clear shapes with a darker rim, a light plane and broad brush strokes inside every shape,
-// like Mushroom.png (Luca, 22.10.2026: "not washed out", then "a touch softer and more like
-// a comic"). Seeded, so every run paints the same; painted with Pillow's algorithms
-// (Common/Pil.cs), so the pictures are the ones the Python script made.
-//
-// Writes tileable PNGs to KotH.Game/Resources/Textures/Terrain (grass, dirt, sand, snow, rock
-// for TerrainTriplanar; bark for PaintedTriplanar, single leaves, clumps and a twig for
-// LeafCluster; the sea is one plain colour, Luca's wish). Sizes below are in pixels of a 1024 texture, scaled by K.
-//
+// Painted, tileable textures of Mount Destiny in the figures' style (Luca: "a touch softer and
+// more like a comic"): grass, dirt, sand, snow, rock, bark, leaves, clumps, twig, relief maps to
+// KotH.Game/Resources/Textures/Terrain. Seeded, Pillow's algorithms (Common/Pil.cs).
 //   dotnet run Tools/maps/Textures.cs [-- --preview]
 #:include ../Common/Libm.cs
 #:include ../Common/Py.cs

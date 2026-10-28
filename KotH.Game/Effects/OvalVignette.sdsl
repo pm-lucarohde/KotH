@@ -1,8 +1,6 @@
-/// <summary>
-/// Stride's vignette with its own start at the sides and at top and bottom (Luca:
-/// later above and below). Distance from the centre in UV, 1 at the corners; the
-/// start blends from RadiusSides to RadiusTopBottom by the direction (cos²).
-/// </summary>
+/// <summary>Stride's vignette with its own start at the sides and at top and bottom
+/// (Luca: later above and below). Distance from the centre in UV, 1 at the corners; the
+/// start blends from RadiusSides to RadiusTopBottom by the direction (cos²).</summary>
 shader OvalVignette : ColorTransformShader, Texturing
 {
     float Amount;

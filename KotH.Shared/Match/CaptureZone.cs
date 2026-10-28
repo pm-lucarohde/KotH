@@ -5,12 +5,10 @@ using Stride.Engine.Design;
 
 namespace KotH.Shared.Match
 {
-    /// <summary>
-    /// The hill: a box in the arena and the rules of the round played for it.
-    /// Carries no collider, the box is asked with plain arithmetic, so the
-    /// zone needs no physics layer and stays out of every motor query.
-    /// Read once when a HillMatch starts; moving it later changes nothing.
-    /// </summary>
+    /// <summary>The hill: a box in the arena and the rules of the round played for it.
+    /// Carries no collider, the box is asked with plain arithmetic, so the zone needs no
+    /// physics layer and stays out of every motor query. Read once when a HillMatch
+    /// starts; moving it later changes nothing.</summary>
     [DataContract("KotH.CaptureZone")]
     [Display("Capture zone")]
     [ComponentCategory("KotH")]

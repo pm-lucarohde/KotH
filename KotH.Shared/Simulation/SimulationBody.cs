@@ -9,12 +9,10 @@ using Stride.Engine.Design;
 
 namespace KotH.Shared.Simulation
 {
-    /// <summary>
-    /// A body the simulation drives. Where the input comes from is the only
-    /// difference between a local player, a dummy and, later, an entity fed
-    /// from the network. Joining a scene puts it into the tick, leaving the
-    /// scene takes it out again, which Unity's OnEnable and OnDisable did.
-    /// </summary>
+    /// <summary>A body the simulation drives. Where the input comes from is the only
+    /// difference between a local player, a dummy and, later, an entity fed from the
+    /// network. Joining a scene puts it into the tick, leaving the scene takes it out
+    /// again, which Unity's OnEnable and OnDisable did.</summary>
     [DataContract(Inherited = true)]
     [DefaultEntityComponentProcessor(typeof(SimulationBodyProcessor), ExecutionMode = ExecutionMode.Runtime)]
     public abstract class SimulationBody : EntityComponent
@@ -41,19 +39,15 @@ namespace KotH.Shared.Simulation
 
         [DataMemberIgnore] public bool HasSpawn { get; private set; }
 
-        /// <summary>
-        /// The tick a round last put this body somewhere new, and the yaw it
+        /// <summary>The tick a round last put this body somewhere new, and the yaw it
         /// faces there, for the view to turn to. Not state, like
-        /// DamagePercent.LastHitTick: a resimulation sets them alike.
-        /// </summary>
+        /// DamagePercent.LastHitTick: a resimulation sets them alike.</summary>
         [DataMemberIgnore] public int PlacedTick { get; private set; } = -1;
         [DataMemberIgnore] public float PlacedYaw { get; private set; }
 
-        /// <summary>
-        /// The tick the body was last set down elsewhere at all (PlaceAt,
-        /// Respawn, ResetToSpawn), for the looks: no jump or landing from the
-        /// jolt. Not state, like PlacedTick.
-        /// </summary>
+        /// <summary>The tick the body was last set down elsewhere at all (PlaceAt,
+        /// Respawn, ResetToSpawn), for the looks: no jump or landing from the jolt. Not
+        /// state, like PlacedTick.</summary>
         [DataMemberIgnore] public int MovedTick { get; private set; } = -1;
 
         /// <summary>Puts the body down as it stood when it joined, but at a new place and facing yaw.</summary>
@@ -115,11 +109,9 @@ namespace KotH.Shared.Simulation
             damage = Entity.Get<DamagePercent>();
         }
 
-        /// <summary>
-        /// Binds a body's motor, fists and hull to the world. Also for a body
-        /// that is ticked by hand instead of by the system, as the probes do
-        /// with the player, whose input reader Unity switched off.
-        /// </summary>
+        /// <summary>Binds a body's motor, fists and hull to the world. Also for a body
+        /// that is ticked by hand instead of by the system, as the probes do with the
+        /// player, whose input reader Unity switched off.</summary>
         public static PlayerMotor Wire(Entity entity, WorldQueries world)
         {
             PlayerMotor motor = entity.Get<PlayerMotor>();
@@ -194,11 +186,9 @@ namespace KotH.Shared.Simulation
             AloneTicks = state.AloneTicks;
         }
 
-        /// <summary>
-        /// Combat for this tick. Driven separately from movement so every
-        /// swing sees where all bodies ended up, not where the ones ahead of
-        /// it in the list happened to be.
-        /// </summary>
+        /// <summary>Combat for this tick. Driven separately from movement so every swing
+        /// sees where all bodies ended up, not where the ones ahead of it in the list
+        /// happened to be.</summary>
         public void TickCombat(in MoveInput input, float dt)
         {
             attack?.Tick(input, dt);

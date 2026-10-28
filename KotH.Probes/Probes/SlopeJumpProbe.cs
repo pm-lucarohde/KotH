@@ -5,11 +5,9 @@ using Stride.Core.Mathematics;
 
 namespace KotH.Probes.Probes
 {
-    /// <summary>
-    /// Measures how often the ground is lost while running DOWN a ramp. A jump
-    /// needs IsGrounded, so every tick without it is a refused jump. Throwaway
-    /// probe for that one question.
-    /// </summary>
+    /// <summary>Measures how often the ground is lost while running DOWN a ramp. A jump
+    /// needs IsGrounded, so every tick without it is a refused jump. Throwaway probe for
+    /// that one question.</summary>
     public sealed class SlopeJumpProbe : Probe
     {
         protected override string Tag => "slope";

@@ -10,16 +10,10 @@ using Buffer = Stride.Graphics.Buffer;
 
 namespace Stride.Rendering.Voxels
 {
-    /// <summary>
-    /// The whole volume at the finest voxel size, kept only where there is
-    /// something: bricks of 8^3 voxels, one per cell the geometry touches, found
-    /// through a page per cell. Baked over several frames (effects compile
-    /// asynchronously, so each step repeats until its count holds): mark the cells
-    /// hit, give each a slot, write the fragments slab by slab (the typed fragment
-    /// buffer is capped at 2^27), then the coarser levels. Afterwards the moving
-    /// groups each frame: the cells round them read bricks of their own, copies of
-    /// the baked ones the groups are written over (see SparseEdit).
-    /// </summary>
+    /// <summary>The whole volume at the finest voxel size, only where there is something: bricks
+    /// of 8^3 voxels per touched cell, found through a page per cell. Baked over several frames
+    /// (each step repeats until its count holds): mark, assign slots, write fragments slab by slab
+    /// (typed buffers cap at 2^27), coarser levels. Moving groups then get brick copies (SparseEdit).</summary>
     [DataContract(DefaultMemberMode = DataMemberMode.Default)]
     [Display("Sparse Bricks")]
     public class VoxelStorageSparse : IVoxelStorage
@@ -367,11 +361,9 @@ namespace Stride.Rendering.Voxels
             ((RendererBase)bufferToBricks).Draw(drawContext);
         }
 
-        /// <summary>
-        /// Group counts for <paramref name="count"/> threads in groups of
-        /// <paramref name="threads"/>, spread over X and Y (65535 groups at most
-        /// per dimension); the shader recomposes the index with rowLength.
-        /// </summary>
+        /// <summary>Group counts for <paramref name="count"/> threads in groups of
+        /// <paramref name="threads"/>, spread over X and Y (65535 groups at most per
+        /// dimension); the shader recomposes the index with rowLength.</summary>
         public static Int3 LinearDispatch(int count, int threads, out int rowLength)
         {
             int groups = Math.Max(1, (count + threads - 1) / threads);
@@ -545,13 +537,9 @@ namespace Stride.Rendering.Voxels
                 output.BuildDense(drawContext, box.Min, box.Size);
         }
 
-        /// <summary>
-        /// Reads the counter back without stalling: a copy into a staging buffer,
-        /// mapped a few frames later once the GPU is past it. A count holds when
-        /// two readings of the same step in a row agree within 0.1 %: the voxel count
-        /// wavers by a few thousand from frame to frame, an exact match took up to 11 s,
-        /// while a frame still missing an effect lacks whole meshes.
-        /// </summary>
+        /// <summary>Reads the counter back without stalling (staging copy mapped a few frames later).
+        /// A count holds when two readings of a step agree within 0.1 %: the voxel count wavers per
+        /// frame (an exact match took up to 11 s), a frame missing an effect lacks whole meshes.</summary>
         sealed class CountReader
         {
             Buffer counter;

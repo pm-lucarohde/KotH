@@ -12,16 +12,9 @@ using Buffer = Stride.Graphics.Buffer;
 
 namespace KotH.Client.Rendering
 {
-    /// <summary>
-    /// Small shells here and there on the beach (Luca), real geometry: scallops,
-    /// cockles and spiral snails (ShellShapes) laid on the sand of the grass map
-    /// (grassless ground at the beach's height), alone or two or three together.
-    /// Built once into meshes of 16 m squares, drawn only near the camera. They
-    /// take the light of the sand under them from the lightmap (ShellRenderFeature).
-    /// Under each shell the sand is darker: a map of their places (SpotsKey) for
-    /// the ground's TerrainTriplanar, laid once like the shells.
-    /// Only looks: no collision, nothing of the simulation.
-    /// </summary>
+    /// <summary>Shells on the beach (Luca), real geometry (ShellShapes) on the grass map's sand,
+    /// alone or in twos and threes; meshes of 16 m squares drawn near the camera, lit from the
+    /// sand's lightmap texel; a spot map darkens the sand under them. Looks only.</summary>
     /// <userdoc>Shells on the beach (visuals only): scallops, cockles and small snails.</userdoc>
     [Display("Shells")]
     public sealed class ShellField : SyncScript

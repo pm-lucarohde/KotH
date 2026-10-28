@@ -1,13 +1,7 @@
-/// <summary>
-/// Fog and clouds along each view ray at half resolution (AtmosphereEffects):
-/// rgb is the light they add, a the share of the scene still seen. Texture0 is
-/// the full depth (read at every other pixel), Texture1 the cloud map.
-/// The clouds are marched through their thin layer; the fog has a part that
-/// depends on height only, integrated exactly, and a part gathered round the
-/// centre, marched in 8 steps. The coastal fog lies low on the water in a ring
-/// round the centre, in 2 to 10 pieces through the slab, haze and wisps
-/// (the map's blue). All fog is split at the clouds' depth.
-/// </summary>
+/// <summary>Fog and clouds along each view ray at half resolution: rgb is the light they add,
+/// a the share of the scene still seen (Texture0 depth, Texture1 cloud map). Clouds marched
+/// through their thin layer; fog = an exact height part plus 8 steps round the centre; coastal
+/// fog low on the water in a ring, 2 to 10 steps. All fog splits at the clouds' depth.</summary>
 shader AtmosphereMarch : ImageEffectShader, CloudLayer
 {
     float4x4 ClipToRay;     // clip x, y, 1 to the view ray with a view depth of 1

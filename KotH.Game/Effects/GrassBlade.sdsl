@@ -1,15 +1,7 @@
-/// <summary>
-/// Builds the grass blades of GrassField's patches, as Ghost of Tsushima does:
-/// each vertex knows only its blade (a cell of the patch) and its place on it;
-/// height, facing and lean come from whole-number hashes of patch and blade,
-/// the root's place in its cell repeats every 4 m (its spot in the ground's
-/// texture), the ground from the grass map (height, amount, shade, lightmap UV).
-/// The blade is a curve from the root to a tip bent by its lean, the gusts
-/// that run across the field with the wind and the figures walking through.
-/// Blades thin out with distance and are gone at the far reach, where the
-/// ground's own grass texture remains. GrassRenderFeature mixes it in after
-/// the vertex stage (colour and depth prepass alike) for the grass group.
-/// </summary>
+/// <summary>Builds GrassField's blades as Ghost of Tsushima does: a vertex knows only its blade
+/// and its place on it; height, facing and lean from whole-number hashes, the root's place
+/// repeating every 4 m (its spot in the ground texture), the ground from the grass map. A curve
+/// bent by lean, gusts and passing figures; thins out with distance (after the vertex stage).</summary>
 shader GrassBlade : TransformationBase, PositionStream4, Transformation, Texturing, CellHash, GrassStreams
 {
     // Patch side in metres and blades along it (GrassPatch).

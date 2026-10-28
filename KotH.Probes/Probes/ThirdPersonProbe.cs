@@ -10,13 +10,9 @@ using Stride.Core.Mathematics;
 
 namespace KotH.Probes.Probes
 {
-    /// <summary>
-    /// Puts the third-person camera behind every free spot of the arena,
-    /// standing and crouched, at every view angle, and fails if it ever
-    /// ends up in a wall, ceiling or floor: its sphere must overlap
-    /// nothing but a grazed face, both legs of its path must be clear, and the near plane must
-    /// lie inside the sphere. Runs the camera's own code, ViewMath.ThirdPerson.
-    /// </summary>
+    /// <summary>Puts the third-person camera behind every free spot, standing and crouched, at
+    /// every view angle; fails if it ends in a wall, ceiling or floor (sphere overlaps more than a
+    /// grazed face, a leg of its path blocked, near plane outside the sphere). Runs ViewMath.ThirdPerson.</summary>
     public sealed class ThirdPersonProbe : Probe
     {
         protected override string Tag => "thirdperson";

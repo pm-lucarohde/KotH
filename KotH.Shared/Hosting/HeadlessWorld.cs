@@ -12,12 +12,10 @@ using Stride.Engine;
 
 namespace KotH.Shared.Hosting
 {
-    /// <summary>
-    /// A simulation without a game: no window, no GPU, no game loop. Loads
-    /// compiled prefabs, keeps them in a scene whose processors register
-    /// colliders and bodies, and owns the SimulationSystem. The server and
-    /// the probes both run on this; the game builds the same parts itself.
-    /// </summary>
+    /// <summary>A simulation without a game: no window, no GPU, no game loop. Loads
+    /// compiled prefabs, keeps them in a scene whose processors register colliders and
+    /// bodies, and owns the SimulationSystem. The server and the probes both run on this;
+    /// the game builds the same parts itself.</summary>
     public sealed class HeadlessWorld : IDisposable
     {
         public const string PlayerBodyUrl = WorldBuilder.PlayerBodyUrl;

@@ -1,8 +1,6 @@
-/// <summary>
-/// Rays towards the sun in screen space, at a quarter of the resolution
-/// (AtmosphereEffects, Luca): from each pixel 32 steps along the way to the
-/// sun through SunShaftMask's open sky (Texture0), fading with each step.
-/// </summary>
+/// <summary>Rays towards the sun in screen space, at a quarter of the resolution
+/// (AtmosphereEffects, Luca): from each pixel 32 steps along the way to the sun through
+/// SunShaftMask's open sky (Texture0), fading with each step.</summary>
 shader SunShaftBlur : ImageEffectShader
 {
     float2 SunUV;           // the sun on screen; it may lie outside

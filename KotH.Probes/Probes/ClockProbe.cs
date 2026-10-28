@@ -10,13 +10,9 @@ using Stride.Core.Mathematics;
 
 namespace KotH.Probes.Probes
 {
-    /// <summary>
-    /// The client's clock against Unity's player loop. Replays the frame
-    /// times Unity measured (dump/clock.txt, hitches up to a second) through
-    /// TickClock and compares, frame by frame, the ticks run, the alpha, the
-    /// interpolated eye the camera sits at and its near plane. At frame 30
-    /// the player is lifted 3 m, as in Unity, so the camera follows a fall.
-    /// </summary>
+    /// <summary>The client's clock against Unity's player loop: replays Unity's frame times
+    /// (dump/clock.txt, hitches up to a second) through TickClock and compares ticks, alpha, the
+    /// interpolated eye and the near plane frame by frame; at frame 30 the player is lifted 3 m.</summary>
     public sealed class ClockProbe : Probe
     {
         const int LiftFrame = 30;

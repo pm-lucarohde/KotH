@@ -5,13 +5,10 @@ using Stride.Core.Mathematics;
 
 namespace KotH.Shared.Player
 {
-    /// <summary>
-    /// Moves an upright capsule through the world and slides it along what it
-    /// hits. Replaces a character controller whose state lives inside the
-    /// physics engine where it can neither be read nor restored. Every query
-    /// used here is a pure function of the world, so all of the state stays
-    /// in the caller's fields.
-    /// </summary>
+    /// <summary>Moves an upright capsule through the world and slides it along what it
+    /// hits. Replaces a character controller whose state lives inside the physics engine
+    /// where it can neither be read nor restored. Every query used here is a pure
+    /// function of the world, so all of the state stays in the caller's fields.</summary>
     public sealed class CapsuleSweep
     {
         // Four passes resolve a corner; more only matters in geometry we do
@@ -38,12 +35,10 @@ namespace KotH.Shared.Player
             public Vector3 velocity;      // what the contacts left of it
         }
 
-        /// <summary>
-        /// Advances from position by delta, sliding along contacts. The
-        /// capsule is given by its foot point, height and radius; skin is the
-        /// gap it keeps from everything, so it never rests exactly on a face.
-        /// hullOffsetY is where the hit hull's own centre sits, see Depenetrate.
-        /// </summary>
+        /// <summary>Advances from position by delta, sliding along contacts. The capsule
+        /// is given by its foot point, height and radius; skin is the gap it keeps from
+        /// everything, so it never rests exactly on a face. hullOffsetY is where the hit
+        /// hull's own centre sits, see Depenetrate.</summary>
         public Result Move(WorldQueries world, float hullOffsetY, Vector3 position,
                            float footOffset, float height, float radius, float skin,
                            float walkableY, float stepHeight, Vector3 delta,
@@ -114,11 +109,9 @@ namespace KotH.Shared.Player
                 {
                     Vector3 normal = hit.Normal;
 
-                    // A grounded body walks into an edge too high to step
-                    // onto, below its lower sphere's centre (crouched only):
-                    // the tilted normal lifted it onto the lip and the
-                    // settling speed bounced it back. Such an edge is a wall
-                    // (a deliberate change from Unity); met from above, not.
+                    // Grounded into an edge too high to step onto but below the lower sphere's centre (crouched
+                    // only): the tilted normal lifted it onto the lip and it bounced back. Such an edge is a wall
+                    // (deliberate change from Unity); met from above, not.
                     if (grounded && normal.Y > 0f
                         && hit.Point.Y - (r.position.Y + footOffset) > stepHeight)
                     {
@@ -150,12 +143,10 @@ namespace KotH.Shared.Player
             return r;
         }
 
-        /// <summary>
-        /// Pushes the capsule out of everything it overlaps. Corrections are
-        /// collected in a stable collider order before they are applied:
-        /// overlaps come back in no defined order, and float addition is not
-        /// associative, so the same set in another order gives other bits.
-        /// </summary>
+        /// <summary>Pushes the capsule out of everything it overlaps. Corrections are
+        /// collected in a stable collider order before they are applied: overlaps come
+        /// back in no defined order, and float addition is not associative, so the same
+        /// set in another order gives other bits.</summary>
         Vector3 Depenetrate(WorldQueries world, float hullOffsetY, Vector3 position,
                             float footOffset, float height, float radius, float skin,
                             CollisionMask mask)
@@ -198,11 +189,9 @@ namespace KotH.Shared.Player
                 if (!any)
                     return position;
 
-                // Never pushed down into something: under a ramp's edge the
-                // ramp pushed a crouched body through the one-sided ground (a
-                // deliberate change from Unity). Blocked, it slides along the
-                // ground instead. Solid boxes resolve on the next pass, so
-                // other pushes stay unchecked, exactly as before.
+                // Never pushed down into something: under a ramp's edge a crouched body went through the
+                // one-sided ground (deliberate change from Unity); blocked, it slides along the ground.
+                // Other pushes stay unchecked, solid boxes resolve on the next pass.
                 if (push.Y < 0f)
                     push = Shift(world, position, footOffset, height, radius, skin, push, mask, 2);
                 position = UMath.Add(position, push);
@@ -211,12 +200,10 @@ namespace KotH.Shared.Player
             return position;
         }
 
-        /// <summary>
-        /// True when the face ends below stepHeight, so the motor climbs it
-        /// instead of stopping. Its step-up aims along velocity: trimmed at
-        /// a riser hit at an angle, it then looked along the step and not
-        /// onto it, and stairs taken diagonally climbed at half the height.
-        /// </summary>
+        /// <summary>True when the face ends below stepHeight, so the motor climbs it
+        /// instead of stopping. Its step-up aims along velocity: trimmed at a riser hit
+        /// at an angle, it then looked along the step and not onto it, and stairs taken
+        /// diagonally climbed at half the height.</summary>
         static bool IsRiser(WorldQueries world, Vector3 position, float footOffset,
                             float radius, float skin, float stepHeight,
                             Vector3 normal, CollisionMask mask)
@@ -232,23 +219,18 @@ namespace KotH.Shared.Player
                 radius + skin * 2f, mask, out _);
         }
 
-        /// <summary>
-        /// How much of delta the capsule can move straight without entering
-        /// anything, keeping the skin: no sliding, no contacts reported. For
-        /// corrections that must not push a body into the world. Returns
-        /// delta itself, bit for bit, when nothing is in the way.
-        /// </summary>
+        /// <summary>How much of delta the capsule can move straight without entering
+        /// anything, keeping the skin: no sliding, no contacts reported. For corrections
+        /// that must not push a body into the world. Returns delta itself, bit for bit,
+        /// when nothing is in the way.</summary>
         public Vector3 Clear(WorldQueries world, Vector3 position, float footOffset,
                              float height, float radius, float skin, Vector3 delta,
                              CollisionMask mask)
             => Shift(world, position, footOffset, height, radius, skin, delta, mask, 1);
 
-        /// <summary>
-        /// Moves along delta like Clear, but what a face refuses slides along
-        /// it for up to passes - 1 more casts. Colliders the capsule already
-        /// overlaps do not stop it, Cast skips them. Unblocked, delta comes
-        /// back bit for bit.
-        /// </summary>
+        /// <summary>Moves along delta like Clear, but what a face refuses slides along it
+        /// for up to passes - 1 more casts. Colliders the capsule already overlaps do not
+        /// stop it, Cast skips them. Unblocked, delta comes back bit for bit.</summary>
         Vector3 Shift(WorldQueries world, Vector3 position, float footOffset,
                       float height, float radius, float skin, Vector3 delta,
                       CollisionMask mask, int passes)

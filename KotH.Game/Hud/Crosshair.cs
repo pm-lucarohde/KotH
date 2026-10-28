@@ -7,12 +7,10 @@ using Stride.Graphics;
 
 namespace KotH.Client.Hud
 {
-    /// <summary>
-    /// A dot with four diagonal arms, drawn in code so it needs no sprite
-    /// asset. Presentation only: it reads nothing and is never read. Sizes
-    /// are in pixels and stay in pixels, like the performance readout --
-    /// an aiming mark that grows with the window is a different mark.
-    /// </summary>
+    /// <summary>A dot with four diagonal arms, drawn in code so it needs no sprite asset.
+    /// Presentation only: it reads nothing and is never read. Sizes are in pixels and
+    /// stay in pixels, like the performance readout -- an aiming mark that grows with the
+    /// window is a different mark.</summary>
     [DataContract("KotH.Crosshair")]
     public sealed class Crosshair : StartupScript, IHudElement
     {
@@ -92,11 +90,9 @@ namespace KotH.Client.Hud
             }
         }
 
-        /// <summary>
-        /// One part of the mark: a dark rectangle a hair larger, and the
-        /// bright one on top of it. Added in that order, because the HUD
-        /// draws back to front.
-        /// </summary>
+        /// <summary>One part of the mark: a dark rectangle a hair larger, and the bright
+        /// one on top of it. Added in that order, because the HUD draws back to
+        /// front.</summary>
         void AddPart(Texture texture, Vector2 offset, float angle, Vector2 size)
         {
             if (Outline > 0f)
@@ -108,11 +104,9 @@ namespace KotH.Client.Hud
 
         static Color4 Premultiplied(Color c) => Color4.PremultiplyAlpha(c.ToColor4());
 
-        /// <summary>
-        /// A filled circle with one pixel of soft edge, built once. Without
-        /// the soft edge the dot reads as a tiny square at small sizes.
-        /// Premultiplied, as the batch blends.
-        /// </summary>
+        /// <summary>A filled circle with one pixel of soft edge, built once. Without the
+        /// soft edge the dot reads as a tiny square at small sizes. Premultiplied, as the
+        /// batch blends.</summary>
         static Texture MakeDisc(GraphicsDevice device)
         {
             var data = new byte[DiscPixels * DiscPixels * 4];

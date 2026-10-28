@@ -7,12 +7,10 @@ using Stride.Input;
 
 namespace KotH.Client.Player
 {
-    /// <summary>
-    /// Turns keyboard and mouse into a MoveInput, once per tick. The only
-    /// class that reads input the SIMULATION consumes, so switching to
-    /// network packets later means changing exactly one file. Collect runs
-    /// every frame, ReadInput once per tick; presses are counted in between.
-    /// </summary>
+    /// <summary>Turns keyboard and mouse into a MoveInput, once per tick. The only class
+    /// that reads input the SIMULATION consumes, so switching to network packets later
+    /// means changing exactly one file. Collect runs every frame, ReadInput once per
+    /// tick; presses are counted in between.</summary>
     [DataContract("KotH.PlayerInputReader")]
     public sealed class PlayerInputReader : SimulationBody
     {
@@ -114,11 +112,9 @@ namespace KotH.Client.Player
         /// <summary>What the crosshair points at in third person, null in first person.</summary>
         public void AimAt(Vector3? target) => aimTarget = target;
 
-        /// <summary>
-        /// Per frame: mouse look and every press since the last frame. The
-        /// driver calls it before ticking, so a press reaches the very next
-        /// tick. Mouse look only while the cursor is captured.
-        /// </summary>
+        /// <summary>Per frame: mouse look and every press since the last frame. The
+        /// driver calls it before ticking, so a press reaches the very next tick. Mouse
+        /// look only while the cursor is captured.</summary>
         public void Collect(InputManager input, bool captured)
         {
             if (captured && input.HasMouse)
@@ -220,12 +216,10 @@ namespace KotH.Client.Player
             return result;
         }
 
-        /// <summary>
-        /// The swing starts at the eye, the camera sits above and behind it:
-        /// turned to the point under the crosshair instead of along the view,
-        /// it hits what the crosshair shows. Straight along the view if that
-        /// point is unknown or not ahead of the eye.
-        /// </summary>
+        /// <summary>The swing starts at the eye, the camera sits above and behind it:
+        /// turned to the point under the crosshair instead of along the view, it hits
+        /// what the crosshair shows. Straight along the view if that point is unknown or
+        /// not ahead of the eye.</summary>
         void AimSwing()
         {
             bodyYaw = yaw;
@@ -243,12 +237,10 @@ namespace KotH.Client.Player
             sentPitch = UMath.Clamp(UMath.Atan2(d.Y, flat) * UMath.Rad2Deg, MinPitch, MaxPitch);
         }
 
-        /// <summary>
-        /// Third person: a swing turns the figure at once to what the
-        /// crosshair shows, the keys turn it towards where they run. The returned move is that run
-        /// in the figure's own frame, so it goes exactly where the view says
-        /// while the figure is still turning.
-        /// </summary>
+        /// <summary>Third person: a swing turns the figure at once to what the crosshair shows,
+        /// the keys turn it towards where they run. The returned move is that run in the figure's
+        /// own frame, so it goes exactly where the view says while the figure is still
+        /// turning.</summary>
         Vector2 FaceAndRun(Vector2 keys)
         {
             if (attackPresses > 0)

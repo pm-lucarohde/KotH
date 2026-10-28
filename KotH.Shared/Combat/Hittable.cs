@@ -7,11 +7,9 @@ using Stride.Engine.Design;
 
 namespace KotH.Shared.Combat
 {
-    /// <summary>
-    /// Marks a body as something a swing may hit. No health, no damage: the
-    /// hit itself comes from the hull's collision layer, this only says the
-    /// hull is meant to be found and complains when it cannot be.
-    /// </summary>
+    /// <summary>Marks a body as something a swing may hit. No health, no damage: the hit
+    /// itself comes from the hull's collision layer, this only says the hull is meant to
+    /// be found and complains when it cannot be.</summary>
     [DataContract("KotH.Hittable")]
     [Display("Hittable")]
     [ComponentCategory("KotH")]

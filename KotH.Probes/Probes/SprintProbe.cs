@@ -6,11 +6,9 @@ using Stride.Engine;
 
 namespace KotH.Probes.Probes
 {
-    /// <summary>
-    /// Measures the sprint state: what starts it, what keeps it, what ends it.
-    /// Reports the wish speed and the distance actually covered side by side,
-    /// because a blocked CharacterController keeps the first and loses the second.
-    /// </summary>
+    /// <summary>Measures the sprint state: what starts it, what keeps it, what ends it.
+    /// Reports the wish speed and the distance actually covered side by side, because a
+    /// blocked CharacterController keeps the first and loses the second.</summary>
     public sealed class SprintProbe : Probe
     {
         protected override string Tag => "sprint";

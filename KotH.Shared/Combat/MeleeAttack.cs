@@ -9,11 +9,9 @@ using Stride.Engine.Design;
 
 namespace KotH.Shared.Combat
 {
-    /// <summary>
-    /// A swing straight ahead. Driven from outside like PlayerMotor, reads no
-    /// input and knows no camera: the aim comes out of the tick's MoveInput,
-    /// so a dedicated server computes the same ray.
-    /// </summary>
+    /// <summary>A swing straight ahead. Driven from outside like PlayerMotor, reads no
+    /// input and knows no camera: the aim comes out of the tick's MoveInput, so a
+    /// dedicated server computes the same ray.</summary>
     [DataContract("KotH.MeleeAttack")]
     [Display("Melee")]
     [ComponentCategory("KotH")]
@@ -25,11 +23,9 @@ namespace KotH.Shared.Combat
         /// <userdoc>How many percent a hit adds to the target.</userdoc>
         [Display("Damage percent", "Swing")] public float DamagePercent = 1.2f;
 
-        /// <userdoc>
-        /// How far a target at 100 % flies horizontally, in metres, without steering
-        /// against it on flat ground. Grows linearly with the percent before the
-        /// hit: 0 % does not push horizontally at all, 1000 % ten times as far.
-        /// </userdoc>
+        /// <userdoc>How far a target at 100 % flies horizontally, in metres, without
+        /// steering against it on flat ground. Grows linearly with the percent before the
+        /// hit: 0 % does not push horizontally at all, 1000 % ten times as far.</userdoc>
         [Display("Distance at 100 %", "Knockback")] public float KnockbackDistance = 12f;
 
         /// <userdoc>
@@ -44,21 +40,18 @@ namespace KotH.Shared.Combat
         /// </userdoc>
         [Display("Min height as at %", "Knockback")] public float KnockbackHeightFloor = 1f;
 
-        /// <userdoc>
-        /// From this percent before the hit, both speeds along the push line count,
-        /// first with "Carry share at start": an attacker running at the target
-        /// pushes harder, a target running at him less. Below it they do not count.
-        /// </userdoc>
+        /// <userdoc>From this percent before the hit, both speeds along the push line
+        /// count, first with "Carry share at start": an attacker running at the target
+        /// pushes harder, a target running at him less. Below it they do not
+        /// count.</userdoc>
         [Display("Speed counts from %", "Knockback")] public float CarryFromPercent = 10f;
 
         /// <userdoc>Share of both speeds from "Speed counts from %", 0 to 1.</userdoc>
         [Display("Carry share at start", "Knockback")] public float CarryStartShare = 0.5f;
 
-        /// <userdoc>
-        /// From this percent both speeds count fully; in between the share rises
-        /// linearly. If they cancel, the target flies as if standing; the push
-        /// never points towards the attacker.
-        /// </userdoc>
+        /// <userdoc>From this percent both speeds count fully; in between the share rises
+        /// linearly. If they cancel, the target flies as if standing; the push never
+        /// points towards the attacker.</userdoc>
         [Display("Speed full from %", "Knockback")] public float CarryFullPercent = 20f;
 
         // Ticks, not seconds: a third of a second is 13.33 ticks at 40 Hz and
@@ -76,18 +69,14 @@ namespace KotH.Shared.Combat
         /// <summary>Swings started so far, whether they connected or not.</summary>
         [DataMemberIgnore] public int SwingCount { get; private set; }
 
-        /// <summary>
-        /// Tick of the last swing, hit or miss: starts the figure's swing.
-        /// Not state, like DamagePercent.LastHitTick: a rollback sets it
-        /// again, and predicted input never presses.
-        /// </summary>
+        /// <summary>Tick of the last swing, hit or miss: starts the figure's swing. Not
+        /// state, like DamagePercent.LastHitTick: a rollback sets it again, and predicted
+        /// input never presses.</summary>
         [DataMemberIgnore] public int LastSwingTick { get; set; } = int.MinValue;
 
-        /// <summary>
-        /// How far the last hit landed from the eye. Diagnostics: the range
-        /// limits the distance to the capsule SURFACE, and where that sits
-        /// depends on how high the ray crosses the body.
-        /// </summary>
+        /// <summary>How far the last hit landed from the eye. Diagnostics: the range
+        /// limits the distance to the capsule SURFACE, and where that sits depends on how
+        /// high the ray crosses the body.</summary>
         [DataMemberIgnore] public float LastHitDistance { get; private set; }
 
         /// <summary>
@@ -180,11 +169,9 @@ namespace KotH.Shared.Combat
             victim.Knock(away, KnockbackDistance * scale, KnockbackHeight * lift, carry, share, dt);
         }
 
-        /// <summary>
-        /// Share of both speeds along the line taken into the knock at this percent:
-        /// none below CarryFromPercent, CarryStartShare there, rising linearly
-        /// to all of it at CarryFullPercent.
-        /// </summary>
+        /// <summary>Share of both speeds along the line taken into the knock at this
+        /// percent: none below CarryFromPercent, CarryStartShare there, rising linearly
+        /// to all of it at CarryFullPercent.</summary>
         public float CarryShare(float percent)
         {
             if (percent < CarryFromPercent)

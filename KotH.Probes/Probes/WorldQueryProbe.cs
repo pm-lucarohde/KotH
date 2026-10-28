@@ -12,11 +12,9 @@ using Stride.Core.Mathematics;
 
 namespace KotH.Probes.Probes
 {
-    /// <summary>
-    /// Replays thousands of PhysX queries recorded in Unity's arena through
-    /// WorldQueries and compares the answers. Measures how far Bepu differs
-    /// from PhysX before any motor runs on it, query kind by query kind.
-    /// </summary>
+    /// <summary>Replays thousands of PhysX queries recorded in Unity's arena through
+    /// WorldQueries and compares the answers. Measures how far Bepu differs from PhysX
+    /// before any motor runs on it, query kind by query kind.</summary>
     public sealed class WorldQueryProbe : Probe
     {
         protected override string Tag => "wq";
@@ -229,11 +227,9 @@ namespace KotH.Probes.Probes
             Exit(0);
         }
 
-        /// <summary>
-        /// The ground is one-sided, and Unity never reported back faces of
-        /// a mesh. A ray from under the floor has to pass straight through
-        /// it; sweeps from there are only logged, nothing casts them.
-        /// </summary>
+        /// <summary>The ground is one-sided, and Unity never reported back faces of a
+        /// mesh. A ray from under the floor has to pass straight through it; sweeps from
+        /// there are only logged, nothing casts them.</summary>
         void FromBelow(WorldQueries q, CollisionMask mask, QueryHit[] hits)
         {
             Stat s = S("frombelow");
@@ -260,11 +256,9 @@ namespace KotH.Probes.Probes
             Log($"[wq] sphere sweeps from below that hit the ground: {sweepsHit} of 200");
         }
 
-        /// <summary>
-        /// Each PhysX hit again, swept only 1 cm past it. Bepu's compound
-        /// sweep once looked just length squared ahead and lost exactly
-        /// these: a box right in front of a short move.
-        /// </summary>
+        /// <summary>Each PhysX hit again, swept only 1 cm past it. Bepu's compound sweep
+        /// once looked just length squared ahead and lost exactly these: a box right in
+        /// front of a short move.</summary>
         void ShortSweeps(WorldQueries q, CollisionMask mask, string kind, string index, Vector3 p, Vector3 d,
                          float height, List<RefHit> reference, QueryHit[] hits)
         {

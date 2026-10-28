@@ -1,8 +1,6 @@
-/// <summary>
-/// Hands the shells' lightmap uv (TEXCOORD2: the texel of the sand under
-/// them, ShellField) on as TexCoord1, where KOTH_LIGHTMAP reads it.
-/// ShellRenderFeature mixes it into their colour pass.
-/// </summary>
+/// <summary>Hands the shells' lightmap uv (TEXCOORD2: the texel of the sand under them,
+/// ShellField) on as TexCoord1, where KOTH_LIGHTMAP reads it. ShellRenderFeature mixes it
+/// into their colour pass.</summary>
 shader ShellLight : TransformationBase, Texturing
 {
     stage stream float2 ShellLightUV : TEXCOORD2;

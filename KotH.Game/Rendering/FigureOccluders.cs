@@ -7,14 +7,9 @@ using Stride.Rendering.Voxels.VoxelGI;
 
 namespace KotH.Client.Rendering
 {
-    /// <summary>
-    /// Hands the figures to the voxel light as capsules, every frame, instead
-    /// of voxelising them (Luca's choice, far cheaper): both legs, torso, cap
-    /// and both forearms with their gloves, each hung on bones of the figure's
-    /// skeleton, so they follow the clips.
-    /// They darken the bounce and the sky round a figure. Runs after
-    /// PlayerVisualSystem.
-    /// </summary>
+    /// <summary>Hands the figures to the voxel light as capsules every frame instead of voxels
+    /// (Luca's choice): legs, torso, cap, forearms with gloves, hung on bones. They darken bounce
+    /// and sky round a figure; runs after PlayerVisualSystem.</summary>
     /// <userdoc>Hands the figures to the voxel light as capsules (soft shadow in indirect light).</userdoc>
     public sealed class FigureOccluders : SyncScript
     {

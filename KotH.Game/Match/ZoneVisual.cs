@@ -14,11 +14,9 @@ using Stride.Rendering.Materials;
 
 namespace KotH.Client.Match
 {
-    /// <summary>
-    /// Draws the capture zone as glowing rails along its floor edges, with
-    /// motes rising off them, in the colour of what the zone does for this screen. Built from the zone's box once the game root has wired it, so
-    /// moving the zone in the arena moves the rails along. Presentation only.
-    /// </summary>
+    /// <summary>Draws the capture zone as glowing rails along its floor edges, with motes rising off them, in the
+    /// colour of what the zone does for this screen. Built from the zone's box once the game root has wired it, so
+    /// moving the zone in the arena moves the rails along. Presentation only.</summary>
     [DataContract("KotH.ZoneVisual")]
     public sealed class ZoneVisual : SyncScript
     {

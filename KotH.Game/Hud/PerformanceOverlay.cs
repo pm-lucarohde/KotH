@@ -7,12 +7,10 @@ using Stride.Input;
 
 namespace KotH.Client.Hud
 {
-    /// <summary>
-    /// Frame rate readout, toggled with F3. Presentation only: it reads the
-    /// clock and never touches the simulation. Collecting runs even while
-    /// hidden, so the ten second window already holds valid numbers the
-    /// moment it is switched on.
-    /// </summary>
+    /// <summary>Frame rate readout, toggled with F3. Presentation only: it reads the
+    /// clock and never touches the simulation. Collecting runs even while hidden, so the
+    /// ten second window already holds valid numbers the moment it is switched
+    /// on.</summary>
     [DataContract("KotH.PerformanceOverlay")]
     public sealed class PerformanceOverlay : SyncScript, IHudElement
     {
@@ -169,11 +167,9 @@ namespace KotH.Client.Hud
             }
         }
 
-        /// <summary>
-        /// Mean frame time of the worst one percent of the window, which is
-        /// what hardware reviews call the one percent low. Walks the buckets
-        /// from the slow end instead of sorting the window.
-        /// </summary>
+        /// <summary>Mean frame time of the worst one percent of the window, which is what
+        /// hardware reviews call the one percent low. Walks the buckets from the slow end
+        /// instead of sorting the window.</summary>
         float WorstPercentMs()
         {
             int wanted = Math.Max(1, count / 100);
@@ -237,11 +233,9 @@ namespace KotH.Client.Hud
             Histogram(ms, -1);
         }
 
-        /// <summary>
-        /// Doubles the ring buffer when the frame rate outruns it. Allocates
-        /// at most twice in a session and never per frame; without it the
-        /// window would quietly become shorter than WindowSeconds.
-        /// </summary>
+        /// <summary>Doubles the ring buffer when the frame rate outruns it. Allocates at
+        /// most twice in a session and never per frame; without it the window would
+        /// quietly become shorter than WindowSeconds.</summary>
         void Grow()
         {
             var bigger = new float[Math.Min(frameMs.Length * 2, maxCapacity)];

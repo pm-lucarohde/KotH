@@ -5,11 +5,9 @@ using Stride.Core.Mathematics;
 
 namespace KotH.Probes.Probes
 {
-    /// <summary>
-    /// Measures how the jump height follows the hold time. Checked at the cut
-    /// itself, not at the peak: Euler integration loses v*dt/2 of every jump, an
-    /// amount that shrinks with the cut and would distort a peak comparison.
-    /// </summary>
+    /// <summary>Measures how the jump height follows the hold time. Checked at the cut
+    /// itself, not at the peak: Euler integration loses v*dt/2 of every jump, an amount
+    /// that shrinks with the cut and would distort a peak comparison.</summary>
     public sealed class JumpHeightProbe : Probe
     {
         protected override string Tag => "jump";

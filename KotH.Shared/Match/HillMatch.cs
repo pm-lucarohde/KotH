@@ -14,11 +14,9 @@ namespace KotH.Shared.Match
     /// </summary>
     public enum MatchPhase : byte { Running, Over, Waiting, Countdown }
 
-    /// <summary>
-    /// Everything a round keeps besides the bodies' own scores. Part of a
-    /// snapshot: a restore puts the phase, the clocks and who stood in the
-    /// zone back exactly as that tick left them.
-    /// </summary>
+    /// <summary>Everything a round keeps besides the bodies' own scores. Part of a
+    /// snapshot: a restore puts the phase, the clocks and who stood in the zone back
+    /// exactly as that tick left them.</summary>
     public struct MatchState
     {
         /// <summary>Ticks the round has run, frozen once it is over.</summary>
@@ -35,11 +33,9 @@ namespace KotH.Shared.Match
         /// <summary>How many bodies stood in the zone in the last tick.</summary>
         public int Inside;
 
-        /// <summary>
-        /// Who holds the zone: the one body alone in it while it takes the
-        /// zone, then whoever took it for as long as it stays inside, even
-        /// with others in. Null for none, or several while nobody has it.
-        /// </summary>
+        /// <summary>Who holds the zone: the one body alone in it while it takes the zone,
+        /// then whoever took it for as long as it stays inside, even with others in. Null
+        /// for none, or several while nobody has it.</summary>
         public SimulationBody Holder;
 
         /// <summary>
@@ -58,15 +54,10 @@ namespace KotH.Shared.Match
         public readonly bool Over => Phase == MatchPhase.Over;
     }
 
-    /// <summary>
-    /// King of the hill. Whoever stands in the zone alone warms up for a
-    /// few seconds and takes it, then earns a point per second for as long
-    /// as it stays inside, whoever comes in too (Luca's rule). Two inside
-    /// during the warm-up take nobody's zone. First to the winning points takes the round, else the
-    /// leader when time runs out. Ticked by SimulationSystem after combat.
-    /// With MinPlayers set a round waits for enough players and counts
-    /// down first; only players count, not the dummies.
-    /// </summary>
+    /// <summary>King of the hill: alone in the zone for a few seconds takes it, then a point per
+    /// second while the holder stays inside, whoever comes in (Luca's rule). First to the winning
+    /// points wins, else the leader at the time limit. Ticked by SimulationSystem after combat;
+    /// with MinPlayers a round waits for players and counts down (dummies do not count).</summary>
     public sealed class HillMatch
     {
         public const int TicksPerPoint = 40;
@@ -204,11 +195,9 @@ namespace KotH.Shared.Match
                 Place(bodies);
         }
 
-        /// <summary>
-        /// One tick of the round on the poses this tick published. Only the
-        /// count and the single body inside matter, so the order of the list
-        /// stays out of the result.
-        /// </summary>
+        /// <summary>One tick of the round on the poses this tick published. Only the
+        /// count and the single body inside matter, so the order of the list stays out of
+        /// the result.</summary>
         public void Tick(IReadOnlyList<SimulationBody> bodies)
         {
             int count = bodies.Count;
@@ -352,13 +341,10 @@ namespace KotH.Shared.Match
             Place(bodies);
         }
 
-        /// <summary>
-        /// Puts the bodies in moving at random places in the ring, facing the
-        /// zone, each at least the spacing from everyone else. By NetId, so
-        /// the list's order stays out of it; the dice come from the game's
-        /// seed, the tick and the NetId, the ground from the arena, so every
-        /// peer agrees.
-        /// </summary>
+        /// <summary>Puts the bodies in moving at random places in the ring, facing the
+        /// zone, each at least the spacing from everyone else. By NetId, so the list's
+        /// order stays out of it; the dice come from the game's seed, the tick and the
+        /// NetId, the ground from the arena, so every peer agrees.</summary>
         void Place(IReadOnlyList<SimulationBody> bodies)
         {
             // Insertion sort, stable: a handful of bodies.

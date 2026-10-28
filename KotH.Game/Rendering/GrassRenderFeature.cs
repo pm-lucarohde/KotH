@@ -6,13 +6,10 @@ using Stride.Shaders;
 
 namespace KotH.Client.Rendering
 {
-    /// <summary>
-    /// Mixes GrassBlade into every pass of the grass group's meshes (after the
-    /// vertex stage, the hook ArmsInFront uses); in the colour pass also
-    /// GrassNudge and, once the lightmap is baked, KOTH_LIGHTMAP: the blades
-    /// read the light of the ground under them (GrassBlade sets the uv).
-    /// Added at run time.
-    /// </summary>
+    /// <summary>Mixes GrassBlade into every pass of the grass group's meshes (after the
+    /// vertex stage, the hook ArmsInFront uses); in the colour pass also GrassNudge and,
+    /// once the lightmap is baked, KOTH_LIGHTMAP: the blades read the light of the ground
+    /// under them (GrassBlade sets the uv). Added at run time.</summary>
     public sealed class GrassRenderFeature : SubRenderFeature
     {
         static readonly ShaderClassSource Blade = new ShaderClassSource("GrassBlade");

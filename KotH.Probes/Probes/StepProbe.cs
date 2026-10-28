@@ -5,11 +5,9 @@ using Stride.Core.Mathematics;
 
 namespace KotH.Probes.Probes
 {
-    /// <summary>
-    /// Drives the motor against the stair flights with scripted input, so the
-    /// wiggle exploit can be measured instead of guessed at. Ported from the
-    /// Unity probe; cases, thresholds and log lines are unchanged.
-    /// </summary>
+    /// <summary>Drives the motor against the stair flights with scripted input, so the
+    /// wiggle exploit can be measured instead of guessed at. Ported from the Unity probe;
+    /// cases, thresholds and log lines are unchanged.</summary>
     public sealed class StepProbe : Probe
     {
         protected override string Tag => "probe";

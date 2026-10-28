@@ -4,12 +4,10 @@ using KotH.Shared.Simulation;
 
 namespace KotH.Probes.Harness
 {
-    /// <summary>
-    /// One probe: Start once, then FixedUpdate every tick until it calls
-    /// Exit, the way Unity's play mode drove the MonoBehaviour probes. The
-    /// SimulationSystem ticks after the probe in every step, so a dummy in
-    /// the scene keeps living exactly as it did in Unity.
-    /// </summary>
+    /// <summary>One probe: Start once, then FixedUpdate every tick until it calls Exit,
+    /// the way Unity's play mode drove the MonoBehaviour probes. The SimulationSystem
+    /// ticks after the probe in every step, so a dummy in the scene keeps living exactly
+    /// as it did in Unity.</summary>
     public abstract class Probe
     {
         /// <summary>Unity's Time.fixedDeltaTime.</summary>

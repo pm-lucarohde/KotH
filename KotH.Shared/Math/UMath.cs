@@ -3,12 +3,10 @@ using Stride.Core.Mathematics;
 
 namespace KotH.Shared.Mathematics
 {
-    /// <summary>
-    /// Unity's managed Mathf, Vector2, Vector3 and Quaternion formulas, kept
-    /// operation for operation. The simulation was tuned and measured against
-    /// these exact roundings; Stride's own helpers round differently, e.g.
-    /// Normalize multiplies by the inverse and keeps tiny vectors.
-    /// </summary>
+    /// <summary>Unity's managed Mathf, Vector2, Vector3 and Quaternion formulas, kept
+    /// operation for operation. The simulation was tuned and measured against these exact
+    /// roundings; Stride's own helpers round differently, e.g. Normalize multiplies by
+    /// the inverse and keeps tiny vectors.</summary>
     public static class UMath
     {
         // Unity's Mathf.PI is the float pi, so its Deg2Rad is not the double one.
@@ -187,13 +185,9 @@ namespace KotH.Shared.Mathematics
 
         // --- Quaternion ---
 
-        /// <summary>
-        /// Unity's Quaternion.Euler(pitch, yaw, 0) for Stride angles: both are
-        /// negated into Unity's convention, rotated there, and the result is
-        /// mirrored back through z, which is exact in floating point. Unity's
-        /// native code uses float sin and cos; bit for bit equal on 23 238
-        /// dumped angles, see RotationProbe.
-        /// </summary>
+        /// <summary>Unity's Quaternion.Euler(pitch, yaw, 0) for Stride angles: negated into Unity's
+        /// convention, rotated there, mirrored back through z (exact in floating point). Float sin and
+        /// cos like Unity's native code; bit-identical on 23,238 dumped angles (RotationProbe).</summary>
         public static Quaternion Euler(float pitch, float yaw)
         {
             float x = -pitch * Deg2Rad * 0.5f;
@@ -225,11 +219,9 @@ namespace KotH.Shared.Mathematics
             return -(float)unity;
         }
 
-        /// <summary>
-        /// Unity's Quaternion * Vector3, term for term, in float. Unity's
-        /// editor Mono evaluated each sum in double, so the reference logs
-        /// differ in the last bits; the IL2CPP builds rounded like this.
-        /// </summary>
+        /// <summary>Unity's Quaternion * Vector3, term for term, in float. Unity's editor
+        /// Mono evaluated each sum in double, so the reference logs differ in the last
+        /// bits; the IL2CPP builds rounded like this.</summary>
         public static Vector3 Rotate(Quaternion rotation, Vector3 point)
         {
             float num = rotation.X * 2f;

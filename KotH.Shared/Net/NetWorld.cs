@@ -10,11 +10,9 @@ using Stride.Engine;
 
 namespace KotH.Shared.Net
 {
-    /// <summary>
-    /// A player steered from the network. Its input never comes from here:
-    /// the session steps the world itself with what the host confirmed or
-    /// what it predicts, so ReadInput is only ever asked offline.
-    /// </summary>
+    /// <summary>A player steered from the network. Its input never comes from here: the
+    /// session steps the world itself with what the host confirmed or what it predicts,
+    /// so ReadInput is only ever asked offline.</summary>
     [DataContract]
     public sealed class NetBody : SimulationBody
     {
@@ -42,11 +40,9 @@ namespace KotH.Shared.Net
         void Despawn(SimulationBody body);
     }
 
-    /// <summary>
-    /// The parts of a networked world every peer builds the same way, in the
-    /// same order: the dummies get NetIds 1 to 3 before any player exists, so
-    /// the hulls sit in the same query order everywhere.
-    /// </summary>
+    /// <summary>The parts of a networked world every peer builds the same way, in the
+    /// same order: the dummies get NetIds 1 to 3 before any player exists, so the hulls
+    /// sit in the same query order everywhere.</summary>
     public static class NetWorld
     {
         public const int FirstPlayerId = 4;
@@ -77,16 +73,12 @@ namespace KotH.Shared.Net
             return dummies;
         }
 
-        /// <summary>
-        /// Where a player slot starts and faces: the markers PlayerSpawn0 to
-        /// PlayerSpawn11 in the arena, two rows of six behind the offline spawn.
-        /// </summary>
-        /// <summary>
-        /// The slots bots take, in order: wide apart first, out to both ends
-        /// of the front row, then the middle behind, and so on.
-        /// </summary>
+        /// <summary>The slots bots take, in order: wide apart first, out to both ends of the front
+        /// row, then the middle behind, and so on.</summary>
         public static readonly int[] BotSlots = { 0, 5, 8, 11, 2, 6, 3, 9, 1, 10, 4, 7 };
 
+        /// <summary>Where a player slot starts and faces: markers PlayerSpawn0 to PlayerSpawn11,
+        /// two rows of six behind the offline spawn.</summary>
         public static Entity SlotMarker(WorldBuilder builder, int slot)
             => builder.Find("PlayerSpawn" + slot);
     }

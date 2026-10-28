@@ -5,11 +5,9 @@ using Stride.Core.Mathematics;
 
 namespace KotH.Client.Player
 {
-    /// <summary>
-    /// Where the third-person camera may go: up from the eye to the pivot,
-    /// then back from the pivot along the view. Both legs are swept by a
-    /// sphere, so everything on them is free space.
-    /// </summary>
+    /// <summary>Where the third-person camera may go: up from the eye to the pivot, then
+    /// back from the pivot along the view. Both legs are swept by a sphere, so everything
+    /// on them is free space.</summary>
     public readonly struct ThirdPersonPath
     {
         public readonly Vector3 Pivot;
@@ -48,11 +46,9 @@ namespace KotH.Client.Player
         public static Vector3 Eye(PlayerMotor motor, float alpha) =>
             UMath.Lerp(motor.PreviousEyePosition, motor.EyePosition, alpha);
 
-        /// <summary>
-        /// Keeps the near plane inside the collision capsule. Only the body
-        /// is collided, so a near plane reaching past it clips away whatever
-        /// the player leans against and makes it see-through.
-        /// </summary>
+        /// <summary>Keeps the near plane inside the collision capsule. Only the body is
+        /// collided, so a near plane reaching past it clips away whatever the player
+        /// leans against and makes it see-through.</summary>
         public static float NearPlane(PlayerMotor motor, float verticalFovDegrees, float aspect, float margin)
         {
             float corner = Corner(verticalFovDegrees, aspect);
@@ -66,11 +62,9 @@ namespace KotH.Client.Player
             return UMath.Clamp(room / corner, 0.01f, 0.3f);
         }
 
-        /// <summary>
-        /// The free path of a third-person camera looking along pitch and yaw
-        /// from eye, lifted by lift and at most distance back. The world
-        /// mask only: other bodies never push the camera.
-        /// </summary>
+        /// <summary>The free path of a third-person camera looking along pitch and yaw
+        /// from eye, lifted by lift and at most distance back. The world mask only: other
+        /// bodies never push the camera.</summary>
         public static ThirdPersonPath ThirdPerson(WorldQueries world, Vector3 eye, float yaw, float pitch,
                                                   float lift, float distance, float radius)
         {
@@ -88,11 +82,9 @@ namespace KotH.Client.Player
         public static float NearPlane(float radius, float verticalFovDegrees, float aspect, float margin)
             => UMath.Clamp(radius * margin / Corner(verticalFovDegrees, aspect), 0.01f, 0.3f);
 
-        /// <summary>
-        /// The near plane is a rectangle, not a point: its corners sit this
-        /// many times the near distance from the eye. Recomputed per frame
-        /// because the aspect follows the window.
-        /// </summary>
+        /// <summary>The near plane is a rectangle, not a point: its corners sit this many
+        /// times the near distance from the eye. Recomputed per frame because the aspect
+        /// follows the window.</summary>
         public static float Corner(float verticalFovDegrees, float aspect)
         {
             float t = (float)System.Math.Tan(verticalFovDegrees * 0.5f * UMath.Deg2Rad);

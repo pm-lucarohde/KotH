@@ -7,11 +7,9 @@ using Stride.Core.Mathematics;
 
 namespace KotH.Probes.Probes
 {
-    /// <summary>
-    /// Measures the push between two bodies. Unlike the other probes it does not
-    /// tick the motor itself: the push is computed inside SimulationSystem, so a
-    /// probe that went around it would measure nothing at all. Throwaway probe.
-    /// </summary>
+    /// <summary>Measures the push between two bodies. Unlike the other probes it does not
+    /// tick the motor itself: the push is computed inside SimulationSystem, so a probe
+    /// that went around it would measure nothing at all. Throwaway probe.</summary>
     public sealed class ImpactProbe : Probe
     {
         protected override string Tag => "impact";
@@ -104,11 +102,9 @@ namespace KotH.Probes.Probes
             Next();
         }
 
-        /// <summary>
-        /// Sets the input for the tick about to run. Called while the system
-        /// gathers inputs, which is BEFORE the contacts - the push of this tick
-        /// is read in Report instead.
-        /// </summary>
+        /// <summary>Sets the input for the tick about to run. Called while the system
+        /// gathers inputs, which is BEFORE the contacts - the push of this tick is read
+        /// in Report instead.</summary>
         void Step()
         {
             if (caseIndex >= Cases.Length)
@@ -139,11 +135,9 @@ namespace KotH.Probes.Probes
             Next();
         }
 
-        /// <summary>
-        /// Runs right after the contacts of a tick, before anything moves. That
-        /// is the one place a push shows up unmixed with the damping that the
-        /// tick applies to it straight afterwards.
-        /// </summary>
+        /// <summary>Runs right after the contacts of a tick, before anything moves. That
+        /// is the one place a push shows up unmixed with the damping that the tick
+        /// applies to it straight afterwards.</summary>
         void Report()
         {
             if (caseIndex >= Cases.Length)
@@ -217,11 +211,9 @@ namespace KotH.Probes.Probes
                 $" vertical {gap.Y:F3} m");
         }
 
-        /// <summary>
-        /// Teleports a body and clears what it was doing. Velocity survives a
-        /// teleport, so without this every case would start with the momentum of
-        /// the one before it.
-        /// </summary>
+        /// <summary>Teleports a body and clears what it was doing. Velocity survives a
+        /// teleport, so without this every case would start with the momentum of the one
+        /// before it.</summary>
         static void Place(PlayerMotor motor, Vector3 at)
         {
             motor.Teleport(Ref.Pos(at));

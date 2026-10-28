@@ -6,19 +6,10 @@ using KotH.Shared.Net;
 
 namespace KotH.Client.Net
 {
-    /// <summary>
-    /// What the client was started with. Without --host, --join or --offline
-    /// it opens the main menu; --offline plays alone, as it always did.
-    ///
-    ///   --host [--port N] [--min-players N]   hosts a game and plays in it
-    ///   --join ADDRESS[:PORT]                 joins one
-    ///   --offline                             plays alone at once, without the menu
-    ///   --name NAME                           the name the others see
-    ///   --display N                           fullscreen on that monitor, 0 first
-    ///   --bots N, --bot-seed N                bots alone or as host (3 by default), their seed
-    ///   --map NAME                            the map alone or as host (Maps.Default); joiners take the host's
-    ///   --fps N                               at most N frames per second (unlimited without)
-    /// </summary>
+    /// <summary>What the client was started with; without --host, --join or --offline the main
+    /// menu. Options: --host [--port N] [--min-players N], --join ADDRESS[:PORT], --offline, --name
+    /// NAME, --display N (monitor, 0 first), --bots N, --bot-seed N, --map NAME (joiners take the
+    /// host's), --fps N (frame cap, none without).</summary>
     public sealed class LaunchOptions
     {
         public bool Host;
@@ -38,11 +29,9 @@ namespace KotH.Client.Net
         /// <summary>Joins someone else's game, so the map comes from that host.</summary>
         public bool Joining => !Host && JoinAddress != null;
 
-        /// <summary>
-        /// Starts in the main menu: not told to host, join or play alone. Shots
-        /// and headless runs (KOTH_SHOT, KOTH_HEADLESS) play alone as before,
-        /// unless KOTH_SHOT_MENU asks for the menu.
-        /// </summary>
+        /// <summary>Starts in the main menu: not told to host, join or play alone. Shots
+        /// and headless runs (KOTH_SHOT, KOTH_HEADLESS) play alone as before, unless
+        /// KOTH_SHOT_MENU asks for the menu.</summary>
         public bool ShowsMenu;
 
         static LaunchOptions current;

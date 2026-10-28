@@ -3,13 +3,10 @@ using Stride.Core.Mathematics;
 
 namespace KotH.Shared.Player
 {
-    /// <summary>
-    /// Everything a PlayerMotor needs to continue from a tick exactly as it
-    /// did the first time. Captured after a tick, restored before one. A
-    /// field missing here is a rollback that silently diverges, so the
-    /// determinism probe hashes every one of them. Packed, so its bytes have
-    /// no padding and the network can send and hash them as they are.
-    /// </summary>
+    /// <summary>Everything a PlayerMotor needs to continue from a tick exactly as the first time;
+    /// captured after a tick, restored before one. A missing field is a rollback that silently
+    /// diverges, so the determinism probe hashes every one. Packed: no padding, the network sends
+    /// and hashes the bytes as they are.</summary>
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct MotorState
     {

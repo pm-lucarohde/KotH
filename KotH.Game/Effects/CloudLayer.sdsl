@@ -1,8 +1,6 @@
-/// <summary>
-/// The cloud layer's shape, shared by AtmosphereMarch (the clouds) and
-/// CascadeShadowReceiver (their shadow): the cloud map's red is one dome per
-/// cloudlet, its green the large streaks; texture x runs with the wind.
-/// </summary>
+/// <summary>The cloud layer's shape, shared by AtmosphereMarch (the clouds) and
+/// CascadeShadowReceiver (their shadow): the cloud map's red is one dome per cloudlet,
+/// its green the large streaks; texture x runs with the wind.</summary>
 shader CloudLayer
 {
     // Both layers' uv at (x, z): cloudlets in xy, streaks in zw.

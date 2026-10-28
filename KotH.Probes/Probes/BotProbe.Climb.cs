@@ -33,12 +33,10 @@ namespace KotH.Probes.Probes
         readonly int[] PredClass = new int[4];
         readonly double[] PredClassErr = new double[4], PredClassErrY = new double[4];
 
-        /// <summary>
-        /// The climb on map MountDestiny (the one probe off the test ground): each
-        /// round runs until all three bots have been in the zone, at most
-        /// six minutes. The measure is Luca's: each bot's time to its first
-        /// step into the zone, averaged over the three and then the seeds.
-        /// </summary>
+        /// <summary>The climb on map MountDestiny (the one probe off the test ground):
+        /// each round runs until all three bots have been in the zone, at most six
+        /// minutes. The measure is Luca's: each bot's time to its first step into the
+        /// zone, averaged over the three and then the seeds.</summary>
         int Climbs(int seeds)
         {
             string pathFile = Environment.GetEnvironmentVariable("KOTH_BOTPATH");

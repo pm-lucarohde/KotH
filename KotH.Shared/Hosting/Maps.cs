@@ -1,12 +1,8 @@
 namespace KotH.Shared.Hosting
 {
-    /// <summary>
-    /// The maps by name: each is a folder Maps/NAME with NAMECollision in
-    /// KotH.Shared (colliders, markers, zone, bot settings; loads headless)
-    /// and NAMEVisual in KotH.Game (what is drawn). Both must be root assets.
-    /// A generated map adds its ground as Resources/Maps/NAMETerrain.bin,
-    /// owned by its script and embedded in KotH.Shared.
-    /// </summary>
+    /// <summary>The maps by name: folder Maps/NAME with NAMECollision in KotH.Shared (colliders,
+    /// markers, zone, bot settings; loads headless) and NAMEVisual in KotH.Game, both root assets.
+    /// A generated map embeds its ground as Resources/Maps/NAMETerrain.bin in KotH.Shared.</summary>
     public static class Maps
     {
         /// <summary>The map without --map.</summary>

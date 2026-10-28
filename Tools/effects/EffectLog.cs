@@ -2,10 +2,9 @@
 #:property TargetFramework=net11.0
 #:property ImplicitUsings=enable
 #:property PublishAot=false
-// Turns the recordings of EffectRecorder (KOTH_EFFECTLOG) into Stride's effect log
-// asset, whose permutations the asset compiler builds into the bundle. Loads the
-// game's assemblies from the build (Bin/Linux/Release/linux-x64) so their shader keys
-// and colour transforms resolve; writes the log sorted, so it diffs well.
+// Turns EffectRecorder's recordings (KOTH_EFFECTLOG) into Stride's effect log asset, built
+// into the bundle; loads the game's assemblies from Bin/Linux/Release/linux-x64 so shader keys
+// resolve, writes sorted.
 //   dotnet run Tools/effects/EffectLog.cs -- RECORD.bin [RECORD2.bin ...] OUT.sdeffectlog
 using System.Reflection;
 using System.Runtime.CompilerServices;

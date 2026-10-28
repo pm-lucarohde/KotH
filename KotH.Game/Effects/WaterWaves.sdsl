@@ -1,12 +1,7 @@
-/// <summary>
-/// Waves on the sea drawn into the light only:
-/// a few sine waves over the world position and Global.Time tilt the normal
-/// (the sea is flat and has no tangents, so the shading normal is set here;
-/// without a normal map Stride keeps it) and lift the crests a little.
-/// Each wave fades where a pixel covers a good part of it, so the far sea
-/// lies calm instead of glittering. The lightmap is baked from the flat sea,
-/// else one moment's waves would stay in it.
-/// </summary>
+/// <summary>Waves on the sea, in the light only: sine waves over world position and
+/// Global.Time tilt the normal (the flat sea has no tangents) and lift the crests a little.
+/// Each fades where a pixel covers much of it, so the far sea lies calm; the lightmap is baked
+/// from the flat sea.</summary>
 shader WaterWaves : ComputeColor, PositionStream4, NormalStream
 {
     // The old material colour (0.1, 0.52, 0.64) in sRGB, here linear.

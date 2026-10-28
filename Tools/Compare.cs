@@ -1,8 +1,6 @@
 #!/usr/bin/env -S dotnet run
-// Compares a probe run against a SET of reference runs: a case counts as unchanged
-// if its result occurs in the set. Needed because Ramp45 and Ramp55 standing jump
-// between two results on their own; one reference run would raise false alarms.
-//
+// Compares a probe run against a SET of reference runs: a case is unchanged if its result
+// occurs in the set (Ramp45 and Ramp55 standing jump between two results on their own).
 //   dotnet run Tools/Compare.cs -- ref1,ref2,ref3 new
 using System;
 using System.Collections.Generic;

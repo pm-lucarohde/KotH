@@ -6,13 +6,8 @@ using Stride.Rendering.Voxels.VoxelGI;
 
 namespace KotH.Client.Rendering
 {
-    /// <summary>
-    /// Voxelises the map in full once, in the first frames after it is
-    /// loaded, then keeps those voxels: map and sun never change. The figures
-    /// are not voxelised (FigureOccluders hands them over as capsules).
-    /// Then has the voxel light baked into its lightmap, if it has one, and
-    /// tells the LoadScreen once that is in.
-    /// </summary>
+    /// <summary>Voxelises the map once after loading and keeps it (map and sun never change);
+    /// figures come as capsules (FigureOccluders). Then bakes the lightmap and tells LoadScreen.</summary>
     /// <userdoc>Voxelises the map once after loading; the figures join as capsules.</userdoc>
     public sealed class BakeVoxels : SyncScript
     {

@@ -45,13 +45,10 @@ namespace Stride.Rendering.Voxels.VoxelGI
         [DataMember(70)]
         public float SkyIntensity { get; set; } = 1.0f;
 
-        /// <summary>
-        /// KotH patch: side in texels of the lightmap the light is baked into, once, for
-        /// meshes with a second UV set (0 = none, they are lit live like the rest).
-        /// </summary>
-        /// <userdoc>
-        /// Side of the lightmap in texels: meshes with a second UV set get the light baked once instead of every frame (0 = off).
-        /// </userdoc>
+        /// <summary>KotH patch: side in texels of the lightmap the light is baked into, once, for meshes with a second
+        /// UV set (0 = none, they are lit live like the rest).</summary>
+        /// <userdoc>Side of the lightmap in texels: meshes with a second UV set get the light baked once instead of
+        /// every frame (0 = off).</userdoc>
         [DataMember(80)]
         public int LightmapSize { get; set; }
 
@@ -62,12 +59,10 @@ namespace Stride.Rendering.Voxels.VoxelGI
         /// <summary>KotH patch: most groups and capsules per group in <see cref="Occluders"/>.</summary>
         public const int MaxOccluderGroups = 12, MaxOccludersPerGroup = 8;
 
-        /// <summary>
-        /// KotH patch: capsules not in the voxels (figures) that darken the bounce and the
-        /// sky, filled every frame: group g, capsule k at 2 (g * OccluderGroupSize + k), end a
-        /// with the radius in w (0 = none), then end b; a group's sphere (centre, reach) in
-        /// <see cref="OccluderGroups"/>.
-        /// </summary>
+        /// <summary>KotH patch: capsules not in the voxels (figures) that darken the bounce
+        /// and the sky, filled every frame: group g, capsule k at 2 (g * OccluderGroupSize +
+        /// k), end a with the radius in w (0 = none), then end b; a group's sphere (centre,
+        /// reach) in <see cref="OccluderGroups"/>.</summary>
         [DataMemberIgnore]
         public Vector4[] Occluders { get; } = new Vector4[2 * MaxOccluderGroups * MaxOccludersPerGroup];
 

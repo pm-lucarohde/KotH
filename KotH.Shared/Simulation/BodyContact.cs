@@ -3,11 +3,9 @@ using Stride.Core.Mathematics;
 
 namespace KotH.Shared.Simulation
 {
-    /// <summary>
-    /// Capsule against capsule as plain arithmetic over value types. No physics
-    /// query and no component access, so this moves into a parallel job unchanged
-    /// once the body count makes that worthwhile.
-    /// </summary>
+    /// <summary>Capsule against capsule as plain arithmetic over value types. No physics
+    /// query and no component access, so this moves into a parallel job unchanged once
+    /// the body count makes that worthwhile.</summary>
     public static class BodyContact
     {
         /// <summary>One upright capsule at the moment of the test.</summary>
@@ -19,12 +17,10 @@ namespace KotH.Shared.Simulation
             public float radius;
         }
 
-        /// <summary>
-        /// Horizontal overlap of two bodies, for pushing them apart. Only
-        /// sideways: landing on someone is meant to slide off, not to carry.
-        /// Returns false when the capsules miss each other in height, so a
-        /// body on a ledge above another one is left alone.
-        /// </summary>
+        /// <summary>Horizontal overlap of two bodies, for pushing them apart. Only
+        /// sideways: landing on someone is meant to slide off, not to carry. Returns
+        /// false when the capsules miss each other in height, so a body on a ledge above
+        /// another one is left alone.</summary>
         public static bool TryGetSideways(
             in Body a, in Body b, out Vector3 normal, out float overlap)
         {
@@ -65,12 +61,10 @@ namespace KotH.Shared.Simulation
             return true;
         }
 
-        /// <summary>
-        /// Normal from a to b, and whether the two are within range of each
-        /// other. A capsule is its inner axis segment grown by the radius, so
-        /// the normal stays horizontal while the segments overlap in height
-        /// and tilts as soon as one body stands on top of the other.
-        /// </summary>
+        /// <summary>Normal from a to b, and whether the two are within range of each
+        /// other. A capsule is its inner axis segment grown by the radius, so the normal
+        /// stays horizontal while the segments overlap in height and tilts as soon as one
+        /// body stands on top of the other.</summary>
         public static bool TryGetNormal(
             in Body a, in Body b, float range, out Vector3 normal)
         {

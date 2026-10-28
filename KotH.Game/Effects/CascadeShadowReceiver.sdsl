@@ -1,21 +1,7 @@
-/// <summary>
-/// Stride's directional shadow receiver with the bias measured per cascade,
-/// a receiver plane depth bias and soft shadows like PCSS. Stride subtracts
-/// DepthBias as a share of the cascade's depth range (a few centimetres near,
-/// metres far), offsets along the normal by atlas texels and compares all PCF
-/// taps with the pixel's own depth, so a sloped face shadows itself inside the
-/// kernel and steps at every edge. Here each tap follows the triangle's plane;
-/// DepthBias is in metres and NormalOffsetScale adds a depth bias in texels of
-/// the cascade sampled. The blockers within 4 texels set the penumbra
-/// (SunTangent per metre between blocker and receiver, at most 4 texels),
-/// filtered over a disk. The scene's shadow filter must be PCF (size unused).
-/// With a static map (StaticSunShadowRenderer) the cascades hold only what
-/// moves, and the map's shadow from the static map is multiplied in, filtered alike;
-/// lightmapped meshes (KOTH_LIGHTMAP) read it baked per texel instead, as a cubic
-/// B-spline (four bilinear reads), so the texels do not show as steps. Both
-/// disks turn by a noise angle per pixel: steps at their rims become fine grain.
-/// The clouds' shadow (Atmosphere) is multiplied in last, never baked: they drift.
-/// </summary>
+/// <summary>Stride's directional shadow receiver with the bias in metres plus cascade texels, a
+/// receiver plane per PCF tap (Stride's share of the depth range striped and stepped) and PCSS
+/// penumbrae (blockers within 4 texels). The static map's shadow is multiplied in (lightmapped
+/// meshes read it baked, bicubic), disks turned per pixel; the clouds' shadow comes last, live.</summary>
 shader CascadeShadowReceiver<int TCascadeCount,
                              int TLightCount,
                              bool TBlendCascades,
@@ -167,11 +153,9 @@ shader CascadeShadowReceiver<int TCascadeCount,
     // would end in a step (wider takes a blocker gap of 5 m).
     static const float BlockerReach = 4.0;
 
-    // Mean depth from the blockers to the receiver's plane over 4x4 gathers reaching
-    // BlockerReach texels round the pixel; -1 when nothing blocks, -2 when all do.
-    // Each texel weighs by a tent over its distance, nothing at the reach: so the
-    // mean changes smoothly with the pixel and the caster, not texel by texel
-    // (whole texels flipped between penumbrae as large squares at the rim).
+    // Mean depth from the blockers to the receiver's plane over 4x4 gathers within BlockerReach
+    // texels; -1 when nothing blocks, -2 when all do. Each texel weighs by a tent over its
+    // distance, so the mean changes smoothly (whole texels flipped penumbrae as squares).
     float BlockerGap(float3 position, float2 gradient, float4 rect)
     {
         float2 step = 0.5 * BlockerReach * ShadowMapTextureTexelSize;

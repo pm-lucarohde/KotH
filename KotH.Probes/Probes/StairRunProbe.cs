@@ -6,13 +6,9 @@ using Stride.Core.Mathematics;
 
 namespace KotH.Probes.Probes
 {
-    /// <summary>
-    /// Walks and sprints up the climbable flights (Steps20/30/40) from a
-    /// grid of starts: across the width, at angles up to 40 degrees and at
-    /// twelve run-up phases. Fails if the body stalls on a flight. Before
-    /// the step-up settle window a sprint stalled in 154 of 2916 runs: the
-    /// next riser arrived while the body still hovered from the last step.
-    /// </summary>
+    /// <summary>Walks and sprints up Steps20/30/40 from a grid of starts (width, angles up to 40°,
+    /// twelve run-up phases); fails if the body stalls. Before the settle window a sprint stalled
+    /// in 154 of 2916 runs: the next riser came while the body still hovered.</summary>
     public sealed class StairRunProbe : Probe
     {
         protected override string Tag => "stairs";

@@ -1,14 +1,7 @@
 #!/usr/bin/env -S dotnet run
-// Compares the NUMBERS of a probe run with tolerance against a reference set.
-// Every line is matched by its case name, tick traces (~) by case and tick. The
-// text without numbers must be equal (else STRUCTURE); every number may be 5 mm
-// (0.005) off the nearest reference value or lie between the reference runs' values
-// (Ramp45/55 already scatter in Unity).
-//
-// What holds only 1 % is reported as ONLY 1 % (fine for speeds and percent, never for
-// coordinates); one unit in the last printed digit counts as display rounding (Mono
-// rounded the 7-digit text). Everything is reported with both lines, to be judged by hand.
-//
+// Compares the NUMBERS of a probe run with a reference set, lines by case name (traces ~ by
+// tick): text without numbers must match (else STRUCTURE), numbers within 5 mm or between the
+// reference runs; ONLY 1 % and display rounding (last digit) are reported with both lines.
 //   dotnet run Tools/Regress.cs -- ref1,ref2,ref3 new [--all]
 #:include Common/Py.cs
 #:include Common/Libm.cs

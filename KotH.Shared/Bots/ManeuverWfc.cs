@@ -8,13 +8,10 @@ namespace KotH.Shared.Bots
         Walk, Sprint, StrafeLeft, StrafeRight, Feint, Jump, DoubleJump, Slide, Crouch, Strike,
     }
 
-    /// <summary>
-    /// Wave function collapse in one dimension: a row of slots, each still
-    /// open to a set of maneuvers, collapsed one at a time where the fewest
-    /// remain, each choice cutting down its neighbours by the rules below.
-    /// The rules are the motor's: a slide needs a sprint before it, a double
-    /// jump a jump, a swing its cooldown; a jump may land into a slide. Chance comes from the bot's xorshift.
-    /// </summary>
+    /// <summary>Wave function collapse in one dimension: a row of slots, each still open to a set of
+    /// maneuvers, collapsed one at a time where the fewest remain, each choice cutting down its neighbours by
+    /// the rules below. The rules are the motor's: a slide needs a sprint before it, a double jump a jump, a
+    /// swing its cooldown; a jump may land into a slide. Chance comes from the bot's xorshift.</summary>
     public sealed class ManeuverWfc
     {
         public const int Count = 10;
@@ -69,13 +66,10 @@ namespace KotH.Shared.Bots
 
         public int Slots => domain.Length;
 
-        /// <summary>
-        /// Fills a plan. Allowed[i] narrows slot i beforehand (0 for open),
-        /// after is the maneuver running now, weights give each maneuver's
-        /// pull, doubled and more next to a decided slot of the same kind.
-        /// A contradiction starts over without the narrowing; the
-        /// plan always comes out complete.
-        /// </summary>
+        /// <summary>Fills a plan. Allowed[i] narrows slot i beforehand (0 for open),
+        /// after is the maneuver running now, weights give each maneuver's pull, doubled
+        /// and more next to a decided slot of the same kind. A contradiction starts over
+        /// without the narrowing; the plan always comes out complete.</summary>
         public Maneuver[] Collapse(ReadOnlySpan<ushort> allowed, Maneuver after, ReadOnlySpan<float> weights, ref uint rng)
         {
             for (int attempt = 0; attempt < 3; attempt++)

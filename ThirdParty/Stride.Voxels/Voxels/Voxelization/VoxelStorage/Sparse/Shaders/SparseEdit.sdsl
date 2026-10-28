@@ -1,8 +1,7 @@
-// KotH patch: the pages of the cells round the moving groups, each frame. Edits
-// hold pairs (cell packed 8 bits per axis, value): value 0 puts the baked page
-// back, otherwise the cell now reads slot value - 1. With Copy = 1, one thread per
-// texel of such a slot copies the baked brick into it (or clears it), so the moving
-// groups are written over the map's voxels and the baked bricks stay as they are.
+// KotH patch: the pages of the cells round the moving groups, each frame. Edits hold (cell
+// packed 8 bits per axis, value): 0 puts the baked page back, else the cell reads slot value
+// - 1. With Copy = 1 one thread per texel copies the baked brick into such a slot (or clears
+// it), so moving groups are written over the map's voxels and baked bricks stay.
 namespace Stride.Rendering.Voxels
 {
     shader SparseEdit : ComputeShaderBase, SparseBricks

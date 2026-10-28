@@ -5,12 +5,9 @@ using Stride.Engine;
 
 namespace KotH.Client.Menu
 {
-    /// <summary>
-    /// The main menu's backdrop: the camera circles the mountain slowly,
-    /// from high up at a slant, rising and sinking a little, and looks a
-    /// little past it so the mountain stands right of the buttons. Only while
-    /// <see cref="Active"/>; the field of view goes back afterwards.
-    /// </summary>
+    /// <summary>The main menu's backdrop: the camera circles the mountain slowly, high up at a
+    /// slant, rising and sinking a little, the mountain right of the buttons. Only while
+    /// <see cref="Active"/>; the field of view goes back afterwards.</summary>
     /// <userdoc>Camera flight behind the main menu.</userdoc>
     [DataContract("KotH.MenuCamera")]
     [Display("Menu camera flight")]

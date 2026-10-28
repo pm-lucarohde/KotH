@@ -4,13 +4,9 @@ using Stride.Core.Mathematics;
 
 namespace KotH.Client.Rendering
 {
-    /// <summary>
-    /// The three shells ShellField scatters on the beach, built in a unit
-    /// space: lying on y = 0, the widest extent across x and z is 1. A scallop
-    /// (fan of ribs from the hinge, with its ears), a cockle (round, ribs from
-    /// the off-centre umbo, higher) and a small spiral snail on its side. Soft
-    /// colours, darker grooves and growth bands painted per vertex.
-    /// </summary>
+    /// <summary>The three shells ShellField scatters, in a unit space (on y = 0, widest extent 1):
+    /// a scallop (ribbed fan with ears), a cockle (round, higher) and a small spiral snail on its
+    /// side. Soft colours, darker grooves and growth bands per vertex.</summary>
     static class ShellShapes
     {
         /// <summary>One shell: corners with their normal and colour, triangles.</summary>

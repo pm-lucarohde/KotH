@@ -3,11 +3,9 @@ using Avalonia.Media;
 
 namespace KotH.Client.Hud
 {
-    /// <summary>
-    /// The round's controls, in the parts HillBoard takes out and shows as
-    /// overlays of their own. Every setter changes a control only when its
-    /// value changed: a changed control redraws its part, an equal one nothing.
-    /// </summary>
+    /// <summary>The round's controls, in the parts HillBoard takes out and shows as
+    /// overlays of their own. Every setter changes a control only when its value changed:
+    /// a changed control redraws its part, an equal one nothing.</summary>
     public partial class HudView : UserControl
     {
         /// <summary>Rows of the best list, and their height in units of a screen 1080 high.</summary>

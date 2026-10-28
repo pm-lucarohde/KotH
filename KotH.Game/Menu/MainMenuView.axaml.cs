@@ -4,14 +4,9 @@ using Avalonia.Interactivity;
 
 namespace KotH.Client.Menu
 {
-    /// <summary>
-    /// The main menu's controls: the buttons, the note that says what the one
-    /// under the pointer does, the pages behind three of them (only to look at
-    /// so far), the title and the small print. Laid out in four parts of a
-    /// screen 1080 high, which MainMenu takes out (<see cref="TakeParts"/>) and
-    /// shows as overlays of their own. MainMenu also slides them in, so
-    /// nothing here moves but the buttons.
-    /// </summary>
+    /// <summary>The main menu's controls: buttons, the note on the one under the pointer, the pages
+    /// behind three of them (looks only so far), title and small print. Four parts of a screen 1080
+    /// high that MainMenu takes out (<see cref="TakeParts"/>), shows and slides in.</summary>
     public partial class MainMenuView : UserControl
     {
         /// <summary>Host server was chosen.</summary>
@@ -41,11 +36,10 @@ namespace KotH.Client.Menu
 
         Button[] Lit => new[] { Host, Find, Settings, Languages, Quit, Back };
 
-        /// <summary>
-        /// Behind the load screen: every button shows all its pictures, so Skia
-        /// decodes the lit and pressed ones there (hidden ones it skips, and their
-        /// first sight stuttered) and the hover transitions run once; false puts them back.
-        /// </summary>
+        /// <summary>Behind the load screen: every button shows all its pictures, so Skia
+        /// decodes the lit and pressed ones there (hidden ones it skips, and their first
+        /// sight stuttered) and the hover transitions run once; false puts them
+        /// back.</summary>
         public void Light(bool on)
         {
             foreach (Button button in Lit)

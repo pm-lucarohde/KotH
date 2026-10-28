@@ -7,10 +7,9 @@ using Stride.Rendering.Images;
 
 namespace KotH.Client.Rendering
 {
-    /// <summary>
-    /// Stride's vignette, but starting later at top and bottom than at the sides
-    /// (Luca); in the compositor's colour transforms. Shader: OvalVignette.sdsl.
-    /// </summary>
+    /// <summary>Stride's vignette, but starting later at top and bottom than at the sides
+    /// (Luca); in the compositor's colour transforms. Shader:
+    /// OvalVignette.sdsl.</summary>
     /// <userdoc>Vignette with its own start at the sides and at top/bottom.</userdoc>
     [DataContract("OvalVignette")]
     [Display("Vignette (oval)")]

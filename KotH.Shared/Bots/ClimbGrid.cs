@@ -7,22 +7,15 @@ using Stride.Core.Mathematics;
 
 namespace KotH.Shared.Bots
 {
-    /// <summary>
-    /// The bots' map of the arena: columns of CellSize, each with the floors
-    /// a body can stand on (flat enough, room above), and the moves between
-    /// them: walking to a neighbour, dropping, jumping or double jumping up,
-    /// jumping a gap. Cut from the arena's triangles once per world. For the
-    /// hill it keeps the seconds to the zone from every floor, once plain and
-    /// once per route variant. Everything is a pure function of the arena.
-    /// </summary>
+    /// <summary>The bots' map of the arena: columns of CellSize with the floors a body can stand
+    /// on and the moves between them (walk, drop, jump, double jump, gap), cut from the arena's
+    /// triangles once per world. For the hill it keeps the seconds to the zone from every floor,
+    /// plain and per route variant; all a pure function of the arena.</summary>
     public sealed class ClimbGrid
     {
-        /// <summary>
-        /// What one bot has learnt on its way (real-time adaptive A*): moves
-        /// that failed cost it more, and floors its searches saw or it got
-        /// stuck on count as further from the zone. Its own, so the bots
-        /// learn apart.
-        /// </summary>
+        /// <summary>What one bot has learnt on its way (real-time adaptive A*): moves
+        /// that failed cost it more, and floors its searches saw or it got stuck on count
+        /// as further from the zone. Its own, so the bots learn apart.</summary>
         public sealed class Memory
         {
             internal float[] Extra;          // by floor, 0 for none; sized on first use
@@ -394,12 +387,10 @@ namespace KotH.Shared.Bots
                 }
         }
 
-        /// <summary>
-        /// Looks out from every floor in 16 directions, a quarter metre at a
-        /// time. Where the own level ends: the first lower column is a drop,
-        /// a floor higher within reach a jump or double jump, a floor at the
-        /// own level after a hole a gap jump. Anything in the flight is a wall.
-        /// </summary>
+        /// <summary>Looks out from every floor in 16 directions, a quarter metre at a
+        /// time. Where the own level ends: the first lower column is a drop, a floor
+        /// higher within reach a jump or double jump, a floor at the own level after a
+        /// hole a gap jump. Anything in the flight is a wall.</summary>
         void FindLinks()
         {
             var from = new List<int>();
@@ -665,12 +656,10 @@ namespace KotH.Shared.Bots
 
         // ---------- queries ----------
 
-        /// <summary>
-        /// The floor under the feet, else the nearest within 1,5 m aside and
-        /// 3 m up or down. Feet level with a floor the body reaches over win:
-        /// a body on the lip of a step stands on the step, even with its
-        /// centre already over the column below.
-        /// </summary>
+        /// <summary>The floor under the feet, else the nearest within 1,5 m aside and 3 m
+        /// up or down. Feet level with a floor the body reaches over win: a body on the
+        /// lip of a step stands on the step, even with its centre already over the column
+        /// below.</summary>
         public int FloorAt(Vector3 feet)
         {
             int col = ColumnAt(feet.X, feet.Z);
@@ -851,12 +840,10 @@ namespace KotH.Shared.Bots
             return best;
         }
 
-        /// <summary>
-        /// A move that went wrong costs this bot that much more from now on,
-        /// and so does every move like it: from a floor beside its start to
-        /// one beside its end. Cells are finer than a body, and a jump that
-        /// does not fit fails from the next cell just the same.
-        /// </summary>
+        /// <summary>A move that went wrong costs this bot that much more from now on, and
+        /// so does every move like it: from a floor beside its start to one beside its
+        /// end. Cells are finer than a body, and a jump that does not fit fails from the
+        /// next cell just the same.</summary>
         public void Punish(int f, int g, float seconds, Memory m)
         {
             if (f < 0 || g < 0)
@@ -905,11 +892,9 @@ namespace KotH.Shared.Bots
 
         public bool SameFloor(Vector3 feet, int floor) => floor >= 0 && FloorAt(feet) == floor;
 
-        /// <summary>
-        /// The seconds a route variant really takes from the feet to the
-        /// zone, in plain costs, against the best there is; false when no
-        /// way leads up.
-        /// </summary>
+        /// <summary>The seconds a route variant really takes from the feet to the zone,
+        /// in plain costs, against the best there is; false when no way leads
+        /// up.</summary>
         public bool RouteTime(Vector3 feet, int variant, out float seconds, out float best)
         {
             seconds = best = float.MaxValue;
@@ -941,13 +926,10 @@ namespace KotH.Shared.Bots
             return true;
         }
 
-        /// <summary>
-        /// The way from the feet towards the zone down a variant's field, by
-        /// real-time adaptive A* (RTAA*): an A* over at most budget floors
-        /// with the field plus the bot's lessons as the estimate and its
-        /// penalties on the moves; the way leads to the best floor it got
-        /// to, and every floor it looked at learns how far it really is.
-        /// </summary>
+        /// <summary>The way from the feet towards the zone by real-time adaptive A* (RTAA*): A* over
+        /// at most budget floors, estimate = the variant's field plus the bot's lessons, its penalties
+        /// on the moves. It leads to the best floor reached; every floor looked at learns its real
+        /// distance.</summary>
         public bool PlanToZone(Vector3 feet, int variant, Memory memory, int budget, List<Corner> corners)
         {
             corners.Clear();

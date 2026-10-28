@@ -8,7 +8,7 @@ Later peer-to-peer (one peer hosts), no dedicated servers. Derivations and histo
 
 - Everything in the repo is **English**: code, comments, logs, `Display` texts, tooltips (`/// <userdoc>`), docs, commit
   messages. Replies to Luca in **German**.
-- Code comments **at most 5 lines per block** (XML doc excluded).
+- Code comments **at most 4 lines per block**, XML doc included (`.work/english/cblocks.py` checks).
 - Ask about architecture and structure instead of assuming. Do not tackle leftovers unasked.
 - Logic as in Unity: no regression, bit-exact determinism. Do not touch `Bildschirmfoto_*.png`, `mono_crash.*`.
 - End game processes by PID, never `pkill -f KotH…`. Git: push `origin main` after Luca's approval.

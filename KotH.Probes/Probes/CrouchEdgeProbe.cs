@@ -6,15 +6,10 @@ using Stride.Core.Mathematics;
 
 namespace KotH.Probes.Probes
 {
-    /// <summary>
-    /// Creeps crouched into the stair flights whose first riser is too tall
-    /// to step onto crouched, straight on and at an angle, and keeps pushing.
-    /// The body must come to rest against the riser or slide along it, never
-    /// jitter: a reversal of its vertical or forward motion that follows the
-    /// last one within a few ticks counts. One turn is a path, not a jitter,
-    /// and only ticks at this flight are judged, not wherever a run strays.
-    /// Found in play: against Steps30 the body bobbed on the lip.
-    /// </summary>
+    /// <summary>Creeps crouched into flights whose first riser is too tall to step onto crouched,
+    /// straight and at an angle, pushing on: the body must rest against the riser or slide along
+    /// it, never jitter (quick reversals count, a single turn does not; only ticks at the flight).
+    /// Found in play: against Steps30 the body bobbed on the lip.</summary>
     public sealed class CrouchEdgeProbe : Probe
     {
         protected override string Tag => "crouchedge";

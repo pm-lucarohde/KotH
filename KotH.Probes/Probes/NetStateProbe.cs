@@ -13,13 +13,9 @@ using Stride.Engine;
 
 namespace KotH.Probes.Probes
 {
-    /// <summary>
-    /// The state as bytes: a snapshot sent into a second world must carry on
-    /// there bit for bit, through a round reset; a rollback across a join or
-    /// a leave must land on the bytes of the run that never rolled back; a
-    /// fresh body must come out the same in every world; damaged bytes must
-    /// be refused or show. What a joining peer and a desync repair rely on.
-    /// </summary>
+    /// <summary>The state as bytes: a snapshot sent into a second world carries on bit for bit
+    /// through a round reset; a rollback across a join or leave lands on the unrolled run's bytes;
+    /// a fresh body is the same everywhere; damaged bytes are refused or show.</summary>
     public sealed class NetStateProbe : Probe
     {
         protected override string Tag => "netstate";

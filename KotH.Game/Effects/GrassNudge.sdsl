@@ -1,9 +1,7 @@
-/// <summary>
-/// The grass's colour pass a few depth steps nearer than its depth prepass:
-/// GrassBlade's sums round a hair apart in the two passes (compiled apart),
-/// and a blade a step behind its own prepass depth failed the test and let
-/// the clear colour through. Seen from a metre it is far below a millimetre.
-/// </summary>
+/// <summary>The grass's colour pass a few depth steps nearer than its depth prepass:
+/// GrassBlade's sums round a hair apart in the two passes (compiled apart), and a blade a
+/// step behind its own prepass depth failed the test and let the clear colour through.
+/// Seen from a metre it is far below a millimetre.</summary>
 shader GrassNudge : TransformationBase
 {
     // In clip depth (0 near, 1 far): about ten float steps near the far end.

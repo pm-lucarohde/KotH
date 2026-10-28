@@ -3,12 +3,10 @@ using KotH.Shared.Match;
 
 namespace KotH.Shared.Simulation
 {
-    /// <summary>
-    /// Every body's state at the end of one tick. Keyed by body, not by list
-    /// position: the order of the body list carries no meaning, and a
-    /// restore must not start to give it one. Reused, so taking one each
-    /// tick allocates nothing once the lists have grown.
-    /// </summary>
+    /// <summary>Every body's state at the end of one tick. Keyed by body, not by list
+    /// position: the order of the body list carries no meaning, and a restore must not
+    /// start to give it one. Reused, so taking one each tick allocates nothing once the
+    /// lists have grown.</summary>
     public sealed class WorldSnapshot
     {
         internal readonly List<SimulationBody> bodies = new List<SimulationBody>();

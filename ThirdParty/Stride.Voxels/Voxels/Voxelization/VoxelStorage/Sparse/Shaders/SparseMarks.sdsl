@@ -1,9 +1,7 @@
-// KotH patch: Dilate = 1 marks the cells below a marked one (bit 8) that the
-// trilinear footprint of a coarser level can come from (bits 1-7 of the mark,
-// see VoxelStorageSparseShader). Then counts the marked cells (Allocate = 0) or
-// gives each a slot in the brick atlas (Allocate = 1): its page then holds
-// slot + 1 and SlotCells the cell of each slot, packed 8 bits per axis. Marks
-// are a buffer: the shader compiler has no atomics on texels.
+// KotH patch: Dilate = 1 marks the cells below a marked one (bit 8) that a coarser level's
+// trilinear footprint can come from (bits 1-7). Then counts the marked cells (Allocate = 0) or
+// gives each an atlas slot (Allocate = 1: page = slot + 1, SlotCells = the slot's cell packed
+// 8 bits per axis). Marks are a buffer: the shader compiler has no atomics on texels.
 namespace Stride.Rendering.Voxels
 {
     shader SparseMarks : ComputeShaderBase

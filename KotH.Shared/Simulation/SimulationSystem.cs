@@ -9,12 +9,10 @@ using Stride.Core.Mathematics;
 
 namespace KotH.Shared.Simulation
 {
-    /// <summary>
-    /// The one place a simulation step is driven from. A collision between
-    /// two bodies needs a moment where both states are valid side by side,
-    /// so no body ticks itself. The game, the server and the probes all run
-    /// this same loop; whoever owns it calls Tick at 40 Hz.
-    /// </summary>
+    /// <summary>The one place a simulation step is driven from. A collision between two
+    /// bodies needs a moment where both states are valid side by side, so no body ticks
+    /// itself. The game, the server and the probes all run this same loop; whoever owns
+    /// it calls Tick at 40 Hz.</summary>
     public sealed class SimulationSystem
     {
         /// <summary>The fixed step, Unity's 3528000 / 141120000 s.</summary>
@@ -27,11 +25,9 @@ namespace KotH.Shared.Simulation
         readonly List<SimulationBody> bodies = new List<SimulationBody>();
         bool active;
 
-        /// <summary>
-        /// Bodies in tick order. The order carries no meaning - the
-        /// determinism probe proves that by reversing it - but the inputs
-        /// handed to Step line up with it.
-        /// </summary>
+        /// <summary>Bodies in tick order. The order carries no meaning - the determinism
+        /// probe proves that by reversing it - but the inputs handed to Step line up with
+        /// it.</summary>
         public IReadOnlyList<SimulationBody> Bodies => bodies;
 
         /// <summary>Ticks stepped so far. Part of what a snapshot records.</summary>
@@ -43,19 +39,15 @@ namespace KotH.Shared.Simulation
         /// </summary>
         public int LastContactCount { get; private set; }
 
-        /// <summary>
-        /// Normal and closing speed of the last contact resolved. A probe
-        /// needs these to check a push against the model: reading velocities
-        /// before and after is a tick too late once gravity is involved.
-        /// </summary>
+        /// <summary>Normal and closing speed of the last contact resolved. A probe needs
+        /// these to check a push against the model: reading velocities before and after
+        /// is a tick too late once gravity is involved.</summary>
         public Vector3 LastNormal { get; private set; }
         public float LastApproach { get; private set; }
 
-        /// <summary>
-        /// Raised after the contacts are resolved and before any body moves.
-        /// The only moment a push can be read apart from the movement that
-        /// follows it; null in the game, used by probes.
-        /// </summary>
+        /// <summary>Raised after the contacts are resolved and before any body moves. The
+        /// only moment a push can be read apart from the movement that follows it; null
+        /// in the game, used by probes.</summary>
         public Action AfterContacts;
 
         /// <summary>
@@ -93,11 +85,9 @@ namespace KotH.Shared.Simulation
         /// <summary>The physics questions every body asks.</summary>
         public WorldQueries World { get; }
 
-        /// <summary>
-        /// The round played for the zone, null for none. Set by whoever hosts
-        /// a game; probes that only measure movement leave it off, so no
-        /// round end can ever put their bodies back.
-        /// </summary>
+        /// <summary>The round played for the zone, null for none. Set by whoever hosts a
+        /// game; probes that only measure movement leave it off, so no round end can ever
+        /// put their bodies back.</summary>
         public HillMatch Match { get; set; }
 
         /// <summary>Whether Tick steps. A probe that calls Step itself switches it off.</summary>
@@ -118,11 +108,9 @@ namespace KotH.Shared.Simulation
             bodies.Remove(body);
         }
 
-        /// <summary>
-        /// Takes a body out of the tick but keeps its entity and its place in
-        /// the query order, so a rollback to before it left can bring it
-        /// back exactly. Netcode destroys it once no rollback can reach back.
-        /// </summary>
+        /// <summary>Takes a body out of the tick but keeps its entity and its place in
+        /// the query order, so a rollback to before it left can bring it back exactly.
+        /// Netcode destroys it once no rollback can reach back.</summary>
         public void Leave(SimulationBody body)
         {
             Unregister(body);
@@ -165,11 +153,9 @@ namespace KotH.Shared.Simulation
             Step(inputs, TickSeconds);
         }
 
-        /// <summary>
-        /// One tick for every body, with inputs given in Bodies order. Reads
-        /// nothing from devices and nothing from the clock, so the same
-        /// inputs on the same snapshot always produce the same tick.
-        /// </summary>
+        /// <summary>One tick for every body, with inputs given in Bodies order. Reads
+        /// nothing from devices and nothing from the clock, so the same inputs on the
+        /// same snapshot always produce the same tick.</summary>
         public void Step(IReadOnlyList<MoveInput> tickInputs, float dt)
         {
             int count = bodies.Count;
@@ -239,12 +225,10 @@ namespace KotH.Shared.Simulation
             }
         }
 
-        /// <summary>
-        /// Puts the world back to the snapshot: who is in the tick, in which
-        /// order, and in what state. Bodies the snapshot does not know, such
-        /// as one that joined since, are parked; a rollback across a join or
-        /// a leave thus lands where every peer that never rolled back is.
-        /// </summary>
+        /// <summary>Puts the world back to the snapshot: who is in the tick, in which
+        /// order, and in what state. Bodies the snapshot does not know, such as one that
+        /// joined since, are parked; a rollback across a join or a leave thus lands where
+        /// every peer that never rolled back is.</summary>
         public void Restore(WorldSnapshot from)
         {
             for (int i = 0; i < bodies.Count; i++)
@@ -266,11 +250,9 @@ namespace KotH.Shared.Simulation
             CurrentTick = from.Tick;
         }
 
-        /// <summary>
-        /// Rolls back to a snapshot and steps forward again, one entry of
-        /// ticks per tick, each in Bodies order. All the server will need
-        /// for a late input: correct the input, resimulate from before it.
-        /// </summary>
+        /// <summary>Rolls back to a snapshot and steps forward again, one entry of ticks
+        /// per tick, each in Bodies order. All the server will need for a late input:
+        /// correct the input, resimulate from before it.</summary>
         public void Resimulate(WorldSnapshot from,
                                IReadOnlyList<MoveInput[]> ticks, float dt)
         {
@@ -283,12 +265,10 @@ namespace KotH.Shared.Simulation
         /// <summary>Back to tick zero, for a probe that starts a fresh world.</summary>
         public void ResetTickCounter() => CurrentTick = 0;
 
-        /// <summary>
-        /// Pushes overlapping bodies out of each other, sideways only. No
-        /// physics engine does it for kinematic capsules, so somebody has to.
-        /// Shifts are collected before they are applied, so the result does
-        /// not depend on the list order.
-        /// </summary>
+        /// <summary>Pushes overlapping bodies out of each other, sideways only. No
+        /// physics engine does it for kinematic capsules, so somebody has to. Shifts are
+        /// collected before they are applied, so the result does not depend on the list
+        /// order.</summary>
         void SeparateBodies()
         {
             int count = bodies.Count;
@@ -341,11 +321,9 @@ namespace KotH.Shared.Simulation
             }
         }
 
-        /// <summary>
-        /// Pushes touching bodies apart. Impulses are collected first and
-        /// applied afterwards, so no body sees a half resolved world and the
-        /// outcome does not depend on the order of the list.
-        /// </summary>
+        /// <summary>Pushes touching bodies apart. Impulses are collected first and
+        /// applied afterwards, so no body sees a half resolved world and the outcome does
+        /// not depend on the order of the list.</summary>
         void ResolveContacts()
         {
             LastContactCount = 0;

@@ -6,11 +6,9 @@ using System.IO.Compression;
 
 namespace KotH.Tools;
 
-/// <summary>
-/// 8-bit PNG without interlacing, as the tools write and read them: grey (L),
-/// grey with alpha (LA), RGB and RGBA; palette images are read as RGB or RGBA.
-/// Pixels are row-major with <see cref="Channels"/> bytes each.
-/// </summary>
+/// <summary>8-bit PNG without interlacing, as the tools write and read them: grey (L),
+/// grey with alpha (LA), RGB and RGBA; palette images are read as RGB or RGBA. Pixels are
+/// row-major with <see cref="Channels"/> bytes each.</summary>
 public sealed class Png
 {
     public int Width, Height, Channels;

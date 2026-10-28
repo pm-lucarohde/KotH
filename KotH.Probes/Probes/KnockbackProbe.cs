@@ -9,15 +9,10 @@ using Stride.Engine;
 
 namespace KotH.Probes.Probes
 {
-    /// <summary>
-    /// The hit's knockback against the percent before it: 0 % only hops as
-    /// high as 1 %, 100 % sends a body that does not steer 12 m along flat ground and 1.2 m
-    /// up, linear to 1000 %. Then 100 % with the victim running against and
-    /// along the knock: its own running simply adds on. Last the speeds of
-    /// both along the line at the hit: a share of them from 10 %, all from
-    /// 20 %; head-on at equal speed they cancel. Upward the victim's own
-    /// climb or fall in the air adds to the hop.
-    /// </summary>
+    /// <summary>Knockback by the percent before the hit: 0 % hops like 1 %, 100 % sends a still
+    /// body 12 m along flat ground and 1.2 m up, linear to 1000 %. Then the victim running against
+    /// and along (adds on), both bodies' speeds on the line (share from 10 %, all from 20 %), and
+    /// the victim's own climb or fall adding to the hop.</summary>
     public sealed class KnockbackProbe : Probe
     {
         protected override string Tag => "knockback";
@@ -38,12 +33,10 @@ namespace KotH.Probes.Probes
         DamagePercent damage;
         ScriptedBody attackerInput, victimInput;
 
-        /// <summary>
-        /// One knock as measured. Along is the attacker's speed towards the
-        /// victim, Fleeing the victim's own away from it, both at the hit.
-        /// Up is its upward speed right after the hit, Climb the one it had
-        /// over the swing tick before the hit came in.
-        /// </summary>
+        /// <summary>One knock as measured. Along is the attacker's speed towards the
+        /// victim, Fleeing the victim's own away from it, both at the hit. Up is its
+        /// upward speed right after the hit, Climb the one it had over the swing tick
+        /// before the hit came in.</summary>
         struct Flight
         {
             public float Distance, Rise, Angle, After, Along, Fleeing, Up, Climb;
@@ -196,11 +189,9 @@ namespace KotH.Probes.Probes
             return failures == 0 ? 0 : 1;
         }
 
-        /// <summary>
-        /// How far a knock at percent carries with extra launch speed carry on
-        /// top: the motor brakes before it moves, so a launch speed v covers
-        /// v(v - a*dt)/2a, the inverse of PlayerMotor.LaunchSpeed.
-        /// </summary>
+        /// <summary>How far a knock at percent carries with extra launch speed carry on
+        /// top: the motor brakes before it moves, so a launch speed v covers v(v -
+        /// a*dt)/2a, the inverse of PlayerMotor.LaunchSpeed.</summary>
         float Travel(float percent, float carry)
         {
             float a = victim.AirAcceleration;
@@ -210,15 +201,10 @@ namespace KotH.Probes.Probes
             return v * (v - a * FixedDeltaTime) / (2f * a);
         }
 
-        /// <summary>
-        /// One swing at a victim charged to percent, then waits until the
-        /// knock is spent. run is the victim's own input along +x from the
-        /// hit on (-1 against, 1 along); attackerRun and victimRun are their
-        /// inputs along +x up to and through the swing. Distance and angle
-        /// are horizontal, signed along +x, from where the victim stood when
-        /// hit; rise is the peak above that. With jumpTicks the victim takes
-        /// off that many ticks before the swing and holds the key holdTicks.
-        /// </summary>
+        /// <summary>One swing at a victim charged to percent, then waits until the knock is spent; run,
+        /// attackerRun, victimRun are inputs along +x (-1 against, 1 along). Distance and angle are
+        /// horizontal from where the victim was hit, rise its peak; with jumpTicks the victim takes
+        /// off that long before the swing and holds the key holdTicks.</summary>
         Flight Hit(float percent, float run, float attackerRun = 0f, bool sprint = false, float victimRun = 0f,
                    int jumpTicks = -1, int holdTicks = 0)
         {
@@ -296,12 +282,10 @@ namespace KotH.Probes.Probes
             };
         }
 
-        /// <summary>
-        /// Gets the bodies moving before the swing, both facing +x: closing in
-        /// from 4.9 m until 2.6 m apart, drawing apart from 1.2 m until 2.4 m.
-        /// The ground acceleration has them at full speed by then. The victim
-        /// starts 2 m further on, so the attacker stays on the ground.
-        /// </summary>
+        /// <summary>Gets the bodies moving before the swing, both facing +x: closing in
+        /// from 4.9 m until 2.6 m apart, drawing apart from 1.2 m until 2.4 m. The ground
+        /// acceleration has them at full speed by then. The victim starts 2 m further on,
+        /// so the attacker stays on the ground.</summary>
         void RunUp(float attackerRun, float victimRun, bool sprint)
         {
             if (attackerRun == 0f && victimRun == 0f)

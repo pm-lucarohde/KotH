@@ -11,12 +11,10 @@ using Stride.Engine.Design;
 
 namespace KotH.Shared.Player
 {
-    /// <summary>
-    /// Moves the player. Reads no input and knows no camera - a dedicated
-    /// server has neither. All mutable state lives in the private fields
-    /// below and nowhere else, which is what lets a tick be replayed later.
-    /// Collision goes through CapsuleSweep and plain physics queries.
-    /// </summary>
+    /// <summary>Moves the player. Reads no input and knows no camera - a dedicated server
+    /// has neither. All mutable state lives in the private fields below and nowhere else,
+    /// which is what lets a tick be replayed later. Collision goes through CapsuleSweep
+    /// and plain physics queries.</summary>
     [DataContract("KotH.PlayerMotor")]
     [Display("Player Motor")]
     [ComponentCategory("KotH")]
@@ -224,11 +222,9 @@ namespace KotH.Shared.Player
 
         public WorldQueries World => world;
 
-        /// <summary>
-        /// Binds the motor to the world and picks up where the entity was
-        /// placed. Unity did this in Awake; here the simulation calls it when
-        /// the body joins, once the entity sits in a scene.
-        /// </summary>
+        /// <summary>Binds the motor to the world and picks up where the entity was
+        /// placed. Unity did this in Awake; here the simulation calls it when the body
+        /// joins, once the entity sits in a scene.</summary>
         public void Initialize(WorldQueries queries)
         {
             world = queries;
@@ -285,12 +281,10 @@ namespace KotH.Shared.Player
         static readonly Stride.Core.Diagnostics.Logger Log =
             Stride.Core.Diagnostics.GlobalLogger.GetLogger("KotH");
 
-        /// <summary>
-        /// Adds a push from outside the motor, for instance a body collision.
-        /// Softening ground control afterwards is what makes a push visible
-        /// at all: at 50 m/s2 a 1.4 m/s push would be regulated away inside
-        /// two ticks, leaving nothing to feel.
-        /// </summary>
+        /// <summary>Adds a push from outside the motor, for instance a body collision.
+        /// Softening ground control afterwards is what makes a push visible at all: at 50
+        /// m/s2 a 1.4 m/s push would be regulated away inside two ticks, leaving nothing
+        /// to feel.</summary>
         public void AddVelocity(Vector3 delta, float maxSoftenTime)
         {
             velocity = UMath.Add(velocity, delta);
@@ -304,18 +298,10 @@ namespace KotH.Shared.Player
                 UMath.Min(maxSoftenTime, leaving / AirAcceleration));
         }
 
-        /// <summary>
-        /// Knocks the body away from a hit: without input, on flat ground, it
-        /// travels distance horizontally and rises height. carry is speed
-        /// added on top along away, in m/s (the attacker's own run). absorb
-        /// is the share of the body's own running along away that goes into
-        /// the knock as well: running at the attacker weakens it, fleeing
-        /// strengthens it. The knock never points back. It is its own share
-        /// of the velocity and sheds at the air acceleration no matter what
-        /// is pressed; running after the hit adds on top of it, so running
-        /// against a knock takes exactly that speed off. Upward the hit adds
-        /// to the body's own climb or fall in the air.
-        /// </summary>
+        /// <summary>Knocks the body away from a hit: on flat ground without input it travels distance
+        /// and rises height; carry adds the attacker's run, absorb the share of the body's own running
+        /// along away. The knock is its own share of the velocity, sheds at the air acceleration and
+        /// never points back; running against it takes exactly that speed off.</summary>
         public void Knock(Vector3 away, float distance, float height, float carry, float absorb, float dt)
         {
             if (distance <= 0f && height <= 0f)
@@ -359,13 +345,9 @@ namespace KotH.Shared.Player
             knock = fresh;
         }
 
-        /// <summary>
-        /// Speed a wall took comes out of the knock first: its part into the
-        /// wall is gone, KnockWallBounce of it comes back away from the wall,
-        /// its part along the wall goes on. Only shortened, a knock hitting a
-        /// wall at an angle kept pointing into it, and once the body landed
-        /// it carried the body back to the wall it had come off.
-        /// </summary>
+        /// <summary>Speed a wall took comes out of the knock first: its part into the wall is gone,
+        /// KnockWallBounce of it comes back, its part along the wall goes on. Merely shortened, an
+        /// angled knock kept pointing into the wall and pulled the landed body back to it.</summary>
         void ClipKnock(Vector3 asked)
         {
             if (UMath.SqrMagnitude(knock) <= 0f)
@@ -389,11 +371,9 @@ namespace KotH.Shared.Player
             velocity.Z -= into.Z * back;
         }
 
-        /// <summary>
-        /// Start speed that covers distance while braking at decel. The motor
-        /// brakes before it moves, so each tick loses decel*dt first; that
-        /// costs half a tick of travel, added back here.
-        /// </summary>
+        /// <summary>Start speed that covers distance while braking at decel. The motor
+        /// brakes before it moves, so each tick loses decel*dt first; that costs half a
+        /// tick of travel, added back here.</summary>
         public static float LaunchSpeed(float distance, float decel, float dt)
         {
             if (distance <= 0f)
@@ -402,12 +382,10 @@ namespace KotH.Shared.Player
             return half + UMath.Sqrt(half * half + 2f * decel * distance);
         }
 
-        /// <summary>
-        /// Puts the body somewhere. Deliberately moves nothing else: velocity
-        /// survives, so a caller that wants a clean start has to say so. The
-        /// probes rely on that - clearing it here moved their starting points
-        /// and changed 84 measured cases out of 252.
-        /// </summary>
+        /// <summary>Puts the body somewhere. Deliberately moves nothing else: velocity
+        /// survives, so a caller that wants a clean start has to say so. The probes rely
+        /// on that - clearing it here moved their starting points and changed 84 measured
+        /// cases out of 252.</summary>
         public void Teleport(Vector3 to)
         {
             position = to;
@@ -462,11 +440,9 @@ namespace KotH.Shared.Player
             };
         }
 
-        /// <summary>
-        /// Puts the motor back to a captured tick. The shape and the eye
-        /// follow the restored height, and the physics world learns the new
-        /// hull pose at once: a swing in the very next tick already asks.
-        /// </summary>
+        /// <summary>Puts the motor back to a captured tick. The shape and the eye follow
+        /// the restored height, and the physics world learns the new hull pose at once: a
+        /// swing in the very next tick already asks.</summary>
         public void RestoreState(in MotorState s)
         {
             position = s.Position;
@@ -513,14 +489,9 @@ namespace KotH.Shared.Player
             SyncHull();
         }
 
-        /// <summary>
-        /// Shifts the body out of another one, but never into the world:
-        /// unchecked, a crowd squeezed bodies into the wedge under a ramp's
-        /// foot and they fell through the one-sided ground (a deliberate
-        /// change from Unity). Velocity is left alone: being pushed out of
-        /// an overlap is a correction, not a hit - the push itself goes
-        /// through AddVelocity.
-        /// </summary>
+        /// <summary>Shifts the body out of another one, never into the world: unchecked, a crowd
+        /// squeezed bodies under a ramp's foot through the one-sided ground (deliberate change from
+        /// Unity). Velocity stays: this is a correction; the push itself goes through AddVelocity.</summary>
         public void Nudge(Vector3 delta)
         {
             Vector3 free = sweep.Clear(world, position, FootOffset, currentHeight,
@@ -541,21 +512,17 @@ namespace KotH.Shared.Player
         // Far below the arena, where no swing reaches.
         static readonly Vector3 ParkedHull = new Vector3(0f, -10000f, 0f);
 
-        /// <summary>
-        /// Takes the hit hull out of reach while the body is out of the tick,
-        /// without unregistering it: its place in the stable query order
-        /// has to survive a rollback that brings the body back.
-        /// </summary>
+        /// <summary>Takes the hit hull out of reach while the body is out of the tick,
+        /// without unregistering it: its place in the stable query order has to survive a
+        /// rollback that brings the body back.</summary>
         public void ParkHull()
         {
             hull?.Teleport(ParkedHull, Quaternion.Identity);
         }
 
-        /// <summary>
-        /// Moves the hit hull to the simulated pose, which Unity's
-        /// Physics.SyncTransforms did. Statics only reach the broadphase
-        /// when teleported, and nobody steps this physics world.
-        /// </summary>
+        /// <summary>Moves the hit hull to the simulated pose, which Unity's
+        /// Physics.SyncTransforms did. Statics only reach the broadphase when teleported,
+        /// and nobody steps this physics world.</summary>
         public void SyncHull()
         {
             if (hull == null)
@@ -568,11 +535,9 @@ namespace KotH.Shared.Player
             Publish();
         }
 
-        /// <summary>
-        /// Simulate and Publish in one, for a body ticked on its own.
-        /// SimulationSystem calls the halves itself, so every body has
-        /// computed its tick before the first one becomes visible.
-        /// </summary>
+        /// <summary>Simulate and Publish in one, for a body ticked on its own.
+        /// SimulationSystem calls the halves itself, so every body has computed its tick
+        /// before the first one becomes visible.</summary>
         public void Tick(in MoveInput input, float dt)
         {
             Simulate(input, dt);
@@ -583,11 +548,9 @@ namespace KotH.Shared.Player
             SyncHull();
         }
 
-        /// <summary>
-        /// One simulation step, called with a fixed dt (40 Hz) so that client
-        /// and server can compute the same step. Reads and writes only the
-        /// motor's own state; the entity stays as it was until Publish.
-        /// </summary>
+        /// <summary>One simulation step, called with a fixed dt (40 Hz) so that client
+        /// and server can compute the same step. Reads and writes only the motor's own
+        /// state; the entity stays as it was until Publish.</summary>
         public void Simulate(in MoveInput input, float dt)
         {
             previousEyePosition = eyePosition;
@@ -597,11 +560,9 @@ namespace KotH.Shared.Player
             // player would tilt backwards when looking up.
             rotation = UMath.EulerYaw(input.Yaw);
 
-            // isGrounded only says THAT there is ground, never how steep it
-            // is. Too steep counts as not grounded, so jumping, ground
-            // acceleration and the double jump reset all fall into place.
-            // What the last tick's sweep ended up touching is our own field
-            // and therefore part of what a rollback can restore.
+            // isGrounded only says THAT there is ground, not how steep: too steep counts as not
+            // grounded, so jumping, ground acceleration and the double jump reset fall into place. What
+            // the last sweep touched is our own field, so a rollback restores it.
             bool touching = touchingGround;
             bool knownGround = false;
             bool wasGrounded = grounded;
@@ -616,13 +577,9 @@ namespace KotH.Shared.Player
                 groundAngle = 0f;
             }
 
-            // Ground nothing could read is never flat ground: it means the
-            // capsule rests against something too steep to measure. Reading
-            // it as flat let the player stand on a cliff face.
-            //
-            // A steep reading blocks jumping at once, but sliding waits until
-            // the reading holds - a stair edge reports steep for a tick or
-            // two and would otherwise shove the player back down the step.
+            // Unreadable ground is never flat: the capsule rests on something too steep to measure (as
+            // flat, the player stood on a cliff face). A steep reading blocks jumping at once, sliding
+            // waits until it holds - a stair edge reads steep for a tick or two.
             bool steepReading = touching
                 && (!knownGround || groundAngle > SlopeLimit);
             steepTime = steepReading ? steepTime + dt : 0f;
@@ -684,13 +641,9 @@ namespace KotH.Shared.Player
             else
                 velocity.Y += Gravity * dt;
 
-            // After the jump on purpose: a jump leaves the ledge
-            // deliberately and must keep its horizontal speed.
-            // Not while sliding: the guard is there so crouched creeping
-            // does not walk off a ledge, and it zeroes the velocity. A slide
-            // is meant to carry over the edge instead of sticking to it.
-            // Nor while knocked away: it held a crouched body at every
-            // edge, the summit included, against any hit.
+            // After the jump on purpose: a jump leaves the ledge and keeps its horizontal speed. Not
+            // while sliding (a slide carries over the edge) nor while knocked away (it held crouched
+            // bodies at every edge against any hit); the guard zeroes the velocity.
             if (isCrouching && !sliding && grounded && !jumped
                 && UMath.SqrMagnitude(knock) <= 0f)
                 GuardLedge(dt);
@@ -815,15 +768,9 @@ namespace KotH.Shared.Player
                 return;
             }
 
-            // Out of a sprint only, and only while the body really moves that
-            // fast: lastStepSpeed, because a slide out of the run-up would
-            // otherwise end in the tick it began.
-            // Measured from the start, not the end: a slide that ran its
-            // full course is longer than the cooldown and so never waits,
-            // while hammering the key does.
-            // Landing with the key held slides straight out of a sprint jump.
-            // The landing tick's step is mostly the fall, so the flat speed
-            // is what has to be fast enough there.
+            // Out of a sprint only, while the body really moves that fast (lastStepSpeed, else a slide
+            // out of the run-up ends at once). Cooldown from the start, so a full slide never waits.
+            // Landing with the key held slides out of a sprint jump; there the flat speed counts.
             float flatSpeed = UMath.Magnitude(new Vector2(velocity.X, velocity.Z));
             bool tapped = input.CrouchPressed && lastStepSpeed > WalkSpeed;
             bool landedCrouched = landed && input.Crouch && flatSpeed > WalkSpeed;
@@ -867,11 +814,8 @@ namespace KotH.Shared.Player
                         : sprinting ? SprintSpeed
                         : WalkSpeed;
 
-            // No input while airborne means rate 0, so momentum is preserved.
-            // Anything else would be a hidden air brake on key release.
-            //
-            // Right after a push, air control holds for both of them: full
-            // ground acceleration would cancel the push within a tick or two.
+            // No input in the air means rate 0, so momentum stays (anything else is a hidden air brake).
+            // Right after a push air control holds on the ground too, else it is gone in a tick or two.
             float rate = knockbackTime > 0f
                 ? AirAcceleration
                 : grounded
@@ -896,11 +840,9 @@ namespace KotH.Shared.Player
             velocity.Z = next.Z;
         }
 
-        /// <summary>
-        /// Slides down a face that is too steep to stand on, against the
-        /// player's will. Called instead of plain gravity, never on top of
-        /// it. Not to be confused with UpdateSlide, the crouch slide.
-        /// </summary>
+        /// <summary>Slides down a face that is too steep to stand on, against the
+        /// player's will. Called instead of plain gravity, never on top of it. Not to be
+        /// confused with UpdateSlide, the crouch slide.</summary>
         void SlideDownSteep(float dt)
         {
             // Landing redirects momentum along the slope instead of dropping
@@ -932,11 +874,9 @@ namespace KotH.Shared.Player
                 UMath.ProjectOnPlane(UMath.Mul(UMath.Up, Gravity), groundNormal), dt));
         }
 
-        /// <summary>
-        /// Ground jump and double jump. The counter can exceed 1 when the key
-        /// was pressed more than once inside a single 25 ms tick. Returns
-        /// whether a jump actually fired this tick.
-        /// </summary>
+        /// <summary>Ground jump and double jump. The counter can exceed 1 when the key
+        /// was pressed more than once inside a single 25 ms tick. Returns whether a jump
+        /// actually fired this tick.</summary>
         bool ProcessJumpPresses(int presses)
         {
             bool jumped = false;
@@ -1082,11 +1022,9 @@ namespace KotH.Shared.Player
             eyeLocal = EyeLocalPosition(UMath.Lerp(CrouchEyeHeight, StandEyeHeight, t));
         }
 
-        /// <summary>
-        /// The only place that reshapes the body. Shifts the hull's centre so
-        /// the feet stay put, otherwise the player would sink when crouching.
-        /// Called every tick while the pose changes, not once per keypress.
-        /// </summary>
+        /// <summary>The only place that reshapes the body. Shifts the hull's centre so
+        /// the feet stay put, otherwise the player would sink when crouching. Called
+        /// every tick while the pose changes, not once per keypress.</summary>
         void ApplyHeight(float height)
         {
             // The hit hull follows the pose: crouching has to make the body
@@ -1119,11 +1057,9 @@ namespace KotH.Shared.Player
             maxStepHeight = height >= StandHeight ? StandStepOffset : CrouchStepOffset;
         }
 
-        /// <summary>
-        /// Moves the body and keeps the most upright upward contact of the
-        /// whole tick. onGround is for the tick's main move only: an edge
-        /// too high to step onto is then a wall, see CapsuleSweep.Move.
-        /// </summary>
+        /// <summary>Moves the body and keeps the most upright upward contact of the whole
+        /// tick. onGround is for the tick's main move only: an edge too high to step onto
+        /// is then a wall, see CapsuleSweep.Move.</summary>
         CapsuleSweep.Result MoveBody(Vector3 delta, bool onGround = false)
         {
             CapsuleSweep.Result r = sweep.Move(
@@ -1222,12 +1158,10 @@ namespace KotH.Shared.Player
                 velocity.Y = 0f;
         }
 
-        /// <summary>
-        /// Keeps a crouching player from walking off a ledge. The step is
-        /// tried axis by axis, so running ALONG an edge still works and only
-        /// the part pointing over it is dropped. In an inside corner neither
-        /// axis survives and the player stops, still fully steerable.
-        /// </summary>
+        /// <summary>Keeps a crouching player from walking off a ledge. The step is tried
+        /// axis by axis, so running ALONG an edge still works and only the part pointing
+        /// over it is dropped. In an inside corner neither axis survives and the player
+        /// stops, still fully steerable.</summary>
         void GuardLedge(float dt)
         {
             Vector3 step = UMath.Mul(new Vector3(velocity.X, 0f, velocity.Z), dt);
@@ -1250,11 +1184,9 @@ namespace KotH.Shared.Player
             velocity.Z = 0f;
         }
 
-        /// <summary>
-        /// Is there walkable ground under the player after this horizontal
-        /// step? Thin probe down the body axis, so the player may stand with
-        /// half the capsule over the edge - that is what it should feel like.
-        /// </summary>
+        /// <summary>Is there walkable ground under the player after this horizontal step?
+        /// Thin probe down the body axis, so the player may stand with half the capsule
+        /// over the edge - that is what it should feel like.</summary>
         bool HasFooting(Vector3 step)
         {
             float probeRadius = BodyRadius * 0.25f;
@@ -1277,12 +1209,10 @@ namespace KotH.Shared.Player
             return false;
         }
 
-        /// <summary>
-        /// Pulls the player back onto walkable ground it just ran off.
-        /// Downhill the surface drops faster than the -2 m/s settling speed
-        /// follows, so grounded flickered: no jump, air acceleration instead
-        /// of ground acceleration, and visible hopping.
-        /// </summary>
+        /// <summary>Pulls the player back onto walkable ground it just ran off. Downhill
+        /// the surface drops faster than the -2 m/s settling speed follows, so grounded
+        /// flickered: no jump, air acceleration instead of ground acceleration, and
+        /// visible hopping.</summary>
         void SnapToGround()
         {
             // Nothing was lost, or the player is on the way up anyway.
@@ -1324,11 +1254,9 @@ namespace KotH.Shared.Player
             touchingGround = true;
         }
 
-        /// <summary>
-        /// Remembers a move the world refused, so the next TryStepUp may
-        /// measure a ledge it would otherwise have waved through. Compares
-        /// what was asked for against what the sweep actually did.
-        /// </summary>
+        /// <summary>Remembers a move the world refused, so the next TryStepUp may measure
+        /// a ledge it would otherwise have waved through. Compares what was asked for
+        /// against what the sweep actually did.</summary>
         void UpdateWedged(Vector3 before, float dt)
         {
             Vector3 wanted = UMath.Mul(new Vector3(velocity.X, 0f, velocity.Z), dt);
@@ -1366,13 +1294,10 @@ namespace KotH.Shared.Player
         bool Jammed() => onSteepGround && !grounded && wedged
                       && steepTime >= JamSteepTime && lastStepSpeed < JamSpeed;
 
-        /// <summary>
-        /// Lifts the jammed capsule to the nearest pose where it fits whole:
-        /// 0,1 to 0,8 m up and 0,3 or 0,6 m aside, in eight directions,
-        /// downhill first. Never straight up: the body would fall back into
-        /// the same groove. Speed goes, the fall from there is an ordinary
-        /// one. Nothing fits, nothing moves.
-        /// </summary>
+        /// <summary>Lifts the jammed capsule to the nearest pose where it fits whole: 0,1
+        /// to 0,8 m up and 0,3 or 0,6 m aside, in eight directions, downhill first. Never
+        /// straight up: the body would fall back into the same groove. Speed goes, the
+        /// fall from there is an ordinary one. Nothing fits, nothing moves.</summary>
         void EscapeJam()
         {
             Vector3 n = new Vector3(groundNormal.X, 0f, groundNormal.Z);
@@ -1401,12 +1326,9 @@ namespace KotH.Shared.Player
             }
         }
 
-        /// <summary>
-        /// Is the way from the body's centre to the same point at <paramref name="at"/>
-        /// open? Fits alone passed a pose inside the mountain: its collision is a
-        /// hollow shell of triangles, and a capsule within touches none of them
-        /// (Luca fell through there). The ray crosses that shell from outside.
-        /// </summary>
+        /// <summary>Is the way from the body's centre to the same point at <paramref name="at"/>
+        /// open? Fits alone passed a pose inside the mountain, whose collision is a hollow triangle
+        /// shell (Luca fell through there); the ray crosses that shell.</summary>
         bool Reaches(Vector3 at)
         {
             Vector3 from = UMath.Add(position, UMath.Mul(UMath.Up, CenterY));
@@ -1446,12 +1368,10 @@ namespace KotH.Shared.Player
             return count == 0;
         }
 
-        /// <summary>
-        /// Reads the surface under the feet into groundNormal and groundAngle.
-        /// Returns false when nothing was found, which the caller must not
-        /// confuse with flat ground. Thin on purpose: a sphere as wide as the
-        /// body would catch the riser of the stair in front of the player.
-        /// </summary>
+        /// <summary>Reads the surface under the feet into groundNormal and groundAngle.
+        /// Returns false when nothing was found, which the caller must not confuse with
+        /// flat ground. Thin on purpose: a sphere as wide as the body would catch the
+        /// riser of the stair in front of the player.</summary>
         bool ProbeGround()
         {
             // What the last sweep actually touched comes first. On a slope

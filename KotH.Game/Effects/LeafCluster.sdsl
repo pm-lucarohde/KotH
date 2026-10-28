@@ -1,9 +1,7 @@
-/// <summary>
-/// The leaves of the crowns (Mountain.cs: single leaves from Leaves.png, or cards with
-/// painted clumps): the atlas' colour, cut out by its alpha, shaded and tinted per leaf.
-/// The normals come lit as the clumps are round (Mountain.cs). COLOR0: shade, tint, sway
-/// (0 at the stem, 1 at the tip), phase.
-/// </summary>
+/// <summary>The leaves of the crowns (Mountain.cs: single leaves from Leaves.png, or
+/// cards with painted clumps): the atlas' colour, cut out by its alpha, shaded and tinted
+/// per leaf. The normals come lit as the clumps are round (Mountain.cs). COLOR0: shade,
+/// tint, sway (0 at the stem, 1 at the tip), phase.</summary>
 shader LeafCluster<LinkType PaintKey>
     : ComputeColor, Texturing
 {

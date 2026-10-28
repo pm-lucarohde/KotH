@@ -12,13 +12,9 @@ using Stride.Rendering.Compositing;
 
 namespace KotH.Client.Player
 {
-    /// <summary>
-    /// Places the camera at the player's eye point, or behind and above the
-    /// figure in third person. Not a child of the player: the motor moves in
-    /// 40 steps per second and a child would show those steps as stutter.
-    /// Interpolates between the last two tick positions. A hit taken shakes
-    /// the view, always as hard; only the drawn view, the aim stays still.
-    /// </summary>
+    /// <summary>Places the camera at the player's eye, or behind and above the figure in third
+    /// person. Not a child of the player (the 40 Hz steps would stutter): interpolates between the
+    /// last two ticks. A hit shakes the drawn view, never the aim.</summary>
     [DataContract("KotH.PlayerCamera")]
     public sealed class PlayerCamera : SyncScript
     {
@@ -120,11 +116,9 @@ namespace KotH.Client.Player
             Reader.AimAt(AimTarget(path.Pivot, eye, rotation));
         }
 
-        /// <summary>
-        /// The view's wobble this frame, identity when still. Starts again with
-        /// every new hit on the own body, at full strength whatever its percent,
-        /// and fades out quadratically over ShakeSeconds.
-        /// </summary>
+        /// <summary>The view's wobble this frame, identity when still. Starts again with
+        /// every new hit on the own body, at full strength whatever its percent, and
+        /// fades out quadratically over ShakeSeconds.</summary>
         Quaternion Shake(float dt)
         {
             if (own?.Entity != Motor.Entity)
@@ -156,12 +150,10 @@ namespace KotH.Client.Player
                                                    MathUtil.DegreesToRadians(roll));
         }
 
-        /// <summary>
-        /// What a swing should aim at: the first thing on the centre line, but
-        /// no further than where the line leaves the reach around the eye.
-        /// Cast from the pivot, which lies on that line, so whatever is
-        /// between the camera and the figure counts as behind it.
-        /// </summary>
+        /// <summary>What a swing should aim at: the first thing on the centre line, but
+        /// no further than where the line leaves the reach around the eye. Cast from the
+        /// pivot, which lies on that line, so whatever is between the camera and the
+        /// figure counts as behind it.</summary>
         Vector3 AimTarget(Vector3 pivot, Vector3 eye, Quaternion rotation)
         {
             // |pivot + forward*s - eye| = reach; the pivot lies inside the

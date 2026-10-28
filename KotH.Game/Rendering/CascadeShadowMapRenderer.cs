@@ -9,17 +9,10 @@ using Stride.Shaders;
 
 namespace KotH.Client.Rendering
 {
-    /// <summary>
-    /// Stride's directional shadow map renderer, receiving with
-    /// <c>CascadeShadowReceiver</c>: depth bias in metres plus texels of each
-    /// cascade and PCF taps along the receiver's plane, instead of one share of
-    /// every cascade's range (stripes near, shadows cut off from the feet farther
-    /// away) and lines at the ground's edges inside soft shadows. Penumbrae widen
-    /// with the distance to the blocker (PCSS). The map casts once into the static
-    /// map of <see cref="StaticSunShadowRenderer"/>, which the receivers multiply in
-    /// (lightmapped meshes baked per texel), so the cascades hold only the figures.
-    /// The clouds of the scene's <see cref="Atmosphere"/> shade on top, live.
-    /// </summary>
+    /// <summary>Stride's directional shadow map renderer receiving with <c>CascadeShadowReceiver</c>
+    /// (bias in metres and texels, receiver-plane PCF, PCSS penumbrae). The map casts once into
+    /// <see cref="StaticSunShadowRenderer"/>'s map, so the cascades hold only the figures; the
+    /// clouds of <see cref="Atmosphere"/> shade on top, live.</summary>
     [DataContract("CascadeShadowMapRenderer")]
     public sealed class CascadeShadowMapRenderer : LightDirectionalShadowMapRenderer
     {

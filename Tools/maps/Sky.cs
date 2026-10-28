@@ -1,14 +1,7 @@
 #!/usr/bin/env -S dotnet run
-// KotH's own sky (Luca, 28.10.2026): a clear midday with some warmth, after Star Wars
-// Battlefront (2015) - deep blue overhead, a pale, warm haze at the horizon, a small
-// sharp sun with a bright halo - and a touch more colour than physics gives. Single
-// scattering after Nishita (Rayleigh and Mie) with the scene's sun: its direction and
-// colour come from the directional light in MainScene. Writes the HDR cube map
-// KotH.Game/Resources/Sky.dds (512², RGBA half, D3D face order) and a preview.
-//
-// The sky also lights the map (LightVoxel.Sky): it prints the SkyIntensity for MountDestinyVisual
-// that keeps the light from above as bright as Stride's default sky's gave (Luca).
-//
+// KotH's own sky (Luca): clear midday after Battlefront (2015), Nishita single scattering with
+// the MainScene sun -> KotH.Game/Resources/Sky.dds (512², RGBA half). Prints the SkyIntensity
+// for MountDestinyVisual that keeps the light from above as Stride's default sky gave.
 //   dotnet run Tools/maps/Sky.cs [-- --preview]
 #:include ../Common/Png.cs
 using System;

@@ -5,11 +5,9 @@ using Stride.Core.Mathematics;
 
 namespace KotH.Probes.Probes
 {
-    /// <summary>
-    /// Walks up a ramp from several lateral offsets and approach angles and
-    /// reports whether the crest is cleared. "Sometimes stuck at the top" is a
-    /// question about the approach, so one fixed path cannot answer it.
-    /// </summary>
+    /// <summary>Walks up a ramp from several lateral offsets and approach angles and
+    /// reports whether the crest is cleared. "Sometimes stuck at the top" is a question
+    /// about the approach, so one fixed path cannot answer it.</summary>
     public sealed class CrestProbe : Probe
     {
         protected override string Tag => "crest";

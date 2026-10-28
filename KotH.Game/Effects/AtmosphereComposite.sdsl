@@ -1,11 +1,7 @@
-/// <summary>
-/// Lays AtmosphereMarch's half-resolution fog and clouds over the scene:
-/// blended as scene * a + rgb (AtmosphereEffects sets the blend). Texture0
-/// is the half-resolution result, Texture1 the full depth; the 3 x 3 nearest
-/// half pixels count by a tent 1.5 half pixels wide (it evens out the march's
-/// jitter on thin cloud edges, Luca) and by how close their depth is to this
-/// pixel's, so the mountain's edge against the sky stays sharp.
-/// </summary>
+/// <summary>Lays AtmosphereMarch's half-resolution fog and clouds (Texture0) over the scene as
+/// scene * a + rgb. The 3 x 3 nearest half pixels count by a tent 1.5 half pixels wide (evens
+/// out jitter on thin cloud edges, Luca) and by how close their depth (Texture1) is to this
+/// pixel's, so the mountain's edge against the sky stays sharp.</summary>
 shader AtmosphereComposite : ImageEffectShader
 {
     float2 NearFar;

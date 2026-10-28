@@ -10,14 +10,10 @@ using Stride.Media;
 
 namespace KotH.Client.Audio
 {
-    /// <summary>
-    /// The sounds besides the music: the ambient, looping quietly from the
-    /// start (menu and game alike), and what the figures do, placed where they
-    /// are shown (PlayerVisualSystem.Sounded) and heard from the camera, so the
-    /// own ones sound near and the others fade with distance. The files come
-    /// from Tools/audio/Sfx.cs, all equally loud: the volumes here are the mix.
-    /// Presentation only.
-    /// </summary>
+    /// <summary>The sounds besides the music: the ambience, looping quietly in menu and game, and
+    /// what the figures do, placed where they are shown (PlayerVisualSystem.Sounded) and heard
+    /// from the camera. The files (Tools/audio/Sfx.cs) are equally loud: the volumes here are the
+    /// mix. Presentation only.</summary>
     [DataContract("KotH.SoundEffects")]
     public sealed class SoundEffects : SyncScript
     {
@@ -177,13 +173,9 @@ namespace KotH.Client.Audio
             });
         }
 
-        /// <summary>
-        /// The point as heard from the own eye, also in third person (Luca: the
-        /// own sounds as loud as in first person), turned with the view. Stride
-        /// moves a listener only for an AudioListenerComponent (internally), so
-        /// the default one stays at the origin facing +Z with +Y up: the point
-        /// goes there in the view's axes, right to +X, up to +Y, ahead to +Z.
-        /// </summary>
+        /// <summary>The point as heard from the own eye, also in third person (Luca), turned with the
+        /// view. Stride moves a listener only for an AudioListenerComponent, so the default one stays
+        /// at the origin facing +Z: the point goes there in the view's axes (right +X, up +Y, ahead +Z).</summary>
         Vector3 FromEar(Vector3 at)
         {
             if (camera == null)

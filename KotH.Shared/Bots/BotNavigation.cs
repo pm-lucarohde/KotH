@@ -21,12 +21,10 @@ namespace KotH.Shared.Bots
         public int Floor;            // the grid floor, -1 for the feet the path starts at
     }
 
-    /// <summary>
-    /// Where the bots can go: the climbing grid of the arena's static
-    /// colliders (ClimbGrid), with a field of seconds to the zone for the
-    /// hill and a bounded A* for every other goal. Every query is a pure
-    /// function of the arena and the seed, so all runs agree.
-    /// </summary>
+    /// <summary>Where the bots can go: the climbing grid of the arena's static colliders
+    /// (ClimbGrid), with a field of seconds to the zone for the hill and a bounded A* for
+    /// every other goal. Every query is a pure function of the arena and the seed, so all
+    /// runs agree.</summary>
     public sealed class BotNavigation
     {
         const int MaxNodes = 4000;
@@ -38,11 +36,9 @@ namespace KotH.Shared.Bots
 
         public ClimbGrid Grid => grid;
 
-        /// <summary>
-        /// Cuts the grid for a body shaped like the motor: its height, step,
-        /// slope limit and jumps. With a zone it also lays the fields to it,
-        /// the variants' noise seeded from seed, their sides round the start.
-        /// </summary>
+        /// <summary>Cuts the grid for a body shaped like the motor: its height, step,
+        /// slope limit and jumps. With a zone it also lays the fields to it, the
+        /// variants' noise seeded from seed, their sides round the start.</summary>
         public static BotNavigation Build(IEnumerable<Entity> arena, PlayerMotor motor, BotSettings s, HillMatch zone, int seed,
                                           Vector3 start)
         {
@@ -111,11 +107,9 @@ namespace KotH.Shared.Bots
         public bool PlanToZone(Vector3 feet, int variant, ClimbGrid.Memory memory, List<Corner> corners)
             => grid.PlanToZone(feet, variant, memory, ZoneLookahead, corners);
 
-        /// <summary>
-        /// The variant a bot takes from its start: the preferred one if it is
-        /// at most detour slower than the best way, else the next that is,
-        /// else the plain field.
-        /// </summary>
+        /// <summary>The variant a bot takes from its start: the preferred one if it is at
+        /// most detour slower than the best way, else the next that is, else the plain
+        /// field.</summary>
         public int ChooseVariant(Vector3 feet, int preferred, float detour)
         {
             int n = grid.Variants;

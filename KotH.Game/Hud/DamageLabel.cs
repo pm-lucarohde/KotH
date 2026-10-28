@@ -11,12 +11,10 @@ using Stride.UI.Controls;
 
 namespace KotH.Client.Hud
 {
-    /// <summary>
-    /// Shows a body's damage percent in the world above its head. Presentation
-    /// only: it reads the value and never writes one. It interpolates its own
-    /// position instead of following the rendered capsule, so no update
-    /// order between the two matters.
-    /// </summary>
+    /// <summary>Shows a body's damage percent in the world above its head. Presentation
+    /// only: it reads the value and never writes one. It interpolates its own position
+    /// instead of following the rendered capsule, so no update order between the two
+    /// matters.</summary>
     [DataContract("KotH.DamageLabel")]
     public sealed class DamageLabel : SyncScript
     {

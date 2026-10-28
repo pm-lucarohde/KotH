@@ -6,15 +6,10 @@ using Corner = KotH.Client.Menu.MenuOverlay.Corner;
 
 namespace KotH.Client.Hud
 {
-    /// <summary>
-    /// Black with a turning clock and a word at the bottom right (LoadView,
-    /// Luca's choice) while the world gets ready: from the first frame until the
-    /// map's lighting is baked (BakeVoxels reports it) and a moment after, so
-    /// the stutter of the first seconds is never seen. Nothing starts before
-    /// Loaded: alone the round waits (SimulationDriver), a host opens its game
-    /// then, a guest joins then (GameRoot). The hands turn as finished
-    /// pictures, so the clock costs Avalonia nothing per frame.
-    /// </summary>
+    /// <summary>Black with a turning clock and a word at the bottom right (LoadView, Luca's choice)
+    /// from the first frame until the map's light is baked and a moment after, so the first
+    /// seconds' stutter is never seen. Nothing starts before Loaded (round, host, guest join).
+    /// The hands turn as finished pictures, costing Avalonia nothing per frame.</summary>
     public sealed class LoadScreen : IHudCover
     {
         // Seconds it stays after the bake, while the last first-use work settles,

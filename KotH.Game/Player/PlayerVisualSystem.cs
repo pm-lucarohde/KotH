@@ -14,20 +14,10 @@ using Stride.Rendering;
 
 namespace KotH.Client.Player
 {
-    /// <summary>
-    /// Interpolates every player body in one place: one update for the whole
-    /// game instead of one per player, spread across worker threads. Each
-    /// visual is its own root entity, so its transform is written alone and
-    /// the 40 Hz snap of the simulated body never shows. Also plays the
-    /// figure's clips, all at once with weights: the idle loop while a body
-    /// stands still, walking and running in four directions blended by
-    /// speed and heading, the rest pose otherwise, and a blink every few
-    /// seconds, set on the lid bones. The leaves of skirt and collar swing
-    /// on springs in the wind of the figure's own motion, so does the leaf
-    /// on the cane in its hand, and the mouth opens and shuts a little,
-    /// calm as breathing. Every swing of the melee attack swings the cane
-    /// (ArmSwing), on the figure and on the first-person arms.
-    /// </summary>
+    /// <summary>Interpolates every player body in one update spread across worker threads; each
+    /// visual is its own root entity, so the 40 Hz snap never shows. Plays the figure's clips by
+    /// weight (idle, walk and run in four directions by speed and heading, blinks), swings the
+    /// leaves, the cane's leaf and the mouth on springs, and the cane on every swing (ArmSwing).</summary>
     [DataContract("KotH.PlayerVisualSystem")]
     public sealed class PlayerVisualSystem : SyncScript
     {
@@ -176,12 +166,10 @@ namespace KotH.Client.Player
         /// <userdoc>Moving, the body turns after the view, about two thirds within this time (seconds).</userdoc>
         [Display("Body follows view", "Animation")] public float BodyFollowSeconds = 0.15f;
 
-        /// <summary>
-        /// Clip names in every visual's AnimationComponent: idle, rest,
-        /// walking and running forward, back, left and right, then crouched
-        /// still, crouched walking, the slide, falling, the landing's give,
-        /// rising after a jump and the kick of the double jump.
-        /// </summary>
+        /// <summary>Clip names in every visual's AnimationComponent: idle, rest, walking
+        /// and running forward, back, left and right, then crouched still, crouched
+        /// walking, the slide, falling, the landing's give, rising after a jump and the
+        /// kick of the double jump.</summary>
         public static readonly string[] Clips =
             { "Idle", "Rest", "WalkF", "WalkB", "WalkL", "WalkR", "RunF", "RunB", "RunL", "RunR",
               "Crouch", "CrouchWalk", "Slide", "Fall", "Land", "Jump", "SkyWalk" };
@@ -493,11 +481,9 @@ namespace KotH.Client.Player
             }
         }
 
-        /// <summary>
-        /// The double jump puffs spores from the feet: one effect entity per
-        /// figure, made on the first kick and restarted at the feet on every
-        /// one after. Its particles live in world space and stay behind.
-        /// </summary>
+        /// <summary>The double jump puffs spores from the feet: one effect entity per
+        /// figure, made on the first kick and restarted at the feet on every one after.
+        /// Its particles live in world space and stay behind.</summary>
         void Spores(Figure f, Vector3 feet)
         {
             f.Kicked = false;
@@ -514,12 +500,10 @@ namespace KotH.Client.Player
             f.Spores.Get<ParticleSystemComponent>()?.ParticleSystem.ResetSimulation();
         }
 
-        /// <summary>
-        /// Every leaf bone bends its tips with the wind of the motion: back
-        /// leaves trail most, a fall lifts the skirt outwards, faster means
-        /// a little flutter. Turning moves every leaf sideways as well: its
-        /// own wind. Bends are tip offsets in radians, on springs.
-        /// </summary>
+        /// <summary>Every leaf bone bends its tips with the wind of the motion: back
+        /// leaves trail most, a fall lifts the skirt outwards, faster means a little
+        /// flutter. Turning moves every leaf sideways as well: its own wind. Bends are
+        /// tip offsets in radians, on springs.</summary>
         void Leaves(Figure f, PlayerMotor motor, TransformComponent t, float dt)
         {
             SkeletonUpdater skeleton = f.Model?.Skeleton;
@@ -596,12 +580,9 @@ namespace KotH.Client.Player
             }
         }
 
-        /// <summary>
-        /// The leaf on the held cane swings like the figure's: its tip trails
-        /// the wind of its own motion, measured where it grows, so walking,
-        /// turning and the arm's swing all move it; faster means a little
-        /// flutter and a twist. Same springs as the figure's leaves.
-        /// </summary>
+        /// <summary>The leaf on the held cane swings like the figure's: its tip trails the wind of its
+        /// own motion, measured where it grows, so walking, turning and the arm's swing all move it;
+        /// faster means a little flutter and a twist. Same springs as the figure's leaves.</summary>
         /// <summary>Tips the held object about the grip bone's origin, the point in the fist.</summary>
         static void Tip(HeldLeaf h, Quaternion tip)
         {
@@ -670,11 +651,9 @@ namespace KotH.Client.Player
             skeleton.NodeTransformations[h.Node].Transform.Rotation = bend * rest.Transform.Rotation;
         }
 
-        /// <summary>
-        /// The mouth bone stretches the painted mouth: two slow waves that
-        /// never line up, so it opens every two to four seconds, never quite
-        /// alike. A little narrower while open. No clip touches it.
-        /// </summary>
+        /// <summary>The mouth bone stretches the painted mouth: two slow waves that never
+        /// line up, so it opens every two to four seconds, never quite alike. A little
+        /// narrower while open. No clip touches it.</summary>
         void Breathe(Figure f, float dt)
         {
             SkeletonUpdater skeleton = f.Model?.Skeleton;
@@ -692,12 +671,10 @@ namespace KotH.Client.Player
                 new Vector3(1f - 0.35f * MouthBreath * wave, 1f + MouthBreath * wave, 1f);
         }
 
-        /// <summary>
-        /// The body lags behind the view: standing still only the head turns,
-        /// up to HeadTurnDegrees, beyond that the body is dragged along; moving,
-        /// the body turns into the view. The motor keeps facing the view. A swing
-        /// turns head and torso softly to its aim (Twist), the legs stay.
-        /// </summary>
+        /// <summary>The body lags behind the view: standing still only the head turns, up
+        /// to HeadTurnDegrees, beyond that the body is dragged along; moving, the body
+        /// turns into the view. The motor keeps facing the view. A swing turns head and
+        /// torso softly to its aim (Twist), the legs stay.</summary>
         void Turn(Figure f, PlayerMotor motor, TransformComponent t, float dt)
         {
             Vector3 facing = Vector3.Transform(-Vector3.UnitZ, t.Rotation);
@@ -734,11 +711,9 @@ namespace KotH.Client.Player
             t.Rotation = Quaternion.RotationY(f.BodyYaw);
         }
 
-        /// <summary>
-        /// How far a figure is turned to its last swing's aim, 0 to 1: up while
-        /// it winds up, held to the end of the follow-through, then back.
-        /// Started by MeleeAttack.LastSwingTick; the aim is the motor's yaw then.
-        /// </summary>
+        /// <summary>How far a figure is turned to its last swing's aim, 0 to 1: up while
+        /// it winds up, held to the end of the follow-through, then back. Started by
+        /// MeleeAttack.LastSwingTick; the aim is the motor's yaw then.</summary>
         float Twist(Figure f, PlayerMotor motor, float dt)
         {
             if (f.Melee == null)
@@ -766,12 +741,10 @@ namespace KotH.Client.Player
 
         static float Wrap(float angle) => angle - MathUtil.TwoPi * MathF.Round(angle / MathUtil.TwoPi);
 
-        /// <summary>
-        /// A hit tips the upper body away from the attacker on the Recoil bone
-        /// and the head a little further on the neck: out fast, back slowly.
-        /// Started by DamagePercent.LastHitTick, so a rollback never starts it
-        /// twice; the direction is the one of LastHitAway, in eight steps.
-        /// </summary>
+        /// <summary>A hit tips the upper body away from the attacker on the Recoil bone
+        /// and the head a little further on the neck: out fast, back slowly. Started by
+        /// DamagePercent.LastHitTick, so a rollback never starts it twice; the direction
+        /// is the one of LastHitAway, in eight steps.</summary>
         void Hit(Figure f, float dt)
         {
             SkeletonUpdater skeleton = f.Model?.Skeleton;
@@ -812,13 +785,9 @@ namespace KotH.Client.Player
                 Quaternion.RotationAxis(f.HitAxis, MathUtil.DegreesToRadians(HitLeanDegrees * amount));
         }
 
-        /// <summary>
-        /// A hit bursts sparkles where the blow struck (offset from the body's
-        /// centre, moved with the shown body), away from the attacker: one
-        /// effect entity per figure like the spores, turned so its -Z is the
-        /// push. Drawn with the figure's render group, so the own ones show
-        /// only where the own figure does (third person).
-        /// </summary>
+        /// <summary>A hit bursts sparkles where the blow struck, away from the attacker: one effect
+        /// entity per figure like the spores, its -Z the push, in the figure's render group (the own
+        /// ones only in third person).</summary>
         void Sparkle(Figure f, Vector3 away, Vector3 struck)
         {
             if (HitSparkles == null || f.Motor == null)
@@ -843,11 +812,9 @@ namespace KotH.Client.Player
                 f.Sparkles.Get<ParticleSystemComponent>()?.ParticleSystem.ResetSimulation();
         }
 
-        /// <summary>
-        /// The axis the recoil turns about: the push in the shown body's frame,
-        /// snapped to one of eight directions. Recoil and neck point up with X
-        /// to the figure's right, so their frames are the body's: +Z is back.
-        /// </summary>
+        /// <summary>The axis the recoil turns about: the push in the shown body's frame,
+        /// snapped to one of eight directions. Recoil and neck point up with X to the
+        /// figure's right, so their frames are the body's: +Z is back.</summary>
         static Vector3 RecoilAxis(Figure f, Vector3 away)
         {
             Vector3 local = Vector3.Transform(away, Quaternion.Invert(Quaternion.RotationY(f.BodyYaw)));
@@ -1014,11 +981,9 @@ namespace KotH.Client.Player
 
         void Sound(Figure f, FigureSound what, float amount) => Sounded?.Invoke(what, f.Motor, f.Transform.Position, amount);
 
-        /// <summary>
-        /// The first-person arms: still or in the air the idle breath, on the
-        /// move walking and running in step with the figure, ArmsPace times as fast.
-        /// At rest hands and stick sway a little as the standing body does.
-        /// </summary>
+        /// <summary>The first-person arms: still or in the air the idle breath, on the
+        /// move walking and running in step with the figure, ArmsPace times as fast. At
+        /// rest hands and stick sway a little as the standing body does.</summary>
         void Arms(Figure f, float moving, float run, float follow, float dt)
         {
             if (arms == null)

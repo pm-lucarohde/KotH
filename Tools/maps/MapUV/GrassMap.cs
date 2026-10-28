@@ -1,11 +1,9 @@
 using System.IO.Compression;
 
-/// <summary>
-/// The grass map of Mount Destiny for the client's GrassField: the ground seen from above in
-/// cells of 25 cm over ±128 m, per cell the topmost terrain face's height, its share
-/// of grass that faces up (none round the trunks), its shade (TEXCOORD_0.x) and its
-/// lightmap UV, so the blades take the light of the ground they stand on.
-/// </summary>
+/// <summary>The grass map of Mount Destiny for the client's GrassField: the ground seen from
+/// above in cells of 25 cm over ±128 m, per cell the topmost terrain face's height, its
+/// share of grass that faces up (none round the trunks), its shade (TEXCOORD_0.x) and its
+/// lightmap UV, so the blades take the light of the ground they stand on.</summary>
 static class GrassMap
 {
     const int Size = 1024;
@@ -124,11 +122,9 @@ static class GrassMap
     const int ContactSize = 2048;
     const double ContactDepth = 0.6, ContactFall = 0.7, ContactReach = 2.2;
 
-    /// <summary>
-    /// Writes the contact map (MountDestinyContact.png, grey): the ground's darkening round the
-    /// trunks' feet, 255 untouched. TerrainTriplanar darkens the ground with it; seen from
-    /// above like the grass map, row 0 at z = -Half.
-    /// </summary>
+    /// <summary>Writes the contact map (MountDestinyContact.png, grey): the ground's darkening
+    /// round the trunks' feet, 255 untouched. TerrainTriplanar darkens the ground with it; seen
+    /// from above like the grass map, row 0 at z = -Half.</summary>
     public static void WriteContact(string path, List<Primitive> primitives)
     {
         double cell = 2.0 * Half / ContactSize;

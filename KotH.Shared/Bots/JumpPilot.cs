@@ -6,13 +6,10 @@ using Stride.Core.Mathematics;
 
 namespace KotH.Shared.Bots
 {
-    /// <summary>
-    /// Jumps a bot up a step the way a careful player does. A small model of
-    /// the motor (keys, sprint, air control, jump, double jump) runs on the
-    /// grid's surfaces: before a take-off the bot flies the jump in the
-    /// model and only goes when it lands on the top; in the air it picks the
-    /// keys that bring it down there without touching the lip.
-    /// </summary>
+    /// <summary>Jumps a bot up a step the way a careful player does. A small motor model (keys,
+    /// sprint, air control, jump, double jump) runs on the grid's surfaces: the bot flies each jump
+    /// in the model first and only goes when it lands on top; in the air it picks the keys that
+    /// bring it down there without touching the lip.</summary>
     public sealed class JumpPilot
     {
         /// <summary>One jump up (or across), measured along the line from its take-off floor.</summary>
@@ -75,11 +72,9 @@ namespace KotH.Shared.Bots
             return y == float.MinValue ? -100f : y - h.From.Y;
         }
 
-        /// <summary>
-        /// The hop from a take-off floor to a landing floor, out of the
-        /// surfaces along the line: where the own level ends, where the top
-        /// starts and ends, and how high the body must be to pass the lip.
-        /// </summary>
+        /// <summary>The hop from a take-off floor to a landing floor, out of the surfaces
+        /// along the line: where the own level ends, where the top starts and ends, and
+        /// how high the body must be to pass the lip.</summary>
         public bool Prepare(Vector3 from, Vector3 to, out Hop hop)
         {
             hop = default;
@@ -356,11 +351,9 @@ namespace KotH.Shared.Bots
             return left < 0f ? -v : v;
         }
 
-        /// <summary>
-        /// The keys for one tick of a hop, the body facing yaw: towards the
-        /// target as fast as the time left allows and slow enough to stop
-        /// on it; held back while the feet are still under the lip.
-        /// </summary>
+        /// <summary>The keys for one tick of a hop, the body facing yaw: towards the
+        /// target as fast as the time left allows and slow enough to stop on it; held
+        /// back while the feet are still under the lip.</summary>
         public MoveInput Fly(in Hop h, in Body b, float yaw)
         {
             float ox = b.X - h.From.X, oz = b.Z - h.From.Z;
@@ -433,12 +426,10 @@ namespace KotH.Shared.Bots
             public Vector2 Keys;         // the WASD held on the ground
         }
 
-        /// <summary>
-        /// One tick of a hop: in the air Fly; on the ground jump as soon as
-        /// the model lands it (a single jump if it lands well, else a double),
-        /// else walk on to the take-off, and back off for a run-up when
-        /// standing at the lip does not do.
-        /// </summary>
+        /// <summary>One tick of a hop: in the air Fly; on the ground jump as soon as the
+        /// model lands it (a single jump if it lands well, else a double), else walk on
+        /// to the take-off, and back off for a run-up when standing at the lip does not
+        /// do.</summary>
         public MoveInput Drive(in Hop hop, in Body b, float yaw, ref Attempt a)
         {
             Hop h = hop;
@@ -473,13 +464,9 @@ namespace KotH.Shared.Bots
             return input;
         }
 
-        /// <summary>
-        /// The keys on the ground towards a hop's take-off: onto its line,
-        /// then along it at walking speed up to the lip (or the edge).
-        /// Backing, to a run-up of a metre first. Held keys stay while they
-        /// do nearly as well, and a key never flips straight to its opposite
-        /// unless the edge is near: a thumb does not twitch every tick.
-        /// </summary>
+        /// <summary>The ground keys towards a hop's take-off: onto its line, then along it at walking
+        /// speed up to the lip (backing to a metre of run-up first). Held keys stay while nearly as
+        /// good, and a key never flips straight to its opposite unless the edge is near.</summary>
         public MoveInput Approach(in Hop h, in Body b, float yaw, ref Attempt a, out float s)
         {
             float ox = b.X - h.From.X, oz = b.Z - h.From.Z;
@@ -535,11 +522,9 @@ namespace KotH.Shared.Bots
         const float AsideSlack = 0.1f;
         const float KeySlack = 0.6f;
 
-        /// <summary>
-        /// WASD for a direction relative to the view (degrees, left positive),
-        /// as a thumb holds them: one of eight, kept until the wanted
-        /// direction is clearly another, nothing when not going.
-        /// </summary>
+        /// <summary>WASD for a direction relative to the view (degrees, left positive),
+        /// as a thumb holds them: one of eight, kept until the wanted direction is
+        /// clearly another, nothing when not going.</summary>
         public static Vector2 Keys(float rel, bool go, Vector2 held)
         {
             if (!go)

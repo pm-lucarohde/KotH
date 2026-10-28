@@ -224,11 +224,10 @@ public sealed class Terrain
 
     int? HeightAt(int x, int z) => Height.TryGetValue((x, z), out int h) ? h : null;
 
-    /// <summary>
-    /// A ground corner on the beach's inner edge (grass to sand) or on the coast (sand to
-    /// sea) moved from the centre EdgeRound of the way onto that edge's line, top a little
-    /// inside, foot a little outside: the edge runs smoother than the block steps.
-    /// </summary>
+    /// <summary>A ground corner on the beach's inner edge (grass to sand) or on the coast
+    /// (sand to sea) moved from the centre EdgeRound of the way onto that edge's line, top
+    /// a little inside, foot a little outside: the edge runs smoother than the block
+    /// steps.</summary>
     public V3 Rounded((int X, int Y, int Z) corner, V3 p)
     {
         var (cx, cy, cz) = corner;
@@ -597,12 +596,10 @@ public static class Climb
     }
 }
 
-/// <summary>
-/// Surface Nets as in NoCubes: every block face between solid and air is a quad, but its
-/// corners move off the block corners towards the mean of the surface crossings round them,
-/// by Smooth (0: cubes, 1: NoCubes). Corners are shared per kind of block, so ground and
-/// leaves never blend.
-/// </summary>
+/// <summary>Surface Nets as in NoCubes: every block face between solid and air is a quad,
+/// but its corners move off the block corners towards the mean of the surface crossings
+/// round them, by Smooth (0: cubes, 1: NoCubes). Corners are shared per kind of block, so
+/// ground and leaves never blend.</summary>
 public sealed class Mesh
 {
     public readonly Terrain T;
@@ -861,11 +858,10 @@ public static class Trees
         }
     }
 
-    /// <summary>
-    /// A limb as a tapering tube along the curve from p0 over p1 to p2 (a quadratic Bezier),
-    /// its root sunk into what it grows from, its tip closed by a short cone. Returns the
-    /// tip and the direction there. Not solid ones are only to be seen.
-    /// </summary>
+    /// <summary>A limb as a tapering tube along the curve from p0 over p1 to p2 (a quadratic
+    /// Bezier), its root sunk into what it grows from, its tip closed by a short cone.
+    /// Returns the tip and the direction there. Not solid ones are only to be
+    /// seen.</summary>
     static (V3 At, V3 Dir) Limb(Mesh mesh, V3 p0, V3 p1, V3 p2, double r0, double r1, bool solid)
     {
         const int sides = 10, rings = 7;
@@ -916,11 +912,10 @@ public static class Trees
 
     static V3 Sub(V3 a, V3 b) => V3.Sub(a, b);
 
-    /// <summary>
-    /// A tree at column (x, z): trunk up to the fork, Limbs main limbs leaning out all round
-    /// and bending up, two thinner ones from each tip; a clump of leaves on every tip and one
-    /// on top. Builds the wood now; returns what adds the leaves, after the simplifier.
-    /// </summary>
+    /// <summary>A tree at column (x, z): trunk up to the fork, Limbs main limbs leaning out
+    /// all round and bending up, two thinner ones from each tip; a clump of leaves on every
+    /// tip and one on top. Builds the wood now; returns what adds the leaves, after the
+    /// simplifier.</summary>
     public static Action Grow(Mesh mesh, PyRandom rng, int x, int z, int bottom, int top)
     {
         double cx = x + 0.5, cz = z + 0.5;
@@ -966,14 +961,10 @@ public static class Trees
     const double AtlasSize = 1024, LeafPx = 512 * 0.94, LeafHalfPx = 512 * 0.94 * 0.43 / 2 + 10, LeafMarginPx = 4;
     const int ClumpCard = 0, SprigCard = 1, SingleLeaf = 2;
 
-    /// <summary>
-    /// The leaves of a crown, in every clump (an ellipsoid 0.8 as high as wide): cards with
-    /// painted clumps inside, here and there a twig card standing out (Luca), single leaves
-    /// in the outer shell; none deep inside another clump. Lit as the clump and the crown
-    /// are round (their directions out, a little the leaf's own), darker deeper in and lower
-    /// down. Every quad wound both ways (Stride turns a back face's normal round). COLOR_0:
-    /// shade, tint, sway (0 where it is held, 1 at the free end), phase.
-    /// </summary>
+    /// <summary>A crown's leaves in every clump (ellipsoid 0.8 as high as wide): painted clump
+    /// cards inside, twig cards standing out, single leaves outside; lit as round clump and crown,
+    /// darker deeper and lower; quads wound both ways. COLOR_0: shade, tint, sway (0 held, 1 free
+    /// end), phase.</summary>
     static void Leaves(Mesh mesh, PyRandom rng, List<(V3 C, double R)> clumps)
     {
         var centre = Scale(clumps.Aggregate(new V3(0, 0, 0), (s, c) => Add(s, c.C)), 1.0 / clumps.Count);
@@ -1098,12 +1089,10 @@ public static class Simplifier
             + 2 * q[5] * y * z + 2 * q[6] * y + q[7] * z * z + 2 * q[8] * z + q[9];
     }
 
-    /// <summary>
-    /// Fewer triangles where they change nothing: half-edge collapses (a vertex moves onto a
-    /// neighbour, so every kept vertex keeps its place, colour and normal) by the planes they
-    /// bend, while every original face stays within Simplify. Borders stay; the collision gets
-    /// the same faces.
-    /// </summary>
+    /// <summary>Fewer triangles where they change nothing: half-edge collapses (a vertex moves
+    /// onto a neighbour, so every kept vertex keeps its place, colour and normal) by the
+    /// planes they bend, while every original face stays within Simplify. Borders stay; the
+    /// collision gets the same faces.</summary>
     public static void Run(Mesh mesh)
     {
         var pos = mesh.Pos;
@@ -1278,11 +1267,9 @@ public static class Output
     public sealed record Part(string Name, List<V3> Pos, List<V3> Nrm, List<int> Idx,
                               List<(double, double, double, double)> Col, List<(double, double)> Uv);
 
-    /// <summary>
-    /// A glTF binary: one mesh with a primitive per part (material name, positions, normals,
-    /// indices, COLOR_0 or none, TEXCOORD_0 or none); the model asset maps the materials by
-    /// name. The JSON is laid out as Python's json.dumps did it.
-    /// </summary>
+    /// <summary>A glTF binary: one mesh with a primitive per part (material name, positions,
+    /// normals, indices, COLOR_0 or none, TEXCOORD_0 or none); the model asset maps the
+    /// materials by name. The JSON is laid out as Python's json.dumps did it.</summary>
     public static void WriteGlb(string path, IEnumerable<Part> parts)
     {
         var blob = new MemoryStream();
@@ -1358,11 +1345,10 @@ public static class Output
         return output;
     }
 
-    /// <summary>
-    /// The sea round the island and out to SeaReach, with a hole where the island stands:
-    /// overlapping it, the far depth buffer lost the meadow under the water. Flat at the
-    /// entity's height (MountDestinyVisual puts it at the water's height).
-    /// </summary>
+    /// <summary>The sea round the island and out to SeaReach, with a hole where the
+    /// island stands: overlapping it, the far depth buffer lost the meadow under the
+    /// water. Flat at the entity's height (MountDestinyVisual puts it at the water's
+    /// height).</summary>
     public static Part Sea(Terrain t)
     {
         var pos = new List<V3>();
@@ -1414,11 +1400,10 @@ public static class Output
         return new Part("Water", pos, [.. pos.Select(_ => new V3(0.0, 1.0, 0.0))], idx, null, null);
     }
 
-    /// <summary>
-    /// The drawn triangles for the physics, compressed: the vertices, then per Chunk x Chunk
-    /// chunk (by centroid, in order) its triangles as vertex triples wound into the solid,
-    /// as Bepu's triangles take them. The game puts each chunk into one static compound.
-    /// </summary>
+    /// <summary>The drawn triangles for the physics, compressed: the vertices, then per
+    /// Chunk x Chunk chunk (by centroid, in order) its triangles as vertex triples wound
+    /// into the solid, as Bepu's triangles take them. The game puts each chunk into one
+    /// static compound.</summary>
     public static SortedDictionary<(int, int), List<(int, int, int)>> WriteCollision(Mesh mesh, string path)
     {
         var chunks = new SortedDictionary<(int, int), List<(int, int, int)>>();

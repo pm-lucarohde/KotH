@@ -13,12 +13,10 @@ using Stride.Engine;
 
 namespace KotH.Probes.Probes
 {
-    /// <summary>
-    /// Measures the swing: the shape it can actually hit, how far it reaches, how
-    /// often it lands and where the cap holds. Runs THROUGH SimulationSystem like
-    /// ImpactProbe, because the combat pass lives there. Throwaway probe.
-    /// The font measurement of the client's DamageLabel is left out: no client yet.
-    /// </summary>
+    /// <summary>Measures the swing: the shape it can actually hit, how far it reaches,
+    /// how often it lands and where the cap holds. Runs THROUGH SimulationSystem like
+    /// ImpactProbe, because the combat pass lives there. Throwaway probe. The font
+    /// measurement of the client's DamageLabel is left out: no client yet.</summary>
     public sealed class MeleeProbe : Probe
     {
         protected override string Tag => "melee";
@@ -149,11 +147,9 @@ namespace KotH.Probes.Probes
             }
         }
 
-        /// <summary>
-        /// Measures the shape a ray can actually meet. A CharacterController is
-        /// smaller to a query than its own bounds claim, and the difference sits
-        /// exactly where a player aims: at head height.
-        /// </summary>
+        /// <summary>Measures the shape a ray can actually meet. A CharacterController is
+        /// smaller to a query than its own bounds claim, and the difference sits exactly
+        /// where a player aims: at head height.</summary>
         void HullStep()
         {
             scripted.Input = new MoveInput { Yaw = Ref.Angle(Yaw) };
@@ -189,12 +185,10 @@ namespace KotH.Probes.Probes
             phase = Phase.Reach;
         }
 
-        /// <summary>
-        /// Collider.bounds of the hull, in Unity's coordinates: the AABB of all
-        /// its upright shapes together. They turn only about y, so each is its
-        /// centre +- radius sideways and +- half its full height vertically
-        /// (a Bepu capsule's Length is the segment between the spheres).
-        /// </summary>
+        /// <summary>Collider.bounds of the hull, in Unity's coordinates: the AABB of all
+        /// its upright shapes together. They turn only about y, so each is its centre +-
+        /// radius sideways and +- half its full height vertically (a Bepu capsule's
+        /// Length is the segment between the spheres).</summary>
         void HullBounds(out Vector3 min, out Vector3 max)
         {
             min = new Vector3(float.MaxValue);
@@ -351,11 +345,9 @@ namespace KotH.Probes.Probes
                   new Vector3(PlayerSpot.X + distance, 0.94f, PlayerSpot.Z));
         }
 
-        /// <summary>
-        /// Teleports a body and clears what it was doing. Velocity survives a
-        /// teleport, so without this every case would start with the momentum of
-        /// the one before it. at is in Unity's coordinates.
-        /// </summary>
+        /// <summary>Teleports a body and clears what it was doing. Velocity survives a
+        /// teleport, so without this every case would start with the momentum of the one
+        /// before it. at is in Unity's coordinates.</summary>
         static void Place(PlayerMotor motor, Vector3 at)
         {
             motor.Teleport(Ref.Pos(at));

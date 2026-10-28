@@ -2,14 +2,10 @@ using System;
 
 namespace KotH.Shared.Mathematics
 {
-    /// <summary>
-    /// Sine, cosine, arc tangent and arc cosine with the same bits on every
-    /// system. Math.Sin and friends call the C runtime (glibc on Linux, the
-    /// UCRT on Windows), which may differ in the last bit; that would split a
-    /// Linux and a Windows peer. These are musl's (fdlibm's) double routines,
-    /// ported line by line: plain IEEE arithmetic and Math.Sqrt only, so any
-    /// x64 build rounds them alike. Error below one ulp, as musl's.
-    /// </summary>
+    /// <summary>Sine, cosine, arc tangent and arc cosine with the same bits on every system:
+    /// Math.Sin and friends call the C runtime (glibc, UCRT), which may differ in the last bit and
+    /// split Linux from Windows peers. musl's (fdlibm's) double routines ported line by line, IEEE
+    /// arithmetic and Math.Sqrt only; error below one ulp.</summary>
     public static class DetMath
     {
         public static double Sin(double x)

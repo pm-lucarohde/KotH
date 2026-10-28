@@ -10,13 +10,9 @@ using Stride.Rendering.Lights;
 
 namespace KotH.Client.Rendering
 {
-    /// <summary>
-    /// The map's fog, coastal fog and clouds (<see cref="Atmosphere"/>) before Stride's post
-    /// effects (<see cref="Inner"/>, FXAA): AtmosphereMarch along every view ray
-    /// at half resolution, then AtmosphereComposite blends it over the colour at
-    /// full resolution, in place. Without an Atmosphere in the scene it passes
-    /// straight on.
-    /// </summary>
+    /// <summary>The map's fog and clouds (<see cref="Atmosphere"/>) before Stride's post effects
+    /// (<see cref="Inner"/>, FXAA): AtmosphereMarch at half resolution, AtmosphereComposite in
+    /// place at full; without an Atmosphere it passes straight on.</summary>
     /// <userdoc>The map's fog and clouds before the other post effects.</userdoc>
     [DataContract("AtmosphereEffects")]
     [Display("Atmosphere and post effects")]

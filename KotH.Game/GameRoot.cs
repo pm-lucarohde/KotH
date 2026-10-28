@@ -26,14 +26,10 @@ using Stride.Rendering;
 
 namespace KotH.Client
 {
-    /// <summary>
-    /// Builds the playable world when the scene starts: the map (--map, see
-    /// Maps) with its collision and its visuals, the player and the bots
-    /// (--bots, three by default) that play for the hill. Started with --host
-    /// or --join, the players arrive through the network session, the host's
-    /// bots among them; see BotDirector. A joiner builds the host's map once
-    /// it is welcomed. The scene itself only carries what every map shares.
-    /// </summary>
+    /// <summary>Builds the playable world: the map (--map, see Maps) with collision and visuals,
+    /// the player and the bots (--bots, 3 by default). With --host or --join the players arrive
+    /// through the network session, the host's bots among them (BotDirector); a joiner builds the
+    /// host's map once welcomed. The scene itself only carries what every map shares.</summary>
     [DataContract("KotH.GameRoot")]
     public sealed class GameRoot : StartupScript, INetWorld
     {
@@ -189,12 +185,10 @@ namespace KotH.Client
             BindLocal(player, reader);
         }
 
-        /// <summary>
-        /// The main menu over the flight round the map, with its music; no
-        /// body yet and nothing ticks. Both start behind the load screen, which
-        /// stays until the menu's first frames and the flight's first views are
-        /// done (no stutter in sight). Host server hosts on this map.
-        /// </summary>
+        /// <summary>The main menu over the flight round the map, with its music; no body
+        /// yet and nothing ticks. Both start behind the load screen, which stays until
+        /// the menu's first frames and the flight's first views are done (no stutter in
+        /// sight). Host server hosts on this map.</summary>
         void ShowMenu()
         {
             var script = new MainMenu { StartHost = HostFromMenu, PlayerName = LaunchOptions.Current.Name, Cover = cover };
@@ -218,11 +212,9 @@ namespace KotH.Client
             StartNetworked(options);
         }
 
-        /// <summary>
-        /// Main menu in the pause menu: the game is taken down - connection,
-        /// bots, bodies and what shows them - and the main menu flies over the
-        /// map again, which stays loaded (a guest without one loads its own).
-        /// </summary>
+        /// <summary>Main menu in the pause menu: the game is taken down - connection,
+        /// bots, bodies and what shows them - and the main menu flies over the map again,
+        /// which stays loaded (a guest without one loads its own).</summary>
         void ReturnToMenu()
         {
             if (menu != null)
@@ -380,11 +372,9 @@ namespace KotH.Client
             Services.AddService(cover);
         }
 
-        /// <summary>
-        /// The bots' inputs worked out ahead of their ticks, off the frame: on
-        /// a thread of their own, with KOTH_BOT_THREAD=0 a little each frame
-        /// instead. SimulationDriver pumps the director it finds here.
-        /// </summary>
+        /// <summary>The bots' inputs worked out ahead of their ticks, off the frame: on a
+        /// thread of their own, with KOTH_BOT_THREAD=0 a little each frame instead.
+        /// SimulationDriver pumps the director it finds here.</summary>
         void WorkAhead(BotDirector director)
         {
             if (director == null)
@@ -496,11 +486,9 @@ namespace KotH.Client
 
         SimulationSystem INetWorld.Simulation => simulation;
 
-        /// <summary>
-        /// A player the session announces: the own one with the keyboard and
-        /// the camera, everyone else steered by the network and named above
-        /// the head. At its slot, already in the tick; the session parks it.
-        /// </summary>
+        /// <summary>A player the session announces: the own one with the keyboard and the
+        /// camera, everyone else steered by the network and named above the head. At its
+        /// slot, already in the tick; the session parks it.</summary>
         SimulationBody INetWorld.SpawnPlayer(int netId, int slot, string name)
         {
             bool own = net != null && netId == net.Session.LocalNetId;
@@ -598,12 +586,10 @@ namespace KotH.Client
             return visual;
         }
 
-        /// <summary>
-        /// Hangs HeldModel on HeldBone of figure's model, as a child so it
-        /// goes with it. The object is modelled in the figure's rest pose
-        /// (.work/rig/bamboo.py): its local transform undoes the bone's rest,
-        /// so at rest it sits as modelled and then follows the bone.
-        /// </summary>
+        /// <summary>Hangs HeldModel on HeldBone of figure's model, as a child so it goes
+        /// with it. The object is modelled in the figure's rest pose
+        /// (.work/rig/bamboo.py): its local transform undoes the bone's rest, so at rest
+        /// it sits as modelled and then follows the bone.</summary>
         void AttachHeld(Entity figure, RenderGroup group, bool shadow)
         {
             var target = figure.Get<ModelComponent>();

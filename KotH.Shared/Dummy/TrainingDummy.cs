@@ -8,12 +8,10 @@ using Stride.Engine.Design;
 
 namespace KotH.Shared.Dummy
 {
-    /// <summary>
-    /// A body that never steers itself. Ticked like a player so gravity, the
-    /// ground probe and the render interpolation all behave the same, and so
-    /// a collision pushes it around exactly as it would push a player. A
-    /// motor that is never ticked hangs in the air at a body centre of zero.
-    /// </summary>
+    /// <summary>A body that never steers itself. Ticked like a player so gravity, the
+    /// ground probe and the render interpolation all behave the same, and so a collision
+    /// pushes it around exactly as it would push a player. A motor that is never ticked
+    /// hangs in the air at a body centre of zero.</summary>
     [DataContract("KotH.TrainingDummy")]
     [Display("Training dummy")]
     [ComponentCategory("KotH")]

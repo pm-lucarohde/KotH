@@ -1,16 +1,8 @@
 #!/usr/bin/env -S dotnet run
-// The block mountain of map "Mount Destiny", after a Minecraft map (Luca, 21.10.2026). Writes only
-// what belongs to it, never what Game Studio edits:
-//   KotH.Game/Resources/Models/Mountain.glb       what is drawn (vertex colours with AO)
-//   KotH.Game/Resources/Models/Sea.glb            the sea round the island
-//   KotH.Shared/Resources/Maps/MountDestinyTerrain.bin     the same triangles for the physics, embedded
-//   .work/maps/mountain.png                       a map from above, for a look
-// Markers, zone and bot settings stay in MountDestinyCollision (Game Studio); this prints where the
-// summit and the meadow are. Blocks are 1 m: one block up is a jump, two a double jump,
-// three a wall. Seeded; the numbers are Python's, as mountain.py made them (MountainTerrain.cs).
-//
-//   dotnet run Tools/maps/Mountain.cs [-- --seed N]
-//   dotnet run --project Tools/maps/MapUV -c Release      then: the lightmap UVs (TEXCOORD_1)
+// The block mountain of Mount Destiny (Luca, after a Minecraft map): writes Mountain.glb,
+// Sea.glb, KotH.Shared/Resources/Maps/MountDestinyTerrain.bin and .work/maps/mountain.png,
+// never what Game Studio edits. 1 m blocks: one up is a jump, two a double jump, three a wall.
+//   dotnet run Tools/maps/Mountain.cs [-- --seed N]   then Tools/maps/MapUV
 #:include MountainTerrain.cs
 #:include ../Common/Py.cs
 #:include ../Common/Libm.cs

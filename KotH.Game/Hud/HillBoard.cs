@@ -11,14 +11,10 @@ using Corner = KotH.Client.Menu.MenuOverlay.Corner;
 
 namespace KotH.Client.Hud
 {
-    /// <summary>
-    /// The round on screen (HudView, Avalonia): own points and the time left
-    /// at the top, what the zone is doing below with the warm-up as a bar, the
-    /// best four at the top right, the own damage percent at the bottom and
-    /// the winner in the middle. Before a networked round the top bar waits
-    /// for players or counts down instead. Presentation only: it reads the
-    /// match and the bodies and never writes to either.
-    /// </summary>
+    /// <summary>The round on screen (HudView): own points and time at the top, the zone with the
+    /// warm-up bar below, the best four top right, own damage at the bottom, the winner in the
+    /// middle; before a networked round it waits or counts down. Reads the match and the bodies,
+    /// never writes.</summary>
     [DataContract("KotH.HillBoard")]
     public sealed class HillBoard : SyncScript
     {

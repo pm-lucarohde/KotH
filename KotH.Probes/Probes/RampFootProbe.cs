@@ -8,13 +8,9 @@ using Stride.Engine;
 
 namespace KotH.Probes.Probes
 {
-    /// <summary>
-    /// Crawls crouched under Ramp20 and Ramp35 towards their foot, where the
-    /// tilted box meets the ground and the gap underneath closes: one body
-    /// alone, along the ramps' side edges, then a crowd that shoves itself
-    /// apart while it crawls. Fails if any body ends up below the ground.
-    /// Found by the server's load test: bodies in that wedge sank through.
-    /// </summary>
+    /// <summary>Crawls crouched under Ramp20 and Ramp35 towards their foot, where the gap under the
+    /// tilted box closes: one body, along the side edges, then a shoving crowd. Fails if any body
+    /// ends up below the ground (found by the server's load test).</summary>
     public sealed class RampFootProbe : Probe
     {
         protected override string Tag => "rampfoot";
@@ -91,11 +87,9 @@ namespace KotH.Probes.Probes
             return failures == 0 ? 0 : 1;
         }
 
-        /// <summary>
-        /// Starts beside each side edge, from half under it to a body width
-        /// clear, and crawls in at an angle towards the foot. Starts deep in
-        /// the ramp that leave no footing after settling are skipped.
-        /// </summary>
+        /// <summary>Starts beside each side edge, from half under it to a body width
+        /// clear, and crawls in at an angle towards the foot. Starts deep in the ramp
+        /// that leave no footing after settling are skipped.</summary>
         int SideEdges(PlayerMotor motor)
         {
             int failures = 0;
@@ -144,11 +138,9 @@ namespace KotH.Probes.Probes
             return failures;
         }
 
-        /// <summary>
-        /// A crowd crawling under each ramp through the real SimulationSystem,
-        /// since only there do bodies separate each other. Strafing flips at
-        /// seeded random ticks, so the bodies keep shoving sideways.
-        /// </summary>
+        /// <summary>A crowd crawling under each ramp through the real SimulationSystem,
+        /// since only there do bodies separate each other. Strafing flips at seeded
+        /// random ticks, so the bodies keep shoving sideways.</summary>
         int Crowds(HeadlessWorld world, PlayerMotor alone)
         {
             alone.Teleport(Ref.Pos(-20f, 0.9f, -20f));   // out of the way

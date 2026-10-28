@@ -7,12 +7,10 @@ using Stride.Core.Mathematics;
 
 namespace KotH.Probes.Harness
 {
-    /// <summary>
-    /// The probes still speak Unity's coordinates: their cases were written
-    /// in them, and their logs are compared line by line against the Unity
-    /// reference. Everything crosses into Stride here, z and yaw negated,
-    /// which is exact in floating point.
-    /// </summary>
+    /// <summary>The probes still speak Unity's coordinates: their cases were written in
+    /// them, and their logs are compared line by line against the Unity reference.
+    /// Everything crosses into Stride here, z and yaw negated, which is exact in floating
+    /// point.</summary>
     public static class Ref
     {
         static readonly CultureInfo Invariant = CultureInfo.InvariantCulture;

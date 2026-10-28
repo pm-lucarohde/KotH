@@ -9,13 +9,9 @@ using Stride.Input;
 
 namespace KotH.Client.Menu
 {
-    /// <summary>
-    /// What Escape opens in a game (Luca): Resume, Settings,
-    /// To desktop and Main menu on a board in the middle, over a dark veil
-    /// and in front of the load screen too. The game runs on behind it, the
-    /// own figure lets go of every key (SimulationDriver.Paused). Closed it
-    /// costs nothing: its parts are only ticked and uploaded while open.
-    /// </summary>
+    /// <summary>What Escape opens in a game (Luca): Resume, Settings, To desktop and Main menu on a
+    /// board over a dark veil, in front of the load screen too. The game runs on, the own figure
+    /// lets go of every key (SimulationDriver.Paused). Closed it costs nothing.</summary>
     [DataContract("KotH.PauseMenu")]
     public sealed class PauseMenu : SyncScript, IHudElement
     {

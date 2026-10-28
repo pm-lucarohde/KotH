@@ -4,11 +4,10 @@ using System.Threading.Tasks;
 
 namespace KotH.Tools;
 
-/// <summary>
-/// The parts of Pillow 12.3.0 the tools paint with, ported from its C code (libImaging) step
-/// by step, so the pictures come out pixel for pixel as Pillow paints them. Modes L (one byte a
-/// pixel) and RGB, RGBA, RGBa (four bytes a pixel, as Pillow keeps them).
-/// </summary>
+/// <summary>The parts of Pillow 12.3.0 the tools paint with, ported from its C code
+/// (libImaging) step by step, so the pictures come out pixel for pixel as Pillow paints them.
+/// Modes L (one byte a pixel) and RGB, RGBA, RGBa (four bytes a pixel, as Pillow keeps
+/// them).</summary>
 public sealed class PilImage
 {
     public readonly string Mode;
@@ -458,11 +457,10 @@ public sealed class PilImage
         return output;
     }
 
-    /// <summary>
-    /// GaussianBlur of the image tiled 3 x 3, cropped back to the middle tile. Each pass sums
-    /// clamped windows; in the middle tile no window reaches the clamped ends while three passes
-    /// together stay within one tile, so the same sums come out of one tile with wrapped indices.
-    /// </summary>
+    /// <summary>GaussianBlur of the image tiled 3 x 3, cropped back to the middle tile. Each pass
+    /// sums clamped windows; in the middle tile no window reaches the clamped ends while three
+    /// passes together stay within one tile, so the same sums come out of one tile with wrapped
+    /// indices.</summary>
     public PilImage GaussianBlurTiled(double radius)
     {
         float box = radius == 0 ? 0 : GaussianBoxRadius((float)radius, 3);

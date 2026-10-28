@@ -1,8 +1,7 @@
 #!/bin/bash
-# Records the effect permutations the game uses (KOTH_EFFECTLOG, EffectRecorder) on a
-# headless, silent tour of the AOT client: main menu, menu -> game, round with bots
-# (swings, hits, third person, crouch, jump, sprint), Esc menu, banner, Test map.
-# Then merges them into KotH.Game/Assets/EffectCompileLog.sdeffectlog (EffectLog.cs).
+# Records the effect permutations the game uses (KOTH_EFFECTLOG) on a headless, silent tour of
+# the AOT client (menus, rounds with bots, Esc menu, banner, Test map), then merges them into
+# KotH.Game/Assets/EffectCompileLog.sdeffectlog (EffectLog.cs).
 #   Tools/effects/record.sh [BIN]   (default Bin/Linux/aot; then publish again)
 set -e
 cd "$(dirname "$0")/../.."

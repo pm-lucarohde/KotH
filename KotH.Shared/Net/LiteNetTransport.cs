@@ -4,13 +4,9 @@ using LiteNetLib;
 
 namespace KotH.Shared.Net
 {
-    /// <summary>
-    /// The sessions over real UDP with LiteNetLib. A host listens on a port
-    /// and numbers its peers from 1; a peer connects to one host, which it
-    /// calls peer 0. Reliable messages go ordered, datagrams as plain UDP;
-    /// a datagram bigger than the path's MTU so far goes reliable instead.
-    /// Not thread safe: Send and Poll from the game thread only.
-    /// </summary>
+    /// <summary>The sessions over UDP with LiteNetLib. A host listens and numbers its peers from
+    /// 1; a peer connects to one host (peer 0). Reliable messages go ordered, datagrams as plain
+    /// UDP, one bigger than the path's MTU goes reliable. Send and Poll from the game thread only.</summary>
     public sealed class LiteNetTransport : INetTransport, IDisposable
     {
         public const int DefaultPort = 7777;

@@ -1,8 +1,6 @@
-/// <summary>
-/// Squeezes the depth of the first-person arms and stick to the front of the
-/// depth range, so they draw over a wall they reach into, lit and shaded as
-/// before (ArmsInFront mixes it in for the arms' render group only).
-/// </summary>
+/// <summary>Squeezes the depth of the first-person arms and stick to the front of the
+/// depth range, so they draw over a wall they reach into, lit and shaded as before
+/// (ArmsInFront mixes it in for the arms' render group only).</summary>
 shader FirstPersonDepth : TransformationBase
 {
     // Share of the depth range the arms keep: in front of anything farther

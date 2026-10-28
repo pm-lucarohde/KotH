@@ -7,13 +7,10 @@ using KotH.Shared.Simulation;
 
 namespace KotH.Shared.Net
 {
-    /// <summary>
-    /// The host's referee. Simulates nothing itself: it takes the peers'
-    /// inputs, decides each tick's final inputs and joins and leaves, and
-    /// sends them to everyone, its own founder peer included. A tick is
-    /// final once every player's input is in, or a few ticks after it is
-    /// due; a missing input becomes the player's last one without presses.
-    /// </summary>
+    /// <summary>The host's referee, simulating nothing: it takes the peers' inputs, decides each
+    /// tick's final inputs, joins and leaves, and sends them to everyone, its own peer included. A
+    /// tick is final once every input is in or a few ticks after it is due; a missing input
+    /// becomes the player's last one without presses.</summary>
     public sealed class HostSession
     {
         /// <summary>Ticks past due the host waits for a late input before it decides without it.</summary>
@@ -94,11 +91,9 @@ namespace KotH.Shared.Net
         /// <summary>Where the host's bots get their inputs; needed once AddBot was called.</summary>
         public IBotInputs Bots { get; set; }
 
-        /// <summary>
-        /// A bot joins like a player, NetId and slot included, but nobody is
-        /// on the other end: it plays at once, is never sent anything, and its
-        /// inputs come from Bots in the tick they are confirmed.
-        /// </summary>
+        /// <summary>A bot joins like a player, NetId and slot included, but nobody is on
+        /// the other end: it plays at once, is never sent anything, and its inputs come
+        /// from Bots in the tick they are confirmed.</summary>
         public int AddBot(string name)
         {
             var c = new Client
@@ -364,11 +359,9 @@ namespace KotH.Shared.Net
             pending.Add(new NetEvent { Join = false, NetId = c.NetId });
         }
 
-        /// <summary>
-        /// Finalises ticks in order: as soon as every player's input is in,
-        /// at most LeadTarget ticks before they are due, or ConfirmDelay
-        /// ticks after they were due with whatever is there.
-        /// </summary>
+        /// <summary>Finalises ticks in order: as soon as every player's input is in, at
+        /// most LeadTarget ticks before they are due, or ConfirmDelay ticks after they
+        /// were due with whatever is there.</summary>
         void ConfirmReady()
         {
             double hostTick = HostTick;
@@ -453,11 +446,9 @@ namespace KotH.Shared.Net
                 c.Inputs.Remove(t);
         }
 
-        /// <summary>
-        /// A waiting player gets the world once a final state includes it:
-        /// the founder's, at the first tick after its join or later. The
-        /// founder itself already has the world and only learns its NetId.
-        /// </summary>
+        /// <summary>A waiting player gets the world once a final state includes it: the
+        /// founder's, at the first tick after its join or later. The founder itself
+        /// already has the world and only learns its NetId.</summary>
         void Welcome()
         {
             foreach (Client c in clients.Values)
@@ -546,11 +537,9 @@ namespace KotH.Shared.Net
                     peerHashes.Remove(key);
         }
 
-        /// <summary>
-        /// Final ticks and the clock feedback to every peer: whenever new
-        /// ticks are final, when an acknowledgement is overdue, else every
-        /// 50 ms as a heartbeat. Each datagram stays within MaxDatagram.
-        /// </summary>
+        /// <summary>Final ticks and the clock feedback to every peer: whenever new ticks
+        /// are final, when an acknowledgement is overdue, else every 50 ms as a
+        /// heartbeat. Each datagram stays within MaxDatagram.</summary>
         void Broadcast()
         {
             foreach (Client c in clients.Values)

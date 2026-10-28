@@ -9,13 +9,9 @@ using Stride.Games;
 
 namespace KotH.Client
 {
-    /// <summary>
-    /// Runs the simulation at its fixed 40 Hz from the variable frame rate,
-    /// the way Unity's FixedUpdate did: an accumulator, at most a third of a
-    /// second caught up per frame. Input is collected first, so a press
-    /// reaches the very next tick. Runs before every other script. In a
-    /// networked game the session steps the world instead, on the shared clock.
-    /// </summary>
+    /// <summary>Runs the simulation at 40 Hz from the frame rate like Unity's FixedUpdate (an
+    /// accumulator, at most a third of a second per frame); input first, so a press reaches the
+    /// next tick. Runs before every other script; networked, the session steps the world.</summary>
     [DataContract("KotH.SimulationDriver")]
     public sealed class SimulationDriver : SyncScript
     {
@@ -42,11 +38,9 @@ namespace KotH.Client
             }
         }
 
-        /// <summary>
-        /// The pause menu is open: the mouse belongs to it, the own figure
-        /// holds no key, the game runs on. Closing it grabs the mouse; that
-        /// frame neither looks nor swings.
-        /// </summary>
+        /// <summary>The pause menu is open: the mouse belongs to it, the own figure holds
+        /// no key, the game runs on. Closing it grabs the mouse; that frame neither looks
+        /// nor swings.</summary>
         [DataMemberIgnore]
         public bool Paused
         {
@@ -119,11 +113,9 @@ namespace KotH.Client
         }
     }
 
-    /// <summary>
-    /// How far the current frame sits between the last two simulation ticks.
-    /// Presentation only: it smooths the 40 Hz tick for the eye and never
-    /// feeds back into the simulation.
-    /// </summary>
+    /// <summary>How far the current frame sits between the last two simulation ticks.
+    /// Presentation only: it smooths the 40 Hz tick for the eye and never feeds back into
+    /// the simulation.</summary>
     public static class TickInterpolation
     {
         public static float Alpha { get; internal set; }

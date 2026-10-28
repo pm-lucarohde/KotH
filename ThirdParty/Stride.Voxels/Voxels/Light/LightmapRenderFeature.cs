@@ -4,11 +4,9 @@ using Stride.Shaders;
 
 namespace Stride.Rendering.Voxels.VoxelGI
 {
-    /// <summary>
-    /// KotH patch: meshes with a second UV set (TEXCOORD1) are drawn into the lightmap by
-    /// <see cref="BakeStage"/>; once it is baked (<see cref="Ready"/>) they read it in the
-    /// colour pass. Uses the post vertex stage hook.
-    /// </summary>
+    /// <summary>KotH patch: meshes with a second UV set (TEXCOORD1) are drawn into the
+    /// lightmap by <see cref="BakeStage"/>; once it is baked (<see cref="Ready"/>) they
+    /// read it in the colour pass. Uses the post vertex stage hook.</summary>
     public sealed class LightmapRenderFeature : SubRenderFeature
     {
         static readonly ShaderSource Bake = new ShaderClassSource("LightmapBakePosition");
