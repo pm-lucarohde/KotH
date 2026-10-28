@@ -28,8 +28,8 @@ namespace KotH.Client
         [DataMemberIgnore] public bool Captured { get; private set; }
 
         /// <summary>
-        /// The main menu is open: the mouse is free and belongs to it, Escape
-        /// never quits and nothing ticks. Closing it grabs the mouse.
+        /// The main menu is open: the mouse is free and belongs to it and
+        /// nothing ticks. Closing it grabs the mouse.
         /// </summary>
         [DataMemberIgnore]
         public bool InMenu
@@ -38,11 +38,28 @@ namespace KotH.Client
             set
             {
                 inMenu = value;
-                SetCaptured(!value);
+                SetCaptured(!value && !paused);
             }
         }
 
-        bool inMenu;
+        /// <summary>
+        /// The pause menu is open: the mouse belongs to it, the own figure
+        /// holds no key, the game runs on. Closing it grabs the mouse; that
+        /// frame neither looks nor swings.
+        /// </summary>
+        [DataMemberIgnore]
+        public bool Paused
+        {
+            get => paused;
+            set
+            {
+                paused = value;
+                SetCaptured(!value && !inMenu);
+                settling = !value;
+            }
+        }
+
+        bool inMenu, paused, settling;
 
         public SimulationDriver()
         {
@@ -60,8 +77,11 @@ namespace KotH.Client
             if (system == null)
                 return;
 
-            bool grabbed = !inMenu && UpdateCursor();
-            LocalInput?.Collect(Input, Captured && !grabbed);
+            if (paused || inMenu)
+                LocalInput?.Rest();
+            else
+                LocalInput?.Collect(Input, Captured && !settling);
+            settling = false;
 
             // Alone, the round starts once the load screen is gone; networked
             // the session starts then (GameRoot), and until then nothing ticks.
@@ -87,29 +107,6 @@ namespace KotH.Client
 
         // Milliseconds a frame may spend on the bots without their own thread.
         const double BotBudget = 0.25;
-
-        /// <summary>
-        /// First Escape frees the mouse, a second one quits; two presses, so
-        /// it never fires by accident. A click grabs the mouse back; true then,
-        /// so that frame neither looks nor swings.
-        /// </summary>
-        bool UpdateCursor()
-        {
-            if (KeyPresses.Pressed(Input, Stride.Input.Keys.Escape))
-            {
-                if (Captured)
-                    SetCaptured(false);
-                else
-                    ((GameBase)Game).Exit();
-            }
-            else if (!Captured && Input.IsMouseButtonPressed(Stride.Input.MouseButton.Left))
-            {
-                SetCaptured(true);
-                return true;
-            }
-
-            return false;
-        }
 
         void SetCaptured(bool captured)
         {

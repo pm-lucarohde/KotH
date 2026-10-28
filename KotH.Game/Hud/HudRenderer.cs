@@ -40,6 +40,7 @@ namespace KotH.Client.Hud
         public static readonly NumberFormatInfo Numbers = GermanNumbers();
 
         readonly List<IHudElement> elements = new List<IHudElement>();
+        readonly List<IHudElement> front = new List<IHudElement>();
         SpriteBatch batch;
         Texture white;
 
@@ -72,10 +73,13 @@ namespace KotH.Client.Hud
         public void Add(IHudElement element) => elements.Add(element);
         public void Remove(IHudElement element) => elements.Remove(element);
 
+        /// <summary>Drawn after all others and over a cover too, such as the pause menu.</summary>
+        public void AddFront(IHudElement element) => front.Add(element);
+
         protected override void DrawCore(RenderContext context, RenderDrawContext drawContext)
         {
             bool covered = Cover is { Covers: true };
-            if (elements.Count == 0 && !covered)
+            if (elements.Count == 0 && front.Count == 0 && !covered)
                 return;
 
             batch ??= new SpriteBatch(drawContext.GraphicsDevice);
@@ -91,6 +95,8 @@ namespace KotH.Client.Hud
             else
                 for (int i = 0; i < elements.Count; i++)
                     elements[i].Draw(batch, screen);
+            for (int i = 0; i < front.Count; i++)
+                front[i].Draw(batch, screen);
             batch.End();
         }
 

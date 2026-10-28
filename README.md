@@ -49,7 +49,7 @@ Treffer aller Figuren räumlich (`SoundEffects`, Lautstärken dort; Dateien aus 
 | Linksklick | schlagen |
 | Mausrad | Third Person / zurück in die Ego-Perspektive |
 | F3 / F11 | Leistungs- und Netzanzeige / Vollbild oder Fenster |
-| Escape | einmal Maus freigeben, zweimal beenden; ein Klick fängt sie wieder |
+| Escape | Menü: Weiterspielen, Einstellungen, Zum Desktop, Hauptmenü (das Spiel läuft weiter) |
 
 ## Voraussetzungen
 

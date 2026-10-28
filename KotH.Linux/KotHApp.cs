@@ -136,12 +136,9 @@ sealed class KotHGame : Game
             DrawWhileMinimized = true;
             MinimizedMinimumUpdateRate.MinimumElapsedTime = TimeSpan.Zero;
         }
-        // From the menu the game may become a host too.
-        if (LaunchOptions.Current.Networked || LaunchOptions.Current.ShowsMenu || headless)
-        {
-            TreatNotFocusedLikeMinimized = false;
-            InactiveSleepTime = TimeSpan.Zero;
-        }
+        // Every game may become a host: the pause menu leads back to the main menu.
+        TreatNotFocusedLikeMinimized = false;
+        InactiveSleepTime = TimeSpan.Zero;
 
         // At most --fps N (or KOTH_FPS) frames per second, unlimited without; the
         // last millisecond is spun, so the frames come evenly. Hidden, it counts as minimised.

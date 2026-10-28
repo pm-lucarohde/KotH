@@ -120,6 +120,8 @@ namespace KotH.Client
 
             LaunchOptions options = LaunchOptions.Current;
             CoverWhileLoading();
+            var pause = new PauseMenu { Driver = Entity.Get<SimulationDriver>(), ToMainMenu = ReturnToMenu };
+            Entity.Scene.Entities.Add(new Entity("PauseMenu") { pause });
             if (!options.Joining)
             {
                 string map = options.Map;
@@ -137,16 +139,25 @@ namespace KotH.Client
             }
             if (options.Host)
             {
-                // The game opens once the host has loaded.
-                cover.Loaded += () => StartNetworked(options);
+                // The game opens once the host has loaded, unless it went back to the menu first.
+                cover.Loaded += () =>
+                {
+                    if (games == 0)
+                        StartNetworked(options);
+                };
                 return;
             }
             if (options.Networked)
             {
                 // A guest asks for the map, loads it and only then joins.
                 StartNetworked(options);
-                cover.Loaded += () => net.Session.Join(net.Now);
-                cover.Hold = () => !net.Session.Joined;
+                NetClient guest = net;
+                cover.Loaded += () =>
+                {
+                    if (net == guest)
+                        guest.Session.Join(guest.Now);
+                };
+                cover.Hold = () => !guest.Session.Joined;
                 return;
             }
 
@@ -172,12 +183,9 @@ namespace KotH.Client
             // The own figure has a render group of its own: the eyes sit in
             // its cap, so the camera skips it unless it stands back far
             // enough. Shadow views keep their own mask, the shadow stays.
-            AddVisual(player, OwnFigureGroup);
+            shown[reader] = (AddVisual(player, OwnFigureGroup), null);
             foreach (Entity bot in bots)
-            {
-                AddVisual(bot);
-                AddLabel(bot, bot.Name);
-            }
+                shown[bot.Get<BotBody>()] = (AddVisual(bot), AddLabel(bot, bot.Name));
             BindLocal(player, reader);
         }
 
@@ -208,6 +216,93 @@ namespace KotH.Client
             LaunchOptions options = LaunchOptions.Current;
             options.Host = true;
             StartNetworked(options);
+        }
+
+        /// <summary>
+        /// Hauptmenü in the pause menu: the game is taken down - connection,
+        /// bots, bodies and what shows them - and the main menu flies over the
+        /// map again, which stays loaded (a guest without one loads its own).
+        /// </summary>
+        void ReturnToMenu()
+        {
+            if (menu != null)
+                return;
+            games++;
+            if (net != null)
+            {
+                Services.RemoveService<NetClient>();
+                net.Dispose();
+                net = null;
+            }
+            if (botDirector != null)
+            {
+                Services.RemoveService<BotDirector>();
+                botDirector.Dispose();
+                botDirector = null;
+            }
+            foreach (SimulationBody body in new List<SimulationBody>(shown.Keys))
+                ((INetWorld)this).Despawn(body);
+            foreach (SimulationBody body in new List<SimulationBody>(simulation.Bodies))
+                ((INetWorld)this).Despawn(body);
+            Unbind();
+
+            LaunchOptions options = LaunchOptions.Current;
+            options.Host = false;
+            options.JoinAddress = null;
+            cover.Hold = null;
+            simulation.ResetTickCounter();
+            if (builder.Map == null)
+                LoadMap(builder.HasMap(options.Map) ? options.Map : Maps.Default);
+            else if (builder.Zone != null)
+                simulation.Match = new HillMatch(builder.Zone) { Seed = (uint)Random.Shared.Next() };
+            // The game's garbage goes now, not as a stutter in the menu.
+            GC.Collect();
+            ShowMenu();
+            Log.Info("Zurück im Hauptmenü");
+        }
+
+        /// <summary>Camera, arms and displays let go of the game, as before the first one.</summary>
+        void Unbind()
+        {
+            Entity.Get<SimulationDriver>().LocalInput = null;
+            localReader = null;
+            if (arms != null)
+            {
+                visuals.UnregisterArms();
+                arms.Transform.Parent = null;
+                arms = null;
+            }
+            foreach (Entity e in Entity.Scene.Entities)
+            {
+                if (e.Get<PlayerCamera>() is { } camera)
+                {
+                    camera.Motor = null;
+                    camera.Reader = null;
+                    camera.Melee = null;
+                }
+                if (e.Get<HillBoard>() is { } board)
+                {
+                    board.Match = null;
+                    board.Simulation = null;
+                    board.Self = null;
+                    board.Notice = null;
+                    board.ConfirmedRound = null;
+                }
+                if (e.Get<ZoneVisual>() is { } zone)
+                {
+                    zone.Zone = null;
+                    zone.Match = null;
+                    zone.Self = null;
+                    zone.Board = null;
+                }
+                if (e.Get<MusicPlayer>() is { } music)
+                {
+                    music.Match = null;
+                    music.ConfirmedRound = null;
+                }
+                if (e.Get<PerformanceOverlay>() is { } overlay)
+                    overlay.Network = null;
+            }
         }
 
         void SetMenuOpen(bool open)
@@ -543,6 +638,7 @@ namespace KotH.Client
         BotDirector botDirector;
         LoadScreen cover;
         Entity menu;
+        int games;
         PlayerInputReader localReader;
         Entity arms;
         readonly Dictionary<SimulationBody, (Entity Visual, Entity Label)> shown =

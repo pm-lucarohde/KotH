@@ -63,6 +63,9 @@ namespace KotH.Client.Hud
 
         public bool Covers { get; private set; } = true;
 
+        /// <summary>Whether Loaded was raised already.</summary>
+        public bool IsLoaded => loaded;
+
         /// <summary>A map is being built now: from here on it waits for its bake.</summary>
         public void Begin() => begun = true;
 

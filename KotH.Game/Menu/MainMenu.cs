@@ -17,7 +17,8 @@ namespace KotH.Client.Menu
     /// their own (MenuOverlay), drawn last by the HUD. GameRoot creates it with
     /// the map, behind the load screen, which waits for <see cref="Ready"/>:
     /// the first Avalonia frames and the flight's first views are done there,
-    /// not in sight. GameRoot removes it when a game starts.
+    /// not in sight; back from a game over the loaded map it shows at once.
+    /// GameRoot removes it when a game starts.
     /// </summary>
     [DataContract("KotH.MainMenu")]
     public sealed class MainMenu : SyncScript
@@ -58,9 +59,8 @@ namespace KotH.Client.Menu
         HudRenderer hud;
         SceneThrottle throttle;
         MenuOverlay column, page, logo, corner;
-        MenuOverlay[] overlays;
-        MenuOverlay hovered, pressed;
-        Vector2 pointer = new Vector2(-1f);
+        MenuOverlay[] overlays, pointed;
+        readonly OverlayPointer pointer = new OverlayPointer();
         int calm;
         float waited;
         bool loaded, dark, shown, hostWanted, quitWanted;
@@ -71,14 +71,20 @@ namespace KotH.Client.Menu
             MenuOverlay.Start<MenuApp>();
             hud = HudRenderer.Of(this);
             throttle = Services.GetService<SceneThrottle>();
-            if (Cover != null)
-                Cover.Loaded += () => loaded = true;
 
             view = new MainMenuView();
             view.Label(PlayerName ?? Environment.UserName, $"Build {NetProtocol.BuildText[..8]}");
             view.HostRequested += () => hostWanted = true;
             view.QuitRequested += () => quitWanted = true;
-            view.Light(true);
+            // Over a map loaded before (back from a game) nothing hides the warming.
+            if (Cover is { IsLoaded: true })
+                Ready = dark = loaded = true;
+            else
+            {
+                if (Cover != null)
+                    Cover.Loaded += () => loaded = true;
+                view.Light(true);
+            }
 
             var parts = view.TakeParts();
             column = new MenuOverlay(parts.Column, MenuOverlay.Corner.TopLeft, 0f, 0f);
@@ -86,6 +92,7 @@ namespace KotH.Client.Menu
             logo = new MenuOverlay(parts.Logo, MenuOverlay.Corner.TopRight, 0f, 0f);
             corner = new MenuOverlay(parts.Corner, MenuOverlay.Corner.BottomRight, 0f, 0f);
             overlays = new[] { column, page, logo, corner };
+            pointed = new[] { column, page };
             foreach (MenuOverlay overlay in overlays)
                 hud.Add(overlay);
         }
@@ -108,7 +115,7 @@ namespace KotH.Client.Menu
                 Enter((float)Game.UpdateTime.Elapsed.TotalSeconds, screen.Y / (float)MainMenuView.DesignHeight);
                 if (KeyPresses.Pressed(Input, Keys.Escape))
                     view.GoBack();
-                Point(screen);
+                pointer.Update(Input, screen, pointed);
             }
 
             MenuOverlay.Tick(Game.UpdateTime.FrameCount);
@@ -194,37 +201,6 @@ namespace KotH.Client.Menu
 
         static float ElasticOut(float t)
             => t >= 1f ? 1f : MathF.Sin(-13f * MathF.PI / 2f * (t + 1f)) * MathF.Pow(2f, -10f * t) + 1f;
-
-        /// <summary>
-        /// Hands the mouse to the overlay under it (a pressed one keeps it until
-        /// the release, so a click completes), only when something happened.
-        /// </summary>
-        void Point(Vector2 screen)
-        {
-            if (Input.Mouse == null)
-                return;
-            Vector2 at = Input.MousePosition * screen;
-            bool down = Input.IsMouseButtonPressed(MouseButton.Left), up = Input.IsMouseButtonReleased(MouseButton.Left);
-            MenuOverlay target = pressed ?? Array.Find(overlays, o => o != logo && o != corner && o.Contains(at));
-            if (target != hovered)
-            {
-                hovered?.Leave();
-                hovered = target;
-            }
-            if (target != null && (at != pointer || down || up))
-                target.Move(at, Input.IsMouseButtonDown(MouseButton.Left));
-            pointer = at;
-            if (down && target != null)
-            {
-                target.Press(at);
-                pressed = target;
-            }
-            if (up && pressed != null)
-            {
-                pressed.Release(at);
-                pressed = null;
-            }
-        }
 
         public override void Cancel()
         {

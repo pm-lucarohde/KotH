@@ -163,6 +163,16 @@ namespace KotH.Client.Player
             crouchHeld |= heldCrouch;
         }
 
+        /// <summary>
+        /// Per frame instead of Collect while a menu lies over the game: no
+        /// key held, no press, the view stays where it was.
+        /// </summary>
+        public void Rest()
+        {
+            move = Vector2.Zero;
+            jumpHeld = sprintHeld = crouchHeld = false;
+        }
+
         /// <summary>Unity's GetAxisRaw with snap: -1, 0 or 1.</summary>
         static float Axis(InputManager input, Keys positive, Keys altPositive, Keys negative, Keys altNegative)
         {

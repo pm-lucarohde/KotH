@@ -1,0 +1,26 @@
+<!-- Einstellungen, shown by the main menu and the pause menu alike: only
+     to look at for now. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="KotH.Client.Menu.SettingsPage"
+             x:CompileBindings="True">
+    <Grid RowDefinitions="Auto,*">
+        <StackPanel Orientation="Horizontal" Spacing="12">
+            <Border Classes="Tab Chosen"><TextBlock Text="Grafik" /></Border>
+            <Border Classes="Tab"><TextBlock Text="Ton" /></Border>
+            <Border Classes="Tab"><TextBlock Text="Steuerung" /></Border>
+        </StackPanel>
+        <Border Grid.Row="1" Classes="Well" Margin="0,18,0,0">
+            <Grid ColumnDefinitions="260,*" RowDefinitions="*,*,*,*">
+                <TextBlock Classes="Label" Text="Vollbild" />
+                <ToggleSwitch Grid.Column="1" IsChecked="True" OnContent="" OffContent="" />
+                <TextBlock Grid.Row="1" Classes="Label" Text="Sichtfeld" />
+                <Slider Grid.Row="1" Grid.Column="1" Minimum="60" Maximum="110" Value="85" VerticalAlignment="Center" />
+                <TextBlock Grid.Row="2" Classes="Label" Text="Bildrate" />
+                <Slider Grid.Row="2" Grid.Column="1" Minimum="30" Maximum="240" Value="144" VerticalAlignment="Center" />
+                <TextBlock Grid.Row="3" Classes="Label" Text="V-Sync" />
+                <ToggleSwitch Grid.Row="3" Grid.Column="1" IsChecked="False" OnContent="" OffContent="" />
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>
