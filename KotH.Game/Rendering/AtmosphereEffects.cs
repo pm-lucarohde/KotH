@@ -45,6 +45,11 @@ namespace KotH.Client.Rendering
         static readonly ValueParameterKey<float> CoastOffset = ParameterKeys.NewValue<float>(default, "AtmosphereMarch.CoastOffset");
         static readonly ValueParameterKey<Vector3> CoastColor = ParameterKeys.NewValue<Vector3>(default, "AtmosphereMarch.CoastColor");
         static readonly ValueParameterKey<Vector2> NearFar = ParameterKeys.NewValue<Vector2>(default, "AtmosphereComposite.NearFar");
+        static readonly ValueParameterKey<Vector2> MaskSunUV = ParameterKeys.NewValue<Vector2>(default, "SunShaftMask.SunUV");
+        static readonly ValueParameterKey<Vector2> MaskShape = ParameterKeys.NewValue<Vector2>(default, "SunShaftMask.MaskShape");
+        static readonly ValueParameterKey<Vector2> BlurSunUV = ParameterKeys.NewValue<Vector2>(default, "SunShaftBlur.SunUV");
+        static readonly ValueParameterKey<Vector2> BlurShape = ParameterKeys.NewValue<Vector2>(default, "SunShaftBlur.BlurShape");
+        static readonly ValueParameterKey<Vector3> Tint = ParameterKeys.NewValue<Vector3>(default, "SunShaftAdd.Tint");
 
         [DataMember(-100), Display(Browsable = false)]
         public Guid Id { get; set; } = Guid.NewGuid();
@@ -58,8 +63,16 @@ namespace KotH.Client.Rendering
         public bool RequiresNormalBuffer => Inner?.RequiresNormalBuffer ?? false;
         public bool RequiresSpecularRoughnessBuffer => Inner?.RequiresSpecularRoughnessBuffer ?? false;
 
+        // Screen rays: below this cosine between the view and the sun they are gone (and not
+        // drawn); the share of the way to the sun they reach, the radius round it that
+        // shines (screen heights) and the fall-off per step (32 steps).
+        const float RayFacing = 0.3f, RayReach = 0.9f, RayRadius = 0.6f, RayDecay = 0.955f;
+
         ImageEffectShader march;
         ImageEffectShader composite;
+        ImageEffectShader shaftMask;
+        ImageEffectShader shaftBlur;
+        ImageEffectShader shaftAdd;
 
         protected override void InitializeCore()
         {
@@ -71,6 +84,14 @@ namespace KotH.Client.Rendering
             blend.RenderTargets[0].AlphaSourceBlend = Blend.Zero;
             blend.RenderTargets[0].AlphaDestinationBlend = Blend.One;
             composite.BlendState = blend;
+            shaftMask = ToLoadAndUnload(new ImageEffectShader("SunShaftMask"));
+            shaftBlur = ToLoadAndUnload(new ImageEffectShader("SunShaftBlur"));
+            shaftAdd = ToLoadAndUnload(new ImageEffectShader("SunShaftAdd"));
+            // scene + rgb
+            var add = new BlendStateDescription(Blend.One, Blend.One);
+            add.RenderTargets[0].AlphaSourceBlend = Blend.Zero;
+            add.RenderTargets[0].AlphaDestinationBlend = Blend.One;
+            shaftAdd.BlendState = add;
         }
 
         public void Collect(RenderContext context) => Inner?.Collect(context);
@@ -152,6 +173,35 @@ namespace KotH.Client.Rendering
                 composite.SetInput(1, depth);
                 composite.SetOutput(colour);
                 composite.Draw(drawContext);
+
+                // Rays towards the sun, only while it is roughly ahead.
+                var forward = -new Vector3(v.M13, v.M23, v.M33);
+                float fade = MathUtil.Clamp((Vector3.Dot(Vector3.Normalize(forward), toSun) - RayFacing) / (1f - RayFacing), 0f, 1f);
+                if (atmosphere.SunRays > 0f && fade > 0f && toSun.Y > 0f)
+                {
+                    var clip = Vector4.Transform(new Vector4(toSun, 0f), view.ViewProjection);
+                    var sun = new Vector2(0.5f + 0.5f * clip.X / clip.W, 0.5f - 0.5f * clip.Y / clip.W);
+                    int qw = Math.Max(1, colour.Width / 4), qh = Math.Max(1, colour.Height / 4);
+                    var mask = Context.Allocator.GetTemporaryTexture2D(qw, qh, PixelFormat.R16_Float, TextureFlags.RenderTarget | TextureFlags.ShaderResource);
+                    var quarter = Context.Allocator.GetTemporaryTexture2D(qw, qh, PixelFormat.R16_Float, TextureFlags.RenderTarget | TextureFlags.ShaderResource);
+                    shaftMask.Parameters.Set(MaskSunUV, sun);
+                    shaftMask.Parameters.Set(MaskShape, new Vector2(RayRadius, colour.Width / (float)colour.Height));
+                    shaftMask.SetInput(0, depth);
+                    shaftMask.SetInput(1, half);
+                    shaftMask.SetOutput(mask);
+                    shaftMask.Draw(drawContext);
+                    shaftBlur.Parameters.Set(BlurSunUV, sun);
+                    shaftBlur.Parameters.Set(BlurShape, new Vector2(RayReach, RayDecay));
+                    shaftBlur.SetInput(0, mask);
+                    shaftBlur.SetOutput(quarter);
+                    shaftBlur.Draw(drawContext);
+                    Context.Allocator.ReleaseReference(mask);
+                    shaftAdd.Parameters.Set(Tint, sunColor * (atmosphere.SunRays * fade * fade));
+                    shaftAdd.SetInput(0, quarter);
+                    shaftAdd.SetOutput(colour);
+                    shaftAdd.Draw(drawContext);
+                    Context.Allocator.ReleaseReference(quarter);
+                }
             }
             Context.Allocator.ReleaseReference(half);
         }

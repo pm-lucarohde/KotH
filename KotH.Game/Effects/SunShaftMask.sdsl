@@ -1,0 +1,20 @@
+/// <summary>
+/// The open sky near the sun at a quarter of the resolution, for SunShaftBlur:
+/// Texture0 is the full depth (the mountain, trees and figures hide the sky),
+/// Texture1 the half resolution atmosphere (its alpha: how much sky shows past
+/// clouds and fog).
+/// </summary>
+shader SunShaftMask : ImageEffectShader
+{
+    float2 SunUV;           // the sun on screen; it may lie outside
+    float2 MaskShape;       // radius round the sun that shines (screen heights), width / height
+
+    stage override float4 Shading()
+    {
+        float2 uv = streams.TexCoord;
+        if (Texture0.SampleLevel(PointSampler, uv, 0).r < 1.0)
+            return 0.0;
+        float near = saturate(1.0 - length((uv - SunUV) * float2(MaskShape.y, 1.0)) / MaskShape.x);
+        return float4(Texture1.SampleLevel(LinearSampler, uv, 0).a * near * near, 0.0, 0.0, 1.0);
+    }
+};

@@ -1,0 +1,13 @@
+/// <summary>
+/// Adds SunShaftBlur's quarter resolution rays to the colour, smoothly
+/// upscaled and tinted with the sun (blended one + one).
+/// </summary>
+shader SunShaftAdd : ImageEffectShader
+{
+    float3 Tint;
+
+    stage override float4 Shading()
+    {
+        return float4(Tint * Texture0.SampleLevel(LinearSampler, streams.TexCoord, 0).r, 0.0);
+    }
+};

@@ -1,0 +1,31 @@
+/// <summary>
+/// Rays towards the sun in screen space, at a quarter of the resolution
+/// (AtmosphereEffects, Luca): from each pixel 32 steps along the way to the
+/// sun through SunShaftMask's open sky (Texture0), fading with each step.
+/// </summary>
+shader SunShaftBlur : ImageEffectShader
+{
+    float2 SunUV;           // the sun on screen; it may lie outside
+    float2 BlurShape;       // share of the way to the sun, decay per step
+
+    static const int Samples = 32;
+
+    stage override float4 Shading()
+    {
+        float2 uv = streams.TexCoord;
+        float2 step = (SunUV - uv) * BlurShape.x / Samples;
+        // Interleaved gradient noise shifts the steps per pixel, so they do not band.
+        float2 pixel = streams.ShadingPosition.xy;
+        float jitter = frac(52.9829189 * frac(dot(pixel, float2(0.06711056, 0.00583715))));
+        float2 p = uv + step * jitter;
+        float sum = 0.0, weight = 1.0, total = 0.0;
+        for (int i = 0; i < Samples; i++)
+        {
+            sum += Texture0.SampleLevel(LinearBorderSampler, p, 0).r * weight;
+            total += weight;
+            weight *= BlurShape.y;
+            p += step;
+        }
+        return float4(sum / total, 0.0, 0.0, 1.0);
+    }
+};

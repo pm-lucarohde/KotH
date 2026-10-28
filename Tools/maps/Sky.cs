@@ -7,7 +7,7 @@
 // KotH.Game/Resources/Sky.dds (512², RGBA half, D3D face order) and a preview.
 //
 // The sky also lights the map (LightVoxel.Sky): it prints the SkyIntensity for NeuVisual
-// that keeps the light from above at 92 % of Stride's default sky's (Luca: 5-10 % less).
+// that keeps the light from above as bright as Stride's default sky's gave (Luca).
 //
 //   dotnet run Tools/maps/Sky.cs [-- --preview]
 #:include ../Common/Png.cs
@@ -191,7 +191,7 @@ Console.WriteLine($"Geschrieben: {outPath}");
 Vector3 up = Irradiance(cube, N);
 var luma = new Vector3(0.2126f, 0.7152f, 0.0722f);
 double defaultUp = Vector3.Dot(new Vector3(1.42f, 2.58f, 4.25f), luma);
-Console.WriteLine($"Licht von oben: ({up.X:F2}, {up.Y:F2}, {up.Z:F2}); SkyIntensity für 92 %: {0.26 * 0.92 * defaultUp / Vector3.Dot(up, luma):F3}");
+Console.WriteLine($"Licht von oben: ({up.X:F2}, {up.Y:F2}, {up.Z:F2}); SkyIntensity für gleiches Licht: {0.26 * defaultUp / Vector3.Dot(up, luma):F3}");
 
 if (preview)
 {

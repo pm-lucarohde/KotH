@@ -238,7 +238,7 @@ SharedRenderers:
                 c57351444609d14ea258b3f511ec8a74: !FilmGrain
                     Enabled: false
                 e86e22e9a5d65545b8b55fca26e0afee: !KotH.Client.Rendering.OvalVignette,KotH.Game
-                    Amount: 0.545
+                    Amount: 0.5
                     RadiusSides: 0.25
                     RadiusTopBottom: 0.5
                     Color: {R: 0.0, G: 0.0, B: 0.0}

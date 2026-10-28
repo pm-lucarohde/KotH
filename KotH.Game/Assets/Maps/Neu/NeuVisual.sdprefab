@@ -93,7 +93,7 @@ Hierarchy:
                             BounceIntensityScale: 0.0
                             SpecularIntensityScale: 0.0
                             Sky: F9A75D1E-7197-4A46-90CF-5A7F970DCDCA:Skybox
-                            SkyIntensity: 0.18
+                            SkyIntensity: 0.195
                             LightmapSize: 4096
                         Intensity: 0.27
                     181c5876b5ee47fcbff815b4eaddc043: !KotH.Client.Rendering.BakeVoxels,KotH.Game
