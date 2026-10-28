@@ -36,7 +36,7 @@ Voxeln (9³ mit Rand +x/+y/+z, damit trilinear in einem Brick bleibt), Seitentab
 Atlas in drei Stufen (0,125/0,25/0,5 m) plus ein dichtes 1-m-Volumen mit Hardware-Mips. Neu: 220.000 Bricks (Spiel gesamt ~1,4 GB VRAM).
 
 - **Backen** über mehrere Frames (Effekte kompilieren asynchron; jeder Schritt wiederholt sich, bis die
-  zurückgelesene Zahl zweimal gleich ist): Zellen markieren (`InterlockedOr` in einen Puffer), die Zellen darunter
+  zurückgelesene Zahl zweimal auf 0,1 % gleich ist; die Voxelzahl schwankt je Frame): Zellen markieren (`InterlockedOr` in einen Puffer), die Zellen darunter
   anlegen, in die gröbere Filterfüße reichen, Plätze vergeben, Fragmente in Scheiben ≤ 2²⁷ Elemente schreiben
   (`BufferToBricks`), dann Stufen und dichtes Volumen (`SparseMip`). `BakeVoxels` hört auf `Baked`.
 - **Lesen** (`VoxelStorageTextureSparseShader`): Brick über die untere Ecke des Filterfußes, Seite 0 = leer; ab
