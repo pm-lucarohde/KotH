@@ -43,8 +43,8 @@ namespace KotH.Client.Rendering
         [DataMember(100)]
         public float SunAngle { get; set; } = 1.0f;
 
-        /// <summary>Widest penumbra radius in shadow map texels; the blockers are searched as far.</summary>
-        /// <userdoc>Größter Radius des Halbschattens in Texeln der Schattenkarte; so weit wird auch nach Werfern gesucht.</userdoc>
+        /// <summary>Widest penumbra radius in shadow map texels; the blockers are searched as far (cascades: at most 4, every texel).</summary>
+        /// <userdoc>Größter Radius des Halbschattens in Texeln der Schattenkarte; so weit wird auch nach Werfern gesucht (Kaskaden höchstens 4, lückenlos).</userdoc>
         [DataMember(110)]
         public float MaxPenumbra { get; set; } = 4.0f;
 

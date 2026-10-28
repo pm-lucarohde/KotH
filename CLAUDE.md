@@ -31,7 +31,7 @@ Tools/publish_aot.sh windows probes-windows  # nur auf Wunsch: Bin/Windows/aot, 
   (nicht selbst starten). JIT und AOT spielen zusammen, wenn JIT mit `DOTNET_EnableAVX=0` läuft (`BuildId`).
 - Testhilfen (`KotHApp.cs`, Zeiten ab Ende des Ladebilds): `KOTH_SHOT=bild.png` (nach `_SECONDS`, F3 an), `_YAW`/`_PITCH`/`_FOV`,
   `_THIRD`, `_AT=x,y,z`, `_FACE=grad`, `_SWING`, `_SHAKE`, `_HIT=grad[,s]`, `_BLINK`, `_STRIKE=s,…`, `_MOVE=x,y[,sprint]`, `_CROUCH=s`,
-  `_JUMP=s,…`, `_TURN=grad,s[,kreis]`, `_VIDEO=s` (30 fps nach `bild.png.rgba`, Format im Log); `KOTH_HEADLESS=1` (ohne Fenster),
+  `_JUMP=s,…`, `_TURN=grad,s[,kreis]`, `_SPIN=grad/s`, `_VIDEO=s` (30 fps nach `bild.png.rgba`, Format im Log); `KOTH_HEADLESS=1` (ohne Fenster),
   `KOTH_SIZE`, `KOTH_VSYNC`, `KOTH_FRAMELOG`, `KOTH_BOT_THREAD`, `KOTH_MUSIC_VOLUME` (stumm, auch Geräusche), `KOTH_MUSIC_TAIL`, `KOTH_SFX_VOLUME`, `KOTH_SOUNDLOG`, Ton `ALSOFT_DRIVERS=wave`, `KOTH_EFFECTLOG` (Effekt-Varianten). Kein Splash, 6 Render-Threads.
 
 ## Tests: Proben und Regression

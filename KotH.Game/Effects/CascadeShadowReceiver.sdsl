@@ -29,7 +29,7 @@ shader CascadeShadowReceiver<int TCascadeCount,
     {
         float4 CascadeRects[TCascadeCount * TLightCount];   // atlas uv: left, top, right, bottom
         float SunTangent;     // penumbra metres per metre between blocker and receiver
-        float MaxPenumbra;    // widest penumbra radius in texels, also the blocker search's reach
+        float MaxPenumbra;    // widest penumbra radius in texels, also the static map's search reach (cascades: BlockerReach)
         float4x4 WorldToStaticUV;
         float2 StaticTexelSize;   // 0 without a static map
         float2 SunLightmapTexelSize;
@@ -157,20 +157,30 @@ shader CascadeShadowReceiver<int TCascadeCount,
         float gap = BlockerGap(shadowPosition.xyz, gradient, rect);
         if (gap < 0.0)
             return gap < -1.5 ? 0.0 : 1.0;
-        float radius = clamp(gap / depthPerMetre * SunTangent / texel, 1.5, MaxPenumbra);
+        float radius = clamp(gap / depthPerMetre * SunTangent / texel, 1.5, min(MaxPenumbra, BlockerReach));
         return FilterDisk(shadowPosition.xyz, gradient, radius, rect);
     }
 
+    // The cascades' blocker search reaches this many texels, every texel: wider,
+    // the 4x4 gathers left gaps, and a figure moving less than a texel flipped the
+    // penumbra between soft and hard at the shadow's rim. The disk no wider, its rim
+    // would end in a step (wider takes a blocker gap of 5 m).
+    static const float BlockerReach = 4.0;
+
     // Mean depth from the blockers to the receiver's plane over 4x4 gathers reaching
-    // MaxPenumbra texels round the pixel (every texel at 4); -1 when nothing blocks, -2 when all do.
+    // BlockerReach texels round the pixel; -1 when nothing blocks, -2 when all do.
+    // Each texel weighs by a tent over its distance, nothing at the reach: so the
+    // mean changes smoothly with the pixel and the caster, not texel by texel
+    // (whole texels flipped between penumbrae as large squares at the rim).
     float BlockerGap(float3 position, float2 gradient, float4 rect)
     {
-        float2 step = 0.5 * MaxPenumbra * ShadowMapTextureTexelSize;
+        float2 step = 0.5 * BlockerReach * ShadowMapTextureTexelSize;
         float2 halfTexel = 0.5 * ShadowMapTextureTexelSize;
         float4 corners = float4(dot(float2(-halfTexel.x, halfTexel.y), gradient), dot(halfTexel, gradient),
                                 dot(float2(halfTexel.x, -halfTexel.y), gradient), dot(-halfTexel, gradient));
         float sum = 0;
         float count = 0;
+        float all = 0;
         for (int j = 0; j < 4; j++)
         {
             for (int i = 0; i < 4; i++)
@@ -181,11 +191,16 @@ shader CascadeShadowReceiver<int TCascadeCount,
                 float4 stored = ShadowMapTexture.GatherRed(PointSampler, uv);
                 float4 receiver = position.z + dot(uv - position.xy, gradient) + corners;
                 float4 blocked = stored < receiver ? 1.0 : 0.0;
-                sum += dot(blocked, receiver - stored);
-                count += dot(blocked, 1.0);
+                // The gathered texels' centres in texels from the pixel (order of GatherRed).
+                float2 d = (uv - position.xy) * ShadowMapTextureSize;
+                float4 weight = saturate(1.0 - abs(d.x + float4(-0.5, 0.5, 0.5, -0.5)) / BlockerReach)
+                              * saturate(1.0 - abs(d.y + float4(0.5, 0.5, -0.5, -0.5)) / BlockerReach);
+                sum += dot(blocked * weight, receiver - stored);
+                count += dot(blocked, weight);
+                all += dot(blocked, 1.0);
             }
         }
-        return count == 0 ? -1.0 : count == 64 ? -2.0 : sum / count;
+        return count <= 0.0 ? -1.0 : all == 64 ? -2.0 : sum / count;
     }
 
     // The baked sun as a cubic B-spline: four bilinear reads, each placed between

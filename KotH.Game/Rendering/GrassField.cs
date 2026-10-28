@@ -168,37 +168,86 @@ namespace KotH.Client.Rendering
                 float density = 1f - t * t * (3f - 2f * t);
                 (density <= FarShare ? far : near).Wanted.Add(Matrix.Translation(p.X, 0f, p.Y));
             }
-            near.Show();
-            far.Show();
+            CommandList commandList = Game.GraphicsContext.CommandList;
+            near.Show(commandList);
+            far.Show(commandList);
         }
 
-        /// <summary>One patch mesh drawn instanced on an entity, and where it stands now.</summary>
+        /// <summary>
+        /// One patch mesh drawn instanced on an entity, and where it stands now.
+        /// Its own buffers, three pairs in turn: Stride's Vulkan writes a dynamic
+        /// buffer (InstancingUserArray's) straight into the memory the frame before
+        /// may still draw from, so its depth prepass and colour pass could see two
+        /// lists, and a patch with depth but no colour flashed in the clear colour.
+        /// </summary>
         sealed class Patches
         {
+            // Stride keeps at most two frames in flight (two frame fences).
+            const int Ring = 3;
             public readonly List<Matrix> Wanted = new List<Matrix>();
-            readonly InstancingUserArray instancing = new InstancingUserArray();
-            Matrix[] shown = Array.Empty<Matrix>();
-            int shownCount = -1;
+            readonly InstancingUserBuffer instancing = new InstancingUserBuffer();
+            readonly Buffer<Matrix>[] worlds = new Buffer<Matrix>[Ring], inverses = new Buffer<Matrix>[Ring];
+            readonly GraphicsDevice device;
+            Matrix[] shown = Array.Empty<Matrix>(), shownInverse = Array.Empty<Matrix>();
+            int shownCount = -1, slot;
 
             public Patches(GrassField field, Entity entity, int blades)
             {
-                var model = new Model { GrassPatch.Build(field.GraphicsDevice, blades) };
+                device = field.GraphicsDevice;
+                var model = new Model { GrassPatch.Build(device, blades) };
                 model.Materials.Add(new MaterialInstance(field.Material) { IsShadowCaster = false });
                 model.BoundingBox = model.Meshes[0].BoundingBox;
                 entity.Add(new ModelComponent(model) { RenderGroup = Group, IsShadowCaster = false });
                 entity.Add(new InstancingComponent { Type = instancing });
             }
 
-            /// <summary>Hands the wanted patches to the instancing, if they changed.</summary>
-            public void Show()
+            /// <summary>Hands the wanted patches to the instancing, if they changed, in the next buffers.</summary>
+            public void Show(CommandList commandList)
             {
                 if (Wanted.Count == shownCount && Same())
                     return;
-                if (shown.Length < Wanted.Count)
-                    shown = new Matrix[Math.Max(Wanted.Count, 2 * shown.Length)];
+                int count = Wanted.Count;
+                if (shown.Length < count)
+                {
+                    shown = new Matrix[Math.Max(count, 2 * shown.Length)];
+                    shownInverse = new Matrix[shown.Length];
+                }
                 Wanted.CopyTo(shown);
-                shownCount = Wanted.Count;
-                instancing.UpdateWorldMatrices(shown, shownCount);
+                shownCount = count;
+                BoundingBox box = BoundingBox.Empty;
+                for (int i = 0; i < count; i++)
+                {
+                    Vector3 at = shown[i].TranslationVector;
+                    shownInverse[i] = Matrix.Translation(-at);
+                    BoundingBox.Merge(ref box, ref at, out box);
+                }
+
+                slot = (slot + 1) % Ring;
+                if (count > 0 && (worlds[slot] == null || worlds[slot].ElementCount < count))
+                {
+                    worlds[slot]?.Dispose();
+                    inverses[slot]?.Dispose();
+                    worlds[slot] = Stride.Graphics.Buffer.New<Matrix>(device, shown.Length, BufferFlags.ShaderResource | BufferFlags.StructuredBuffer, GraphicsResourceUsage.Dynamic);
+                    inverses[slot] = Stride.Graphics.Buffer.New<Matrix>(device, shown.Length, BufferFlags.ShaderResource | BufferFlags.StructuredBuffer, GraphicsResourceUsage.Dynamic);
+                }
+                if (count > 0)
+                {
+                    worlds[slot].SetData(commandList, (ReadOnlySpan<Matrix>)shown.AsSpan(0, count));
+                    inverses[slot].SetData(commandList, (ReadOnlySpan<Matrix>)shownInverse.AsSpan(0, count));
+                }
+                instancing.InstanceWorldBuffer = worlds[slot];
+                instancing.InstanceWorldInverseBuffer = inverses[slot];
+                instancing.InstanceCount = count;
+                instancing.BoundingBox = box;
+            }
+
+            public void Dispose()
+            {
+                for (int i = 0; i < Ring; i++)
+                {
+                    worlds[i]?.Dispose();
+                    inverses[i]?.Dispose();
+                }
             }
 
             bool Same()
@@ -241,6 +290,8 @@ namespace KotH.Client.Rendering
 
         public override void Cancel()
         {
+            near?.Dispose();
+            far?.Dispose();
             map?.Dispose();
             map = null;
         }

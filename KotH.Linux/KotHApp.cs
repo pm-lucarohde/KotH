@@ -47,7 +47,7 @@ game.Run();
 /// KOTH_SHOT_JUMP=s[,s2] presses jump at s seconds (and again at s2: the double jump),
 /// KOTH_SHOT_TURN=deg,s[,orbit] turns the held view by deg at s seconds in first person
 /// (with KOTH_SHOT_THIRD the step back comes 0.2 s later, the camera circling the
-/// figure by orbit degrees, to see head and body), KOTH_SHOT_VIDEO=s also writes the last s seconds
+/// figure by orbit degrees, to see head and body), KOTH_SHOT_SPIN=deg turns it steadily by deg per second, KOTH_SHOT_VIDEO=s also writes the last s seconds
 /// before the shot as raw frames at 30 fps (path.rgba, size and format in the log, for ffmpeg),
 /// saves the back buffer as PNG after KOTH_SHOT_SECONDS (default 3), reports
 /// the label font and quits. Taken from
@@ -68,6 +68,7 @@ sealed class KotHGame : Game
     readonly string shotPath = Environment.GetEnvironmentVariable("KOTH_SHOT");
     readonly double shotSeconds = Number("KOTH_SHOT_SECONDS") ?? 3.0;
     readonly double? shotYaw = Number("KOTH_SHOT_YAW");
+    readonly double shotSpin = Number("KOTH_SHOT_SPIN") ?? 0.0;
     readonly double shotPitch = Number("KOTH_SHOT_PITCH") ?? 0.0;
     readonly double? shotFov = Number("KOTH_SHOT_FOV");
     readonly bool shotThird = Environment.GetEnvironmentVariable("KOTH_SHOT_THIRD") == "1";
@@ -323,7 +324,7 @@ sealed class KotHGame : Game
         bool turned = shotTurn != null && now >= shotTurn[1];
         bool orbit = turned && shotThird && shotTurn.Length > 2 && now >= shotTurn[1] + 0.2;
         if ((shotYaw.HasValue || shotTurn != null) && Find<PlayerInputReader>() is { } reader)
-            reader.Look((float)((shotYaw ?? 0.0) + (turned ? shotTurn[0] : 0.0) + (orbit ? shotTurn[2] : 0.0)), (float)shotPitch);
+            reader.Look((float)((shotYaw ?? 0.0) + shotSpin * Math.Max(now, 0.0) + (turned ? shotTurn[0] : 0.0) + (orbit ? shotTurn[2] : 0.0)), (float)shotPitch);
         if (shotFov.HasValue && Find<CameraComponent>() is { } camera)
             camera.VerticalFieldOfView = (float)shotFov.Value;
         if (Find<PlayerInputReader>() is { } player)
