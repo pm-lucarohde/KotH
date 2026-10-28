@@ -11,9 +11,6 @@ UsedParameters: {}
 EffectName: ColorTransformGroupEffect
 UsedParameters:
     ColorTransformGroup.Transforms:
-        - !ColorGrade
-            Contrast: 0.95
-            Brightness: 1.05
         - !OvalVignette
             Amount: 0.5
             RadiusSides: 0.25

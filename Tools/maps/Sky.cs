@@ -2,8 +2,7 @@
 // KotH's own sky (Luca): clear midday after Battlefront (2015), Nishita single scattering with
 // the MainScene sun -> KotH.Game/Resources/Sky.dds (512², RGBA half). Prints the SkyIntensity
 // for MountDestinyVisual that keeps the light from above as Stride's default sky gave.
-//   dotnet run Tools/maps/Sky.cs [-- --preview] [--between OLD.dds]   (OLD: Stride's default sky,
-//   git show 64c63d5^:KotH.Game/Resources/skybox_texture_hdr.dds; mixed in by OldShare, its sun left out)
+//   dotnet run Tools/maps/Sky.cs [-- --preview]
 #:include ../Common/Png.cs
 using System;
 using System.Globalization;
@@ -29,16 +28,11 @@ const double SunDegrees = 3.25;           // the disc's radius
 const double SunEdge = 1.6;               // its rim fades over this much, smoothly
 const double SunDisc = 5.0;               // per channel in the map: white on screen up to its rim, no brighter
 Vector3 ground = new(0.20f, 0.27f, 0.33f);   // below the horizon, times the horizon's brightness
-// With --between: Stride's default sky's share (Luca: halfway), as the scene showed it (turned
-// -150° about up); round its own sun (OldSunInner to OldSunOuter degrees) only this sky.
-const double OldShare = 0.5, OldYawDegrees = -150, OldSunInner = 12, OldSunOuter = 32;
 
 string root = Path.GetFullPath(Path.Combine(Here(), "../.."));
 string scenePath = Path.Combine(root, "KotH.Game/Assets/MainScene.sdscene");
 string outPath = Path.Combine(root, "KotH.Game/Resources/Sky.dds");
 bool preview = Array.IndexOf(args, "--preview") >= 0;
-int between = Array.IndexOf(args, "--between");
-OldSky old = between >= 0 ? new OldSky(File.ReadAllBytes(args[between + 1]), OldYawDegrees) : null;
 
 // The sun: the directional light's forward (-Z) turned by its rotation, reversed; its colour.
 string scene = File.ReadAllText(scenePath);
@@ -148,12 +142,6 @@ Parallel.For(0, 6 * N, row =>
         Vector3 c = Vector3.Normalize(Direction(f, i, j, N));
         var d = new Vector3(c.X, c.Y, -c.Z);
         Vector3 colour = Grade(Sky(d), d);
-        if (old != null)
-        {
-            double away = Math.Acos(Math.Clamp(Vector3.Dot(d, old.Sun), -1f, 1f)) * 180 / Math.PI;
-            double t = Math.Clamp((away - OldSunInner) / (OldSunOuter - OldSunInner), 0, 1);
-            colour = Vector3.Lerp(colour, old.At(d), (float)(OldShare * t * t * (3 - 2 * t)));
-        }
         float mu = Vector3.Dot(d, toSun);
         if (mu > sunCos)
         {
@@ -269,52 +257,3 @@ static Vector3 Irradiance(Vector3[] cube, int n)
 }
 
 static string Here([CallerFilePath] string path = "") => Path.GetDirectoryName(path);
-
-/// <summary>A half-float cube DDS (148-byte DX10 header) seen as a background turned by yaw about
-/// up; Sun is its brightest direction more than 10° up.</summary>
-sealed class OldSky
-{
-    readonly byte[] data;
-    readonly int n;
-    readonly Quaternion turn;
-    public readonly Vector3 Sun;
-
-    public OldSky(byte[] dds, double yawDegrees)
-    {
-        data = dds;
-        n = BitConverter.ToInt32(dds, 12);
-        turn = Quaternion.CreateFromAxisAngle(Vector3.UnitY, (float)(yawDegrees * Math.PI / 180));
-        float most = 0;
-        for (int k = 0; k < 20000; k++)
-        {
-            // A spiral over the upper sphere is enough to find the disc.
-            float y = 0.17f + 0.83f * (k + 0.5f) / 20000, r = MathF.Sqrt(1 - y * y), a = k * 2.39996f;
-            var d = new Vector3(r * MathF.Cos(a), y, r * MathF.Sin(a));
-            Vector3 c = At(d);
-            if (c.X + c.Y + c.Z > most) { most = c.X + c.Y + c.Z; Sun = d; }
-        }
-    }
-
-    /// <summary>Its colour seen in world direction d, bilinear within the face.</summary>
-    public Vector3 At(Vector3 d)
-    {
-        Vector3 l = Vector3.Transform(d, Quaternion.Inverse(turn));
-        var c = new Vector3(l.X, l.Y, -l.Z);
-        Vector3 a = Vector3.Abs(c);
-        int f; float s, t;
-        if (a.X >= a.Y && a.X >= a.Z) { f = c.X > 0 ? 0 : 1; s = (c.X > 0 ? -c.Z : c.Z) / a.X; t = -c.Y / a.X; }
-        else if (a.Y >= a.Z) { f = c.Y > 0 ? 2 : 3; s = c.X / a.Y; t = (c.Y > 0 ? c.Z : -c.Z) / a.Y; }
-        else { f = c.Z > 0 ? 4 : 5; s = (c.Z > 0 ? c.X : -c.X) / a.Z; t = -c.Y / a.Z; }
-        float u = Math.Clamp((s + 1) / 2 * n - 0.5f, 0, n - 1.001f), v = Math.Clamp((t + 1) / 2 * n - 0.5f, 0, n - 1.001f);
-        int i = (int)u, j = (int)v;
-        float fu = u - i, fv = v - j;
-        return Vector3.Lerp(Vector3.Lerp(Texel(f, i, j), Texel(f, i + 1, j), fu),
-                            Vector3.Lerp(Texel(f, i, j + 1), Texel(f, i + 1, j + 1), fu), fv);
-    }
-
-    Vector3 Texel(int f, int i, int j)
-    {
-        int o = 148 + ((f * n + j) * n + i) * 8;
-        return new((float)BitConverter.ToHalf(data, o), (float)BitConverter.ToHalf(data, o + 2), (float)BitConverter.ToHalf(data, o + 4));
-    }
-}
