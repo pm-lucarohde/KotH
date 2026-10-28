@@ -45,7 +45,7 @@ namespace KotH.Client.Rendering
         /// <userdoc>Weiter als so viele Meter rechnet der Nebel nicht (Himmel, Horizont).</userdoc>
         [DataMember(19)] public float FogDistance { get; set; } = 1500f;
         /// <userdoc>Strahlen zur Sonne hin im Bild (Berg, Wolken, Bäume schatten sie ab), nur mit Blick Richtung Sonne (0 = keine).</userdoc>
-        [DataMember(20)] public float SunRays { get; set; } = 0.7f;
+        [DataMember(20)] public float SunRays { get; set; } = 0.35f;
 
         /// <userdoc>Wolkenkarte: rot die Wölkchen (Höhe), grün die großen Streifen und Lücken, blau die Schwaden des Küstennebels (Tools/maps/Clouds.cs).</userdoc>
         [DataMember(30)] public Texture CloudMap { get; set; }
