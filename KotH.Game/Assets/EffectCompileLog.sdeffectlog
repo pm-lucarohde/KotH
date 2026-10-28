@@ -12,7 +12,7 @@ EffectName: ColorTransformGroupEffect
 UsedParameters:
     ColorTransformGroup.Transforms:
         - !ColorGrade
-            Contrast: 0.9
+            Contrast: 0.95
             Brightness: 1.05
         - !OvalVignette
             Amount: 0.5
