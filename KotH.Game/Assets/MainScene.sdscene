@@ -149,7 +149,7 @@ Hierarchy:
                                 Enabled: true
                                 Filter: !LightShadowMapFilterTypePcf
                                     FilterSize: Filter5x5
-                                Size: Large
+                                Size: XLarge
                                 DepthRange:
                                     IsAutomatic: false
                                     ManualMinDistance: 0.1
