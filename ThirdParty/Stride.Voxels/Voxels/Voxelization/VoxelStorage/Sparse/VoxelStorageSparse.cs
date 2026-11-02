@@ -281,7 +281,8 @@ namespace Stride.Rendering.Voxels
             }
         }
 
-        /// <summary>Vulkan has no clear for buffers in Stride; ClearBuffer does it.</summary>
+        /// <summary>Clears a whole typed buffer with ClearBuffer, then waits for it: the next pass
+        /// writes the same buffer without a transition.</summary>
         void Clear(RenderDrawContext drawContext, Buffer buffer)
         {
             ref ComputeEffectShader shader = ref buffer == counter ? ref clearCounter : ref buffer == marksBuffer ? ref clearMarks
@@ -294,6 +295,7 @@ namespace Stride.Rendering.Voxels
             shader.Parameters.Set(ClearBufferKeys.rowLength, rowLength);
             shader.Parameters.Set(ClearBufferKeys.count, buffer.ElementCount);
             ((RendererBase)shader).Draw(drawContext);
+            drawContext.CommandList.UnorderedAccessBarrier();
         }
 
         int SlabCount => (brickCount + slabBricks - 1) / slabBricks;
@@ -318,6 +320,8 @@ namespace Stride.Rendering.Voxels
                 shader.Parameters.Set(SparseMarksKeys.Counter, counter);
                 shader.Parameters.Set(SparseMarksKeys.Dilate, shader == dilate ? 1u : 0u);
                 shader.Parameters.Set(SparseMarksKeys.Allocate, allocate ? 1u : 0u);
+                // KotH patch: after the voxelization and between the passes, which share the UAVs (4.4.1)
+                drawContext.CommandList.UnorderedAccessBarrier();
                 ((RendererBase)shader).Draw(drawContext);
             }
         }
@@ -358,7 +362,9 @@ namespace Stride.Rendering.Voxels
             bufferToBricks.Parameters.Set(BufferToBricksKeys.slabCount, (uint)count);
             bufferToBricks.Parameters.Set(BufferToBricksKeys.rowLength, (uint)rowLength);
             bufferToBricks.Parameters.Set(BufferToBricksKeys.atlasBricks, output.AtlasBricks);
+            drawContext.CommandList.UnorderedAccessBarrier(); // KotH patch: the fragments were just written
             ((RendererBase)bufferToBricks).Draw(drawContext);
+            drawContext.CommandList.UnorderedAccessBarrier();
         }
 
         /// <summary>Group counts for <paramref name="count"/> threads in groups of

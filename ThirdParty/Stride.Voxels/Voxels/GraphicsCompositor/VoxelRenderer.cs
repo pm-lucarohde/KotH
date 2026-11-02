@@ -218,6 +218,8 @@ namespace Stride.Rendering.Voxels
                     foreach(var pass in processedVolume.groupedPasses[group])
                     {
                         pass.renderStage = VoxelStages[group];
+                        // The passes of a group share their method's render target (CanShareRenderStage)
+                        pass.renderStage.Output = pass.method.GetRenderOutput(Context.GraphicsDevice);
                         pass.source = pass.storer.GetVoxelizationShader(pass, processedVolume);
                         pass.view.RenderStages.Add(pass.renderStage);
                         pass.view.CullingMask = dynamic ? dataVolume.DynamicGroups : dataVolume.StaticGroups; // KotH patch
@@ -261,13 +263,16 @@ namespace Stride.Rendering.Voxels
                     if (processedVolume.Dynamic)
                         processedVolume.Storage.RestoreDynamic(context, processedVolume);
 
+                    (processedVolume.Storage as VoxelStorageClipmaps)?.ClearNewResources(drawContext.CommandList);
+
                     using (drawContext.QueryManager.BeginProfile(Color.Black, PassesVoxelizationProfilingKey))
                     {
                         foreach (VoxelizationPass pass in processedVolume.passList.passes)
                         {
                             RenderView voxelizeRenderView = pass.view;
 
-                            if (pass.requireShadows && !processedVolume.Dynamic) // KotH patch
+                            // Like Collect, a compositor without shadow map renderer renders no shadows
+                            if (pass.requireShadows && !processedVolume.Dynamic && ShadowMapRenderer != null) // KotH patch
                             {
                                 //Render Shadow Maps
                                 RenderView oldView = drawContext.RenderContext.RenderView;

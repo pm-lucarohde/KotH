@@ -2,7 +2,7 @@
 SerializedVersion: {Assets: 3.1.0.0}
 Meta:
     Name: Stride.Voxels
-    Version: 4.4.0
+    Version: 4.4.1
     Authors: []
     Owners: []
     Dependencies: null

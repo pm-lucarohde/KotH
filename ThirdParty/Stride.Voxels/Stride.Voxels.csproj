@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Stride.Voxels 4.4.0 (tag releases/4.4.0, MIT, see LICENSE.md), built here so
+  <!-- Stride.Voxels 4.4.0 + the 4.4.1 voxel fixes (MIT, see LICENSE.md), built here so
        it can be patched (Luca's choice); the assembly name stays, the assets
        and compositor name its types by it. Patches: README.md. -->
   <PropertyGroup>

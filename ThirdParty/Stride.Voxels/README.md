@@ -1,15 +1,17 @@
 # Stride.Voxels (patched)
 
-From `stride3d/stride`, tag `releases/4.4.0` (a0fdf91), `sources/engine/Stride.Voxels`, MIT (`LICENSE.md`). Kept in
-the repo to fix and extend it (Luca's choice), without `DefaultGraphicsCompositorVoxels.sdgfxcomp` and the strong-name
-`InternalsVisibleTo`. Every change is marked `KotH patch` in the code.
+From `stride3d/stride`, tag `releases/4.4.0` (a0fdf91) plus the voxel changes of `releases/4.4.1` (1be8907),
+`sources/engine/Stride.Voxels`, MIT (`LICENSE.md`). Kept in the repo to fix and extend it (Luca's choice), without
+`DefaultGraphicsCompositorVoxels.sdgfxcomp` and the strong-name `InternalsVisibleTo`. Every change is marked
+`KotH patch` in the code.
 
 ## Fixes
 
 - `VoxelVolumeProcessor`: volumes live across frames instead of being recreated each frame (GC spikes every 0.4 s).
 - A volume with `Voxelize = false` keeps voxels and passes: no voxel views, culling or shadow views every frame.
 - `VoxelMarchSetHemisphere6`: the sixth cone nearly doubled the second; it is `(0, 0.895, 0.445)` now.
-- Vulkan: `ClearReadWrite(Buffer)` is missing (compute `ClearBuffer`), typed buffers hold at most 2²⁷ elements.
+- Vulkan: typed buffers hold at most 2²⁷ elements. The sparse bake waits with `UnorderedAccessBarrier` (4.4.1)
+  between passes that share a UAV.
 
 ## Additions
 
