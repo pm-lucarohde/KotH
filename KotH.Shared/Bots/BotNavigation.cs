@@ -122,6 +122,9 @@ namespace KotH.Shared.Bots
             return 0;
         }
 
+        /// <summary>Whether nothing solid lies between two points, as far as the grid sees.</summary>
+        public bool InSight(Vector3 a, Vector3 b) => grid.InSight(a, b);
+
         /// <summary>
         /// Where a fall of over a metre is nearest to a point, level only;
         /// false when none is within the radius.

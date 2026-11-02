@@ -2,6 +2,7 @@ using KotH.Shared.Match;
 using KotH.Shared.Mathematics;
 using KotH.Shared.Physics;
 using KotH.Shared.Player;
+using KotH.Shared.Simulation;
 using Stride.Core;
 using Stride.Core.Mathematics;
 using Stride.Engine;
@@ -68,6 +69,9 @@ namespace KotH.Shared.Combat
         /// <summary>Shots fired and bodies hit so far. Diagnostics for the probe.</summary>
         [DataMemberIgnore] public int ShotCount { get; private set; }
         [DataMemberIgnore] public int HitCount { get; private set; }
+
+        /// <summary>How far a spore flies in its lifetime, its fall left out.</summary>
+        [DataMemberIgnore] public float Range => Speed * LifetimeTicks * SimulationSystem.TickSeconds;
 
         /// <summary>Whether the cane may swing this tick: in hand and drawn.</summary>
         [DataMemberIgnore] public bool CaneReady => !state.Selected && state.Draw == 0;

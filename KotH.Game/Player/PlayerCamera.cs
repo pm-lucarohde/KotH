@@ -150,17 +150,18 @@ namespace KotH.Client.Player
                                                    MathUtil.DegreesToRadians(roll));
         }
 
-        /// <summary>What a swing should aim at: the first thing on the centre line, but
-        /// no further than where the line leaves the reach around the eye. Cast from the
-        /// pivot, which lies on that line, so whatever is between the camera and the
-        /// figure counts as behind it.</summary>
+        /// <summary>What a swing or shot should aim at: the first thing on the centre line,
+        /// but no further than where the line leaves the reach around the eye (the cane's,
+        /// or a spore's flight with the blaster). Cast from the pivot, which lies on that
+        /// line, so whatever is between the camera and the figure counts as behind it.</summary>
         Vector3 AimTarget(Vector3 pivot, Vector3 eye, Quaternion rotation)
         {
             // |pivot + forward*s - eye| = reach; the pivot lies inside the
             // reach, so the larger root is ahead of it.
             Vector3 forward = UMath.Rotate(rotation, UMath.Forward);
             Vector3 w = UMath.Sub(pivot, eye);
-            float reach = Melee?.Range ?? 3.5f;
+            Blaster gun = Reader.Blaster ? Motor.Entity.Get<Blaster>() : null;
+            float reach = gun?.Range ?? Melee?.Range ?? 3.5f;
             float b = UMath.Dot(forward, w);
             float s = -b + UMath.Sqrt(UMath.Max(0f, b * b - UMath.SqrMagnitude(w) + reach * reach));
 

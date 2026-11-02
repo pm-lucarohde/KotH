@@ -38,6 +38,7 @@ namespace KotH.Shared.Bots
         readonly HillMatch match;
         readonly PlayerMotor body;
         readonly MeleeAttack fists;
+        readonly Blaster gun;
         readonly ManeuverWfc wfc;
         readonly ushort[] allowed;
         readonly List<Corner> corners = new List<Corner>();
@@ -61,6 +62,9 @@ namespace KotH.Shared.Bots
         float eyeAbove = 1.6f;       // eye over the feet, as last seen
         Vector2 walkKeys;            // the keys held while walking
         int jumpHeldUntil = -1, doubleJumpAt = -1, lastJump = -1000, lastStrike = -1000;
+        bool holdBlaster;            // the blaster in hand, else the cane
+        int switchedAt = -1000, lastShot = -1000;
+        int shotsLeft;               // as seen, less those fired since
         int stuckTicks;
         int slideTap = -1;
         bool landSlide;
@@ -88,7 +92,7 @@ namespace KotH.Shared.Bots
         int bestTick;
 
         public BotBrain(int netId, uint seed, int route, BotNavigation nav, BotSettings settings, HillMatch match,
-                        PlayerMotor body, MeleeAttack fists)
+                        PlayerMotor body, MeleeAttack fists, Blaster gun)
         {
             this.netId = netId;
             this.route = (route % 1024 + 1024) % 1024;
@@ -98,6 +102,7 @@ namespace KotH.Shared.Bots
             this.match = match;
             this.body = body;
             this.fists = fists;
+            this.gun = gun;
             wfc = new ManeuverWfc(Math.Max(2, settings.SlotsPerPlan), Math.Max(1, settings.SlotTicks), fists.CooldownTicks);
             allowed = new ushort[wfc.Slots];
             pilot = new JumpPilot(nav.Grid, body);
@@ -151,6 +156,7 @@ namespace KotH.Shared.Bots
                 bestTime = float.MaxValue;
             }
             lastSeen = me.Motor.Position;
+            shotsLeft = ShotsLeft(u, me);
             if (!started)
             {
                 started = true;
@@ -195,6 +201,7 @@ namespace KotH.Shared.Bots
             }
             if (u - planStart >= plan.Length * Slot)
                 Replan(u, view, at, airborne);
+            Arm(u, view, at, phase);
 
             if (climbing)
             {
@@ -261,6 +268,7 @@ namespace KotH.Shared.Bots
             // Far below the zone a bot climbs and chases nobody (Luca's rule).
             bool below = match != null && !inZone && match.Center.Y - match.HalfSize.Y - Feet(at).Y > ClimbBelow;
             SimulationBody holder = view.Match.Holder;
+            float reach = shotsLeft > 0 ? UMath.Max(settings.EngageRange, settings.BlasterRange) : settings.EngageRange;
 
             if (knocked)
                 Offer(BotIntent.Recover, 0, 2f);
@@ -280,13 +288,13 @@ namespace KotH.Shared.Bots
                 Vector3 there = Ahead(s.Motor.Position, s.Motor.Velocity, Reaction * Dt);
                 float d = UMath.Magnitude(UMath.Sub(there, at));
                 // Only a running round is fought over: no hits in the lobby,
-                // the countdown or after a win.
-                if (d > settings.EngageRange || !live || below)
+                // the countdown or after a win. With shots left, from further.
+                if (d > reach || !live || below)
                     continue;
 
                 // Fights are about the hill: far from it they are worth little.
                 bool theyHold = match != null && match.Contains(there);
-                float score = 0.3f + 0.5f * (1f - d / settings.EngageRange)
+                float score = 0.3f + 0.5f * UMath.Max(0f, 1f - d / settings.EngageRange)
                             + (theyHold ? 0.6f : 0f)
                             + (holder == other ? 0.4f : 0f)
                             + 0.2f * UMath.Min(1f, s.DamagePercent / 100f);
@@ -446,6 +454,7 @@ namespace KotH.Shared.Bots
 
         MoveInput Remember(int u, MoveInput input)
         {
+            input.Blaster = holdBlaster;
             LastInput = input;
             past[u % past.Length] = input;
             pastTick[u % past.Length] = u;
@@ -591,7 +600,8 @@ namespace KotH.Shared.Bots
         /// tick, its way and its view stay as they are.</summary>
         MoveInput Passing(int u, WorldSnapshot view, int self, in BodyState me, MatchPhase phase, MoveInput input)
         {
-            if (!farBelow || phase != MatchPhase.Running || input.JumpPresses > 0 || u < lastStrike + fists.CooldownTicks)
+            if (!farBelow || phase != MatchPhase.Running || input.JumpPresses > 0 || u < lastStrike + fists.CooldownTicks ||
+                !CaneReady(u))
                 return input;
             Vector3 eye = Ahead(me.Motor.EyePosition, me.Motor.Velocity, Reaction * Dt);
             float best = fists.Range - 0.2f;
@@ -760,7 +770,7 @@ namespace KotH.Shared.Bots
                 Vector3 eye = Ahead(me.Motor.EyePosition, me.Motor.Velocity, Reaction * Dt);
                 Vector3 d = UMath.Sub(centre, eye);
                 targetDistance = UMath.Sqrt(d.X * d.X + d.Z * d.Z);
-                if (targetDistance < 6f || intent == BotIntent.Attack && arrived)
+                if (targetDistance < 6f || intent == BotIntent.Attack && (arrived || holdBlaster))
                 {
                     faceYaw = UMath.Atan2(-d.X, -d.Z) * (180f / MathF.PI);
                     wantPitch = UMath.Atan2(d.Y, targetDistance) * (180f / MathF.PI);
@@ -869,17 +879,91 @@ namespace KotH.Shared.Bots
             // round runs (a plan from before the lobby may still hold one).
             bool live = match == null || view.Match.Phase == MatchPhase.Running;
             if (m == Maneuver.Strike && live && ti >= 0 && targetDistance < fists.Range - 0.2f &&
-                u >= lastStrike + fists.CooldownTicks)
+                u >= lastStrike + fists.CooldownTicks && CaneReady(u))
             {
                 input.Yaw = yaw + BotRandom.Signed(ref rng, settings.AimError);
                 input.Pitch = UMath.Clamp(pitch + BotRandom.Signed(ref rng, settings.AimError), -89f, 89f);
                 input.AttackPresses = 1;
                 lastStrike = u;
             }
+            else if (holdBlaster && live && ti >= 0)
+                Shoot(u, view, me, ti, ref input);
 
             // Keys, not a stick: each axis pressed or not, as on WASD.
             input.Move = new Vector2(Key(local.X), Key(local.Y));
             return input;
+        }
+
+        // The cane in hand and drawn: a swing with the blaster up would fire it.
+        bool CaneReady(int u) => !holdBlaster && u >= switchedAt + gun.DrawTicks;
+
+        /// <summary>The own shots as seen, less those fired since: the view is Reaction
+        /// ticks old. A press while drawing or cooling counts too, so never too many.</summary>
+        int ShotsLeft(int u, in BodyState me)
+        {
+            int left = me.Blaster.Shots;
+            for (int k = u - Reaction + 1; k < u; k++)
+                if (k >= 0 && pastTick[k % past.Length] == k && past[k % past.Length].Blaster &&
+                    past[k % past.Length].AttackPresses > 0)
+                    left--;
+            return left;
+        }
+
+        /// <summary>The blaster up while attacking with shots left, the cane once the target
+        /// is near (Luca); between the two a margin, so it does not switch back and forth.</summary>
+        void Arm(int u, WorldSnapshot view, Vector3 at, MatchPhase phase)
+        {
+            bool want = false;
+            int ti = intent == BotIntent.Attack && phase == MatchPhase.Running && shotsLeft > 0 ? IndexOf(view, target) : -1;
+            if (ti >= 0)
+            {
+                Vector3 there = Ahead(view.StateAt(ti).Motor.Position, view.StateAt(ti).Motor.Velocity, Reaction * Dt);
+                want = Flat(at, there) > fists.Range + (holdBlaster ? 1.5f : 3f);
+            }
+            if (want != holdBlaster)
+            {
+                holdBlaster = want;
+                switchedAt = u;
+            }
+        }
+
+        /// <summary>A spore at the target once drawn, cooled down and with a shot left, in
+        /// range and in sight, and the view nearly there; it leads the target, misses by up
+        /// to BlasterAimError.</summary>
+        void Shoot(int u, WorldSnapshot view, in BodyState me, int ti, ref MoveInput input)
+        {
+            if (u < switchedAt + gun.DrawTicks || u < lastShot + gun.CooldownTicks || shotsLeft <= 0)
+                return;
+            BodyState t = view.StateAt(ti);
+            Vector3 eye = Ahead(me.Motor.EyePosition, me.Motor.Velocity, Reaction * Dt);
+            Vector3 centre = Ahead(t.Motor.BodyCenter, t.Motor.Velocity, Reaction * Dt);
+            Vector3 aim = Lead(eye, centre, t.Motor.Velocity);
+            if (UMath.Magnitude(aim) > settings.BlasterRange || !nav.InSight(eye, centre))
+                return;
+
+            float flat = UMath.Sqrt(aim.X * aim.X + aim.Z * aim.Z);
+            float wantYaw = UMath.Atan2(-aim.X, -aim.Z) * (180f / MathF.PI);
+            if (UMath.Abs(MathF.IEEERemainder(wantYaw - yaw, 360f)) > 12f)
+                return;
+            input.Yaw = wantYaw + BotRandom.Signed(ref rng, settings.BlasterAimError);
+            input.Pitch = UMath.Clamp(UMath.Atan2(aim.Y, flat) * (180f / MathF.PI) +
+                                      BotRandom.Signed(ref rng, settings.BlasterAimError), -89f, 89f);
+            input.AttackPresses = 1;
+            lastShot = u;
+        }
+
+        /// <summary>Where a spore from the eye meets a target running flat at v, raised by
+        /// the spore's fall on the way (semi-implicit, a tick more than the parabola).</summary>
+        Vector3 Lead(Vector3 eye, Vector3 centre, Vector3 v)
+        {
+            Vector3 d = UMath.Sub(centre, eye);
+            for (int k = 0; k < 3; k++)
+            {
+                float t = UMath.Magnitude(d) / gun.Speed;
+                d = new Vector3(centre.X + v.X * t - eye.X, centre.Y - eye.Y + 0.5f * gun.Gravity * t * (t + Dt),
+                                centre.Z + v.Z * t - eye.Z);
+            }
+            return d;
         }
 
         static float Key(float axis) => axis > 0.38f ? 1f : axis < -0.38f ? -1f : 0f;

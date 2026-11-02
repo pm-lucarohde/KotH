@@ -330,6 +330,39 @@ namespace KotH.Shared.Bots
             return float.MinValue;
         }
 
+        /// <summary>Whether nothing solid lies between two points, sampled every half cell;
+        /// outside the grid is open. Coarse: only what the columns' surfaces show.</summary>
+        public bool InSight(Vector3 a, Vector3 b)
+        {
+            Vector3 d = UMath.Sub(b, a);
+            int n = (int)MathF.Ceiling(UMath.Magnitude(d) / (cell * 0.5f));
+            for (int i = 1; i < n; i++)
+            {
+                float t = i / (float)n;
+                int col = ColumnAt(a.X + d.X * t, a.Z + d.Z * t);
+                if (col >= 0 && Inside(col, a.Y + d.Y * t))
+                    return false;
+            }
+            return true;
+        }
+
+        // Inside a solid: the next surface down faces down, or there is none
+        // below but some above.
+        bool Inside(int col, float y)
+        {
+            bool above = false;
+            for (int i = surfStart[col]; i < surfStart[col + 1]; i++)
+            {
+                if (surfY[i] > y)
+                {
+                    above = true;
+                    continue;
+                }
+                return surfFacing[i] < 0;
+            }
+            return above;
+        }
+
         // Whether a column holds anything solid between two heights: a top
         // inside, or only tops above (rays start inside a solid and see
         // nothing, so a pillar shows its top alone). A top above with

@@ -53,6 +53,7 @@ namespace KotH.Shared.Bots
         readonly HillMatch match;
         readonly PlayerMotor motor;
         readonly MeleeAttack fists;
+        readonly Blaster gun;
         readonly int seed;
 
         // Working ahead. One step at a time under the gate: the brains share
@@ -68,13 +69,14 @@ namespace KotH.Shared.Bots
         volatile bool stopping;
 
         public BotDirector(BotNavigation navigation, BotSettings settings, HillMatch match,
-                           PlayerMotor motor, MeleeAttack fists, IFinalStates states, int seed)
+                           PlayerMotor motor, MeleeAttack fists, Blaster gun, IFinalStates states, int seed)
         {
             Navigation = navigation;
             this.settings = settings;
             this.match = match;
             this.motor = motor;
             this.fists = fists;
+            this.gun = gun;
             this.states = states;
             this.seed = seed;
             for (int i = 0; i < Views; i++)
@@ -93,9 +95,10 @@ namespace KotH.Shared.Bots
             BotSettings settings = builder.Bots ?? new BotSettings();
             PlayerMotor motor = builder.Template<PlayerMotor>(WorldBuilder.PlayerBodyUrl);
             MeleeAttack fists = builder.Template<MeleeAttack>(WorldBuilder.PlayerBodyUrl) ?? new MeleeAttack();
+            Blaster gun = builder.Template<Blaster>(WorldBuilder.PlayerBodyUrl) ?? new Blaster();
             HillMatch zone = simulation.Match ?? (builder.Zone != null ? new HillMatch(builder.Zone) : null);
             BotNavigation nav = BotNavigation.Build(builder.Arena, motor, settings, zone, seed, SpawnMiddle(builder));
-            return new BotDirector(nav, settings, simulation.Match, motor, fists, states, seed);
+            return new BotDirector(nav, settings, simulation.Match, motor, fists, gun, states, seed);
         }
 
         // Where the players start, on average: the route variants fan out from there.
@@ -129,7 +132,7 @@ namespace KotH.Shared.Bots
         {
             var bot = new Bot
             {
-                Brain = new BotBrain(netId, BotRandom.Seed(seed, netId), bots.Count + seed, Navigation, settings, match, motor, fists),
+                Brain = new BotBrain(netId, BotRandom.Seed(seed, netId), bots.Count + seed, Navigation, settings, match, motor, fists, gun),
             };
             lock (gate)
             {

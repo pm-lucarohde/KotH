@@ -21,11 +21,17 @@ namespace KotH.Shared.Bots
         /// <userdoc>How far a bot's swing may miss its aim at most, in degrees.</userdoc>
         [Display("Aim error (°)", "Strength")] public float AimError = 4f;
 
+        /// <userdoc>How far a bot's blaster shot may miss its aim at most, in degrees.</userdoc>
+        [Display("Blaster aim error (°)", "Strength")] public float BlasterAimError = 1.5f;
+
         /// <userdoc>How fast a bot turns at most, in degrees per tick.</userdoc>
         [Display("Turn rate (°/tick)", "Strength")] public float TurnRate = 24f;
 
         /// <userdoc>A bot attacks opponents up to this distance, in metres.</userdoc>
         [Display("Engage range (m)", "Decisions")] public float EngageRange = 9f;
+
+        /// <userdoc>With blaster shots left a bot attacks opponents up to this distance, in metres.</userdoc>
+        [Display("Blaster range (m)", "Decisions")] public float BlasterRange = 40f;
 
         /// <userdoc>Intents at most this share worse than the best one are picked at random. 0 always decides the same.</userdoc>
         [Display("Randomness", "Decisions")] public float Randomness = 0.12f;
