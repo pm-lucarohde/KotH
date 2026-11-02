@@ -8,11 +8,11 @@
     <NoWarn>$(NoWarn);AVA3001</NoWarn>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Stride.Engine" Version="4.4.0" />
-    <PackageReference Include="Stride.BepuPhysics" Version="4.4.0" />
-    <PackageReference Include="Stride.UI" Version="4.4.0" />
-    <PackageReference Include="Stride.Particles" Version="4.4.0" />
-    <PackageReference Include="Stride.AssetCompiler" Version="4.4.0" IncludeAssets="build;buildTransitive" />
+    <PackageReference Include="Stride.Engine" Version="4.4.1" />
+    <PackageReference Include="Stride.BepuPhysics" Version="4.4.1" />
+    <PackageReference Include="Stride.UI" Version="4.4.1" />
+    <PackageReference Include="Stride.Particles" Version="4.4.1" />
+    <PackageReference Include="Stride.AssetCompiler" Version="4.4.1" IncludeAssets="build;buildTransitive" />
     <!-- The main menu: Avalonia rendered headless by Skia (Menu/MenuOverlay.cs). -->
     <PackageReference Include="Avalonia" Version="11.3.20" />
     <PackageReference Include="Avalonia.Skia" Version="11.3.20" />

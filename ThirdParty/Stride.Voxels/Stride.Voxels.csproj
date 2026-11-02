@@ -11,7 +11,7 @@
     <NoWarn>$(NoWarn);CS1591;CS0105</NoWarn>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Stride.Engine" Version="4.4.0" />
-    <PackageReference Include="Stride.AssetCompiler" Version="4.4.0" IncludeAssets="build;buildTransitive" />
+    <PackageReference Include="Stride.Engine" Version="4.4.1" />
+    <PackageReference Include="Stride.AssetCompiler" Version="4.4.1" IncludeAssets="build;buildTransitive" />
   </ItemGroup>
 </Project>

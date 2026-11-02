@@ -1,4 +1,4 @@
-#:package Stride.Assets@4.4.0
+#:package Stride.Assets@4.4.1
 #:property TargetFramework=net11.0
 #:property ImplicitUsings=enable
 #:property PublishAot=false
