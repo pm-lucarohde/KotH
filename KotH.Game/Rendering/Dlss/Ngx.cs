@@ -97,9 +97,7 @@ namespace KotH.Client.Rendering.Dlss
         [DllImport(Lib)] static extern void NVSDK_NGX_Parameter_SetI(void* p, byte* name, int value);
         [DllImport(Lib)] static extern void NVSDK_NGX_Parameter_SetF(void* p, byte* name, float value);
         [DllImport(Lib)] static extern void NVSDK_NGX_Parameter_SetVoidPointer(void* p, byte* name, void* value);
-        [DllImport(Lib)] static extern int NVSDK_NGX_Parameter_GetUI(void* p, byte* name, uint* value);
         [DllImport(Lib)] static extern int NVSDK_NGX_Parameter_GetI(void* p, byte* name, int* value);
-        [DllImport(Lib)] static extern int NVSDK_NGX_Parameter_GetVoidPointer(void* p, byte* name, void** value);
 
         // Parameter names as NUL-terminated UTF-8, from nvsdk_ngx_defs.h.
         public static void SetUI(void* p, ReadOnlySpan<byte> name, uint value) { fixed (byte* n = name) NVSDK_NGX_Parameter_SetUI(p, n, value); }
@@ -107,24 +105,10 @@ namespace KotH.Client.Rendering.Dlss
         public static void SetF(void* p, ReadOnlySpan<byte> name, float value) { fixed (byte* n = name) NVSDK_NGX_Parameter_SetF(p, n, value); }
         public static void SetPointer(void* p, ReadOnlySpan<byte> name, void* value) { fixed (byte* n = name) NVSDK_NGX_Parameter_SetVoidPointer(p, n, value); }
 
-        public static uint GetUI(void* p, ReadOnlySpan<byte> name)
-        {
-            uint value = 0;
-            fixed (byte* n = name) NVSDK_NGX_Parameter_GetUI(p, n, &value);
-            return value;
-        }
-
         public static int GetI(void* p, ReadOnlySpan<byte> name)
         {
             int value = 0;
             fixed (byte* n = name) NVSDK_NGX_Parameter_GetI(p, n, &value);
-            return value;
-        }
-
-        public static void* GetPointer(void* p, ReadOnlySpan<byte> name)
-        {
-            void* value = null;
-            fixed (byte* n = name) NVSDK_NGX_Parameter_GetVoidPointer(p, n, &value);
             return value;
         }
 
@@ -151,13 +135,11 @@ namespace KotH.Client.Rendering.Dlss
         public static ReadOnlySpan<byte> Available => "SuperSampling.Available\0"u8;
         public static ReadOnlySpan<byte> NeedsUpdatedDriver => "SuperSampling.NeedsUpdatedDriver\0"u8;
         public static ReadOnlySpan<byte> FeatureInitResult => "SuperSampling.FeatureInitResult\0"u8;
-        public static ReadOnlySpan<byte> OptimalSettingsCallback => "DLSSOptimalSettingsCallback\0"u8;
         public static ReadOnlySpan<byte> Width => "Width\0"u8;
         public static ReadOnlySpan<byte> Height => "Height\0"u8;
         public static ReadOnlySpan<byte> OutWidth => "OutWidth\0"u8;
         public static ReadOnlySpan<byte> OutHeight => "OutHeight\0"u8;
         public static ReadOnlySpan<byte> PerfQualityValue => "PerfQualityValue\0"u8;
-        public static ReadOnlySpan<byte> RtxValue => "RTXValue\0"u8;
         public static ReadOnlySpan<byte> CreationNodeMask => "CreationNodeMask\0"u8;
         public static ReadOnlySpan<byte> VisibilityNodeMask => "VisibilityNodeMask\0"u8;
         public static ReadOnlySpan<byte> CreateFlagsKey => "DLSS.Feature.Create.Flags\0"u8;

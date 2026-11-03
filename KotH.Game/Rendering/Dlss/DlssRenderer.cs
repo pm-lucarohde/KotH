@@ -54,7 +54,7 @@ namespace KotH.Client.Rendering.Dlss
         internal bool Reset => reset;
         internal bool Evaluated { get; set; }
 
-        /// <summary>For the F3 overlay: "DLSS Quality 1707x960", "Scaled 1920x1080" or null.</summary>
+        /// <summary>For the F3 overlay: "DLSS Quality 1920x1080", "Scaled 1920x1080" or null.</summary>
         public string Status => active ? $"DLSS {Dlss.Mode} {renderWidth}x{renderHeight}" : scaled ? $"Scaled {renderWidth}x{renderHeight}" : null;
 
         // The sharpening after stretching a smaller scene (the Resolution setting in borderless).
@@ -115,7 +115,7 @@ namespace KotH.Client.Rendering.Dlss
                 (renderWidth, renderHeight, outputWidth, outputHeight) = (smaller.X, smaller.Y, width, height);
             else if (width != outputWidth || height != outputHeight || sizedFor != Dlss.Mode)
             {
-                Dlss.RenderSize(Dlss.QualityOf(Dlss.Mode), width, height, out renderWidth, out renderHeight);
+                Dlss.RenderSize(Dlss.Mode, width, height, out renderWidth, out renderHeight);
                 (outputWidth, outputHeight, sizedFor) = (width, height, Dlss.Mode);
                 Restart();
             }

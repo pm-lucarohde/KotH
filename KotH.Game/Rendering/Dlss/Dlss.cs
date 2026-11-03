@@ -190,25 +190,32 @@ namespace KotH.Client.Rendering.Dlss
             Ngx.NVSDK_NGX_VULKAN_Shutdown1(device);
         }
 
-        /// <summary>The render size DLSS wants for an output size and mode; false if it has none.</summary>
-        internal static bool RenderSize(Ngx.Quality mode, int width, int height, out int renderWidth, out int renderHeight)
+        // The common heights the render size steps down, highest first.
+        static readonly int[] Heights = [2160, 1440, 1080, 720, 480, 360];
+
+        /// <summary>Luca: the render size steps down the common heights, not NVIDIA's factors. Quality the highest
+        /// at most 75 % (1440 to 1080, 1080 to 720), Performance a half, Ultra Performance a third, Balanced
+        /// halfway between Quality and Performance (down to 60 px), DLAA the output's; the width keeps the aspect.</summary>
+        internal static void RenderSize(DlssMode mode, int width, int height, out int renderWidth, out int renderHeight)
         {
-            renderWidth = width;
-            renderHeight = height;
-            if (!Ready)
-                return false;
-            var callback = (delegate* unmanaged<void*, int>)Ngx.GetPointer(capabilities, Ngx.OptimalSettingsCallback);
-            if (callback == null)
-                return false;
-            Ngx.SetUI(capabilities, Ngx.Width, (uint)width);
-            Ngx.SetUI(capabilities, Ngx.Height, (uint)height);
-            Ngx.SetI(capabilities, Ngx.PerfQualityValue, (int)mode);
-            Ngx.SetI(capabilities, Ngx.RtxValue, 0);
-            if (Ngx.Failed(callback(capabilities)))
-                return false;
-            renderWidth = (int)Ngx.GetUI(capabilities, Ngx.OutWidth);
-            renderHeight = (int)Ngx.GetUI(capabilities, Ngx.OutHeight);
-            return renderWidth > 0 && renderHeight > 0;
+            int quality = height * 2 / 3;
+            foreach (int h in Heights)
+                if (h * 4 <= height * 3)
+                {
+                    quality = h;
+                    break;
+                }
+            int performance = height / 2;
+            int rows = mode switch
+            {
+                DlssMode.Quality => quality,
+                DlssMode.Balanced => Math.Max(performance, (quality + performance) / 2 / 60 * 60),
+                DlssMode.Performance => performance,
+                DlssMode.UltraPerformance => height / 3,
+                _ => height,
+            };
+            renderHeight = Math.Clamp(rows, 1, height);
+            renderWidth = Math.Clamp((int)Math.Round(width * (double)renderHeight / height), 1, width);
         }
     }
 }

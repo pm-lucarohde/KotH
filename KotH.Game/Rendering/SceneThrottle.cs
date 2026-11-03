@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Linq;
 using Stride.Core.Mathematics;
 using Stride.Graphics;
 using Stride.Rendering;
@@ -27,6 +28,12 @@ namespace KotH.Client.Rendering
         SceneCameraRenderer overlay;
         Texture overlayColor, overlayDepth;
 
+        // Its own stages: sharing the scene's, the last pass collected (4x MSAA, no velocity)
+        // set their output for both, and with DLSS the scene drew nothing (black menu).
+        RenderStage overlayOpaque, overlayTransparent;
+        RenderGroupMask overlayMask;
+        bool stagesAdded;
+
         /// <summary>Draws group every frame by its own pass, and no longer with the scene.</summary>
         public void ShowOverlay(RenderGroup group)
         {
@@ -36,11 +43,14 @@ namespace KotH.Client.Rendering
                 return;
             var mask = (RenderGroupMask)(1u << (int)group);
             main.RenderMask &= ~mask;
+            overlayMask = mask;
+            overlayOpaque ??= new RenderStage("OverlayOpaque", "Main") { SortMode = new StateChangeSortMode() };
+            overlayTransparent ??= new RenderStage("OverlayTransparent", "Main") { SortMode = new BackToFrontSortMode() };
             var pass = new ForwardRenderer
             {
                 Clear = new ClearRenderer { Color = new Color4(0f, 0f, 0f, 0f) },
-                OpaqueRenderStage = forward.OpaqueRenderStage,
-                TransparentRenderStage = forward.TransparentRenderStage,
+                OpaqueRenderStage = overlayOpaque,
+                TransparentRenderStage = overlayTransparent,
                 LightProbes = false,
                 MSAALevel = MultisampleCount.X4,
             };
@@ -107,7 +117,29 @@ namespace KotH.Client.Rendering
             }
             if (due)
                 Child?.Collect(context);
-            overlay?.Collect(context);
+            if (overlay != null)
+            {
+                AddStages(context.RenderSystem);
+                overlay.Collect(context);
+            }
+        }
+
+        // Once: the stages into the render system, the overlay's group's meshes into them.
+        void AddStages(RenderSystem system)
+        {
+            if (stagesAdded || system.RenderFeatures.OfType<MeshRenderFeature>().FirstOrDefault() is not { } meshes)
+                return;
+            stagesAdded = true;
+            system.RenderStages.Add(overlayOpaque);
+            system.RenderStages.Add(overlayTransparent);
+            meshes.RenderStageSelectors.Add(new MeshTransparentRenderStageSelector
+            {
+                RenderGroup = overlayMask,
+                OpaqueRenderStage = overlayOpaque,
+                TransparentRenderStage = overlayTransparent,
+                EffectName = "StrideForwardShadingEffect",
+            });
+            meshes.PipelineProcessors.Add(new MeshPipelineProcessor { TransparentRenderStage = overlayTransparent });
         }
 
         protected override void DrawCore(RenderContext context, RenderDrawContext drawContext)

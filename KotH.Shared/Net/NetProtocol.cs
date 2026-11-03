@@ -20,9 +20,9 @@ namespace KotH.Shared.Net
         Hello = 1,      // peer -> host: build, name, look
         Welcome = 2,    // host -> peer: NetId, map, state, roster
         Reject = 3,     // host -> peer: why not
-        Inputs = 4,     // peer -> host: own inputs not yet acknowledged
+        Inputs = 4,     // peer -> host: generation, own inputs not yet acknowledged
         Confirmed = 5,  // host -> peer: final inputs and events per tick
-        Checksum = 6,   // peer -> host: hash of a confirmed state
+        Checksum = 6,   // peer -> host: generation, hash of a confirmed state
         Repair = 7,     // host -> peer: the full state after a desync
         Ask = 8,        // peer -> host: build; which map, before joining
         Map = 9,        // host -> peer: the map, to load before the Hello

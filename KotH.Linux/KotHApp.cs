@@ -60,7 +60,8 @@ sealed class KotHGame : Game
     bool shotBlink = Environment.GetEnvironmentVariable("KOTH_SHOT_BLINK") == "1"; // every figure shows shut lids
     double? shotHit = Number("KOTH_SHOT_HIT", 0); // deg[,s]: hits every figure from deg (0 front, 90 right)
     readonly double shotHitLead = Number("KOTH_SHOT_HIT", 1) ?? 0.1; // s before the shot
-    string shotMove = Environment.GetEnvironmentVariable("KOTH_SHOT_MOVE"); // x,y[,sprint] held (D and W +1)
+    readonly string shotMove = Environment.GetEnvironmentVariable("KOTH_SHOT_MOVE"); // x,y[,sprint] held (D and W +1)
+    PlayerInputReader shotMoved;
     // KOTH_SHOT_APPLY=s:file.toml[;s:file.toml]: Apply on the Settings page with that file's settings at s.
     readonly Queue<(double At, string File)> shotApplies = new Queue<(double, string)>(
         (Environment.GetEnvironmentVariable("KOTH_SHOT_APPLY") ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries)
@@ -350,13 +351,14 @@ sealed class KotHGame : Game
         {
             if (shotThird && (shotTurn == null || now >= shotTurn[1] + 0.2))
                 player.ThirdPerson = true;
-            if (shotMove != null)
+            // Every own body anew: networked, the round's restart spawns another.
+            if (shotMove != null && player != shotMoved)
             {
                 string[] parts = shotMove.Split(',');
                 player.Hold(new Vector2(float.Parse(parts[0], CultureInfo.InvariantCulture),
                                         float.Parse(parts[1], CultureInfo.InvariantCulture)),
                             parts.Length > 2 && parts[2] == "sprint");
-                shotMove = null;
+                shotMoved = player;
             }
             // Also after the round has put everyone at its start (MountDestiny: at random).
             if (shotAt.HasValue && player.PlacedTick != shotPlaced &&

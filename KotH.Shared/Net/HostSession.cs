@@ -356,6 +356,10 @@ namespace KotH.Shared.Net
             }
             if (!clients.TryGetValue(peer, out Client c) || c.Phase == Phase.Left)
                 return;
+            // Sent before the last restart (its old timeline was still running): its ticks and
+            // acknowledgement mean nothing now, an old "newest input" kept the new one unsent.
+            if ((type == MsgType.Inputs || type == MsgType.Checksum) && r.Byte() != generation)
+                return;
 
             if (type == MsgType.Inputs)
                 Inputs(c, ref r);

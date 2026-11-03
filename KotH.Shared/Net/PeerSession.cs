@@ -689,6 +689,7 @@ namespace KotH.Shared.Net
             outgoing.Clear();
             var w = new Writer(outgoing);
             w.Byte((byte)MsgType.Inputs);
+            w.Byte(generation);
             w.Double(now);
             w.Int(confirmedTick);
             w.Int(count > 0 ? from : 0);
@@ -718,6 +719,7 @@ namespace KotH.Shared.Net
                 outgoing.Clear();
                 var w = new Writer(outgoing);
                 w.Byte((byte)MsgType.Checksum);
+                w.Byte(generation);
                 w.Int(t);
                 w.ULong(hash);
                 transport.Send(0, outgoing.WrittenSpan, reliable: true);
