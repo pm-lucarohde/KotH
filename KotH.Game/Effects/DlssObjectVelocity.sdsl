@@ -1,0 +1,32 @@
+/// <summary>
+/// DLSS's motion of whole objects: the final world position (after skinning and wind) now and moved
+/// back by the object's own motion, seen by the unjittered camera now and one frame ago; in UV,
+/// previous minus current. Pixels without geometry (sky) DlssMotion fills from depth.
+/// </summary>
+shader DlssObjectVelocity : PositionStream4, TransformationBase, VelocityStream
+{
+    cbuffer PerDraw
+    {
+        float4x4 CurrentClip;
+        float4x4 PreviousClip;
+    }
+
+    stage stream float4 DlssNow;
+    stage stream float4 DlssBefore;
+
+    stage override void VSMain()
+    {
+        base.VSMain();
+        float4 world = float4(streams.PositionWS.xyz, 1.0);
+        streams.DlssNow = mul(world, CurrentClip);
+        streams.DlssBefore = mul(world, PreviousClip);
+    }
+
+    stage override void PSMain()
+    {
+        float2 now = streams.DlssNow.xy / streams.DlssNow.w;
+        float2 before = streams.DlssBefore.xy / streams.DlssBefore.w;
+        streams.velocity = (before - now) * float2(0.5, -0.5);
+        base.PSMain();
+    }
+};

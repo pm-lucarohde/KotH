@@ -22,7 +22,7 @@ Tools/publish_aot.sh windows probes-windows  # on request only (lld-link, xwin)
 - AOT links in the distrobox `aot`; ILC sometimes crashes, then rerun; always `--no-incremental` (else an old scene
   bundle). After new materials/effects: `Tools/effects/record.sh`. JIT matches AOT only with `DOTNET_EnableAVX=0`.
 - Client: no arguments = main menu, `--offline` alone; `--host`/`--join ADDRESS[:PORT]`, `--name`, `--port`,
-  `--min-players`, `--bots N`, `--display N`, `--map NAME`, `--fps N`. Two clients: `Tools/two_clients.sh` (Luca starts it).
+  `--min-players`, `--bots N`, `--display N`, `--map NAME`, `--fps N`, `--dlss MODE`. Two clients: `Tools/two_clients.sh`.
 - Server: real time, `--seconds N` or `--ticks N` (fast, exact end state); `--map`, `--bots`, load test `--bodies N`
   (`--map Test`); network `--host`/`--join`/`--bot` (`NetPlay.cs`). Traces `KOTH_TRACE=BotName`, `KOTH_FALLS=1`.
 - Test aids (`KotHApp.cs` fields, times from the end of the load screen): `KOTH_SHOT=shot.png` (+ `_SECONDS`, `_YAW`,
@@ -89,7 +89,7 @@ dotnet run Tools/Regress.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # nu
 - HUD `HudRenderer` (SpriteBatch) with Avalonia parts (`HillBoard`→`HudView`, `LoadView`) via `MenuOverlay`; main menu
   `KotH.Game/Menu` (map behind at 30 fps, `SceneThrottle`), Esc `PauseMenu` (round runs on).
 - `MusicPlayer`, `SoundEffects` (sounds relative to the camera). Light: VXGI with a 4096² lightmap, static sun map,
-  cascades only for figures; fog and clouds in `AtmosphereEffects` before FXAA.
+  cascades only for figures; fog and clouds in `AtmosphereEffects` before FXAA or DLSS (`Rendering/Dlss`, `Tools/dlss`).
 
 ### Bots (`KotH.Shared/Bots`) and figure
 - **Only the host computes them, deterministically:** `BotDirector` decides tick t from the final state at t − 8;

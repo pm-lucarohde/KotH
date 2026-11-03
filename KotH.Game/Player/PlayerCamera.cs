@@ -177,7 +177,7 @@ namespace KotH.Client.Player
         /// </summary>
         void ShowOwnFigure(bool show, bool arms)
         {
-            view ??= FindView(SceneSystem.GraphicsCompositor?.Game);
+            view ??= SceneThrottle.FindView(SceneSystem.GraphicsCompositor?.Game);
             if (view == null)
                 return;
 
@@ -185,20 +185,6 @@ namespace KotH.Client.Player
             view.RenderMask = show ? view.RenderMask | bit : view.RenderMask & ~bit;
             var armsBit = (RenderGroupMask)(1u << (int)ArmsGroup);
             view.RenderMask = arms ? view.RenderMask | armsBit : view.RenderMask & ~armsBit;
-        }
-
-        /// <summary>The camera's renderer, also inside the collection and SceneThrottle the HUD wraps it in.</summary>
-        static SceneCameraRenderer FindView(ISceneRenderer renderer)
-        {
-            if (renderer is SceneCameraRenderer camera)
-                return camera;
-            if (renderer is SceneThrottle throttle)
-                return FindView(throttle.Child);
-            if (renderer is SceneRendererCollection collection)
-                foreach (ISceneRenderer child in collection.Children)
-                    if (FindView(child) is { } found)
-                        return found;
-            return null;
         }
     }
 }

@@ -1,0 +1,24 @@
+/// <summary>
+/// After DLSS (which no longer sharpens): AMD FidelityFX CAS's sharpening (MIT), the cross of
+/// five texels weighted by how much contrast is left; Sharpness 0 to 1, 0 nearly a copy.
+/// </summary>
+shader DlssSharpen : ImageEffectShader
+{
+    float Sharpness;
+
+    float3 At(float2 offset)
+    {
+        return saturate(Texture0.SampleLevel(PointSampler, streams.TexCoord + offset * Texture0TexelSize, 0).rgb);
+    }
+
+    stage override float4 Shading()
+    {
+        float3 b = At(float2(0, -1)), d = At(float2(-1, 0)), e = At(float2(0, 0)), f = At(float2(1, 0)), h = At(float2(0, 1));
+        float3 low = min(min(min(d, e), min(f, b)), h);
+        float3 high = max(max(max(d, e), max(f, b)), h);
+        float3 amp = sqrt(saturate(min(low, 1.0 - high) / max(high, 1e-5)));
+        float3 w = amp * lerp(-0.125, -0.2, Sharpness);
+        float3 sharp = (b * w + d * w + f * w + h * w + e) / (1.0 + 4.0 * w);
+        return float4(lerp(e, saturate(sharp), saturate(Sharpness * 4.0)), 1.0);
+    }
+};

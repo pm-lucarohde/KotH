@@ -121,6 +121,10 @@ sealed class KotHGame : Game
         if (frameLogPath != null)
             frameLog = new float[600 * 2000];
 
+        // DLSS needs Vulkan extensions Stride does not ask for: hooked before the device exists.
+        if (Environment.GetEnvironmentVariable("KOTH_DLSS") != "0")
+            KotH.Client.Rendering.Dlss.Dlss.Prepare();
+
         // A hidden window never has the focus; a networked game must keep
         // its clock with the other window in front.
         MakeWindowVisibleOnRun = !headless;
@@ -264,8 +268,17 @@ sealed class KotHGame : Game
                width == display.W && height == display.H;
     }
 
+    // Stride makes the device after Initialize: NGX starts on it here.
+    protected override void BeginRun()
+    {
+        base.BeginRun();
+        KotH.Client.Rendering.Dlss.Dlss.Start(GraphicsDevice);
+        KotH.Client.Rendering.Dlss.Dlss.Mode = LaunchOptions.Current.Dlss;
+    }
+
     protected override void EndRun()
     {
+        KotH.Client.Rendering.Dlss.Dlss.Shutdown();
         base.EndRun();
 
         if (frameLog == null)

@@ -15,6 +15,8 @@
     <PackageReference Include="Stride.UI" Version="4.4.1" />
     <PackageReference Include="Stride.Particles" Version="4.4.1" />
     <PackageReference Include="Stride.AssetCompiler" Version="4.4.1" IncludeAssets="build;buildTransitive" />
+    <!-- Stride's own Vulkan binding, for DLSS (Rendering/Dlss); the version Stride 4.4.1 uses. -->
+    <PackageReference Include="Vortice.Vulkan" Version="3.0.3" />
     <!-- The main menu: Avalonia rendered headless by Skia (Menu/MenuOverlay.cs). -->
     <PackageReference Include="Avalonia" Version="11.3.20" />
     <PackageReference Include="Avalonia.Skia" Version="11.3.20" />

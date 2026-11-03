@@ -58,14 +58,17 @@ namespace KotH.Client.Rendering
             overlayColor = overlayDepth = null;
         }
 
-        static SceneCameraRenderer FindView(ISceneRenderer renderer) => renderer switch
+        /// <summary>The game's camera pass, also inside the collection, SceneThrottle and DlssRenderer around it.</summary>
+        internal static SceneCameraRenderer FindView(ISceneRenderer renderer) => renderer switch
         {
             SceneCameraRenderer camera => camera,
+            SceneThrottle throttle => FindView(throttle.Child),
+            Dlss.DlssRenderer dlss => FindView(dlss.Child),
             SceneRendererCollection collection => Find(collection, FindView),
             _ => null,
         };
 
-        static ForwardRenderer FindForward(ISceneRenderer renderer) => renderer switch
+        internal static ForwardRenderer FindForward(ISceneRenderer renderer) => renderer switch
         {
             ForwardRenderer forward => forward,
             SceneRendererCollection collection => Find(collection, FindForward),

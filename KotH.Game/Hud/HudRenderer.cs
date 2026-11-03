@@ -42,7 +42,8 @@ namespace KotH.Client.Hud
         /// <summary>One opaque white pixel, for filled rectangles.</summary>
         public Texture White => white;
 
-        /// <summary>The scene's HUD, appended to the compositor on first use, the scene wrapped in a SceneThrottle.</summary>
+        /// <summary>The scene's HUD, appended to the compositor on first use, the scene wrapped in a
+        /// SceneThrottle around a DlssRenderer.</summary>
         public static HudRenderer Of(ScriptComponent script)
         {
             var hud = script.Services.GetService<HudRenderer>();
@@ -53,7 +54,10 @@ namespace KotH.Client.Hud
             script.Services.AddService(hud);
 
             GraphicsCompositor compositor = script.SceneSystem.GraphicsCompositor;
-            var throttle = new SceneThrottle { Child = compositor.Game };
+            var dlss = new Rendering.Dlss.DlssRenderer { Child = compositor.Game };
+            Rendering.Dlss.DlssVelocityFeature.Install(script.SceneSystem);
+            script.Services.AddService(dlss);
+            var throttle = new SceneThrottle { Child = dlss };
             script.Services.AddService(throttle);
             compositor.Game = new SceneRendererCollection { throttle, hud };
 
