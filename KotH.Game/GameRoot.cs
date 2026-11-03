@@ -126,6 +126,8 @@ namespace KotH.Client
 
         public override void Start()
         {
+            StartLog.Mark("game root starts");
+            Stride.Rendering.Voxels.VoxelStorageSparse.Report = StartLog.Mark;
             ClientSettings.Changed += ApplyTextures;
             BepuSimulation physics = PhysicsWorld();
             var queries = new WorldQueries(physics);
@@ -455,6 +457,7 @@ namespace KotH.Client
         {
             if (builder.Map == map)
                 return;
+            long loadAt = StartLog.Now;
             cover?.Begin();
             builder.LoadArena(map);
             if (builder.Zone != null)
@@ -475,6 +478,7 @@ namespace KotH.Client
             if (visuals != null)
                 visuals.Surface = GroundSurface.Load(map);
             Log.Info($"Map {map} loaded");
+            StartLog.Took($"map {map} loaded", loadAt);
         }
 
         /// <summary>Takes the loaded map down for another, with no body left: what is drawn of it

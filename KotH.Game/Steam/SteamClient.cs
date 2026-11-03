@@ -73,6 +73,13 @@ namespace KotH.Client.Steam
                 Failure = "Steam library missing";
                 Console.WriteLine($"[steam] {Failure}: {e.Message}");
             }
+            catch (Exception e)
+            {
+                // Whatever Steam does, the game starts: direct IP only.
+                Ready = false;
+                Failure = "No Steam: " + e.Message;
+                Console.WriteLine($"[steam] {Failure}");
+            }
         }
 
         // Steam takes the app from SteamAppId when not started by Steam; on Linux the

@@ -60,14 +60,29 @@ namespace KotH.Client.Audio
         float fadeIn = 1f;
         double age, length;
         Mode? mode;
-        bool failed;
         readonly List<string> history = new List<string>();
         float master = -1f;
+        readonly SoundWatch watch = new SoundWatch();
+        // A failure silences the music for a while, never for good: again after 2 s, after five in a row 30 s.
+        readonly System.Diagnostics.Stopwatch clock = System.Diagnostics.Stopwatch.StartNew();
+        double retryAt;
+        int failures;
+        bool noEngineLogged;
 
         public override void Update()
         {
-            if (failed)
+            if (clock.Elapsed.TotalSeconds < retryAt)
                 return;
+            // Not while the first frame is made (compiles fill the thread pool, the stream start waits on it).
+            if (Game.DrawTime.FrameCount < 1)
+                return;
+            if (Audio.AudioEngine is not { State: not AudioEngineState.Invalidated })
+            {
+                if (!noEngineLogged)
+                    StartLog.Warn("music: no audio device, music and sounds stay off this session");
+                noEngineLogged = true;
+                return;
+            }
             try
             {
                 // The listener's gain: one factor over every sound, allowed above 1; times Overall.
@@ -78,14 +93,43 @@ namespace KotH.Client.Audio
                 if (!InMenu && Match == null && ConfirmedRound == null)
                     return;
                 Step((float)Game.UpdateTime.Elapsed.TotalSeconds);
+                if (watch.Silent(current, out string why))
+                {
+                    StartLog.Warn($"music {NameOf(playing)} silent: {why}; started again");
+                    Restart();
+                }
             }
             catch (Exception e)
             {
-                // No audio device or a broken asset: stay silent, never stop the game.
-                failed = true;
+                // A broken asset or device: silent for a while, never a stop of the game.
+                failures++;
+                retryAt = clock.Elapsed.TotalSeconds + (failures % 5 == 0 ? 30.0 : 2.0);
                 Log.Warning($"Music fails: {e.Message}");
+                StartLog.Warn($"music fails ({failures}), again in {retryAt - clock.Elapsed.TotalSeconds:F0} s: {e}");
                 StopAll();
+                mode = null;
             }
+        }
+
+        /// <summary>The piece playing now as a new instance, where it stood (a looping one from its start).</summary>
+        void Restart()
+        {
+            if (playing == null)
+                return;
+            SoundInstance instance = playing.CreateInstance();
+            instance.IsLooping = current?.IsLooping ?? false;
+            instance.Volume = current?.Volume ?? 0f;
+            if (!instance.IsLooping && age > 0.0 && age < length - 1.0)
+            {
+                TimeSpan from = playing.TotalLength - TimeSpan.FromSeconds(length - age);
+                instance.SetRange(new PlayRange(from, playing.TotalLength - from));
+            }
+            Release(current);
+            instance.Play();
+            current = instance;
+            confirmed = false;
+            confirmAt = age + 2.0;
+            watch.Started();
         }
 
         public override void Cancel() => StopAll();
@@ -93,13 +137,13 @@ namespace KotH.Client.Audio
         /// <summary>For tests: what plays, how it stands and how often the music changed.</summary>
         [DataMemberIgnore]
         public string Readout
-            => failed ? "failed"
-             : $"{NameOf(playing) ?? "nothing"}, " +
+            => $"{NameOf(playing) ?? "nothing"}, " +
                $"{current?.PlayState.ToString() ?? "-"} for {age:F1} of {length:F1} s, volume {current?.Volume ?? 0f:F2}, history {string.Join(" > ", history)}";
 
         void Step(float dt)
         {
             age += dt;
+            Confirm();
             Mode now = InMenu ? Mode.Menu : Phase() == MatchPhase.Running ? Mode.Round : Mode.Lobby;
             if (now != mode)
             {
@@ -161,9 +205,29 @@ namespace KotH.Client.Audio
             }
             instance.Play();
             current = instance;
+            confirmed = false;
+            confirmAt = 2.0;
+            watch.Started();
             if (history.Count < 16)
                 history.Add(NameOf(sound));
             Log.Info($"Music: {what} ({NameOf(sound)})");
+        }
+
+        bool confirmed;
+        double confirmAt;
+
+        // Two seconds into a piece: whether OpenAL really plays it, for the start log.
+        void Confirm()
+        {
+            if (confirmed || current == null || age < confirmAt)
+                return;
+            confirmed = true;
+            bool audible = NativeSound.Playing(current);
+            if (audible)
+                failures = 0;
+            string worker = NativeSound.StreamWorker is { IsFaulted: true } w ? $", stream worker FAULTED ({w.Exception?.InnerException?.Message})" : "";
+            StartLog.Mark($"music {NameOf(playing)}: {current.PlayState}, OpenAL {(audible ? "playing" : "SILENT")} " +
+                          $"at {NativeSound.Position(current):F2} s, engine {Audio.AudioEngine?.State}{worker}");
         }
 
         string NameOf(Sound sound)

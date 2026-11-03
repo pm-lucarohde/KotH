@@ -13,9 +13,9 @@ namespace KotH.Client.Hud
     public sealed class LoadScreen : IHudCover
     {
         // Seconds it stays after the bake, while the last first-use work settles,
-        // and at most from the map on, whatever happens.
+        // and at most from the map on (real time; a first start after a driver update bakes ~25 s).
         const double Settle = 0.5;
-        const double Longest = 20.0;
+        const double Longest = 60.0;
 
         // Seconds for one turn of the minute hand and of the hour hand.
         const double MinuteTurn = 2.0, HourTurn = 24.0;
@@ -29,6 +29,9 @@ namespace KotH.Client.Hud
         readonly MenuOverlay[] overlays;
         bool begun, loaded;
         double shown, turned, bakedAt = -1.0;
+        // Real seconds since the map began: a frame of several seconds (a compile) counts in full.
+        readonly System.Diagnostics.Stopwatch clock = new System.Diagnostics.Stopwatch();
+        readonly System.Diagnostics.Stopwatch held = new System.Diagnostics.Stopwatch();
 
         public LoadScreen(HudRenderer hud)
         {
@@ -62,7 +65,11 @@ namespace KotH.Client.Hud
         public bool IsLoaded => loaded;
 
         /// <summary>A map is being built now: from here on it waits for its bake.</summary>
-        public void Begin() => begun = true;
+        public void Begin()
+        {
+            begun = true;
+            clock.Restart();
+        }
 
         /// <summary>The map was taken down: covers again until the next one is loaded and baked.</summary>
         public void Restart()
@@ -70,13 +77,17 @@ namespace KotH.Client.Hud
             begun = loaded = false;
             shown = 0.0;
             bakedAt = -1.0;
+            clock.Reset();
         }
 
         /// <summary>The map's voxels are all in.</summary>
         public void Baked()
         {
             if (begun && bakedAt < 0.0)
+            {
                 bakedAt = shown;
+                StartLog.Mark($"load screen: light baked after {shown:F1} s");
+            }
         }
 
         /// <summary>Once per frame, with the frame's seconds and number; renders and uploads the clock while it covers.</summary>
@@ -84,18 +95,25 @@ namespace KotH.Client.Hud
         {
             if (begun && !loaded)
             {
-                shown += seconds;
+                shown = clock.Elapsed.TotalSeconds;
                 if (shown >= Longest || bakedAt >= 0.0 && shown - bakedAt >= Settle)
                 {
                     loaded = true;
                     // Loading and warming the HUD left garbage behind: collected here, not in play.
                     GC.Collect();
-                    Console.WriteLine(bakedAt < 0.0 ? $"[load] done after {shown:F1} s, light not baked"
-                                                    : $"[load] done after {shown:F1} s, light baked after {bakedAt:F1} s");
+                    string done = bakedAt < 0.0 ? $"done after {shown:F1} s, light not baked"
+                                                : $"done after {shown:F1} s, light baked after {bakedAt:F1} s";
+                    Console.WriteLine($"[load] {done}");
+                    StartLog.Mark($"load screen: {done}{(bakedAt < 0.0 ? " (TIMEOUT)" : "")}; effects {KotH.Client.Rendering.EffectRecorder.Counts}");
+                    held.Restart();
+                    KotH.Client.Rendering.PipelineCache.Save(now: false);
                     Loaded?.Invoke();
                 }
             }
+            bool covered = Covers;
             Covers = !loaded || Held || (Hold?.Invoke() ?? false);
+            if (covered && !Covers)
+                StartLog.Mark($"load screen lifted, held {held.Elapsed.TotalSeconds:F1} s after loading (menu, host or join)");
             if (!Covers)
                 return;
 

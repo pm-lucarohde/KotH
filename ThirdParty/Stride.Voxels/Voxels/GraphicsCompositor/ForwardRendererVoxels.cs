@@ -63,7 +63,7 @@ namespace Stride.Rendering.Voxels
         LightVoxel baking;
         Texture lightmap;
         Texture sunmap;
-        int bakeRounds;
+        int bakeRounds, bakeFrames;
         ImageEffectShader dilate;
 
         protected override void InitializeCore()
@@ -126,7 +126,7 @@ namespace Stride.Rendering.Voxels
             if (baking != light)
             {
                 baking = light;
-                bakeRounds = 0;
+                bakeRounds = bakeFrames = 0;
                 lightmaps.Ready = false;
             }
             bakeView ??= new RenderView { CullingMode = CameraCullingMode.None };
@@ -174,8 +174,10 @@ namespace Stride.Rendering.Voxels
             Dilate(drawContext, lightmap);
             Dilate(drawContext, sunmap);
 
+            bakeFrames++;
             if (lightmaps.Meshes > 0 && lightmaps.BakeEffectsCompiled == lightmaps.Meshes && ++bakeRounds >= BakeRounds)
             {
+                Stride.Rendering.Voxels.VoxelStorageSparse.Report?.Invoke($"lightmap {size}: {bakeFrames} frames, {lightmaps.Meshes} meshes");
                 baking.Lightmap = lightmap;
                 Context.Tags.Set(SunLightmapKey, sunmap);
                 lightmaps.Ready = true;

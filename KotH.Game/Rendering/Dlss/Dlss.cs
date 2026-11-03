@@ -10,9 +10,9 @@ namespace KotH.Client.Rendering.Dlss
     /// <summary>DLSS's modes as the game offers them; Off renders natively with FXAA.</summary>
     public enum DlssMode { Off, Dlaa, Quality, Balanced, Performance, UltraPerformance }
 
-    /// <summary>DLSS Super Resolution on this machine: Prepare hooks the device creation before Run,
-    /// Start initialises NGX on Stride's device and asks whether DLSS runs here (Ready). Off without an
-    /// NVIDIA RTX card, the loader or the DLSS library (libnvidia-ngx-dlss.so beside the game).</summary>
+    /// <summary>DLSS Super Resolution on this machine: Prepare hooks the device creation before Run, Start
+    /// initialises NGX on Stride's device and asks whether DLSS runs here (Ready), only once a mode is wanted
+    /// (a start without DLSS skips NGX). Off without an NVIDIA RTX card, the loader or the DLSS library.</summary>
     public static unsafe class Dlss
     {
         // Any fixed GUID identifies a custom engine's project to NGX.
@@ -22,15 +22,30 @@ namespace KotH.Client.Rendering.Dlss
         static Ngx.FeatureCommonInfo* common;
         static void* capabilities;
         static VkDevice device;
+        static GraphicsDevice waiting;
+        static DlssMode mode;
+        static bool tried;
 
         /// <summary>Whether DLSS can run: NGX started and the feature is available.</summary>
         public static bool Ready { get; private set; }
 
+        /// <summary>Whether it may: Ready, or not started yet on a device that has its extensions (for the menu).</summary>
+        public static bool Possible => Ready || !tried && VulkanHook.Extended;
+
         /// <summary>Why not, for the log and the F3 overlay.</summary>
         public static string Failure { get; private set; } = "not started";
 
-        /// <summary>The mode chosen (--dlss, KOTH_DLSS; later the settings): Off unless DLSS is Ready.</summary>
-        public static DlssMode Mode { get; set; }
+        /// <summary>The mode chosen (settings, --dlss, KOTH_DLSS); the first one other than Off starts NGX.</summary>
+        public static DlssMode Mode
+        {
+            get => mode;
+            set
+            {
+                mode = value;
+                if (value != DlssMode.Off && !tried && waiting != null)
+                    Start(waiting);
+            }
+        }
 
         /// <summary>The own sharpening after DLSS, 0 to 1 (DLSS 4 has none); KOTH_DLSS_SHARPNESS, default 0.5.</summary>
         public static float Sharpness { get; set; } = Env("KOTH_DLSS_SHARPNESS") is { } s ? Math.Clamp(s, 0f, 1f) : 0.5f;
@@ -127,11 +142,23 @@ namespace KotH.Client.Rendering.Dlss
             return names;
         }
 
-        /// <summary>After the device is made: NGX on it, and whether DLSS runs here.</summary>
-        public static void Start(GraphicsDevice graphics)
+        /// <summary>After the device is made: NGX starts on it now if a mode is wanted, else with the first one.</summary>
+        public static void Offer(GraphicsDevice graphics)
         {
-            if (Ready || capabilities != null)
+            waiting = graphics;
+            if (mode != DlssMode.Off)
+                Start(graphics);
+            else
+                Console.WriteLine("[dlss] NGX starts with the first mode chosen");
+        }
+
+        // NGX on the device, and whether DLSS runs here; any failure leaves it off.
+        static void Start(GraphicsDevice graphics)
+        {
+            if (tried)
                 return;
+            tried = true;
+            long at = StartLog.Now;
             try
             {
                 if (!VulkanHook.Extended)
@@ -177,6 +204,13 @@ namespace KotH.Client.Rendering.Dlss
                 Failure = "NGX loader missing";
                 Console.WriteLine($"[dlss] off: {Failure}");
             }
+            catch (Exception e)
+            {
+                Ready = false;
+                Failure = $"{e.GetType().Name}: {e.Message}";
+                Console.WriteLine($"[dlss] off: {Failure}");
+            }
+            StartLog.Took("dlss start", at, Ready ? "ready" : Failure);
         }
 
         /// <summary>Before the device goes: NGX lets go of it (else the process crashes on exit).</summary>

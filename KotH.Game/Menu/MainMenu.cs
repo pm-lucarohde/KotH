@@ -26,13 +26,13 @@ namespace KotH.Client.Menu
         /// load screen the map runs free, its bake not slowed.</summary>
         public const int MapFps = 30;
 
-        // Ready once the map is loaded and then this many frames in a row came
-        // quicker than CalmFrame seconds, or Longest seconds after it at most;
-        // the lit buttons go dark after the first WarmFrames of them.
-        const int CalmFrames = 30;
+        // Ready once the map is loaded and then CalmNeeded of the last CalmFrames frames came quicker
+        // than CalmFrame seconds (or 1.5 frame-cap intervals), or Longest real seconds after it at most;
+        // the lit buttons go dark after the first WarmFrames calm ones.
+        const int CalmFrames = 30, CalmNeeded = 27;
         const int WarmFrames = 6;
         const float CalmFrame = 0.025f;
-        const float Longest = 8f;
+        const float Longest = 3f;
 
         // The entrance, in seconds and units of a screen 1080 high.
         const float SlideSeconds = 0.75f, SlideFrom = 640f;
@@ -70,8 +70,9 @@ namespace KotH.Client.Menu
         MenuOverlay column, page, customize, logo, corner;
         MenuOverlay[] overlays, pointed;
         readonly OverlayPointer pointer = new OverlayPointer();
-        int calm;
-        float waited;
+        readonly bool[] calmWindow = new bool[CalmFrames];
+        int calmSlot, calmFilled, calm;
+        readonly System.Diagnostics.Stopwatch waiting = new System.Diagnostics.Stopwatch();
         // Find server searches again this often while open: a new lobby takes Steam a few seconds to list.
         const float SearchEvery = 5f;
 
@@ -105,7 +106,7 @@ namespace KotH.Client.Menu
             else
             {
                 if (Cover != null)
-                    Cover.Loaded += () => loaded = true;
+                    Cover.Loaded += OnLoaded;
                 view.Light(true);
             }
 
@@ -236,23 +237,40 @@ namespace KotH.Client.Menu
         {
             if (Ready || Cover != null && !loaded)
                 return;
-            waited += seconds;
-            calm = seconds < CalmFrame ? calm + 1 : 0;
+            if (!waiting.IsRunning)
+                waiting.Start();
+            double waited = waiting.Elapsed.TotalSeconds;
+            CountCalm(seconds <= Math.Max(CalmFrame, 1.5 * ((GameBase)Game).WindowMinimumUpdateRate.MinimumElapsedTime.TotalSeconds));
             if (!dark && (calm >= WarmFrames || waited >= Longest))
             {
                 view.Light(false);
                 dark = true;
-                calm = 0;
+                Array.Clear(calmWindow);
+                calmFilled = calm = 0;
             }
-            else if (dark && (calm >= CalmFrames || waited >= Longest))
+            else if (dark && (calmFilled == CalmFrames && calm >= CalmNeeded || waited >= Longest))
             {
                 // Loading and warming left garbage behind: collected here, not as
                 // a stutter a second after the menu shows.
                 GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
                 GC.Collect();
                 Ready = true;
-                Console.WriteLine($"[menu] ready {waited:F1} s after loading{(calm >= CalmFrames ? "" : ", without calm frames")}");
+                bool even = calm >= CalmNeeded;
+                Console.WriteLine($"[menu] ready {waited:F1} s after loading{(even ? "" : ", without calm frames")}");
+                StartLog.Mark($"menu ready {waited:F1} s after loading, {calm}/{calmFilled} calm{(even ? "" : " (TIMEOUT)")}; effects {EffectRecorder.Counts}");
+                PipelineCache.Save(now: false);
             }
+        }
+
+        // The last CalmFrames frames, whether each was calm; calm counts the calm ones among them.
+        void CountCalm(bool now)
+        {
+            if (calmFilled == CalmFrames && calmWindow[calmSlot])
+                calm--;
+            calmWindow[calmSlot] = now;
+            calm += now ? 1 : 0;
+            calmSlot = (calmSlot + 1) % CalmFrames;
+            calmFilled = Math.Min(calmFilled + 1, CalmFrames);
         }
 
         /// <summary>The load screen lifted: the boards slide in.</summary>
@@ -305,8 +323,12 @@ namespace KotH.Client.Menu
             LookFile.Save(view.Customizer.Look);
         }
 
+        void OnLoaded() => loaded = true;
+
         public override void Cancel()
         {
+            if (Cover != null)
+                Cover.Loaded -= OnLoaded;
             Save();
             entered?.Dispose();
             entered = null;

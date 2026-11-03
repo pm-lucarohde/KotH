@@ -39,6 +39,11 @@ namespace Stride.Rendering.Voxels
         [DataMemberIgnore]
         public bool Baked => phase == Phase.Done;
 
+        /// <summary>KotH patch: each bake step's frames and read-backs, for the game's start log.</summary>
+        public static Action<string> Report { get; set; }
+
+        int stepFrames;
+
         Phase phase;
         int slab;
         int slabBricks;
@@ -92,6 +97,7 @@ namespace Stride.Rendering.Voxels
                 counts.Create(context.device, counter);
                 phase = Phase.Mark;
                 pagesCleared = false;
+                stepFrames = 0;
             }
         }
 
@@ -247,6 +253,7 @@ namespace Stride.Rendering.Voxels
             dilate ??= new ComputeEffectShader(context) { ShaderSourceName = "SparseMarks" };
             bufferToBricks ??= new ComputeEffectShader(context) { ShaderSourceName = "BufferToBricksEffect" };
 
+            stepFrames++;
             switch (phase)
             {
                 case Phase.Mark:
@@ -256,6 +263,7 @@ namespace Stride.Rendering.Voxels
                     RunMarks(drawContext, stable && marked > 0);
                     if (stable && marked > 0)
                     {
+                        Step($"marks {marked}");
                         StartFill(drawContext, (int)marked);
                         break;
                     }
@@ -269,6 +277,7 @@ namespace Stride.Rendering.Voxels
                     if (written && voxels > 0)
                     {
                         Console.WriteLine($"[voxel] slab {slab + 1}/{SlabCount}: {voxels} voxels");
+                        Step($"slab {slab + 1}/{SlabCount} {voxels} voxels");
                         if (++slab >= SlabCount)
                         {
                             phase = Phase.Levels;
@@ -337,6 +346,14 @@ namespace Stride.Rendering.Voxels
                 drawContext.CommandList.UnorderedAccessBarrier();
                 ((RendererBase)shader).Draw(drawContext);
             }
+        }
+
+        // One bake step done: how many frames and read-backs it took.
+        void Step(string what)
+        {
+            Report?.Invoke($"voxel {what}: {stepFrames} frames, {counts.Readings} read-backs");
+            stepFrames = 0;
+            counts.Readings = 0;
         }
 
         void StartFill(RenderDrawContext drawContext, int count)
@@ -570,12 +587,15 @@ namespace Stride.Rendering.Voxels
             uint last;
             int agreeing;
 
+            /// <summary>Counts read back since last reset (KotH patch, for the start log).</summary>
+            public int Readings;
+
             public void Create(GraphicsDevice device, Buffer source)
             {
                 counter = source;
                 for (int i = 0; i < staging.Length; i++)
                     staging[i] ??= Buffer.New(device, source.SizeInBytes, BufferFlags.None, GraphicsResourceUsage.Staging);
-                next = pending = agreeing = 0;
+                next = pending = agreeing = Readings = 0;
                 lastTag = -1;
             }
 
@@ -612,6 +632,7 @@ namespace Stride.Rendering.Voxels
                     int readTag = tags[next];
                     next = (next + 1) % staging.Length;
                     pending--;
+                    Readings++;
                     if (readTag != tag)
                         continue;
                     agreeing = readTag == lastTag && read > 0 && Math.Abs((long)read - last) * 1000 <= last ? agreeing + 1 : 0;

@@ -78,6 +78,10 @@ namespace KotH.Client.Audio
         AudioListener listener;
         SoundInstance ambient;
         bool failed;
+        readonly SoundWatch watch = new SoundWatch();
+        // A failure silences the sounds for two seconds, never for good.
+        readonly System.Diagnostics.Stopwatch clock = System.Diagnostics.Stopwatch.StartNew();
+        double retryAt;
 
         public override void Start()
         {
@@ -88,23 +92,41 @@ namespace KotH.Client.Audio
             }
             if (figures != null)
                 figures.Sounded += OnSounded;
-            Guard(() =>
-            {
-                listener = Audio.AudioEngine.DefaultListener;
-                if (Ambient == null)
-                    return;
-                ambient = Ambient.CreateInstance();
-                ambient.IsLooping = true;
-                ambient.Volume = AmbientVolume * Master * PlayerSettings.Gain(ClientSettings.Applied.Ambient);
-                ambient.Play();
-            });
         }
 
         public override void Update()
         {
-            if (!failed && ambient != null)
+            if (failed && clock.Elapsed.TotalSeconds >= retryAt)
+                failed = false;
+            // The ambience after the first frame (its stream start waits on the thread pool the compiles fill).
+            if (failed || Game.DrawTime.FrameCount < 1 || Audio.AudioEngine is not { State: not AudioEngineState.Invalidated })
+                return;
+            listener ??= Audio.AudioEngine.DefaultListener;
+            if (Ambient == null)
+                return;
+            if (ambient == null)
+                StartAmbience();
+            else if (watch.Silent(ambient, out string why))
+            {
+                StartLog.Warn($"ambience silent: {why}; started again");
+                StartAmbience();
+            }
+            else
                 ambient.Volume = AmbientVolume * Master * PlayerSettings.Gain(ClientSettings.Applied.Ambient);
         }
+
+        void StartAmbience() => Guard(() =>
+        {
+            SoundInstance old = ambient;
+            ambient = null;
+            old?.Stop();
+            old?.Dispose();
+            ambient = Ambient.CreateInstance();
+            ambient.IsLooping = true;
+            ambient.Volume = AmbientVolume * Master * PlayerSettings.Gain(ClientSettings.Applied.Ambient);
+            ambient.Play();
+            watch.Started();
+        });
 
         public override void Cancel()
         {
@@ -206,7 +228,7 @@ namespace KotH.Client.Audio
             return created;
         }
 
-        /// <summary>No audio device or a broken asset: silent from then on, never a stop of the game.</summary>
+        /// <summary>A broken asset or device: silent for two seconds, never a stop of the game.</summary>
         void Guard(Action action)
         {
             try
@@ -216,7 +238,9 @@ namespace KotH.Client.Audio
             catch (Exception e)
             {
                 failed = true;
+                retryAt = clock.Elapsed.TotalSeconds + 2.0;
                 Log.Warning($"Sounds fail: {e.Message}");
+                StartLog.Warn($"sounds fail: {e}");
             }
         }
     }

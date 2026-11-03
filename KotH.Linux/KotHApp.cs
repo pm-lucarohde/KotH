@@ -19,6 +19,7 @@ using Stride.Games;
 using Stride.Graphics;
 using Stride.Input;
 
+StartLog.Begin(args);
 #if !WINDOWS
 StdCxxPreload.Run();
 #endif
@@ -34,7 +35,9 @@ if (Environment.GetEnvironmentVariable("STRIDE_MAX_PARALLELISM") == null)
     Dispatcher.MaxDegreeOfParallelism = 6;
 
 // Before the options are read: the player's name comes from Steam.
+long steamAt = StartLog.Now;
 SteamClient.Start();
+StartLog.Took("steam", steamAt, SteamClient.Ready ? "ready" : SteamClient.Failure);
 using var game = new KotHGame();
 game.Run();
 SteamClient.Shutdown();
@@ -99,6 +102,13 @@ sealed class KotHGame : Game
     bool sfxSet;
     readonly bool headless = Environment.GetEnvironmentVariable("KOTH_HEADLESS") == "1"; // no window, renders KOTH_SIZE
     bool musicSet;
+    // KOTH_START_AWAY=focus|minimize: test aid, the window loses the focus (another window in front) or is
+    // minimised right after it shows, and gets it back a second after the load screen lifted.
+    readonly string startAway = Environment.GetEnvironmentVariable("KOTH_START_AWAY");
+    nint awayWindow;
+    double awayBack = double.NaN;
+    TimeSpan minimizedRate;
+    bool minimizedRestored;
     Int2 windowedSize;
     bool confined;
 
@@ -127,8 +137,10 @@ sealed class KotHGame : Game
             frameLog = new float[600 * 2000];
 
         // DLSS needs Vulkan extensions Stride does not ask for: hooked before the device exists.
+        long hookAt = StartLog.Now;
         if (Environment.GetEnvironmentVariable("KOTH_DLSS") != "0")
             KotH.Client.Rendering.Dlss.Dlss.Prepare();
+        StartLog.Took("vulkan instance and device hook", hookAt);
 
         // A hidden window never has the focus; a networked game must keep
         // its clock with the other window in front.
@@ -136,6 +148,13 @@ sealed class KotHGame : Game
         if (headless)
         {
             // The hidden window counts as minimised: no 15 fps cap, still drawn.
+            DrawWhileMinimized = true;
+            MinimizedMinimumUpdateRate.MinimumElapsedTime = TimeSpan.Zero;
+        }
+        else
+        {
+            // Loading goes on minimised, at full speed: the bake needs frames (Stride's default draws none).
+            minimizedRate = MinimizedMinimumUpdateRate.MinimumElapsedTime;
             DrawWhileMinimized = true;
             MinimizedMinimumUpdateRate.MinimumElapsedTime = TimeSpan.Zero;
         }
@@ -175,7 +194,20 @@ sealed class KotHGame : Game
     /// the pointer leave for the other screen, and a grab only holds in a window covering the screen.</summary>
     protected override void Initialize()
     {
+        long systemsAt = StartLog.Now;
         base.Initialize();
+        StartLog.Took("game systems", systemsAt, $"audio {AudioReport()}");
+        // Stride swallows a device that fails to open; every sound is then a silent no-op.
+        if (Audio?.AudioEngine is not { State: not Stride.Audio.AudioEngineState.Invalidated })
+            StartLog.Warn($"no audio device opened ({Audio?.RequestedAudioDevice?.Name ?? "default"}): music and sounds are off; restart with a device");
+        GraphicsDeviceManager.DeviceCreated += (_, _) =>
+        {
+            StartLog.Mark("device created");
+            KotH.Client.Rendering.PipelineCache.Install(GraphicsDeviceManager.GraphicsDevice);
+        };
+        // Stride pauses every sound while the window is in the background; a Play then does nothing.
+        Activated += (_, _) => StartLog.Mark("window active, audio resumed");
+        Deactivated += (_, _) => StartLog.Mark("window inactive, audio paused");
         KotH.Client.Rendering.EffectRecorder.Attach(EffectSystem);
         if (headless)
             return;
@@ -185,7 +217,7 @@ sealed class KotHGame : Game
 
         // Pumping only moves the window's events into SDL's queue; the game
         // still reads every one of them later.
-        PumpUntil(() => SdlGrab.SDL_GetKeyboardFocus() == sdl.SdlHandle);
+        PumpUntil("focus wait", () => SdlGrab.SDL_GetKeyboardFocus() == sdl.SdlHandle);
 
         if (LaunchOptions.Current.Display is { } display)
             MoveToDisplay(sdl.SdlHandle, display);
@@ -200,7 +232,7 @@ sealed class KotHGame : Game
             Window.AllowUserResizing = true;
             ApplyWindow();
             if (windowShown != WindowMode.Windowed)
-                PumpUntil(() => CoversDisplay(sdl.SdlHandle));
+                PumpUntil("fullscreen wait", () => CoversDisplay(sdl.SdlHandle));
             if (LaunchOptions.Current.Display != null)
             {
                 SdlGrab.SDL_GetWindowPosition(sdl.SdlHandle, out int fx, out int fy);
@@ -208,8 +240,14 @@ sealed class KotHGame : Game
             }
         }
 
+        GoAway(sdl.SdlHandle);
+
         // The main menu wants the pointer; SimulationDriver grabs it when a game starts.
         if (LaunchOptions.Current.ShowsMenu)
+            return;
+        // SDL's X11 grab (relative mode too) retries 5 s on a window that is not viewable (minimised,
+        // hidden); the round's mouse lock and ConfinePointer catch it once it has the focus.
+        if ((SdlGrab.SDL_GetWindowFlags(sdl.SdlHandle) & (SdlGrab.Minimized | SdlGrab.Hidden)) != 0)
             return;
         SdlGrab.SDL_SetRelativeMouseMode(1);
         SdlGrab.SDL_SetWindowGrab(sdl.SdlHandle, 1);
@@ -250,39 +288,106 @@ sealed class KotHGame : Game
         // maximised window does not move.
         SdlGrab.SDL_RestoreWindow(window);
         SdlGrab.SDL_SetWindowPosition(window, target.X + 40, target.Y + 40);
-        PumpUntil(() =>
+        PumpUntil("monitor move", () =>
         {
             SdlGrab.SDL_GetWindowPosition(window, out int x, out int y);
             return x >= target.X && x < target.X + target.W;
         });
     }
 
-    static void PumpUntil(Func<bool> done)
+    static void PumpUntil(string what, Func<bool> done)
     {
+        long at = StartLog.Now;
         var wait = System.Diagnostics.Stopwatch.StartNew();
-        while (!done() && wait.ElapsedMilliseconds < 2000)
+        bool met;
+        while (!(met = done()) && wait.ElapsedMilliseconds < 2000)
         {
             SdlGrab.SDL_PumpEvents();
             System.Threading.Thread.Sleep(5);
         }
+        StartLog.Took(what, at, met ? "met" : "TIMEOUT");
     }
 
+    /// <summary>Whether the window is fullscreen and covers its screen, within 2 % (scaling rounds sizes): in
+    /// screen units or in pixels. Off any screen (index −1) there is nothing to wait for.</summary>
     static bool CoversDisplay(nint window)
     {
+        int index = SdlGrab.SDL_GetWindowDisplayIndex(window);
+        if (index < 0)
+            return true;
+        if ((SdlGrab.SDL_GetWindowFlags(window) & SdlGrab.Fullscreen) == 0)
+            return false;
         SdlGrab.SDL_GetWindowSize(window, out int width, out int height);
-        return SdlGrab.SDL_GetDisplayBounds(SdlGrab.SDL_GetWindowDisplayIndex(window), out SdlGrab.Rect display) == 0 &&
-               width == display.W && height == display.H;
+        SdlGrab.SDL_Vulkan_GetDrawableSize(window, out int pixelsX, out int pixelsY);
+        bool units = SdlGrab.SDL_GetDisplayBounds(index, out SdlGrab.Rect bounds) == 0 && Near(width, bounds.W) && Near(height, bounds.H);
+        bool pixels = SdlGrab.SDL_GetDesktopDisplayMode(index, out SdlGrab.DisplayMode mode) == 0 && Near(pixelsX, mode.W) && Near(pixelsY, mode.H);
+        return units || pixels;
     }
 
-    // Stride makes the device after Initialize: NGX starts on it here.
+    static bool Near(int a, int b) => Math.Abs(a - b) * 50 <= b;
+
+    void GoAway(nint window)
+    {
+        if (startAway == "minimize")
+        {
+            // X11 minimises in its own time: as a player who had minimised it already.
+            SdlGrab.SDL_MinimizeWindow(window);
+            PumpUntil("test: minimise", () => (SdlGrab.SDL_GetWindowFlags(window) & SdlGrab.Minimized) != 0);
+        }
+        else if (startAway == "focus")
+        {
+            awayWindow = SdlGrab.SDL_CreateWindow("KotH away", 100, 100, 320, 200, 0x4);
+            SdlGrab.SDL_RaiseWindow(awayWindow);
+            SdlGrab.SDL_SetWindowInputFocus(awayWindow);
+        }
+        if (startAway != null)
+            StartLog.Mark($"test: window away ({startAway})");
+    }
+
+    void ComeBack(GameTime time)
+    {
+        if (startAway == null || !double.IsNaN(awayBack) && awayBack < 0.0 || Window.NativeWindow?.NativeWindow is not Stride.Graphics.SDL.Window sdl)
+            return;
+        if (double.IsNaN(awayBack) && Services.GetService<LoadScreen>() is { Covers: false })
+            awayBack = time.Total.TotalSeconds + 1.0;
+        if (double.IsNaN(awayBack) || time.Total.TotalSeconds < awayBack)
+            return;
+        awayBack = -1.0;
+        if (awayWindow != 0)
+            SdlGrab.SDL_DestroyWindow(awayWindow);
+        SdlGrab.SDL_RestoreWindow(sdl.SdlHandle);
+        SdlGrab.SDL_RaiseWindow(sdl.SdlHandle);
+        SdlGrab.SDL_SetWindowInputFocus(sdl.SdlHandle);
+        StartLog.Mark("test: window back");
+    }
+
+    // Stride makes the device after Initialize: NGX may start on it from here.
     protected override void BeginRun()
     {
+        StartLog.Mark("scene loaded");
         base.BeginRun();
-        KotH.Client.Rendering.Dlss.Dlss.Start(GraphicsDevice);
+        KotH.Client.Rendering.Dlss.Dlss.Offer(GraphicsDevice);
+    }
+
+    /// <summary>The audio engine's state and device, for the start log.</summary>
+    string AudioReport()
+        => Audio?.AudioEngine is { } engine ? $"{engine.State}, device {Audio.RequestedAudioDevice?.Name ?? "default"}" : "none";
+
+    bool presented;
+
+    protected override void EndDraw(bool present)
+    {
+        base.EndDraw(present);
+        if (presented || !present)
+            return;
+        presented = true;
+        StartLog.Mark($"first frame presented, {GraphicsDevice.Presenter?.BackBuffer?.Width}x{GraphicsDevice.Presenter?.BackBuffer?.Height}");
     }
 
     protected override void EndRun()
     {
+        StartLog.Mark($"exit, {GraphicsDevice?.Presenter?.BackBuffer?.Width}x{GraphicsDevice?.Presenter?.BackBuffer?.Height}");
+        KotH.Client.Rendering.PipelineCache.Shutdown();
         KotH.Client.Rendering.Dlss.Dlss.Shutdown();
         base.EndRun();
 
@@ -316,6 +421,16 @@ sealed class KotHGame : Game
             sfxSet = true;
             sounds.Master = (float)(sfxVolume ?? (musicVolume == 0.0 ? 0.0 : 1.0));
             sounds.Trace = soundLog;
+        }
+
+        ComeBack(gameTime);
+
+        // Lifted (loaded and the menu settled): minimised again as Stride has it.
+        if (!headless && !minimizedRestored && Services.GetService<LoadScreen>() is { IsLoaded: true, Covers: false })
+        {
+            minimizedRestored = true;
+            DrawWhileMinimized = false;
+            MinimizedMinimumUpdateRate.MinimumElapsedTime = minimizedRate;
         }
 
         // Not in Initialize: with the window hidden the device is not ready there.
@@ -798,7 +913,7 @@ static class SdlGrab
     [DllImport(Lib)] public static extern int SDL_SetWindowFullscreen(nint window, uint flags);
 
     /// <summary>SDL_WINDOW_FULLSCREEN_DESKTOP: borderless at the desktop's size; SDL_WINDOW_FULLSCREEN: the screen's mode switched.</summary>
-    public const uint FullscreenDesktop = 0x1001, Fullscreen = 0x1;
+    public const uint FullscreenDesktop = 0x1001, Fullscreen = 0x1, Hidden = 0x8, Minimized = 0x40;
     [DllImport(Lib)] public static extern void SDL_SetWindowSize(nint window, int w, int h);
     [DllImport(Lib)] public static extern void SDL_MaximizeWindow(nint window);
     [DllImport(Lib)] public static extern int SDL_SetWindowDisplayMode(nint window, ref DisplayMode mode);
@@ -807,10 +922,18 @@ static class SdlGrab
     [StructLayout(LayoutKind.Sequential)]
     public struct DisplayMode { public uint Format; public int W, H, RefreshRate; public nint DriverData; }
     [DllImport(Lib)] public static extern void SDL_GetWindowSize(nint window, out int w, out int h);
+    [DllImport(Lib)] public static extern uint SDL_GetWindowFlags(nint window);
+    [DllImport(Lib)] public static extern void SDL_Vulkan_GetDrawableSize(nint window, out int w, out int h);
+    [DllImport(Lib)] public static extern int SDL_GetDesktopDisplayMode(int displayIndex, out DisplayMode mode);
     [DllImport(Lib)] public static extern int SDL_GetWindowDisplayIndex(nint window);
     [DllImport(Lib)] public static extern int SDL_GetDisplayBounds(int displayIndex, out Rect rect);
     [DllImport(Lib)] public static extern int SDL_GetNumVideoDisplays();
     [DllImport(Lib)] public static extern void SDL_RestoreWindow(nint window);
+    [DllImport(Lib)] public static extern void SDL_MinimizeWindow(nint window);
+    [DllImport(Lib)] public static extern void SDL_RaiseWindow(nint window);
+    [DllImport(Lib)] public static extern int SDL_SetWindowInputFocus(nint window);
+    [DllImport(Lib)] public static extern void SDL_DestroyWindow(nint window);
+    [DllImport(Lib)] public static extern nint SDL_CreateWindow(string title, int x, int y, int w, int h, uint flags);
     [DllImport(Lib)] public static extern void SDL_SetWindowPosition(nint window, int x, int y);
     [DllImport(Lib)] public static extern void SDL_GetWindowPosition(nint window, out int x, out int y);
 

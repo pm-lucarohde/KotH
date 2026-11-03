@@ -172,7 +172,7 @@ namespace KotH.Client.Menu
         static readonly bool[] Both = { false, true };
 
         // DLSS draws the scene at its own size in place of FXAA.
-        static bool Upscaled(PlayerSettings s) => s.Dlss && DlssApi.Ready;
+        static bool Upscaled(PlayerSettings s) => s.Dlss && DlssApi.Possible;
 
         // The screen's sizes up to its own (0: its own). Borderless draws the scene at the size and
         // stretches it over the screen, so only sizes of the screen's shape; exclusive switches the screen.
@@ -220,7 +220,7 @@ namespace KotH.Client.Menu
             new HeadingRow("Upscaling"),
             new ChoiceRow<bool>("NVIDIA DLSS", _ => Both, s => s.Dlss, (s, v) => s.Dlss = v, on => on ? "On" : "Off")
             {
-                Locked = _ => DlssApi.Ready ? null : "Not available",
+                Locked = _ => DlssApi.Possible ? null : "Not available",
             },
             new ChoiceRow<DlssMode>("DLSS mode", _ => Modes, s => s.DlssMode, (s, v) => s.DlssMode = v, DlssName)
             {

@@ -17,6 +17,7 @@ namespace KotH.Client.Rendering
         public int Frames { get; set; } = 2;
 
         int done;
+        bool sunLogged, voxelsLogged, lightmapLogged;
 
         // The Shadows and Lighting settings last applied, and the light's asset values.
         Quality? shadows, lighting;
@@ -30,9 +31,15 @@ namespace KotH.Client.Rendering
             // Sparse bricks bake over as many frames as they need.
             if (volume.Storage is VoxelStorageSparse sparse)
             {
-                volume.Voxelize = !sparse.Baked && StaticShadowDrawn();
+                bool sun = StaticShadowDrawn();
+                volume.Voxelize = !sparse.Baked && sun;
+                Once(ref sunLogged, sun, "static sun shadow drawn");
+                Once(ref voxelsLogged, sparse.Baked, "voxels baked");
                 if (sparse.Baked && LightmapBaked())
+                {
+                    Once(ref lightmapLogged, true, "lightmap baked");
                     Services.GetService<LoadScreen>()?.Baked();
+                }
                 return;
             }
             if (done > Frames)
@@ -41,6 +48,14 @@ namespace KotH.Client.Rendering
                 return;
             }
             volume.Voxelize = ++done <= Frames;
+        }
+
+        static void Once(ref bool logged, bool now, string what)
+        {
+            if (logged || !now)
+                return;
+            logged = true;
+            StartLog.Mark(what);
         }
 
         /// <summary>The Lighting setting's lightmap size and cone steps, before the first bake; after a

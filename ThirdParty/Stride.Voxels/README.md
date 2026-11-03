@@ -31,3 +31,5 @@ From `stride3d/stride`, tag `releases/4.4.0` (a0fdf91) plus the voxel changes of
   voxel light baked once (stage `LightmapBake`, RGBA16F, dilated); `LightmapRenderFeature` sets `KOTH_LIGHTMAP`, then
   only the capsules are live (map GI ~1.3 → ~0.15 ms). A second target (RG16F) bakes the sun from KotH's static shadow
   map (`ForwardRendererVoxels.SunLightmapKey`).
+- **Start log:** `VoxelStorageSparse.Report` (KotH sets it to `StartLog.Mark`) gets each bake step with its frames
+  and read-backs; `ForwardRendererVoxels` reports the lightmap's frames.

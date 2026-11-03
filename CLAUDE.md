@@ -20,14 +20,15 @@ Tools/publish_aot.sh windows probes-windows  # on request only (lld-link, xwin)
 ```
 
 - AOT links in the distrobox `aot`; ILC sometimes crashes, then rerun; always `--no-incremental` (else an old scene
-  bundle). After new materials/effects: `Tools/effects/record.sh`. JIT matches AOT only with `DOTNET_EnableAVX=0`.
+  bundle). After new materials/effects/scenes: `Tools/effects/record.sh`. JIT = AOT only with `DOTNET_EnableAVX=0`.
 - Client: no arguments = main menu, `--offline` alone; `--host`/`--join ADDRESS[:PORT]`, `--name`, `--port`,
   `--min-players`, `--bots N`, `--display N`, `--map NAME`, `--fps N`, `--dlss MODE`. Two clients: `Tools/two_clients.sh`.
 - Server: real time, `--seconds N` or `--ticks N` (fast, exact end state); `--map`, `--bots`, load test `--bodies N`
   (`--map Test`); network `--host`/`--join`/`--bot` (`NetPlay.cs`). Traces `KOTH_TRACE=BotName`, `KOTH_FALLS=1`.
 - Test aids (`KotHApp.cs` fields, times from the end of the load screen): `KOTH_SHOT=shot.png` (+ `_SECONDS`, `_YAW`,
   `_AT`, `_MOVE`, `_BLASTER`, `_FIRE`, `_VIDEO` …), `KOTH_HEADLESS=1`, `KOTH_SIZE`, `KOTH_MUSIC_VOLUME=0` (mute), `KOTH_EFFECTLOG`,
-  `KOTH_POSLOG`; menu shots `KOTH_SHOT_MENU`, `_PAUSE`, `_HUD=banner`, `_LOAD`, `_SETTINGS=tab`, `_APPLY=s:x.toml`; `KOTH_SETTINGS`.
+  `KOTH_POSLOG`; menu shots `KOTH_SHOT_MENU`, `_PAUSE`, `_HUD=banner`, `_LOAD`, `_SETTINGS=tab`, `_APPLY=s:x.toml`; `KOTH_SETTINGS`;
+  start log `~/.local/share/KotH/logs` (always), `KOTH_START_AWAY=focus|minimize`; starts measured by `.work/startup/real.sh`.
 
 ## Tests: probes and regression
 
@@ -43,7 +44,6 @@ Bin/Probes/aot/KotH.Probes bots climb 12        # MountDestiny, mean ≤ 140 s; 
 dotnet run Tools/Verdict.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # verdicts (95, 94 the same)
 dotnet run Tools/Regress.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # numbers within 5 mm / 1 %
 ```
-
 - Deviations and intended changes: `Reference/REGRESSION.md`. Regression only if the measuring path is touched; bots
   ≥ 100 runs; runs ≤ 15 min. `.work/` holds tools and measurements (`/tmp` is volatile).
 - Bot traces: `KOTH_BOTTRACE=tick` (`_BOT=n`), `KOTH_HOPLOG=n`, `KOTH_BOTPATH=file`, `KOTH_CLIMB_FIRST=k`.
