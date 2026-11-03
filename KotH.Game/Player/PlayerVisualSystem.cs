@@ -281,6 +281,7 @@ namespace KotH.Client.Player
             public Dash Dash;
             public int SeenSlam;
             public bool Slammed;   // a dash landed in this flight, its impact already sounded
+            public float SeenJump; // the motor's SinceGroundJump last frame
             public Entity[] Shards;
             public readonly ArmSwing Swing = new ArmSwing();
         }
@@ -340,6 +341,7 @@ namespace KotH.Client.Player
                 Melee = motor.Entity.Get<MeleeAttack>(),
                 Dash = motor.Entity.Get<Dash>(),
                 SeenSlam = motor.Entity.Get<Dash>()?.LastSlamTick ?? 0,
+                SeenJump = motor.SinceGroundJump,
             });
         }
 
@@ -992,7 +994,19 @@ namespace KotH.Client.Player
                 f.AirTime = 0f;
                 f.Peak = motor.Position.Y;
             }
-            if (airborne && f.AirTime > 0.05f && motor.KnockLeft <= 0f && v.Y - f.LastClimb > KickBoost)
+            // A ground jump the figure never saw the ground for (pressed on the landing tick) is a
+            // landing and a take-off, not a double jump's kick.
+            float sinceJump = motor.SinceGroundJump;
+            bool hopped = sinceJump >= 0f && (f.SeenJump < 0f || sinceJump < f.SeenJump);
+            f.SeenJump = sinceJump;
+            if (hopped && f.AirTime > 0f)
+            {
+                Landed(f, motor);
+                f.AirTime = 0f;
+                f.LastClimb = v.Y;
+            }
+            // Rising, too: braking a fall on a rock face is no kick.
+            if (airborne && f.AirTime > 0.05f && motor.KnockLeft <= 0f && v.Y - f.LastClimb > KickBoost && v.Y > JumpSpeed)
             {
                 f.KickAge = 0f;
                 f.Kicked = true;
@@ -1017,14 +1031,7 @@ namespace KotH.Client.Player
             }
             else
             {
-                if (f.AirTime > LandMinAir)
-                {
-                    f.LandAge = 0f;
-                    // A dash landing sounds its impact in Slam instead, before or after this.
-                    if (!f.Slammed && (f.Dash == null || f.Dash.LastSlamTick == f.SeenSlam))
-                        Sound(f, FigureSound.Land, f.Peak - motor.Position.Y);
-                    f.Slammed = false;
-                }
+                Landed(f, motor);
                 f.AirTime = 0f;
             }
             f.LandAge += dt;
@@ -1096,6 +1103,18 @@ namespace KotH.Client.Player
                     play.CurrentTime = TimeSpan.FromTicks((long)(f.Phase * play.Clip.Duration.Ticks));
                 }
             }
+        }
+
+        // Back on the ground after a flight long enough to be heard.
+        void Landed(Figure f, PlayerMotor motor)
+        {
+            if (f.AirTime <= LandMinAir)
+                return;
+            f.LandAge = 0f;
+            // A dash landing sounds its impact in Slam instead, before or after this.
+            if (!f.Slammed && (f.Dash == null || f.Dash.LastSlamTick == f.SeenSlam))
+                Sound(f, FigureSound.Land, f.Peak - motor.Position.Y);
+            f.Slammed = false;
         }
 
         void Sound(Figure f, FigureSound what, float amount) => Sounded?.Invoke(what, f.Motor, f.Transform.Position, amount);

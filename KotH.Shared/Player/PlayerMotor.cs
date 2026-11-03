@@ -215,6 +215,10 @@ namespace KotH.Shared.Player
         public bool IsSliding => sliding;
         public Vector3 Velocity => velocity;
 
+        /// <summary>Seconds since the last ground jump while its double-jump window is open, else -1.
+        /// A jump on the very tick of a landing is never seen grounded; the looks find it here.</summary>
+        public float SinceGroundJump => jumpWindowOpen ? timeSinceGroundJump : -1f;
+
         /// <summary>In a dash: straight down until the ground. SlamLanded is the tick it struck.</summary>
         public bool IsSlamming => slamSpeed > 0f;
         public bool SlamLanded => slamLanded;
