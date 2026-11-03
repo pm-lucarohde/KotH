@@ -93,7 +93,8 @@ Hierarchy:
                         Id: 3F3B073C-BCA4-4B47-A890-310FAC1F4F28
                         Speed: 130.0
                         Gravity: 9.81
-                        LifetimeTicks: 80
+                        LifetimeTicks: 1200
+                        FallBelow: -5.0
                         CooldownTicks: 10
                         DrawTicks: 8
                         MaxShots: 3

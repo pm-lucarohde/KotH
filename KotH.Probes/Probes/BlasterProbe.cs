@@ -108,9 +108,24 @@ namespace KotH.Probes.Probes
             Check("path", s.Age == 20 && worst < 2e-3f, $"age {s.Age}, worst {worst * 1000f:F2} mm off the closed form");
         }
 
-        /// <summary>Straight up the spore never lands: it is gone after its lifetime.</summary>
+        /// <summary>Straight up the spore comes down beside the arena: gone once below Fall
+        /// below, long before its lifetime; with a short lifetime it is gone right after it.</summary>
         void Lifetime()
         {
+            Place(blasterInHand: true, aside: true);
+            Fire(89f);
+            BlasterShot last = Flying();
+            while (Flying().Age > 0 && Flying().Age <= blaster.LifetimeTicks)
+            {
+                last = Flying();
+                world.Simulation.Tick();
+            }
+            float dt = FixedDeltaTime, next = last.Position.Y + (last.Velocity.Y - blaster.Gravity * dt) * dt;
+            Check("falls away", Flying().Age == 0 && last.Age < blaster.LifetimeTicks && next < blaster.FallBelow,
+                  $"gone after {last.Age} ticks at {last.Position.Y:F1} m, next {next:F1} m (below {blaster.FallBelow} m)");
+
+            int keep = blaster.LifetimeTicks;
+            blaster.LifetimeTicks = 80;
             Place(blasterInHand: true, aside: true);
             Fire(89f);
             int age = 0;
@@ -122,6 +137,7 @@ namespace KotH.Probes.Probes
             world.Simulation.Tick();
             Check("lifetime", age == blaster.LifetimeTicks && Flying().Age == 0,
                   $"age {age} at the last tick, then {Flying().Age}");
+            blaster.LifetimeTicks = keep;
         }
 
         /// <summary>Three shots, then none; one more per 30 points, none saved up while full.</summary>

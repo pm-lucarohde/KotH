@@ -24,8 +24,11 @@ namespace KotH.Shared.Combat
         /// <userdoc>How fast a spore falls, in metres per second squared (earth: 9.81).</userdoc>
         [Display("Gravity", "Shot")] public float Gravity = 9.81f;
 
-        /// <userdoc>Ticks a spore flies before it is gone; 80 ticks are 2 seconds.</userdoc>
-        [Display("Lifetime (ticks)", "Shot")] public int LifetimeTicks = 80;
+        /// <userdoc>Most ticks a spore flies before it is gone, if it hits nothing and stays above Fall below; 1200 ticks are 30 seconds, as long as one shot straight up stays in the air.</userdoc>
+        [Display("Lifetime (ticks)", "Shot")] public int LifetimeTicks = 1200;
+
+        /// <userdoc>A spore that falls below this height (metres) is gone: into the sea or off the map.</userdoc>
+        [Display("Fall below (m)", "Shot")] public float FallBelow = -5f;
 
         /// <userdoc>Ticks between two shots.</userdoc>
         [Display("Cooldown (ticks)", "Shot")] public int CooldownTicks = 10;
@@ -179,6 +182,8 @@ namespace KotH.Shared.Combat
             }
 
             shot.Position = UMath.Add(shot.Position, step);
+            if (shot.Position.Y < FallBelow)
+                shot = default;
         }
 
         // The cane's hit with the spore's path as the push line and no carry: a shot from
