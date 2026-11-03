@@ -45,7 +45,7 @@ World queries against PhysX (`worldquery`, 6,500 per kind): identical hit sets, 
 All builds use **x86-64-v2** (`Directory.Build.props`); JIT matches only with `DOTNET_EnableAVX=0`, then AOT and JIT
 are byte-identical on every probe. All peers need the same binary.
 
-## Intended changes since the move (hash chain now `C857D39208F53C83`)
+## Intended changes since the move (hash chain now `67AB05EEE3468AFD`)
 
 | # | Date | Change | Check |
 |---|---|---|---|
@@ -68,3 +68,4 @@ are byte-identical on every probe. All peers need the same binary.
 | 17 | 20.10. | Prediction continues foreign turns for 8 ticks | `netplay` |
 | 18 | 20.10. | Real UDP (LiteNetLib), datagrams ≤ 1200 B, input clamping | `netplay`, UDP smoke test |
 | 19 | 21.10. | Alone only while capturing; the holder keeps scoring with others inside | `capture` |
+| 20 | 03.11. | Dash down (crouch in the air from 1.5 m); state +17 bytes, chain `67AB05EEE3468AFD` (fields only) | `dash`, runs identical |

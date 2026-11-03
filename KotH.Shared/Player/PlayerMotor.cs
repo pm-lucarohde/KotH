@@ -174,6 +174,8 @@ namespace KotH.Shared.Player
         bool jumpCutPending;      // ground jump running, not trimmed yet
         float jumpHeldTime;       // how long the key stayed down since take-off
         float jumpStartY;         // take-off height, the cut measures from it
+        float slamSpeed;          // falling straight down in a dash, 0 when not
+        bool slamLanded;          // a dash struck the ground in this tick
 
         // Unity kept this on a camera mount child. Derived from the height
         // like maxStepHeight, so it is not part of the snapshot.
@@ -212,6 +214,14 @@ namespace KotH.Shared.Player
         public bool IsSprinting => sprinting;
         public bool IsSliding => sliding;
         public Vector3 Velocity => velocity;
+
+        /// <summary>In a dash: straight down until the ground. SlamLanded is the tick it struck.</summary>
+        public bool IsSlamming => slamSpeed > 0f;
+        public bool SlamLanded => slamLanded;
+
+        /// <summary>A dash from the next tick on: straight down at speed, no steering or jumping,
+        /// until the ground. Dash decides when; a knock ends it.</summary>
+        public void StartSlam(float speed) => slamSpeed = UMath.Max(0f, speed);
 
         /// <summary>The simulated pose, which the entity only learns in Publish.</summary>
         public Vector3 Position => position;
@@ -316,9 +326,10 @@ namespace KotH.Shared.Player
             // adds on top. On the ground it counts as nothing: there it is
             // only the settling speed. A jump in progress is no longer trimmed
             // on release, that would eat the rise of the hit.
-            float rising = grounded || touchingGround ? 0f : velocity.Y;
+            float rising = grounded || touchingGround || slamSpeed > 0f ? 0f : velocity.Y;
             velocity.Y = rising + LaunchSpeed(UMath.Max(0f, height), -Gravity, dt);
             jumpCutPending = false;
+            slamSpeed = 0f;
         }
 
         /// <summary>The horizontal part of Knock; an older knock is replaced.</summary>
@@ -433,6 +444,8 @@ namespace KotH.Shared.Player
                 JumpCutPending = jumpCutPending,
                 JumpHeldTime = jumpHeldTime,
                 JumpStartY = jumpStartY,
+                SlamSpeed = slamSpeed,
+                SlamLanded = slamLanded,
                 EyePosition = eyePosition,
                 PreviousEyePosition = previousEyePosition,
                 BodyCenter = bodyCenter,
@@ -477,6 +490,8 @@ namespace KotH.Shared.Player
             jumpCutPending = s.JumpCutPending;
             jumpHeldTime = s.JumpHeldTime;
             jumpStartY = s.JumpStartY;
+            slamSpeed = s.SlamSpeed;
+            slamLanded = s.SlamLanded;
             eyePosition = s.EyePosition;
             previousEyePosition = s.PreviousEyePosition;
             bodyCenter = s.BodyCenter;
@@ -628,15 +643,23 @@ namespace KotH.Shared.Player
             // A slide crouches on its own, so a tapped one lowers the eyes
             // exactly like a held key does.
             UpdateCrouch(input.Crouch || sliding, dt);
-            UpdateHorizontal(input, dt);
+
+            // A dash falls straight down: no steering, jumping or gravity.
+            bool slam = slamSpeed > 0f;
+            slamLanded = false;
+            if (!slam)
+                UpdateHorizontal(input, dt);
 
             // A jump this tick wins over the slide: otherwise the redirect
             // would project the fresh upward speed straight back into the
             // slope and the double jump would be dead on arrival.
-            bool jumped = ProcessJumpPresses(input.JumpPresses);
-            UpdateJumpCut(input.JumpHeld, dt);
+            bool jumped = !slam && ProcessJumpPresses(input.JumpPresses);
+            if (!slam)
+                UpdateJumpCut(input.JumpHeld, dt);
 
-            if (onSteepGround && !jumped)
+            if (slam)
+                velocity = new Vector3(0f, -slamSpeed, 0f);
+            else if (onSteepGround && !jumped)
                 SlideDownSteep(dt);
             else
                 velocity.Y += Gravity * dt;
@@ -665,6 +688,11 @@ namespace KotH.Shared.Player
             TryStepUp(dt, settling);
             CapsuleSweep.Result moved = MoveBody(UMath.Mul(velocity, dt), grounded);
             touchingGround = moved.hasGround;
+            if (slam && touchingGround)
+            {
+                slamSpeed = 0f;
+                slamLanded = true;
+            }
 
             // Before the speed is trimmed: UpdateWedged asks what the tick
             // wanted to cover, and a trimmed speed never shows a block.

@@ -1,0 +1,8 @@
+!Texture
+Id: F1CA36DF-3164-4C41-B0DD-F1274C1EABB8
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../../Resources/Effects/Shards/SandChip.png
+IsCompressed: false
+Type: !ColorTextureType
+    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}

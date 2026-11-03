@@ -278,6 +278,10 @@ namespace KotH.Client.Player
             public HeldLeaf Held;
             public Gun Gun;
             public MeleeAttack Melee;
+            public Dash Dash;
+            public int SeenSlam;
+            public bool Slammed;   // a dash landed in this flight, its impact already sounded
+            public Entity[] Shards;
             public readonly ArmSwing Swing = new ArmSwing();
         }
 
@@ -334,6 +338,8 @@ namespace KotH.Client.Player
                 Held = FindHeld(visual, CaneEntity),
                 Gun = FindGun(visual, motor),
                 Melee = motor.Entity.Get<MeleeAttack>(),
+                Dash = motor.Entity.Get<Dash>(),
+                SeenSlam = motor.Entity.Get<Dash>()?.LastSlamTick ?? 0,
             });
         }
 
@@ -425,6 +431,7 @@ namespace KotH.Client.Player
             if (figures[i].Sparkles is { } sparkles)
                 sparkles.Scene?.Entities.Remove(sparkles);
             DropGun(figures[i].Gun);
+            DropShards(figures[i].Shards);
             figures.RemoveAt(i);
         }
 
@@ -488,11 +495,13 @@ namespace KotH.Client.Player
             // Crouched the figure is squashed a little and narrower, feet kept
             // on the collider's floor; head and cap stand above the collider
             // (Luca's choice, nicer proportions than fitting it).
-            float crouched = Crouched(motor);
+            // In a dash it falls squashed, as fully crouched.
+            float crouched = motor.IsSlamming ? 1f : Crouched(motor);
             float scale = 1f - (1f - CrouchSquash) * crouched;
             float width = 1f - (1f - CrouchWidth) * crouched;
             if (f.Kicked)
                 Spores(f, t.Position - new Vector3(0f, 0.5f * motor.Height, 0f));
+            Slam(f);
             t.Scale = new Vector3(width, scale, width);
             t.Position.Y += 0.5f * (motor.StandHeight * scale - motor.Height);
             Blink(f, dt);
@@ -999,6 +1008,7 @@ namespace KotH.Client.Player
                 if (f.AirTime == 0f)
                 {
                     f.Peak = motor.Position.Y;
+                    f.Slammed = false;
                     if (v.Y > JumpSpeed && motor.KnockLeft <= 0f)
                         Sound(f, FigureSound.Jump, 1f);
                 }
@@ -1010,7 +1020,10 @@ namespace KotH.Client.Player
                 if (f.AirTime > LandMinAir)
                 {
                     f.LandAge = 0f;
-                    Sound(f, FigureSound.Land, f.Peak - motor.Position.Y);
+                    // A dash landing sounds its impact in Slam instead, before or after this.
+                    if (!f.Slammed && (f.Dash == null || f.Dash.LastSlamTick == f.SeenSlam))
+                        Sound(f, FigureSound.Land, f.Peak - motor.Position.Y);
+                    f.Slammed = false;
                 }
                 f.AirTime = 0f;
             }

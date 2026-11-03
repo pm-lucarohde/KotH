@@ -1,6 +1,6 @@
 // Adds TEXCOORD_1 to Mountain.glb and Sea.glb: terrain and bark unwrapped into one lightmap
 // atlas, the inner sea as one square from above (outer sea clamped); writes MountDestinyGrass.bin
-// and MountDestinyContact.png too (--grass: only those). Run on Mountain.cs's fresh output.
+// MountDestinyContact.png and MountDestinySurface.bin too (--grass: only those). Run on Mountain.cs's fresh output.
 //   dotnet run --project Tools/maps/MapUV -c Release [-- --size 4096 --pad 3]
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -18,10 +18,12 @@ var mountain = new Glb(Path.Combine(root, "KotH.Game/Resources/Models/Mountain.g
 var sea = new Glb(Path.Combine(root, "KotH.Game/Resources/Models/Sea.glb"));
 string grassPath = Path.Combine(root, "KotH.Game/Resources/Maps/MountDestinyGrass.bin");
 string contactPath = Path.Combine(root, "KotH.Game/Resources/Textures/Terrain/MountDestinyContact.png");
+string surfacePath = Path.Combine(root, "KotH.Game/Resources/Maps/MountDestinySurface.bin");
 if (args.Contains("--grass") && mountain.HadSecondUV)
 {
     GrassMap.Write(grassPath, mountain.Primitives);
     GrassMap.WriteContact(contactPath, mountain.Primitives);
+    GrassMap.WriteSurface(surfacePath, mountain.Primitives);
     return 0;
 }
 if (mountain.HadSecondUV || sea.HadSecondUV)
@@ -141,6 +143,7 @@ mountain.Write();
 sea.Write();
 GrassMap.Write(grassPath, primitives);
 GrassMap.WriteContact(contactPath, primitives);
+GrassMap.WriteSurface(surfacePath, primitives);
 return 0;
 
 // The unwrapper drops slivers (the flat beach has some a few centimetres wide) with

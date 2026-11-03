@@ -17,5 +17,7 @@ namespace KotH.Client.Player
         Swing,
         /// <summary>The figure was hit.</summary>
         Hit,
+        /// <summary>A dash struck the ground: the deep fall's impact.</summary>
+        Slam,
     }
 }

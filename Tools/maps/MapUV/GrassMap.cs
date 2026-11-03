@@ -179,6 +179,85 @@ static class GrassMap
         return t * t * (3 - 2 * t);
     }
 
+    // The surface map: a coarser top view over the same square, per cell the topmost terrain face
+    // that faces up at all, the surface its COLOR_0 weighs most (grass, sand, snow, snow cap,
+    // the rest rock) and its height; the client picks the dash's shards by it.
+    const int SurfaceSize = 512;
+    const float FacesUp = 0.3f;
+
+    public static void WriteSurface(string path, List<Primitive> primitives)
+    {
+        float cell = 2 * Half / SurfaceSize;
+        var top = new float[SurfaceSize * SurfaceSize];
+        Array.Fill(top, float.NegativeInfinity);
+        var kind = new byte[SurfaceSize * SurfaceSize];
+
+        foreach (Primitive prim in primitives.Where(p => p.Material == "Terrain"))
+        {
+            float[] pos = prim.Attributes["POSITION"], nrm = prim.Attributes["NORMAL"], col = prim.Attributes["COLOR_0"];
+            for (int t = 0; t < prim.Indices.Length; t += 3)
+            {
+                int a = prim.Indices[t], b = prim.Indices[t + 1], c = prim.Indices[t + 2];
+                if (nrm[3 * a + 1] + nrm[3 * b + 1] + nrm[3 * c + 1] < 3 * FacesUp)
+                    continue;
+                float ax = pos[3 * a], az = pos[3 * a + 2], bx = pos[3 * b], bz = pos[3 * b + 2], cx = pos[3 * c], cz = pos[3 * c + 2];
+                float area = (bx - ax) * (cz - az) - (cx - ax) * (bz - az);
+                if (Math.Abs(area) < 1e-9f)
+                    continue;
+                int x0 = Math.Max(0, (int)Math.Floor((Math.Min(ax, Math.Min(bx, cx)) + Half) / cell - 0.5f));
+                int x1 = Math.Min(SurfaceSize - 1, (int)Math.Ceiling((Math.Max(ax, Math.Max(bx, cx)) + Half) / cell - 0.5f));
+                int z0 = Math.Max(0, (int)Math.Floor((Math.Min(az, Math.Min(bz, cz)) + Half) / cell - 0.5f));
+                int z1 = Math.Min(SurfaceSize - 1, (int)Math.Ceiling((Math.Max(az, Math.Max(bz, cz)) + Half) / cell - 0.5f));
+                for (int z = z0; z <= z1; z++)
+                    for (int x = x0; x <= x1; x++)
+                    {
+                        float px = (x + 0.5f) * cell - Half, pz = (z + 0.5f) * cell - Half;
+                        float wb = ((px - ax) * (cz - az) - (cx - ax) * (pz - az)) / area;
+                        float wc = ((bx - ax) * (pz - az) - (px - ax) * (bz - az)) / area;
+                        float wa = 1 - wb - wc;
+                        if (wa < -1e-5f || wb < -1e-5f || wc < -1e-5f)
+                            continue;
+                        float y = wa * pos[3 * a + 1] + wb * pos[3 * b + 1] + wc * pos[3 * c + 1];
+                        int i = z * SurfaceSize + x;
+                        if (y <= top[i])
+                            continue;
+                        top[i] = y;
+                        // Grass, sand, snow and the snow cap; rock is what they leave.
+                        var w = new float[5];
+                        for (int k = 0; k < 4; k++)
+                            w[k] = wa * col[4 * a + k] + wb * col[4 * b + k] + wc * col[4 * c + k];
+                        w[2] += w[3];
+                        w[3] = 0;
+                        w[4] = 1 - w[0] - w[1] - w[2];
+                        int best = 0;
+                        for (int k = 1; k < 5; k++)
+                            if (w[k] > w[best])
+                                best = k;
+                        kind[i] = (byte)(best == 4 ? 4 : best + 1);
+                    }
+            }
+        }
+
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        using (var output = new BinaryWriter(new ZLibStream(File.Create(path), CompressionLevel.SmallestSize)))
+        {
+            output.Write(0x4652534Bu);   // "KSRF"
+            output.Write(1u);
+            output.Write(SurfaceSize);
+            output.Write(Half);
+            for (int i = 0; i < SurfaceSize * SurfaceSize; i++)
+            {
+                bool ground = top[i] > float.NegativeInfinity;
+                output.Write(ground ? kind[i] : (byte)0);
+                output.Write((short)(ground ? Math.Clamp(Math.Round(top[i] * 100), short.MinValue, short.MaxValue) : short.MinValue));
+            }
+        }
+        var counts = new int[5];
+        foreach (byte k in kind)
+            counts[k]++;
+        Console.WriteLine($"{path}: {new FileInfo(path).Length / 1e3:F0} kB, cells grass {counts[1]}, sand {counts[2]}, snow {counts[3]}, rock {counts[4]}");
+    }
+
     static ushort Unorm16(float v) => (ushort)Math.Round(Math.Clamp(v, 0, 1) * 65535);
     static int Unorm8(float v) => (int)Math.Round(Math.Clamp(v, 0, 1) * 255);
 }

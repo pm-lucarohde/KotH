@@ -1,0 +1,8 @@
+!Texture
+Id: F6110094-DE73-4010-9367-6E4F40CF1F8F
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../../Resources/Effects/Shards/GrassChip.png
+IsCompressed: false
+Type: !ColorTextureType
+    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}

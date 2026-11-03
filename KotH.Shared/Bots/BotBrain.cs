@@ -39,6 +39,7 @@ namespace KotH.Shared.Bots
         readonly PlayerMotor body;
         readonly MeleeAttack fists;
         readonly Blaster gun;
+        readonly Dash dash;
         readonly ManeuverWfc wfc;
         readonly ushort[] allowed;
         readonly List<Corner> corners = new List<Corner>();
@@ -65,6 +66,7 @@ namespace KotH.Shared.Bots
         bool holdBlaster;            // the blaster in hand, else the cane
         int switchedAt = -1000, lastShot = -1000;
         int shotsLeft;               // as seen, less those fired since
+        int lastDash = -1000;
         int stuckTicks;
         int slideTap = -1;
         bool landSlide;
@@ -92,7 +94,8 @@ namespace KotH.Shared.Bots
         int bestTick;
 
         public BotBrain(int netId, uint seed, int route, BotNavigation nav, BotSettings settings, HillMatch match,
-                        PlayerMotor body, MeleeAttack fists, Blaster gun)
+                        PlayerMotor body, MeleeAttack fists, Blaster gun,
+                        Dash dash)
         {
             this.netId = netId;
             this.route = (route % 1024 + 1024) % 1024;
@@ -103,6 +106,7 @@ namespace KotH.Shared.Bots
             this.body = body;
             this.fists = fists;
             this.gun = gun;
+            this.dash = dash;
             wfc = new ManeuverWfc(Math.Max(2, settings.SlotsPerPlan), Math.Max(1, settings.SlotTicks), fists.CooldownTicks);
             allowed = new ushort[wfc.Slots];
             pilot = new JumpPilot(nav.Grid, body);
@@ -876,9 +880,10 @@ namespace KotH.Shared.Bots
                 input.JumpHeld = true;
 
             // A swing only on a strike slot, with the target in reach, while the
-            // round runs (a plan from before the lobby may still hold one).
+            // round runs (a plan from before the lobby may still hold one); a dash first.
             bool live = match == null || view.Match.Phase == MatchPhase.Running;
-            if (m == Maneuver.Strike && live && ti >= 0 && targetDistance < fists.Range - 0.2f &&
+            bool slam = live && ti >= 0 && intent == BotIntent.Attack && Slam(u, view, me, ti, airborne, ref input);
+            if (!slam && m == Maneuver.Strike && live && ti >= 0 && targetDistance < fists.Range - 0.2f &&
                 u >= lastStrike + fists.CooldownTicks && CaneReady(u))
             {
                 input.Yaw = yaw + BotRandom.Signed(ref rng, settings.AimError);
@@ -892,6 +897,39 @@ namespace KotH.Shared.Bots
             // Keys, not a stick: each axis pressed or not, as on WASD.
             input.Move = new Vector2(Key(local.X), Key(local.Y));
             return input;
+        }
+
+        // How close a target must be for the jump into a dash, and round the spot below for the dash.
+        const float SlamJumpReach = 2.5f, SlamReach = 3f;
+
+        /// <summary>The dash onto the target: a jump and a double jump when it is close, the
+        /// crouch press once high enough over the ground with the target round the spot below.
+        /// True in the tick it presses. The height carries the fall on: the view is old.</summary>
+        bool Slam(int u, WorldSnapshot view, in BodyState me, int ti, bool airborne, ref MoveInput input)
+        {
+            if (u < lastDash + Reaction || me.Dash.Charges <= 0 || me.Motor.SlamSpeed > 0f)
+                return false;
+            BodyState t = view.StateAt(ti);
+            float a = Reaction * Dt;
+            Vector3 there = Ahead(t.Motor.Position, t.Motor.Velocity, a);
+            Vector3 at = Ahead(me.Motor.Position, me.Motor.Velocity, a);
+            if (!airborne)
+            {
+                if (Flat(at, there) <= SlamJumpReach && u - lastJump >= 20)
+                {
+                    Jump(u, ref input, me.Motor.Sliding);
+                    doubleJumpAt = u + 13;
+                }
+                return false;
+            }
+
+            float feetY = me.Motor.Position.Y - body.StandHeight * 0.5f + me.Motor.Velocity.Y * a + 0.5f * body.Gravity * a * a;
+            float ground = nav.GroundBelow(new Vector3(at.X, feetY, at.Z));
+            if (feetY - ground < dash.MinHeight + 0.1f || Flat(at, there) > SlamReach)
+                return false;
+            input.CrouchPressed = true;
+            lastDash = u;
+            return true;
         }
 
         // The cane in hand and drawn: a swing with the blaster up would fire it.

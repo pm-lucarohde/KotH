@@ -676,6 +676,7 @@ namespace KotH.Probes.Probes
             Keep(typeof(MotorState));
             Keep(typeof(BlasterState));
             Keep(typeof(BlasterShot));
+            Keep(typeof(DashState));
             Keep(typeof(Vector3));
             Keep(typeof(Quaternion));
         }

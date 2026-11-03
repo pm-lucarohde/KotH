@@ -57,6 +57,9 @@ sealed class KotHGame : Game
     readonly double shotHitLead = Number("KOTH_SHOT_HIT", 1) ?? 0.1; // s before the shot
     string shotMove = Environment.GetEnvironmentVariable("KOTH_SHOT_MOVE"); // x,y[,sprint] held (D and W +1)
     double? shotCrouch = Number("KOTH_SHOT_CROUCH"); // crouch held from s (out of a sprint: slide)
+    double? shotDash = Number("KOTH_SHOT_DASH", 0); // s[,m]: crouch tapped at s (a dash from 1.5 m up), lifted m first
+    readonly double shotDashLift = Number("KOTH_SHOT_DASH", 1) ?? 0.0;
+    bool shotDashLifted;
     readonly double shotVideo = Number("KOTH_SHOT_VIDEO") ?? 0.0; // last s as raw 30 fps frames, path.rgba
     FileStream video;
     double videoAt = double.NaN;
@@ -335,6 +338,17 @@ sealed class KotHGame : Game
             {
                 player.HoldCrouch();
                 shotCrouch = null;
+            }
+            if (shotDash.HasValue && shotDashLift > 0 && !shotDashLifted && TestSeconds(gameTime) >= shotDash.Value - 0.1 &&
+                player.Entity.Get<KotH.Shared.Player.PlayerMotor>() is { } lifted)
+            {
+                lifted.Teleport(lifted.Position + new Vector3(0f, (float)shotDashLift, 0f));
+                shotDashLifted = true;
+            }
+            if (shotDash.HasValue && TestSeconds(gameTime) >= shotDash.Value)
+            {
+                player.TapCrouch();
+                shotDash = null;
             }
             while (shotJumps.Count > 0 && TestSeconds(gameTime) >= shotJumps.Peek())
             {

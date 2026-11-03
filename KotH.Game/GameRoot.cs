@@ -349,6 +349,8 @@ namespace KotH.Client
             }
             else
                 Log.Warning($"Map {map} has no visuals ({url})");
+            if (visuals != null)
+                visuals.Surface = GroundSurface.Load(map);
             Log.Info($"Map {map} loaded");
         }
 

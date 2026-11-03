@@ -27,6 +27,7 @@ namespace KotH.Shared.Simulation
         // Optional: a body without fists does not have to say so.
         MeleeAttack attack;
         Blaster blaster;
+        Dash dash;
         DamagePercent damage;
 
         // Where the body joined, for the next round of a HillMatch.
@@ -108,6 +109,7 @@ namespace KotH.Shared.Simulation
             Motor = Wire(Entity, world);
             attack = Entity.Get<MeleeAttack>();
             blaster = Entity.Get<Blaster>();
+            dash = Entity.Get<Dash>();
             damage = Entity.Get<DamagePercent>();
         }
 
@@ -120,6 +122,7 @@ namespace KotH.Shared.Simulation
             motor.Initialize(world);
             entity.Get<MeleeAttack>()?.Initialize(motor);
             entity.Get<Blaster>()?.Initialize(motor);
+            entity.Get<Dash>()?.Initialize(motor);
             entity.Get<Hittable>()?.Check(motor.Hull);
             return motor;
         }
@@ -135,6 +138,7 @@ namespace KotH.Shared.Simulation
                 ScoreTicks = ScoreTicks,
                 AloneTicks = AloneTicks,
                 Blaster = blaster != null ? blaster.State : default,
+                Dash = dash != null ? dash.State : default,
             };
         }
 
@@ -145,6 +149,7 @@ namespace KotH.Shared.Simulation
             spawn.ScoreTicks = 0;
             spawn.AloneTicks = 0;
             spawn.Blaster.ScoreSeen = 0;
+            spawn.Dash.ScoreSeen = 0;
             HasSpawn = true;
         }
 
@@ -185,6 +190,7 @@ namespace KotH.Shared.Simulation
                 attack.TicksUntilReady = state.AttackCooldown;
 
             blaster?.Restore(state.Blaster);
+            dash?.Restore(state.Dash);
 
             if (damage != null)
                 damage.Restore(state.DamagePercent);
@@ -198,6 +204,10 @@ namespace KotH.Shared.Simulation
         /// happened to be.</summary>
         public void TickCombat(in MoveInput input, float dt)
         {
+            // First: a landing strikes with the poses all bodies moved to.
+            if (Simulation != null)
+                dash?.Tick(input, ScoreTicks, Simulation.Bodies, Simulation.CurrentTick, dt);
+
             if (blaster == null)
             {
                 attack?.Tick(input, dt);

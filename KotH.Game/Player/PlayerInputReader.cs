@@ -84,6 +84,9 @@ namespace KotH.Client.Player
         Vector2? heldKeys;
         bool heldSprint, heldCrouch;
 
+        /// <summary>Crouch pressed once, not held, as a test aid: a dash in the air.</summary>
+        public void TapCrouch() => crouchPressed = true;
+
         /// <summary>Crouch pressed now and held from then on, as a test aid: crouching and sliding seen in a screenshot.</summary>
         public void HoldCrouch()
         {

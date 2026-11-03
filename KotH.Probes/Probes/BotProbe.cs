@@ -50,12 +50,12 @@ namespace KotH.Probes.Probes
                     Result r = Play(1000 + k);
                     sum.Jumps += r.Jumps; sum.Doubles += r.Doubles; sum.Slides += r.Slides;
                     sum.Hits += r.Hits; sum.Swings += r.Swings; sum.Points += r.Points; sum.ZoneTicks += r.ZoneTicks;
-                    sum.Shots += r.Shots; sum.SporeHits += r.SporeHits;
+                    sum.Shots += r.Shots; sum.SporeHits += r.SporeHits; sum.Slams += r.Slams; sum.SlamHits += r.SlamHits;
                 }
                 float per = Stats * 3 * PlayTicks / 2400f;
                 Log($"[bots] per bot and minute over {Stats} seeds: {sum.Jumps / per:F1} jumps, {sum.Doubles / per:F1} double jumps, " +
                     $"{sum.Slides / per:F1} slides, {sum.Swings / per:F1} swings, {sum.Hits / per:F1} hits, " +
-                    $"{sum.Shots / per:F1} shots, {sum.SporeHits / per:F1} spore hits; " +
+                    $"{sum.Shots / per:F1} shots, {sum.SporeHits / per:F1} spore hits, {sum.Slams / per:F1} dashes, {sum.SlamHits / per:F1} dash hits; " +
                     $"points per round {sum.Points / (float)Stats:F1}, first in the zone on average after {sum.ZoneTicks / 40f / Stats:F1} s");
                 return 0;
             }
@@ -126,7 +126,7 @@ namespace KotH.Probes.Probes
         struct Result
         {
             public ulong Inputs, End;
-            public int Jumps, Doubles, Slides, Hits, Swings, Points, ZoneTicks, Shots, SporeHits;
+            public int Jumps, Doubles, Slides, Hits, Swings, Points, ZoneTicks, Shots, SporeHits, Slams, SlamHits;
         }
 
         /// <summary>Averages over many seeds, for tuning: "bots stats N".</summary>
@@ -224,7 +224,7 @@ namespace KotH.Probes.Probes
             if (seed == Seed && !reported)
             {
                 reported = true;
-                int hits = 0, swings = 0, score = 0, shots = 0;
+                int hits = 0, swings = 0, score = 0, shots = 0, slams = 0;
                 foreach (BotBody bot in bots)
                 {
                     MeleeAttack fists = bot.Entity.Get<MeleeAttack>();
@@ -232,10 +232,12 @@ namespace KotH.Probes.Probes
                     hits += fists.HitCount;
                     swings += fists.SwingCount;
                     shots += gun.ShotCount;
+                    Dash dash = bot.Entity.Get<Dash>();
+                    slams += dash.SlamCount;
                     score += bot.ScoreTicks;
                     BotBrain brain = director.BrainOf(bot.NetId);
                     Log($"[bots] {bot.Entity.Name}: {fists.SwingCount} swings, {fists.HitCount} hits, " +
-                        $"{gun.ShotCount} shots, {gun.HitCount} spore hits, " +
+                        $"{gun.ShotCount} shots, {gun.HitCount} spore hits, {dash.SlamCount} dashes, {dash.HitCount} dash hits, " +
                         $"{HillMatch.Points(bot.ScoreTicks)} points, {bot.Entity.Get<DamagePercent>().Percent:F1} %, " +
                         $"last {brain.Intent} at {bot.Motor.Position.X:F1} {bot.Motor.Position.Y:F1} {bot.Motor.Position.Z:F1}");
                 }
@@ -262,22 +264,25 @@ namespace KotH.Probes.Probes
                 Check(zoneTicks > PlayTicks, $"bots stand in the zone over a third of the time ({zoneTicks * 100 / (PlayTicks * 3)} %)");
                 Check(hits > 0, $"bots hit ({hits} of {swings})");
                 Check(shots > 0, $"bots fire the blaster ({shots} shots)");
+                Check(slams > 0, $"bots dash ({slams} dashes)");
                 Check(stillEntity.Get<DamagePercent>().Percent > 0f, "the standing body is hit");
             }
-            int allHits = 0, allSwings = 0, allScore = 0, allShots = 0, allSporeHits = 0;
+            int allHits = 0, allSwings = 0, allScore = 0, allShots = 0, allSporeHits = 0, allSlams = 0, allSlamHits = 0;
             foreach (BotBody bot in bots)
             {
                 allHits += bot.Entity.Get<MeleeAttack>().HitCount;
                 allSwings += bot.Entity.Get<MeleeAttack>().SwingCount;
                 allShots += bot.Entity.Get<Blaster>().ShotCount;
                 allSporeHits += bot.Entity.Get<Blaster>().HitCount;
+                allSlams += bot.Entity.Get<Dash>().SlamCount;
+                allSlamHits += bot.Entity.Get<Dash>().HitCount;
                 allScore += HillMatch.Points(bot.ScoreTicks);
             }
             return new Result
             {
                 Inputs = chain, End = end, Jumps = jumps, Doubles = doubles, Slides = slides,
                 Hits = allHits, Swings = allSwings, Points = allScore, ZoneTicks = firstInZone,
-                Shots = allShots, SporeHits = allSporeHits,
+                Shots = allShots, SporeHits = allSporeHits, Slams = allSlams, SlamHits = allSlamHits,
             };
         }
 

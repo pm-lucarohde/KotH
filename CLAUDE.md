@@ -34,9 +34,9 @@ Tools/publish_aot.sh windows probes-windows  # on request only (lld-link, xwin)
 No unit tests; probes against the frozen Unity reference, exit 0 = passed (`netstate` fails since 5c95973, known).
 
 ```bash
-Bin/Probes/aot/KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|blaster|step|
+Bin/Probes/aot/KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|blaster|dash|step|
   determinism|clock|stairrun|rampfoot|crouchedge|knockback|thirdperson|wallknock|capture|netstate|netplay|bots>
-Bin/Probes/aot/KotH.Probes determinism hashes   # hash chain A044A364063D4C04
+Bin/Probes/aot/KotH.Probes determinism hashes   # hash chain 67AB05EEE3468AFD
 Bin/Probes/aot/KotH.Probes bots climb 12        # MountDestiny, mean ≤ 140 s; also bots stats 12, bots jumplab
 .work/tools/climb_many.sh DIR 8 13 && dotnet run .work/tools/climb_many.cs -- DIR   # 104 seeds, each bot
 .work/tools/stride_runs.sh 3; R=Reference/unity/runs

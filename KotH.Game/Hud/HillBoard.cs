@@ -52,7 +52,7 @@ namespace KotH.Client.Hud
 
         HudView view;
         HudRenderer hud;
-        MenuOverlay top, points, status, track, fill, board, ranks, hurt, ammo, banner, countdown, notice;
+        MenuOverlay top, points, status, track, fill, board, ranks, hurt, ammo, dashChip, banner, countdown, notice;
         MenuOverlay[] overlays;
         readonly List<SimulationBody> ranking = new List<SimulationBody>();
 
@@ -64,6 +64,10 @@ namespace KotH.Client.Hud
         // The own blaster's shots and progress as last shown.
         Blaster blaster;
         int shownShots = -1, shownNext = -1;
+
+        // The own dash and its progress as last shown.
+        Dash dash;
+        int shownDash = -1, shownDashNext = -1;
 
         // The own damage percent, its text rebuilt only when it changes.
         SimulationBody damageOf;
@@ -88,12 +92,14 @@ namespace KotH.Client.Hud
             board = new MenuOverlay(view.BoardPart, Corner.TopRight, 8f, 8f, Size);
             ranks = new MenuOverlay(view.RanksPart, Corner.TopRight, 8f, 8f, Size);
             hurt = new MenuOverlay(view.DamagePart, Corner.BottomCenter, 0f, 16f, Size);
-            ammo = new MenuOverlay(view.AmmoPart, Corner.BottomRight, 8f, 12f, Size);
+            // The dash in the corner, the blaster's spores beside it while it is up.
+            dashChip = new MenuOverlay(view.DashPart, Corner.BottomRight, 8f, 12f, Size);
+            ammo = new MenuOverlay(view.AmmoPart, Corner.BottomRight, 160f, 12f, Size);
             // The middle ones stay at a third of the height however small: 322 / Size.
             banner = new MenuOverlay(view.BannerPart, Corner.TopCenter, 0f, 358f, Size);
             countdown = new MenuOverlay(view.CountdownPart, Corner.TopCenter, 0f, 470f, Size);
             notice = new MenuOverlay(view.NoticePart, Corner.TopCenter, 0f, 358f, Size);
-            overlays = new[] { top, points, status, track, fill, board, ranks, hurt, ammo, banner, countdown, notice };
+            overlays = new[] { top, points, status, track, fill, board, ranks, hurt, ammo, dashChip, banner, countdown, notice };
             foreach (MenuOverlay overlay in overlays)
             {
                 overlay.Visible = false;
@@ -174,6 +180,7 @@ namespace KotH.Client.Hud
             fill.Reveal = warmup;
             hurt.Visible = round && ShowDamage();
             ammo.Visible = round && ShowShots();
+            dashChip.Visible = round && ShowDash();
 
             bool won = round && bannerText.Length > 0 && says == null;
             banner.Visible = countdown.Visible = won;
@@ -296,6 +303,25 @@ namespace KotH.Client.Hud
                 shownShots = s.Shots;
                 shownNext = next;
                 view.Shots(s.Shots, next / 170.0);
+            }
+            return true;
+        }
+
+        /// <summary>The own dash to the view when it changed; false for a body without one.</summary>
+        bool ShowDash()
+        {
+            if (dash?.Entity != Self?.Entity)
+                dash = Self?.Entity.Get<Dash>();
+            if (dash == null)
+                return false;
+            DashState s = dash.State;
+            int per = dash.PointsPerDash * HillMatch.TicksPerPoint;
+            int next = s.Charges >= dash.MaxDashes || per <= 0 ? 0 : s.Progress * 100 / per;
+            if (s.Charges != shownDash || next != shownDashNext)
+            {
+                shownDash = s.Charges;
+                shownDashNext = next;
+                view.Dash(s.Charges > 0, next / 100.0);
             }
             return true;
         }

@@ -43,6 +43,8 @@ namespace KotH.Shared.Player
         public bool JumpCutPending;
         public float JumpHeldTime;
         public float JumpStartY;
+        public float SlamSpeed;
+        public bool SlamLanded;
 
         // Not render-only after all: contacts read the body centre and a
         // swing starts at the eye, both as the last tick left them.

@@ -54,6 +54,7 @@ namespace KotH.Shared.Bots
         readonly PlayerMotor motor;
         readonly MeleeAttack fists;
         readonly Blaster gun;
+        readonly Dash dash;
         readonly int seed;
 
         // Working ahead. One step at a time under the gate: the brains share
@@ -69,7 +70,8 @@ namespace KotH.Shared.Bots
         volatile bool stopping;
 
         public BotDirector(BotNavigation navigation, BotSettings settings, HillMatch match,
-                           PlayerMotor motor, MeleeAttack fists, Blaster gun, IFinalStates states, int seed)
+                           PlayerMotor motor, MeleeAttack fists, Blaster gun, Dash dash,
+                           IFinalStates states, int seed)
         {
             Navigation = navigation;
             this.settings = settings;
@@ -77,6 +79,7 @@ namespace KotH.Shared.Bots
             this.motor = motor;
             this.fists = fists;
             this.gun = gun;
+            this.dash = dash;
             this.states = states;
             this.seed = seed;
             for (int i = 0; i < Views; i++)
@@ -96,9 +99,10 @@ namespace KotH.Shared.Bots
             PlayerMotor motor = builder.Template<PlayerMotor>(WorldBuilder.PlayerBodyUrl);
             MeleeAttack fists = builder.Template<MeleeAttack>(WorldBuilder.PlayerBodyUrl) ?? new MeleeAttack();
             Blaster gun = builder.Template<Blaster>(WorldBuilder.PlayerBodyUrl) ?? new Blaster();
+            Dash dash = builder.Template<Dash>(WorldBuilder.PlayerBodyUrl) ?? new Dash();
             HillMatch zone = simulation.Match ?? (builder.Zone != null ? new HillMatch(builder.Zone) : null);
             BotNavigation nav = BotNavigation.Build(builder.Arena, motor, settings, zone, seed, SpawnMiddle(builder));
-            return new BotDirector(nav, settings, simulation.Match, motor, fists, gun, states, seed);
+            return new BotDirector(nav, settings, simulation.Match, motor, fists, gun, dash, states, seed);
         }
 
         // Where the players start, on average: the route variants fan out from there.
@@ -132,7 +136,7 @@ namespace KotH.Shared.Bots
         {
             var bot = new Bot
             {
-                Brain = new BotBrain(netId, BotRandom.Seed(seed, netId), bots.Count + seed, Navigation, settings, match, motor, fists, gun),
+                Brain = new BotBrain(netId, BotRandom.Seed(seed, netId), bots.Count + seed, Navigation, settings, match, motor, fists, gun, dash),
             };
             lock (gate)
             {

@@ -122,6 +122,9 @@ namespace KotH.Shared.Bots
             return 0;
         }
 
+        /// <summary>The highest surface just under a point, MinValue for none.</summary>
+        public float GroundBelow(Vector3 p) => grid.SurfaceAt(p.X, p.Z, p.Y + 0.05f);
+
         /// <summary>Whether nothing solid lies between two points, as far as the grid sees.</summary>
         public bool InSight(Vector3 a, Vector3 b) => grid.InSight(a, b);
 

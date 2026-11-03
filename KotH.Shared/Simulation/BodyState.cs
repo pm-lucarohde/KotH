@@ -20,5 +20,6 @@ namespace KotH.Shared.Simulation
         public int AloneTicks;
 
         public BlasterState Blaster;
+        public DashState Dash;
     }
 }

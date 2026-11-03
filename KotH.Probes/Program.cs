@@ -25,6 +25,7 @@ Probe probe = name switch
     "sprint" => new SprintProbe(),
     "melee" => new MeleeProbe(),
     "blaster" => new BlasterProbe(),
+    "dash" => new DashProbe(),
     "step" => new StepProbe(),
     "determinism" => new DeterminismProbe { PrintHashes = Array.IndexOf(args, "hashes") > 0 },
     "clock" => new ClockProbe(dump),
@@ -48,7 +49,7 @@ Probe probe = name switch
 
 if (probe == null)
 {
-    Console.Error.WriteLine("Usage: KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|blaster|step|determinism|clock|stairrun|rampfoot|crouchedge|knockback|thirdperson|wallknock|capture|netstate|netplay|bots>");
+    Console.Error.WriteLine("Usage: KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|blaster|dash|step|determinism|clock|stairrun|rampfoot|crouchedge|knockback|thirdperson|wallknock|capture|netstate|netplay|bots>");
     return 64;
 }
 

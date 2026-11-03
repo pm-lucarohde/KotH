@@ -1,0 +1,8 @@
+!Texture
+Id: B79CCE3A-6D0A-43EF-BCAD-B0F0E123F01C
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../../Resources/Effects/Shards/RockChip.png
+IsCompressed: false
+Type: !ColorTextureType
+    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}

@@ -1,0 +1,8 @@
+!Texture
+Id: 31D352DC-C10D-4CDF-AB1B-B52FD6867242
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../../Resources/Effects/Shards/GroundChip.png
+IsCompressed: false
+Type: !ColorTextureType
+    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}

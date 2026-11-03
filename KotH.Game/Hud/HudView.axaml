@@ -75,6 +75,21 @@
             </Border>
         </Grid>
 
+        <!-- The dash, always in a round: a dot while it is there, the bar fills towards it -->
+        <Grid Name="DashPart" Width="190" Height="104">
+            <Border Classes="Glass" Margin="24" CornerRadius="11" Padding="18,0">
+                <StackPanel Spacing="5" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
+                        <TextBlock Classes="Hud Soft" Text="Dash" FontSize="22" Margin="0,0,4,2" />
+                        <Ellipse Name="DashDot" Width="16" Height="16" StrokeThickness="2" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <Border Width="100" Height="4" CornerRadius="2" Background="#40FFFFFF">
+                        <Border Name="DashNext" Width="0" CornerRadius="2" Background="#F0D060" HorizontalAlignment="Left" />
+                    </Border>
+                </StackPanel>
+            </Border>
+        </Grid>
+
         <Grid Name="BannerPart" Width="1100" Height="150">
             <Border Classes="Glass" Margin="24" CornerRadius="24" HorizontalAlignment="Center" Padding="48,0">
                 <TextBlock Name="Banner" Classes="Hud" Text="Draw" FontSize="66" Margin="0,0,0,8" />

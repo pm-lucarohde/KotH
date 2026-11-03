@@ -113,6 +113,21 @@ namespace KotH.Client.Hud
                 Next.Width = width;
         }
 
+        static readonly IBrush DashColor = new SolidColorBrush(Color.FromRgb(0xF0, 0xD0, 0x60));
+
+        /// <summary>The dash: a filled dot while it is there, and the share towards it.</summary>
+        public void Dash(bool ready, double next)
+        {
+            IBrush fill = ready ? DashColor : null;
+            if (DashDot.Fill != fill)
+                DashDot.Fill = fill;
+            if (DashDot.Stroke != DashColor)
+                DashDot.Stroke = DashColor;
+            double width = 100 * System.Math.Clamp(next, 0, 1);
+            if (DashNext.Width != width)
+                DashNext.Width = width;
+        }
+
         /// <summary>The winner, in the own colour when it is this screen's, and the time to the next round.</summary>
         public void Win(string title, bool isOwn, string countdown)
         {

@@ -102,5 +102,16 @@ Hierarchy:
                         KnockbackDistance: 18.0
                         KnockbackHeight: 1.8
                         KnockbackHeightFloor: 1.0
+                    eb2bd921ff754c21aea3ee2d97895fa4: !KotH.Dash
+                        Id: 5EB2334C-AF07-44CD-B9A5-F120B6DD10EA
+                        SlamSpeed: 30.0
+                        MinHeight: 1.5
+                        Radius: 3.5
+                        DamagePercent: 1.2
+                        KnockbackDistance: 24.0
+                        KnockbackHeight: 2.4
+                        KnockbackHeightFloor: 1.0
+                        MaxDashes: 1
+                        PointsPerDash: 10
                     8b6c924086f0522dbd20f55e780fd49d: !KotH.Hittable
                         Id: C85214C0-0EB6-5BEF-9DD2-6BFBA18EF2E4

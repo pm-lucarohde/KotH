@@ -33,7 +33,7 @@ namespace KotH.Client.Audio
         [Display("Double jump", "Figures")] public Sound DoubleJump;
         [Display("Double jump volume", "Figures")] public float DoubleJumpVolume = 0.08f;
 
-        /// <userdoc>On landing after a deep fall; after smaller jumps a step sounds.</userdoc>
+        /// <userdoc>On landing after a deep fall or a dash; after smaller jumps a step sounds.</userdoc>
         [Display("Impact", "Figures")] public Sound Fall;
         [Display("Impact volume", "Figures")] public float FallVolume = 0.16f;
 
@@ -138,6 +138,9 @@ namespace KotH.Client.Audio
                         Play(Fall, FallVolume, at, false, what);
                     else
                         Play(Step, StepVolume, at, true, what);
+                    break;
+                case FigureSound.Slam:
+                    Play(Fall, FallVolume, at, false, what);
                     break;
                 case FigureSound.Slide:
                     Play(Slide, SlideVolume, at, true, what);

@@ -1,0 +1,8 @@
+!Texture
+Id: 7F2E1119-182D-4EAE-8BE6-762010A33FDA
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../../Resources/Effects/Shards/SnowChip.png
+IsCompressed: false
+Type: !ColorTextureType
+    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}
