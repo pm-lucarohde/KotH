@@ -79,10 +79,11 @@ namespace KotH.Client.Audio
             if (Audio.AudioEngine is not { State: not AudioEngineState.Invalidated })
             {
                 if (!noEngineLogged)
-                    StartLog.Warn("music: no audio device, music and sounds stay off this session");
+                    StartLog.Warn("music: no audio device, music waits for one");
                 noEngineLogged = true;
                 return;
             }
+            noEngineLogged = false;
             try
             {
                 // The listener's gain: one factor over every sound, allowed above 1; times Overall.

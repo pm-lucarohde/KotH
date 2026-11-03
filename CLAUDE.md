@@ -32,7 +32,7 @@ Tools/publish_aot.sh windows probes-windows  # on request only (lld-link, xwin)
 
 ## Tests: probes and regression
 
-No unit tests; probes against the frozen Unity reference, exit 0 = passed (`netstate` fails since 5c95973, known).
+No unit tests; probes against the frozen Unity reference, exit 0 = passed (known fails: `netstate` since 5c95973, `rotation` ≤ 3 ULP).
 
 ```bash
 Bin/Probes/aot/KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|blaster|dash|step|

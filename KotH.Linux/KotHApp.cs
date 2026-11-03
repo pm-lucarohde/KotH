@@ -197,9 +197,9 @@ sealed class KotHGame : Game
         long systemsAt = StartLog.Now;
         base.Initialize();
         StartLog.Took("game systems", systemsAt, $"audio {AudioReport()}");
-        // Stride swallows a device that fails to open; every sound is then a silent no-op.
+        // Stride swallows a device that fails to open; every sound is then a silent no-op (AudioRevive retries).
         if (Audio?.AudioEngine is not { State: not Stride.Audio.AudioEngineState.Invalidated })
-            StartLog.Warn($"no audio device opened ({Audio?.RequestedAudioDevice?.Name ?? "default"}): music and sounds are off; restart with a device");
+            StartLog.Warn($"no audio device opened ({Audio?.RequestedAudioDevice?.Name ?? "default"}): music and sounds are off; trying again every 2 s");
         GraphicsDeviceManager.DeviceCreated += (_, _) =>
         {
             StartLog.Mark("device created");
@@ -424,6 +424,7 @@ sealed class KotHGame : Game
         }
 
         ComeBack(gameTime);
+        KotH.Client.Audio.AudioRevive.Tick(Audio, IsActive);
 
         // Lifted (loaded and the menu settled): minimised again as Stride has it.
         if (!headless && !minimizedRestored && Services.GetService<LoadScreen>() is { IsLoaded: true, Covers: false })
