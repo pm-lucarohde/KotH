@@ -14,6 +14,11 @@ namespace KotH.Shared.Match
     /// </summary>
     public enum MatchPhase : byte { Running, Over, Waiting, Countdown }
 
+    /// <summary>What a networked game's round is part of: a lone round (Single, never held), the lobby on
+    /// Mount Destiny that waits and counts down, or a round on the chosen map. Lobby and Round hold where
+    /// the host changes maps; every peer has the same stage (HostSession sends it).</summary>
+    public enum MatchStage : byte { Single, Lobby, Round }
+
     /// <summary>Everything a round keeps besides the bodies' own scores. Part of a
     /// snapshot: a restore puts the phase, the clocks and who stood in the zone back
     /// exactly as that tick left them.</summary>
@@ -113,6 +118,14 @@ namespace KotH.Shared.Match
 
         /// <summary>How long into a running round players may still join.</summary>
         public int JoinTicks { get; set; }
+
+        /// <summary>Lobby: the countdown stops at 0 instead of starting the round (Countdown, PhaseTicks 0).
+        /// Round: the win pause stops at 0 instead of a new round (Over, PhaseTicks 0). The host then changes maps.</summary>
+        public MatchStage Stage { get; set; }
+
+        /// <summary>Whether the round stands where the host changes maps.</summary>
+        public bool Held => state.PhaseTicks == 0 && (Stage == MatchStage.Lobby && state.Phase == MatchPhase.Countdown
+                                                      || Stage == MatchStage.Round && state.Phase == MatchPhase.Over);
 
         public MatchState State => state;
 
@@ -222,6 +235,11 @@ namespace KotH.Shared.Match
                 case MatchPhase.Over:
                     if (--state.PhaseTicks > 0)
                         return;
+                    if (Stage == MatchStage.Round)
+                    {
+                        state.PhaseTicks = 0;
+                        return;
+                    }
                     for (int i = 0; i < count; i++)
                         bodies[i].ResetToSpawn();
                     Reset();
@@ -247,6 +265,11 @@ namespace KotH.Shared.Match
                     }
                     if (--state.PhaseTicks > 0)
                         return;
+                    if (Stage == MatchStage.Lobby)
+                    {
+                        state.PhaseTicks = 0;
+                        return;
+                    }
                     for (int i = 0; i < count; i++)
                         bodies[i].ResetToSpawn();
                     state = new MatchState { MinPlayers = state.MinPlayers, Seed = state.Seed };

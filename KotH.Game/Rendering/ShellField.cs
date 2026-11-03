@@ -247,6 +247,7 @@ namespace KotH.Client.Rendering
                     }
             }
             Texture spots = Texture.New2D(GraphicsDevice, cells * SpotSlots, cells, PixelFormat.R8G8B8A8_UNorm, texels);
+            owned.Add(spots);
             foreach (Entity root in Entity.Scene.Entities)
                 Hand(root, spots);
             if (dropped > 0)
@@ -288,6 +289,8 @@ namespace KotH.Client.Rendering
             var box = new BoundingBox(min, max);
             Buffer vb = Buffer.Vertex.New(GraphicsDevice, vertices.ToArray(), GraphicsResourceUsage.Immutable);
             Buffer ib = Buffer.Index.New(GraphicsDevice, indices.ToArray());
+            owned.Add(vb);
+            owned.Add(ib);
             var mesh = new Mesh
             {
                 Draw = new MeshDraw
@@ -306,6 +309,17 @@ namespace KotH.Client.Rendering
             var entity = new Entity("Shells") { component };
             Entity.AddChild(entity);
             squares.Add((component, box));
+        }
+
+        // GPU resources made here, freed with the map (GameRoot unloads it on a map change).
+        readonly List<GraphicsResource> owned = new List<GraphicsResource>();
+
+        public override void Cancel()
+        {
+            foreach (GraphicsResource resource in owned)
+                resource.Dispose();
+            owned.Clear();
+            squares.Clear();
         }
 
         public override void Update()

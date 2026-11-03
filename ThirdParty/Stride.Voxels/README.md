@@ -10,6 +10,8 @@ From `stride3d/stride`, tag `releases/4.4.0` (a0fdf91) plus the voxel changes of
 - `VoxelVolumeProcessor`: volumes live across frames instead of being recreated each frame (GC spikes every 0.4 s).
 - A volume with `Voxelize = false` keeps voxels and passes: no voxel views, culling or shadow views every frame.
 - `VoxelMarchSetHemisphere6`: the sixth cone nearly doubled the second; it is `(0, 0.895, 0.445)` now.
+- A volume leaving the scene frees its storage's GPU memory (`IVoxelStorage.Release`); on a map change KotH sets
+  `ForgetLightmapKey`, so the old lightmap and sun map are no longer read.
 - Vulkan: typed buffers hold at most 2²⁷ elements. The sparse bake waits with `UnorderedAccessBarrier` (4.4.1)
   between passes that share a UAV.
 

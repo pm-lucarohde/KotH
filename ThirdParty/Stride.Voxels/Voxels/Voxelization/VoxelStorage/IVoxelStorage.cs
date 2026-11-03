@@ -23,5 +23,8 @@ namespace Stride.Rendering.Voxels
         void KeepStatic(RenderDrawContext drawContext, ProcessedVoxelVolume data) { }
         void RestoreDynamic(RenderDrawContext drawContext, ProcessedVoxelVolume data) { }
         void PostProcessDynamic(VoxelStorageContext context, RenderDrawContext drawContext, ProcessedVoxelVolume data) => PostProcess(context, drawContext, data);
+
+        // KotH patch: frees the GPU memory when the volume leaves the scene (a map change).
+        void Release() { }
     }
 }

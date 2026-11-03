@@ -1,16 +1,17 @@
 using System;
 using System.Globalization;
 using KotH.Client.Menu;
+using KotH.Client.Steam;
 using KotH.Shared.Hosting;
 using KotH.Shared.Match;
 using KotH.Shared.Net;
 
 namespace KotH.Client.Net
 {
-    /// <summary>What the client was started with; without --host, --join or --offline the main
-    /// menu. Options: --host [--port N] [--min-players N], --join ADDRESS[:PORT], --offline, --name
-    /// NAME, --display N (monitor, 0 first), --bots N, --bot-seed N, --map NAME (joiners take the
-    /// host's), --fps N (frame cap, none without).</summary>
+    /// <summary>What the client was started with; without --host, --join or --offline the main menu.
+    /// Options: --host [--port N] [--min-players N], --join ADDRESS[:PORT], --offline, --name NAME (else
+    /// the Steam name), --display N (monitor, 0 first), --bots N, --bot-seed N, --map NAME (to play on; the
+    /// menu shows Mount Destiny, joiners take the host's), --fps N (frame cap), +connect_lobby ID (Steam's invite).</summary>
     public sealed class LaunchOptions
     {
         public bool Host;
@@ -29,7 +30,10 @@ namespace KotH.Client.Net
         /// ("cap,skin,leaves,gloves,spores" as hex, empty keeps one).</summary>
         public FigureLook Look;
 
-        public bool Networked => Host || JoinAddress != null;
+        /// <summary>Hosting or joining through a Steam lobby (the main menu), not direct IP.</summary>
+        public bool Steam;
+
+        public bool Networked => Host || JoinAddress != null || Steam;
 
         /// <summary>Joins someone else's game, so the map comes from that host.</summary>
         public bool Joining => !Host && JoinAddress != null;
@@ -72,7 +76,9 @@ namespace KotH.Client.Net
                 o.BotSeed = seed;
             o.Map = Text(args, "--map") ?? o.Map;
             o.Fps = Number(args, "--fps");
-            o.Name = Text(args, "--name") ?? Environment.UserName;
+            o.Name = Text(args, "--name") ?? SteamClient.PersonaName ?? Environment.UserName;
+            if (ulong.TryParse(Text(args, "+connect_lobby"), NumberStyles.Integer, CultureInfo.InvariantCulture, out ulong lobby))
+                SteamClient.Invite(lobby);
             o.Look = LookFile.Load();
             if (Environment.GetEnvironmentVariable("KOTH_SHOT_LOOK") is { } shot)
             {

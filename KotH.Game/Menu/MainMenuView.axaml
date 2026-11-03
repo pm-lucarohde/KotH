@@ -42,7 +42,7 @@
             </StackPanel>
         </Grid>
 
-        <!-- The pages behind Find server, Settings and Languages: only to look at for now -->
+        <!-- The pages behind Find server, Settings and Languages (the last two only to look at for now) -->
         <Grid Name="PagePart" Width="870" Height="610">
             <Panel Name="Page" Width="820" Height="560" Margin="24,24,0,0"
                    HorizontalAlignment="Left" VerticalAlignment="Top">
@@ -51,18 +51,7 @@
                     <TextBlock Name="PageTitle" Classes="Title" Text="Page" />
 
                     <!-- Find server -->
-                    <Grid Name="FindPage" Grid.Row="1" RowDefinitions="*,Auto" Margin="0,20,0,0">
-                        <Border Classes="Well">
-                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8">
-                                <TextBlock Classes="Label" Text="No servers found" HorizontalAlignment="Center" FontSize="28" />
-                                <TextBlock Classes="Hint" Text="Searching for rounds is coming soon." HorizontalAlignment="Center" />
-                            </StackPanel>
-                        </Border>
-                        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,20,0,0">
-                            <TextBox Classes="Field" Watermark="IP address or name" IsEnabled="False" />
-                            <Button Grid.Column="1" Classes="Menu Small" Content="Join" IsEnabled="False" Margin="18,0,0,0" />
-                        </Grid>
-                    </Grid>
+                    <menu:FindPage Name="FindPage" Grid.Row="1" Margin="0,20,0,0" />
 
                     <!-- Settings -->
                     <menu:SettingsPage Name="SettingsPage" Grid.Row="1" Margin="0,20,0,0" />

@@ -28,7 +28,7 @@ Needs the .NET SDK 11.0.100-rc.2 (`global.json`), a Vulkan driver and, for Nativ
 
 ```bash
 Tools/publish_aot.sh                          # client, server and probes -> Bin/{Linux,Server,Probes}/aot
-Bin/Linux/aot/KotH                            # main menu; --offline plays alone at once
+Bin/Linux/aot/KotH                            # main menu (with Steam: host, find, invite); --offline alone
 Bin/Linux/aot/KotH --host --name Luca         # host and play (UDP 7777, up to 12 players, same build for all)
 Bin/Linux/aot/KotH --join 192.168.0.5         # join, also ADDRESS:PORT
 Bin/Server/aot/KotH.Server --host --bot       # the same without a window

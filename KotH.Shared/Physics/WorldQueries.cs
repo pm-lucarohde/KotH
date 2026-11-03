@@ -64,6 +64,10 @@ namespace KotH.Shared.Physics
                 ids.Add(collider, ids.Count);
         }
 
+        /// <summary>Forgets every place, as in a fresh world: before a map is loaded anew,
+        /// with no body left, so the new map's colliders count from 0 as on every peer.</summary>
+        public void Clear() => ids.Clear();
+
         public int IdOf(CollidableComponent collider)
             => ids.TryGetValue(collider, out int id) ? id : int.MaxValue;
 

@@ -2,6 +2,8 @@
   <PropertyGroup>
     <RootNamespace>KotH.Client</RootNamespace>
     <IsAotCompatible>true</IsAotCompatible>
+    <!-- Steam's flat C API takes pointers (Steam/SteamApi.cs). -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- MenuOverlay raises raw pointer input itself, which Avalonia keeps out of its
          reference assemblies; fine while the version stays pinned exactly. -->
     <AvaloniaAccessUnstablePrivateApis>true</AvaloniaAccessUnstablePrivateApis>

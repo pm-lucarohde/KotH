@@ -2,15 +2,16 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using KotH.Shared.Bots;
+using KotH.Shared.Match;
 using KotH.Shared.Player;
 using KotH.Shared.Simulation;
 
 namespace KotH.Shared.Net
 {
-    /// <summary>The host's referee, simulating nothing: it takes the peers' inputs, decides each
-    /// tick's final inputs, joins and leaves, and sends them to everyone, its own peer included. A
-    /// tick is final once every input is in or a few ticks after it is due; a missing input
-    /// becomes the player's last one without presses.</summary>
+    /// <summary>The host's referee, simulating nothing: it takes the peers' inputs, decides each tick's final
+    /// inputs, joins and leaves, and sends them to everyone, its own peer included. A tick is final once every
+    /// input is in or a few ticks after it is due; a missing input becomes the last one without presses. A map
+    /// change (Restart) starts the timeline over with the same players once each has loaded and said hello.</summary>
     public sealed class HostSession
     {
         /// <summary>Ticks past due the host waits for a late input before it decides without it.</summary>
@@ -51,6 +52,23 @@ namespace KotH.Shared.Net
             public double Rtt = 300.0;
             public readonly Queue<double> RttSamples = new Queue<double>();
             public long BytesSent;
+
+            // After a restart, until its hello on the new map.
+            public bool Rejoining;
+
+            /// <summary>Back to before its join, for the timeline a restart begins.</summary>
+            public void Rewind()
+            {
+                JoinTick = -1;
+                LeaveTick = int.MaxValue;
+                FirstInputTick = int.MaxValue;
+                NewestInput = AckConfirmed = SentThrough = -1;
+                Last = default;
+                Inputs.Clear();
+                Leads.Clear();
+                LastSent = double.MinValue;
+                LastResend = 0.0;
+            }
         }
 
         sealed class Record
@@ -63,7 +81,6 @@ namespace KotH.Shared.Net
 
         readonly INetTransport transport;
         readonly LocalLink link = new LocalLink();
-        readonly double start;
 
         readonly Dictionary<int, Client> clients = new Dictionary<int, Client>();
         readonly Dictionary<int, Record> records = new Dictionary<int, Record>();
@@ -72,8 +89,17 @@ namespace KotH.Shared.Net
         readonly Dictionary<(int Peer, int Tick), ulong> peerHashes = new Dictionary<(int, int), ulong>();
         readonly ArrayBufferWriter<byte> outgoing = new ArrayBufferWriter<byte>();
         readonly ArrayBufferWriter<byte> state = new ArrayBufferWriter<byte>();
+        readonly List<int> asked = new List<int>();
+
+        // Longest a restart waits for every player's hello before it begins without the late ones.
+        const double RestartWaitMs = 20000.0;
 
         PeerSession founder;
+        double start;
+        bool founderReady;
+        double restartedAt;
+        string restartMap;
+        byte generation;
         int nextConfirm;
         int nextNetId = NetWorld.FirstPlayerId;
         int nextBotPeer = LocalPeer - 1;
@@ -110,6 +136,129 @@ namespace KotH.Shared.Net
 
         /// <summary>Whether a new player may join right now; the lobby decides (N5).</summary>
         public Func<bool> CanJoin { get; set; } = () => true;
+
+        /// <summary>The stage of the game's round, sent with every welcome; Single never changes maps.</summary>
+        public MatchStage Stage { get; private set; }
+
+        /// <summary>The lobby's choice of map for the round; every peer hears of a change.</summary>
+        public string NextMap
+        {
+            get => nextMap;
+            set
+            {
+                if (value == nextMap)
+                    return;
+                nextMap = value;
+                foreach (Client c in clients.Values)
+                    if (c.Phase == Phase.Playing && !c.IsBot)
+                    {
+                        outgoing.Clear();
+                        var w = new Writer(outgoing);
+                        w.Byte((byte)MsgType.NextMap);
+                        w.Text(nextMap ?? "");
+                        Send(c.Peer, reliable: true);
+                    }
+            }
+        }
+
+        string nextMap;
+
+        /// <summary>Between Restart and its beginning: no tick goes final.</summary>
+        public bool Restarting { get; private set; }
+
+        /// <summary>The bots' NetIds, for a new director after a restart.</summary>
+        public List<int> BotIds
+        {
+            get
+            {
+                var ids = new List<int>();
+                foreach (Client c in clients.Values)
+                    if (c.IsBot && c.Phase != Phase.Left)
+                        ids.Add(c.NetId);
+                ids.Sort();
+                return ids;
+            }
+        }
+
+        /// <summary>Raised when a restart begins: the founder's new session starts now (NetClient).</summary>
+        public event Action Began;
+
+        /// <summary>The game's first stage, before anyone joined.</summary>
+        public void StartIn(MatchStage stage, string nextMap)
+        {
+            Stage = stage;
+            this.nextMap = nextMap;
+        }
+
+        /// <summary>The game goes on on another map (or the same afresh) in another stage: every peer
+        /// is told, the timeline stops, players keep NetId, slot, name and look. It begins again once
+        /// the founder's map is loaded (FounderReady) and every player said hello, or after 20 s.</summary>
+        public void Restart(string map, MatchStage stage)
+        {
+            Restarting = true;
+            restartMap = map;
+            restartedAt = now;
+            founderReady = false;
+            Stage = stage;
+            generation++;
+            var gone = new List<int>();
+            foreach (Client c in clients.Values)
+            {
+                if (c.Phase == Phase.Left)
+                {
+                    gone.Add(c.Peer);
+                    continue;
+                }
+                c.Rewind();
+                if (c.IsBot)
+                    continue;
+                c.Phase = Phase.Waiting;
+                c.Rejoining = true;
+                outgoing.Clear();
+                var w = new Writer(outgoing);
+                w.Byte((byte)MsgType.Restart);
+                w.Text(map);
+                w.Byte((byte)stage);
+                Send(c.Peer, reliable: true);
+            }
+            foreach (int peer in gone)
+                clients.Remove(peer);
+            records.Clear();
+            pending.Clear();
+            hostHashes.Clear();
+            peerHashes.Clear();
+            nextConfirm = 0;
+        }
+
+        /// <summary>The founder has loaded the restart's map; it says hello once the timeline begins.</summary>
+        public void FounderReady() => founderReady = true;
+
+        // Every remote player back (or the wait over) and the founder ready: tick 0 again, the bots
+        // join at once, the players as their hellos are in; askers waiting for the map hear it now.
+        void Begin()
+        {
+            Restarting = false;
+            start = now;
+            foreach (Client c in clients.Values)
+                if (c.IsBot)
+                    pending.Add(new NetEvent { Join = true, NetId = c.NetId, Slot = c.Slot, Name = c.Name, Look = c.Look });
+            Began?.Invoke();
+            foreach (int peer in asked)
+                AnswerAsk(peer);
+            asked.Clear();
+        }
+
+        bool AllBack()
+        {
+            if (!founderReady)
+                return false;
+            if (now - restartedAt > RestartWaitMs)
+                return true;
+            foreach (Client c in clients.Values)
+                if (c.Rejoining && c.Peer != LocalPeer)
+                    return false;
+            return true;
+        }
 
         public int NextConfirm => nextConfirm;
         public int Players { get; private set; }
@@ -163,6 +312,12 @@ namespace KotH.Shared.Net
                 Handle(e);
             while (transport.Poll(out TransportEvent e))
                 Handle(e);
+            if (Restarting)
+            {
+                if (!AllBack())
+                    return;
+                Begin();
+            }
 
             ConfirmReady();
             Welcome();
@@ -219,6 +374,14 @@ namespace KotH.Shared.Net
             ReadOnlySpan<byte> build = r.Bytes(NetProtocol.BuildId.Length);
             if (r.Failed || clients.ContainsKey(peer) || Refused(peer, build))
                 return;
+            if (Restarting)
+                asked.Add(peer);   // the map is about to change
+            else
+                AnswerAsk(peer);
+        }
+
+        void AnswerAsk(int peer)
+        {
             outgoing.Clear();
             var w = new Writer(outgoing);
             w.Byte((byte)MsgType.Map);
@@ -249,7 +412,19 @@ namespace KotH.Shared.Net
             double sent = r.Double();
             string name = r.Text();
             FigureLook look = FigureLook.Read(ref r);
-            if (r.Failed || clients.ContainsKey(peer) || Refused(peer, build))
+            if (!r.Failed && clients.TryGetValue(peer, out Client back))
+            {
+                // A player back after a restart: joins the new timeline as who it was.
+                if (back.Rejoining && build.SequenceEqual(NetProtocol.BuildId))
+                {
+                    back.Rejoining = false;
+                    back.EchoTime = sent;
+                    back.EchoReceived = now;
+                    pending.Add(new NetEvent { Join = true, NetId = back.NetId, Slot = back.Slot, Name = back.Name, Look = back.Look });
+                }
+                return;
+            }
+            if (r.Failed || Refused(peer, build))
                 return;
 
             name = UniqueName(string.IsNullOrWhiteSpace(name) ? "Player" : name.Trim());
@@ -358,7 +533,14 @@ namespace KotH.Shared.Net
                 return;
             c.Phase = Phase.Left;
             Players--;
-            pending.Add(new NetEvent { Join = false, NetId = c.NetId });
+            // Not in the timeline yet (a restart's or its first): its join goes, no leave needed.
+            if (c.JoinTick < 0)
+            {
+                pending.RemoveAll(e => e.Join && e.NetId == c.NetId);
+                c.LeaveTick = -1;
+            }
+            else
+                pending.Add(new NetEvent { Join = false, NetId = c.NetId });
         }
 
         /// <summary>Finalises ticks in order: as soon as every player's input is in, at
@@ -475,6 +657,9 @@ namespace KotH.Shared.Net
                 w.Int((int)HostTick);
                 w.Double(c.EchoTime + (now - c.EchoReceived));
                 w.Text(founder?.Map ?? "");
+                w.Byte(generation);
+                w.Byte((byte)Stage);
+                w.Text(nextMap ?? "");
                 WriteState(ref w, isFounder);
                 Send(c.Peer, reliable: true);
 
@@ -563,7 +748,7 @@ namespace KotH.Shared.Net
                 if (unacked <= last && !records.ContainsKey(unacked))
                     continue;   // fell out of the history; a repair will catch it up
 
-                const int Head = 1 + 4 + 8 + 4 + 4 + 4 + 1;
+                const int Head = 1 + 1 + 4 + 8 + 4 + 4 + 4 + 1;
                 int first, fitting = 0, size = Head;
                 if (c.Peer == LocalPeer && fresh)
                 {
@@ -617,6 +802,7 @@ namespace KotH.Shared.Net
             outgoing.Clear();
             var w = new Writer(outgoing);
             w.Byte((byte)MsgType.Confirmed);
+            w.Byte(generation);
             w.Int((int)HostTick);
             w.Double(c.EchoTime + (now - c.EchoReceived));
             w.Float(MinLead(c));

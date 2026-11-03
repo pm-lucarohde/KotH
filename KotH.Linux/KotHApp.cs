@@ -9,6 +9,7 @@ using KotH.Client.Audio;
 using KotH.Client.Hud;
 using KotH.Client.Net;
 using KotH.Client.Player;
+using KotH.Client.Steam;
 using Stride.Core.Diagnostics;
 using Stride.Core.Mathematics;
 using Stride.Core.Threading;
@@ -31,8 +32,11 @@ CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 if (Environment.GetEnvironmentVariable("STRIDE_MAX_PARALLELISM") == null)
     Dispatcher.MaxDegreeOfParallelism = 6;
 
+// Before the options are read: the player's name comes from Steam.
+SteamClient.Start();
 using var game = new KotHGame();
 game.Run();
+SteamClient.Shutdown();
 
 /// <summary>The game: borderless fullscreen, F11 toggles the window. Plus test aids (KOTH_*
 /// below, times from the end of the load screen): KOTH_SHOT=path saves the back buffer as PNG
@@ -274,6 +278,8 @@ sealed class KotHGame : Game
 
     protected override void Update(GameTime gameTime)
     {
+        // Steam's callbacks before the scripts, which read lobbies and sessions.
+        SteamClient.RunFrame();
         // Before the scripts run, so the first piece already starts with these.
         if (!musicSet && (musicVolume.HasValue || musicTail.HasValue) && Find<MusicPlayer>() is { } music)
         {

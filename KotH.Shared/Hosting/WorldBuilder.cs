@@ -54,7 +54,7 @@ namespace KotH.Shared.Hosting
 
         /// <summary>Adds every collider of the map's arena prefab, then of its generated
         /// terrain if it has one, in prefab order, and gives each its place in the stable
-        /// query order. Once per world.</summary>
+        /// query order. Once per map: another one needs <see cref="UnloadArena"/> first.</summary>
         public void LoadArena(string map)
         {
             if (Map != null)
@@ -70,6 +70,23 @@ namespace KotH.Shared.Hosting
                 Bots ??= e.Get<BotSettings>();
             }
             AddTerrain(map);
+        }
+
+        /// <summary>Takes the map's colliders out again, with no body left in the world: the
+        /// stable order starts afresh, so the next map loads as in a new process.</summary>
+        public void UnloadArena()
+        {
+            if (Map == null)
+                return;
+            foreach (Entity e in arena)
+                if (e.Scene != null)
+                    Scene.Entities.Remove(e);
+            arena.Clear();
+            content.Unload(Maps.CollisionUrl(Map));
+            queries.Clear();
+            Map = null;
+            Zone = null;
+            Bots = null;
         }
 
         /// <summary>The generated ground (Tools/maps/Mountain.cs), if the map has one:

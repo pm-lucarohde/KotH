@@ -4,6 +4,7 @@ using KotH.Client.Hud;
 using KotH.Client.Net;
 using KotH.Client.Player;
 using KotH.Client.Rendering;
+using KotH.Client.Steam;
 using KotH.Shared.Net;
 using Stride.Core;
 using Stride.Core.Mathematics;
@@ -38,8 +39,12 @@ namespace KotH.Client.Menu
         const float DropDelay = 0.35f, DropSeconds = 0.9f, DropFrom = 80f;
         const float FadeSeconds = 0.4f;
 
-        /// <summary>Host server: GameRoot hosts on the loaded map.</summary>
+        /// <summary>Host server: GameRoot opens a lobby on the map behind the menu.</summary>
         [DataMemberIgnore] public Action StartHost { get; set; }
+
+        /// <summary>A round from Find server or an invite, its lobby entered: GameRoot joins it.</summary>
+        [DataMemberIgnore] public Action<SteamLobby> StartJoin { get; set; }
+
 
         /// <summary>The name on the band.</summary>
         [DataMemberIgnore] public string PlayerName { get; set; }
@@ -67,7 +72,12 @@ namespace KotH.Client.Menu
         readonly OverlayPointer pointer = new OverlayPointer();
         int calm;
         float waited;
-        bool loaded, dark, shown, hostWanted, quitWanted, customizing, unsaved;
+        // Find server searches again this often while open: a new lobby takes Steam a few seconds to list.
+        const float SearchEvery = 5f;
+
+        bool loaded, dark, shown, hostWanted, quitWanted, customizing, unsaved, entering, searching;
+        float searched;
+        SteamLobby entered;
         float since;
 
         public override void Start()
@@ -80,6 +90,9 @@ namespace KotH.Client.Menu
             view.Label(PlayerName ?? Environment.UserName, $"Build {NetProtocol.BuildText[..8]}");
             view.HostRequested += () => hostWanted = true;
             view.QuitRequested += () => quitWanted = true;
+            view.FindOpened += Search;
+            view.Finder.RefreshRequested += Search;
+            view.Finder.JoinRequested += round => Enter(round.Id, round.Host);
             view.Customizer.Look = Look;
             view.Customizer.LookChanged += look =>
             {
@@ -144,14 +157,75 @@ namespace KotH.Client.Menu
                 overlay.Upload(Game.GraphicsContext.CommandList);
             Settle((float)Game.UpdateTime.Elapsed.TotalSeconds);
 
+            searched += (float)Game.UpdateTime.Elapsed.TotalSeconds;
+            if (view.FindOpen && !searching && !entering && searched >= SearchEvery && SteamClient.Ready)
+                Search(again: true);
+            if (shown && !entering && entered == null && SteamClient.TakeInvite(out ulong invited))
+            {
+                view.OpenFind();
+                Enter(invited, null);
+            }
             if (hostWanted)
             {
                 // Out of Avalonia's dispatcher: the host removes this menu.
                 hostWanted = false;
                 StartHost?.Invoke();
             }
+            else if (entered != null)
+            {
+                SteamLobby lobby = entered;
+                entered = null;
+                StartJoin?.Invoke(lobby);
+            }
             if (quitWanted)
                 ((GameBase)Game).Exit();
+        }
+
+        void Search() => Search(again: false);
+
+        void Search(bool again)
+        {
+            if (!SteamClient.Ready)
+            {
+                view.Finder.Unavailable(SteamClient.Failure);
+                return;
+            }
+            if (!again)
+                view.Finder.Searching();
+            searching = true;
+            searched = 0f;
+            SteamLobby.Search(rounds =>
+            {
+                searching = false;
+                view?.Finder.Found(rounds, again);
+            });
+        }
+
+        // Enters a round's lobby; it is joined only on the host's build (GameRoot changes the map if need be).
+        void Enter(ulong id, string host)
+        {
+            if (entering || !SteamClient.Ready)
+                return;
+            entering = true;
+            view.Finder.Joining(host ?? "the round");
+            SteamLobby.Enter(id, (lobby, why) =>
+            {
+                entering = false;
+                if (lobby != null && view == null)
+                    lobby.Dispose();
+                if (lobby == null || view == null)
+                {
+                    view?.Finder.Failed(why);
+                    return;
+                }
+                if (lobby.Build != NetProtocol.BuildText)
+                {
+                    lobby.Dispose();
+                    view.Finder.Failed("Different build than the host");
+                }
+                else
+                    entered = lobby;
+            });
         }
 
         /// <summary>
@@ -231,6 +305,8 @@ namespace KotH.Client.Menu
         public override void Cancel()
         {
             Save();
+            entered?.Dispose();
+            entered = null;
             if (throttle != null)
             {
                 throttle.Interval = 0.0;

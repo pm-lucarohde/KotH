@@ -51,8 +51,7 @@ dotnet run Tools/Regress.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # nu
 ## Architecture
 
 **KotH.Shared** (the whole simulation, no graphics), **KotH.Game** (client, `MainScene`, visible prefabs), **KotH.Linux**
-(exe), **KotH.Server** (`HeadlessWorld`, 40 Hz), **KotH.Probes** (`Harness/`, `Ref` = Unity coordinates),
-**ThirdParty/Stride.Voxels** (patched VXGI, own README).
+(exe), **KotH.Server** (`HeadlessWorld`, 40 Hz), **KotH.Probes** (`Harness/`, `Ref` = Unity), **ThirdParty** (READMEs).
 
 ### Simulation
 - `SimulationSystem` is the only clock: contacts → `Motor.Simulate` → `SeparateBodies` → `Publish` → `SyncHull` →
@@ -68,20 +67,21 @@ dotnet run Tools/Regress.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # nu
 - Rollback in a star: `HostSession` confirms ticks (inputs, joins, leaves), checksums every 40 ticks, state on desync;
   `PeerSession` (host too, `LocalTransport`) predicts and rolls back (ring 128, ≤ 15 ticks ahead).
 - `StateCodec` (version 4), bodies by `NetId` (players from 4), same `BuildId` needed (MVID, instruction set, assets).
-- UDP via LiteNetLib 2.1.4, datagrams ≤ 1200 B, inputs clamped (`Sanitize`). Client: `GameRoot` is the `INetWorld`,
-  `NetClient` holds the sessions; wins shown only confirmed; never smooth corrections.
+- Menu via Steam (app 480, `KotH.Game/Steam`, lobbies, `SteamTransport`; shots only with `KOTH_STEAM=1`), else UDP
+  via LiteNetLib 2.1.4 (`--host`/`--join`, server); datagrams ≤ 1200 B, inputs clamped (`Sanitize`). `GameRoot` is
+  the `INetWorld`, `NetClient` holds the sessions; wins shown only confirmed; never smooth corrections.
 
 ### Round (`KotH.Shared/Match`)
-- `HillMatch`: 3 s alone takes the zone, the holder scores while inside; phases `Running`/`Over`, networked also
-  `Waiting`/`Countdown`. Respawn below `RespawnBelow`, percent, points and shots stay. Spawns random on a ring round the zone
-  (seed from `MatchState.Seed`), lobby on markers. Probe `capture`.
+- `HillMatch`: 3 s alone takes the zone, holder scores inside; phases `Running`/`Over` (+ `Waiting`/`Countdown` net).
+  Net `MatchStage`: lobby on MountDestiny, host picks the map (Esc), countdown end restarts there, round end back.
+  Respawn below `RespawnBelow` (percent, points, shots stay), spawn ring round the zone (`MatchState.Seed`), lobby on markers.
 
 ### Maps and assets
 - **Game Studio is the source of all assets** (YAML may be edited directly). `GraphicsCompositor` without `Archetype`.
-- Per map `Maps/NAME`: `NAMECollision` (Shared: collision, markers, zone, bots; no models) and `NAMEVisual` (Game), both
-  root assets; URLs in `Hosting/Maps.cs`. Probes load `Test`, except `bots climb`/`jumplab`.
-- **MountDestiny** (123 m): `Tools/maps/Mountain.cs` → `Tools/maps/MapUV` → `publish_aot.sh`; textures `Textures.cs`,
-  sky `Sky.cs`, clouds `Clouds.cs`; grass `GrassField`, shells `ShellField`. View distance ≤ 20 km.
+- Per map `Maps/NAME`: `NAMECollision` (Shared: collision, markers, zone, bots; no models) and `NAMEVisual` (Game), root
+  assets; `Hosting/Maps.cs` (`All` = host's choice). Map change in-process (`GameRoot.UnloadMap`); menu always MountDestiny.
+- Probes load `Test`, except `bots climb`/`jumplab`. **MountDestiny** (123 m): `Tools/maps/Mountain.cs` → `MapUV`;
+  textures `Textures.cs`, sky `Sky.cs`, clouds `Clouds.cs`; grass `GrassField`, shells `ShellField`. View ≤ 20 km.
 - Game Studio runs under Proton (Steam shortcut, prefix `compatdata/2392464373`, setup in the memory); saving writes
   CRLF; the prefix `.nuget` is a symlink: never replace files there.
 

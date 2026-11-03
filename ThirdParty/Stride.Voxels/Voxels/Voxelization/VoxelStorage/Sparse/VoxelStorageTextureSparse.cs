@@ -41,6 +41,26 @@ namespace Stride.Rendering.Voxels
             emptyVoxels ??= Texture.New3D(device, 1, 1, 1, PixelFormat.R8G8B8A8_UNorm, new uint[] { 0 });
         }
 
+        /// <summary>KotH patch: frees the atlases, the dense volume and the empty stand-ins (Pages and SlotCells are the storage's).</summary>
+        public void Release()
+        {
+            for (int level = 0; level < Atlases.Length; level++)
+            {
+                Atlases[level]?.Dispose();
+                Atlases[level] = null;
+            }
+            Dense?.Dispose();
+            Dense = null;
+            if (denseTemp != null)
+                foreach (var texture in denseTemp)
+                    texture.Dispose();
+            denseTemp = null;
+            emptyPages?.Dispose();
+            emptyVoxels?.Dispose();
+            emptyPages = emptyVoxels = null;
+            Ready = false;
+        }
+
         /// <summary>The atlases for <see cref="BrickCount"/> bricks and <paramref name="extraBricks"/> more, cleared.</summary>
         public void CreateAtlases(GraphicsDevice device, CommandList commandList, int extraBricks)
         {

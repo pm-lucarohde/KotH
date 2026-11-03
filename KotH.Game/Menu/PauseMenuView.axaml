@@ -1,19 +1,21 @@
-<!-- The menu Escape opens in a game, in two parts that PauseMenu shows as
-     overlays in the middle of the screen: the buttons on their board, or
-     instead the Settings page. Laid out for a screen 1080 high like
-     MainMenuView; the pictures carry 24 px of shadow on every side. -->
+<!-- The menu Escape opens in a game, in two parts that PauseMenu shows as overlays
+     in the middle of the screen: the buttons on their board, or instead a page
+     (Settings, the friends to invite in a Steam round, the lobby's map for the host).
+     Laid out for a screen 1080 high; the pictures carry 24 px of shadow on every side. -->
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:menu="using:KotH.Client.Menu"
              x:Class="KotH.Client.Menu.PauseMenuView"
              x:CompileBindings="True">
     <Panel Name="Parts">
-        <Grid Name="BoardPart" Width="488" Height="418">
-            <Panel Width="440" Height="370" Margin="24">
+        <Grid Name="BoardPart" Width="488" Height="586">
+            <Panel Name="Board" Width="440" Height="370" Margin="24" VerticalAlignment="Center">
                 <Image Source="/Menu/Art/Panel.png" Margin="-24" Stretch="Fill" />
                 <StackPanel Spacing="18" HorizontalAlignment="Center" VerticalAlignment="Center"
                             KeyboardNavigation.TabNavigation="Cycle">
                     <Button Name="Resume" Classes="Menu" Content="Resume" />
+                    <Button Name="Maps" Classes="Menu" Content="Map" IsVisible="False" />
+                    <Button Name="Invite" Classes="Menu" Content="Invite friends" IsVisible="False" />
                     <Button Name="Settings" Classes="Menu" Content="Settings" />
                     <Button Name="Quit" Classes="Menu" Content="To desktop" />
                     <Button Name="ToMenu" Classes="Menu" Content="Main menu" />
@@ -25,10 +27,18 @@
             <Panel Width="820" Height="560" Margin="24">
                 <Image Source="/Menu/Art/Wide.png" Margin="-24" Stretch="Fill" />
                 <Grid RowDefinitions="Auto,*,Auto" Margin="50,36,50,34">
-                    <TextBlock Classes="Title" Text="Settings" />
-                    <menu:SettingsPage Grid.Row="1" Margin="0,20,0,0" />
-                    <Button Name="Back" Grid.Row="2" Classes="Menu Small" Content="Back"
-                            HorizontalAlignment="Right" Margin="0,18,0,0" />
+                    <TextBlock Name="PageTitle" Classes="Title" Text="Settings" />
+                    <menu:SettingsPage Name="SettingsPage" Grid.Row="1" Margin="0,20,0,0" />
+                    <Border Name="ListPage" Grid.Row="1" Classes="Well" Margin="0,20,0,0">
+                        <Panel Name="ListInside">
+                            <TextBlock Name="NoRows" Classes="Label" FontSize="28" HorizontalAlignment="Center" />
+                        </Panel>
+                    </Border>
+                    <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" Margin="0,18,0,0">
+                        <TextBlock Name="Status" Classes="Hint" VerticalAlignment="Center" TextWrapping="Wrap" />
+                        <Button Name="More" Grid.Column="1" Classes="Menu Small" Content="More" Width="170" Margin="18,0,0,0" />
+                        <Button Name="Back" Grid.Column="2" Classes="Menu Small" Content="Back" Margin="18,0,0,0" />
+                    </Grid>
                 </Grid>
             </Panel>
         </Grid>

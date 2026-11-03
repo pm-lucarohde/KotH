@@ -153,6 +153,14 @@
         <Setter Property="Padding" Value="26,18" />
     </Style>
 
+    <!-- A line in a well's list (rounds, friends): a pill on a lip like the tabs -->
+    <Style Selector="Border.Row">
+        <Setter Property="Background" Value="#F3E7D6" />
+        <Setter Property="CornerRadius" Value="18" />
+        <Setter Property="Padding" Value="22,5,6,5" />
+        <Setter Property="BoxShadow" Value="0 4 0 0 #C9AE8C" />
+    </Style>
+
     <!-- The settings' tabs: small pills on a lip like the buttons, the chosen one red -->
     <Style Selector="Border.Tab">
         <Setter Property="Background" Value="#F3E7D6" />

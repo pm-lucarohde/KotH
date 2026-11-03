@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using KotH.Client.Menu;
+using KotH.Client.Net;
+using KotH.Shared.Hosting;
 using KotH.Shared.Combat;
 using KotH.Shared.Match;
 using KotH.Shared.Simulation;
@@ -220,15 +222,18 @@ namespace KotH.Client.Hud
             warmup = look == ZoneLook.Own && Self.AloneTicks <= Match.WarmupTicks && Match.WarmupTicks > 0
                 ? (float)Self.AloneTicks / Match.WarmupTicks : 0f;
 
+            // In the lobby the round is played on the map the host chose.
+            string next = Match.Stage == MatchStage.Lobby ? Services.GetService<NetClient>()?.NextMap ?? Maps.Default : null;
             if (m.Phase == MatchPhase.Waiting)
             {
                 caption = "Waiting for players";
                 count = string.Format(HudRenderer.Numbers, "{0} / {1}", HillMatch.CountPlayers(Simulation.Bodies), m.MinPlayers);
-                time = statusText = "";
+                time = "";
+                statusText = next != null ? "Next map: " + next : "";
             }
             else if (m.Phase == MatchPhase.Countdown)
             {
-                caption = "Match starts in";
+                caption = next != null ? next + " starts in" : "Match starts in";
                 count = "";
                 time = Clock((m.PhaseTicks + HillMatch.TicksPerPoint - 1) / HillMatch.TicksPerPoint);
                 statusText = "";
@@ -246,7 +251,7 @@ namespace KotH.Client.Hud
                            : NameOf(final.Winner) + " wins";
                 int seconds = PretendBanner ? 10 : (final.PhaseTicks + HillMatch.TicksPerPoint - 1) / HillMatch.TicksPerPoint;
                 view.Win(bannerText, PretendBanner || final.Winner == Self && Self != null,
-                         string.Format(HudRenderer.Numbers, "New round in {0}", seconds));
+                         string.Format(HudRenderer.Numbers, Match.Stage == MatchStage.Round ? "Lobby in {0}" : "New round in {0}", seconds));
             }
             else
                 bannerText = "";

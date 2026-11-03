@@ -7,6 +7,7 @@ using KotH.Client.Menu;
 using KotH.Client.Net;
 using KotH.Client.Player;
 using KotH.Client.Rendering;
+using KotH.Client.Steam;
 using KotH.Shared.Bots;
 using KotH.Shared.Combat;
 using KotH.Shared.Hosting;
@@ -142,7 +143,8 @@ namespace KotH.Client
             Entity.Scene.Entities.Add(new Entity("PauseMenu") { pause });
             if (!options.Joining)
             {
-                string map = options.Map;
+                // The main menu and a host's lobby are on Mount Destiny (Luca); --map is the round's map.
+                string map = options.ShowsMenu || options.Host ? Maps.Default : options.Map;
                 if (!builder.HasMap(map))
                 {
                     Log.Error($"Unknown map {map}, loading {Maps.Default}");
@@ -157,12 +159,16 @@ namespace KotH.Client
             }
             if (options.Host)
             {
-                // The game opens once the host has loaded, unless it went back to the menu first.
-                cover.Loaded += () =>
+                // The game opens once the host has loaded, unless it went back to the menu first;
+                // only the first map's Loaded, a round's map change fires it again.
+                Action open = null;
+                open = () =>
                 {
+                    cover.Loaded -= open;
                     if (games == 0)
                         StartNetworked(options);
                 };
+                cover.Loaded += open;
                 return;
             }
             if (options.Networked)
@@ -170,11 +176,14 @@ namespace KotH.Client
                 // A guest asks for the map, loads it and only then joins.
                 StartNetworked(options);
                 NetClient guest = net;
-                cover.Loaded += () =>
+                Action join = null;
+                join = () =>
                 {
+                    cover.Loaded -= join;
                     if (net == guest)
                         guest.Session.Join(guest.Now);
                 };
+                cover.Loaded += join;
                 cover.Hold = () => !guest.Session.Joined;
                 return;
             }
@@ -210,12 +219,13 @@ namespace KotH.Client
         /// <summary>The main menu over the flight round the map, with its music; no body
         /// yet and nothing ticks. Both start behind the load screen, which stays until
         /// the menu's first frames and the flight's first views are done (no stutter in
-        /// sight). Host server hosts on this map.</summary>
+        /// sight). Host server opens a lobby on Mount Destiny.</summary>
         void ShowMenu()
         {
             var script = new MainMenu
             {
-                StartHost = HostFromMenu, PlayerName = LaunchOptions.Current.Name, Cover = cover, Look = LaunchOptions.Current.Look,
+                StartHost = HostFromMenu, StartJoin = JoinFromMenu,
+                PlayerName = LaunchOptions.Current.Name, Cover = cover, Look = LaunchOptions.Current.Look,
                 LookChanged = LookChanged,
                 CustomizeShown = open => visuals.MoveShowcase(menuFigure, open ? MenuFigureCustomizeAt : MenuFigureAt),
             };
@@ -225,23 +235,87 @@ namespace KotH.Client
             SetMenuOpen(true);
         }
 
-        /// <summary>Host server: as if started with --host and the defaults.</summary>
+        /// <summary>Host server: as if started with --host, the lobby on Mount Destiny (behind the menu
+        /// already), through a public Steam lobby when Steam is there (direct IP otherwise).</summary>
         void HostFromMenu()
         {
-            if (menu == null)
+            if (!LeaveMenu())
                 return;
+            LaunchOptions options = LaunchOptions.Current;
+            options.Host = true;
+            options.Steam = SteamClient.Ready;
+            StartNetworked(options, options.Steam ? SteamLobby.Open(builder.Map, options.Name) : null);
+        }
+
+        /// <summary>A round from the lobby list or an invite, its lobby entered. On another map the
+        /// loaded one goes; the host names its map, which loads, and the guest joins once it is baked.</summary>
+        void JoinFromMenu(SteamLobby lobby)
+        {
+            if (!LeaveMenu())
+            {
+                lobby.Dispose();
+                return;
+            }
+            LaunchOptions options = LaunchOptions.Current;
+            options.Host = false;
+            options.Steam = true;
+            if (lobby.Map != builder.Map)
+                UnloadMap();
+            StartNetworked(options, lobby);
+            NetClient guest = net;
+            guest.JoinWhenReady(() => cover.IsLoaded);
+            cover.Hold = () => !guest.Session.Joined;
+        }
+
+        /// <summary>The host restarted the game on a map and stage (lobby to round and back): the
+        /// world is taken down as for the main menu, the map changes if it differs, a fresh round
+        /// waits; NetClient joins again once the map is baked. Covered until joined.</summary>
+        void RestartOn(string map, MatchStage stage)
+        {
+            if (botDirector != null)
+            {
+                Services.RemoveService<BotDirector>();
+                botDirector.Dispose();
+                botDirector = null;
+            }
+            foreach (SimulationBody body in new List<SimulationBody>(shown.Keys))
+                ((INetWorld)this).Despawn(body);
+            foreach (SimulationBody body in new List<SimulationBody>(simulation.Bodies))
+                ((INetWorld)this).Despawn(body);
+            Unbind();
+            simulation.ResetTickCounter();
+            if (builder.Map != map && builder.HasMap(map))
+            {
+                UnloadMap();
+                LoadMap(map);
+            }
+            if (builder.Zone != null)
+            {
+                // The host's own round; a guest takes the host's state when it joins.
+                simulation.Match = new HillMatch(builder.Zone) { Seed = (uint)Random.Shared.Next(), Stage = stage };
+                if (stage == MatchStage.Lobby)
+                    simulation.Match.MinPlayers = LaunchOptions.Current.MinPlayers;
+            }
+            BindWorld(null);
+            NetClient client = net;
+            cover.Hold = () => net == client && (client.Restarting || !client.Session.Joined);
+            Log.Info($"Network: restart on {map} ({stage})");
+        }
+
+        bool LeaveMenu()
+        {
+            if (menu == null)
+                return false;
             Entity.Scene.Entities.Remove(menu);
             menu = null;
             cover.Hold = null;
             SetMenuOpen(false);
-            LaunchOptions options = LaunchOptions.Current;
-            options.Host = true;
-            StartNetworked(options);
+            return true;
         }
 
         /// <summary>Main menu in the pause menu: the game is taken down - connection,
-        /// bots, bodies and what shows them - and the main menu flies over the map again,
-        /// which stays loaded (a guest without one loads its own).</summary>
+        /// bots, bodies and what shows them - and the main menu flies over Mount Destiny
+        /// again, which stays loaded or loads anew after a round on another map.</summary>
         void ReturnToMenu()
         {
             if (menu != null)
@@ -268,10 +342,15 @@ namespace KotH.Client
             LaunchOptions options = LaunchOptions.Current;
             options.Host = false;
             options.JoinAddress = null;
+            options.Steam = false;
             cover.Hold = null;
             simulation.ResetTickCounter();
-            if (builder.Map == null)
-                LoadMap(builder.HasMap(options.Map) ? options.Map : Maps.Default);
+            if (builder.Map != Maps.Default)
+            {
+                // The menu flies round Mount Destiny: another map goes, a guest without one loads it.
+                UnloadMap();
+                LoadMap(Maps.Default);
+            }
             else if (builder.Zone != null)
                 simulation.Match = new HillMatch(builder.Zone) { Seed = (uint)Random.Shared.Next() };
             // The game's garbage goes now, not as a stutter in the menu.
@@ -341,12 +420,22 @@ namespace KotH.Client
             }
         }
 
-        void StartNetworked(LaunchOptions options)
+        void StartNetworked(LaunchOptions options, SteamLobby lobby = null)
         {
             BindWorld(null);
 
             // The local player's input waits for its body; until then the session samples nothing.
-            net = new NetClient(options, this, () => localReader?.ReadInput() ?? default, simulation.Match);
+            net = new NetClient(options, this, () => localReader?.ReadInput() ?? default, simulation.Match, lobby)
+            {
+                ChangeMap = RestartOn,
+                MapReady = () => cover.IsLoaded,
+                MakeBots = states =>
+                {
+                    BotDirector made = BotDirector.Create(builder, simulation, states, options.BotSeed);
+                    WorkAhead(made);
+                    return made;
+                },
+            };
             Services.AddService(net);
             if (options.Host && options.Bots > 0)
             {
@@ -355,10 +444,11 @@ namespace KotH.Client
                 WorkAhead(director);
                 Log.Info($"Network: {options.Bots} bots, seed {options.BotSeed}");
             }
-            Log.Info($"Network: {(options.Host ? "host" : "guest")} as {options.Name}, build {NetProtocol.BuildText}");
+            Log.Info($"Network: {(options.Host ? "host" : "guest")} as {options.Name}{(lobby != null ? " over Steam" : "")}, build {NetProtocol.BuildText}");
         }
 
-        /// <summary>The map's collision, its round and what is drawn of it; once per game.</summary>
+        /// <summary>The map's collision, its round and what is drawn of it; one at a time,
+        /// another needs UnloadMap first.</summary>
         void LoadMap(string map)
         {
             if (builder.Map == map)
@@ -371,7 +461,10 @@ namespace KotH.Client
             if (Content.Exists(url))
             {
                 foreach (Entity e in Content.Load<Prefab>(url).Instantiate())
+                {
                     Entity.Scene.Entities.Add(e);
+                    mapVisuals.Add(e);
+                }
                 LeafRenderFeature.Install(SceneSystem);
             }
             else
@@ -381,10 +474,44 @@ namespace KotH.Client
             Log.Info($"Map {map} loaded");
         }
 
+        /// <summary>Takes the loaded map down for another, with no body left: what is drawn of it
+        /// (its scripts and the voxel light free their GPU memory), its colliders and its round.
+        /// The load screen covers until the next map is loaded and baked.</summary>
+        void UnloadMap()
+        {
+            string map = builder.Map;
+            if (map == null)
+                return;
+            foreach (Entity e in mapVisuals)
+                Entity.Scene.Entities.Remove(e);
+            mapVisuals.Clear();
+            if (Content.IsLoaded(Maps.VisualUrl(map)))
+                Content.Unload(Maps.VisualUrl(map));
+            builder.UnloadArena();
+            simulation.Match = null;
+            if (visuals != null)
+                visuals.Surface = null;
+            // The new map's casters go into the static sun shadow, drawn anew before its bake;
+            // the old lightmap and its sun map are forgotten.
+            var tags = RenderContext.GetShared(Services).Tags;
+            if (tags.Get(StaticSunShadowRenderer.Key) is { } sun)
+                sun.Ready = false;
+            tags.Set(Stride.Rendering.Voxels.ForwardRendererVoxels.ForgetLightmapKey, true);
+            cover.Restart();
+            GC.Collect();
+            Log.Info($"Map {map} unloaded");
+        }
+
         string INetWorld.Map => builder.Map;
 
-        // Before the state: the own body arrives with it and binds the displays.
-        void INetWorld.LoadMap(string map) => LoadMap(map);
+        // Before the state: the own body arrives with it and binds the displays. A guest from
+        // the menu on another map than the host's (only before it has joined) changes maps.
+        void INetWorld.LoadMap(string map)
+        {
+            if (builder.Map != null && builder.Map != map)
+                UnloadMap();
+            LoadMap(map);
+        }
 
         public override void Cancel()
         {
@@ -707,6 +834,7 @@ namespace KotH.Client
         NetClient net;
         BotDirector botDirector;
         LoadScreen cover;
+        readonly List<Entity> mapVisuals = new List<Entity>();
         Entity menu;
         Entity menuFigure;
         int games;

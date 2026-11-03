@@ -51,6 +51,10 @@ namespace Stride.Rendering.Voxels
         /// <summary>KotH patch: the sun past the map per lightmap texel (red; green 1), in the render context's tags once baked.</summary>
         public static readonly PropertyKey<Texture> SunLightmapKey = new PropertyKey<Texture>("SunLightmap", typeof(ForwardRendererVoxels));
 
+        /// <summary>KotH patch: set true in the render context's tags when the map goes: its lightmap no
+        /// longer counts as baked and its sun map is dropped (a map without a lightmap read the old one).</summary>
+        public static readonly PropertyKey<bool> ForgetLightmapKey = new PropertyKey<bool>("ForgetLightmap", typeof(ForwardRendererVoxels));
+
         /// <summary>KotH patch: which meshes read the lightmap (null without a bake stage).</summary>
         public LightmapRenderFeature Lightmaps => lightmaps;
 
@@ -97,6 +101,14 @@ namespace Stride.Rendering.Voxels
 
         protected override void CollectCore(RenderContext context)
         {
+            if (context.Tags.Get(ForgetLightmapKey)) // KotH patch
+            {
+                context.Tags.Remove(ForgetLightmapKey);
+                context.Tags.Remove(SunLightmapKey);
+                if (lightmaps != null)
+                    lightmaps.Ready = false;
+                baking = null;
+            }
             VoxelRenderer?.Collect(Context, ShadowMapRenderer_notPrivate);
             CollectLightmapBake(context);
             base.CollectCore(context);

@@ -6,9 +6,9 @@ using Corner = KotH.Client.Menu.MenuOverlay.Corner;
 
 namespace KotH.Client.Hud
 {
-    /// <summary>Black with a turning clock and a word at the bottom right (LoadView, Luca's choice)
-    /// from the first frame until the map's light is baked and a moment after, so the first
-    /// seconds' stutter is never seen. Nothing starts before Loaded (round, host, guest join).
+    /// <summary>Black with a turning clock and a word at the bottom right (LoadView, Luca's choice) from the
+    /// first frame until the map's light is baked and a moment after, so the first seconds' stutter is never
+    /// seen. Nothing starts before Loaded (round, host, guest join); a map change starts it over (Restart).
     /// The hands turn as finished pictures, costing Avalonia nothing per frame.</summary>
     public sealed class LoadScreen : IHudCover
     {
@@ -53,7 +53,7 @@ namespace KotH.Client.Hud
         /// <summary>Something else to wait for once loaded, such as the host letting a guest in.</summary>
         public Func<bool> Hold { get; set; }
 
-        /// <summary>Raised once, when the map is loaded and its lighting baked.</summary>
+        /// <summary>Raised when the map is loaded and its lighting baked, once per map.</summary>
         public event Action Loaded;
 
         public bool Covers { get; private set; } = true;
@@ -63,6 +63,14 @@ namespace KotH.Client.Hud
 
         /// <summary>A map is being built now: from here on it waits for its bake.</summary>
         public void Begin() => begun = true;
+
+        /// <summary>The map was taken down: covers again until the next one is loaded and baked.</summary>
+        public void Restart()
+        {
+            begun = loaded = false;
+            shown = 0.0;
+            bakedAt = -1.0;
+        }
 
         /// <summary>The map's voxels are all in.</summary>
         public void Baked()

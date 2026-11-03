@@ -95,6 +95,19 @@ namespace Stride.Rendering.Voxels
             }
         }
 
+        // KotH patch: everything this storage and its sparse texture made, for a map change.
+        public void Release()
+        {
+            output?.Release();
+            output = null;
+            foreach (GraphicsResource resource in new GraphicsResource[] { fragmentsBuffer, pages, marksBuffer, slotCells, counter, staticPages, dynamicFragments, edits })
+                resource?.Dispose();
+            fragmentsBuffer = marksBuffer = slotCells = counter = dynamicFragments = edits = null;
+            pages = staticPages = null;
+            counts.Release();
+            phase = Phase.Mark;
+        }
+
         public int RequestTempStorage(int count)
         {
             int bufferOffset = tempStorageCounter / 32;
@@ -564,6 +577,16 @@ namespace Stride.Rendering.Voxels
                     staging[i] ??= Buffer.New(device, source.SizeInBytes, BufferFlags.None, GraphicsResourceUsage.Staging);
                 next = pending = agreeing = 0;
                 lastTag = -1;
+            }
+
+            public void Release()
+            {
+                for (int i = 0; i < staging.Length; i++)
+                {
+                    staging[i]?.Dispose();
+                    staging[i] = null;
+                }
+                counter = null;
             }
 
             public void Request(CommandList commandList, int tag)

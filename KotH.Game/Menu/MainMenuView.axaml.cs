@@ -4,13 +4,16 @@ using Avalonia.Interactivity;
 
 namespace KotH.Client.Menu
 {
-    /// <summary>The main menu's controls: buttons, the note on the one under the pointer, the pages
-    /// behind three of them (looks only so far), Customize, title and small print. Five parts of a
-    /// screen 1080 high that MainMenu takes out (<see cref="TakeParts"/>), shows and slides in.</summary>
+    /// <summary>The main menu's controls: buttons, the note on the one under the pointer, the pages behind
+    /// three of them (Find server; Settings and Languages only to look at), Customize, title and small
+    /// print. Five parts of a screen 1080 high that MainMenu takes out (<see cref="TakeParts"/>), shows and slides in.</summary>
     public partial class MainMenuView : UserControl
     {
         /// <summary>Host server was chosen.</summary>
         public event Action HostRequested;
+
+        /// <summary>Find server was opened: time to search.</summary>
+        public event Action FindOpened;
 
         /// <summary>Quit game was chosen.</summary>
         public event Action QuitRequested;
@@ -23,6 +26,10 @@ namespace KotH.Client.Menu
         /// <summary>The Customize page, whose part MainMenu shows when <see cref="CustomizeOpen"/>.</summary>
         public CustomizePage Customizer => CustomizeView;
 
+        /// <summary>The Find server page.</summary>
+        public FindPage Finder => FindPage;
+
+
         public MainMenuView()
         {
             InitializeComponent();
@@ -31,7 +38,11 @@ namespace KotH.Client.Menu
                 button.PointerEntered += (_, _) => Describe(button);
             Host.Click += (_, _) => HostRequested?.Invoke();
             Quit.Click += (_, _) => QuitRequested?.Invoke();
-            Find.Click += (_, _) => OpenPage(Find, "Find server", FindPage);
+            Find.Click += (_, _) =>
+            {
+                OpenFind();
+                FindOpened?.Invoke();
+            };
             Customize.Click += (_, _) => OpenPage(Customize, null, null);
             CustomizeView.BackRequested += () => GoBack();
             Settings.Click += (_, _) => OpenPage(Settings, "Settings", SettingsPage);
@@ -57,6 +68,9 @@ namespace KotH.Client.Menu
         /// <summary>Whether a page is open, so its part is shown.</summary>
         public bool PageOpen => open != null && open != Customize;
 
+        /// <summary>Whether Find server is open.</summary>
+        public bool FindOpen => open == Find;
+
         /// <summary>Whether Customize is open, so its part is shown.</summary>
         public bool CustomizeOpen => open == Customize;
 
@@ -76,6 +90,9 @@ namespace KotH.Client.Menu
             PlayerName.Text = player;
             Version.Text = version;
         }
+
+        /// <summary>Opens Find server (also for an accepted invite, to show how joining goes).</summary>
+        public void OpenFind() => OpenPage(Find, "Find server", FindPage);
 
         /// <summary>Escape: closes the open page; false when none was open.</summary>
         public bool GoBack()
@@ -115,8 +132,8 @@ namespace KotH.Client.Menu
 
         void Describe(Button button)
         {
-            Description.Text = button == Host ? "Start your own round on the mountain. Friends join via your address, bots fill the free slots."
-                             : button == Find ? "Find other players' rounds on the network and join them."
+            Description.Text = button == Host ? "Open a lobby on Mount Destiny and choose the round's map. Others find it under Find server, bots fill the free slots."
+                             : button == Find ? "Find other players' rounds on Steam and join them."
                              : button == Customize ? "Colour your mushroom: cap, skin, leaves, gloves and spores."
                              : button == Settings ? "Graphics, sound and controls to your taste."
                              : button == Languages ? "Choose the game's language."

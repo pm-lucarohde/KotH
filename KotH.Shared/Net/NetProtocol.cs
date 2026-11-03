@@ -26,6 +26,8 @@ namespace KotH.Shared.Net
         Repair = 7,     // host -> peer: the full state after a desync
         Ask = 8,        // peer -> host: build; which map, before joining
         Map = 9,        // host -> peer: the map, to load before the Hello
+        Restart = 10,   // host -> peer: the game goes on on this map and stage; load it, then Hello again
+        NextMap = 11,   // host -> peer: the map the lobby's round will be on
     }
 
     public enum RejectReason : byte { Version = 1, Full = 2, Closed = 3 }

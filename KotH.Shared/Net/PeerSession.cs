@@ -152,6 +152,19 @@ namespace KotH.Shared.Net
         /// <summary>The host has said which map, and it is loaded; see Join.</summary>
         public bool MapKnown { get; private set; }
 
+        /// <summary>The host restarted the game on this map and stage: this session is done, the
+        /// client loads the map and joins again with a new one (NetClient).</summary>
+        public (string Map, Match.MatchStage Stage)? RestartTo { get; private set; }
+
+        /// <summary>The stage of the round, as the host's welcome says.</summary>
+        public Match.MatchStage Stage { get; private set; }
+
+        /// <summary>The map the lobby's round will be on, as the host says.</summary>
+        public string NextMap { get; private set; }
+
+        // The host's timeline this session belongs to: confirmed ticks of another are stale.
+        byte generation;
+
         public SimulationSystem Simulation => sim;
 
         /// <summary>The world's map, which a host hands to everyone who joins.</summary>
@@ -211,7 +224,7 @@ namespace KotH.Shared.Net
                     HostLost = true;
             }
 
-            if (!Joined)
+            if (!Joined || RestartTo != null)
                 return;
 
             ApplyConfirmed();
@@ -297,8 +310,22 @@ namespace KotH.Shared.Net
                         MapKnown = true;
                     }
                     break;
-                case MsgType.Confirmed: Confirm(ref r, now); break;
+                case MsgType.Confirmed:
+                    if (Joined && r.Byte() == generation)
+                        Confirm(ref r, now);
+                    break;
                 case MsgType.Repair: Repair(ref r, now); break;
+                case MsgType.Restart:
+                    string to = r.Text();
+                    var stage = (Match.MatchStage)r.Byte();
+                    if (!r.Failed)
+                        RestartTo = (to, stage);
+                    break;
+                case MsgType.NextMap:
+                    string next = r.Text();
+                    if (!r.Failed)
+                        NextMap = next;
+                    break;
             }
         }
 
@@ -309,6 +336,9 @@ namespace KotH.Shared.Net
             double echo = r.Double();
             RoundTripMs = Math.Max(0.0, now - echo);
             string map = r.Text();
+            generation = r.Byte();
+            Stage = (Match.MatchStage)r.Byte();
+            NextMap = r.Text();
 
             // A founder already has the world; anyone else builds the host's map and takes its state.
             int length = r.Int();
@@ -317,6 +347,8 @@ namespace KotH.Shared.Net
                 if (r.Failed)
                     return;
                 world.LoadMap(map);
+                if (sim.Match != null)
+                    sim.Match.Stage = Stage;
                 if (!TakeState(ref r, length))
                     return;
             }

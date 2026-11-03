@@ -38,6 +38,7 @@ namespace Stride.Engine.Processors
             base.OnEntityComponentRemoved(entity, component, data);
             renderVoxelVolumes.Remove(component);
             processedVoxelVolumes.Remove(component);
+            component.Storage?.Release(); // KotH patch
         }
 
         public override void Draw(RenderContext context)

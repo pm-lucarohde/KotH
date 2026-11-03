@@ -1,43 +1,86 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using KotH.Client.Steam;
 using KotH.Shared.Bots;
+using KotH.Shared.Hosting;
 using KotH.Shared.Match;
 using KotH.Shared.Net;
 using KotH.Shared.Player;
 
 namespace KotH.Client.Net
 {
-    /// <summary>The client's share of a networked game: its session and, when it hosts,
-    /// the host session beside it. The driver calls Update once per frame instead of
-    /// ticking the world itself; everything else reads.</summary>
+    /// <summary>The client's share of a networked game: its session and, when it hosts, the host session beside
+    /// it, over a Steam lobby (menu) or direct IP (--host, --join). A lobby on Mount Destiny, the round on the
+    /// chosen map: the host session restarts the game there and back, this side changes maps and joins anew.
+    /// The driver calls Update once per frame instead of ticking the world itself.</summary>
     public sealed class NetClient : IDisposable
     {
         readonly Stopwatch wall = Stopwatch.StartNew();
-        readonly LiteNetTransport transport;
+        readonly INetTransport transport;
         readonly string address;
+        readonly INetWorld world;
+        readonly Func<MoveInput> sampleLocal;
+        readonly string name;
+        readonly FigureLook look;
+        Func<bool> joinWhen;
+        bool changing;
 
-        public NetClient(LaunchOptions options, INetWorld world, Func<MoveInput> sampleLocal, HillMatch round)
+        /// <param name="lobby">The Steam lobby to host or join through; null for direct IP.</param>
+        public NetClient(LaunchOptions options, INetWorld world, Func<MoveInput> sampleLocal, HillMatch round, SteamLobby lobby = null)
         {
+            Lobby = lobby;
+            this.world = world;
+            this.sampleLocal = sampleLocal;
+            name = options.Name;
+            look = options.Look;
             if (options.Host)
             {
-                transport = LiteNetTransport.Host(options.Port);
+                transport = lobby != null ? SteamTransport.Host(lobby) : LiteNetTransport.Host(options.Port);
                 Host = new HostSession(transport, Now);
-                Session = new PeerSession(world, Host.LocalTransport, sampleLocal, options.Name, founder: true, Now, look: options.Look);
+                // The lobby's round goes to --map (Mount Destiny unless given); the host may choose another.
+                Host.StartIn(MatchStage.Lobby, options.Map);
+                Host.Began += Founded;
+                Session = new PeerSession(world, Host.LocalTransport, sampleLocal, name, founder: true, Now, look: look);
                 Host.AttachFounder(Session);
+                Host.CanJoin = () => world.Simulation.Match?.AcceptsJoin ?? true;
                 if (round != null)
                 {
+                    round.Stage = MatchStage.Lobby;
                     round.MinPlayers = options.MinPlayers;
-                    Host.CanJoin = () => round.AcceptsJoin;
                 }
-                address = $"Port {options.Port}";
+                address = lobby != null ? "Steam" : $"Port {options.Port}";
             }
             else
             {
-                transport = LiteNetTransport.Join(options.JoinAddress, options.Port);
+                transport = lobby != null ? SteamTransport.Join(lobby) : LiteNetTransport.Join(options.JoinAddress, options.Port);
                 Session = new PeerSession(world, transport, sampleLocal, options.Name, founder: false, Now, join: false, look: options.Look);
-                address = $"{options.JoinAddress}:{options.Port}";
+                address = lobby != null ? lobby.HostName ?? "the host" : $"{options.JoinAddress}:{options.Port}";
             }
         }
+
+        /// <summary>The Steam lobby of this game, null over direct IP.</summary>
+        public SteamLobby Lobby { get; }
+
+        /// <summary>GameRoot: takes the game down and builds this map in this stage for a restart.</summary>
+        public Action<string, MatchStage> ChangeMap { get; set; }
+
+        /// <summary>GameRoot: whether the restart's map is loaded and baked.</summary>
+        public Func<bool> MapReady { get; set; }
+
+        /// <summary>GameRoot: a new bot director for the restarted world, thinking from these states.</summary>
+        public Func<IFinalStates, BotDirector> MakeBots { get; set; }
+
+        /// <summary>Between the host's restart and this side's new session.</summary>
+        public bool Restarting => changing || Host is { Restarting: true };
+
+        /// <summary>The stage of the game now and, in the lobby, the map its round will be on.</summary>
+        public MatchStage Stage => Host?.Stage ?? Session.Stage;
+        public string NextMap => Host?.NextMap ?? Session.NextMap;
+
+        /// <summary>A guest from the menu: joins once the host has named the map and ready says it is
+        /// loaded (the menu's at once, another after its bake).</summary>
+        public void JoinWhenReady(Func<bool> ready) => joinWhen = ready;
 
         /// <summary>
         /// The host's bots: they join as players and think from the host's
@@ -52,7 +95,7 @@ namespace KotH.Client.Net
         }
 
         public HostSession Host { get; }
-        public PeerSession Session { get; }
+        public PeerSession Session { get; private set; }
 
         public double Now => wall.Elapsed.TotalMilliseconds;
 
@@ -61,6 +104,62 @@ namespace KotH.Client.Net
             double now = Now;
             Host?.Update(now);
             Session.Update(now);
+            FollowRestart(now);
+            if (joinWhen != null && Session.MapKnown && joinWhen())
+            {
+                joinWhen = null;
+                Session.Join(now);
+            }
+            if (Host != null && Lobby != null)
+            {
+                int players = HillMatch.CountPlayers(Session.Simulation.Bodies);
+                Lobby.SetPlayers(players);
+                Lobby.SetMap(world.Map);
+                Lobby.SetJoinable(players < NetWorld.MaxPlayers && !Host.Restarting && Host.CanJoin());
+            }
+        }
+
+        // The host starts a restart where the confirmed round holds (lobby's countdown, round's win
+        // pause); everyone, host's own peer too, then changes maps and joins the new timeline.
+        void FollowRestart(double now)
+        {
+            if (Host is { Restarting: false } && Host.Stage != MatchStage.Single && Session.Joined
+                && Session.TryConfirmedMatch(out MatchState m) && m.PhaseTicks == 0)
+            {
+                if (Host.Stage == MatchStage.Lobby && m.Phase == MatchPhase.Countdown)
+                    Host.Restart(Host.NextMap ?? Maps.Default, MatchStage.Round);
+                else if (Host.Stage == MatchStage.Round && m.Phase == MatchPhase.Over)
+                    Host.Restart(Maps.Default, MatchStage.Lobby);
+            }
+            if (Session.RestartTo is { } to && !changing)
+            {
+                changing = true;
+                joinWhen = null;
+                ChangeMap?.Invoke(to.Map, to.Stage);
+            }
+            if (changing && (MapReady?.Invoke() ?? true))
+            {
+                changing = false;
+                if (Host != null)
+                    Host.FounderReady();
+                else
+                    Session = new PeerSession(world, transport, sampleLocal, name, founder: false, now, look: look);
+            }
+        }
+
+        // A restart begins: the host's own peer starts the new timeline, its bots think anew.
+        void Founded()
+        {
+            Session = new PeerSession(world, Host.LocalTransport, sampleLocal, name, founder: true, Now, look: look);
+            Host.AttachFounder(Session);
+            List<int> bots = Host.BotIds;
+            if (bots.Count == 0 || MakeBots == null)
+                return;
+            BotDirector director = MakeBots(Session);
+            Host.Bots = director;
+            Session.KnownInputs = director;
+            foreach (int id in bots)
+                director.Add(id);
         }
 
         public float Alpha => Session.Joined ? Session.Alpha(Now) : 1f;
@@ -84,6 +183,10 @@ namespace KotH.Client.Net
                              Host != null ? "Host" : "Guest", Session.RoundTripMs, Session.Lead,
                              Session.LastRollback, Session.DeepestRollback, Session.Stalls);
 
-        public void Dispose() => transport.Dispose();
+        public void Dispose()
+        {
+            (transport as IDisposable)?.Dispose();
+            Lobby?.Dispose();
+        }
     }
 }

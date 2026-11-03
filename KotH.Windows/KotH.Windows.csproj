@@ -26,6 +26,8 @@
     <TrimmerRootAssembly Include="KotH.Game" />
     <TrimmerRootAssembly Include="KotH.Shared" />
     <TrimmerRootAssembly Include="Stride.Voxels" />
+    <None Include="..\ThirdParty\Steamworks\win64\steam_api64.dll" Link="steam_api64.dll"
+          CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
