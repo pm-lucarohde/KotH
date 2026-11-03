@@ -20,7 +20,7 @@ namespace KotH.Shared.Combat
     public sealed class Dash : EntityComponent
     {
         /// <userdoc>How fast the dash falls, in metres per second.</userdoc>
-        [Display("Speed", "Dash")] public float SlamSpeed = 30f;
+        [Display("Speed", "Dash")] public float SlamSpeed = 15f;
 
         /// <userdoc>The ground must be at least this far below the feet, in metres; lower, crouch does what it always does.</userdoc>
         [Display("Min height (m)", "Dash")] public float MinHeight = 1.5f;
