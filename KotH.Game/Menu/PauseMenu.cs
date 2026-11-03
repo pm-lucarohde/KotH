@@ -173,10 +173,12 @@ namespace KotH.Client.Menu
             foreach (string map in Maps.All)
             {
                 string pick = map;
+                // Choosing closes the menu, as Resume does (out of Avalonia's dispatcher).
                 rows.Add(new RowList.Row(map, map == chosen ? "chosen" : "", "Choose", () =>
                 {
                     client.Host.NextMap = pick;
                     ListMaps();
+                    resumeWanted = true;
                 }));
             }
             view.ShowList(rows, "", $"The round starts on {chosen} when the countdown ends.");
