@@ -23,6 +23,7 @@ using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Graphics;
 using Stride.Rendering;
+using Stride.Rendering.Lights;
 
 namespace KotH.Client
 {
@@ -93,8 +94,23 @@ namespace KotH.Client
         /// <userdoc>The mushroom blaster, held instead of the cane on key 2; modelled in the rest pose like the cane (.work/rig/blaster.py), bones Breech and Muzzle give its barrel.</userdoc>
         [Display("Blaster", "Visuals")] public Model BlasterModel;
 
+        /// <userdoc>The figure in the main menu: its centre in the menu camera's frame (x right, y up, -z ahead), in metres.</userdoc>
+        [Display("Figure place", "Main menu")] public Vector3 MenuFigureAt = new Vector3(0.46f, -0.82f, -2.0f);
+
+        /// <userdoc>How far the menu figure turns away from facing the camera, degrees (positive: towards the buttons).</userdoc>
+        [Display("Figure turn", "Main menu")] public float MenuFigureTurn = 15f;
+
+        /// <userdoc>The menu figure's own light, a point light only it is close enough to: place in the figure's frame (x right, -z its front), in metres.</userdoc>
+        [Display("Light place", "Main menu")] public Vector3 MenuLightAt = new Vector3(-0.8f, 1.2f, -1.6f);
+
+        /// <userdoc>Strength of the menu figure's light.</userdoc>
+        [Display("Light strength", "Main menu")] public float MenuLightIntensity = 6f;
+
         /// <summary>Render group of the own figure, see PlayerCamera.</summary>
         const RenderGroup OwnFigureGroup = RenderGroup.Group1;
+
+        /// <summary>Render group of the main menu's figure, its own pass in SceneThrottle.</summary>
+        const RenderGroup MenuFigureGroup = RenderGroup.Group7;
 
         /// <summary>Render group of the first-person arms, see PlayerCamera.</summary>
         const RenderGroup ArmsGroup = RenderGroup.Group2;
@@ -308,7 +324,10 @@ namespace KotH.Client
                 if (e.Get<MusicPlayer>() is { } music)
                     music.InMenu = open;
                 if (e.Get<MenuCamera>() is { } flight)
+                {
                     flight.Active = open;
+                    ShowMenuFigure(e, open);
+                }
                 if (e.Get<Crosshair>() is { } crosshair)
                     crosshair.Hidden = open;
             }
@@ -593,6 +612,48 @@ namespace KotH.Client
             return visual;
         }
 
+        /// <summary>The figure beside the main menu, upper body and head in the free space right of the
+        /// buttons: hung from the flying camera, lit by its own short point light, no shadow, drawn
+        /// at the full frame rate.</summary>
+        void ShowMenuFigure(Entity camera, bool open)
+        {
+            if (!open)
+            {
+                if (menuFigure != null)
+                {
+                    Services.GetService<SceneThrottle>()?.HideOverlay();
+                    visuals.UnregisterShowcase(menuFigure);
+                    camera.RemoveChild(menuFigure);
+                    menuFigure = null;
+                }
+                return;
+            }
+            if (menuFigure != null || BodyModel == null)
+                return;
+
+            // Its own group, drawn every frame over the map's 30 fps picture (SceneThrottle).
+            var figure = new Entity("MenuFigure")
+            {
+                new ModelComponent(BodyModel) { RenderGroup = MenuFigureGroup, IsShadowCaster = false },
+            };
+            if (IdleAnimation != null)
+                figure.Add(new AnimationComponent { Animations = { [PlayerVisualSystem.Clips[0]] = IdleAnimation } });
+            AttachHeld(figure, MenuFigureGroup, false, HeldModel, PlayerVisualSystem.CaneEntity);
+            HudRenderer.Of(this);
+            Services.GetService<SceneThrottle>()?.ShowOverlay(MenuFigureGroup);
+            figure.Transform.Position = MenuFigureAt;
+            figure.Transform.Rotation = Quaternion.RotationY(MathUtil.Pi - MathUtil.DegreesToRadians(MenuFigureTurn));
+            var light = new Entity("MenuFigureLight")
+            {
+                new LightComponent { Type = new LightPoint { Radius = 3f }, Intensity = MenuLightIntensity },
+            };
+            light.Transform.Position = MenuLightAt;
+            figure.AddChild(light);
+            camera.AddChild(figure);
+            visuals.RegisterShowcase(figure);
+            menuFigure = figure;
+        }
+
         /// <summary>Hangs model on HeldBone of figure's model, as a child named name so it goes
         /// with it. The object is modelled in the figure's rest pose
         /// (.work/rig/bamboo.py): its local transform undoes the bone's rest, so at rest
@@ -631,6 +692,7 @@ namespace KotH.Client
         BotDirector botDirector;
         LoadScreen cover;
         Entity menu;
+        Entity menuFigure;
         int games;
         PlayerInputReader localReader;
         Entity arms;

@@ -279,6 +279,7 @@ namespace KotH.Client.Player
             public Gun Gun;
             public MeleeAttack Melee;
             public Dash Dash;
+            public float HeadPitch; // showcase figures only, radians
             public int SeenSlam;
             public bool Slammed;   // a dash landed in this flight, its impact already sounded
             public float SeenJump; // the motor's SinceGroundJump last frame
@@ -439,6 +440,8 @@ namespace KotH.Client.Player
 
         public override void Update()
         {
+            if (showcases.Count > 0)
+                Showcase((float)Game.UpdateTime.Elapsed.TotalSeconds);
             int count = visuals.Count;
             if (count == 0)
                 return;
