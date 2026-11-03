@@ -557,10 +557,16 @@ sealed class KotHGame : Game
                 SdlGrab.SDL_SetWindowFullscreen(sdl.SdlHandle, 0);
         }
         restoreFrames = maximise ? 0 : 30;
-        if (maximise && Window.NativeWindow?.NativeWindow is Stride.Graphics.SDL.Window window)
+        if (Window.NativeWindow?.NativeWindow is not Stride.Graphics.SDL.Window window)
+            return;
+        if (maximise)
             SdlGrab.SDL_MaximizeWindow(window.SdlHandle);
         else
+        {
+            // The window manager hands the window out maximised; a maximised window keeps its size.
+            SdlGrab.SDL_RestoreWindow(window.SdlHandle);
             Window.SetSize(windowedSize);
+        }
     }
 
     /// <summary>Stride asks for the old window size while the window is still fullscreen,
@@ -574,7 +580,11 @@ sealed class KotHGame : Game
 
         Rectangle bounds = Window.ClientBounds;
         if (bounds.Width != windowedSize.X || bounds.Height != windowedSize.Y)
+        {
+            if (Window.NativeWindow?.NativeWindow is Stride.Graphics.SDL.Window sdl)
+                SdlGrab.SDL_RestoreWindow(sdl.SdlHandle);
             Window.SetSize(windowedSize);
+        }
         else
             restoreFrames = 0;
     }
