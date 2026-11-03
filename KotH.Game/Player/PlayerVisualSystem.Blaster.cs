@@ -1,5 +1,6 @@
 using System;
 using KotH.Shared.Combat;
+using KotH.Shared.Net;
 using KotH.Shared.Player;
 using KotH.Shared.Simulation;
 using Stride.Core;
@@ -81,20 +82,21 @@ namespace KotH.Client.Player
             public Entity[] Shots;
             public readonly int[] ShotAge = new int[BlasterState.Slots];
             public Entity Flash, Puff;
+            public FigureLook Look;
 
             /// <summary>How far the gun is up, 0 (cane) to 1; the torso turns with it.</summary>
             public float Raise => Draw <= 0.5f ? 0f : Smooth((Draw - 0.5f) * 2f);
         }
 
         /// <summary>The hand's cane and blaster as GameRoot.AttachHeld hung them; null without a blaster.</summary>
-        static Gun FindGun(Entity visual, PlayerMotor motor)
+        static Gun FindGun(Entity visual, PlayerMotor motor, FigureLook look)
         {
             HeldLeaf model = FindHeld(visual, BlasterEntity);
             Blaster blaster = motor.Entity.Get<Blaster>();
             if (model == null || blaster == null)
                 return null;
             model.Model.Enabled = false;
-            return new Gun { Cane = FindHeld(visual, CaneEntity), Model = model, Blaster = blaster };
+            return new Gun { Cane = FindHeld(visual, CaneEntity), Model = model, Blaster = blaster, Look = look };
         }
 
         /// <summary>Before the arm's IK: follows the switch and the shots, and hands the pose to
@@ -213,12 +215,12 @@ namespace KotH.Client.Player
             {
                 g.SeenShot = g.Blaster.LastShotTick;
                 if (from != Vector3.Zero)
-                    g.Flash = Puff(g.Flash, from, 0.5f);
+                    g.Flash = Puff(g.Flash, from, 0.5f, g.Look);
             }
             if (g.Blaster.LastImpactTick > g.SeenImpact)
             {
                 g.SeenImpact = g.Blaster.LastImpactTick;
-                g.Puff = Puff(g.Puff, g.Blaster.LastImpactPoint, 1f);
+                g.Puff = Puff(g.Puff, g.Blaster.LastImpactPoint, 1f, g.Look);
             }
 
             BlasterState state = g.Blaster.State;
@@ -247,6 +249,8 @@ namespace KotH.Client.Player
                 {
                     e = SporeShot.Instantiate()[0];
                     e.Transform.Position = at;
+                    FigureColors.TintSpores(e, g.Look);
+                    FigureColors.TintGlow(e, g.Look);
                     Entity.Scene.Entities.Add(e);
                 }
                 else if (fresh)
@@ -265,7 +269,7 @@ namespace KotH.Client.Player
         }
 
         // One puff entity reused per purpose, restarted like the hit sparkles.
-        Entity Puff(Entity puff, Vector3 at, float scale)
+        Entity Puff(Entity puff, Vector3 at, float scale, FigureLook look)
         {
             if (SporePuff == null)
                 return puff;
@@ -274,7 +278,10 @@ namespace KotH.Client.Player
             puff.Transform.Position = at;
             puff.Transform.Scale = new Vector3(scale);
             if (fresh)
+            {
+                FigureColors.TintSpores(puff, look);
                 Entity.Scene.Entities.Add(puff);
+            }
             else
                 puff.Get<ParticleSystemComponent>()?.ParticleSystem.ResetSimulation();
             return puff;

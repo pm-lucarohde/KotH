@@ -13,7 +13,7 @@ using Stride.Input;
 
 namespace KotH.Client.Menu
 {
-    /// <summary>The main menu over the scene: MainMenuView's four parts as overlays of their own,
+    /// <summary>The main menu over the scene: MainMenuView's five parts as overlays of their own,
     /// drawn last by the HUD. GameRoot creates it with the map behind the load screen, which waits
     /// for <see cref="Ready"/> (first frames out of sight); back from a game it shows at once.
     /// GameRoot removes it when a game starts.</summary>
@@ -44,6 +44,15 @@ namespace KotH.Client.Menu
         /// <summary>The name on the band.</summary>
         [DataMemberIgnore] public string PlayerName { get; set; }
 
+        /// <summary>The own colours, for the Customize page to start from.</summary>
+        [DataMemberIgnore] public FigureLook Look { get; set; } = FigureLook.Default;
+
+        /// <summary>The player changed a colour on the Customize page.</summary>
+        [DataMemberIgnore] public Action<FigureLook> LookChanged { get; set; }
+
+        /// <summary>The Customize page opened (true) or closed: the figure makes room.</summary>
+        [DataMemberIgnore] public Action<bool> CustomizeShown { get; set; }
+
         /// <summary>The load screen in front, until it lifts; then the boards slide in.</summary>
         [DataMemberIgnore] public LoadScreen Cover { get; set; }
 
@@ -53,12 +62,12 @@ namespace KotH.Client.Menu
         MainMenuView view;
         HudRenderer hud;
         SceneThrottle throttle;
-        MenuOverlay column, page, logo, corner;
+        MenuOverlay column, page, customize, logo, corner;
         MenuOverlay[] overlays, pointed;
         readonly OverlayPointer pointer = new OverlayPointer();
         int calm;
         float waited;
-        bool loaded, dark, shown, hostWanted, quitWanted;
+        bool loaded, dark, shown, hostWanted, quitWanted, customizing, unsaved;
         float since;
 
         public override void Start()
@@ -71,6 +80,12 @@ namespace KotH.Client.Menu
             view.Label(PlayerName ?? Environment.UserName, $"Build {NetProtocol.BuildText[..8]}");
             view.HostRequested += () => hostWanted = true;
             view.QuitRequested += () => quitWanted = true;
+            view.Customizer.Look = Look;
+            view.Customizer.LookChanged += look =>
+            {
+                unsaved = true;
+                LookChanged?.Invoke(look);
+            };
             // Over a map loaded before (back from a game) nothing hides the warming.
             if (Cover is { IsLoaded: true })
                 Ready = dark = loaded = true;
@@ -84,10 +99,11 @@ namespace KotH.Client.Menu
             var parts = view.TakeParts();
             column = new MenuOverlay(parts.Column, MenuOverlay.Corner.TopLeft, 0f, 0f);
             page = new MenuOverlay(parts.Page, MenuOverlay.Corner.TopLeft, 586f, 146f) { Visible = false };
+            customize = new MenuOverlay(parts.Customize, MenuOverlay.Corner.TopLeft, 586f, 146f) { Visible = false };
             logo = new MenuOverlay(parts.Logo, MenuOverlay.Corner.TopRight, 0f, 0f);
             corner = new MenuOverlay(parts.Corner, MenuOverlay.Corner.BottomRight, 0f, 0f);
-            overlays = new[] { column, page, logo, corner };
-            pointed = new[] { column, page };
+            overlays = new[] { column, page, customize, logo, corner };
+            pointed = new[] { column, page, customize };
             foreach (MenuOverlay overlay in overlays)
                 hud.Add(overlay);
         }
@@ -115,7 +131,15 @@ namespace KotH.Client.Menu
 
             MenuOverlay.Tick(Game.UpdateTime.FrameCount);
             page.Visible = view.PageOpen;
-            logo.Visible = !view.PageOpen;
+            customize.Visible = view.CustomizeOpen;
+            logo.Visible = !view.PageOpen && !view.CustomizeOpen;
+            if (customizing != view.CustomizeOpen)
+            {
+                customizing = view.CustomizeOpen;
+                CustomizeShown?.Invoke(customizing);
+                if (!customizing)
+                    Save();
+            }
             foreach (MenuOverlay overlay in overlays)
                 overlay.Upload(Game.GraphicsContext.CommandList);
             Settle((float)Game.UpdateTime.Elapsed.TotalSeconds);
@@ -195,8 +219,18 @@ namespace KotH.Client.Menu
         static float ElasticOut(float t)
             => t >= 1f ? 1f : MathF.Sin(-13f * MathF.PI / 2f * (t + 1f)) * MathF.Pow(2f, -10f * t) + 1f;
 
+        // The look goes to look.toml when the page closes or the menu goes, if it changed.
+        void Save()
+        {
+            if (!unsaved || view == null)
+                return;
+            unsaved = false;
+            LookFile.Save(view.Customizer.Look);
+        }
+
         public override void Cancel()
         {
+            Save();
             if (throttle != null)
             {
                 throttle.Interval = 0.0;

@@ -4,13 +4,16 @@ SerializedVersion: {Stride: 2.0.0.0}
 Tags: []
 Attributes:
     Diffuse: !MaterialDiffuseMapFeature
-        DiffuseMap: !ComputeTextureColor
-            Texture: 589AB31C-8F0E-4067-9644-AF362FFE08F8:Textures/MushroomLid
-            FallbackValue:
-                Value: {R: 1.0, G: 1.0, B: 1.0, A: 1.0}
-            Scale: {X: 1.0, Y: 1.0}
-            Offset: {X: 0.0, Y: 0.0}
-            Swizzle: null
+        DiffuseMap: !ComputeShaderClassColor
+            MixinReference: FigureTint
+            Generics:
+                1258df72537147c7a29284648ef786d6~TextureKey: !ComputeColorParameterTexture
+                    Texture:
+                        Texture: 589AB31C-8F0E-4067-9644-AF362FFE08F8:Textures/MushroomLid
+                2b693f717f4c4e3e82dce608b9336c99~MaskKey: !ComputeColorParameterTexture
+                    Texture:
+                        Texture: DE7AF712-1F33-4F9A-B45D-347DC2F6D8CD:Textures/MushroomLidMask
+            CompositionNodes: {}
     DiffuseModel: !MaterialDiffuseLambertModelFeature {}
     Overrides:
         UVScale: {X: 1.0, Y: 1.0}

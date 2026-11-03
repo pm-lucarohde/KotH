@@ -17,7 +17,7 @@ namespace KotH.Shared.Net
     /// <summary>The first byte of every message.</summary>
     public enum MsgType : byte
     {
-        Hello = 1,      // peer -> host: build, name
+        Hello = 1,      // peer -> host: build, name, look
         Welcome = 2,    // host -> peer: NetId, map, state, roster
         Reject = 3,     // host -> peer: why not
         Inputs = 4,     // peer -> host: own inputs not yet acknowledged
@@ -37,6 +37,7 @@ namespace KotH.Shared.Net
         public int NetId;
         public int Slot;
         public string Name;
+        public FigureLook Look;
     }
 
     /// <summary>
@@ -199,6 +200,7 @@ namespace KotH.Shared.Net
                 return;
             w.Byte((byte)e.Slot);
             w.Text(e.Name);
+            e.Look.Write(ref w);
         }
 
         public static NetEvent ReadEvent(ref Reader r)
@@ -208,6 +210,7 @@ namespace KotH.Shared.Net
             {
                 e.Slot = r.Byte();
                 e.Name = r.Text();
+                e.Look = FigureLook.Read(ref r);
             }
             return e;
         }

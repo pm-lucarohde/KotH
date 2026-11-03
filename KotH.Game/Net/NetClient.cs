@@ -22,7 +22,7 @@ namespace KotH.Client.Net
             {
                 transport = LiteNetTransport.Host(options.Port);
                 Host = new HostSession(transport, Now);
-                Session = new PeerSession(world, Host.LocalTransport, sampleLocal, options.Name, founder: true, Now);
+                Session = new PeerSession(world, Host.LocalTransport, sampleLocal, options.Name, founder: true, Now, look: options.Look);
                 Host.AttachFounder(Session);
                 if (round != null)
                 {
@@ -34,7 +34,7 @@ namespace KotH.Client.Net
             else
             {
                 transport = LiteNetTransport.Join(options.JoinAddress, options.Port);
-                Session = new PeerSession(world, transport, sampleLocal, options.Name, founder: false, Now, join: false);
+                Session = new PeerSession(world, transport, sampleLocal, options.Name, founder: false, Now, join: false, look: options.Look);
                 address = $"{options.JoinAddress}:{options.Port}";
             }
         }

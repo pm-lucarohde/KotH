@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using KotH.Client.Menu;
 using KotH.Shared.Hosting;
 using KotH.Shared.Match;
 using KotH.Shared.Net;
@@ -23,6 +24,10 @@ namespace KotH.Client.Net
         public int BotSeed = 1;
         public string Map = Maps.Default;
         public int? Fps;
+
+        /// <summary>The own figure's colours: look.toml (LookFile), for shots KOTH_SHOT_LOOK
+        /// ("cap,skin,leaves,gloves,spores" as hex, empty keeps one).</summary>
+        public FigureLook Look;
 
         public bool Networked => Host || JoinAddress != null;
 
@@ -68,6 +73,14 @@ namespace KotH.Client.Net
             o.Map = Text(args, "--map") ?? o.Map;
             o.Fps = Number(args, "--fps");
             o.Name = Text(args, "--name") ?? Environment.UserName;
+            o.Look = LookFile.Load();
+            if (Environment.GetEnvironmentVariable("KOTH_SHOT_LOOK") is { } shot)
+            {
+                string[] parts = shot.Split(',');
+                for (int i = 0; i < Math.Min(parts.Length, FigureLook.Parts); i++)
+                    if (LookFile.ParseHex(parts[i]) is { } rgb)
+                        o.Look[i] = rgb;
+            }
             bool test = Environment.GetEnvironmentVariable("KOTH_SHOT") != null || Environment.GetEnvironmentVariable("KOTH_HEADLESS") == "1";
             o.ShowsMenu = !o.Networked && !o.Offline && (!test || Environment.GetEnvironmentVariable("KOTH_SHOT_MENU") == "1");
             return o;

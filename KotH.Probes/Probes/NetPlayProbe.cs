@@ -275,6 +275,7 @@ namespace KotH.Probes.Probes
             w.Bytes(build);
             w.Double(net.Now);
             w.Text(name);
+            FigureLook.Default.Write(ref w);
             end.Send(0, hello.WrittenSpan, reliable: true);
             return end;
         }

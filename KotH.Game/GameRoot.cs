@@ -100,6 +100,9 @@ namespace KotH.Client
         /// <userdoc>How far the menu figure turns away from facing the camera, degrees (positive: towards the buttons).</userdoc>
         [Display("Figure turn", "Main menu")] public float MenuFigureTurn = 15f;
 
+        /// <userdoc>Where the menu figure stands while the Customize page is open, right of it, in the camera's frame.</userdoc>
+        [Display("Figure place customizing", "Main menu")] public Vector3 MenuFigureCustomizeAt = new Vector3(0.95f, -0.82f, -2.0f);
+
         /// <userdoc>The menu figure's own light, a point light only it is close enough to: place in the figure's frame (x right, -z its front), in metres.</userdoc>
         [Display("Light place", "Main menu")] public Vector3 MenuLightAt = new Vector3(-0.8f, 1.2f, -1.6f);
 
@@ -198,9 +201,9 @@ namespace KotH.Client
             // The own figure has a render group of its own: the eyes sit in
             // its cap, so the camera skips it unless it stands back far
             // enough. Shadow views keep their own mask, the shadow stays.
-            shown[reader] = (AddVisual(player, OwnFigureGroup), null);
+            shown[reader] = (AddVisual(player, LaunchOptions.Current.Look, OwnFigureGroup), null);
             foreach (Entity bot in bots)
-                shown[bot.Get<BotBody>()] = (AddVisual(bot), AddLabel(bot, bot.Name));
+                shown[bot.Get<BotBody>()] = (AddVisual(bot, FigureLook.Default), AddLabel(bot, bot.Name));
             BindLocal(player, reader);
         }
 
@@ -210,7 +213,12 @@ namespace KotH.Client
         /// sight). Host server hosts on this map.</summary>
         void ShowMenu()
         {
-            var script = new MainMenu { StartHost = HostFromMenu, PlayerName = LaunchOptions.Current.Name, Cover = cover };
+            var script = new MainMenu
+            {
+                StartHost = HostFromMenu, PlayerName = LaunchOptions.Current.Name, Cover = cover, Look = LaunchOptions.Current.Look,
+                LookChanged = LookChanged,
+                CustomizeShown = open => visuals.MoveShowcase(menuFigure, open ? MenuFigureCustomizeAt : MenuFigureAt),
+            };
             menu = new Entity("Menu") { script };
             Entity.Scene.Entities.Add(menu);
             cover.Hold = () => !script.Ready;
@@ -456,7 +464,7 @@ namespace KotH.Client
             camera.AddChild(arms);
             AttachHeld(arms, ArmsGroup, false, HeldModel, PlayerVisualSystem.CaneEntity);
             AttachHeld(arms, ArmsGroup, false, BlasterModel, PlayerVisualSystem.BlasterEntity);
-            visuals.RegisterArms(arms, player.Get<PlayerMotor>());
+            visuals.RegisterArms(arms, player.Get<PlayerMotor>(), LaunchOptions.Current.Look);
         }
 
         /// <summary>Hands the round, the zone and the own body (null for none yet) to their displays.</summary>
@@ -514,7 +522,7 @@ namespace KotH.Client
         /// <summary>A player the session announces: the own one with the keyboard and the
         /// camera, everyone else steered by the network and named above the head. At its
         /// slot, already in the tick; the session parks it.</summary>
-        SimulationBody INetWorld.SpawnPlayer(int netId, int slot, string name)
+        SimulationBody INetWorld.SpawnPlayer(int netId, int slot, string name, FigureLook look)
         {
             bool own = net != null && netId == net.Session.LocalNetId;
             SimulationBody body = own ? new PlayerInputReader() : new NetBody();
@@ -524,7 +532,7 @@ namespace KotH.Client
                                          marker.Transform.Rotation, body, new DamagePercent());
             e.Name = name;
 
-            Entity visual = own ? AddVisual(e, OwnFigureGroup) : AddVisual(e);
+            Entity visual = own ? AddVisual(e, look, OwnFigureGroup) : AddVisual(e, look);
             Entity label = null;
             if (own)
             {
@@ -589,7 +597,7 @@ namespace KotH.Client
             return entity;
         }
 
-        Entity AddVisual(Entity body, RenderGroup group = RenderGroup.Group0)
+        Entity AddVisual(Entity body, FigureLook look, RenderGroup group = RenderGroup.Group0)
         {
             var visual = new Entity(body.Name + "Visual") { new ModelComponent(BodyModel) { RenderGroup = group } };
             // In the order of PlayerVisualSystem.Clips; a missing clip just never plays.
@@ -608,7 +616,7 @@ namespace KotH.Client
             AttachHeld(visual, group, true, HeldModel, PlayerVisualSystem.CaneEntity);
             AttachHeld(visual, group, true, BlasterModel, PlayerVisualSystem.BlasterEntity);
             Entity.Scene.Entities.Add(visual);
-            visuals.Register(visual, body.Get<PlayerMotor>());
+            visuals.Register(visual, body.Get<PlayerMotor>(), look);
             return visual;
         }
 
@@ -639,6 +647,7 @@ namespace KotH.Client
             if (IdleAnimation != null)
                 figure.Add(new AnimationComponent { Animations = { [PlayerVisualSystem.Clips[0]] = IdleAnimation } });
             AttachHeld(figure, MenuFigureGroup, false, HeldModel, PlayerVisualSystem.CaneEntity);
+            FigureColors.Apply(figure.Get<ModelComponent>(), LaunchOptions.Current.Look);
             HudRenderer.Of(this);
             Services.GetService<SceneThrottle>()?.ShowOverlay(MenuFigureGroup);
             figure.Transform.Position = MenuFigureAt;
@@ -652,6 +661,13 @@ namespace KotH.Client
             camera.AddChild(figure);
             visuals.RegisterShowcase(figure);
             menuFigure = figure;
+        }
+
+        /// <summary>The customize page changed the own colours: they show on the menu figure at once.</summary>
+        void LookChanged(FigureLook look)
+        {
+            LaunchOptions.Current.Look = look;
+            FigureColors.Apply(menuFigure?.Get<ModelComponent>(), look);
         }
 
         /// <summary>Hangs model on HeldBone of figure's model, as a child named name so it goes

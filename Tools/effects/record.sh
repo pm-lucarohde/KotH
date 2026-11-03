@@ -1,7 +1,7 @@
 #!/bin/bash
 # Records the effect permutations the game uses (KOTH_EFFECTLOG) on a headless, silent tour of
-# the AOT client (menus, rounds with bots, blaster, dash, Esc menu, banner, Test map), then merges them into
-# KotH.Game/Assets/EffectCompileLog.sdeffectlog (EffectLog.cs).
+# the AOT client (menus, Customize, rounds with bots, blaster, dash, Esc menu, banner, Test
+# map), then merges them into KotH.Game/Assets/EffectCompileLog.sdeffectlog (EffectLog.cs).
 #   Tools/effects/record.sh [BIN]   (default Bin/Linux/aot; then publish again)
 set -e
 cd "$(dirname "$0")/../.."
@@ -14,6 +14,7 @@ run() {  # run "ENV=.. ENV=.." ARGS..
   echo "$(grep -c '^\[effects\] [0-9]' $out/run.log) new: $envs $*"
 }
 run "KOTH_SHOT_MENU=1 KOTH_SHOT_SECONDS=4"
+run "KOTH_SHOT_MENU=1 KOTH_SHOT_MENU_PAGE=2 KOTH_SHOT_LOOK=2E5BD8,8A5A3C,D8B020,E0E0E0,FF3080 KOTH_SHOT_SECONDS=4"
 run "KOTH_SHOT_MENU=1 KOTH_SHOT_MENU_PAGE=0 KOTH_SHOT_SECONDS=10"
 run "KOTH_SHOT_LOAD=1 KOTH_SHOT_SECONDS=2" --offline
 run "KOTH_SHOT_SECONDS=14 KOTH_SHOT_STRIKE=2,4,6 KOTH_SHOT_HIT=0,0.5 KOTH_SHOT_MOVE=0,1,sprint KOTH_SHOT_CROUCH=8 KOTH_SHOT_JUMP=10,10.3" --offline --bots 3

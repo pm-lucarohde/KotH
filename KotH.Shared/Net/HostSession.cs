@@ -31,6 +31,7 @@ namespace KotH.Shared.Net
             public int NetId;
             public int Slot;
             public string Name;
+            public FigureLook Look;
             public Phase Phase;
             public int JoinTick = -1;
             public int LeaveTick = int.MaxValue;
@@ -99,11 +100,11 @@ namespace KotH.Shared.Net
             var c = new Client
             {
                 Peer = nextBotPeer--, IsBot = true, NetId = nextNetId++, Slot = FreeSlot(NetWorld.BotSlots),
-                Name = UniqueName(name), Phase = Phase.Playing,
+                Name = UniqueName(name), Look = FigureLook.Default, Phase = Phase.Playing,
             };
             clients[c.Peer] = c;
             Players++;
-            pending.Add(new NetEvent { Join = true, NetId = c.NetId, Slot = c.Slot, Name = c.Name });
+            pending.Add(new NetEvent { Join = true, NetId = c.NetId, Slot = c.Slot, Name = c.Name, Look = c.Look });
             return c.NetId;
         }
 
@@ -247,18 +248,19 @@ namespace KotH.Shared.Net
             ReadOnlySpan<byte> build = r.Bytes(NetProtocol.BuildId.Length);
             double sent = r.Double();
             string name = r.Text();
+            FigureLook look = FigureLook.Read(ref r);
             if (r.Failed || clients.ContainsKey(peer) || Refused(peer, build))
                 return;
 
             name = UniqueName(string.IsNullOrWhiteSpace(name) ? "Player" : name.Trim());
             var c = new Client
             {
-                Peer = peer, NetId = nextNetId++, Slot = FreeSlot(), Name = name,
+                Peer = peer, NetId = nextNetId++, Slot = FreeSlot(), Name = name, Look = look,
                 Phase = Phase.Waiting, EchoTime = sent, EchoReceived = now,
             };
             clients[peer] = c;
             Players++;
-            pending.Add(new NetEvent { Join = true, NetId = c.NetId, Slot = c.Slot, Name = name });
+            pending.Add(new NetEvent { Join = true, NetId = c.NetId, Slot = c.Slot, Name = name, Look = look });
         }
 
         // A bot's slot: the first free one in the given order.
@@ -498,7 +500,7 @@ namespace KotH.Shared.Net
                     roster.Add(c);
             w.Int(roster.Count);
             foreach (Client c in roster)
-                NetProtocol.WriteEvent(ref w, new NetEvent { Join = true, NetId = c.NetId, Slot = c.Slot, Name = c.Name });
+                NetProtocol.WriteEvent(ref w, new NetEvent { Join = true, NetId = c.NetId, Slot = c.Slot, Name = c.Name, Look = c.Look });
         }
 
         // The tick sits after the codec's magic and version.

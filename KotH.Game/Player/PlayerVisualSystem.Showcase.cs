@@ -23,6 +23,9 @@ namespace KotH.Client.Player
         /// <userdoc>Height of the eyes above the figure's centre in metres, where the pointer is looked at from.</userdoc>
         [Display("Showcase eye height", "Showcase")] public float ShowcaseEyeHeight = 0.55f;
 
+        /// <userdoc>Seconds a showcase figure takes to glide to a new place (MoveShowcase).</userdoc>
+        [Display("Showcase glide", "Showcase")] public float ShowcaseGlideSeconds = 0.18f;
+
         readonly List<Figure> showcases = new List<Figure>();
 
         /// <summary>Shows visual as a showcase figure; its parent entity holds the camera.</summary>
@@ -35,7 +38,15 @@ namespace KotH.Client.Player
                 Transform = visual.Transform,
                 BlinkWait = BlinkPause(),
                 MouthClock = (float)random.NextDouble() * 30f,
+                ShownAt = visual.Transform.Position,
             });
+        }
+
+        /// <summary>Lets a showcase figure glide to to, in its parent's frame.</summary>
+        public void MoveShowcase(Entity visual, Vector3 to)
+        {
+            if (showcases.Find(f => f.Transform == visual?.Transform) is { } f)
+                f.ShownAt = to;
         }
 
         public void UnregisterShowcase(Entity visual) => showcases.RemoveAll(f => f.Transform == visual.Transform);
@@ -51,6 +62,8 @@ namespace KotH.Client.Player
                 }
                 Blink(f, dt);
                 Breathe(f, dt);
+                // A showcase's ShownAt is where it glides to.
+                f.Transform.Position = Vector3.Lerp(f.ShownAt, f.Transform.Position, MathF.Exp(-dt / MathF.Max(1e-3f, ShowcaseGlideSeconds)));
                 FollowPointer(f, dt);
             }
         }

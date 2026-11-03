@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using KotH.Shared.Combat;
 using KotH.Shared.Mathematics;
+using KotH.Shared.Net;
 using KotH.Shared.Player;
 using KotH.Shared.Simulation;
 using Stride.Animations;
@@ -280,6 +281,7 @@ namespace KotH.Client.Player
             public MeleeAttack Melee;
             public Dash Dash;
             public float HeadPitch; // showcase figures only, radians
+            public FigureLook Colors = FigureLook.Default;
             public int SeenSlam;
             public bool Slammed;   // a dash landed in this flight, its impact already sounded
             public float SeenJump; // the motor's SinceGroundJump last frame
@@ -319,10 +321,11 @@ namespace KotH.Client.Player
 
         /// <summary>
         /// Shows motor through visual, a model in true size for a standing
-        /// body, origin at the body centre, facing -Z.
+        /// body, origin at the body centre, facing -Z, in the player's colours.
         /// </summary>
-        public void Register(Entity visual, PlayerMotor motor)
+        public void Register(Entity visual, PlayerMotor motor, FigureLook look)
         {
+            FigureColors.Apply(visual.Get<ModelComponent>(), look);
             visuals.Add(visual);
             motors.Add(motor);
             fromRotations.Add(motor.Rotation);
@@ -338,7 +341,8 @@ namespace KotH.Client.Player
                 BlinkWait = BlinkPause(),
                 MouthClock = (float)random.NextDouble() * 30f,
                 Held = FindHeld(visual, CaneEntity),
-                Gun = FindGun(visual, motor),
+                Gun = FindGun(visual, motor, look),
+                Colors = look,
                 Melee = motor.Entity.Get<MeleeAttack>(),
                 Dash = motor.Entity.Get<Dash>(),
                 SeenSlam = motor.Entity.Get<Dash>()?.LastSlamTick ?? 0,
@@ -347,14 +351,15 @@ namespace KotH.Client.Player
         }
 
         /// <summary>The first-person arms play in step with motor's figure.</summary>
-        public void RegisterArms(Entity visual, PlayerMotor motor)
+        public void RegisterArms(Entity visual, PlayerMotor motor, FigureLook look)
         {
+            FigureColors.Apply(visual.Get<ModelComponent>(), look);
             arms = visual.Get<AnimationComponent>();
             armsTransform = visual.Transform;
             armsRest = visual.Transform.Position;
             armsMotor = motor;
             armsLeaf = FindHeld(visual, CaneEntity);
-            armsGun = FindGun(visual, motor);
+            armsGun = FindGun(visual, motor, look);
             armsModel = visual.Get<ModelComponent>();
             armsMelee = motor.Entity.Get<MeleeAttack>();
             armsNetId = motor.Entity.Get<SimulationBody>()?.NetId ?? 0;
@@ -555,6 +560,7 @@ namespace KotH.Client.Player
             {
                 f.Spores = SporeBurst.Instantiate()[0];
                 f.Spores.Transform.Position = feet;
+                FigureColors.TintSpores(f.Spores, f.Colors);
                 Entity.Scene.Entities.Add(f.Spores);
                 return;
             }

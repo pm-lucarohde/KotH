@@ -27,7 +27,7 @@ Tools/publish_aot.sh windows probes-windows  # on request only (lld-link, xwin)
   (`--map Test`); network `--host`/`--join`/`--bot` (`NetPlay.cs`). Traces `KOTH_TRACE=BotName`, `KOTH_FALLS=1`.
 - Test aids (`KotHApp.cs` fields, times from the end of the load screen): `KOTH_SHOT=shot.png` (+ `_SECONDS`, `_YAW`,
   `_AT`, `_MOVE`, `_BLASTER`, `_FIRE`, `_VIDEO` …), `KOTH_HEADLESS=1`, `KOTH_SIZE`, `KOTH_MUSIC_VOLUME=0` (mute), `KOTH_EFFECTLOG`,
-  `KOTH_POSLOG`; menu shots `KOTH_SHOT_MENU`, `_PAUSE`, `_HUD=banner`, `_LOAD`.
+  `KOTH_POSLOG`; menu shots `KOTH_SHOT_MENU`, `_PAUSE`, `_HUD=banner`, `_LOAD`; colours `KOTH_SHOT_LOOK=cap,skin,…` (hex).
 
 ## Tests: probes and regression
 

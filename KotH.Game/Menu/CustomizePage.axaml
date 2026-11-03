@@ -1,0 +1,40 @@
+<!-- Customize, beside the main menu's buttons and narrower than the other pages, so the figure
+     on the right stays in sight: a tab per part, its colour on a wheel with a brightness slider. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:menu="using:KotH.Client.Menu"
+             x:Class="KotH.Client.Menu.CustomizePage"
+             x:CompileBindings="True">
+    <Grid Width="560" Height="790">
+        <Panel Width="510" Height="740" Margin="24,24,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
+            <Image Source="/Menu/Art/Panel.png" Margin="-24" Stretch="Fill" />
+            <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="44,34,44,34">
+                <TextBlock Classes="Title" Text="Customize" />
+
+                <WrapPanel Name="Tabs" Grid.Row="1" Margin="0,16,0,0" ItemSpacing="10" LineSpacing="12" />
+
+                <Border Grid.Row="2" Classes="Well" Margin="0,18,0,0">
+                    <Grid RowDefinitions="*,Auto,Auto" ColumnDefinitions="Auto,*">
+                        <menu:ColorWheel Name="Wheel" Grid.ColumnSpan="2" Width="260" Height="260"
+                                         HorizontalAlignment="Center" />
+                        <Path Grid.Row="1" Width="30" Height="30" Margin="0,14,14,0" VerticalAlignment="Center"
+                              Data="M 15,8 A 7,7 0 1 1 14.99,8 Z M 15,0 L 15,4 M 15,26 L 15,30 M 0,15 L 4,15 M 26,15 L 30,15 M 4.4,4.4 L 7.2,7.2 M 22.8,22.8 L 25.6,25.6 M 4.4,25.6 L 7.2,22.8 M 22.8,7.2 L 25.6,4.4"
+                              Stroke="{StaticResource BrownBrush}" StrokeThickness="2.6" StrokeLineCap="Round" />
+                        <Slider Name="Light" Grid.Row="1" Grid.Column="1" Minimum="0" Maximum="1" Margin="0,14,0,0"
+                                VerticalAlignment="Center" />
+                        <Border Name="Swatch" Grid.Row="2" Grid.ColumnSpan="2" Height="48" CornerRadius="16"
+                                BoxShadow="inset 0 3 6 0 #40000000" Margin="0,12,0,0">
+                            <TextBlock Name="Hex" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Center"
+                                       VerticalAlignment="Center" />
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <Grid Grid.Row="3" ColumnDefinitions="Auto,*,Auto" Margin="0,18,0,0">
+                    <Button Name="Reset" Classes="Menu Small" Content="Reset" Width="190" />
+                    <Button Name="Back" Grid.Column="2" Classes="Menu Small" Content="Back" Width="190" />
+                </Grid>
+            </Grid>
+        </Panel>
+    </Grid>
+</UserControl>

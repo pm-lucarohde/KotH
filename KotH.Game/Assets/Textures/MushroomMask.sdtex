@@ -1,0 +1,10 @@
+!Texture
+Id: 16C981FA-27DB-4C2A-B763-4C3BE54DD927
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Models/MushroomMask.png
+IsCompressed: true
+Type: !ColorTextureType
+    UseSRgbSampling: false
+    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}
+PremultiplyAlpha: false

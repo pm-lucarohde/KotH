@@ -47,6 +47,7 @@ namespace KotH.Shared.Net
         readonly INetTransport transport;
         readonly Func<MoveInput> sampleLocal;
         readonly string name;
+        readonly FigureLook look;
 
         readonly Dictionary<int, SimulationBody> bodies = new Dictionary<int, SimulationBody>();
         readonly Dictionary<int, BodyState> joinStates = new Dictionary<int, BodyState>();
@@ -89,15 +90,16 @@ namespace KotH.Shared.Net
         /// <summary>A peer that joins: says hello and waits for the host's state. A
         /// founder is the host's own peer, whose world is the start of the game. With
         /// join false a guest only asks for the map first and joins with Join once it has
-        /// loaded it, so it never stands in the game half ready.</summary>
+        /// loaded it, so it never stands in the game half ready. look: the own colours (default if null).</summary>
         public PeerSession(INetWorld world, INetTransport transport, Func<MoveInput> sampleLocal,
-                           string name, bool founder, double now, bool join = true)
+                           string name, bool founder, double now, bool join = true, FigureLook? look = null)
         {
             this.world = world;
             sim = world.Simulation;
             this.transport = transport;
             this.sampleLocal = sampleLocal;
             this.name = name;
+            this.look = look ?? FigureLook.Default;
 
             for (int i = 0; i < Ring; i++)
             {
@@ -141,6 +143,7 @@ namespace KotH.Shared.Net
             w.Bytes(NetProtocol.BuildId);
             w.Double(now);
             w.Text(name);
+            look.Write(ref w);
             transport.Send(0, outgoing.WrittenSpan, reliable: true);
         }
 
@@ -712,7 +715,7 @@ namespace KotH.Shared.Net
         /// <summary>A player as a join announces it: fresh at its slot, parked until its tick.</summary>
         void Spawn(in NetEvent e)
         {
-            SimulationBody body = world.SpawnPlayer(e.NetId, e.Slot, e.Name);
+            SimulationBody body = world.SpawnPlayer(e.NetId, e.Slot, e.Name, e.Look);
             body.NetId = e.NetId;
             bodies[e.NetId] = body;
             joinStates[e.NetId] = body.CaptureState();

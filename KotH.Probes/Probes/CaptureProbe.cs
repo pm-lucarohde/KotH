@@ -325,7 +325,7 @@ namespace KotH.Probes.Probes
             var net = new HeadlessNetWorld(w);
             var players = new List<SimulationBody>();
             for (int slot = 0; slot < NetWorld.MaxPlayers; slot++)
-                players.Add(net.SpawnPlayer(NetWorld.FirstPlayerId + slot, slot, "S" + slot));
+                players.Add(net.SpawnPlayer(NetWorld.FirstPlayerId + slot, slot, "S" + slot, FigureLook.Default));
 
             for (int i = 0; i < 80; i++)
                 w.Simulation.Tick();

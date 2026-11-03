@@ -1,0 +1,32 @@
+/// <summary>A figure part's texture recoloured per player: per mask region (R cap, G skin,
+/// B leaves, A not glove: a clear mask lost its colours on import) the colour times the texel's
+/// brightness, xyz = colour / lum(reference), blended in by w (FigureColors: more the further
+/// from the painted colour, 0 for it, so zero keys are the plain texture).</summary>
+shader FigureTint<LinkType TextureKey, LinkType MaskKey>
+    : ComputeColor, Texturing
+{
+    rgroup PerMaterial
+    {
+        [Link("TextureKey")] stage Texture2D Paint;
+        [Link("MaskKey")] stage Texture2D Mask;
+    }
+
+    cbuffer PerMaterial
+    {
+        stage float4 CapShift;
+        stage float4 SkinShift;
+        stage float4 LeafShift;
+        stage float4 GloveShift;
+    }
+
+    override float4 Compute()
+    {
+        float2 uv = streams.TexCoord;
+        float4 c = Paint.Sample(LinearRepeatSampler, uv);
+        float4 m = Mask.Sample(LinearRepeatSampler, uv);
+        float lum = dot(c.rgb, float3(0.2126, 0.7152, 0.0722));
+        float3 d = m.r * CapShift.w * (CapShift.rgb * lum - c.rgb) + m.g * SkinShift.w * (SkinShift.rgb * lum - c.rgb)
+                 + m.b * LeafShift.w * (LeafShift.rgb * lum - c.rgb) + (1.0 - m.a) * GloveShift.w * (GloveShift.rgb * lum - c.rgb);
+        return float4(saturate(c.rgb + d), c.a);
+    }
+};

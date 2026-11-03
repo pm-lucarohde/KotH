@@ -34,7 +34,7 @@ namespace KotH.Shared.Net
         void LoadMap(string map);
 
         /// <summary>A fresh player at its slot, already in the tick; the session parks it.</summary>
-        SimulationBody SpawnPlayer(int netId, int slot, string name);
+        SimulationBody SpawnPlayer(int netId, int slot, string name, FigureLook look);
 
         /// <summary>Removes a player for good, once no rollback can reach back to it.</summary>
         void Despawn(SimulationBody body);
@@ -108,7 +108,7 @@ namespace KotH.Shared.Net
                 world.StartMatch();
         }
 
-        public SimulationBody SpawnPlayer(int netId, int slot, string name)
+        public SimulationBody SpawnPlayer(int netId, int slot, string name, FigureLook look)
         {
             var body = new NetBody { NetId = netId };
             Entity marker = NetWorld.SlotMarker(builder, slot);

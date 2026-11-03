@@ -1,6 +1,6 @@
-<!-- The main menu over the flight round the mountain, in four parts that MainMenu shows as
-     overlays of their own: buttons top left, the page beside them, title top right, small print
-     bottom right. Laid out for a screen 1080 high and scaled; pictures carry 24 px of shadow on
+<!-- The main menu over the flight round the mountain, in five parts that MainMenu shows as
+     overlays of their own: buttons top left, the page or Customize beside them, title top right,
+     small print bottom right. Laid out for a screen 1080 high and scaled; pictures carry 24 px of shadow on
      every side, hence their margins. -->
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -8,7 +8,7 @@
              x:Class="KotH.Client.Menu.MainMenuView"
              x:CompileBindings="True">
     <Panel Name="Parts">
-        <Grid Name="ColumnPart" Width="600" Height="830">
+        <Grid Name="ColumnPart" Width="600" Height="910">
             <!-- The player's name on a green band -->
             <Panel Name="NameTag" Width="340" Height="58" Margin="90,62,0,0"
                    HorizontalAlignment="Left" VerticalAlignment="Top">
@@ -21,12 +21,13 @@
             <!-- The buttons on their bamboo board, the note underneath -->
             <StackPanel Name="Column" Margin="90,170,0,0" Width="460"
                         HorizontalAlignment="Left" VerticalAlignment="Top">
-                <Panel Width="440" Height="450" HorizontalAlignment="Left">
+                <Panel Width="440" Height="530" HorizontalAlignment="Left">
                     <Image Source="/Menu/Art/Panel.png" Margin="-24" Stretch="Fill" />
                     <StackPanel Name="Buttons" Spacing="18" HorizontalAlignment="Center" VerticalAlignment="Center"
                                 KeyboardNavigation.TabNavigation="Cycle">
                         <Button Name="Host" Classes="Menu" Content="Host server" />
                         <Button Name="Find" Classes="Menu" Content="Find server" />
+                        <Button Name="Customize" Classes="Menu" Content="Customize" />
                         <Button Name="Settings" Classes="Menu" Content="Settings" />
                         <Button Name="Languages" Classes="Menu" Content="Languages" />
                         <Button Name="Quit" Classes="Menu" Content="Quit game" />
@@ -84,6 +85,11 @@
                             HorizontalAlignment="Right" Margin="0,18,0,0" />
                 </Grid>
             </Panel>
+        </Grid>
+
+        <!-- Customize: a part of its own, narrower, the figure stays in sight -->
+        <Grid Name="CustomizePart" Width="560" Height="790">
+            <menu:CustomizePage Name="CustomizeView" />
         </Grid>
 
         <!-- The title over the sky; the picture is empty on its right, so it may

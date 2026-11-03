@@ -1,0 +1,10 @@
+!Texture
+Id: DE7AF712-1F33-4F9A-B45D-347DC2F6D8CD
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Models/MushroomLidMask.png
+IsCompressed: false
+Type: !ColorTextureType
+    UseSRgbSampling: false
+    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}
+PremultiplyAlpha: false
