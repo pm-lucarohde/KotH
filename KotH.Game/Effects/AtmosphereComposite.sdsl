@@ -5,6 +5,7 @@
 shader AtmosphereComposite : ImageEffectShader
 {
     float2 NearFar;
+    float Divisor;          // screen pixels per march pixel (2 at High)
 
     float Linear(float z)
     {
@@ -16,7 +17,7 @@ shader AtmosphereComposite : ImageEffectShader
         int2 pixel = int2(streams.ShadingPosition.xy);
         float own = Linear(Texture1.Load(int3(pixel, 0)).r);
         float2 halfSize = 1.0 / Texture0TexelSize;
-        float2 at = (float2(pixel) + 0.5) * 0.5 - 0.5;
+        float2 at = (float2(pixel) + 0.5) / Divisor - 0.5;
         int2 nearest = int2(round(at));
         float4 sum = 0;
         float total = 0;
@@ -25,7 +26,7 @@ shader AtmosphereComposite : ImageEffectShader
             for (int i = -1; i <= 1; i++)
             {
                 int2 tap = clamp(nearest + int2(i, j), 0, int2(halfSize) - 1);
-                float depth = Linear(Texture1.Load(int3(tap * 2, 0)).r);
+                float depth = Linear(Texture1.Load(int3(int2(float2(tap) * Divisor), 0)).r);
                 float2 tent = max(1.5 - abs(float2(nearest + int2(i, j)) - at), 0.0);
                 float w = tent.x * tent.y / (0.05 + abs(depth - own) / own) + 1e-4;
                 sum += w * Texture0.Load(int3(tap, 0));

@@ -1,8 +1,6 @@
-/// <summary>
-/// Motion vectors for DLSS: where geometry is, DlssObjectVelocity's; at the far plane (sky) from
+/// <summary>Motion vectors for DLSS: where geometry is, DlssObjectVelocity's; at the far plane (sky) from
 /// depth and the camera alone, the point found with the jittered projection and seen by the
-/// unjittered one now and before. Out in UV (previous minus current), red right, green down.
-/// </summary>
+/// unjittered one now and before. Out in UV (previous minus current), red right, green down.</summary>
 shader DlssMotion : ImageEffectShader
 {
     float4x4 ClipToView;

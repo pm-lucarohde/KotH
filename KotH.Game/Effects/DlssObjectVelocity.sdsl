@@ -1,8 +1,6 @@
-/// <summary>
-/// DLSS's motion of whole objects: the final world position (after skinning and wind) now and moved
+/// <summary>DLSS's motion of whole objects: the final world position (after skinning and wind) now and moved
 /// back by the object's own motion, seen by the unjittered camera now and one frame ago; in UV,
-/// previous minus current. Pixels without geometry (sky) DlssMotion fills from depth.
-/// </summary>
+/// previous minus current. Pixels without geometry (sky) DlssMotion fills from depth.</summary>
 shader DlssObjectVelocity : PositionStream4, TransformationBase, VelocityStream
 {
     cbuffer PerDraw

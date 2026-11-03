@@ -137,7 +137,7 @@ namespace KotH.Client.Menu
                 if (!shown)
                     Reveal();
                 Enter((float)Game.UpdateTime.Elapsed.TotalSeconds, screen.Y / (float)MainMenuView.DesignHeight);
-                if (KeyPresses.Pressed(Input, Keys.Escape))
+                if (!view.SettingsView.Capture(Input) && KeyPresses.Pressed(Input, Keys.Escape))
                     view.GoBack();
                 pointer.Update(Input, screen, pointed);
             }
@@ -259,11 +259,14 @@ namespace KotH.Client.Menu
         void Reveal()
         {
             shown = true;
-            // Test aids for shots: KOTH_SHOT_MENU_HOT=n lights button n, KOTH_SHOT_MENU_PAGE=n clicks it (0 hosts).
+            // Test aids for shots: KOTH_SHOT_MENU_HOT=n lights button n, KOTH_SHOT_MENU_PAGE=n clicks it (0 hosts),
+            // KOTH_SHOT_SETTINGS=sound|graphics|input picks the Settings tab.
             if (int.TryParse(Environment.GetEnvironmentVariable("KOTH_SHOT_MENU_HOT"), out int hot))
                 view.Pretend(hot, false);
             if (int.TryParse(Environment.GetEnvironmentVariable("KOTH_SHOT_MENU_PAGE"), out int open))
                 view.Pretend(open, true);
+            if (Environment.GetEnvironmentVariable("KOTH_SHOT_SETTINGS") is { } tab)
+                view.SettingsView.Choose(tab);
         }
 
         /// <summary>The entrance, by moving the finished pictures only: the buttons slide

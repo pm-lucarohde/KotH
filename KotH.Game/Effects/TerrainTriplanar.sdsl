@@ -7,8 +7,13 @@ shader TerrainTriplanar<LinkType GrassKey, LinkType DirtKey, LinkType SandKey, L
 {
     // Metres per repeat of the textures.
     static const float TileSize = 4.0;
-    // A quarter mip level sharper than the hardware picks: painted edges stay clear.
-    static const float Bias = -0.25;
+    // A quarter mip level sharper than the hardware picks: painted edges stay clear;
+    // TextureBias adds the Texture setting's levels (0 at High).
+    static const float BaseBias = -0.25;
+    cbuffer PerMaterial
+    {
+        stage float TextureBias;
+    }
     // The snow's albedo against its texture: in full sun it clipped to plain white
     // (no tonemapping); now about 8 % of a view over the summit stays white (Luca:
     // 5-10 %). The light itself stays as it is.
@@ -155,17 +160,17 @@ shader TerrainTriplanar<LinkType GrassKey, LinkType DirtKey, LinkType SandKey, L
         float2 uy = p.xz;
         float2 uz = float2(p.x, -p.y);
 
-        float4 dirt = b.x * Dirt.SampleBias(AnisotropicRepeatSampler, ux, Bias) + b.y * Dirt.SampleBias(AnisotropicRepeatSampler, uy, Bias) + b.z * Dirt.SampleBias(AnisotropicRepeatSampler, uz, Bias);
-        float4 sand = b.x * Sand.SampleBias(AnisotropicRepeatSampler, ux, Bias) + b.y * Sand.SampleBias(AnisotropicRepeatSampler, uy, Bias) + b.z * Sand.SampleBias(AnisotropicRepeatSampler, uz, Bias);
-        float4 snow = b.x * Snow.SampleBias(AnisotropicRepeatSampler, ux, Bias) + b.y * Snow.SampleBias(AnisotropicRepeatSampler, uy, Bias) + b.z * Snow.SampleBias(AnisotropicRepeatSampler, uz, Bias);
+        float4 dirt = b.x * Dirt.SampleBias(AnisotropicRepeatSampler, ux, BaseBias + TextureBias) + b.y * Dirt.SampleBias(AnisotropicRepeatSampler, uy, BaseBias + TextureBias) + b.z * Dirt.SampleBias(AnisotropicRepeatSampler, uz, BaseBias + TextureBias);
+        float4 sand = b.x * Sand.SampleBias(AnisotropicRepeatSampler, ux, BaseBias + TextureBias) + b.y * Sand.SampleBias(AnisotropicRepeatSampler, uy, BaseBias + TextureBias) + b.z * Sand.SampleBias(AnisotropicRepeatSampler, uz, BaseBias + TextureBias);
+        float4 snow = b.x * Snow.SampleBias(AnisotropicRepeatSampler, ux, BaseBias + TextureBias) + b.y * Snow.SampleBias(AnisotropicRepeatSampler, uy, BaseBias + TextureBias) + b.z * Snow.SampleBias(AnisotropicRepeatSampler, uz, BaseBias + TextureBias);
         snow.rgb *= SnowAlbedo;
-        float4 stone = b.x * Rock.SampleBias(AnisotropicRepeatSampler, ux, Bias) + b.y * Rock.SampleBias(AnisotropicRepeatSampler, uy, Bias) + b.z * Rock.SampleBias(AnisotropicRepeatSampler, uz, Bias);
+        float4 stone = b.x * Rock.SampleBias(AnisotropicRepeatSampler, ux, BaseBias + TextureBias) + b.y * Rock.SampleBias(AnisotropicRepeatSampler, uy, BaseBias + TextureBias) + b.z * Rock.SampleBias(AnisotropicRepeatSampler, uz, BaseBias + TextureBias);
         if (rock + w.w > 0.0)
         {
             float4 lichen = Lichen(q, n, blur);
             stone.rgb = stone.rgb * (1.0 - lichen.a) + lichen.rgb;
         }
-        float4 grass = Grass.SampleBias(AnisotropicRepeatSampler, uy, Bias);
+        float4 grass = Grass.SampleBias(AnisotropicRepeatSampler, uy, BaseBias + TextureBias);
 
         float4 side = w.x * dirt + w.y * sand + w.z * snow + (w.w + rock) * stone;
         float4 top = w.x * grass + w.y * sand + (w.z + w.w) * snow + rock * stone;

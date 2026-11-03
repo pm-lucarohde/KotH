@@ -42,6 +42,7 @@ namespace KotH.Client.Menu
             ToMenu.Click += (_, _) => MenuRequested?.Invoke();
             Quit.Click += (_, _) => QuitRequested?.Invoke();
             Settings.Click += (_, _) => ShowPage("Settings", list: false);
+            SettingsPage.BackRequested += () => PageOpen = false;
             Invite.Click += (_, _) =>
             {
                 ShowPage("Invite friends", list: true);
@@ -63,6 +64,9 @@ namespace KotH.Client.Menu
             Board.Height = BoardHeight + ButtonStep * ((invite ? 1 : 0) + (maps ? 1 : 0));
         }
 
+        /// <summary>The Settings page, which takes keys while one of its rows waits for one.</summary>
+        public SettingsPage SettingsView => SettingsPage;
+
         /// <summary>Whether the Map page shows.</summary>
         public bool MapsShown => PageOpen && ListPage.IsVisible && PageTitle.Text == "Map";
 
@@ -78,8 +82,11 @@ namespace KotH.Client.Menu
             PageOpen = true;
             PageTitle.Text = title;
             SettingsPage.IsVisible = !list;
+            PageTitle.IsVisible = Back.IsVisible = list;
             ListPage.IsVisible = Status.IsVisible = list;
             More.IsVisible = list && rows.Paged;
+            if (!list)
+                SettingsPage.Open();
         }
 
         /// <summary>The list page's rows, what it says without any, and the word underneath.</summary>

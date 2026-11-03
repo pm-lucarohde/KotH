@@ -34,4 +34,10 @@ run "KOTH_SHOT_SECONDS=10 KOTH_SHOT_THIRD=1 KOTH_SHOT_STRIKE=2,4 KOTH_SHOT_BLAST
 run "KOTH_SHOT_SECONDS=8 KOTH_SHOT_STRIKE=2,4" --offline --bots 3 --dlss quality
 run "KOTH_SHOT_SECONDS=8 KOTH_SHOT_THIRD=1" --offline --bots 3 --map Test --dlss quality
 run "KOTH_SHOT_SECONDS=6 KOTH_SHOT_DASH=2.6,3" --offline --bots 3 --map Test
+# The graphics levels (Settings page): Low (no FXAA), Medium and Ultra change shaders (GI steps).
+for q in low medium ultra; do
+  run "KOTH_SETTINGS=$root/Tools/effects/$q.toml KOTH_SHOT_MENU=1 KOTH_SHOT_SECONDS=4"
+  run "KOTH_SETTINGS=$root/Tools/effects/$q.toml KOTH_SHOT_SECONDS=10 KOTH_SHOT_THIRD=1 KOTH_SHOT_STRIKE=2,4 KOTH_SHOT_BLASTER=5 KOTH_SHOT_FIRE=6,7 KOTH_SHOT_DASH=8.6,9" --offline --bots 3
+  run "KOTH_SETTINGS=$root/Tools/effects/$q.toml KOTH_SHOT_SECONDS=6" --offline --bots 3 --map Test
+done
 dotnet run Tools/effects/EffectLog.cs -- $log KotH.Game/Assets/EffectCompileLog.sdeffectlog

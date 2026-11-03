@@ -7,8 +7,12 @@ shader PaintedTriplanar<LinkType PaintKey>
 {
     // Metres per repeat of the texture.
     static const float TileSize = 2.0;
-    // A quarter mip level sharper, as in TerrainTriplanar.
-    static const float Bias = -0.25;
+    // A quarter mip level sharper, as in TerrainTriplanar, plus the Texture setting's levels.
+    static const float BaseBias = -0.25;
+    cbuffer PerMaterial
+    {
+        stage float TextureBias;
+    }
 
     rgroup PerMaterial
     {
@@ -22,9 +26,9 @@ shader PaintedTriplanar<LinkType PaintKey>
         float3 p = streams.PositionWS.xyz / TileSize;
         float3 b = pow(abs(n), 8.0);
         b /= b.x + b.y + b.z;
-        float4 c = b.x * Paint.SampleBias(AnisotropicRepeatSampler, float2(p.z, -p.y), Bias)
-                 + b.y * Paint.SampleBias(AnisotropicRepeatSampler, p.xz, Bias)
-                 + b.z * Paint.SampleBias(AnisotropicRepeatSampler, float2(p.x, -p.y), Bias);
+        float4 c = b.x * Paint.SampleBias(AnisotropicRepeatSampler, float2(p.z, -p.y), BaseBias + TextureBias)
+                 + b.y * Paint.SampleBias(AnisotropicRepeatSampler, p.xz, BaseBias + TextureBias)
+                 + b.z * Paint.SampleBias(AnisotropicRepeatSampler, float2(p.x, -p.y), BaseBias + TextureBias);
         return float4(c.rgb * shade, c.a);
     }
 };

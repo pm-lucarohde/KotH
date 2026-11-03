@@ -1,0 +1,8 @@
+# record.sh: every graphics level at ultra (the effects of its GI steps and options)
+[graphics]
+fxaa = true
+shadows = "ultra"
+textures = "ultra"
+lighting = "ultra"
+effects = "ultra"
+volumetrics = "ultra"

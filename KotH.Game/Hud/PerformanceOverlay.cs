@@ -148,7 +148,7 @@ namespace KotH.Client.Hud
             text = string.Format(HudRenderer.Numbers, "{0:F0} FPS | {1:F1} ms | 1% {2:F0} FPS",
                                  Fps, FrameTimeMs, cachedLowFps);
             if (Services.GetService<Rendering.Dlss.DlssRenderer>()?.Status is { } dlss)
-                text += " | DLSS " + dlss;
+                text += " | " + dlss;
         }
 
         public void Draw(SpriteBatch batch, Vector2 screen)

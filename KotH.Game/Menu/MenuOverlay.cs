@@ -191,6 +191,9 @@ namespace KotH.Client.Menu
 
         public void Release(Vector2 point) => surface.Pointer(RawPointerEventType.LeftButtonUp, Local(point), RawInputModifiers.None);
 
+        /// <summary>The wheel turned over the screen point, in notches (forward positive).</summary>
+        public void Wheel(Vector2 point, float notches) => surface.Wheel(Local(point), notches);
+
         Point Local(Vector2 point) => new Point(point.X - rect.X, point.Y - rect.Y);
 
         public void Dispose()
@@ -233,6 +236,13 @@ namespace KotH.Client.Menu
             {
                 if (InputRoot != null)
                     Input?.Invoke(new RawPointerEventArgs(mouse, (ulong)clock.ElapsedMilliseconds, InputRoot, type, point, modifiers));
+            }
+
+            public void Wheel(Point point, float notches)
+            {
+                if (InputRoot != null)
+                    Input?.Invoke(new RawMouseWheelEventArgs(mouse, (ulong)clock.ElapsedMilliseconds, InputRoot, point,
+                                                             new Avalonia.Vector(0, notches), RawInputModifiers.None));
             }
 
             /// <summary>The buffer, once per frame Avalonia rendered into it.</summary>

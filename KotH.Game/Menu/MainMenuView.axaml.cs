@@ -5,7 +5,7 @@ using Avalonia.Interactivity;
 namespace KotH.Client.Menu
 {
     /// <summary>The main menu's controls: buttons, the note on the one under the pointer, the pages behind
-    /// three of them (Find server; Settings and Languages only to look at), Customize, title and small
+    /// three of them (Find server, Settings; Languages only to look at), Customize, title and small
     /// print. Five parts of a screen 1080 high that MainMenu takes out (<see cref="TakeParts"/>), shows and slides in.</summary>
     public partial class MainMenuView : UserControl
     {
@@ -25,6 +25,9 @@ namespace KotH.Client.Menu
 
         /// <summary>The Customize page, whose part MainMenu shows when <see cref="CustomizeOpen"/>.</summary>
         public CustomizePage Customizer => CustomizeView;
+
+        /// <summary>The Settings page, which takes keys while one of its rows waits for one.</summary>
+        public SettingsPage SettingsView => SettingsPage;
 
         /// <summary>The Find server page.</summary>
         public FindPage Finder => FindPage;
@@ -47,6 +50,7 @@ namespace KotH.Client.Menu
             CustomizeView.BackRequested += () => GoBack();
             Settings.Click += (_, _) => OpenPage(Settings, "Settings", SettingsPage);
             Languages.Click += (_, _) => OpenPage(Languages, "Languages", LanguagesPage);
+            SettingsPage.BackRequested += () => GoBack();
             Back.Click += (_, _) => GoBack();
         }
 
@@ -128,6 +132,9 @@ namespace KotH.Client.Menu
             FindPage.IsVisible = content == FindPage;
             SettingsPage.IsVisible = content == SettingsPage;
             LanguagesPage.IsVisible = content == LanguagesPage;
+            PageTitle.IsVisible = Back.IsVisible = content != SettingsPage;
+            if (content == SettingsPage)
+                SettingsPage.Open();
         }
 
         void Describe(Button button)

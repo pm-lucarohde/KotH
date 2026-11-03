@@ -1,4 +1,5 @@
 using KotH.Client.Hud;
+using KotH.Client.Settings;
 using Stride.Engine;
 using Stride.Rendering;
 using Stride.Rendering.Voxels;
@@ -17,10 +18,15 @@ namespace KotH.Client.Rendering
 
         int done;
 
+        // The Shadows and Lighting settings last applied, and the light's asset values.
+        Quality? shadows, lighting;
+        int assetLightmap = -1, assetSteps = -1;
+
         public override void Update()
         {
             if (Entity.Get<VoxelVolumeComponent>() is not { } volume)
                 return;
+            ApplyQuality();
             // Sparse bricks bake over as many frames as they need.
             if (volume.Storage is VoxelStorageSparse sparse)
             {
@@ -35,6 +41,34 @@ namespace KotH.Client.Rendering
                 return;
             }
             volume.Voxelize = ++done <= Frames;
+        }
+
+        /// <summary>The Lighting setting's lightmap size and cone steps, before the first bake; after a
+        /// change of it or of Shadows (the static sun map) the map's shadow and lightmap are drawn anew
+        /// (a second's hitch). The voxels stay: they hold no sun of their own beyond the static map.</summary>
+        void ApplyQuality()
+        {
+            PlayerSettings s = ClientSettings.Applied;
+            if (shadows == s.Shadows && lighting == s.Lighting || Entity.Get<LightComponent>()?.Type is not LightVoxel light)
+                return;
+            bool first = shadows == null;
+            (shadows, lighting) = (s.Shadows, s.Lighting);
+            if (assetLightmap < 0)
+                assetLightmap = light.LightmapSize;
+            light.LightmapSize = assetLightmap > 0 ? QualityLevels.LightmapSize(assetLightmap) : assetLightmap;
+            if (light.DiffuseMarcher is VoxelMarchSetBase { Marcher: VoxelMarchConePerMipmap cone })
+            {
+                if (assetSteps < 0)
+                    assetSteps = cone.Steps;
+                cone.Steps = QualityLevels.ConeSteps(assetSteps);
+            }
+            if (first || light.LightmapSize <= 0)
+                return;
+            var tags = RenderContext.GetShared(Services).Tags;
+            if (tags.Get(StaticSunShadowRenderer.Key) is { } sun)
+                sun.Ready = false;
+            tags.Set(ForwardRendererVoxels.ForgetLightmapKey, true);
+            light.Lightmap = null;
         }
 
         // The voxels are lit with the map's shadow: with a lightmap the map casts only

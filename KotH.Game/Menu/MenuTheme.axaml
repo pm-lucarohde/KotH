@@ -181,6 +181,44 @@
         <Setter Property="Foreground" Value="{StaticResource CreamBrush}" />
     </Style>
 
+    <!-- Settings rows: a value beside its control, headings between groups, ‹ and › to step a choice -->
+    <Style Selector="TextBlock.Value">
+        <Setter Property="FontSize" Value="23" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{StaticResource BrownBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBlock.Heading">
+        <Setter Property="FontSize" Value="21" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="{StaticResource RedBrush}" />
+        <Setter Property="VerticalAlignment" Value="Bottom" />
+        <Setter Property="Margin" Value="0,0,0,4" />
+    </Style>
+    <Style Selector="Button.Step">
+        <Setter Property="Width" Value="44" />
+        <Setter Property="Height" Value="44" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="Face" Background="#F3E7D6" CornerRadius="22" BoxShadow="0 4 0 0 #C9AE8C">
+                    <TextBlock Text="{TemplateBinding Content}" FontSize="30" FontWeight="Bold"
+                               Foreground="{StaticResource BrownBrush}" HorizontalAlignment="Center"
+                               VerticalAlignment="Center" Margin="0,0,0,5" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="Button.Step:pointerover /template/ Border#Face">
+        <Setter Property="Background" Value="#F7D46A" />
+    </Style>
+    <Style Selector="Button.Step:pressed">
+        <Setter Property="RenderTransform" Value="translate(0px, 3px)" />
+    </Style>
+    <Style Selector="Button.Step:pressed /template/ Border#Face">
+        <Setter Property="BoxShadow" Value="0 1 0 0 #C9AE8C" />
+    </Style>
+
     <!-- Fluent's switch is drawn for desktop forms; ours is bigger -->
     <Style Selector="ToggleSwitch">
         <Setter Property="RenderTransformOrigin" Value="0%,50%" />

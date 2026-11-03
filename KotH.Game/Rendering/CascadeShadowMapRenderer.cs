@@ -1,4 +1,5 @@
 using System;
+using KotH.Client.Settings;
 using Stride.Core;
 using Stride.Core.Mathematics;
 using Stride.Graphics;
@@ -41,13 +42,13 @@ namespace KotH.Client.Rendering
         [DataMember(110)]
         public float MaxPenumbra { get; set; } = 4.0f;
 
-        /// <summary>Share of Stride's size for each cascade's map (1 = as Stride picks it).</summary>
+        /// <summary>Share of Stride's size for each cascade's map (1 = as Stride picks it), times the Shadows setting's.</summary>
         /// <userdoc>Share of the size Stride picks for each cascade (1 = unchanged); smaller is cheaper and softer.</userdoc>
         [DataMember(120)]
         public float Resolution { get; set; } = 1.0f;
 
         public override LightShadowMapTexture CreateShadowMapTexture(RenderView renderView, RenderLight renderLight, IDirectLight light, int shadowMapSize)
-            => base.CreateShadowMapTexture(renderView, renderLight, light, Math.Max(16, (int)MathF.Round(shadowMapSize * Resolution)));
+            => base.CreateShadowMapTexture(renderView, renderLight, light, Math.Max(16, (int)MathF.Round(shadowMapSize * Resolution * QualityLevels.CascadeShare)));
 
         public override ILightShadowMapShaderGroupData CreateShaderGroupData(LightShadowType shadowType)
             => new Receiver(this, (LightShadowMapShaderGroupDataBase)base.CreateShaderGroupData(shadowType),

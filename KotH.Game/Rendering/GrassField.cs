@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using KotH.Client.Player;
+using KotH.Client.Settings;
 using Stride.Core;
 using Stride.Core.Mathematics;
 using Stride.Engine;
@@ -122,12 +123,17 @@ namespace KotH.Client.Rendering
             return true;
         }
 
+        float fullReach, farReach;
+
         public override void Update()
         {
             if (near == null || (camera ??= FindCamera()) == null)
                 return;
             ParameterCollection parameters = Material.Passes[0].Parameters;
-            parameters.Set(ReachKey, new Vector4(FullReach, FarReach, HeightMin, HeightMax));
+            // The Effects setting's share of the reach.
+            float reach = QualityLevels.Reach;
+            (fullReach, farReach) = (FullReach * reach, FarReach * reach);
+            parameters.Set(ReachKey, new Vector4(fullReach, farReach, HeightMin, HeightMax));
             parameters.Set(FormKey, new Vector4(Width, 0f, PetalRadius, FlowerShare));
             Vector2 axis = RenderContext.GetShared(Services).Tags.Get(Atmosphere.Key)?.WindAxis ?? Vector2.UnitX;
             parameters.Set(WindKey, new Vector4(axis.X, axis.Y, GustSpeed, GustLength));
@@ -153,13 +159,13 @@ namespace KotH.Client.Rendering
                 float dx = Math.Max(0f, Math.Max(p.X - eye.X, eye.X - p.X - GrassPatch.Size));
                 float dz = Math.Max(0f, Math.Max(p.Y - eye.Z, eye.Z - p.Y - GrassPatch.Size));
                 float distance = MathF.Sqrt(dx * dx + dz * dz);
-                if (distance > FarReach)
+                if (distance > farReach)
                     continue;
                 var box = new BoundingBoxExt(new BoundingBox(new Vector3(p.X - 1f, 0f, p.Y - 1f),
                     new Vector3(p.X + GrassPatch.Size + 1f, maxHeight, p.Y + GrassPatch.Size + 1f)));
                 if (!frustum.Contains(ref box))
                     continue;
-                float t = Math.Clamp((distance - FullReach) / Math.Max(FarReach - FullReach, 0.01f), 0f, 1f);
+                float t = Math.Clamp((distance - fullReach) / Math.Max(farReach - fullReach, 0.01f), 0f, 1f);
                 float density = 1f - t * t * (3f - 2f * t);
                 (density <= FarShare ? far : near).Wanted.Add(Matrix.Translation(p.X, 0f, p.Y));
             }

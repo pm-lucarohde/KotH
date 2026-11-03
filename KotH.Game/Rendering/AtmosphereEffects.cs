@@ -1,4 +1,5 @@
 using System;
+using KotH.Client.Settings;
 using Stride.Core;
 using Stride.Core.Mathematics;
 using Stride.Engine;
@@ -41,6 +42,8 @@ namespace KotH.Client.Rendering
         static readonly ValueParameterKey<float> CoastOffset = ParameterKeys.NewValue<float>(default, "AtmosphereMarch.CoastOffset");
         static readonly ValueParameterKey<Vector3> CoastColor = ParameterKeys.NewValue<Vector3>(default, "AtmosphereMarch.CoastColor");
         static readonly ValueParameterKey<Vector2> NearFar = ParameterKeys.NewValue<Vector2>(default, "AtmosphereComposite.NearFar");
+        static readonly ValueParameterKey<float> MarchDivisor = ParameterKeys.NewValue<float>(2f, "AtmosphereMarch.Divisor");
+        static readonly ValueParameterKey<float> CompositeDivisor = ParameterKeys.NewValue<float>(2f, "AtmosphereComposite.Divisor");
         static readonly ValueParameterKey<Vector2> MaskSunUV = ParameterKeys.NewValue<Vector2>(default, "SunShaftMask.SunUV");
         static readonly ValueParameterKey<Vector2> MaskShape = ParameterKeys.NewValue<Vector2>(default, "SunShaftMask.MaskShape");
         static readonly ValueParameterKey<Vector2> BlurSunUV = ParameterKeys.NewValue<Vector2>(default, "SunShaftBlur.SunUV");
@@ -106,7 +109,9 @@ namespace KotH.Client.Rendering
         void DrawAtmosphere(RenderDrawContext drawContext, Atmosphere atmosphere, Texture colour, Texture depth)
         {
             RenderView view = drawContext.RenderContext.RenderView;
-            int width = Math.Max(1, colour.Width / 2), height = Math.Max(1, colour.Height / 2);
+            // Half the screen's size at High; the Volumetric setting's divisor.
+            int divisor = QualityLevels.MarchDivisor;
+            int width = Math.Max(1, colour.Width / divisor), height = Math.Max(1, colour.Height / divisor);
             var half = Context.Allocator.GetTemporaryTexture2D(width, height, PixelFormat.R16G16B16A16_Float,
                 TextureFlags.RenderTarget | TextureFlags.ShaderResource);
 
@@ -136,6 +141,7 @@ namespace KotH.Client.Rendering
             var p = march.Parameters;
             p.Set(ClipToRay, clipToRay);
             p.Set(MarchNearFar, new Vector2(view.NearClipPlane, view.FarClipPlane));
+            p.Set(MarchDivisor, (float)divisor);
             p.Set(Eye, viewToWorld.TranslationVector);
             p.Set(ToSun, toSun);
             p.Set(SunColor, sunColor);
@@ -165,6 +171,7 @@ namespace KotH.Client.Rendering
                 march.Draw(drawContext);
 
                 composite.Parameters.Set(NearFar, new Vector2(view.NearClipPlane, view.FarClipPlane));
+                composite.Parameters.Set(CompositeDivisor, (float)divisor);
                 composite.SetInput(0, half);
                 composite.SetInput(1, depth);
                 composite.SetOutput(colour);

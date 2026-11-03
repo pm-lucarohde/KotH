@@ -1,4 +1,5 @@
 using System;
+using KotH.Client.Settings;
 using Stride.Core;
 using Stride.Core.Mathematics;
 using Stride.Engine;
@@ -7,7 +8,7 @@ namespace KotH.Client.Menu
 {
     /// <summary>The main menu's backdrop: the camera circles the mountain slowly, high up at a
     /// slant, rising and sinking a little, the mountain right of the buttons. Only while
-    /// <see cref="Active"/>; the field of view goes back afterwards.</summary>
+    /// <see cref="Active"/>; otherwise the camera has the field of view of the settings.</summary>
     /// <userdoc>Camera flight behind the main menu.</userdoc>
     [DataContract("KotH.MenuCamera")]
     [Display("Menu camera flight")]
@@ -44,8 +45,6 @@ namespace KotH.Client.Menu
         [DataMemberIgnore] public bool Active { get; set; }
 
         CameraComponent cam;
-        float playFieldOfView;
-        bool flying;
         double time;
 
         public override void Start()
@@ -59,17 +58,8 @@ namespace KotH.Client.Menu
                 return;
             if (!Active)
             {
-                if (flying)
-                {
-                    cam.VerticalFieldOfView = playFieldOfView;
-                    flying = false;
-                }
+                cam.VerticalFieldOfView = ClientSettings.Applied.Fov;
                 return;
-            }
-            if (!flying)
-            {
-                playFieldOfView = cam.VerticalFieldOfView;
-                flying = true;
             }
 
             time += Game.UpdateTime.Elapsed.TotalSeconds;

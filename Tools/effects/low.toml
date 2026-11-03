@@ -1,0 +1,8 @@
+# record.sh: every graphics level at low (the effects of its GI steps and options)
+[graphics]
+fxaa = false
+shadows = "low"
+textures = "low"
+lighting = "low"
+effects = "low"
+volumetrics = "low"

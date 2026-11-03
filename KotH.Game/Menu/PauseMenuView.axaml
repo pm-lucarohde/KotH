@@ -28,7 +28,7 @@
                 <Image Source="/Menu/Art/Wide.png" Margin="-24" Stretch="Fill" />
                 <Grid RowDefinitions="Auto,*,Auto" Margin="50,36,50,34">
                     <TextBlock Name="PageTitle" Classes="Title" Text="Settings" />
-                    <menu:SettingsPage Name="SettingsPage" Grid.Row="1" Margin="0,20,0,0" />
+                    <menu:SettingsPage Name="SettingsPage" Grid.RowSpan="3" />
                     <Border Name="ListPage" Grid.Row="1" Classes="Well" Margin="0,20,0,0">
                         <Panel Name="ListInside">
                             <TextBlock Name="NoRows" Classes="Label" FontSize="28" HorizontalAlignment="Center" />

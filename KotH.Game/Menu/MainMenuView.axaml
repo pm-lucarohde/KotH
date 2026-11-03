@@ -42,7 +42,7 @@
             </StackPanel>
         </Grid>
 
-        <!-- The pages behind Find server, Settings and Languages (the last two only to look at for now) -->
+        <!-- The pages behind Find server, Settings and Languages (the last only to look at for now) -->
         <Grid Name="PagePart" Width="870" Height="610">
             <Panel Name="Page" Width="820" Height="560" Margin="24,24,0,0"
                    HorizontalAlignment="Left" VerticalAlignment="Top">
@@ -53,8 +53,8 @@
                     <!-- Find server -->
                     <menu:FindPage Name="FindPage" Grid.Row="1" Margin="0,20,0,0" />
 
-                    <!-- Settings -->
-                    <menu:SettingsPage Name="SettingsPage" Grid.Row="1" Margin="0,20,0,0" />
+                    <!-- Settings, over the whole page with its own title and buttons -->
+                    <menu:SettingsPage Name="SettingsPage" Grid.RowSpan="3" />
 
                     <!-- Languages -->
                     <Border Name="LanguagesPage" Grid.Row="1" Classes="Well" Margin="0,20,0,0">

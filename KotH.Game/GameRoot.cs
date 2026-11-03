@@ -7,6 +7,7 @@ using KotH.Client.Menu;
 using KotH.Client.Net;
 using KotH.Client.Player;
 using KotH.Client.Rendering;
+using KotH.Client.Settings;
 using KotH.Client.Steam;
 using KotH.Shared.Bots;
 using KotH.Shared.Combat;
@@ -125,6 +126,7 @@ namespace KotH.Client
 
         public override void Start()
         {
+            ClientSettings.Changed += ApplyTextures;
             BepuSimulation physics = PhysicsWorld();
             var queries = new WorldQueries(physics);
             var system = new SimulationSystem(queries);
@@ -466,6 +468,7 @@ namespace KotH.Client
                     mapVisuals.Add(e);
                 }
                 LeafRenderFeature.Install(SceneSystem);
+                QualityLevels.ApplyTextures(mapVisuals);
             }
             else
                 Log.Warning($"Map {map} has no visuals ({url})");
@@ -502,6 +505,9 @@ namespace KotH.Client
             Log.Info($"Map {map} unloaded");
         }
 
+        // The Texture setting on the map's materials, again after every Apply.
+        void ApplyTextures(PlayerSettings settings) => QualityLevels.ApplyTextures(mapVisuals);
+
         string INetWorld.Map => builder.Map;
 
         // Before the state: the own body arrives with it and binds the displays. A guest from
@@ -515,6 +521,7 @@ namespace KotH.Client
 
         public override void Cancel()
         {
+            ClientSettings.Changed -= ApplyTextures;
             net?.Dispose();
             botDirector?.Dispose();
         }

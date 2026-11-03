@@ -6,6 +6,7 @@ shader AtmosphereMarch : ImageEffectShader, CloudLayer
 {
     float4x4 ClipToRay;     // clip x, y, 1 to the view ray with a view depth of 1
     float2 NearFar;
+    float Divisor;          // screen pixels per march pixel (2 at High, the Volumetric setting)
     float3 Eye;
     float3 ToSun;
     float3 SunColor;
@@ -79,7 +80,7 @@ shader AtmosphereMarch : ImageEffectShader, CloudLayer
     stage override float4 Shading()
     {
         int2 pixel = int2(streams.ShadingPosition.xy);
-        int2 full = pixel * 2;
+        int2 full = int2(float2(pixel) * Divisor);
         float z = Texture0.Load(int3(full, 0)).r;
         float2 uv = (float2(full) + 0.5) * Texture0TexelSize;
         float3 ray = mul(float4(uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0, 1.0, 0.0), ClipToRay).xyz;

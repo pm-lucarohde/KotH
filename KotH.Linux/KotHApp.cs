@@ -9,6 +9,7 @@ using KotH.Client.Audio;
 using KotH.Client.Hud;
 using KotH.Client.Net;
 using KotH.Client.Player;
+using KotH.Client.Settings;
 using KotH.Client.Steam;
 using Stride.Core.Diagnostics;
 using Stride.Core.Mathematics;
@@ -60,6 +61,10 @@ sealed class KotHGame : Game
     double? shotHit = Number("KOTH_SHOT_HIT", 0); // deg[,s]: hits every figure from deg (0 front, 90 right)
     readonly double shotHitLead = Number("KOTH_SHOT_HIT", 1) ?? 0.1; // s before the shot
     string shotMove = Environment.GetEnvironmentVariable("KOTH_SHOT_MOVE"); // x,y[,sprint] held (D and W +1)
+    // KOTH_SHOT_APPLY=s:file.toml[;s:file.toml]: Apply on the Settings page with that file's settings at s.
+    readonly Queue<(double At, string File)> shotApplies = new Queue<(double, string)>(
+        (Environment.GetEnvironmentVariable("KOTH_SHOT_APPLY") ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries)
+            .Select(p => (double.Parse(p[..p.IndexOf(':')], CultureInfo.InvariantCulture), p[(p.IndexOf(':') + 1)..])));
     double? shotCrouch = Number("KOTH_SHOT_CROUCH"); // crouch held from s (out of a sprint: slide)
     double? shotDash = Number("KOTH_SHOT_DASH", 0); // s[,m]: crouch tapped at s (a dash from 1.5 m up), lifted m first
     readonly double shotDashLift = Number("KOTH_SHOT_DASH", 1) ?? 0.0;
@@ -101,6 +106,10 @@ sealed class KotHGame : Game
     readonly bool startFullscreen = Environment.GetEnvironmentVariable("KOTH_SIZE") == null &&
                                     Environment.GetEnvironmentVariable("KOTH_HEADLESS") != "1";
     int restoreFrames;
+    readonly KotH.Client.Settings.SettingsApplier settings;
+    WindowMode? windowShown;
+    Int2 sizeShown;
+    int windowVersion;
 
     // Ten minutes at 2000 FPS, allocated once so logging never allocates.
     float[] frameLog;
@@ -112,11 +121,6 @@ sealed class KotHGame : Game
         // a script failing in Start leaves nothing but a black window.
         ConsoleLogMode = ConsoleLogMode.Always;
         ConsoleLogLevel = LogMessageType.Warning;
-
-        // Renders as fast as it can, without waiting for the display's
-        // refresh (Luca's choice, earlier it waited like Unity's "Ultra"); KOTH_VSYNC=1 waits.
-        GraphicsDeviceManager.SynchronizeWithVerticalRetrace =
-            Number("KOTH_VSYNC") is { } vsync && vsync != 0.0;
 
         if (frameLogPath != null)
             frameLog = new float[600 * 2000];
@@ -138,14 +142,12 @@ sealed class KotHGame : Game
         TreatNotFocusedLikeMinimized = false;
         InactiveSleepTime = TimeSpan.Zero;
 
-        // At most --fps N (or KOTH_FPS) frames per second, unlimited without; the
-        // last millisecond is spun, so the frames come evenly. Hidden, it counts as minimised.
-        if ((LaunchOptions.Current.Fps ?? (int?)Number("KOTH_FPS")) is { } fps && fps > 0)
-            foreach (var rate in headless ? [WindowMinimumUpdateRate, MinimizedMinimumUpdateRate] : new[] { WindowMinimumUpdateRate })
-            {
-                rate.SetMaxFrequency(fps);
-                rate.SetToPreciseAuto();
-            }
+        // Frame cap and V-Sync from the settings (off by Luca's choice), --fps, KOTH_FPS or KOTH_VSYNC.
+        settings = new KotH.Client.Settings.SettingsApplier(this, headless);
+
+        // The sound device of the settings; OpenAL opens it when the audio starts, so a new one needs a restart.
+        if (KotH.Client.Settings.ClientSettings.Applied.OutputDevice is { Length: > 0 } device)
+            Audio.RequestedAudioDevice = new Stride.Audio.AudioDevice { Name = device };
     }
 
     protected override void PrepareContext()
@@ -178,6 +180,7 @@ sealed class KotHGame : Game
             return;
         if (Window.NativeWindow?.NativeWindow is not Stride.Graphics.SDL.Window sdl)
             return;
+        KotH.Client.Settings.DisplayModes.Window = sdl.SdlHandle;
 
         // Pumping only moves the window's events into SDL's queue; the game
         // still reads every one of them later.
@@ -188,13 +191,15 @@ sealed class KotHGame : Game
 
         if (startFullscreen)
         {
-            // The size the window manager gave the new window is where F11
-            // returns to. Stride applies the switch only in its loop, after
-            // loading; the window goes now, the device follows.
-            ToggleFullscreen();
+            // The window as the settings say. The size the window manager gave the new window is
+            // where F11 returns to. Stride applies a switch only in its loop, after loading; the
+            // window goes now, the device follows.
             SdlGrab.SDL_GetWindowSize(sdl.SdlHandle, out windowedSize.X, out windowedSize.Y);
-            SdlGrab.SDL_SetWindowFullscreen(sdl.SdlHandle, SdlGrab.FullscreenDesktop);
-            PumpUntil(() => CoversDisplay(sdl.SdlHandle));
+            // Stride's windows keep their size by default: no frame to drag, no maximise button.
+            Window.AllowUserResizing = true;
+            ApplyWindow();
+            if (windowShown != WindowMode.Windowed)
+                PumpUntil(() => CoversDisplay(sdl.SdlHandle));
             if (LaunchOptions.Current.Display != null)
             {
                 SdlGrab.SDL_GetWindowPosition(sdl.SdlHandle, out int fx, out int fy);
@@ -273,7 +278,6 @@ sealed class KotHGame : Game
     {
         base.BeginRun();
         KotH.Client.Rendering.Dlss.Dlss.Start(GraphicsDevice);
-        KotH.Client.Rendering.Dlss.Dlss.Mode = LaunchOptions.Current.Dlss;
     }
 
     protected override void EndRun()
@@ -293,6 +297,12 @@ sealed class KotHGame : Game
     {
         // Steam's callbacks before the scripts, which read lobbies and sessions.
         SteamClient.RunFrame();
+        settings.Update();
+        if (windowVersion != ClientSettings.Version)
+        {
+            windowVersion = ClientSettings.Version;
+            ApplyWindow();
+        }
         // Before the scripts run, so the first piece already starts with these.
         if (!musicSet && (musicVolume.HasValue || musicTail.HasValue) && Find<MusicPlayer>() is { } music)
         {
@@ -325,6 +335,11 @@ sealed class KotHGame : Game
         if (Find<PerformanceOverlay>() is { } overlay)
             overlay.Visible = true;
         double now = TestSeconds(gameTime);
+        while (shotApplies.Count > 0 && now >= shotApplies.Peek().At)
+        {
+            Console.WriteLine($"[settings] {now:F1} s: {shotApplies.Peek().File}");
+            ClientSettings.Apply(SettingsFile.Load(shotApplies.Dequeue().File));
+        }
         bool turned = shotTurn != null && now >= shotTurn[1];
         bool orbit = turned && shotThird && shotTurn.Length > 2 && now >= shotTurn[1] + 0.2;
         if ((shotYaw.HasValue || shotTurn != null) && Find<PlayerInputReader>() is { } reader)
@@ -437,28 +452,115 @@ sealed class KotHGame : Game
         confined = confine;
     }
 
-    /// <summary>Borderless instead of exclusive: no mode switch, quick to toggle, other windows
-    /// reachable; the back buffer follows the window. Set on the device manager: Stride 4.4's
-    /// Window.IsFullscreen handler runs the orientation update instead.</summary>
+    /// <summary>F11: from fullscreen (borderless or exclusive, as set) to the window and back;
+    /// for this session only, the settings stay.</summary>
     void ToggleFullscreen()
+    {
+        if (GraphicsDeviceManager.IsFullScreen)
+            GoWindowed(windowedSize);
+        else
+            GoFullscreen(ClientSettings.Applied.Window == WindowMode.Exclusive, new Int2(ClientSettings.Applied.Width, ClientSettings.Applied.Height));
+    }
+
+    /// <summary>The Window and Resolution settings, at the start and after an Apply that changed them.
+    /// Borderless keeps the screen's size (Resolution there is the scene's, see DlssRenderer). Not with
+    /// KOTH_SIZE or headless, which keep their fixed window.</summary>
+    void ApplyWindow()
+    {
+        if (!startFullscreen)
+            return;
+        PlayerSettings s = ClientSettings.Applied;
+        var size = new Int2(s.Width, s.Height);
+        if (s.Window == windowShown && (s.Window == WindowMode.Borderless || size == sizeShown))
+            return;
+        (windowShown, sizeShown) = (s.Window, size);
+        if (s.Window == WindowMode.Windowed)
+            GoWindowed(size);
+        else
+            GoFullscreen(s.Window == WindowMode.Exclusive, size);
+    }
+
+    /// <summary>Set on the device manager: Stride 4.4's Window.IsFullscreen handler runs the orientation
+    /// update instead. SDL is told too: a switch between borderless and exclusive changes no flag Stride
+    /// compares, and before the loop Stride applies nothing. Exclusive switches the screen's mode.</summary>
+    void GoFullscreen(bool exclusive, Int2 size)
     {
         GraphicsDeviceManager manager = GraphicsDeviceManager;
         if (!manager.IsFullScreen)
         {
             Rectangle bounds = Window.ClientBounds;
             windowedSize = new Int2(bounds.Width, bounds.Height);
-            Window.FullscreenIsBorderlessWindow = true;
-            restoreFrames = 0;
         }
-        else
+        restoreFrames = 0;
+        Int2 native = DisplayModes.Native();
+        Int2 full = exclusive && size != Int2.Zero ? size : native != Int2.Zero ? native : new Int2(Window.ClientBounds.Width, Window.ClientBounds.Height);
+        Window.FullscreenIsBorderlessWindow = !exclusive;
+        FollowSizeEvents(!exclusive);
+        var sdl = Window.NativeWindow?.NativeWindow as Stride.Graphics.SDL.Window;
+        // Exclusive: the mode first (SDL takes it from the window's size otherwise, which the window
+        // manager resets while switching), then the device at its size.
+        if (exclusive && sdl != null)
+        {
+            var mode = new SdlGrab.DisplayMode { W = full.X, H = full.Y };
+            SdlGrab.SDL_SetWindowDisplayMode(sdl.SdlHandle, ref mode);
+            SdlGrab.SDL_SetWindowSize(sdl.SdlHandle, full.X, full.Y);
+            SdlGrab.SDL_SetWindowFullscreen(sdl.SdlHandle, SdlGrab.Fullscreen);
+        }
+        manager.PreferredBackBufferWidth = full.X;
+        manager.PreferredBackBufferHeight = full.Y;
+        manager.IsFullScreen = true;
+        manager.ApplyChanges();
+        if (!exclusive && sdl != null)
+            SdlGrab.SDL_SetWindowFullscreen(sdl.SdlHandle, SdlGrab.FullscreenDesktop);
+    }
+
+    [System.Runtime.CompilerServices.UnsafeAccessor(System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "ClientSizeChanged")]
+    static extern ref EventHandler<EventArgs> SizeEvents(GameWindow window);
+
+    EventHandler<EventArgs> managerSizeHandler;
+
+    /// <summary>In exclusive fullscreen the device manager must not follow the window's size: each of its
+    /// device changes sets the size again, SDL then sets the screen's mode again and reports a new size,
+    /// a swapchain rebuild every frame (8 fps, the pointer kept in the middle). ApplyWindow sizes it there.</summary>
+    void FollowSizeEvents(bool follow)
+    {
+        ref EventHandler<EventArgs> events = ref SizeEvents(Window);
+        if (!follow && managerSizeHandler == null && events != null)
+            foreach (Delegate d in events.GetInvocationList())
+                if (d.Target == GraphicsDeviceManager)
+                {
+                    managerSizeHandler = (EventHandler<EventArgs>)d;
+                    events -= managerSizeHandler;
+                }
+        if (follow && managerSizeHandler != null)
+        {
+            events += managerSizeHandler;
+            managerSizeHandler = null;
+        }
+    }
+
+    /// <summary>A window of that size, or maximised for zero (the screen's own size).</summary>
+    void GoWindowed(Int2 size)
+    {
+        GraphicsDeviceManager manager = GraphicsDeviceManager;
+        FollowSizeEvents(true);
+        bool maximise = size == Int2.Zero;
+        if (!maximise)
+            windowedSize = size;
+        if (manager.IsFullScreen)
         {
             manager.PreferredBackBufferWidth = windowedSize.X;
             manager.PreferredBackBufferHeight = windowedSize.Y;
-            restoreFrames = 30;
+            manager.IsFullScreen = false;
+            manager.ApplyChanges();
+            if (Window.NativeWindow?.NativeWindow is Stride.Graphics.SDL.Window sdl)
+                SdlGrab.SDL_SetWindowFullscreen(sdl.SdlHandle, 0);
         }
-
-        manager.IsFullScreen = !manager.IsFullScreen;
-        manager.ApplyChanges();
+        restoreFrames = maximise ? 0 : 30;
+        if (maximise && Window.NativeWindow?.NativeWindow is Stride.Graphics.SDL.Window window)
+            SdlGrab.SDL_MaximizeWindow(window.SdlHandle);
+        else
+            Window.SetSize(windowedSize);
     }
 
     /// <summary>Stride asks for the old window size while the window is still fullscreen,
@@ -683,8 +785,15 @@ static class SdlGrab
     [DllImport(Lib)] public static extern void SDL_PumpEvents();
     [DllImport(Lib)] public static extern int SDL_SetWindowFullscreen(nint window, uint flags);
 
-    /// <summary>SDL_WINDOW_FULLSCREEN_DESKTOP: borderless at the desktop's size.</summary>
-    public const uint FullscreenDesktop = 0x1001;
+    /// <summary>SDL_WINDOW_FULLSCREEN_DESKTOP: borderless at the desktop's size; SDL_WINDOW_FULLSCREEN: the screen's mode switched.</summary>
+    public const uint FullscreenDesktop = 0x1001, Fullscreen = 0x1;
+    [DllImport(Lib)] public static extern void SDL_SetWindowSize(nint window, int w, int h);
+    [DllImport(Lib)] public static extern void SDL_MaximizeWindow(nint window);
+    [DllImport(Lib)] public static extern int SDL_SetWindowDisplayMode(nint window, ref DisplayMode mode);
+
+    /// <summary>SDL_DisplayMode; format and refresh rate 0 let SDL pick the closest the screen has.</summary>
+    [StructLayout(LayoutKind.Sequential)]
+    public struct DisplayMode { public uint Format; public int W, H, RefreshRate; public nint DriverData; }
     [DllImport(Lib)] public static extern void SDL_GetWindowSize(nint window, out int w, out int h);
     [DllImport(Lib)] public static extern int SDL_GetWindowDisplayIndex(nint window);
     [DllImport(Lib)] public static extern int SDL_GetDisplayBounds(int displayIndex, out Rect rect);

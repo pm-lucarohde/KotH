@@ -1,0 +1,8 @@
+# record.sh: every graphics level at medium (the effects of its GI steps and options)
+[graphics]
+fxaa = true
+shadows = "medium"
+textures = "medium"
+lighting = "medium"
+effects = "medium"
+volumetrics = "medium"

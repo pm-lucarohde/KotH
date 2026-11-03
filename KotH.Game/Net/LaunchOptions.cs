@@ -10,8 +10,8 @@ namespace KotH.Client.Net
 {
     /// <summary>What the client was started with; without --host, --join or --offline the main menu. Options:
     /// --host [--port N] [--min-players N], --join ADDRESS[:PORT], --offline, --name NAME (else Steam's), --display N
-    /// (monitor, 0 first), --bots N, --bot-seed N, --map NAME (to play on; joiners take the host's), --fps N (cap),
-    /// --dlss off|dlaa|quality|balanced|performance|ultra (or KOTH_DLSS), +connect_lobby ID (Steam's invite).</summary>
+    /// (monitor, 0 first), --bots N, --bot-seed N, --map NAME (to play on; joiners take the host's), --fps N (cap; these two
+    /// over settings.toml), --dlss off|dlaa|quality|balanced|performance|ultra (or KOTH_DLSS), +connect_lobby ID (Steam's invite).</summary>
     public sealed class LaunchOptions
     {
         public bool Host;
@@ -25,7 +25,8 @@ namespace KotH.Client.Net
         public int BotSeed = 1;
         public string Map = Maps.Default;
         public int? Fps;
-        public KotH.Client.Rendering.Dlss.DlssMode Dlss;
+        /// <summary>--dlss or KOTH_DLSS, over the settings; null when neither is given.</summary>
+        public KotH.Client.Rendering.Dlss.DlssMode? Dlss;
 
         /// <summary>The own figure's colours: look.toml (LookFile), for shots KOTH_SHOT_LOOK
         /// ("cap,skin,leaves,gloves,spores" as hex, empty keeps one).</summary>
@@ -77,7 +78,8 @@ namespace KotH.Client.Net
                 o.BotSeed = seed;
             o.Map = Text(args, "--map") ?? o.Map;
             o.Fps = Number(args, "--fps");
-            o.Dlss = KotH.Client.Rendering.Dlss.Dlss.ParseMode(Text(args, "--dlss") ?? Environment.GetEnvironmentVariable("KOTH_DLSS"));
+            if ((Text(args, "--dlss") ?? Environment.GetEnvironmentVariable("KOTH_DLSS")) is { } dlss)
+                o.Dlss = KotH.Client.Rendering.Dlss.Dlss.ParseMode(dlss);
             o.Name = Text(args, "--name") ?? SteamClient.PersonaName ?? Environment.UserName;
             if (ulong.TryParse(Text(args, "+connect_lobby"), NumberStyles.Integer, CultureInfo.InvariantCulture, out ulong lobby))
                 SteamClient.Invite(lobby);

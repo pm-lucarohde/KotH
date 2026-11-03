@@ -1,3 +1,4 @@
+using KotH.Client.Settings;
 using KotH.Shared.Mathematics;
 using KotH.Shared.Player;
 using KotH.Shared.Simulation;
@@ -10,7 +11,7 @@ namespace KotH.Client.Player
     /// <summary>Turns keyboard and mouse into a MoveInput, once per tick. The only class
     /// that reads input the SIMULATION consumes, so switching to network packets later
     /// means changing exactly one file. Collect runs every frame, ReadInput once per
-    /// tick; presses are counted in between.</summary>
+    /// tick; presses are counted in between. Keys and mouse sensitivity come from the settings.</summary>
     [DataContract("KotH.PlayerInputReader")]
     public sealed class PlayerInputReader : SimulationBody
     {
@@ -20,12 +21,8 @@ namespace KotH.Client.Player
         // SDL's relative mode here delivers whole counts.
         const float DegreesPerPixelAtOne = 0.025f;
 
-        [Display("Mouse sensitivity", "Mouse")] public float MouseSensitivity = 2f;
         [Display("Pitch down", "Mouse")] public float MinPitch = -89f;
         [Display("Pitch up", "Mouse")] public float MaxPitch = 89f;
-
-        [Display("Sprint", "Keys")] public Keys SprintKey = Keys.LeftShift;
-        [Display("Crouch", "Keys")] public Keys CrouchKey = Keys.E;
 
         /// <userdoc>How fast the figure turns to its running direction in third person, in degrees per second</userdoc>
         [Display("Turn speed", "Third person")] public float TurnSpeed = 720f;
@@ -130,12 +127,13 @@ namespace KotH.Client.Player
         /// look only while the cursor is captured.</summary>
         public void Collect(InputManager input, bool captured)
         {
+            PlayerSettings settings = ClientSettings.Applied;
             if (captured && input.HasMouse)
             {
                 // Pixels, not Stride's window-normalised delta: the sensitivity
                 // must not change with the window size. Screen y points down.
                 Vector2 pixels = input.MouseDelta * input.Mouse.SurfaceSize;
-                float scale = DegreesPerPixelAtOne * MouseSensitivity;
+                float scale = DegreesPerPixelAtOne * settings.MouseSensitivity;
                 yaw -= pixels.X * scale;
                 pitch = UMath.Clamp(pitch - pixels.Y * scale, MinPitch, MaxPitch);
 
@@ -154,22 +152,23 @@ namespace KotH.Client.Player
             // Counted rather than latched, so two presses inside one 25 ms
             // tick both arrive - the double jump depends on that. Repeats of
             // a held key are no presses, see KeyPresses.
-            jumpPresses = (byte)System.Math.Min(byte.MaxValue, jumpPresses + KeyPresses.Count(input, Keys.Space));
+            Keys jump = settings.Key(Binding.Jump), crouch = settings.Key(Binding.Crouch);
+            jumpPresses = (byte)System.Math.Min(byte.MaxValue, jumpPresses + KeyPresses.Count(input, jump));
 
-            if (KeyPresses.Pressed(input, CrouchKey))
+            if (KeyPresses.Pressed(input, crouch))
                 crouchPressed = true;
 
-            // 1 the cane, 2 the blaster; the choice stays until the other key.
-            if (input.IsKeyPressed(Keys.D1) || input.IsKeyPressed(Keys.NumPad1))
+            // The cane (1) or the blaster (2); the choice stays until the other key.
+            if (Pressed(input, settings.Key(Binding.Cane)) || input.IsKeyPressed(Keys.NumPad1))
                 blaster = false;
-            else if (input.IsKeyPressed(Keys.D2) || input.IsKeyPressed(Keys.NumPad2))
+            else if (Pressed(input, settings.Key(Binding.Blaster)) || input.IsKeyPressed(Keys.NumPad2))
                 blaster = true;
 
-            move = new Vector2(Axis(input, Keys.D, Keys.Right, Keys.A, Keys.Left),
-                               Axis(input, Keys.W, Keys.Up, Keys.S, Keys.Down));
-            jumpHeld = input.IsKeyDown(Keys.Space);
-            sprintHeld = input.IsKeyDown(SprintKey);
-            crouchHeld = input.IsKeyDown(CrouchKey);
+            move = new Vector2(Axis(input, settings.Key(Binding.Right), Keys.Right, settings.Key(Binding.Left), Keys.Left),
+                               Axis(input, settings.Key(Binding.Forward), Keys.Up, settings.Key(Binding.Back), Keys.Down));
+            jumpHeld = Down(input, jump);
+            sprintHeld = Down(input, settings.Key(Binding.Sprint));
+            crouchHeld = Down(input, crouch);
             if (heldKeys.HasValue)
             {
                 move = heldKeys.Value;
@@ -192,12 +191,17 @@ namespace KotH.Client.Player
         static float Axis(InputManager input, Keys positive, Keys altPositive, Keys negative, Keys altNegative)
         {
             float v = 0f;
-            if (input.IsKeyDown(positive) || input.IsKeyDown(altPositive))
+            if (Down(input, positive) || input.IsKeyDown(altPositive))
                 v += 1f;
-            if (input.IsKeyDown(negative) || input.IsKeyDown(altNegative))
+            if (Down(input, negative) || input.IsKeyDown(altNegative))
                 v -= 1f;
             return v;
         }
+
+        // An unbound action (None) is never held or pressed.
+        static bool Down(InputManager input, Keys key) => key != Keys.None && input.IsKeyDown(key);
+
+        static bool Pressed(InputManager input, Keys key) => key != Keys.None && input.IsKeyPressed(key);
 
         public override MoveInput ReadInput()
         {

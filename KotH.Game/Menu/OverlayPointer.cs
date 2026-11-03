@@ -5,8 +5,8 @@ using Stride.Input;
 namespace KotH.Client.Menu
 {
     /// <summary>Hands the mouse to the overlay under it (a pressed one keeps it until the
-    /// release, so a click completes), only when something happened; for the main menu
-    /// and the pause menu.</summary>
+    /// release, so a click completes) and the wheel, only when something happened; for the
+    /// main menu and the pause menu.</summary>
     public sealed class OverlayPointer
     {
         MenuOverlay hovered, pressed;
@@ -38,6 +38,8 @@ namespace KotH.Client.Menu
                 pressed.Release(at);
                 pressed = null;
             }
+            if (input.MouseWheelDelta != 0f && target != null)
+                target.Wheel(at, input.MouseWheelDelta);
         }
 
         /// <summary>The overlays went away: nothing stays under the pointer or pressed.</summary>

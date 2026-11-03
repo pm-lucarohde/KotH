@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using KotH.Client.Settings;
 using KotH.Shared.Match;
 using Stride.Audio;
 using Stride.Core;
@@ -27,9 +28,10 @@ namespace KotH.Client.Audio
         /// <userdoc>After the round start track, shuffled: each once before any repeats.</userdoc>
         [Display("Then shuffled", "Music")] public List<Sound> Playlist = new List<Sound>();
 
+        /// <userdoc>At the Music setting's 80 %.</userdoc>
         [Display("Volume", "Music")] public float Volume = 0.1224f;
 
-        /// <userdoc>Scales music, ambience and sounds together, keeping their balance. 2.43 lifts everything until a hit at one's own ear on a music peak reaches about −0.3 dBFS at most (music about −22 LUFS).</userdoc>
+        /// <userdoc>Scales music, ambience and sounds together, keeping their balance. 2.43 lifts everything until a hit at one's own ear on a music peak reaches about −0.3 dBFS at most (music about −22 LUFS); at the Overall setting's 80 %.</userdoc>
         [Display("Master volume", "All")] public float MasterVolume = 2.43f;
 
         /// <userdoc>How long one track crossfades into the next (seconds), also when one runs out: the next starts that long before its end.</userdoc>
@@ -68,9 +70,10 @@ namespace KotH.Client.Audio
                 return;
             try
             {
-                // The listener's gain: one factor over every sound, allowed above 1.
-                if (master != MasterVolume)
-                    Audio.AudioEngine.MasterVolume = master = MasterVolume;
+                // The listener's gain: one factor over every sound, allowed above 1; times Overall.
+                float wanted = MasterVolume * PlayerSettings.Gain(ClientSettings.Applied.Overall);
+                if (master != wanted)
+                    Audio.AudioEngine.MasterVolume = master = wanted;
                 // Joining, the round comes with the host's map: until then it is the lobby.
                 if (!InMenu && Match == null && ConfirmedRound == null)
                     return;
@@ -111,11 +114,12 @@ namespace KotH.Client.Audio
 
             float step = FadeSeconds > 0f ? dt / FadeSeconds : 1f;
             fadeIn = Math.Min(1f, fadeIn + step);
+            float volume = Volume * PlayerSettings.Gain(ClientSettings.Applied.Music);
             if (current != null)
-                current.Volume = Volume * fadeIn;
+                current.Volume = volume * fadeIn;
             if (fading != null)
             {
-                fading.Volume = Volume * (1f - fadeIn);
+                fading.Volume = volume * (1f - fadeIn);
                 if (fadeIn >= 1f)
                 {
                     Release(fading);
@@ -147,7 +151,7 @@ namespace KotH.Client.Audio
 
             SoundInstance instance = sound.CreateInstance();
             instance.IsLooping = sound == Lobby || sound == Menu;
-            instance.Volume = Volume * fadeIn;
+            instance.Volume = Volume * PlayerSettings.Gain(ClientSettings.Applied.Music) * fadeIn;
             length = sound.TotalLength.TotalSeconds;
             if (TailSeconds > 0.0)
             {

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
+using KotH.Client.Settings;
 using Stride.Core;
 using Stride.Core.Mathematics;
 using Stride.Engine;
@@ -327,10 +328,11 @@ namespace KotH.Client.Rendering
             if (squares.Count == 0 || (camera ??= FindCamera()) == null)
                 return;
             Vector3 eye = camera.Entity.Transform.WorldMatrix.TranslationVector;
+            float reach = Reach * QualityLevels.Reach;
             foreach (var (model, box) in squares)
             {
                 Vector3 nearest = Vector3.Clamp(eye, box.Minimum, box.Maximum);
-                model.Enabled = Vector3.DistanceSquared(nearest, eye) < Reach * Reach;
+                model.Enabled = Vector3.DistanceSquared(nearest, eye) < reach * reach;
             }
         }
 

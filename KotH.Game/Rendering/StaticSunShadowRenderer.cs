@@ -1,4 +1,5 @@
 using System;
+using KotH.Client.Settings;
 using Stride.Core;
 using Stride.Core.Mathematics;
 using Stride.Engine;
@@ -39,6 +40,9 @@ namespace KotH.Client.Rendering
         [DataMember(20)]
         public int Size { get; set; } = 4096;
 
+        // The size drawn: the Shadows setting's share of Size (BakeVoxels draws it anew on a change).
+        int Drawn => QualityLevels.StaticSunSize(Size);
+
         readonly StaticSunShadow shadow = new();
         RenderView view;
         Texture depth;
@@ -49,7 +53,7 @@ namespace KotH.Client.Rendering
         {
             collected = false;
             context.Tags.Set(Key, shadow);
-            if (shadow.Ready || StaticRenderStage == null || Size <= 0)
+            if (shadow.Ready || StaticRenderStage == null || Drawn <= 0)
                 return;
             RenderLight sun = null;
             foreach (RenderLight light in SceneInstance.GetCurrent(context)?.GetProcessor<LightProcessor>()?.Lights ?? [])
@@ -87,7 +91,7 @@ namespace KotH.Client.Rendering
             view.View = lightView;
             view.Projection = projection;
             view.ViewProjection = lightView * projection;
-            view.ViewSize = new Vector2(Size);
+            view.ViewSize = new Vector2(Drawn);
             view.NearClipPlane = -max.Z - 1f;
             view.FarClipPlane = -min.Z + 1f;
             // The view's stage copies the output, so it is set first.
@@ -104,10 +108,10 @@ namespace KotH.Client.Rendering
         {
             if (!collected)
                 return;
-            if (depth == null || depth.Width != Size)
+            if (depth == null || depth.Width != Drawn)
             {
                 depth?.Dispose();
-                depth = Texture.New2D(context.GraphicsDevice, Size, Size, PixelFormat.D32_Float, TextureFlags.DepthStencil | TextureFlags.ShaderResource);
+                depth = Texture.New2D(context.GraphicsDevice, Drawn, Drawn, PixelFormat.D32_Float, TextureFlags.DepthStencil | TextureFlags.ShaderResource);
             }
             var commandList = drawContext.CommandList;
             using (drawContext.PushRenderTargetsAndRestore())

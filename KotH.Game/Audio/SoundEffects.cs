@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using KotH.Client.Player;
+using KotH.Client.Settings;
 using KotH.Shared.Player;
 using Stride.Audio;
 using Stride.Core;
@@ -94,7 +95,7 @@ namespace KotH.Client.Audio
                     return;
                 ambient = Ambient.CreateInstance();
                 ambient.IsLooping = true;
-                ambient.Volume = AmbientVolume * Master;
+                ambient.Volume = AmbientVolume * Master * PlayerSettings.Gain(ClientSettings.Applied.Ambient);
                 ambient.Play();
             });
         }
@@ -102,7 +103,7 @@ namespace KotH.Client.Audio
         public override void Update()
         {
             if (!failed && ambient != null)
-                ambient.Volume = AmbientVolume * Master;
+                ambient.Volume = AmbientVolume * Master * PlayerSettings.Gain(ClientSettings.Applied.Ambient);
         }
 
         public override void Cancel()
@@ -169,7 +170,7 @@ namespace KotH.Client.Audio
                 if (voice == null)
                     return;
                 emitter.Position = FromEar(at);
-                voice.Volume = volume * Master;
+                voice.Volume = volume * Master * PlayerSettings.Gain(ClientSettings.Applied.Effects);
                 voice.Pitch = vary ? 1f + PitchSpread * (2f * (float)random.NextDouble() - 1f) : 1f;
                 voice.Apply3D(emitter);
                 voice.Play();

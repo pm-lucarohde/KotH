@@ -99,7 +99,10 @@ namespace KotH.Client.Menu
                     Show(true);
                 view.OpenMaps();
             }
-            if (KeyPresses.Pressed(Input, Keys.Escape))
+            if (Open && view.PageOpen && view.SettingsView.Capture(Input))
+            {
+            }
+            else if (KeyPresses.Pressed(Input, Keys.Escape))
             {
                 if (!Open)
                     Show(true);
@@ -220,7 +223,10 @@ namespace KotH.Client.Menu
             if (!Open)
                 Show(true);
             if (what == "settings")
+            {
                 view.Pretend(1);
+                view.SettingsView.Choose(Environment.GetEnvironmentVariable("KOTH_SHOT_SETTINGS") ?? "sound");
+            }
             else if (what == "menu")
                 view.Pretend(2);
         }
