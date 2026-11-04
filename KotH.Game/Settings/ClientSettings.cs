@@ -16,6 +16,15 @@ namespace KotH.Client.Settings
         /// <summary>After every Apply, with the new settings.</summary>
         public static event Action<PlayerSettings> Changed;
 
+        /// <summary>The Host page's choices: kept and saved, nothing to apply.</summary>
+        public static void RememberHost(PlayerSettings from)
+        {
+            PlayerSettings s = Applied;
+            (s.HostName, s.HostPrivate, s.HostCountry, s.HostModded) = (from.HostName, from.HostPrivate, from.HostCountry, from.HostModded);
+            s.HostLanguages = (string[])from.HostLanguages.Clone();
+            SettingsFile.Save(s);
+        }
+
         public static void Apply(PlayerSettings settings)
         {
             applied = settings.Clone();

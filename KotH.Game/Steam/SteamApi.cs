@@ -78,6 +78,16 @@ namespace KotH.Client.Steam
         [DllImport(Lib)] public static extern ulong SteamAPI_ISteamMatchmaking_GetLobbyMemberByIndex(nint self, ulong lobby, int index);
         [DllImport(Lib)] public static extern byte SteamAPI_ISteamMatchmaking_SetLobbyJoinable(nint self, ulong lobby, byte joinable);
         [DllImport(Lib)] public static extern byte SteamAPI_ISteamMatchmaking_InviteUserToLobby(nint self, ulong lobby, ulong invitee);
+        [DllImport(Lib)] public static extern void SteamAPI_ISteamMatchmaking_AddRequestLobbyListResultCountFilter(nint self, int max);
+        [DllImport(Lib)] public static extern byte* SteamAPI_ISteamMatchmaking_GetLobbyMemberData(nint self, ulong lobby, ulong user, byte* key);
+        [DllImport(Lib)] public static extern void SteamAPI_ISteamMatchmaking_SetLobbyMemberData(nint self, ulong lobby, byte* key, byte* value);
+        [DllImport(Lib)] public static extern byte SteamAPI_ISteamMatchmaking_SetLobbyOwner(nint self, ulong lobby, ulong owner);
+
+        // Country and language (ISteamUtils, ISteamApps).
+        [DllImport(Lib)] public static extern nint SteamAPI_SteamUtils_v011();
+        [DllImport(Lib)] public static extern byte* SteamAPI_ISteamUtils_GetIPCountry(nint self);
+        [DllImport(Lib)] public static extern nint SteamAPI_SteamApps_v009();
+        [DllImport(Lib)] public static extern byte* SteamAPI_ISteamApps_GetCurrentGameLanguage(nint self);
 
         // Peer-to-peer messages.
         [DllImport(Lib)] public static extern nint SteamAPI_SteamNetworkingMessages_SteamAPI_v002();
@@ -87,6 +97,13 @@ namespace KotH.Client.Steam
         [DllImport(Lib)] public static extern byte SteamAPI_ISteamNetworkingMessages_CloseSessionWithUser(nint self, byte* identity);
         [DllImport(Lib)] public static extern nint SteamAPI_SteamNetworkingUtils_SteamAPI_v004();
         [DllImport(Lib)] public static extern void SteamAPI_ISteamNetworkingUtils_InitRelayNetworkAccess(nint self);
+        // Ping locations: SteamNetworkPingLocation_t is 512 opaque bytes, as text at most 1024.
+        public const int PingLocationSize = 512, PingTextSize = 1024;
+        [DllImport(Lib)] public static extern float SteamAPI_ISteamNetworkingUtils_GetLocalPingLocation(nint self, byte* location);
+        [DllImport(Lib)] public static extern int SteamAPI_ISteamNetworkingUtils_EstimatePingTimeBetweenTwoLocations(nint self, byte* a, byte* b);
+        [DllImport(Lib)] public static extern int SteamAPI_ISteamNetworkingUtils_EstimatePingTimeFromLocalHost(nint self, byte* remote);
+        [DllImport(Lib)] public static extern void SteamAPI_ISteamNetworkingUtils_ConvertPingLocationToString(nint self, byte* location, byte* text, int size);
+        [DllImport(Lib)] public static extern byte SteamAPI_ISteamNetworkingUtils_ParsePingLocationString(nint self, byte* text, byte* location);
         [DllImport(Lib)] public static extern void SteamAPI_SteamNetworkingIdentity_SetSteamID64(byte* self, ulong steamId);
         [DllImport(Lib)] public static extern ulong SteamAPI_SteamNetworkingIdentity_GetSteamID64(byte* self);
         [DllImport(Lib)] public static extern void SteamAPI_SteamNetworkingMessage_t_Release(nint message);

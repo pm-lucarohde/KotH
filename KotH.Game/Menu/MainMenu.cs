@@ -39,11 +39,13 @@ namespace KotH.Client.Menu
         const float DropDelay = 0.35f, DropSeconds = 0.9f, DropFrom = 80f;
         const float FadeSeconds = 0.4f;
 
-        /// <summary>Host server: GameRoot opens a lobby on the map behind the menu.</summary>
-        [DataMemberIgnore] public Action StartHost { get; set; }
+        /// <summary>Host server's page: GameRoot opens a lobby on the map behind the menu, listed with these
+        /// flags; a private one admits only who knows the password (or was invited).</summary>
+        [DataMemberIgnore] public Action<LobbyFlags, string> StartHost { get; set; }
 
-        /// <summary>A round from Find server or an invite, its lobby entered: GameRoot joins it.</summary>
-        [DataMemberIgnore] public Action<SteamLobby> StartJoin { get; set; }
+        /// <summary>A round from Find server or an invite, its lobby entered: GameRoot joins it, with the
+        /// password typed for a private one (null otherwise).</summary>
+        [DataMemberIgnore] public Action<SteamLobby, string> StartJoin { get; set; }
 
 
         /// <summary>The name on the band.</summary>
@@ -76,9 +78,13 @@ namespace KotH.Client.Menu
         // Find server searches again this often while open: a new lobby takes Steam a few seconds to list.
         const float SearchEvery = 5f;
 
+        LobbyFlags hostFlags;
+        string hostPassword;
         bool loaded, dark, shown, hostWanted, quitWanted, customizing, unsaved, entering, searching;
         float searched;
+        int searches;
         SteamLobby entered;
+        string enteredPassword;
         float since;
 
         public override void Start()
@@ -89,11 +95,16 @@ namespace KotH.Client.Menu
 
             view = new MainMenuView();
             view.Label(PlayerName ?? Environment.UserName, $"Build {NetProtocol.BuildText[..8]}");
-            view.HostRequested += () => hostWanted = true;
+            view.HostOpened += () => view.Hoster.Open(PlayerName ?? Environment.UserName);
+            view.Hoster.HostRequested += (flags, password) =>
+            {
+                (hostFlags, hostPassword) = (flags, password);
+                hostWanted = true;
+            };
             view.QuitRequested += () => quitWanted = true;
             view.FindOpened += Search;
             view.Finder.RefreshRequested += Search;
-            view.Finder.JoinRequested += round => Enter(round.Id, round.Host);
+            view.Finder.JoinRequested += (round, password) => Enter(round.Id, round.Host, password);
             view.Customizer.Look = Look;
             view.Customizer.LookChanged += look =>
             {
@@ -138,7 +149,8 @@ namespace KotH.Client.Menu
                 if (!shown)
                     Reveal();
                 Enter((float)Game.UpdateTime.Elapsed.TotalSeconds, screen.Y / (float)MainMenuView.DesignHeight);
-                if (!view.SettingsView.Capture(Input) && KeyPresses.Pressed(Input, Keys.Escape))
+                if (!MenuTextBox.Capture(Input) && !view.SettingsView.Capture(Input) && KeyPresses.Pressed(Input, Keys.Escape)
+                    && !view.Finder.Cancel())
                     view.GoBack();
                 pointer.Update(Input, screen, pointed);
             }
@@ -164,19 +176,19 @@ namespace KotH.Client.Menu
             if (shown && !entering && entered == null && SteamClient.TakeInvite(out ulong invited))
             {
                 view.OpenFind();
-                Enter(invited, null);
+                Enter(invited, null, null);
             }
             if (hostWanted)
             {
                 // Out of Avalonia's dispatcher: the host removes this menu.
                 hostWanted = false;
-                StartHost?.Invoke();
+                StartHost?.Invoke(hostFlags, hostPassword);
             }
             else if (entered != null)
             {
                 SteamLobby lobby = entered;
                 entered = null;
-                StartJoin?.Invoke(lobby);
+                StartJoin?.Invoke(lobby, enteredPassword);
             }
             if (quitWanted)
                 ((GameBase)Game).Exit();
@@ -195,19 +207,24 @@ namespace KotH.Client.Menu
                 view.Finder.Searching();
             searching = true;
             searched = 0f;
-            SteamLobby.Search(rounds =>
+            // A filter changed while Steam searched: only the newest search's answer counts.
+            int asked = ++searches;
+            SteamLobby.Search(view.Finder.Filter, rounds =>
             {
+                if (asked != searches)
+                    return;
                 searching = false;
                 view?.Finder.Found(rounds, again);
             });
         }
 
         // Enters a round's lobby; it is joined only on the host's build (GameRoot changes the map if need be).
-        void Enter(ulong id, string host)
+        void Enter(ulong id, string host, string password)
         {
             if (entering || !SteamClient.Ready)
                 return;
             entering = true;
+            enteredPassword = password;
             view.Finder.Joining(host ?? "the round");
             SteamLobby.Enter(id, (lobby, why) =>
             {
@@ -278,11 +295,13 @@ namespace KotH.Client.Menu
         {
             shown = true;
             // Test aids for shots: KOTH_SHOT_MENU_HOT=n lights button n, KOTH_SHOT_MENU_PAGE=n clicks it (0 hosts),
-            // KOTH_SHOT_SETTINGS=sound|graphics|input picks the Settings tab.
+            // KOTH_SHOT_SETTINGS=sound|graphics|input picks the Settings tab, KOTH_SHOT_HOST_PRIVATE=pw a private round.
             if (int.TryParse(Environment.GetEnvironmentVariable("KOTH_SHOT_MENU_HOT"), out int hot))
                 view.Pretend(hot, false);
             if (int.TryParse(Environment.GetEnvironmentVariable("KOTH_SHOT_MENU_PAGE"), out int open))
                 view.Pretend(open, true);
+            if (Environment.GetEnvironmentVariable("KOTH_SHOT_HOST_PRIVATE") is { } pass)
+                view.Hoster.Pretend(pass);
             if (Environment.GetEnvironmentVariable("KOTH_SHOT_SETTINGS") is { } tab)
                 view.SettingsView.Choose(tab);
         }

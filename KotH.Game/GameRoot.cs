@@ -242,20 +242,22 @@ namespace KotH.Client
         }
 
         /// <summary>Host server: as if started with --host, the lobby on Mount Destiny (behind the menu
-        /// already), through a public Steam lobby when Steam is there (direct IP otherwise).</summary>
-        void HostFromMenu()
+        /// already), through a listed Steam lobby with the page's flags when Steam is there (direct IP
+        /// otherwise); a private round takes only who knows the password.</summary>
+        void HostFromMenu(LobbyFlags flags, string password)
         {
             if (!LeaveMenu())
                 return;
             LaunchOptions options = LaunchOptions.Current;
             options.Host = true;
             options.Steam = SteamClient.Ready;
-            StartNetworked(options, options.Steam ? SteamLobby.Open(builder.Map, options.Name) : null);
+            options.Password = password;
+            StartNetworked(options, options.Steam ? SteamLobby.Open(builder.Map, flags) : null);
         }
 
         /// <summary>A round from the lobby list or an invite, its lobby entered. On another map the
         /// loaded one goes; the host names its map, which loads, and the guest joins once it is baked.</summary>
-        void JoinFromMenu(SteamLobby lobby)
+        void JoinFromMenu(SteamLobby lobby, string password)
         {
             if (!LeaveMenu())
             {
@@ -265,6 +267,7 @@ namespace KotH.Client
             LaunchOptions options = LaunchOptions.Current;
             options.Host = false;
             options.Steam = true;
+            options.Password = password;
             if (lobby.Map != builder.Map)
                 UnloadMap();
             StartNetworked(options, lobby);
@@ -278,12 +281,7 @@ namespace KotH.Client
         /// waits; NetClient joins again once the map is baked. Covered until joined.</summary>
         void RestartOn(string map, MatchStage stage)
         {
-            if (botDirector != null)
-            {
-                Services.RemoveService<BotDirector>();
-                botDirector.Dispose();
-                botDirector = null;
-            }
+            DropBots();
             foreach (SimulationBody body in new List<SimulationBody>(shown.Keys))
                 ((INetWorld)this).Despawn(body);
             foreach (SimulationBody body in new List<SimulationBody>(simulation.Bodies))
@@ -334,12 +332,7 @@ namespace KotH.Client
                 net.Dispose();
                 net = null;
             }
-            if (botDirector != null)
-            {
-                Services.RemoveService<BotDirector>();
-                botDirector.Dispose();
-                botDirector = null;
-            }
+            DropBots();
             foreach (SimulationBody body in new List<SimulationBody>(shown.Keys))
                 ((INetWorld)this).Despawn(body);
             foreach (SimulationBody body in new List<SimulationBody>(simulation.Bodies))
@@ -551,11 +544,22 @@ namespace KotH.Client
             Services.AddService(cover);
         }
 
+        // The bot director goes (a restart, the main menu, a host change that ends this side's hosting).
+        void DropBots()
+        {
+            if (botDirector == null)
+                return;
+            Services.RemoveService<BotDirector>();
+            botDirector.Dispose();
+            botDirector = null;
+        }
+
         /// <summary>The bots' inputs worked out ahead of their ticks, off the frame: on a
         /// thread of their own, with KOTH_BOT_THREAD=0 a little each frame instead.
         /// SimulationDriver pumps the director it finds here.</summary>
         void WorkAhead(BotDirector director)
         {
+            DropBots();
             if (director == null)
                 return;
             botDirector = director;

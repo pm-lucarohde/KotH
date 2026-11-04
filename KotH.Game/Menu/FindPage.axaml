@@ -1,5 +1,6 @@
-<!-- Find server: the open KotH rounds on Steam with the same build, on any map, a Join per round
-     in a list that scrolls with the wheel; a word underneath, Refresh to search again. -->
+<!-- Find server: filters (access, country, language, modded; a click steps on, a right click back),
+     the open KotH rounds on Steam with the same build, nearest first, a Join per round in a list that
+     scrolls with the wheel; a word underneath, Refresh to search again. -->
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="KotH.Client.Menu.FindPage"
@@ -10,8 +11,9 @@
             <Setter Property="ClipToBounds" Value="False" />
         </Style>
     </UserControl.Styles>
-    <Grid RowDefinitions="*,Auto">
-        <Border Classes="Well" Padding="0,8">
+    <Grid RowDefinitions="Auto,*,Auto">
+        <StackPanel Name="Filters" Orientation="Horizontal" Spacing="10" Margin="0,0,0,14" />
+        <Border Grid.Row="1" Classes="Well" Padding="0,8">
             <Panel Name="Inside">
                 <StackPanel Name="Empty" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" Margin="26,0">
                     <TextBlock Name="EmptyTitle" Classes="Label" Text="No servers found" HorizontalAlignment="Center" FontSize="28" />
@@ -19,9 +21,14 @@
                 </StackPanel>
             </Panel>
         </Border>
-        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,20,0,0">
+        <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Margin="0,20,0,0">
             <TextBlock Name="Status" Classes="Hint" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
             <Button Name="Refresh" Grid.Column="1" Classes="Menu Small" Content="Refresh" Width="190" Margin="18,0,0,0" />
+            <!-- A private round's password, asked for when its Join was chosen -->
+            <StackPanel Name="Ask" Orientation="Horizontal" Spacing="14" IsVisible="False" VerticalAlignment="Center">
+                <TextBlock Classes="Label" Text="Password" VerticalAlignment="Center" />
+            </StackPanel>
+            <Button Name="JoinPrivate" Grid.Column="1" Classes="Menu Small" Content="Join" Width="190" Margin="18,0,0,0" IsVisible="False" />
         </Grid>
     </Grid>
 </UserControl>

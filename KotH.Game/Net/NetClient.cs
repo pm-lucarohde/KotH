@@ -112,6 +112,7 @@ namespace KotH.Client.Net
                 joinWhen = null;
                 Session.Join(now);
             }
+            Lobby?.Refresh();
             if (Host != null && Lobby != null)
             {
                 int players = HillMatch.CountPlayers(Session.Simulation.Bodies);

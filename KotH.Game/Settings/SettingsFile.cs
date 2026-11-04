@@ -74,6 +74,9 @@ namespace KotH.Client.Settings
             t.Append("\n[keys]\n");
             foreach (Binding b in Enum.GetValues<Binding>())
                 Text(t, KeyName(b), s.Key(b).ToString());
+            t.Append("\n[host]\n");
+            Text(t, "name", s.HostName); Flag(t, "private", s.HostPrivate); Text(t, "country", s.HostCountry);
+            Text(t, "languages", string.Join(",", s.HostLanguages)); Flag(t, "modded", s.HostModded);
             return t.ToString();
         }
 
@@ -152,6 +155,11 @@ namespace KotH.Client.Settings
                 case ("input", "mouse_sensitivity"):
                     s.MouseSensitivity = Math.Clamp(Float(v, s.MouseSensitivity), PlayerSettings.MinSensitivity, PlayerSettings.MaxSensitivity);
                     break;
+                case ("host", "name"): s.HostName = v.Length > 40 ? v[..40] : v; break;
+                case ("host", "private"): s.HostPrivate = Bool(v, s.HostPrivate); break;
+                case ("host", "country"): s.HostCountry = v.Length == 2 ? v.ToUpperInvariant() : ""; break;
+                case ("host", "languages"): s.HostLanguages = v.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
+                case ("host", "modded"): s.HostModded = Bool(v, s.HostModded); break;
                 case ("keys", _):
                     foreach (Binding b in Enum.GetValues<Binding>())
                         if (KeyName(b) == key && Enum.TryParse(v, true, out Keys k) && Enum.IsDefined(k))

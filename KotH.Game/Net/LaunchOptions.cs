@@ -11,7 +11,7 @@ namespace KotH.Client.Net
     /// <summary>What the client was started with; without --host, --join or --offline the main menu. Options:
     /// --host [--port N] [--min-players N], --join ADDRESS[:PORT], --offline, --name NAME (else Steam's), --display N
     /// (monitor, 0 first), --bots N, --bot-seed N, --map NAME (to play on; joiners take the host's), --fps N (cap; these two
-    /// over settings.toml), --dlss off|dlaa|quality|balanced|performance|ultra (or KOTH_DLSS), +connect_lobby ID (Steam's invite).</summary>
+    /// over settings.toml), --password TEXT (a private round, hosting or joining), --dlss off|dlaa|quality|balanced|performance|ultra (or KOTH_DLSS), +connect_lobby ID (Steam's invite).</summary>
     public sealed class LaunchOptions
     {
         public bool Host;
@@ -34,6 +34,10 @@ namespace KotH.Client.Net
 
         /// <summary>Hosting or joining through a Steam lobby (the main menu), not direct IP.</summary>
         public bool Steam;
+
+        /// <summary>Hosting: the password of a private round (Host server page, --password), null for none.
+        /// Joining: the password to answer the host's challenge with.</summary>
+        public string Password;
 
         public bool Networked => Host || JoinAddress != null || Steam;
 
@@ -77,6 +81,7 @@ namespace KotH.Client.Net
             if (Number(args, "--bot-seed") is { } seed)
                 o.BotSeed = seed;
             o.Map = Text(args, "--map") ?? o.Map;
+            o.Password = Text(args, "--password");
             o.Fps = Number(args, "--fps");
             if ((Text(args, "--dlss") ?? Environment.GetEnvironmentVariable("KOTH_DLSS")) is { } dlss)
                 o.Dlss = KotH.Client.Rendering.Dlss.Dlss.ParseMode(dlss);

@@ -28,7 +28,12 @@ namespace KotH.Client.Steam
         /// <summary>The Steam profile's name; null without Steam.</summary>
         public static string PersonaName { get; private set; }
 
-        internal static nint Friends, Matchmaking, Messages;
+        internal static nint Friends, Matchmaking, Messages, NetUtils;
+
+        /// <summary>The country Steam places this connection in (ISO 3166, e.g. "DE"), and the
+        /// language the player runs Steam in as an ISO 639 code; for the Host page's defaults.</summary>
+        public static string IpCountry { get; private set; } = "";
+        public static string Language { get; private set; } = "en";
 
         /// <summary>A callback by its id, with its struct: valid only during the call.</summary>
         internal static event Action<int, nint> Callback;
@@ -63,8 +68,11 @@ namespace KotH.Client.Steam
                 Messages = SteamAPI_SteamNetworkingMessages_SteamAPI_v002();
                 SteamId = SteamAPI_ISteamUser_GetSteamID(SteamAPI_SteamUser_v023());
                 PersonaName = Text(SteamAPI_ISteamFriends_GetPersonaName(Friends));
+                IpCountry = Text(SteamAPI_ISteamUtils_GetIPCountry(SteamAPI_SteamUtils_v011()))?.ToUpperInvariant() ?? "";
+                Language = LobbyFlags.LanguageOfSteam(Text(SteamAPI_ISteamApps_GetCurrentGameLanguage(SteamAPI_SteamApps_v009())));
                 // The relay network takes a few seconds to reach; started now, not at the first join.
-                SteamAPI_ISteamNetworkingUtils_InitRelayNetworkAccess(SteamAPI_SteamNetworkingUtils_SteamAPI_v004());
+                NetUtils = SteamAPI_SteamNetworkingUtils_SteamAPI_v004();
+                SteamAPI_ISteamNetworkingUtils_InitRelayNetworkAccess(NetUtils);
                 Ready = true;
                 Console.WriteLine($"[steam] ready as {PersonaName}, app {AppId}");
             }
@@ -151,6 +159,40 @@ namespace KotH.Client.Steam
                 done(0, false);
             else
                 calls[call] = done;
+        }
+
+        /// <summary>Where this player sits in Valve's relay network, as text for lobby data; null
+        /// until the relays have been measured (a few seconds after the start).</summary>
+        public static string PingLocation()
+        {
+            if (!Ready)
+                return null;
+            byte* location = stackalloc byte[PingLocationSize];
+            if (SteamAPI_ISteamNetworkingUtils_GetLocalPingLocation(NetUtils, location) < 0f)
+                return null;
+            byte* text = stackalloc byte[PingTextSize];
+            SteamAPI_ISteamNetworkingUtils_ConvertPingLocationToString(NetUtils, location, text, PingTextSize);
+            return Text(text);
+        }
+
+        /// <summary>The estimated round trip in ms from here to a ping location, or from a to b; -1 unknown.</summary>
+        public static int EstimatePing(string to, string from = null)
+        {
+            if (!Ready || string.IsNullOrEmpty(to))
+                return -1;
+            byte* b = stackalloc byte[PingLocationSize];
+            if (!Parse(to, b))
+                return -1;
+            if (from == null)
+                return SteamAPI_ISteamNetworkingUtils_EstimatePingTimeFromLocalHost(NetUtils, b);
+            byte* a = stackalloc byte[PingLocationSize];
+            return Parse(from, a) ? SteamAPI_ISteamNetworkingUtils_EstimatePingTimeBetweenTwoLocations(NetUtils, a, b) : -1;
+        }
+
+        static bool Parse(string text, byte* location)
+        {
+            fixed (byte* t = Z(text))
+                return SteamAPI_ISteamNetworkingUtils_ParsePingLocationString(NetUtils, t, location) != 0;
         }
 
         /// <summary>Whether an accepted invite waits for the main menu.</summary>

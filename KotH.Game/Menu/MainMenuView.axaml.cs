@@ -5,12 +5,12 @@ using Avalonia.Interactivity;
 namespace KotH.Client.Menu
 {
     /// <summary>The main menu's controls: buttons, the note on the one under the pointer, the pages behind
-    /// three of them (Find server, Settings; Languages only to look at), Customize, title and small
-    /// print. Five parts of a screen 1080 high that MainMenu takes out (<see cref="TakeParts"/>), shows and slides in.</summary>
+    /// four of them (Host server, Find server, Settings; Languages only to look at), Customize, title and
+    /// small print. Five parts of a screen 1080 high that MainMenu takes out (<see cref="TakeParts"/>), shows and slides in.</summary>
     public partial class MainMenuView : UserControl
     {
-        /// <summary>Host server was chosen.</summary>
-        public event Action HostRequested;
+        /// <summary>Host server's page was opened: time to fill it.</summary>
+        public event Action HostOpened;
 
         /// <summary>Find server was opened: time to search.</summary>
         public event Action FindOpened;
@@ -32,6 +32,9 @@ namespace KotH.Client.Menu
         /// <summary>The Find server page.</summary>
         public FindPage Finder => FindPage;
 
+        /// <summary>The Host server page.</summary>
+        public HostPage Hoster => HostPage;
+
 
         public MainMenuView()
         {
@@ -39,7 +42,11 @@ namespace KotH.Client.Menu
             Describe(Host);
             foreach (Button button in new[] { Host, Find, Customize, Settings, Languages, Quit })
                 button.PointerEntered += (_, _) => Describe(button);
-            Host.Click += (_, _) => HostRequested?.Invoke();
+            Host.Click += (_, _) =>
+            {
+                OpenPage(Host, "Host server", HostPage);
+                HostOpened?.Invoke();
+            };
             Quit.Click += (_, _) => QuitRequested?.Invoke();
             Find.Click += (_, _) =>
             {
@@ -130,6 +137,7 @@ namespace KotH.Client.Menu
                 return;
             PageTitle.Text = title;
             FindPage.IsVisible = content == FindPage;
+            HostPage.IsVisible = content == HostPage;
             SettingsPage.IsVisible = content == SettingsPage;
             LanguagesPage.IsVisible = content == LanguagesPage;
             PageTitle.IsVisible = Back.IsVisible = content != SettingsPage;
@@ -139,7 +147,7 @@ namespace KotH.Client.Menu
 
         void Describe(Button button)
         {
-            Description.Text = button == Host ? "Open a lobby on Mount Destiny and choose the round's map. Others find it under Find server, bots fill the free slots."
+            Description.Text = button == Host ? "Open a lobby on Mount Destiny, public or private with a password, and choose the round's map. Bots fill the free slots."
                              : button == Find ? "Find other players' rounds on Steam and join them."
                              : button == Customize ? "Colour your mushroom: cap, skin, leaves, gloves and spores."
                              : button == Settings ? "Graphics, sound and controls to your taste."

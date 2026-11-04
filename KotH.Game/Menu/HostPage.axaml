@@ -1,0 +1,25 @@
+<!-- Host server: the round's name, public or private (with a password), country, languages and
+     modded, then Host; the choices but the password stay for next time (settings.toml [host]). -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="KotH.Client.Menu.HostPage"
+             x:CompileBindings="True" ClipToBounds="False">
+    <!-- The buttons' pictures reach 24 px past the page's edge: nothing here may clip them. -->
+    <UserControl.Styles>
+        <Style Selector="UserControl /template/ ContentPresenter">
+            <Setter Property="ClipToBounds" Value="False" />
+        </Style>
+    </UserControl.Styles>
+    <Grid RowDefinitions="*,Auto">
+        <Border Classes="Well" Padding="0,8">
+            <ScrollViewer Name="Scroll" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"
+                          AllowAutoHide="False">
+                <StackPanel Name="Rows" Margin="26,0,30,0" />
+            </ScrollViewer>
+        </Border>
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,18,0,0">
+            <TextBlock Name="Status" Classes="Hint" VerticalAlignment="Center" TextWrapping="Wrap" />
+            <Button Name="Start" Grid.Column="1" Classes="Menu Small" Content="Host" Width="170" Margin="18,0,0,0" />
+        </Grid>
+    </Grid>
+</UserControl>
