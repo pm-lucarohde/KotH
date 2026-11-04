@@ -16,6 +16,9 @@
     <StrideCurrentPackagePath>$(MSBuildThisFileDirectory)..\KotH.Game\KotH.Game.sdpkg</StrideCurrentPackagePath>
     <StridePlatform>Windows</StridePlatform>
     <StrideGraphicsApi>Vulkan</StrideGraphicsApi>
+    <!-- The asset compiler takes the precompiled effects' API from a property, not from the compile property it
+         is given; without it they are built for Direct3D11, which cannot be compiled on Linux. -->
+    <StrideCompileAssetOptions>--property:StrideGraphicsApi=Vulkan</StrideCompileAssetOptions>
     <PublishAot>true</PublishAot>
   </PropertyGroup>
   <ItemGroup>
