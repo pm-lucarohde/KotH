@@ -104,8 +104,8 @@ namespace KotH.Client.Menu
                     Show(false);
                 return;
             }
-            // An accepted invite, or a private round that refused the password: back to the main menu.
-            bool refused = Services.GetService<NetClient>()?.Session.Rejected == RejectReason.Password;
+            // An accepted invite, a refused password or a host key not the invite's: back to the main menu.
+            bool refused = Services.GetService<NetClient>() is { } net && (net.Session.Rejected == RejectReason.Password || net.KeyRefused != null);
             if (SteamClient.HasInvite && Pregame() || refused)
             {
                 if (Open)
@@ -149,7 +149,7 @@ namespace KotH.Client.Menu
             MenuOverlay.Tick(Game.UpdateTime.FrameCount);
             // The round may end (or begin) while the menu is open: leaving unlocks (or locks).
             if (locked != RoundRunning())
-                view.Offer(invite: Lobby != null, maps: LobbyHost != null, locked = RoundRunning());
+                view.Offer(invite: Lobby != null || InviteCode != null, maps: LobbyHost != null, locked = RoundRunning());
             board.Visible = !view.PageOpen && !confirming;
             page.Visible = view.PageOpen && !confirming;
             confirm.Visible = confirming;
@@ -177,7 +177,7 @@ namespace KotH.Client.Menu
             resumeWanted = menuWanted = confirming = false;
             view.PageOpen = false;
             if (open)
-                view.Offer(invite: Lobby != null, maps: LobbyHost != null, locked = RoundRunning());
+                view.Offer(invite: Lobby != null || InviteCode != null, maps: LobbyHost != null, locked = RoundRunning());
             since = 0f;
             if (!open)
             {
@@ -224,9 +224,22 @@ namespace KotH.Client.Menu
         // The lobby of the round, if it runs over Steam.
         SteamLobby Lobby => Services.GetService<NetClient>()?.Lobby is { Id: not 0 } lobby && SteamClient.Ready ? lobby : null;
 
+        // A direct-IP host's invite code, for Invite friends without Steam.
+        string InviteCode => Lobby == null ? Services.GetService<NetClient>()?.Invite : null;
+
         void ListFriends()
         {
             var rows = new List<RowList.Row>();
+            if (InviteCode is { } code)
+            {
+                rows.Add(new RowList.Row(code, "", "Copy", () =>
+                {
+                    MenuTextBox.Copy(code);
+                    view.Say("Copied: paste it into Join by invite (Find server). Over the internet use your public address.");
+                }));
+                view.ShowList(rows, "", "Friends join with this code; it carries this host's key.");
+                return;
+            }
             foreach ((ulong id, string name) in SteamClient.OnlineFriends())
             {
                 string friend = name;

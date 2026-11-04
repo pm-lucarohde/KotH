@@ -47,6 +47,9 @@ namespace KotH.Client.Menu
         /// password typed for a private one (null otherwise).</summary>
         [DataMemberIgnore] public Action<SteamLobby, string> StartJoin { get; set; }
 
+        /// <summary>GameRoot: joins a direct-IP host by its invite code.</summary>
+        [DataMemberIgnore] public Action<string> StartInvite { get; set; }
+
         /// <summary>Why the last game ended before it began (a wrong password): Find server opens with it.</summary>
         [DataMemberIgnore] public string Note { get; set; }
 
@@ -108,6 +111,7 @@ namespace KotH.Client.Menu
             view.FindOpened += Search;
             view.Finder.RefreshRequested += Search;
             view.Finder.JoinRequested += (round, password) => Enter(round.Id, round.Host, password);
+            view.Finder.InviteRequested += code => StartInvite?.Invoke(code);
             view.Customizer.Look = Look;
             view.Customizer.LookChanged += look =>
             {

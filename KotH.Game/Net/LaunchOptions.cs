@@ -9,13 +9,16 @@ using KotH.Shared.Net;
 namespace KotH.Client.Net
 {
     /// <summary>What the client was started with; without --host, --join or --offline the main menu. Options:
-    /// --host [--port N] [--min-players N], --join ADDRESS[:PORT], --offline, --name NAME (else Steam's), --display N
+    /// --host [--port N] [--min-players N], --join ADDRESS[:PORT] [--key FP] or "koth://join?…", --offline, --name NAME, --display N
     /// (monitor, 0 first), --bots N, --bot-seed N, --map NAME (to play on; joiners take the host's), --fps N (cap; these two
     /// over settings.toml), --password TEXT (a private round, hosting or joining), --dlss off|dlaa|quality|balanced|performance|ultra (or KOTH_DLSS), +connect_lobby ID (Steam's invite).</summary>
     public sealed class LaunchOptions
     {
         public bool Host;
         public string JoinAddress;
+
+        /// <summary>Joining by direct IP: the host key's fingerprint the host must have (an invite code's, --key).</summary>
+        public string JoinKey;
         public bool Offline;
         public int Port = LiteNetTransport.DefaultPort;
         public string Name;
@@ -58,7 +61,13 @@ namespace KotH.Client.Net
         {
             var o = new LaunchOptions { Host = Array.IndexOf(args, "--host") >= 0, Offline = Array.IndexOf(args, "--offline") >= 0 };
 
-            if (Text(args, "--join") is { } join)
+            if (Text(args, "--join") is { } invite && Invites.TryParse(invite, out string at, out int atPort, out string key))
+            {
+                o.JoinAddress = at;
+                o.Port = atPort;
+                o.JoinKey = key;
+            }
+            else if (Text(args, "--join") is { } join)
             {
                 // "host:port", but an IPv6 address has colons of its own.
                 int colon = join.LastIndexOf(':');
@@ -73,6 +82,7 @@ namespace KotH.Client.Net
 
             if (Number(args, "--port") is { } p)
                 o.Port = p;
+            o.JoinKey = Text(args, "--key") ?? o.JoinKey;
             if (Number(args, "--min-players") is { } min)
                 o.MinPlayers = Math.Clamp(min, 1, NetWorld.MaxPlayers);
             o.Display = Number(args, "--display");

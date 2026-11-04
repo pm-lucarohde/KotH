@@ -65,11 +65,11 @@ dotnet run Tools/Regress.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # nu
 
 ### Network
 - Rollback in a star: `HostSession` confirms ticks (inputs, joins, leaves), checksums every 40 ticks, state on desync;
-  `PeerSession` (host too, `LocalTransport`) predicts and rolls back (ring 128, ≤ 15 ticks ahead).
-- `StateCodec` (version 4), bodies by `NetId` (players from 4), same `BuildId` needed (MVID, instruction set, assets).
-- Menu via Steam (app 480, `KotH.Game/Steam`, lobbies, `SteamTransport`; shots only with `KOTH_STEAM=1`), else UDP
-  via LiteNetLib 2.1.4 (`--host`/`--join`, server); datagrams ≤ 1200 B, inputs clamped (`Sanitize`). `GameRoot` is
-  the `INetWorld`, `NetClient` holds the sessions; wins shown only confirmed; never smooth corrections.
+  `PeerSession` (host too, `LocalTransport`) predicts, rolls back (ring 128, ≤ 15 ticks). `StateCodec` v4, `NetId` ≥ 4,
+  same `BuildId` (MVID, instruction set, assets). `GameRoot` = `INetWorld`; wins only confirmed; never smooth corrections.
+- Steam menu (app 480, `KotH.Game/Steam`, `SteamTransport`; shots only with `KOTH_STEAM=1`): the lobby's "host" hosts,
+  a gone or slow one hands over (`HostChange.cs`, probe `migrate`); private rounds `PasswordKey` (probe `password`).
+  Else UDP (LiteNetLib 2.1.4, `--host`/`--join`, server), encrypted, key pinned by invite `koth://…&key=` (probe `secure`).
 
 ### Round (`KotH.Shared/Match`)
 - `HillMatch`: 3 s alone takes the zone, holder scores inside; phases `Running`/`Over` (+ `Waiting`/`Countdown` net).

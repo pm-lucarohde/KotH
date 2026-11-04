@@ -17,6 +17,11 @@ namespace KotH.Client.Menu
         /// <summary>Join was chosen on a round, with the password a private one was given (else null).</summary>
         public event Action<LobbyListing, string> JoinRequested;
 
+        /// <summary>Join was chosen on a direct-IP invite code (checked: it parses).</summary>
+        public event Action<string> InviteRequested;
+
+        readonly MenuTextBox invite = new MenuTextBox { MaxLength = 160, Placeholder = "koth://join?… from the host, Ctrl+V pastes" };
+
         readonly RowList list = new RowList();
         readonly List<string> countriesSeen = new List<string>();
         readonly Border access, country, language, modded;
@@ -40,6 +45,9 @@ namespace KotH.Client.Menu
             modded = Pill(step => Filter = Filter with { Modded = Next(new bool?[] { null, false, true }, Filter.Modded, step) });
             ShowFilter();
             Refresh.Click += (_, _) => RefreshRequested?.Invoke();
+            InviteField.Children.Add(invite);
+            invite.Submitted += JoinInvited;
+            JoinInvite.Click += (_, _) => JoinInvited();
             Found(new List<LobbyListing>());
         }
 
@@ -49,7 +57,7 @@ namespace KotH.Client.Menu
             busy = true;
             list.Show(Array.Empty<RowList.Row>());
             EmptyTitle.Text = why;
-            EmptyHint.Text = "Start Steam and KotH again, or join by address: KotH --join ADDRESS";
+            EmptyHint.Text = "Start Steam and KotH again, or join with a host's invite code below.";
             Empty.IsVisible = true;
             Status.Text = "";
             Refresh.IsEnabled = false;
@@ -86,6 +94,19 @@ namespace KotH.Client.Menu
             if (!again || !saysWhy)
                 Status.Text = rows.Count == 0 ? "" : rows.Count == 1 ? "1 round" : $"{rows.Count} rounds";
             Refresh.IsEnabled = true;
+        }
+
+        void JoinInvited()
+        {
+            if (busy && invite.Text.Length == 0)
+                return;
+            if (!Invites.TryParse(invite.Text, out _, out _, out _))
+            {
+                Status.Text = "That is no invite code: koth://join?ip=…&port=…&key=…";
+                saysWhy = true;
+                return;
+            }
+            InviteRequested?.Invoke(invite.Text.Trim());
         }
 
         // A private round asks for its password first; an open one joins at once.

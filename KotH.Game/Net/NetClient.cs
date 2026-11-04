@@ -36,7 +36,16 @@ namespace KotH.Client.Net
             look = options.Look;
             if (options.Host)
             {
-                transport = lobby != null ? SteamTransport.Host(lobby) : LiteNetTransport.Host(options.Port);
+                if (lobby != null)
+                    transport = SteamTransport.Host(lobby);
+                else
+                {
+                    // Direct IP: the lasting key signs every handshake; the invite carries its fingerprint.
+                    HostKey key = HostKey.LoadOrCreate();
+                    transport = LiteNetTransport.Host(options.Port, key);
+                    Invite = key.Invite(Invites.LocalAddress(), options.Port);
+                    Console.WriteLine($"[net] invite: {Invite}");
+                }
                 Host = NewHost(Now);
                 // A private round: only the key of its password is kept; invited friends need none.
                 Host.Password = options.Password != null ? PasswordKey.Make(options.Password) : null;
@@ -53,7 +62,7 @@ namespace KotH.Client.Net
             }
             else
             {
-                transport = lobby != null ? SteamTransport.Join(lobby) : LiteNetTransport.Join(options.JoinAddress, options.Port);
+                transport = lobby != null ? SteamTransport.Join(lobby) : LiteNetTransport.Join(options.JoinAddress, options.Port, options.JoinKey);
                 Session = new PeerSession(world, transport, sampleLocal, options.Name, founder: false, Now, join: false, look: options.Look)
                 {
                     Password = options.Password,
@@ -61,6 +70,9 @@ namespace KotH.Client.Net
                 address = lobby != null ? lobby.HostName ?? "the host" : $"{options.JoinAddress}:{options.Port}";
             }
         }
+
+        /// <summary>A direct-IP host's invite code (address, port, key fingerprint) to hand on; else null.</summary>
+        public string Invite { get; }
 
         /// <summary>The Steam lobby of this game, null over direct IP.</summary>
         public SteamLobby Lobby { get; }
@@ -190,11 +202,16 @@ namespace KotH.Client.Net
                 RejectReason.Full => "Rejected: the game is full",
                 RejectReason.Closed => "Rejected: the round has run too long",
                 RejectReason.Password => "Rejected: wrong password",
-                _ => gaveUp || Session.HostLost && Lobby == null ? "The host is gone, the game is over"
+                _ => KeyRefused is { } why ? why
+                   : gaveUp || Session.HostLost && Lobby == null ? "The host is gone, the game is over"
                    : Session.ResumeNetId != 0 && !Session.Joined ? "The host changed, reconnecting ..."
                    : !Session.Joined ? $"Connecting to {address} ..."
                    : null,
             };
+
+        /// <summary>Direct IP: why the host's handshake failed its check (key not the invite's, bad signature), else null.</summary>
+        public string KeyRefused
+            => transport is LiteNetTransport { DisconnectReason: { } why } && why.StartsWith("The host's", StringComparison.Ordinal) ? why : null;
 
         /// <summary>The F3 line: ping, lead, rollbacks, waits.</summary>
         public string Readout

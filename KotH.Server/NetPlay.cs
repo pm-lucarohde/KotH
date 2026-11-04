@@ -57,7 +57,9 @@ namespace KotH.Server
             PeerSession session;
             if (hosting)
             {
-                transport = LiteNetTransport.Host(port);
+                var key = HostKey.LoadOrCreate();
+                transport = LiteNetTransport.Host(port, key);
+                Console.WriteLine($"[net] invite: {key.Invite(Invites.LocalAddress(), port)}");
                 host = new HostSession(transport, Now());
                 session = new PeerSession(new HeadlessNetWorld(world), host.LocalTransport, sample, name, founder: true, Now());
                 host.AttachFounder(session);
@@ -78,7 +80,10 @@ namespace KotH.Server
             else
             {
                 (string address, int at) = Address(join, port);
-                transport = LiteNetTransport.Join(address, at);
+                string pin = Text(args, "--key");
+                if (Invites.TryParse(join, out string invited, out int invitedPort, out string invitedKey))
+                    (address, at, pin) = (invited, invitedPort, invitedKey);
+                transport = LiteNetTransport.Join(address, at, pin);
                 session = new PeerSession(new HeadlessNetWorld(world), transport, sample, name, founder: false, Now());
                 Console.WriteLine($"[net] {name} connects to {address}:{at}, build {NetProtocol.BuildText}");
             }

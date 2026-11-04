@@ -230,7 +230,7 @@ namespace KotH.Client
         {
             var script = new MainMenu
             {
-                StartHost = HostFromMenu, StartJoin = JoinFromMenu, Note = menuNote,
+                StartHost = HostFromMenu, StartJoin = JoinFromMenu, StartInvite = JoinByInvite, Note = menuNote,
                 PlayerName = LaunchOptions.Current.Name, Cover = cover, Look = LaunchOptions.Current.Look,
                 LookChanged = LookChanged,
                 CustomizeShown = open => visuals.MoveShowcase(menuFigure, open ? MenuFigureCustomizeAt : MenuFigureAt),
@@ -272,6 +272,24 @@ namespace KotH.Client
             if (lobby.Map != builder.Map)
                 UnloadMap();
             StartNetworked(options, lobby);
+            NetClient guest = net;
+            guest.JoinWhenReady(() => cover.IsLoaded);
+            cover.Hold = () => !guest.Joined;
+        }
+
+        /// <summary>A direct-IP host by its invite code: encrypted, and only with the host key the code names.
+        /// The host names its map, which loads, and the guest joins once it is baked.</summary>
+        void JoinByInvite(string code)
+        {
+            if (!Invites.TryParse(code, out string address, out int port, out string key) || !LeaveMenu())
+                return;
+            LaunchOptions options = LaunchOptions.Current;
+            options.Host = options.Steam = false;
+            options.JoinAddress = address;
+            options.Port = port;
+            options.JoinKey = key;
+            options.Password = null;
+            StartNetworked(options);
             NetClient guest = net;
             guest.JoinWhenReady(() => cover.IsLoaded);
             cover.Hold = () => !guest.Joined;
@@ -326,7 +344,7 @@ namespace KotH.Client
             if (menu != null)
                 return;
             // A private round's door stayed shut: Find server says why.
-            menuNote = net?.Session.Rejected == RejectReason.Password ? "Wrong password" : null;
+            menuNote = net?.Session.Rejected == RejectReason.Password ? "Wrong password" : net?.KeyRefused;
             SimulationJob.Drop();
             games++;
             if (net != null)
