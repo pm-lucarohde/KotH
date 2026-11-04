@@ -134,9 +134,18 @@ sealed class KotHGame : Game
     Int2 sizeShown;
     int windowVersion;
 
-    // Real milliseconds of the frame, its update (Update's start to Draw's), its draw and the rest
-    // (present, waiting); ticks stepped, collections, KiB allocated, what showed (Shown), the camera and view.
-    struct FrameRow { public float Ms, Update, Draw; public byte Ticks, Gc0, Gc1, Gc2, Shown; public int KiB; public Vector3 Eye; public float Yaw, Pitch; }
+    // Real ms of the frame, its update (Update's start to Draw's), its draw and the rest (present, waiting);
+    // ticks, collections, KiB allocated, what showed (Shown), camera and view, the end on the monotonic clock
+    // (perf -k CLOCK_MONOTONIC), the game thread's CPU ms in update and draw, and with KOTH_VKTIMES=1 per
+    // Vulkan call (VulkanTimes) its ms and count on the game thread and its ms on the others.
+    struct FrameRow { public float Ms, Update, Draw, UpdateCpu, DrawCpu; public byte Ticks, Gc0, Gc1, Gc2, Shown; public int KiB; public Vector3 Eye; public float Yaw, Pitch; public long End; public VkRow Vk; }
+    [System.Runtime.CompilerServices.InlineArray((int)KotH.Client.Rendering.VulkanTimes.Call.Count)] struct VkMs { float first; }
+    [System.Runtime.CompilerServices.InlineArray((int)KotH.Client.Rendering.VulkanTimes.Call.Count)] struct VkCount { int first; }
+    struct VkRow { public VkMs Game, Other; public VkCount Count; }
+    struct TimeSpec { public long Seconds, Nanos; }
+    [System.Runtime.InteropServices.DllImport("libc", EntryPoint = "clock_gettime")] static extern int ClockGetTime(int clock, out TimeSpec time);
+    static long ThreadCpuNanos() => ClockGetTime(3, out TimeSpec t) == 0 ? t.Seconds * 1_000_000_000 + t.Nanos : 0; // CLOCK_THREAD_CPUTIME_ID
+    long updateCpu, drawCpu;
     enum Shown : byte { Other, Lobby, Round, Covered }
 
     // Ten minutes at 2000 FPS, allocated once so logging never allocates.
@@ -236,6 +245,9 @@ sealed class KotHGame : Game
         {
             StartLog.Mark("device created");
             KotH.Client.Rendering.PipelineCache.Install(GraphicsDeviceManager.GraphicsDevice);
+            KotH.Client.Rendering.SwapchainImages.Install(GraphicsDeviceManager.GraphicsDevice);
+            if (frameLogPath != null && Environment.GetEnvironmentVariable("KOTH_VKTIMES") == "1")
+                KotH.Client.Rendering.VulkanTimes.Install(GraphicsDeviceManager.GraphicsDevice);
         };
         // Stride pauses every sound while the window is in the background; a Play then does nothing.
         Activated += (_, _) => StartLog.Mark("window active, audio resumed");
@@ -432,12 +444,19 @@ sealed class KotHGame : Game
         if (frameLog == null)
             return;
         using var writer = new StreamWriter(frameLogPath);
-        writer.WriteLine("# ms update draw ticks gc0 gc1 gc2 kib shown(0 other, 1 lobby, 2 round, 3 covered) x y z yaw pitch");
+        writer.WriteLine("# ms update draw ticks gc0 gc1 gc2 kib shown(0 other, 1 lobby, 2 round, 3 covered) x y z yaw pitch end(s) updatecpu drawcpu, then per VulkanTimes.Call game ms, game count, other ms");
         for (int i = 0; i < frameCount; i++)
         {
             FrameRow r = frameLog[i];
-            writer.WriteLine(FormattableString.Invariant(
-                $"{r.Ms:F3} {r.Update:F3} {r.Draw:F3} {r.Ticks} {r.Gc0} {r.Gc1} {r.Gc2} {r.KiB} {r.Shown} {r.Eye.X:F2} {r.Eye.Y:F2} {r.Eye.Z:F2} {r.Yaw:F1} {r.Pitch:F1}"));
+            writer.Write(FormattableString.Invariant(
+                $"{r.Ms:F3} {r.Update:F3} {r.Draw:F3} {r.Ticks} {r.Gc0} {r.Gc1} {r.Gc2} {r.KiB} {r.Shown} {r.Eye.X:F2} {r.Eye.Y:F2} {r.Eye.Z:F2} {r.Yaw:F1} {r.Pitch:F1} {r.End / (double)System.Diagnostics.Stopwatch.Frequency:F6} {r.UpdateCpu:F3} {r.DrawCpu:F3}"));
+            for (int c = 0; c < (int)KotH.Client.Rendering.VulkanTimes.Call.Count; c++)
+                writer.Write(FormattableString.Invariant($" {r.Vk.Game[c]:F3}"));
+            for (int c = 0; c < (int)KotH.Client.Rendering.VulkanTimes.Call.Count; c++)
+                writer.Write(FormattableString.Invariant($" {r.Vk.Count[c]}"));
+            for (int c = 0; c < (int)KotH.Client.Rendering.VulkanTimes.Call.Count; c++)
+                writer.Write(FormattableString.Invariant($" {r.Vk.Other[c]:F3}"));
+            writer.WriteLine();
         }
         Console.WriteLine($"[frames] {frameCount} frames to {frameLogPath}");
     }
@@ -445,6 +464,8 @@ sealed class KotHGame : Game
     protected override void Update(GameTime gameTime)
     {
         updateStart = System.Diagnostics.Stopwatch.GetTimestamp();
+        if (frameLog != null)
+            updateCpu = ThreadCpuNanos();
         // Steam's callbacks before the scripts, which read lobbies and sessions.
         SteamClient.RunFrame();
         settings.Update();
@@ -783,6 +804,8 @@ sealed class KotHGame : Game
     protected override void Draw(GameTime gameTime)
     {
         long drawStart = System.Diagnostics.Stopwatch.GetTimestamp();
+        if (frameLog != null)
+            drawCpu = ThreadCpuNanos();
         base.Draw(gameTime);
         if (frameLog != null)
             LogFrame(drawStart);
@@ -927,6 +950,9 @@ sealed class KotHGame : Game
             : stage == KotH.Shared.Match.MatchStage.Lobby ? Shown.Lobby
             : sim?.Match?.State.Phase == KotH.Shared.Match.MatchPhase.Running ? Shown.Round : Shown.Other;
         gpuRecording = shown == Shown.Round;
+        VkRow vk = default;
+        KotH.Client.Rendering.VulkanTimes.Take(vk.Game, vk.Count, vk.Other);
+        long cpu = ThreadCpuNanos();
         if (lastFrameEnd != 0 && frameCount < frameLog.Length)
         {
             frameLog[frameCount++] = new FrameRow
@@ -936,7 +962,8 @@ sealed class KotHGame : Game
                 Gc1 = (byte)Math.Min(gc1 - lastGc1, 255), Gc2 = (byte)Math.Min(gc2 - lastGc2, 255),
                 KiB = (int)Math.Min((allocated - lastAllocated) >> 10, int.MaxValue), Shown = (byte)shown,
                 Eye = Cached(ref loggedCamera)?.Entity.Transform.WorldMatrix.TranslationVector ?? default,
-                Yaw = Cached(ref loggedReader)?.Yaw ?? 0f, Pitch = loggedReader?.Pitch ?? 0f,
+                Yaw = Cached(ref loggedReader)?.Yaw ?? 0f, Pitch = loggedReader?.Pitch ?? 0f, End = now, Vk = vk,
+                UpdateCpu = (drawCpu - updateCpu) / 1e6f, DrawCpu = (cpu - drawCpu) / 1e6f,
             };
             if (shown == Shown.Round && (roundSeconds += frameLog[frameCount - 1].Ms / 1000.0) >= frameLogSeconds)
                 Exit();

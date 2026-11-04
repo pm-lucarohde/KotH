@@ -28,7 +28,7 @@ Tools/publish_aot.sh windows probes-windows  # on request only (lld-link, xwin)
   `_AT`, `_MOVE`, `_BLASTER`, `_FIRE`, `_VIDEO` …), `KOTH_HEADLESS=1`, `KOTH_SIZE`, `KOTH_MUSIC_VOLUME=0` (mute), `KOTH_EFFECTLOG`,
   `KOTH_POSLOG`; menu shots `KOTH_SHOT_MENU`, `_PAUSE`, `_HUD=banner`, `_LOAD`, `_SETTINGS=tab`, `_APPLY=s:x.toml`; `KOTH_SETTINGS`;
   start log `~/.local/share/KotH/logs` (always), `KOTH_START_AWAY=focus|minimize` (`.work/startup/real.sh`); `KOTH_FRAMELOG=f`
-  (+`_SECONDS`), `KOTH_GPULOG`, `KOTH_SHOT_PILOT=1` (a bot flies you; `.work/perf/round.sh`); still shots `KOTH_SHOT_STILL=1`, `KOTH_HIDE`.
+  (+`_SECONDS`, `KOTH_VKTIMES=1`), `KOTH_GPULOG`, `KOTH_SHOT_PILOT=1` (a bot flies you; `.work/perf/round.sh`); still shots `KOTH_SHOT_STILL=1`, `KOTH_HIDE`.
 
 ## Tests: probes and regression
 
