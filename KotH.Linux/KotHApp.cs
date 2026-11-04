@@ -250,6 +250,8 @@ sealed class KotHGame : Game
             KotH.Client.Rendering.PipelineCache.Install(GraphicsDeviceManager.GraphicsDevice);
             KotH.Client.Rendering.SwapchainImages.Install(GraphicsDeviceManager.GraphicsDevice);
             KotH.Client.Rendering.MapCulling.Install(GraphicsDeviceManager.GraphicsDevice);
+            // X and Alt+F4 ask first during a running online round (PauseMenu).
+            KotH.Client.Menu.WindowCloseGuard.Install();
             if (frameLogPath != null && Environment.GetEnvironmentVariable("KOTH_VKTIMES") == "1")
                 KotH.Client.Rendering.VulkanTimes.Install(GraphicsDeviceManager.GraphicsDevice);
         };

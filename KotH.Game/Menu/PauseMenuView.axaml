@@ -1,6 +1,6 @@
-<!-- The menu Escape opens in a game, in two parts that PauseMenu shows as overlays
-     in the middle of the screen: the buttons on their board, or instead a page
-     (Settings, the friends to invite in a Steam round, the lobby's map for the host).
+<!-- The menu Escape opens in a game, in parts that PauseMenu shows as overlays in the middle of
+     the screen: the buttons on their board, or instead a page (Settings, the friends to invite in a
+     Steam round, the lobby's map for the host), or the question before leaving a running round.
      Laid out for a screen 1080 high; the pictures carry 24 px of shadow on every side. -->
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -19,6 +19,23 @@
                     <Button Name="Settings" Classes="Menu" Content="Settings" />
                     <Button Name="Quit" Classes="Menu" Content="To desktop" />
                     <Button Name="ToMenu" Classes="Menu" Content="Main menu" />
+                    <TextBlock Name="Locked" Classes="Hint" Text="You can leave in the lobby after the round."
+                               TextWrapping="Wrap" TextAlignment="Center" Width="360" IsVisible="False" />
+                </StackPanel>
+            </Panel>
+        </Grid>
+
+        <Grid Name="ConfirmPart" Width="620" Height="330">
+            <Panel Width="572" Height="282" Margin="24">
+                <Image Source="/Menu/Art/Wide.png" Margin="-24" Stretch="Fill" />
+                <StackPanel Spacing="22" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock Classes="Title" Text="Leave the round?" HorizontalAlignment="Center" FontSize="40" />
+                    <TextBlock Classes="Hint" Text="The round is still running; the others play on without you."
+                               TextWrapping="Wrap" TextAlignment="Center" Width="440" />
+                    <StackPanel Orientation="Horizontal" Spacing="24" HorizontalAlignment="Center">
+                        <Button Name="Stay" Classes="Menu Small" Content="Stay" Width="190" />
+                        <Button Name="Leave" Classes="Menu Small" Content="Leave" Width="190" />
+                    </StackPanel>
                 </StackPanel>
             </Panel>
         </Grid>

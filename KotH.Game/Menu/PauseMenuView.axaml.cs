@@ -29,6 +29,9 @@ namespace KotH.Client.Menu
         /// <summary>Map was chosen: time to list the maps.</summary>
         public event Action MapsOpened;
 
+        /// <summary>The question before closing the window in a running round: Leave (true) or Stay.</summary>
+        public event Action<bool> Confirmed;
+
         readonly RowList rows = new RowList();
 
         public PauseMenuView()
@@ -46,19 +49,26 @@ namespace KotH.Client.Menu
                 InviteOpened?.Invoke();
             };
             Maps.Click += (_, _) => OpenMaps();
+            Stay.Click += (_, _) => Confirmed?.Invoke(false);
+            Leave.Click += (_, _) => Confirmed?.Invoke(true);
             Back.Click += (_, _) => PageOpen = false;
         }
 
         /// <summary>Whether a page shows instead of the buttons.</summary>
         public bool PageOpen { get; set; }
 
-        /// <summary>The buttons for this game: Invite friends in a Steam round, Map for the host in the lobby.</summary>
-        public void Offer(bool invite, bool maps)
+        /// <summary>The buttons for this game: Invite friends in a Steam round, Map for the host in the lobby;
+        /// in a running online round leaving is locked (Main menu, To desktop greyed, a word why).</summary>
+        public void Offer(bool invite, bool maps, bool locked)
         {
             Invite.IsVisible = invite;
             Maps.IsVisible = maps;
-            Board.Height = BoardHeight + ButtonStep * ((invite ? 1 : 0) + (maps ? 1 : 0));
+            Quit.IsEnabled = ToMenu.IsEnabled = !locked;
+            Locked.IsVisible = locked;
+            Board.Height = BoardHeight + ButtonStep * ((invite ? 1 : 0) + (maps ? 1 : 0)) + (locked ? LockedHeight : 0);
         }
+
+        const double LockedHeight = 60;
 
         /// <summary>The Settings page, which takes keys while one of its rows waits for one.</summary>
         public SettingsPage SettingsView => SettingsPage;
@@ -95,11 +105,11 @@ namespace KotH.Client.Menu
 
         public void Say(string status) => Status.Text = status;
 
-        /// <summary>The two parts, out of this control, each to be the content of an overlay.</summary>
-        public (Control Board, Control Page) TakeParts()
+        /// <summary>The three parts, out of this control, each to be the content of an overlay.</summary>
+        public (Control Board, Control Page, Control Confirm) TakeParts()
         {
             Parts.Children.Clear();
-            return (BoardPart, PagePart);
+            return (BoardPart, PagePart, ConfirmPart);
         }
 
         /// <summary>Test aid (KOTH_SHOT_PAUSE): clicks button 0-3.</summary>

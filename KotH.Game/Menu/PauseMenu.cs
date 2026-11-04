@@ -40,10 +40,10 @@ namespace KotH.Client.Menu
 
         PauseMenuView view;
         HudRenderer hud;
-        MenuOverlay board, page;
+        MenuOverlay board, page, confirm;
         MenuOverlay[] overlays;
         readonly OverlayPointer pointer = new OverlayPointer();
-        bool resumeWanted, menuWanted, quitWanted;
+        bool resumeWanted, menuWanted, quitWanted, confirming, locked;
         float since;
 
         // The lobby session the map choice opened by itself for: once per landing.
@@ -62,20 +62,42 @@ namespace KotH.Client.Menu
             view.QuitRequested += () => quitWanted = true;
             view.InviteOpened += ListFriends;
             view.MapsOpened += ListMaps;
+            view.Confirmed += leave =>
+            {
+                if (leave)
+                    quitWanted = true;
+                else
+                    resumeWanted = true;
+            };
             var parts = view.TakeParts();
             // In the middle of a screen 1080 high.
             board = new MenuOverlay(parts.Board, MenuOverlay.Corner.TopCenter, 0f, (1080f - 586f) / 2f) { Visible = false };
             page = new MenuOverlay(parts.Page, MenuOverlay.Corner.TopCenter, 0f, (1080f - 610f) / 2f) { Visible = false };
-            overlays = new[] { board, page };
+            confirm = new MenuOverlay(parts.Confirm, MenuOverlay.Corner.TopCenter, 0f, (1080f - 330f) / 2f) { Visible = false };
+            overlays = new[] { board, page, confirm };
             hud.AddFront(this);
             hud.AddFront(board);
             hud.AddFront(page);
+            hud.AddFront(confirm);
         }
 
         public override void Update()
         {
             if (view == null || Driver == null)
                 return;
+            // A running online round holds the window open; closing it asks first.
+            WindowCloseGuard.Blocking = !Driver.InMenu && RoundRunning();
+            if (WindowCloseGuard.TakeRequest())
+            {
+                if (!WindowCloseGuard.Blocking)
+                    ((GameBase)Game).Exit();
+                else
+                {
+                    if (!Open)
+                        Show(true);
+                    confirming = true;
+                }
+            }
             if (Driver.InMenu)
             {
                 if (Open)
@@ -106,7 +128,9 @@ namespace KotH.Client.Menu
             }
             else if (KeyPresses.Pressed(Input, Keys.Escape))
             {
-                if (!Open)
+                if (confirming)
+                    Show(false);
+                else if (!Open)
                     Show(true);
                 else if (view.PageOpen)
                     view.PageOpen = false;
@@ -123,8 +147,12 @@ namespace KotH.Client.Menu
                 overlay.Place(screen);
             pointer.Update(Input, screen, overlays);
             MenuOverlay.Tick(Game.UpdateTime.FrameCount);
-            board.Visible = !view.PageOpen;
-            page.Visible = view.PageOpen;
+            // The round may end (or begin) while the menu is open: leaving unlocks (or locks).
+            if (locked != RoundRunning())
+                view.Offer(invite: Lobby != null, maps: LobbyHost != null, locked = RoundRunning());
+            board.Visible = !view.PageOpen && !confirming;
+            page.Visible = view.PageOpen && !confirming;
+            confirm.Visible = confirming;
             Pop((float)Game.UpdateTime.Elapsed.TotalSeconds);
             foreach (MenuOverlay overlay in overlays)
                 overlay.Upload(Game.GraphicsContext.CommandList);
@@ -132,30 +160,34 @@ namespace KotH.Client.Menu
             // Out of Avalonia's dispatcher: the main menu removes the game.
             if (resumeWanted)
                 Show(false);
-            if (menuWanted)
+            if (menuWanted && !locked)
             {
                 Show(false);
                 ToMainMenu?.Invoke();
             }
-            if (quitWanted)
+            if (quitWanted && (!locked || confirming))
                 ((GameBase)Game).Exit();
+            quitWanted = false;
         }
 
         void Show(bool open)
         {
             Open = open;
             Driver.Paused = open;
-            resumeWanted = menuWanted = false;
+            resumeWanted = menuWanted = confirming = false;
             view.PageOpen = false;
             if (open)
-                view.Offer(invite: Lobby != null, maps: LobbyHost != null);
+                view.Offer(invite: Lobby != null, maps: LobbyHost != null, locked = RoundRunning());
             since = 0f;
             if (!open)
             {
                 pointer.Reset();
-                board.Visible = page.Visible = false;
+                board.Visible = page.Visible = confirm.Visible = false;
             }
         }
+
+        // An online round on its map (stage Round, its win pause included): no leaving until the lobby.
+        bool RoundRunning() => Services.GetService<NetClient>() is { Stage: MatchStage.Round };
 
         // Waiting for players or counting down, or still connecting: an invite may end it.
         bool Pregame()
