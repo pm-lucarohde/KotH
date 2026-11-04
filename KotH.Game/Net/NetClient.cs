@@ -99,11 +99,13 @@ namespace KotH.Client.Net
 
         public double Now => wall.Elapsed.TotalMilliseconds;
 
+        /// <summary>The frame's share on the game thread: the host's work, then what reached the own
+        /// session (it may spawn), restarts, joins and the lobby. The ticks follow in Step.</summary>
         public void Update()
         {
             double now = Now;
             Host?.Update(now);
-            Session.Update(now);
+            Session.Exchange(now);
             FollowRestart(now);
             if (joinWhen != null && Session.MapKnown && joinWhen())
             {
@@ -118,6 +120,10 @@ namespace KotH.Client.Net
                 Lobby.SetJoinable(players < NetWorld.MaxPlayers && !Host.Restarting && Host.CanJoin());
             }
         }
+
+        /// <summary>The own session's ticks, up to where its clock will be ahead ms from now; on the
+        /// simulation thread while the game thread draws (SimulationDriver), never during a restart.</summary>
+        public void Step(double ahead) => Session.Step(Now, ahead);
 
         // The host starts a restart where the confirmed round holds (lobby's countdown, round's win
         // pause); everyone, host's own peer too, then changes maps and joins the new timeline.

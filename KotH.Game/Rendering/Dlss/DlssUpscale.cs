@@ -18,6 +18,9 @@ namespace KotH.Client.Rendering.Dlss
         static readonly ValueParameterKey<Matrix> ViewToClip = ParameterKeys.NewValue<Matrix>(default, "DlssMotion.ViewToClip");
         static readonly ValueParameterKey<Matrix> ViewToPrevClip = ParameterKeys.NewValue<Matrix>(default, "DlssMotion.ViewToPrevClip");
 
+        // NGX's own pass, timed for KOTH_GPULOG.
+        static readonly Stride.Core.Diagnostics.ProfilingKey EvaluateKey = new Stride.Core.Diagnostics.ProfilingKey("DlssEvaluate");
+
         readonly DlssRenderer owner;
         ImageEffectShader motion;
 
@@ -74,8 +77,9 @@ namespace KotH.Client.Rendering.Dlss
 
             Vector2 jitter = owner.Jitter * Dlss.JitterSign;
             float ms = (float)drawContext.RenderContext.Time.Elapsed.TotalMilliseconds;
-            owner.Evaluated = feature.Evaluate(drawContext.CommandList, color, inputDepthStencil, vectors, output,
-                                               jitter.X, jitter.Y, owner.Reset, ms);
+            using (drawContext.QueryManager.BeginProfile(Color.Green, EvaluateKey))
+                owner.Evaluated = feature.Evaluate(drawContext.CommandList, color, inputDepthStencil, vectors, output,
+                                                   jitter.X, jitter.Y, owner.Reset, ms);
             Context.Allocator.ReleaseReference(vectors);
         }
 

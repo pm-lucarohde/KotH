@@ -326,6 +326,7 @@ namespace KotH.Client
         {
             if (menu != null)
                 return;
+            SimulationJob.Drop();
             games++;
             if (net != null)
             {
@@ -528,6 +529,7 @@ namespace KotH.Client
         public override void Cancel()
         {
             ClientSettings.Changed -= ApplyTextures;
+            SimulationJob.Drop();
             net?.Dispose();
             botDirector?.Dispose();
         }

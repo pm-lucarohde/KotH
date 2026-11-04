@@ -103,6 +103,8 @@ namespace KotH.Client.Rendering
 
         protected override void CollectCore(RenderContext context)
         {
+            // The entity processors are done (transforms, statics into Bepu): the ticks may run now.
+            SimulationJob.Start();
             due = true;
             if (Interval > 0.0)
             {

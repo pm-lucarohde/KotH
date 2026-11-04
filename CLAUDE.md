@@ -55,7 +55,7 @@ dotnet run Tools/Regress.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # nu
 
 ### Simulation
 - `SimulationSystem` is the only clock: contacts → `Motor.Simulate` → `SeparateBodies` → `Publish` → `SyncHull` →
-  combat → `HillMatch`. `Capture`/`Restore`/`Resimulate` with `WorldSnapshot`; no static state.
+  combat → `HillMatch`. `Capture`/`Restore`/`Resimulate` (`WorldSnapshot`); no static state; client ticks in Draw (`SimulationJob`).
 - `MotorState` holds **every** motor field (`Pack = 1`); `DeterminismProbe` checks bit-exactly with mutation tests.
 - `TickClock` = Unity's player loop (`dt = 0.025f`); visuals interpolate, never feed back. Never read `TransformComponent`.
 - `UMath` computes Unity's formulas operation by operation (never Stride's helpers); Sin/Cos/Atan2/Acos only via

@@ -1,3 +1,4 @@
+using System;
 using KotH.Client.Hud;
 using KotH.Client.Net;
 using KotH.Client.Player;
@@ -11,7 +12,8 @@ namespace KotH.Client
 {
     /// <summary>Runs the simulation at 40 Hz from the frame rate like Unity's FixedUpdate (an
     /// accumulator, at most a third of a second per frame); input first, so a press reaches the
-    /// next tick. Runs before every other script; networked, the session steps the world.</summary>
+    /// next tick. Runs before every other script; networked, the session steps the world. The
+    /// ticks themselves run on the simulation thread while the frame draws (SimulationJob).</summary>
     [DataContract("KotH.SimulationDriver")]
     public sealed class SimulationDriver : SyncScript
     {
@@ -82,25 +84,49 @@ namespace KotH.Client
             LoadScreen cover = Services.GetService<LoadScreen>();
             cover?.Update(Game.UpdateTime.Elapsed.TotalSeconds, Game.UpdateTime.FrameCount, Game.GraphicsContext.CommandList);
 
+            // The ticks run while this frame draws (SimulationJob), up to where the clock will be at the
+            // next Update: one frame ahead by the smoothed frame time, at most a tick.
+            double elapsed = Game.UpdateTime.Elapsed.TotalSeconds;
+            frameSeconds += (Math.Min(elapsed, TickClock.TickSeconds) - frameSeconds) * 0.1;
             if (Services.GetService<NetClient>() is { } net)
             {
                 net.Update();
                 TickInterpolation.Alpha = net.Alpha;
+                if (!net.Restarting)
+                {
+                    this.net = net;
+                    SimulationJob.Schedule(netStep ??= () => this.net.Step(frameSeconds * 1000.0));
+                }
             }
             else if (!LaunchOptions.Current.Networked && !inMenu && cover is not { Covers: true })
             {
-                int due = clock.Advance(Game.UpdateTime.Elapsed.TotalSeconds);
-                for (int i = 0; i < due; i++)
-                    system.Tick();
-                TickInterpolation.Alpha = clock.Alpha;
+                // Due counts the clock's ticks, stepped those run; a tick run ahead shows from the next frame.
+                due += clock.Advance(elapsed);
+                TickInterpolation.Alpha = Math.Clamp(clock.Alpha + (due - stepped), 0f, 1f);
+                this.system = system;
+                target = due + (clock.SinceTick + frameSeconds >= TickClock.TickSeconds ? 1 : 0);
+                if (target > stepped)
+                    SimulationJob.Schedule(offlineStep ??= StepOffline);
             }
 
-            // After the ticks: the states they made final go to the bots.
+            // After the last frame's ticks: the states they made final go to the bots.
             Services.GetService<BotDirector>()?.Pump(BotBudget);
         }
 
         // Milliseconds a frame may spend on the bots without their own thread.
         const double BotBudget = 0.25;
+
+        double frameSeconds;
+        long due, stepped, target;
+        NetClient net;
+        SimulationSystem system;
+        Action netStep, offlineStep;
+
+        void StepOffline()
+        {
+            for (; stepped < target; stepped++)
+                system.Tick();
+        }
 
         void SetCaptured(bool captured)
         {

@@ -60,7 +60,7 @@ namespace KotH.Client.Hud
         static readonly Color4 Band = Color4.PremultiplyAlpha(new Color(0, 0, 0, 0xA0).ToColor4());
 
         HudRenderer hud;
-        string text = "";
+        string text = "", network;
         bool visible;
         float sinceRefresh;
         float sinceLowRefresh;
@@ -149,6 +149,8 @@ namespace KotH.Client.Hud
                                  Fps, FrameTimeMs, cachedLowFps);
             if (Services.GetService<Rendering.Dlss.DlssRenderer>()?.Status is { } dlss)
                 text += " | " + dlss;
+            // Here, not in Draw: while the frame draws, the simulation thread steps the session.
+            network = Network?.Invoke();
         }
 
         public void Draw(SpriteBatch batch, Vector2 screen)
@@ -161,7 +163,7 @@ namespace KotH.Client.Hud
             batch.Draw(hud.White, new RectangleF(at.X, at.Y, size.X, size.Y), Band);
             batch.DrawString(Font, text, FontSize, at, Color4.White);
 
-            if (Network?.Invoke() is { } line)
+            if (network is { } line)
             {
                 at.Y += size.Y;
                 size = Font.MeasureString(line, FontSize);

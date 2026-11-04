@@ -430,6 +430,8 @@ sealed class KotHGame : Game
 
     protected override void EndRun()
     {
+        SimulationJob.Drop();
+        SimulationJob.Join();
         StartLog.Mark($"exit, {GraphicsDevice?.Presenter?.BackBuffer?.Width}x{GraphicsDevice?.Presenter?.BackBuffer?.Height}");
         KotH.Client.Rendering.PipelineCache.Shutdown();
         KotH.Client.Rendering.Dlss.Dlss.Shutdown();
@@ -466,6 +468,8 @@ sealed class KotHGame : Game
         updateStart = System.Diagnostics.Stopwatch.GetTimestamp();
         if (frameLog != null)
             updateCpu = ThreadCpuNanos();
+        // The last frame's ticks, before anything reads the world.
+        SimulationJob.Join();
         // Steam's callbacks before the scripts, which read lobbies and sessions.
         SteamClient.RunFrame();
         settings.Update();
@@ -515,6 +519,8 @@ sealed class KotHGame : Game
             Still();
         if (shotPilot && Cached(ref loggedReader) is { Pilot: null } flown)
             flown.Pilot = PilotInput;
+        if (frameLog != null)
+            NoteWorld();
 
         if (shotPath == null)
             return;
@@ -815,6 +821,7 @@ sealed class KotHGame : Game
         if (shotPath == null || TestSeconds(gameTime) < shotSeconds)
             return;
         video?.Dispose();
+        SimulationJob.Join(); // the reports below read the world
 
         // The back buffer's alpha is whatever the last pass left, low in
         // shadows; a viewer blends that with white. Opaque before saving.
@@ -935,20 +942,33 @@ sealed class KotHGame : Game
             $"{posTick} {p.X:F3} {p.Y:F3} {p.Z:F3} {v.X:F2} {v.Y:F2} {v.Z:F2} {(motor.IsGrounded ? 1 : 0)}"));
     }
 
+    // The world as the frame's Update left it; while it draws, the simulation thread ticks on (SimulationJob).
+    int notedTick;
+    Shown notedShown;
+    float notedYaw, notedPitch;
+
+    void NoteWorld()
+    {
+        NetClient net = Services.GetService<NetClient>();
+        KotH.Shared.Simulation.SimulationSystem sim = net?.Session.Simulation
+            ?? Services.GetService<KotH.Shared.Simulation.SimulationSystem>();
+        notedTick = sim?.CurrentTick ?? 0;
+        KotH.Shared.Match.MatchStage stage = net?.Stage ?? KotH.Shared.Match.MatchStage.Single;
+        notedShown = Services.GetService<LoadScreen>() is { Covers: true } ? Shown.Covered
+            : stage == KotH.Shared.Match.MatchStage.Lobby ? Shown.Lobby
+            : sim?.Match?.State.Phase == KotH.Shared.Match.MatchPhase.Running ? Shown.Round : Shown.Other;
+        notedYaw = Cached(ref loggedReader)?.Yaw ?? 0f;
+        notedPitch = loggedReader?.Pitch ?? 0f;
+    }
+
     void LogFrame(long drawStart)
     {
         long now = System.Diagnostics.Stopwatch.GetTimestamp();
         static float Ms(long from, long to) => (float)((to - from) * 1000.0 / System.Diagnostics.Stopwatch.Frequency);
-        NetClient net = Services.GetService<NetClient>();
-        KotH.Shared.Simulation.SimulationSystem sim = net?.Session.Simulation
-            ?? Services.GetService<KotH.Shared.Simulation.SimulationSystem>();
-        int tick = sim?.CurrentTick ?? 0;
+        int tick = notedTick;
         int gc0 = GC.CollectionCount(0), gc1 = GC.CollectionCount(1), gc2 = GC.CollectionCount(2);
         long allocated = GC.GetTotalAllocatedBytes();
-        KotH.Shared.Match.MatchStage stage = net?.Stage ?? KotH.Shared.Match.MatchStage.Single;
-        Shown shown = Services.GetService<LoadScreen>() is { Covers: true } ? Shown.Covered
-            : stage == KotH.Shared.Match.MatchStage.Lobby ? Shown.Lobby
-            : sim?.Match?.State.Phase == KotH.Shared.Match.MatchPhase.Running ? Shown.Round : Shown.Other;
+        Shown shown = notedShown;
         gpuRecording = shown == Shown.Round;
         VkRow vk = default;
         KotH.Client.Rendering.VulkanTimes.Take(vk.Game, vk.Count, vk.Other);
@@ -962,7 +982,7 @@ sealed class KotHGame : Game
                 Gc1 = (byte)Math.Min(gc1 - lastGc1, 255), Gc2 = (byte)Math.Min(gc2 - lastGc2, 255),
                 KiB = (int)Math.Min((allocated - lastAllocated) >> 10, int.MaxValue), Shown = (byte)shown,
                 Eye = Cached(ref loggedCamera)?.Entity.Transform.WorldMatrix.TranslationVector ?? default,
-                Yaw = Cached(ref loggedReader)?.Yaw ?? 0f, Pitch = loggedReader?.Pitch ?? 0f, End = now, Vk = vk,
+                Yaw = notedYaw, Pitch = notedPitch, End = now, Vk = vk,
                 UpdateCpu = (drawCpu - updateCpu) / 1e6f, DrawCpu = (cpu - drawCpu) / 1e6f,
             };
             if (shown == Shown.Round && (roundSeconds += frameLog[frameCount - 1].Ms / 1000.0) >= frameLogSeconds)
@@ -973,10 +993,13 @@ sealed class KotHGame : Game
 
     // The input the host's director thinks for the own figure, once its state 8 ticks back is final; the
     // figure joins the director again after each restart (a new one, the figure a new NetId).
+    // From the round's tick 40 on, so the start's catch-up ticks never meet the pilot, wherever the ticks run.
+    const int PilotFrom = 40;
+
     KotH.Shared.Player.MoveInput? PilotInput()
     {
         if (Services.GetService<NetClient>() is not { Host.Bots: KotH.Shared.Bots.BotDirector bots, Session: var s }
-            || s.LocalNetId == 0)
+            || s.LocalNetId == 0 || s.Simulation.CurrentTick < PilotFrom)
             return null;
         if (!bots.IsBot(s.LocalNetId))
             bots.Add(s.LocalNetId);

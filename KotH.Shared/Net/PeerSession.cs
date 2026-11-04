@@ -218,6 +218,17 @@ namespace KotH.Shared.Net
         /// </summary>
         public void Update(double now)
         {
+            Exchange(now);
+            Step(now, 0.0);
+            Settle();
+        }
+
+        /// <summary>Update's first half, which may change the scene: the last Step's checksums and
+        /// leavers, then what arrived, spawning whoever joined. The client calls it on its game
+        /// thread and Step on its simulation thread, strictly in turn (SimulationJob).</summary>
+        public void Exchange(double now)
+        {
+            Settle();
             while (transport.Poll(out TransportEvent e))
             {
                 if (e.Kind == TransportEventKind.Data && e.Data.Length > 0)
@@ -228,13 +239,32 @@ namespace KotH.Shared.Net
 
             if (!Joined || RestartTo != null)
                 return;
+            TakeConfirmed();
+        }
 
-            ApplyConfirmed();
-            Advance(now);
+        /// <summary>Update's second half, which only ticks: rolls back where a confirmed tick showed a
+        /// wrong guess, steps to where the clock will be ahead milliseconds from now, sends the inputs.</summary>
+        public void Step(double now, double ahead)
+        {
+            if (!Joined || RestartTo != null)
+                return;
+            RollBackWrongGuesses();
+            Advance(now, ahead);
             SendInputs(now);
+            settling = true;
+        }
+
+        // A Step's tail, which raises Checksum and despawns: Update ends with it, Exchange starts so.
+        void Settle()
+        {
+            if (!settling)
+                return;
+            settling = false;
             ReportChecksums();
             DropLeavers();
         }
+
+        bool settling;
 
         /// <summary>
         /// The newest state no rollback can change any more, as bytes, if it is
@@ -252,7 +282,8 @@ namespace KotH.Shared.Net
 
         // The newest tick whose starting state is in the ring and settled:
         // every tick before it confirmed, and stepped once, so recorded.
-        int FinalTick => Math.Min(confirmedTick + 1, sim.CurrentTick - 1);
+        // Between Exchange and Step a rollback may be due: from its tick on the ring is stale.
+        int FinalTick => Math.Min(Math.Min(confirmedTick + 1, sim.CurrentTick - 1), rollFrom);
 
         /// <summary>Where the shared clock stands now, in ticks with a fraction.</summary>
         public double ClockTick(double now) => syncTick + (now - syncTime) / 1000.0 / SimulationSystem.TickSeconds;
@@ -400,6 +431,7 @@ namespace KotH.Shared.Net
 
             int tick = decoded.Tick;
             confirmedTick = prunedTick = tick - 1;
+            rollFrom = int.MaxValue;
             foreach (Record old in confirmed.Values)
                 spareRecords.Push(old);
             confirmed.Clear();
@@ -475,10 +507,10 @@ namespace KotH.Shared.Net
 
         /// <summary>Takes every confirmed tick that follows on from the last one. Any
         /// already stepped with a different guess, or with a join or leave it did not
-        /// know of, is where the world has to go back to.</summary>
-        void ApplyConfirmed()
+        /// know of, is where the world has to go back to (rollFrom, for Step).</summary>
+        void TakeConfirmed()
         {
-            int from = int.MaxValue;
+            int from = rollFrom;
             while (confirmed.TryGetValue(confirmedTick + 1, out Record rec))
             {
                 int tick = confirmedTick + 1;
@@ -501,9 +533,19 @@ namespace KotH.Shared.Net
                 }
                 confirmedTick = tick;
             }
+            rollFrom = from;
+        }
 
-            if (from != int.MaxValue)
+        int rollFrom = int.MaxValue;
+
+        void RollBackWrongGuesses()
+        {
+            if (rollFrom != int.MaxValue)
+            {
+                int from = rollFrom;
+                rollFrom = int.MaxValue;
                 Rollback(from);
+            }
 
             // A rollback starts after the confirmed tick, so stepped confirmed records are never read again.
             int limit = Math.Min(confirmedTick, sim.CurrentTick - 1);
@@ -572,10 +614,10 @@ namespace KotH.Shared.Net
             DeepestRollback = Math.Max(DeepestRollback, until - from);
         }
 
-        /// <summary>Steps new ticks up to the clock, never more than MaxPredict past the confirmed.</summary>
-        void Advance(double now)
+        /// <summary>Steps new ticks up to the clock ahead ms from now, never more than MaxPredict past the confirmed.</summary>
+        void Advance(double now, double ahead)
         {
-            double wanted = ClockTick(now);
+            double wanted = ClockTick(now + ahead);
             for (int n = 0; n < MaxTicksPerUpdate && sim.CurrentTick < wanted; n++)
             {
                 int tick = sim.CurrentTick;
@@ -585,7 +627,7 @@ namespace KotH.Shared.Net
                     // so the lead the host measures is the clock's own again.
                     Stalls++;
                     syncTick = tick;
-                    syncTime = now;
+                    syncTime = now + ahead;
                     break;
                 }
 
