@@ -4,7 +4,13 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="KotH.Client.Menu.SettingsPage"
-             x:CompileBindings="True">
+             x:CompileBindings="True" ClipToBounds="False">
+    <!-- The buttons' pictures reach 24 px past the page's edge: nothing here may clip them. -->
+    <UserControl.Styles>
+        <Style Selector="UserControl /template/ ContentPresenter">
+            <Setter Property="ClipToBounds" Value="False" />
+        </Style>
+    </UserControl.Styles>
     <Grid RowDefinitions="Auto,*,Auto">
         <Grid ColumnDefinitions="*,Auto">
             <TextBlock Classes="Title" Text="Settings" />

@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
 using KotH.Client.Menu;
-using KotH.Client.Net;
-using KotH.Shared.Hosting;
 using KotH.Shared.Combat;
 using KotH.Shared.Match;
 using KotH.Shared.Simulation;
@@ -222,18 +220,15 @@ namespace KotH.Client.Hud
             warmup = look == ZoneLook.Own && Self.AloneTicks <= Match.WarmupTicks && Match.WarmupTicks > 0
                 ? (float)Self.AloneTicks / Match.WarmupTicks : 0f;
 
-            // In the lobby the round is played on the map the host chose.
-            string next = Match.Stage == MatchStage.Lobby ? Services.GetService<NetClient>()?.NextMap ?? Maps.Default : null;
             if (m.Phase == MatchPhase.Waiting)
             {
                 caption = "Waiting for players";
                 count = string.Format(HudRenderer.Numbers, "{0} / {1}", HillMatch.CountPlayers(Simulation.Bodies), m.MinPlayers);
-                time = "";
-                statusText = next != null ? "Next map: " + next : "";
+                time = statusText = "";
             }
             else if (m.Phase == MatchPhase.Countdown)
             {
-                caption = next != null ? next + " starts in" : "Match starts in";
+                caption = "Match starts in";
                 count = "";
                 time = Clock((m.PhaseTicks + HillMatch.TicksPerPoint - 1) / HillMatch.TicksPerPoint);
                 statusText = "";

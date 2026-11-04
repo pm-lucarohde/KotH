@@ -1,22 +1,27 @@
-<!-- Find server: the open KotH rounds on Steam with the same build, on any map, a Join per round;
-     a word underneath, More for the next page, Refresh to search again. -->
+<!-- Find server: the open KotH rounds on Steam with the same build, on any map, a Join per round
+     in a list that scrolls with the wheel; a word underneath, Refresh to search again. -->
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="KotH.Client.Menu.FindPage"
-             x:CompileBindings="True">
+             x:CompileBindings="True" ClipToBounds="False">
+    <!-- The buttons' pictures reach 24 px past the page's edge: nothing here may clip them. -->
+    <UserControl.Styles>
+        <Style Selector="UserControl /template/ ContentPresenter">
+            <Setter Property="ClipToBounds" Value="False" />
+        </Style>
+    </UserControl.Styles>
     <Grid RowDefinitions="*,Auto">
-        <Border Classes="Well">
+        <Border Classes="Well" Padding="0,8">
             <Panel Name="Inside">
-                <StackPanel Name="Empty" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8">
+                <StackPanel Name="Empty" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" Margin="26,0">
                     <TextBlock Name="EmptyTitle" Classes="Label" Text="No servers found" HorizontalAlignment="Center" FontSize="28" />
                     <TextBlock Name="EmptyHint" Classes="Hint" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
                 </StackPanel>
             </Panel>
         </Border>
-        <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto" Margin="0,20,0,0">
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,20,0,0">
             <TextBlock Name="Status" Classes="Hint" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-            <Button Name="More" Grid.Column="1" Classes="Menu Small" Content="More" Width="170" Margin="18,0,0,0" />
-            <Button Name="Refresh" Grid.Column="2" Classes="Menu Small" Content="Refresh" Width="190" Margin="18,0,0,0" />
+            <Button Name="Refresh" Grid.Column="1" Classes="Menu Small" Content="Refresh" Width="190" Margin="18,0,0,0" />
         </Grid>
     </Grid>
 </UserControl>

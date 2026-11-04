@@ -10,16 +10,13 @@ namespace KotH.Client.Menu
     /// on (searching, joining, why not). The menu does the searching and joining; this only shows.</summary>
     public partial class FindPage : UserControl
     {
-        // Rows of 58 units fit three to the well, under the title and over Back.
-        const int PerPage = 3;
-
         /// <summary>Refresh was chosen.</summary>
         public event Action RefreshRequested;
 
         /// <summary>Join was chosen on a round.</summary>
         public event Action<LobbyListing> JoinRequested;
 
-        readonly RowList list = new RowList(PerPage);
+        readonly RowList list = new RowList();
         bool busy, saysWhy;
 
         public FindPage()
@@ -27,7 +24,6 @@ namespace KotH.Client.Menu
             InitializeComponent();
             Inside.Children.Add(list);
             Refresh.Click += (_, _) => RefreshRequested?.Invoke();
-            More.Click += (_, _) => list.Next();
             Found(new List<LobbyListing>());
         }
 
@@ -41,7 +37,6 @@ namespace KotH.Client.Menu
             Empty.IsVisible = true;
             Status.Text = "";
             Refresh.IsEnabled = false;
-            More.IsVisible = false;
         }
 
         public void Searching()
@@ -51,7 +46,7 @@ namespace KotH.Client.Menu
             Refresh.IsEnabled = false;
         }
 
-        /// <summary>The rounds found, fullest first; again (a search on its own) keeps the page and a word on joining.</summary>
+        /// <summary>The rounds found, fullest first; again (a search on its own) keeps the scroll and a word on joining.</summary>
         public void Found(List<LobbyListing> rounds, bool again = false)
         {
             if (busy && again)
@@ -64,14 +59,13 @@ namespace KotH.Client.Menu
                 rows.Add(new RowList.Row(round.Host, $"{round.Map}   {round.Players}/{NetWorld.MaxPlayers}", "Join",
                                          () => { if (!busy) JoinRequested?.Invoke(chosen); }));
             }
-            list.Show(rows, keepPage: again);
+            list.Show(rows, keepPlace: again);
             Empty.IsVisible = rows.Count == 0;
             EmptyTitle.Text = "No servers found";
             EmptyHint.Text = "Host one yourself, or ask a friend for an invite.";
             if (!again || !saysWhy)
                 Status.Text = rows.Count == 0 ? "" : rows.Count == 1 ? "1 round" : $"{rows.Count} rounds";
             Refresh.IsEnabled = true;
-            More.IsVisible = list.Paged;
         }
 
         /// <summary>A round is being entered; the list waits.</summary>

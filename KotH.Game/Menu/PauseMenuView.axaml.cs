@@ -11,9 +11,6 @@ namespace KotH.Client.Menu
     /// </summary>
     public partial class PauseMenuView : UserControl
     {
-        // Rows of 58 units fit three to the well, as on Find server.
-        const int PerPage = 3;
-
         // The board's height with four buttons; each further one adds a button and its gap.
         const double BoardHeight = 370, ButtonStep = 66 + 18;
 
@@ -32,7 +29,7 @@ namespace KotH.Client.Menu
         /// <summary>Map was chosen: time to list the maps.</summary>
         public event Action MapsOpened;
 
-        readonly RowList rows = new RowList(PerPage);
+        readonly RowList rows = new RowList();
 
         public PauseMenuView()
         {
@@ -50,7 +47,6 @@ namespace KotH.Client.Menu
             };
             Maps.Click += (_, _) => OpenMaps();
             Back.Click += (_, _) => PageOpen = false;
-            More.Click += (_, _) => rows.Next();
         }
 
         /// <summary>Whether a page shows instead of the buttons.</summary>
@@ -84,7 +80,6 @@ namespace KotH.Client.Menu
             SettingsPage.IsVisible = !list;
             PageTitle.IsVisible = Back.IsVisible = list;
             ListPage.IsVisible = Status.IsVisible = list;
-            More.IsVisible = list && rows.Paged;
             if (!list)
                 SettingsPage.Open();
         }
@@ -92,10 +87,9 @@ namespace KotH.Client.Menu
         /// <summary>The list page's rows, what it says without any, and the word underneath.</summary>
         public void ShowList(IReadOnlyList<RowList.Row> list, string empty, string status)
         {
-            rows.Show(list, keepPage: true);
+            rows.Show(list, keepPlace: true);
             NoRows.Text = empty;
             NoRows.IsVisible = list.Count == 0;
-            More.IsVisible = rows.Paged;
             Status.Text = status;
         }
 
