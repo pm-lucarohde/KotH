@@ -238,6 +238,9 @@ sealed class KotHGame : Game
         long systemsAt = StartLog.Now;
         base.Initialize();
         StartLog.Took("game systems", systemsAt, $"audio {AudioReport()}");
+        // Test aid: KOTH_MAPCULL=metres, the edge of MapCulling's clusters (0 draws the map's meshes whole).
+        if (Number("KOTH_MAPCULL") is double cell)
+            KotH.Client.Rendering.MapCulling.Cell = (float)cell;
         // Stride swallows a device that fails to open; every sound is then a silent no-op (AudioRevive retries).
         if (Audio?.AudioEngine is not { State: not Stride.Audio.AudioEngineState.Invalidated })
             StartLog.Warn($"no audio device opened ({Audio?.RequestedAudioDevice?.Name ?? "default"}): music and sounds are off; trying again every 2 s");
@@ -246,6 +249,7 @@ sealed class KotHGame : Game
             StartLog.Mark("device created");
             KotH.Client.Rendering.PipelineCache.Install(GraphicsDeviceManager.GraphicsDevice);
             KotH.Client.Rendering.SwapchainImages.Install(GraphicsDeviceManager.GraphicsDevice);
+            KotH.Client.Rendering.MapCulling.Install(GraphicsDeviceManager.GraphicsDevice);
             if (frameLogPath != null && Environment.GetEnvironmentVariable("KOTH_VKTIMES") == "1")
                 KotH.Client.Rendering.VulkanTimes.Install(GraphicsDeviceManager.GraphicsDevice);
         };

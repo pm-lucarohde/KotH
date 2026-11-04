@@ -28,7 +28,7 @@ Tools/publish_aot.sh windows probes-windows  # on request only (lld-link, xwin)
   `_AT`, `_MOVE`, `_BLASTER`, `_FIRE`, `_VIDEO` …), `KOTH_HEADLESS=1`, `KOTH_SIZE`, `KOTH_MUSIC_VOLUME=0` (mute), `KOTH_EFFECTLOG`,
   `KOTH_POSLOG`; menu shots `KOTH_SHOT_MENU`, `_PAUSE`, `_HUD=banner`, `_LOAD`, `_SETTINGS=tab`, `_APPLY=s:x.toml`; `KOTH_SETTINGS`;
   start log `~/.local/share/KotH/logs` (always), `KOTH_START_AWAY=focus|minimize` (`.work/startup/real.sh`); `KOTH_FRAMELOG=f`
-  (+`_SECONDS`, `KOTH_VKTIMES=1`), `KOTH_GPULOG`, `KOTH_SHOT_PILOT=1` (a bot flies you; `.work/perf/round.sh`); still shots `KOTH_SHOT_STILL=1`, `KOTH_HIDE`.
+  (+`_SECONDS`, `KOTH_VKTIMES=1`), `KOTH_GPULOG`, `KOTH_SHOT_PILOT=1` (bot pilot, `.work/perf/round.sh`); still shots `KOTH_SHOT_STILL=1`, `KOTH_HIDE`, `KOTH_MAPCULL`.
 
 ## Tests: probes and regression
 
@@ -89,7 +89,7 @@ dotnet run Tools/Regress.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # nu
 - HUD `HudRenderer` (SpriteBatch) with Avalonia parts (`HillBoard`→`HudView`, `LoadView`) via `MenuOverlay`; main menu
   `KotH.Game/Menu` (map behind at 30 fps), Esc `PauseMenu`; `KotH.Game/Settings` (TOML, `QualityLevels`: High = assets).
 - `MusicPlayer`, `SoundEffects` (sounds relative to the camera). Light: VXGI with a 4096² lightmap, static sun map,
-  figure-only cascades filtered after the prepass (`FigureShadowMasks`); fog, clouds `AtmosphereEffects` before FXAA/DLSS.
+  figure-only cascades (`FigureShadowMasks`); fog, clouds `AtmosphereEffects` before FXAA/DLSS; map clusters `MapCulling`.
 
 ### Bots (`KotH.Shared/Bots`) and figure
 - **Only the host computes them, deterministically:** `BotDirector` decides tick t from the final state at t − 8;

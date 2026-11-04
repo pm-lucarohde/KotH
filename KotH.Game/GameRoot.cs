@@ -468,12 +468,16 @@ namespace KotH.Client
             string url = Maps.VisualUrl(map);
             if (Content.Exists(url))
             {
-                foreach (Entity e in Content.Load<Prefab>(url).Instantiate())
+                List<Entity> loaded = Content.Load<Prefab>(url).Instantiate();
+                long cullAt = StartLog.Now;
+                StartLog.Took($"map meshes sorted into {MapCulling.Split(loaded, Services, GraphicsDevice)} clusters", cullAt);
+                foreach (Entity e in loaded)
                 {
                     Entity.Scene.Entities.Add(e);
                     mapVisuals.Add(e);
                 }
                 LeafRenderFeature.Install(SceneSystem);
+                MapCulling.InstallFeature(SceneSystem);
                 QualityLevels.ApplyTextures(mapVisuals);
             }
             else
@@ -495,6 +499,7 @@ namespace KotH.Client
             foreach (Entity e in mapVisuals)
                 Entity.Scene.Entities.Remove(e);
             mapVisuals.Clear();
+            MapCulling.Clear();
             if (Content.IsLoaded(Maps.VisualUrl(map)))
                 Content.Unload(Maps.VisualUrl(map));
             builder.UnloadArena();
