@@ -5,10 +5,10 @@ using static KotH.Client.Steam.SteamApi;
 
 namespace KotH.Client.Steam
 {
-    /// <summary>The sessions over Steam's peer-to-peer messages (ISteamNetworkingMessages), through Valve's
-    /// relays: no port to open, addresses stay hidden. A host takes sessions from members of its lobby only
-    /// and numbers them from 1; a peer sees the lobby's owner as 0. Reliable messages go in order,
-    /// datagrams unreliable. Game thread only; ends a session when it fails or its member leaves.</summary>
+    /// <summary>Steam's peer-to-peer messages (ISteamNetworkingMessages) through Valve's relays: no port, hidden
+    /// addresses. A host takes sessions from lobby members only, numbered from 1; a peer calls its host 0.
+    /// Reliable in order, datagrams unreliable; game thread only. A host change makes a peer's transport
+    /// the host's (HostNow) or points it at another host (JoinNow).</summary>
     public sealed unsafe class SteamTransport : INetTransport, IDisposable
     {
         const int Channel = 0;
@@ -20,7 +20,7 @@ namespace KotH.Client.Steam
         const int RequestId = 1251, FailedId = 1252;
 
         readonly SteamLobby lobby;
-        readonly bool hosting;
+        bool hosting;
         readonly Dictionary<ulong, int> peerOf = new Dictionary<ulong, int>();
         readonly Dictionary<int, ulong> steamOf = new Dictionary<int, ulong>();
         readonly HashSet<ulong> waiting = new HashSet<ulong>();
@@ -65,8 +65,8 @@ namespace KotH.Client.Steam
             {
                 if (peerOf.ContainsKey(remote) || hosting && lobby.Has(remote))
                     Accept(remote);
-                else if (hosting)
-                    waiting.Add(remote);   // its lobby entry may still be on the way
+                else
+                    waiting.Add(remote);   // its lobby entry may still be on the way, or it is this peer's turn to host
                 return;
             }
             // SteamNetConnectionInfo_t: identity (136), user data, socket, address (18), pad, POPs, state, end reason.
@@ -116,6 +116,40 @@ namespace KotH.Client.Steam
             fixed (byte* p = identity)
                 SteamAPI_SteamNetworkingIdentity_SetSteamID64(p, steamId);
             return identity;
+        }
+
+        /// <summary>A host change made this peer the host: the old host's session ends, members who
+        /// already asked for one (they saw the change first) are taken in.</summary>
+        public void HostNow()
+        {
+            CloseAll();
+            hosting = true;
+            next = 1;
+            foreach (ulong member in new List<ulong>(waiting))
+                if (lobby.Has(member))
+                    Accept(member);
+        }
+
+        /// <summary>A host change: from now on to this host, as peer 0.</summary>
+        public void JoinNow(ulong host)
+        {
+            CloseAll();
+            hosting = false;
+            waiting.Remove(host);
+            Map(host, 0);
+        }
+
+        /// <summary>The host this peer talks to; 0 while hosting.</summary>
+        public ulong HostId => !hosting && steamOf.TryGetValue(0, out ulong id) ? id : 0;
+
+        // Every session ends; what is still queued from them is dropped.
+        void CloseAll()
+        {
+            foreach (ulong remote in peerOf.Keys)
+                Close(remote);
+            peerOf.Clear();
+            steamOf.Clear();
+            events.Clear();
         }
 
         /// <summary>The Steam account behind a peer; 0 when unknown.</summary>
@@ -182,10 +216,7 @@ namespace KotH.Client.Steam
             SteamClient.Callback -= OnCallback;
             lobby.MemberEntered -= Entered;
             lobby.MemberLeft -= Left;
-            foreach (ulong remote in peerOf.Keys)
-                Close(remote);
-            peerOf.Clear();
-            steamOf.Clear();
+            CloseAll();
         }
     }
 }

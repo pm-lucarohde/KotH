@@ -106,6 +106,7 @@ namespace KotH.Probes.Probes
                 FigureLook.Default.Write(ref w);
                 w.Byte((byte)proof.Length);
                 w.Bytes(proof);
+                w.Int(0);   // a fresh join, no NetId taken back
             });
             MsgType answer = 0;
             Pump(1500.0, data =>

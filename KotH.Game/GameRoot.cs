@@ -190,7 +190,7 @@ namespace KotH.Client
                         guest.Session.Join(guest.Now);
                 };
                 cover.Loaded += join;
-                cover.Hold = () => !guest.Session.Joined;
+                cover.Hold = () => !guest.Joined;
                 return;
             }
 
@@ -274,7 +274,7 @@ namespace KotH.Client
             StartNetworked(options, lobby);
             NetClient guest = net;
             guest.JoinWhenReady(() => cover.IsLoaded);
-            cover.Hold = () => !guest.Session.Joined;
+            cover.Hold = () => !guest.Joined;
         }
 
         /// <summary>The host restarted the game on a map and stage (lobby to round and back): the
@@ -303,7 +303,7 @@ namespace KotH.Client
             }
             BindWorld(null);
             NetClient client = net;
-            cover.Hold = () => net == client && (client.Restarting || !client.Session.Joined);
+            cover.Hold = () => net == client && (client.Restarting || !client.Joined);
             Log.Info($"Network: restart on {map} ({stage})");
         }
 
@@ -432,12 +432,17 @@ namespace KotH.Client
             {
                 ChangeMap = RestartOn,
                 MapReady = () => cover.IsLoaded,
-                MakeBots = states =>
+                MakeBots = (states, since) =>
                 {
+                    DropBots();
+                    long at = StartLog.Now;
                     BotDirector made = BotDirector.Create(builder, simulation, states, options.BotSeed);
+                    made.Since = since;
+                    StartLog.Took("bot director", at);
                     WorkAhead(made);
                     return made;
                 },
+                DropBots = DropBots,
             };
             Services.AddService(net);
             if (options.Host && options.Bots > 0)

@@ -51,6 +51,7 @@ namespace KotH.Shared.Net
 
         readonly Dictionary<int, SimulationBody> bodies = new Dictionary<int, SimulationBody>();
         readonly Dictionary<int, BodyState> joinStates = new Dictionary<int, BodyState>();
+        readonly Dictionary<int, NetEvent> roster = new Dictionary<int, NetEvent>();   // who each player is
         readonly Dictionary<int, int> leaveTicks = new Dictionary<int, int>();
         readonly Dictionary<int, Record> confirmed = new Dictionary<int, Record>();
         readonly Stack<Record> spareRecords = new Stack<Record>();
@@ -95,6 +96,22 @@ namespace KotH.Shared.Net
         /// loaded it, so it never stands in the game half ready. look: the own colours (default if null).</summary>
         public PeerSession(INetWorld world, INetTransport transport, Func<MoveInput> sampleLocal,
                            string name, bool founder, double now, bool join = true, FigureLook? look = null)
+            : this(world, transport, sampleLocal, name, founder, now, look)
+        {
+            if (join)
+            {
+                Join(now);
+                return;
+            }
+            var w = new Writer(outgoing);
+            outgoing.Clear();
+            w.Byte((byte)MsgType.Ask);
+            w.Bytes(NetProtocol.BuildId);
+            transport.Send(0, outgoing.WrittenSpan, reliable: true);
+        }
+
+        PeerSession(INetWorld world, INetTransport transport, Func<MoveInput> sampleLocal,
+                    string name, bool founder, double now, FigureLook? look)
         {
             this.world = world;
             sim = world.Simulation;
@@ -120,17 +137,64 @@ namespace KotH.Shared.Net
                 syncTick = LeadTarget - InputDelay;
                 syncTime = now;
             }
+        }
 
-            if (join)
+        /// <summary>A host change: the same world and players, on to another host, who is told which
+        /// player this one was (its Hello names the NetId). A founder (the new host's own peer) then
+        /// loads the takeover's state itself; anyone else gets it with the Welcome.</summary>
+        public PeerSession(PeerSession from, INetTransport transport, bool founder, double now)
+            : this(from.world, transport, from.sampleLocal, from.name, founder, now, from.look)
+        {
+            foreach (KeyValuePair<int, SimulationBody> p in from.bodies)
+                bodies[p.Key] = p.Value;
+            foreach (KeyValuePair<int, BodyState> p in from.joinStates)
+                joinStates[p.Key] = p.Value;
+            foreach (KeyValuePair<int, NetEvent> p in from.roster)
+                roster[p.Key] = p.Value;
+            ResumeNetId = from.LocalNetId != 0 ? from.LocalNetId : from.ResumeNetId;
+            HostPassword = from.HostPassword;
+            Join(now);
+        }
+
+        /// <summary>The new host's own peer: starts from the takeover's state, without who is not in it.</summary>
+        public bool StartFrom(Takeover from)
+        {
+            if (!LoadState(from.State))
+                return false;
+            DropStrangers(from.Roster);
+            return true;
+        }
+
+        /// <summary>After a host change: the player this peer was, 0 for a fresh join; set before Join.</summary>
+        public int ResumeNetId { get; set; }
+
+        /// <summary>A private round's key as the host's welcome gave it (null for an open round):
+        /// what this peer checks passwords with should it become the host.</summary>
+        public PasswordKey HostPassword { get; private set; }
+
+        /// <summary>When something last came from the host (local milliseconds); a long silence means it is gone.</summary>
+        public double LastHeard { get; private set; }
+
+        /// <summary>The game as a new host takes it over: the newest final state and who is in it.
+        /// Null before there is one.</summary>
+        public Takeover Takeover()
+        {
+            int tick = FinalTick;
+            if (tick < 0 || snapTicks[tick % Ring] != tick)
+                return null;
+            WorldSnapshot snap = snaps[tick % Ring];
+            var state = new ArrayBufferWriter<byte>();
+            StateCodec.Write(snap, state);
+            var players = new List<NetEvent>();
+            foreach (KeyValuePair<int, NetEvent> p in roster)
+                if (bodies.TryGetValue(p.Key, out SimulationBody body) && snap.Contains(body))
+                    players.Add(p.Value);
+            players.Sort((a, b) => a.NetId.CompareTo(b.NetId));
+            return new Takeover
             {
-                Join(now);
-                return;
-            }
-            var w = new Writer(outgoing);
-            outgoing.Clear();
-            w.Byte((byte)MsgType.Ask);
-            w.Bytes(NetProtocol.BuildId);
-            transport.Send(0, outgoing.WrittenSpan, reliable: true);
+                Tick = tick, State = state.WrittenSpan.ToArray(), Roster = players, FounderNetId = LocalNetId,
+                Generation = (byte)(generation + 1), Stage = Stage, NextMap = NextMap, Password = HostPassword,
+            };
         }
 
         /// <summary>Asks the host to let this peer in; once, at once unless asked not to.</summary>
@@ -139,6 +203,7 @@ namespace KotH.Shared.Net
             if (joining)
                 return;
             joining = true;
+            helloAt = now;
             var w = new Writer(outgoing);
             outgoing.Clear();
             w.Byte((byte)MsgType.Hello);
@@ -154,10 +219,12 @@ namespace KotH.Shared.Net
             }
             else
                 w.Byte(0);
+            w.Int(ResumeNetId);
             transport.Send(0, outgoing.WrittenSpan, reliable: true);
         }
 
         bool joining;
+        double helloAt;
         (byte[] Salt, byte[] Nonce)? challenge;
 
         /// <summary>The password of a private round to answer the host's challenge with; null for none
@@ -251,6 +318,12 @@ namespace KotH.Shared.Net
                     Receive(e.Data, now);
                 else if (e.Kind == TransportEventKind.Disconnected)
                     HostLost = true;
+            }
+            // Back after a host change: the new host may not have listened yet, so say hello again.
+            if (ResumeNetId != 0 && !Joined && joining && now - helloAt > 1000.0)
+            {
+                joining = false;
+                Join(now);
             }
 
             if (!Joined || RestartTo != null)
@@ -347,6 +420,7 @@ namespace KotH.Shared.Net
         void Receive(byte[] data, double now)
         {
             var r = new Reader(data);
+            LastHeard = now;
             switch ((MsgType)r.Byte())
             {
                 case MsgType.Welcome: Welcome(ref r, now); break;
@@ -390,6 +464,8 @@ namespace KotH.Shared.Net
             generation = r.Byte();
             Stage = (Match.MatchStage)r.Byte();
             NextMap = r.Text();
+            if (r.Byte() == 1)
+                HostPassword = new PasswordKey(r.Bytes(PasswordKey.SaltSize).ToArray(), r.Bytes(PasswordKey.KeySize).ToArray());
 
             // A founder already has the world; anyone else builds the host's map and takes its state.
             int length = r.Int();
@@ -422,19 +498,41 @@ namespace KotH.Shared.Net
         bool TakeState(ref Reader r, int length)
         {
             ReadOnlySpan<byte> state = r.Bytes(length);
-            int players = r.Int();
-            var roster = new List<NetEvent>();
-            for (int i = 0; i < players; i++)
-                roster.Add(NetProtocol.ReadEvent(ref r));
+            int count = r.Int();
+            var players = new List<NetEvent>();
+            for (int i = 0; i < count; i++)
+                players.Add(NetProtocol.ReadEvent(ref r));
             if (r.Failed)
                 return false;
 
-            roster.Sort((a, b) => a.NetId.CompareTo(b.NetId));
-            foreach (NetEvent p in roster)
+            players.Sort((a, b) => a.NetId.CompareTo(b.NetId));
+            foreach (NetEvent p in players)
                 if (!bodies.ContainsKey(p.NetId))
                     Spawn(p);
 
-            return LoadState(state);
+            if (!LoadState(state))
+                return false;
+            if (ResumeNetId != 0)
+                DropStrangers(players);
+            return true;
+        }
+
+        // After a host change: players the new host's state and roster both lack left before it
+        // took over (or joined only at the old host); they go.
+        void DropStrangers(List<NetEvent> players)
+        {
+            var gone = new List<int>();
+            foreach (KeyValuePair<int, SimulationBody> p in bodies)
+                if (p.Key >= NetWorld.FirstPlayerId && !decoded.Contains(p.Value) && !players.Exists(e => e.NetId == p.Key))
+                    gone.Add(p.Key);
+            foreach (int id in gone)
+            {
+                world.Despawn(bodies[id]);
+                bodies.Remove(id);
+                joinStates.Remove(id);
+                roster.Remove(id);
+                leaveTicks.Remove(id);
+            }
         }
 
         /// <summary>
@@ -814,6 +912,7 @@ namespace KotH.Shared.Net
                 if (bodies.Remove(id, out SimulationBody body))
                     world.Despawn(body);
                 joinStates.Remove(id);
+                roster.Remove(id);
                 lastConfirmed.Remove(id);
             }
         }
@@ -824,6 +923,7 @@ namespace KotH.Shared.Net
             SimulationBody body = world.SpawnPlayer(e.NetId, e.Slot, e.Name, e.Look);
             body.NetId = e.NetId;
             bodies[e.NetId] = body;
+            roster[e.NetId] = e;
             joinStates[e.NetId] = body.CaptureState();
             sim.Leave(body);
         }

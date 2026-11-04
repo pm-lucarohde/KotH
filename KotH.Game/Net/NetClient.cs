@@ -11,10 +11,10 @@ using KotH.Shared.Player;
 namespace KotH.Client.Net
 {
     /// <summary>The client's share of a networked game: its session and, when it hosts, the host session beside
-    /// it, over a Steam lobby (menu) or direct IP (--host, --join). A lobby on Mount Destiny, the round on the
-    /// chosen map: the host session restarts the game there and back, this side changes maps and joins anew.
-    /// The driver calls Update once per frame instead of ticking the world itself.</summary>
-    public sealed class NetClient : IDisposable
+    /// it, over a Steam lobby (menu) or direct IP (--host, --join). The host session restarts the game on the
+    /// round's map and back, this side changes maps and joins anew; over Steam another player takes over from
+    /// a host that goes (HostChange.cs). The driver calls Update once per frame.</summary>
+    public sealed partial class NetClient : IDisposable
     {
         readonly Stopwatch wall = Stopwatch.StartNew();
         readonly INetTransport transport;
@@ -37,18 +37,13 @@ namespace KotH.Client.Net
             if (options.Host)
             {
                 transport = lobby != null ? SteamTransport.Host(lobby) : LiteNetTransport.Host(options.Port);
-                Host = new HostSession(transport, Now)
-                {
-                    // A private round: only the key of its password is kept; invited friends need none.
-                    Password = options.Password != null ? PasswordKey.Make(options.Password) : null,
-                    Invited = peer => transport is SteamTransport steam && steam.Invited(peer),
-                };
+                Host = NewHost(Now);
+                // A private round: only the key of its password is kept; invited friends need none.
+                Host.Password = options.Password != null ? PasswordKey.Make(options.Password) : null;
                 // The lobby's round goes to --map (Mount Destiny unless given); the host may choose another.
                 Host.StartIn(MatchStage.Lobby, options.Map);
-                Host.Began += Founded;
                 Session = new PeerSession(world, Host.LocalTransport, sampleLocal, name, founder: true, Now, look: look);
                 Host.AttachFounder(Session);
-                Host.CanJoin = () => world.Simulation.Match?.AcceptsJoin ?? true;
                 if (round != null)
                 {
                     round.Stage = MatchStage.Lobby;
@@ -76,8 +71,12 @@ namespace KotH.Client.Net
         /// <summary>GameRoot: whether the restart's map is loaded and baked.</summary>
         public Func<bool> MapReady { get; set; }
 
-        /// <summary>GameRoot: a new bot director for the restarted world, thinking from these states.</summary>
-        public Func<IFinalStates, BotDirector> MakeBots { get; set; }
+        /// <summary>GameRoot: a new bot director for the restarted world (or a host change's, whose states
+        /// begin at the given tick), thinking from these states.</summary>
+        public Func<IFinalStates, int, BotDirector> MakeBots { get; set; }
+
+        /// <summary>GameRoot: this side no longer hosts (a host change); its bot director goes.</summary>
+        public Action DropBots { get; set; }
 
         /// <summary>Between the host's restart and this side's new session.</summary>
         public bool Restarting => changing || Host is { Restarting: true };
@@ -102,7 +101,10 @@ namespace KotH.Client.Net
                 director.Add(Host.AddBot($"Bot {i + 1}"));
         }
 
-        public HostSession Host { get; }
+        public HostSession Host { get; private set; }
+
+        /// <summary>In the game: joined, or back with a new host after a host change.</summary>
+        public bool Joined => Session.Joined || Session.ResumeNetId != 0 && !gaveUp;
         public PeerSession Session { get; private set; }
 
         public double Now => wall.Elapsed.TotalMilliseconds;
@@ -121,6 +123,7 @@ namespace KotH.Client.Net
                 Session.Join(now);
             }
             Lobby?.Refresh();
+            FollowHost(now);
             if (Host != null && Lobby != null)
             {
                 int players = HillMatch.CountPlayers(Session.Simulation.Bodies);
@@ -170,7 +173,7 @@ namespace KotH.Client.Net
             List<int> bots = Host.BotIds;
             if (bots.Count == 0 || MakeBots == null)
                 return;
-            BotDirector director = MakeBots(Session);
+            BotDirector director = MakeBots(Session, 0);
             Host.Bots = director;
             Session.KnownInputs = director;
             foreach (int id in bots)
@@ -187,7 +190,8 @@ namespace KotH.Client.Net
                 RejectReason.Full => "Rejected: the game is full",
                 RejectReason.Closed => "Rejected: the round has run too long",
                 RejectReason.Password => "Rejected: wrong password",
-                _ => Session.HostLost ? "The host is gone, the game is over"
+                _ => gaveUp || Session.HostLost && Lobby == null ? "The host is gone, the game is over"
+                   : Session.ResumeNetId != 0 && !Session.Joined ? "The host changed, reconnecting ..."
                    : !Session.Joined ? $"Connecting to {address} ..."
                    : null,
             };
@@ -201,8 +205,11 @@ namespace KotH.Client.Net
 
         public void Dispose()
         {
-            (transport as IDisposable)?.Dispose();
+            // The lobby first: it names the heir, so the guests go there before the sessions close.
+            if (Lobby != null && Host != null)
+                Lobby.Heir = Heir();
             Lobby?.Dispose();
+            (transport as IDisposable)?.Dispose();
         }
     }
 }

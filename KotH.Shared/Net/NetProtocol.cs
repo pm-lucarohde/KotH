@@ -17,8 +17,8 @@ namespace KotH.Shared.Net
     /// <summary>The first byte of every message.</summary>
     public enum MsgType : byte
     {
-        Hello = 1,      // peer -> host: build, name, look, password proof
-        Welcome = 2,    // host -> peer: NetId, map, state, roster
+        Hello = 1,      // peer -> host: build, name, look, password proof, NetId taken back after a host change
+        Welcome = 2,    // host -> peer: NetId, map, password key, state, roster
         Reject = 3,     // host -> peer: why not
         Inputs = 4,     // peer -> host: generation, own inputs not yet acknowledged
         Confirmed = 5,  // host -> peer: final inputs and events per tick
@@ -36,6 +36,7 @@ namespace KotH.Shared.Net
     public struct NetEvent
     {
         public bool Join;
+        public bool Bot;
         public int NetId;
         public int Slot;
         public string Name;
@@ -196,7 +197,7 @@ namespace KotH.Shared.Net
 
         public static void WriteEvent(ref Writer w, in NetEvent e)
         {
-            w.Byte(e.Join ? (byte)1 : (byte)0);
+            w.Byte(e.Join ? e.Bot ? (byte)3 : (byte)1 : (byte)0);
             w.Int(e.NetId);
             if (!e.Join)
                 return;
@@ -207,7 +208,8 @@ namespace KotH.Shared.Net
 
         public static NetEvent ReadEvent(ref Reader r)
         {
-            var e = new NetEvent { Join = r.Byte() != 0, NetId = r.Int() };
+            byte kind = r.Byte();
+            var e = new NetEvent { Join = kind != 0, Bot = (kind & 2) != 0, NetId = r.Int() };
             if (e.Join)
             {
                 e.Slot = r.Byte();

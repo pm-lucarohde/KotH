@@ -132,6 +132,13 @@ namespace KotH.Shared.Bots
 
         int Reaction => Math.Max(3, settings.ReactionTicks);
 
+        /// <summary>The first tick with a final state: 0, or where a new host took the game over
+        /// (host change). Until they could see past it, the bots see that state.</summary>
+        public int Since { get; set; }
+
+        // The tick whose state a bot sees for tick u; negative: none yet (a game's start).
+        int ViewOf(int u, int reaction) => Since > 0 ? Math.Max(u - reaction, Since) : u - reaction;
+
         public void Add(int netId)
         {
             var bot = new Bot
@@ -186,7 +193,8 @@ namespace KotH.Shared.Bots
                 for (int u = bot.Last + 1; u <= tick; u++)
                 {
                     WorldSnapshot view = null;
-                    if (u - reaction >= 0 && !states.TryFinalState(u - reaction, out view))
+                    int k = ViewOf(u, reaction);
+                    if (k >= 0 && !states.TryFinalState(k, out view))
                         return false;
                     bot.Inputs[u % Memo] = Net.NetProtocol.Sanitize(bot.Brain.Step(u, view));
                     Volatile.Write(ref bot.Last, u);
@@ -278,7 +286,7 @@ namespace KotH.Shared.Bots
                     {
                         if (!b.Asked || b.Last >= limit || next != null && b.Last >= next.Last)
                             continue;
-                        int k = b.Last + 1 - reaction;
+                        int k = ViewOf(b.Last + 1, reaction);
                         if (k >= 0 && Volatile.Read(ref viewTicks[k % Views]) != k)
                             continue;
                         next = b;

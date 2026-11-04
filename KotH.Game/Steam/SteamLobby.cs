@@ -96,6 +96,7 @@ namespace KotH.Client.Steam
                 foreach (string language in flags.Languages)
                     lobby.Set("lang_" + language, "1");
                 lobby.Set("modded", flags.Modded ? "1" : "0");
+                lobby.Set("host", SteamClient.SteamId.ToString(CultureInfo.InvariantCulture));
                 lobby.Refresh(force: true);
                 if (lobby.players >= 0)
                     lobby.Set("players", lobby.players.ToString(CultureInfo.InvariantCulture));
@@ -200,8 +201,9 @@ namespace KotH.Client.Steam
                 SteamAPI_ISteamMatchmaking_SetLobbyData(SteamClient.Matchmaking, Id, k, v);
         }
 
-        /// <summary>Once in a while (NetClient's frames): this player's ping location as member data, and
-        /// the host's as lobby data, for the list's estimate; Steam measures it a few seconds after the start.</summary>
+        /// <summary>Once in a while (NetClient's frames): this player's ping location as member data (the
+        /// choice of the next host), the owner's as lobby data (the list's estimate); Steam measures it a few
+        /// seconds after the start.</summary>
         public void Refresh(bool force = false)
         {
             double now = Environment.TickCount64 / 1000.0;
@@ -209,17 +211,54 @@ namespace KotH.Client.Steam
                 return;
             nextRefresh = now + 10.0;
             string location = SteamClient.PingLocation();
-            if (location == null || location == pingSet)
+            if (location == null)
                 return;
-            pingSet = location;
-            fixed (byte* k = Z("ping"), v = Z(location))
-                SteamAPI_ISteamMatchmaking_SetLobbyMemberData(SteamClient.Matchmaking, Id, k, v);
-            if (Hosting || Owner == SteamClient.SteamId)
-                Set("ping", location);
+            SetMemberData("ping", location);
+            // The owner hosts (or soon will, after a host change).
+            SetData("ping", location);
         }
 
         double nextRefresh;
-        string pingSet;
+
+        /// <summary>The members (SteamIDs), this player included.</summary>
+        public List<ulong> Members()
+        {
+            var list = new List<ulong>();
+            int count = Id == 0 ? 0 : SteamAPI_ISteamMatchmaking_GetNumLobbyMembers(SteamClient.Matchmaking, Id);
+            for (int i = 0; i < count; i++)
+                list.Add(SteamAPI_ISteamMatchmaking_GetLobbyMemberByIndex(SteamClient.Matchmaking, Id, i));
+            return list;
+        }
+
+        /// <summary>This player's data for the others (NetId, the host it plays with); kept while unchanged.</summary>
+        public void SetMemberData(string key, string value)
+        {
+            if (Id == 0 || mine.TryGetValue(key, out string was) && was == value)
+                return;
+            mine[key] = value;
+            fixed (byte* k = Z(key), v = Z(value))
+                SteamAPI_ISteamMatchmaking_SetLobbyMemberData(SteamClient.Matchmaking, Id, k, v);
+        }
+
+        readonly Dictionary<string, string> mine = new Dictionary<string, string>();
+
+        /// <summary>The lobby's data, null when none (another member's view of who hosts, who is next).</summary>
+        public string Data(string key) => Id == 0 ? null : Get(key);
+
+        /// <summary>The owner only: lobby data for everyone; kept while unchanged.</summary>
+        public void SetData(string key, string value)
+        {
+            if (Id == 0 || Owner != SteamClient.SteamId || Get(key) == value)
+                return;
+            Set(key, value);
+        }
+
+        /// <summary>The owner only: hands the lobby on (its data, and who new players connect to).</summary>
+        public bool SetOwner(ulong member)
+            => Id != 0 && member != 0 && SteamAPI_ISteamMatchmaking_SetLobbyOwner(SteamClient.Matchmaking, Id, member) != 0;
+
+        /// <summary>Whom the owner hands the lobby to when it leaves (NetClient's choice of the next host).</summary>
+        public ulong Heir { get; set; }
 
         /// <summary>A member's data (another player's ping location, NetId), null when none.</summary>
         public string MemberData(ulong member, string key)
@@ -305,6 +344,14 @@ namespace KotH.Client.Steam
                 return;
             disposed = true;
             SteamClient.Callback -= OnCallback;
+            // Leaving as the owner: the heir hosts on, and everyone knows it before Steam says we left.
+            if (Id != 0 && SteamClient.Ready && Owner == SteamClient.SteamId && Heir != 0 && Has(Heir))
+            {
+                string heir = Heir.ToString(CultureInfo.InvariantCulture);
+                Set("next", heir);
+                Set("host", heir);
+                SetOwner(Heir);
+            }
             if (Id != 0 && SteamClient.Ready)
                 SteamAPI_ISteamMatchmaking_LeaveLobby(SteamClient.Matchmaking, Id);
             Id = 0;

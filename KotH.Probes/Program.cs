@@ -39,6 +39,7 @@ Probe probe = name switch
     "netstate" => new NetStateProbe(),
     "netplay" => new NetPlayProbe(),
     "password" => new PasswordProbe(),
+    "migrate" => new MigrateProbe(),
     "bots" => new BotProbe
     {
         Stats = args.Length > 2 && args[1] == "stats" ? int.Parse(args[2]) : 0,
@@ -50,7 +51,7 @@ Probe probe = name switch
 
 if (probe == null)
 {
-    Console.Error.WriteLine("Usage: KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|blaster|dash|step|determinism|clock|stairrun|rampfoot|crouchedge|knockback|thirdperson|wallknock|capture|netstate|netplay|password|bots>");
+    Console.Error.WriteLine("Usage: KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|blaster|dash|step|determinism|clock|stairrun|rampfoot|crouchedge|knockback|thirdperson|wallknock|capture|netstate|netplay|password|migrate|bots>");
     return 64;
 }
 

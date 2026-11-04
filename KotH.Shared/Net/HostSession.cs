@@ -56,6 +56,12 @@ namespace KotH.Shared.Net
             // After a restart, until its hello on the new map.
             public bool Rejoining;
 
+            // After a host change, until it says hello to this host as who it was (TakeBack).
+            public bool Awaiting;
+
+            // The newest tick it already has: -1, or the tick before a host change took over.
+            public int AckFloor = -1;
+
             /// <summary>Back to before its join, for the timeline a restart begins.</summary>
             public void Rewind()
             {
@@ -140,7 +146,7 @@ namespace KotH.Shared.Net
             };
             clients[c.Peer] = c;
             Players++;
-            pending.Add(new NetEvent { Join = true, NetId = c.NetId, Slot = c.Slot, Name = c.Name, Look = c.Look });
+            pending.Add(new NetEvent { Join = true, Bot = true, NetId = c.NetId, Slot = c.Slot, Name = c.Name, Look = c.Look });
             return c.NetId;
         }
 
@@ -243,6 +249,93 @@ namespace KotH.Shared.Net
         /// <summary>The founder has loaded the restart's map; it says hello once the timeline begins.</summary>
         public void FounderReady() => founderReady = true;
 
+        /// <summary>A host change: this host goes on from the takeover's tick with everyone in its state.
+        /// The founder is the own peer (which loaded the state), bots play on, the other players are
+        /// awaited until they say hello as who they were (Claims) and get the state; after 20 s they leave.</summary>
+        public void Resume(Takeover from, double time)
+        {
+            now = resumedAt = time;
+            start = time - from.Tick * SimulationSystem.TickSeconds * 1000.0;
+            nextConfirm = from.Tick;
+            generation = from.Generation;
+            Stage = from.Stage;
+            nextMap = from.NextMap;
+            Password ??= from.Password;
+            int awaitingPeer = int.MinValue / 2;
+            foreach (NetEvent e in from.Roster)
+            {
+                var c = new Client
+                {
+                    NetId = e.NetId, Slot = e.Slot, Name = e.Name, Look = e.Look, IsBot = e.Bot,
+                    JoinTick = Math.Max(0, from.Tick - 1), AckFloor = from.Tick - 1,
+                };
+                if (e.Bot)
+                {
+                    c.Peer = nextBotPeer--;
+                    c.Phase = Phase.Playing;
+                }
+                else
+                {
+                    c.Peer = e.NetId == from.FounderNetId ? LocalPeer : awaitingPeer++;
+                    c.Phase = Phase.Waiting;
+                    c.Awaiting = c.Peer != LocalPeer;
+                }
+                clients[c.Peer] = c;
+                Players++;
+                nextNetId = Math.Max(nextNetId, e.NetId + 1);
+            }
+        }
+
+        double resumedAt = double.NaN;
+
+        /// <summary>After a host change: whether a peer is the player it says it was (the lobby's member
+        /// data); null believes everyone.</summary>
+        public Func<int, int, bool> Claims { get; set; }
+
+        /// <summary>Players of a host change who have not said hello to this host yet.</summary>
+        public int Awaited
+        {
+            get
+            {
+                int n = 0;
+                foreach (Client c in clients.Values)
+                    n += c.Awaiting ? 1 : 0;
+                return n;
+            }
+        }
+
+        // An awaited player says hello as who it was: it goes on as that player and gets the state.
+        bool TakeBack(int peer, int netId, double sent)
+        {
+            Client back = null;
+            foreach (Client c in clients.Values)
+                if (c.Awaiting && c.NetId == netId)
+                    back = c;
+            if (back == null || clients.ContainsKey(peer) || !(Claims?.Invoke(peer, netId) ?? true))
+                return false;
+            clients.Remove(back.Peer);
+            back.Peer = peer;
+            back.Awaiting = false;
+            back.EchoTime = sent;
+            back.EchoReceived = now;
+            clients[peer] = back;
+            return true;
+        }
+
+        // Awaited players still not back after the wait leave the game.
+        void GiveUpAwaited()
+        {
+            if (double.IsNaN(resumedAt) || now - resumedAt <= RestartWaitMs)
+                return;
+            resumedAt = double.NaN;
+            foreach (Client c in new List<Client>(clients.Values))
+                if (c.Awaiting)
+                {
+                    c.Awaiting = false;
+                    Leave(c);
+                }
+        }
+
         // Every remote player back (or the wait over) and the founder ready: tick 0 again, the bots
         // join at once, the players as their hellos are in; askers waiting for the map hear it now.
         void Begin()
@@ -251,7 +344,7 @@ namespace KotH.Shared.Net
             start = now;
             foreach (Client c in clients.Values)
                 if (c.IsBot)
-                    pending.Add(new NetEvent { Join = true, NetId = c.NetId, Slot = c.Slot, Name = c.Name, Look = c.Look });
+                    pending.Add(new NetEvent { Join = true, Bot = true, NetId = c.NetId, Slot = c.Slot, Name = c.Name, Look = c.Look });
             Began?.Invoke();
             foreach (int peer in asked)
                 AnswerAsk(peer);
@@ -293,6 +386,23 @@ namespace KotH.Shared.Net
         /// <summary>Inputs the host had to clamp before confirming them; honest peers send none.</summary>
         public int Sanitized { get; private set; }
 
+        /// <summary>The median round trip to the remote players in milliseconds, NaN with none: how
+        /// well this host serves them (a bad line hands the game to another, NetClient).</summary>
+        public double MedianRtt
+        {
+            get
+            {
+                var rtts = new List<double>();
+                foreach (Client c in clients.Values)
+                    if (c.Phase == Phase.Playing && !c.IsBot && c.Peer != LocalPeer && c.RttSamples.Count > 0)
+                        rtts.Add(c.Rtt);
+                if (rtts.Count == 0)
+                    return double.NaN;
+                rtts.Sort();
+                return rtts.Count % 2 == 1 ? rtts[rtts.Count / 2] : (rtts[rtts.Count / 2 - 1] + rtts[rtts.Count / 2]) * 0.5;
+            }
+        }
+
         /// <summary>Bytes of confirmed ticks sent to the peer with this NetId so far.</summary>
         public long BytesSentTo(int netId)
         {
@@ -329,6 +439,7 @@ namespace KotH.Shared.Net
                 Begin();
             }
 
+            GiveUpAwaited();
             ConfirmReady();
             Welcome();
             CompareChecksums();
@@ -450,6 +561,9 @@ namespace KotH.Shared.Net
             string name = r.Text();
             FigureLook look = FigureLook.Read(ref r);
             ReadOnlySpan<byte> proof = r.Bytes(r.Byte());
+            int resume = r.Int();
+            if (!r.Failed && resume != 0 && build.SequenceEqual(NetProtocol.BuildId) && TakeBack(peer, resume, sent))
+                return;
             if (!r.Failed && clients.TryGetValue(peer, out Client back))
             {
                 // A player back after a restart: joins the new timeline as who it was.
@@ -606,7 +720,7 @@ namespace KotH.Shared.Net
 
                 // A bot's input needs a final state from before; never guessed.
                 foreach (Client c in clients.Values)
-                    if (c.IsBot && c.Phase != Phase.Left && t < c.LeaveTick && !Bots.TryInput(c.NetId, t, out _))
+                    if (c.IsBot && c.Phase != Phase.Left && t < c.LeaveTick && Bots != null && !Bots.TryInput(c.NetId, t, out _))
                         return;
 
                 Finalise(t);
@@ -644,7 +758,8 @@ namespace KotH.Shared.Net
             {
                 if (c.IsBot)
                 {
-                    Bots.TryInput(c.NetId, t, out MoveInput thought);
+                    MoveInput thought = default;
+                    Bots?.TryInput(c.NetId, t, out thought);
                     rec.Inputs.Add((c.NetId, thought));
                     continue;
                 }
@@ -680,7 +795,7 @@ namespace KotH.Shared.Net
         {
             foreach (Client c in clients.Values)
             {
-                if (c.Phase != Phase.Waiting || c.JoinTick < 0)
+                if (c.Phase != Phase.Waiting || c.JoinTick < 0 || c.Awaiting)
                     continue;
 
                 state.Clear();
@@ -703,11 +818,18 @@ namespace KotH.Shared.Net
                 w.Byte(generation);
                 w.Byte((byte)Stage);
                 w.Text(nextMap ?? "");
+                // A private round's key, so whoever hosts after a host change can check passwords.
+                w.Byte(Password != null ? (byte)1 : (byte)0);
+                if (Password != null)
+                {
+                    w.Bytes(Password.Salt);
+                    w.Bytes(Password.Key);
+                }
                 WriteState(ref w, isFounder);
                 Send(c.Peer, reliable: true);
 
                 c.Phase = Phase.Playing;
-                c.AckConfirmed = isFounder ? -1 : tick - 1;
+                c.AckConfirmed = isFounder ? c.AckFloor : tick - 1;
             }
         }
 
@@ -728,7 +850,7 @@ namespace KotH.Shared.Net
                     roster.Add(c);
             w.Int(roster.Count);
             foreach (Client c in roster)
-                NetProtocol.WriteEvent(ref w, new NetEvent { Join = true, NetId = c.NetId, Slot = c.Slot, Name = c.Name, Look = c.Look });
+                NetProtocol.WriteEvent(ref w, new NetEvent { Join = true, Bot = c.IsBot, NetId = c.NetId, Slot = c.Slot, Name = c.Name, Look = c.Look });
         }
 
         // The tick sits after the codec's magic and version.
