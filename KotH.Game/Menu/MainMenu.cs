@@ -47,6 +47,9 @@ namespace KotH.Client.Menu
         /// password typed for a private one (null otherwise).</summary>
         [DataMemberIgnore] public Action<SteamLobby, string> StartJoin { get; set; }
 
+        /// <summary>Why the last game ended before it began (a wrong password): Find server opens with it.</summary>
+        [DataMemberIgnore] public string Note { get; set; }
+
 
         /// <summary>The name on the band.</summary>
         [DataMemberIgnore] public string PlayerName { get; set; }
@@ -304,6 +307,13 @@ namespace KotH.Client.Menu
                 view.Hoster.Pretend(pass);
             if (Environment.GetEnvironmentVariable("KOTH_SHOT_SETTINGS") is { } tab)
                 view.SettingsView.Choose(tab);
+            if (Note != null)
+            {
+                view.OpenFind();
+                Search();
+                view.Finder.Failed(Note);
+                Note = null;
+            }
         }
 
         /// <summary>The entrance, by moving the finished pictures only: the buttons slide

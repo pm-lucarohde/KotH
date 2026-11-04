@@ -17,7 +17,7 @@ namespace KotH.Shared.Net
     /// <summary>The first byte of every message.</summary>
     public enum MsgType : byte
     {
-        Hello = 1,      // peer -> host: build, name, look
+        Hello = 1,      // peer -> host: build, name, look, password proof
         Welcome = 2,    // host -> peer: NetId, map, state, roster
         Reject = 3,     // host -> peer: why not
         Inputs = 4,     // peer -> host: generation, own inputs not yet acknowledged
@@ -25,12 +25,12 @@ namespace KotH.Shared.Net
         Checksum = 6,   // peer -> host: generation, hash of a confirmed state
         Repair = 7,     // host -> peer: the full state after a desync
         Ask = 8,        // peer -> host: build; which map, before joining
-        Map = 9,        // host -> peer: the map, to load before the Hello
+        Map = 9,        // host -> peer: the map, to load before the Hello; a private round's salt and nonce
         Restart = 10,   // host -> peer: the game goes on on this map and stage; load it, then Hello again
         NextMap = 11,   // host -> peer: the map the lobby's round will be on
     }
 
-    public enum RejectReason : byte { Version = 1, Full = 2, Closed = 3 }
+    public enum RejectReason : byte { Version = 1, Full = 2, Closed = 3, Password = 4 }
 
     /// <summary>A join or a leave, part of the confirmed tick it happens in.</summary>
     public struct NetEvent

@@ -118,6 +118,12 @@ namespace KotH.Client.Steam
             return identity;
         }
 
+        /// <summary>The Steam account behind a peer; 0 when unknown.</summary>
+        public ulong SteamIdOf(int peer) => steamOf.TryGetValue(peer, out ulong id) ? id : 0;
+
+        /// <summary>The host: whether the peer is a friend it invited (a private round lets them in).</summary>
+        public bool Invited(int peer) => steamOf.TryGetValue(peer, out ulong id) && lobby.WasInvited(id);
+
         public void Send(int peer, ReadOnlySpan<byte> data, bool reliable)
         {
             if (!steamOf.TryGetValue(peer, out ulong remote))

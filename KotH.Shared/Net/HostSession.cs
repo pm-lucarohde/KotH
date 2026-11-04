@@ -115,6 +115,16 @@ namespace KotH.Shared.Net
         /// <summary>What the host's own peer talks through: instant, never lost.</summary>
         public INetTransport LocalTransport => link.PeerSide;
 
+        /// <summary>A private round: the password's key; peers prove they know it in their Hello.
+        /// Null for an open round.</summary>
+        public PasswordKey Password { get; set; }
+
+        /// <summary>Whether a peer may enter a private round without the password (a friend the host invited).</summary>
+        public Func<int, bool> Invited { get; set; }
+
+        // The nonce each asking peer got with the map, for its Hello's proof.
+        readonly Dictionary<int, byte[]> nonces = new Dictionary<int, byte[]>();
+
         /// <summary>Where the host's bots get their inputs; needed once AddBot was called.</summary>
         public IBotInputs Bots { get; set; }
 
@@ -390,6 +400,15 @@ namespace KotH.Shared.Net
             var w = new Writer(outgoing);
             w.Byte((byte)MsgType.Map);
             w.Text(founder?.Map ?? "");
+            // A private round: salt and a fresh nonce, for the Hello's proof.
+            w.Byte(Password != null ? (byte)1 : (byte)0);
+            if (Password != null)
+            {
+                byte[] nonce = PasswordKey.Nonce();
+                nonces[peer] = nonce;
+                w.Bytes(Password.Salt);
+                w.Bytes(nonce);
+            }
             Send(peer, reliable: true);
         }
 
@@ -402,12 +421,26 @@ namespace KotH.Shared.Net
                               : null;
             if (why == null)
                 return false;
+            Reject(peer, why.Value);
+            return true;
+        }
+
+        void Reject(int peer, RejectReason why)
+        {
             outgoing.Clear();
             var w = new Writer(outgoing);
             w.Byte((byte)MsgType.Reject);
-            w.Byte((byte)why.Value);
+            w.Byte((byte)why);
             Send(peer, reliable: true);
-            return true;
+        }
+
+        // A private round lets in its host's own peer, who proves the password on the nonce it was given,
+        // or an invited friend.
+        bool Admitted(int peer, ReadOnlySpan<byte> proof)
+        {
+            if (Password == null || peer == LocalPeer || (Invited?.Invoke(peer) ?? false))
+                return true;
+            return nonces.Remove(peer, out byte[] nonce) && Password.Check(nonce, proof);
         }
 
         void Hello(int peer, ref Reader r)
@@ -416,6 +449,7 @@ namespace KotH.Shared.Net
             double sent = r.Double();
             string name = r.Text();
             FigureLook look = FigureLook.Read(ref r);
+            ReadOnlySpan<byte> proof = r.Bytes(r.Byte());
             if (!r.Failed && clients.TryGetValue(peer, out Client back))
             {
                 // A player back after a restart: joins the new timeline as who it was.
@@ -430,6 +464,11 @@ namespace KotH.Shared.Net
             }
             if (r.Failed || Refused(peer, build))
                 return;
+            if (!Admitted(peer, proof))
+            {
+                Reject(peer, RejectReason.Password);
+                return;
+            }
 
             name = UniqueName(string.IsNullOrWhiteSpace(name) ? "Player" : name.Trim());
             var c = new Client

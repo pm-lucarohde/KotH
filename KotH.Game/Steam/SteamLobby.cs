@@ -272,9 +272,19 @@ namespace KotH.Client.Steam
             return false;
         }
 
-        /// <summary>Invites a friend; Steam shows it in their chat with a Join button.</summary>
+        /// <summary>Invites a friend; Steam shows it in their chat with a Join button. A private round
+        /// lets invited friends in without the password.</summary>
         public bool Invite(ulong friend)
-            => Id != 0 && SteamAPI_ISteamMatchmaking_InviteUserToLobby(SteamClient.Matchmaking, Id, friend) != 0;
+        {
+            if (Id == 0 || SteamAPI_ISteamMatchmaking_InviteUserToLobby(SteamClient.Matchmaking, Id, friend) == 0)
+                return false;
+            invited.Add(friend);
+            return true;
+        }
+
+        readonly HashSet<ulong> invited = new HashSet<ulong>();
+
+        public bool WasInvited(ulong member) => invited.Contains(member);
 
         void OnCallback(int id, nint p)
         {

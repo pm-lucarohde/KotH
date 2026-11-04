@@ -276,6 +276,7 @@ namespace KotH.Probes.Probes
             w.Double(net.Now);
             w.Text(name);
             FigureLook.Default.Write(ref w);
+            w.Byte(0);   // no password proof
             end.Send(0, hello.WrittenSpan, reliable: true);
             return end;
         }

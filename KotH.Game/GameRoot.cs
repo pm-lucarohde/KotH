@@ -230,11 +230,12 @@ namespace KotH.Client
         {
             var script = new MainMenu
             {
-                StartHost = HostFromMenu, StartJoin = JoinFromMenu,
+                StartHost = HostFromMenu, StartJoin = JoinFromMenu, Note = menuNote,
                 PlayerName = LaunchOptions.Current.Name, Cover = cover, Look = LaunchOptions.Current.Look,
                 LookChanged = LookChanged,
                 CustomizeShown = open => visuals.MoveShowcase(menuFigure, open ? MenuFigureCustomizeAt : MenuFigureAt),
             };
+            menuNote = null;
             menu = new Entity("Menu") { script };
             Entity.Scene.Entities.Add(menu);
             cover.Hold = () => !script.Ready;
@@ -324,6 +325,8 @@ namespace KotH.Client
         {
             if (menu != null)
                 return;
+            // A private round's door stayed shut: Find server says why.
+            menuNote = net?.Session.Rejected == RejectReason.Password ? "Wrong password" : null;
             SimulationJob.Drop();
             games++;
             if (net != null)
@@ -862,6 +865,7 @@ namespace KotH.Client
         Entity menu;
         Entity menuFigure;
         int games;
+        string menuNote;
         PlayerInputReader localReader;
         Entity arms;
         readonly Dictionary<SimulationBody, (Entity Visual, Entity Label)> shown =

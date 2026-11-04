@@ -146,10 +146,26 @@ namespace KotH.Shared.Net
             w.Double(now);
             w.Text(name);
             look.Write(ref w);
+            // A private round's proof: the password never travels, only its key's HMAC of the host's nonce.
+            if (challenge != null && Password != null)
+            {
+                w.Byte(PasswordKey.ProofSize);
+                w.Bytes(PasswordKey.Proof(PasswordKey.Derive(Password, challenge.Value.Salt), challenge.Value.Nonce));
+            }
+            else
+                w.Byte(0);
             transport.Send(0, outgoing.WrittenSpan, reliable: true);
         }
 
         bool joining;
+        (byte[] Salt, byte[] Nonce)? challenge;
+
+        /// <summary>The password of a private round to answer the host's challenge with; null for none
+        /// (an open round, or a friend the host invited).</summary>
+        public string Password { get; set; }
+
+        /// <summary>The host's round is private (its Map came with a challenge).</summary>
+        public bool PrivateRound => challenge != null;
 
         /// <summary>The host has said which map, and it is loaded; see Join.</summary>
         public bool MapKnown { get; private set; }
@@ -337,6 +353,8 @@ namespace KotH.Shared.Net
                 case MsgType.Reject: Rejected = (RejectReason)r.Byte(); break;
                 case MsgType.Map:
                     string map = r.Text();
+                    if (r.Byte() == 1)
+                        challenge = (r.Bytes(PasswordKey.SaltSize).ToArray(), r.Bytes(PasswordKey.NonceSize).ToArray());
                     if (!r.Failed)
                     {
                         world.LoadMap(map);

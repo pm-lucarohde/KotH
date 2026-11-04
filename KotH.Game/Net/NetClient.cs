@@ -37,7 +37,12 @@ namespace KotH.Client.Net
             if (options.Host)
             {
                 transport = lobby != null ? SteamTransport.Host(lobby) : LiteNetTransport.Host(options.Port);
-                Host = new HostSession(transport, Now);
+                Host = new HostSession(transport, Now)
+                {
+                    // A private round: only the key of its password is kept; invited friends need none.
+                    Password = options.Password != null ? PasswordKey.Make(options.Password) : null,
+                    Invited = peer => transport is SteamTransport steam && steam.Invited(peer),
+                };
                 // The lobby's round goes to --map (Mount Destiny unless given); the host may choose another.
                 Host.StartIn(MatchStage.Lobby, options.Map);
                 Host.Began += Founded;
@@ -54,7 +59,10 @@ namespace KotH.Client.Net
             else
             {
                 transport = lobby != null ? SteamTransport.Join(lobby) : LiteNetTransport.Join(options.JoinAddress, options.Port);
-                Session = new PeerSession(world, transport, sampleLocal, options.Name, founder: false, Now, join: false, look: options.Look);
+                Session = new PeerSession(world, transport, sampleLocal, options.Name, founder: false, Now, join: false, look: options.Look)
+                {
+                    Password = options.Password,
+                };
                 address = lobby != null ? lobby.HostName ?? "the host" : $"{options.JoinAddress}:{options.Port}";
             }
         }
@@ -178,6 +186,7 @@ namespace KotH.Client.Net
                 RejectReason.Version => "Rejected: different build than the host",
                 RejectReason.Full => "Rejected: the game is full",
                 RejectReason.Closed => "Rejected: the round has run too long",
+                RejectReason.Password => "Rejected: wrong password",
                 _ => Session.HostLost ? "The host is gone, the game is over"
                    : !Session.Joined ? $"Connecting to {address} ..."
                    : null,

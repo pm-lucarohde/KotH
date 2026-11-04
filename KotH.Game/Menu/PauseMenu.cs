@@ -82,7 +82,9 @@ namespace KotH.Client.Menu
                     Show(false);
                 return;
             }
-            if (SteamClient.HasInvite && Pregame())
+            // An accepted invite, or a private round that refused the password: back to the main menu.
+            bool refused = Services.GetService<NetClient>()?.Session.Rejected == RejectReason.Password;
+            if (SteamClient.HasInvite && Pregame() || refused)
             {
                 if (Open)
                     Show(false);
