@@ -19,6 +19,9 @@ using Stride.Games;
 using Stride.Graphics;
 using Stride.Input;
 
+#if !WINDOWS
+Gen0Budget.Ensure(args);
+#endif
 StartLog.Begin(args);
 #if !WINDOWS
 StdCxxPreload.Run();
@@ -55,6 +58,7 @@ sealed class KotHGame : Game
     readonly double shotPitch = Number("KOTH_SHOT_PITCH") ?? 0.0;
     readonly double? shotFov = Number("KOTH_SHOT_FOV");
     readonly bool shotThird = Environment.GetEnvironmentVariable("KOTH_SHOT_THIRD") == "1"; // third person
+    readonly bool shotStill = Environment.GetEnvironmentVariable("KOTH_SHOT_STILL") == "1"; // no fog, clouds or their shadow
     Vector3? shotAt = Point("KOTH_SHOT_AT"); // body there (Stride metres), again on every placing
     readonly double? shotFace = Number("KOTH_SHOT_FACE"); // turned this way (deg) when placed
     int shotPlaced = -1;
@@ -91,7 +95,15 @@ sealed class KotHGame : Game
     readonly Queue<double> shotStrikes = new Queue<double>(
         (Environment.GetEnvironmentVariable("KOTH_SHOT_STRIKE") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)
             .Select(s => double.Parse(s, CultureInfo.InvariantCulture)));
-    readonly string frameLogPath = Environment.GetEnvironmentVariable("KOTH_FRAMELOG"); // frame times (ms) at the end
+    // KOTH_FRAMELOG=path writes a line per frame at the end (FrameRow); KOTH_FRAMELOG_SECONDS=s quits after
+    // s seconds of running round, KOTH_SHOT_PILOT=1 has the host's bot director fly the own figure.
+    readonly string frameLogPath = Environment.GetEnvironmentVariable("KOTH_FRAMELOG");
+    readonly double frameLogSeconds = Number("KOTH_FRAMELOG_SECONDS") ?? double.PositiveInfinity;
+    readonly bool shotPilot = Environment.GetEnvironmentVariable("KOTH_SHOT_PILOT") == "1";
+    // KOTH_GPULOG=path: Stride's profiler on, every GPU timing of the running round (start, ms, pass) at the end.
+    readonly string gpuLogPath = Environment.GetEnvironmentVariable("KOTH_GPULOG");
+    System.Collections.Concurrent.ConcurrentQueue<(double At, double Ms, string Key)> gpuEvents;
+    volatile bool gpuRecording;
     readonly string posLogPath = Environment.GetEnvironmentVariable("KOTH_POSLOG"); // own body per tick, F8 marks
     StreamWriter posLog;
     int posTick = int.MinValue;
@@ -122,9 +134,17 @@ sealed class KotHGame : Game
     Int2 sizeShown;
     int windowVersion;
 
+    // Real milliseconds of the frame, its update (Update's start to Draw's), its draw and the rest
+    // (present, waiting); ticks stepped, collections, KiB allocated, what showed (Shown), the camera and view.
+    struct FrameRow { public float Ms, Update, Draw; public byte Ticks, Gc0, Gc1, Gc2, Shown; public int KiB; public Vector3 Eye; public float Yaw, Pitch; }
+    enum Shown : byte { Other, Lobby, Round, Covered }
+
     // Ten minutes at 2000 FPS, allocated once so logging never allocates.
-    float[] frameLog;
+    FrameRow[] frameLog;
     int frameCount;
+    long updateStart, lastFrameEnd, lastAllocated;
+    int lastTick, lastGc0, lastGc1, lastGc2;
+    double roundSeconds;
 
     public KotHGame()
     {
@@ -134,7 +154,19 @@ sealed class KotHGame : Game
         ConsoleLogLevel = LogMessageType.Warning;
 
         if (frameLogPath != null)
-            frameLog = new float[600 * 2000];
+            frameLog = new FrameRow[600 * 2000];
+        if (gpuLogPath != null)
+        {
+            gpuEvents = new();
+            Profiler.EnableAll();
+            var channel = Profiler.Subscribe();
+            _ = System.Threading.Tasks.Task.Run(async () =>
+            {
+                await foreach (ProfilingEvent e in channel.ReadAllAsync())
+                    if (gpuRecording && e.IsGPUEvent())
+                        gpuEvents.Enqueue((e.TimeStamp.TotalMilliseconds, e.ElapsedTime.TotalMilliseconds, e.Key.Name));
+            });
+        }
 
         // DLSS needs Vulkan extensions Stride does not ask for: hooked before the device exists.
         long hookAt = StartLog.Now;
@@ -391,16 +423,28 @@ sealed class KotHGame : Game
         KotH.Client.Rendering.Dlss.Dlss.Shutdown();
         base.EndRun();
 
+        if (gpuEvents != null)
+        {
+            using var gpu = new StreamWriter(gpuLogPath);
+            foreach ((double at, double ms, string key) in gpuEvents)
+                gpu.WriteLine(FormattableString.Invariant($"{at:F4} {ms:F4} {key}"));
+        }
         if (frameLog == null)
             return;
         using var writer = new StreamWriter(frameLogPath);
+        writer.WriteLine("# ms update draw ticks gc0 gc1 gc2 kib shown(0 other, 1 lobby, 2 round, 3 covered) x y z yaw pitch");
         for (int i = 0; i < frameCount; i++)
-            writer.WriteLine(frameLog[i].ToString("R", CultureInfo.InvariantCulture));
+        {
+            FrameRow r = frameLog[i];
+            writer.WriteLine(FormattableString.Invariant(
+                $"{r.Ms:F3} {r.Update:F3} {r.Draw:F3} {r.Ticks} {r.Gc0} {r.Gc1} {r.Gc2} {r.KiB} {r.Shown} {r.Eye.X:F2} {r.Eye.Y:F2} {r.Eye.Z:F2} {r.Yaw:F1} {r.Pitch:F1}"));
+        }
         Console.WriteLine($"[frames] {frameCount} frames to {frameLogPath}");
     }
 
     protected override void Update(GameTime gameTime)
     {
+        updateStart = System.Diagnostics.Stopwatch.GetTimestamp();
         // Steam's callbacks before the scripts, which read lobbies and sessions.
         SteamClient.RunFrame();
         settings.Update();
@@ -445,6 +489,11 @@ sealed class KotHGame : Game
         RestoreWindowSize();
         ConfinePointer();
         LogPosition();
+        Hide();
+        if (shotStill)
+            Still();
+        if (shotPilot && Cached(ref loggedReader) is { Pilot: null } flown)
+            flown.Pilot = PilotInput;
 
         if (shotPath == null)
             return;
@@ -733,14 +782,10 @@ sealed class KotHGame : Game
 
     protected override void Draw(GameTime gameTime)
     {
+        long drawStart = System.Diagnostics.Stopwatch.GetTimestamp();
         base.Draw(gameTime);
-
-        if (frameLog != null && frameCount < frameLog.Length)
-        {
-            if (frameCount == 0)
-                Console.WriteLine($"[frames] first frame {(DateTime.Now - System.Diagnostics.Process.GetCurrentProcess().StartTime).TotalMilliseconds:F0} ms after process start");
-            frameLog[frameCount++] = (float)gameTime.Elapsed.TotalMilliseconds;
-        }
+        if (frameLog != null)
+            LogFrame(drawStart);
 
         if (shotPath != null && shotVideo > 0.0)
             RecordVideo(TestSeconds(gameTime));
@@ -867,6 +912,93 @@ sealed class KotHGame : Game
             $"{posTick} {p.X:F3} {p.Y:F3} {p.Z:F3} {v.X:F2} {v.Y:F2} {v.Z:F2} {(motor.IsGrounded ? 1 : 0)}"));
     }
 
+    void LogFrame(long drawStart)
+    {
+        long now = System.Diagnostics.Stopwatch.GetTimestamp();
+        static float Ms(long from, long to) => (float)((to - from) * 1000.0 / System.Diagnostics.Stopwatch.Frequency);
+        NetClient net = Services.GetService<NetClient>();
+        KotH.Shared.Simulation.SimulationSystem sim = net?.Session.Simulation
+            ?? Services.GetService<KotH.Shared.Simulation.SimulationSystem>();
+        int tick = sim?.CurrentTick ?? 0;
+        int gc0 = GC.CollectionCount(0), gc1 = GC.CollectionCount(1), gc2 = GC.CollectionCount(2);
+        long allocated = GC.GetTotalAllocatedBytes();
+        KotH.Shared.Match.MatchStage stage = net?.Stage ?? KotH.Shared.Match.MatchStage.Single;
+        Shown shown = Services.GetService<LoadScreen>() is { Covers: true } ? Shown.Covered
+            : stage == KotH.Shared.Match.MatchStage.Lobby ? Shown.Lobby
+            : sim?.Match?.State.Phase == KotH.Shared.Match.MatchPhase.Running ? Shown.Round : Shown.Other;
+        gpuRecording = shown == Shown.Round;
+        if (lastFrameEnd != 0 && frameCount < frameLog.Length)
+        {
+            frameLog[frameCount++] = new FrameRow
+            {
+                Ms = Ms(lastFrameEnd, now), Update = Ms(updateStart, drawStart), Draw = Ms(drawStart, now),
+                Ticks = (byte)Math.Clamp(tick - lastTick, 0, 255), Gc0 = (byte)Math.Min(gc0 - lastGc0, 255),
+                Gc1 = (byte)Math.Min(gc1 - lastGc1, 255), Gc2 = (byte)Math.Min(gc2 - lastGc2, 255),
+                KiB = (int)Math.Min((allocated - lastAllocated) >> 10, int.MaxValue), Shown = (byte)shown,
+                Eye = Cached(ref loggedCamera)?.Entity.Transform.WorldMatrix.TranslationVector ?? default,
+                Yaw = Cached(ref loggedReader)?.Yaw ?? 0f, Pitch = loggedReader?.Pitch ?? 0f,
+            };
+            if (shown == Shown.Round && (roundSeconds += frameLog[frameCount - 1].Ms / 1000.0) >= frameLogSeconds)
+                Exit();
+        }
+        (lastFrameEnd, lastTick, lastGc0, lastGc1, lastGc2, lastAllocated) = (now, tick, gc0, gc1, gc2, allocated);
+    }
+
+    // The input the host's director thinks for the own figure, once its state 8 ticks back is final; the
+    // figure joins the director again after each restart (a new one, the figure a new NetId).
+    KotH.Shared.Player.MoveInput? PilotInput()
+    {
+        if (Services.GetService<NetClient>() is not { Host.Bots: KotH.Shared.Bots.BotDirector bots, Session: var s }
+            || s.LocalNetId == 0)
+            return null;
+        if (!bots.IsBot(s.LocalNetId))
+            bots.Add(s.LocalNetId);
+        return bots.TryInput(s.LocalNetId, s.Simulation.CurrentTick + KotH.Shared.Net.PeerSession.InputDelay,
+                             out KotH.Shared.Player.MoveInput input) ? input : null;
+    }
+
+    // KOTH_SHOT_STILL: the atmosphere off from its first frame on, so two shots of a still view (no grass, no
+    // water, no arms) match pixel for pixel; drifting clouds and their shadow made every shot differ.
+    void Still()
+    {
+        foreach (Entity e in SceneSystem.SceneInstance?.RootScene?.Entities ?? [])
+            Off(e);
+        Stride.Rendering.RenderContext.GetShared(Services).Tags.Remove(KotH.Client.Rendering.Atmosphere.Key);
+        static void Off(Entity e)
+        {
+            if (e.Get<KotH.Client.Rendering.Atmosphere>() is { } air)
+                e.Remove(air);
+            foreach (Entity child in e.GetChildren())
+                Off(child);
+        }
+    }
+
+    // Test aid: KOTH_HIDE=Name[,Name] disables every model under entities of that name or component type.
+    readonly string[] hide = Environment.GetEnvironmentVariable("KOTH_HIDE")?.Split(',');
+    void Hide()
+    {
+        if (hide == null || SceneSystem.SceneInstance?.RootScene is not { } scene)
+            return;
+        foreach (Entity e in scene.Entities)
+            Look(e, false);
+        void Look(Entity e, bool off)
+        {
+            off |= hide.Contains(e.Name) || e.Components.Any(c => hide.Contains(c.GetType().Name));
+            if (off)
+                foreach (ModelComponent m in e.GetAll<ModelComponent>())
+                    m.Enabled = false;
+            foreach (Entity child in e.GetChildren())
+                Look(child, off);
+        }
+    }
+
+    // Per-frame test aids look up once and again only after the component left the scene
+    // (a search over the root entities each frame cost a tenth of the main thread).
+    CameraComponent loggedCamera;
+    PlayerInputReader loggedReader;
+    T Cached<T>(ref T slot) where T : EntityComponent
+        => slot?.Entity?.Scene != null ? slot : slot = Find<T>();
+
     T Find<T>() where T : EntityComponent
     {
         Scene scene = SceneSystem.SceneInstance?.RootScene;
@@ -880,6 +1012,34 @@ sealed class KotHGame : Game
 }
 
 #if !WINDOWS
+/// <summary>A round allocates a little every frame and each gen0 collection costs a few milliseconds; with
+/// a 96 MB budget one comes every ~15 s instead of ~3 s. NativeAOT reads the budget only from the
+/// environment, so a start without it sets it and runs itself again (execv, same arguments and environment).</summary>
+static class Gen0Budget
+{
+    const string Name = "DOTNET_GCgen0size";
+
+    [DllImport("libc", EntryPoint = "setenv")]
+    static extern int SetEnv(string name, string value, int overwrite);
+
+    [DllImport("libc", EntryPoint = "execv", SetLastError = true)]
+    static extern int Execv(IntPtr path, IntPtr[] argv);
+
+    public static void Ensure(string[] args)
+    {
+        if (Environment.GetEnvironmentVariable(Name) != null || Environment.ProcessPath is not { } self)
+            return;
+        SetEnv(Name, "0x6000000", 1);
+        var argv = new IntPtr[args.Length + 2];
+        argv[0] = Marshal.StringToCoTaskMemUTF8(self);
+        for (int i = 0; i < args.Length; i++)
+            argv[i + 1] = Marshal.StringToCoTaskMemUTF8(args[i]);
+        Execv(argv[0], argv);
+        // Only back here if execv failed: on with the default budget.
+        Console.Error.WriteLine($"execv failed ({Marshal.GetLastPInvokeError()}), default gen0 budget.");
+    }
+}
+
 /// <summary>The .NET 11 apphost and NativeAOT binaries no longer pull in libstdc++, but
 /// Stride's libstrideaudio.so expects its symbols in the global scope. Loading it
 /// RTLD_GLOBAL before the engine starts restores that.</summary>

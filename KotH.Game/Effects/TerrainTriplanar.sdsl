@@ -27,6 +27,7 @@ shader TerrainTriplanar<LinkType GrassKey, LinkType DirtKey, LinkType SandKey, L
     static const float LichenRadiusMin = 0.02;
     static const float LichenRadiusMax = 0.047;
     static const int LichenSpots = 10;
+    static const float LichenNear = 0.3;
     // Strength of the relief of sand and meadow (their normal maps, Textures.cs; 1 = as painted in metres).
     static const float Relief = 2.0;
     // It varies by up to ReliefSpread either way in soft patches of about ReliefPatch metres,
@@ -109,10 +110,14 @@ shader TerrainTriplanar<LinkType GrassKey, LinkType DirtKey, LinkType SandKey, L
         float3 up = float3(0, 1, 0) - n * n.y;
         int3 home = int3(floor(p / LichenCell));
         float reach = LichenSpread * 1.75 + LichenRadiusMax;
+        // A group shows only within sqrt(depth² + reach²) = 0.284 m of its middle, which lies inside its
+        // cell: a neighbour cell farther than LichenNear along an axis never does, so it is not visited.
+        float3 f = p - float3(home) * LichenCell;
+        int3 lo = int3(f < LichenNear) * -1, hi = int3(f > LichenCell - LichenNear);
         float4 c = 0;
-        for (int i = -1; i <= 1; i++)
-        for (int j = -1; j <= 1; j++)
-        for (int k = -1; k <= 1; k++)
+        for (int i = lo.x; i <= hi.x; i++)
+        for (int j = lo.y; j <= hi.y; j++)
+        for (int k = lo.z; k <= hi.z; k++)
         {
             int3 id = home + int3(i, j, k);
             float3 d = p - (float3(id) + Hash3(id, 0u)) * LichenCell;

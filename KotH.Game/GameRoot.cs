@@ -129,6 +129,8 @@ namespace KotH.Client
             StartLog.Mark("game root starts");
             Stride.Rendering.Voxels.VoxelStorageSparse.Report = StartLog.Mark;
             ClientSettings.Changed += ApplyTextures;
+            FigureShadowMasks.Install(SceneSystem);
+            OpaqueDepthRead.Install(SceneSystem);
             BepuSimulation physics = PhysicsWorld();
             var queries = new WorldQueries(physics);
             var system = new SimulationSystem(queries);

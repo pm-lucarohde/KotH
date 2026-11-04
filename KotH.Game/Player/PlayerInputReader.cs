@@ -71,6 +71,10 @@ namespace KotH.Client.Player
             pitch = UMath.Clamp(pitchDegrees, MinPitch, MaxPitch);
         }
 
+        /// <summary>Test aid: while it gives an input, that is sent instead of keys and mouse, and the
+        /// view follows it (a bot flying the own figure in measured rounds).</summary>
+        [DataMemberIgnore] public System.Func<MoveInput?> Pilot { get; set; }
+
         /// <summary>Keys held from now on, as a test aid: animations seen in a screenshot run.</summary>
         public void Hold(Vector2 keys, bool sprint)
         {
@@ -211,6 +215,15 @@ namespace KotH.Client.Player
                 facedTick = PlacedTick;
                 yaw = bodyYaw = PlacedYaw;
                 pitch = 0f;
+            }
+            if (Pilot?.Invoke() is { } piloted)
+            {
+                yaw = bodyYaw = piloted.Yaw;
+                pitch = piloted.Pitch;
+                blaster = piloted.Blaster;
+                jumpPresses = attackPresses = 0;
+                crouchPressed = false;
+                return piloted;
             }
             Vector2 wish = move;
             sentPitch = pitch;

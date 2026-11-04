@@ -40,7 +40,9 @@ namespace Stride.Rendering.Voxels.VoxelGI
                 lightShaderGroup.Value.Reset();
 
             lightShaderGroupsPerVoxel.Clear();
-            pool.Reset();
+            // KotH patch: Clear keeps the groups for the next frame (Reset dropped them, so every frame
+            // made a new group, new marcher shaders and every object's effect validated deep, never equal).
+            pool.Clear();
         }
 
         /// <inheritdoc/>
@@ -171,22 +173,24 @@ namespace Stride.Rendering.Voxels.VoxelGI
                     if (((LightVoxel)Light.Type).SpecularMarcher != null)
                         ((LightVoxel)Light.Type).SpecularMarcher.UpdateMarchingLayout("specularMarcher." + compositionName);
                 }
+
+                // KotH patch: built here (once a frame, before the objects' permutations run in parallel) and
+                // kept while equal, so each object's validator sees the same instance and skips the deep compare.
+                ShaderSourceCollection collection = traceAttribute != null ? new ShaderSourceCollection { traceAttribute.GetSamplingShader() } : null;
+                diffuseShader = Keep(diffuseShader, collection != null ? ((LightVoxel)Light.Type).DiffuseMarcher?.GetMarchingShader(0, collection) : null);
+                specularShader = Keep(specularShader, collection != null ? ((LightVoxel)Light.Type).SpecularMarcher?.GetMarchingShader(0, collection) : null);
             }
+
+            ShaderSource diffuseShader, specularShader;
+
+            static ShaderSource Keep(ShaderSource kept, ShaderSource built) => kept != null && kept.Equals(built) ? kept : built;
 
             public override void ApplyEffectPermutations(RenderEffect renderEffect)
             {
-                if (traceAttribute != null)
-                {
-                    ShaderSourceCollection collection = new ShaderSourceCollection
-                    {
-                        traceAttribute.GetSamplingShader()
-                    };
-
-                    if (((LightVoxel)Light.Type).DiffuseMarcher != null)
-                        renderEffect.EffectValidator.ValidateParameter(diffuseMarcherKey, ((LightVoxel)Light.Type).DiffuseMarcher.GetMarchingShader(0, collection));
-                    if (((LightVoxel)Light.Type).SpecularMarcher != null)
-                        renderEffect.EffectValidator.ValidateParameter(specularMarcherKey, ((LightVoxel)Light.Type).SpecularMarcher.GetMarchingShader(0, collection));
-                }
+                if (diffuseShader != null)
+                    renderEffect.EffectValidator.ValidateParameter(diffuseMarcherKey, diffuseShader);
+                if (specularShader != null)
+                    renderEffect.EffectValidator.ValidateParameter(specularMarcherKey, specularShader);
             }
 
             public override void ApplyViewParameters(RenderDrawContext context, int viewIndex, ParameterCollection parameters)

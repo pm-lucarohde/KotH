@@ -53,6 +53,8 @@ namespace KotH.Shared.Net
         readonly Dictionary<int, BodyState> joinStates = new Dictionary<int, BodyState>();
         readonly Dictionary<int, int> leaveTicks = new Dictionary<int, int>();
         readonly Dictionary<int, Record> confirmed = new Dictionary<int, Record>();
+        readonly Stack<Record> spareRecords = new Stack<Record>();
+        int prunedTick = -1;        // records up to here are dropped: stepped and confirmed, no rollback reaches them
         readonly Dictionary<int, Known> lastConfirmed = new Dictionary<int, Known>();
         readonly List<(SimulationBody Body, Vector3 At, float Yaw)> guessed = new List<(SimulationBody, Vector3, float)>();
 
@@ -397,7 +399,9 @@ namespace KotH.Shared.Net
             sim.Restore(decoded);
 
             int tick = decoded.Tick;
-            confirmedTick = tick - 1;
+            confirmedTick = prunedTick = tick - 1;
+            foreach (Record old in confirmed.Values)
+                spareRecords.Push(old);
             confirmed.Clear();
             for (int i = 0; i < Ring; i++)
                 snapTicks[i] = usedTicks[i] = -1;
@@ -450,7 +454,9 @@ namespace KotH.Shared.Net
             for (int i = 0; i < count; i++)
             {
                 int tick = first + i;
-                var rec = new Record();
+                Record rec = spareRecords.Count > 0 ? spareRecords.Pop() : new Record();
+                rec.Inputs.Clear();
+                rec.Events.Clear();
                 int inputs = r.Byte();
                 for (int k = 0; k < inputs; k++)
                 {
@@ -460,10 +466,10 @@ namespace KotH.Shared.Net
                 int events = r.Byte();
                 for (int k = 0; k < events; k++)
                     rec.Events.Add(NetProtocol.ReadEvent(ref r));
+                if (r.Failed || tick <= confirmedTick || !confirmed.TryAdd(tick, rec))
+                    spareRecords.Push(rec);
                 if (r.Failed)
                     return;
-                if (tick > confirmedTick && !confirmed.ContainsKey(tick))
-                    confirmed[tick] = rec;
             }
         }
 
@@ -498,6 +504,12 @@ namespace KotH.Shared.Net
 
             if (from != int.MaxValue)
                 Rollback(from);
+
+            // A rollback starts after the confirmed tick, so stepped confirmed records are never read again.
+            int limit = Math.Min(confirmedTick, sim.CurrentTick - 1);
+            while (prunedTick < limit)
+                if (confirmed.Remove(++prunedTick, out Record old))
+                    spareRecords.Push(old);
         }
 
         bool SameAsUsed(int tick, Record rec)

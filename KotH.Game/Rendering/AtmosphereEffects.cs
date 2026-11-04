@@ -106,6 +106,19 @@ namespace KotH.Client.Rendering
             Inner?.Draw(drawContext, outputValidator, inputs, inputDepthStencil, outputTarget);
         }
 
+        /// <summary>Clip x, y and 1 to a pixel's view ray with a view depth of 1, from the camera's axes and the
+        /// projection's scale. Inverting the whole view-projection (far 20 km) in float tilted all rays by up
+        /// to a pixel, anew every frame, and the thin layer seen from above shook with it (Luca: "Zittern").</summary>
+        internal static Matrix ClipToRayOf(RenderView view)
+        {
+            Matrix v = view.View, proj = view.Projection;
+            var right = new Vector3(v.M11, v.M21, v.M31) / proj.M11;
+            var up = new Vector3(v.M12, v.M22, v.M32) / proj.M22;
+            var ahead = right * proj.M31 + up * proj.M32 - new Vector3(v.M13, v.M23, v.M33);
+            return new Matrix(right.X, right.Y, right.Z, 0f, up.X, up.Y, up.Z, 0f,
+                              ahead.X, ahead.Y, ahead.Z, 0f, 0f, 0f, 0f, 1f);
+        }
+
         void DrawAtmosphere(RenderDrawContext drawContext, Atmosphere atmosphere, Texture colour, Texture depth)
         {
             RenderView view = drawContext.RenderContext.RenderView;
@@ -125,15 +138,7 @@ namespace KotH.Client.Rendering
                     sunColor = (Vector3)light.Color;
                 }
 
-            // Each pixel's ray from the camera's axes and the projection's scale. Inverting the
-            // whole view-projection (far 20 km) in float tilted all rays by up to a pixel, anew
-            // every frame, and the thin layer seen from above shook with it (Luca: "Zittern").
-            Matrix v = view.View, proj = view.Projection;
-            var right = new Vector3(v.M11, v.M21, v.M31) / proj.M11;
-            var up = new Vector3(v.M12, v.M22, v.M32) / proj.M22;
-            var ahead = right * proj.M31 + up * proj.M32 - new Vector3(v.M13, v.M23, v.M33);
-            var clipToRay = new Matrix(right.X, right.Y, right.Z, 0f, up.X, up.Y, up.Z, 0f,
-                                       ahead.X, ahead.Y, ahead.Z, 0f, 0f, 0f, 0f, 1f);
+            Matrix v = view.View, clipToRay = ClipToRayOf(view);
             Matrix viewToWorld = Matrix.Invert(view.View);
             float texel = atmosphere.CloudTile / atmosphere.CloudMap.Width;
             // Metres one half-resolution pixel spans per metre away, over a texel's width: the cloud map's lod.

@@ -124,6 +124,14 @@ UsedParameters:
     FXAAEffect.QualityKey: 23
 ---
 !EffectCompileRequest
+EffectName: FigureShadowMask
+UsedParameters: {}
+---
+!EffectCompileRequest
+EffectName: FigureShadowTiles
+UsedParameters: {}
+---
+!EffectCompileRequest
 EffectName: LightmapBakeEffect
 UsedParameters:
     Material.PixelStageSurfaceShaders: !ShaderMixinSource

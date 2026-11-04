@@ -1,0 +1,179 @@
+/// <summary>The figures' sun shadow per pixel, drawn after the depth prepass (Texture0) and read back
+/// by CascadeShadowReceiver: Stride's cascade choice and blend, then the receiver's PCSS (bias in metres
+/// plus texels, a receiver plane per tap, penumbrae from blockers within 4 texels) at the position and
+/// facet the depth gives. Out of the colour pass, its registers no longer slow every material.</summary>
+shader FigureShadowMask : ImageEffectShader, SunShadowCommon
+{
+    float4x4 ClipToRay;     // clip x, y, 1 to the view ray with a view depth of 1
+    float2 NearFar;
+    float3 Eye;
+    float4x4 WorldToCascadeUV[4];
+    float4 CascadeRects[4];    // atlas uv: left, top, right, bottom
+    float4 CascadeSplits;      // view depth where each cascade ends
+    float CascadeCount;        // 1, 2 or 4
+    float BlendCascades;       // 1: each blends into the next
+    float DepthBias;
+    float OffsetScale;
+    float SunTangent;          // penumbra metres per metre between blocker and receiver
+    float MaxPenumbra;         // widest penumbra radius in texels
+    float2 ShadowMapSize;
+    float2 ShadowMapTexelSize;
+    Texture2D ShadowMap;
+    Texture2D CasterTiles;     // FigureShadowTiles: 1 where a tile of 16x16 texels holds a caster
+    float2 TileCount;
+
+    // FirstPersonDepth's squeeze of the arms' depth: nothing else is that close to the near plane.
+    static const float ArmsSqueeze = 0.01;
+
+    // The blocker search reaches this many texels, every texel: wider, the 4x4 gathers
+    // left gaps, and a figure moving less than a texel flipped the penumbra between soft
+    // and hard at the shadow's rim. The disk no wider, its rim would end in a step.
+    static const float BlockerReach = 4.0;
+
+    // The point the depth shows at a pixel (clamped to the screen) and its view depth.
+    float3 PositionAt(int2 pixel, out float viewDepth)
+    {
+        int2 last = int2(round(1.0 / Texture0TexelSize)) - 1;
+        int2 q = clamp(pixel, int2(0, 0), last);
+        float z = Texture0.Load(int3(q, 0)).r;
+        if (z < ArmsSqueeze)
+            z /= ArmsSqueeze;
+        float2 uv = (float2(q) + 0.5) * Texture0TexelSize;
+        float3 ray = mul(float4(uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0, 1.0, 0.0), ClipToRay).xyz;
+        viewDepth = NearFar.x * NearFar.y / (NearFar.y - z * (NearFar.y - NearFar.x));
+        return Eye + ray * viewDepth;
+    }
+
+    stage override float4 Shading()
+    {
+        int2 pixel = int2(streams.ShadingPosition.xy);
+        if (Texture0.Load(int3(pixel, 0)).r >= 1.0)
+            return 1.0;
+        float depth, left, right, up, down;
+        float3 p = PositionAt(pixel, depth);
+        float3 pl = PositionAt(pixel - int2(1, 0), left), pr = PositionAt(pixel + int2(1, 0), right);
+        float3 pu = PositionAt(pixel - int2(0, 1), up), pd = PositionAt(pixel + int2(0, 1), down);
+        // The facet from the neighbour nearer in depth on each axis, so an edge takes its own side.
+        float3 dx = abs(right - depth) < abs(depth - left) ? pr - p : p - pl;
+        float3 dy = abs(down - depth) < abs(depth - up) ? pd - p : p - pu;
+        return float4(Cascades(p, depth, cross(dx, dy), streams.ShadingPosition.xy), 0.0, 0.0, 1.0);
+    }
+
+    // Stride's directional receiver: the cascade by view depth, blended into the next over the
+    // last fifth of each (the last fades out), a fixed depth range.
+    float Cascades(float3 position, float depthVS, float3 n, float2 pixel)
+    {
+        int count = int(CascadeCount);
+        int cascade = 0;
+        for (int i = 0; i < count - 1; i++)
+        {
+            if (depthVS > CascadeSplits[i])
+                cascade = i + 1;
+        }
+        float shadow = FromCascade(position, n, cascade, pixel);
+        float nextSplit = CascadeSplits[cascade];
+        float splitSize = cascade > 0 ? nextSplit - CascadeSplits[cascade - 1] : nextSplit;
+        float splitDist = (nextSplit - depthVS) / splitSize;
+        if (splitDist < 0.2)
+        {
+            float lerpAmt = smoothstep(0.0, 0.2, splitDist);
+            if (cascade == count - 1)
+                shadow = lerp(1.0f, shadow, lerpAmt);
+            else if (BlendCascades > 0.5)
+                shadow = lerp(FromCascade(position, n, cascade + 1, pixel), shadow, lerpAmt);
+        }
+        return shadow;
+    }
+
+    float FromCascade(float3 position, float3 n, int cascade, float2 pixel)
+    {
+        float4 shadowPosition;
+        float2 gradient;
+        float depthPerMetre, texel;
+        ProjectToMap(position, WorldToCascadeUV[cascade], ShadowMapTexelSize.x, DepthBias, OffsetScale, n,
+                     shadowPosition, gradient, depthPerMetre, texel);
+
+        // Taps stay half a texel inside this cascade's rectangle of the atlas.
+        float4 rect = CascadeRects[cascade] + float4(0.5 * ShadowMapTexelSize, -0.5 * ShadowMapTexelSize);
+        if (NoBlocker(shadowPosition.xyz, gradient))
+            return 1.0;
+        float gap = BlockerGap(shadowPosition.xyz, gradient, rect);
+        if (gap < 0.0)
+            return gap < -1.5 ? 0.0 : 1.0;
+        float radius = clamp(gap / depthPerMetre * SunTangent / texel, 1.5, min(MaxPenumbra, BlockerReach));
+        return FilterDisk(shadowPosition.xyz, gradient, radius, rect, pixel);
+    }
+
+    // Nothing can block: the search's texels (within 4.5 of the point) lie in tiles without a caster,
+    // and the receiver's plane stays in front of the cleared depth over them, so BlockerGap would find
+    // no blocker and the shadow be 1 exactly (most pixels: the cascades hold only the figures).
+    bool NoBlocker(float3 position, float2 gradient)
+    {
+        float2 p = position.xy * ShadowMapSize;
+        int2 last = int2(TileCount) - 1;
+        int2 t0 = clamp(int2(floor((p - 5.0) / 16.0)), int2(0, 0), last);
+        int2 t1 = clamp(int2(floor((p + 5.0) / 16.0)), int2(0, 0), last);
+        float casters = CasterTiles.Load(int3(t0, 0)).r + CasterTiles.Load(int3(t1.x, t0.y, 0)).r
+                      + CasterTiles.Load(int3(t0.x, t1.y, 0)).r + CasterTiles.Load(int3(t1, 0)).r;
+        float reach = 5.0 * ShadowMapTexelSize.x * (abs(gradient.x) + abs(gradient.y));
+        return casters == 0.0 && position.z + reach <= 1.0;
+    }
+
+    // Mean depth from the blockers to the receiver's plane over 4x4 gathers within BlockerReach
+    // texels; -1 when nothing blocks, -2 when all do. Each texel weighs by a tent over its
+    // distance, so the mean changes smoothly (whole texels flipped penumbrae as squares).
+    float BlockerGap(float3 position, float2 gradient, float4 rect)
+    {
+        float2 step = 0.5 * BlockerReach * ShadowMapTexelSize;
+        float2 halfTexel = 0.5 * ShadowMapTexelSize;
+        float4 corners = float4(dot(float2(-halfTexel.x, halfTexel.y), gradient), dot(halfTexel, gradient),
+                                dot(float2(halfTexel.x, -halfTexel.y), gradient), dot(-halfTexel, gradient));
+        float sum = 0;
+        float count = 0;
+        float all = 0;
+        for (int j = 0; j < 4; j++)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                // Snapped to a texel corner, so the gather takes the four texels round it.
+                float2 uv = clamp(position.xy + (float2(i, j) - 1.5) * step, rect.xy + halfTexel, rect.zw - halfTexel);
+                uv = (floor(uv * ShadowMapSize - 0.5) + 1.0) * ShadowMapTexelSize;
+                float4 stored = ShadowMap.GatherRed(PointSampler, uv);
+                float4 receiver = position.z + dot(uv - position.xy, gradient) + corners;
+                float4 blocked = stored < receiver ? 1.0 : 0.0;
+                // The gathered texels' centres in texels from the pixel (order of GatherRed).
+                float2 d = (uv - position.xy) * ShadowMapSize;
+                float4 weight = saturate(1.0 - abs(d.x + float4(-0.5, 0.5, 0.5, -0.5)) / BlockerReach)
+                              * saturate(1.0 - abs(d.y + float4(0.5, 0.5, -0.5, -0.5)) / BlockerReach);
+                sum += dot(blocked * weight, receiver - stored);
+                count += dot(blocked, weight);
+                all += dot(blocked, 1.0);
+            }
+        }
+        return count <= 0.0 ? -1.0 : all == 64 ? -2.0 : sum / count;
+    }
+
+    // 64 bilinear comparisons on two Vogel disks of the radius (texels), weighted
+    // towards the centre like a tent, so the penumbra fades without a rim.
+    float FilterDisk(float3 position, float2 gradient, float radius, float4 rect, float2 pixel)
+    {
+        float2 scale = radius * ShadowMapTexelSize;
+        float shadow = 0;
+        float total = 0;
+        float2 twists[2] = { Twist(pixel, 0.0), Twist(pixel, 1.0) };
+        for (int k = 0; k < 64; k++)
+        {
+            float r2 = ((k >> 1) + 0.5) / 32.0;
+            float a = (k >> 1) * 2.39996;
+            float2 e = float2(cos(a), sin(a));
+            float2 twist = twists[k & 1];
+            float2 d = sqrt(r2) * float2(e.x * twist.x - e.y * twist.y, e.x * twist.y + e.y * twist.x);
+            float weight = 1.0 - 0.75 * r2;
+            float2 uv = clamp(position.xy + d * scale, rect.xy, rect.zw);
+            float depth = position.z + dot(uv - position.xy, gradient);
+            shadow += weight * ShadowMap.SampleCmpLevelZero(LinearClampCompareLessEqualSampler, uv, depth);
+            total += weight;
+        }
+        return shadow / total;
+    }
+};

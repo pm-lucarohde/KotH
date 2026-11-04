@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using KotH.Client.Settings;
 using Stride.Core;
 using Stride.Core.Mathematics;
@@ -10,14 +11,16 @@ using Stride.Shaders;
 
 namespace KotH.Client.Rendering
 {
-    /// <summary>Stride's directional shadow map renderer receiving with <c>CascadeShadowReceiver</c>
-    /// (bias in metres and texels, receiver-plane PCF, PCSS penumbrae). The map casts once into
-    /// <see cref="StaticSunShadowRenderer"/>'s map, so the cascades hold only the figures; the
-    /// clouds of <see cref="Atmosphere"/> shade on top, live.</summary>
+    /// <summary>Stride's directional shadow map renderer receiving with <c>CascadeShadowReceiver</c>. The map
+    /// casts once into <see cref="StaticSunShadowRenderer"/>'s map, so the cascades hold only the figures;
+    /// <see cref="FigureShadowMasks"/> filters them per pixel (bias in metres and texels, receiver-plane
+    /// PCF, PCSS penumbrae). The clouds of <see cref="Atmosphere"/> shade on top, live.</summary>
     [DataContract("CascadeShadowMapRenderer")]
     public sealed class CascadeShadowMapRenderer : LightDirectionalShadowMapRenderer
     {
-        static readonly ValueParameterKey<Vector4> CascadeRects = ParameterKeys.NewValue<Vector4>(default, "CascadeShadowReceiver.CascadeRects");
+        static readonly Stride.Core.Diagnostics.Logger Log = Stride.Core.Diagnostics.GlobalLogger.GetLogger("CascadeShadowMapRenderer");
+        static readonly ValueParameterKey<Vector2> FigureShadowSize = ParameterKeys.NewValue<Vector2>(default, "CascadeShadowReceiver.FigureShadowSize");
+        static readonly ObjectParameterKey<Texture> FigureShadow = ParameterKeys.NewObject<Texture>(null, "CascadeShadowReceiver.FigureShadow");
         static readonly ValueParameterKey<float> SunTangent = ParameterKeys.NewValue<float>(default, "CascadeShadowReceiver.SunTangent");
         static readonly ValueParameterKey<float> MaxPenumbraKey = ParameterKeys.NewValue<float>(default, "CascadeShadowReceiver.MaxPenumbra");
         static readonly ValueParameterKey<Matrix> WorldToStaticUV = ParameterKeys.NewValue<Matrix>(default, "CascadeShadowReceiver.WorldToStaticUV");
@@ -47,18 +50,39 @@ namespace KotH.Client.Rendering
         [DataMember(120)]
         public float Resolution { get; set; } = 1.0f;
 
+        /// <summary>Draws the figures' shadow per pixel; set by <see cref="FigureShadowMasks.Install"/>.</summary>
+        [DataMemberIgnore] public FigureShadowMasks Masks { get; set; }
+
+        // The view each shadow map texture (pooled, reused every frame) was made for.
+        readonly Dictionary<LightShadowMapTexture, RenderView> viewOf = new();
+
         public override LightShadowMapTexture CreateShadowMapTexture(RenderView renderView, RenderLight renderLight, IDirectLight light, int shadowMapSize)
-            => base.CreateShadowMapTexture(renderView, renderLight, light, Math.Max(16, (int)MathF.Round(shadowMapSize * Resolution * QualityLevels.CascadeShare)));
+        {
+            var texture = base.CreateShadowMapTexture(renderView, renderLight, light, Math.Max(16, (int)MathF.Round(shadowMapSize * Resolution * QualityLevels.CascadeShare)));
+            lock (viewOf)
+                viewOf[texture] = renderView;
+            return texture;
+        }
+
+        RenderView ViewOf(LightShadowMapTexture texture)
+        {
+            lock (viewOf)
+                return viewOf.GetValueOrDefault(texture);
+        }
 
         public override ILightShadowMapShaderGroupData CreateShaderGroupData(LightShadowType shadowType)
             => new Receiver(this, (LightShadowMapShaderGroupDataBase)base.CreateShaderGroupData(shadowType),
-                1 << ((int)(shadowType & LightShadowType.CascadeMask) - 1));
+                1 << ((int)(shadowType & LightShadowType.CascadeMask) - 1), shadowType);
 
         /// <summary>Stride's group data, with the receiver shader swapped and its parameters added.</summary>
-        sealed class Receiver(CascadeShadowMapRenderer owner, LightShadowMapShaderGroupDataBase inner, int cascadeCount) : ILightShadowMapShaderGroupData
+        sealed class Receiver(CascadeShadowMapRenderer owner, LightShadowMapShaderGroupDataBase inner, int cascadeCount,
+                              LightShadowType shadowType) : ILightShadowMapShaderGroupData
         {
-            Vector4[] rects = [];
-            ValueParameterKey<Vector4> rectsKey;
+            // The mask shader's cascades: at most 4, a fixed depth range, no debug colours.
+            readonly bool masked = cascadeCount <= FigureShadowMasks.Cascades
+                                   && (shadowType & (LightShadowType.DepthRangeAuto | LightShadowType.Debug)) == 0;
+            ValueParameterKey<Vector2> maskSizeKey;
+            ObjectParameterKey<Texture> maskKey;
             ValueParameterKey<float> tangentKey;
             ValueParameterKey<float> penumbraKey;
             ValueParameterKey<Matrix> staticUVKey;
@@ -76,7 +100,10 @@ namespace KotH.Client.Rendering
             public void UpdateLayout(string compositionName)
             {
                 inner.UpdateLayout(compositionName);
-                rectsKey = CascadeRects.ComposeWith(compositionName);
+                maskSizeKey = FigureShadowSize.ComposeWith(compositionName);
+                maskKey = FigureShadow.ComposeWith(compositionName);
+                if (!masked)
+                    Log.Warning($"Cascades {shadowType} are not the mask's (at most 4, fixed range): figures cast no sun shadow.");
                 tangentKey = SunTangent.ComposeWith(compositionName);
                 penumbraKey = MaxPenumbraKey.ComposeWith(compositionName);
                 staticUVKey = WorldToStaticUV.ComposeWith(compositionName);
@@ -98,20 +125,14 @@ namespace KotH.Client.Rendering
                 var mixins = inner.ShadowShader.Mixins;
                 var stride = mixins[0];
                 mixins[0] = new ShaderClassSource("CascadeShadowReceiver") { GenericArguments = stride.GenericArguments };
-                Array.Resize(ref rects, cascadeCount * Math.Max(lightCurrentCount, 1));
             }
 
             public void ApplyViewParameters(RenderDrawContext context, ParameterCollection parameters,
                 Stride.Core.Collections.FastListStruct<Stride.Rendering.Lights.LightDynamicEntry> currentLights)
             {
                 inner.ApplyViewParameters(context, parameters, currentLights);
-                for (int l = 0; l < currentLights.Count && (l + 1) * cascadeCount <= rects.Length; l++)
-                {
-                    var data = (ShaderData)currentLights[l].ShadowMapTexture.ShaderData;
-                    Array.Copy(data.TextureCoords, 0, rects, l * cascadeCount, cascadeCount);
-                }
-                parameters.Set(rectsKey, rects.Length, ref rects[0]);
-                parameters.Set(tangentKey, MathF.Tan(MathUtil.DegreesToRadians(owner.SunAngle)));
+                float tangent = MathF.Tan(MathUtil.DegreesToRadians(owner.SunAngle));
+                parameters.Set(tangentKey, tangent);
                 parameters.Set(penumbraKey, owner.MaxPenumbra);
 
                 // The static map once it is complete; until then (or never) the cascade atlas stands in, unread.
@@ -119,6 +140,14 @@ namespace KotH.Client.Rendering
                 bool ready = still is { Ready: true, Texture: not null };
                 Texture stand = currentLights.Count > 0 ? ((ShaderData)currentLights[0].ShadowMapTexture.ShaderData).Texture : null;
                 parameters.Set(staticMapKey, ready ? still.Texture : stand);
+
+                // The figures' shadow of the first light, drawn per pixel for this view.
+                Texture mask = null;
+                if (masked && owner.Masks != null && currentLights.Count > 0 && owner.ViewOf(currentLights[0].ShadowMapTexture) is { } view)
+                    mask = owner.Masks.Bind(view, (ShaderData)currentLights[0].ShadowMapTexture.ShaderData, cascadeCount,
+                                            (shadowType & LightShadowType.BlendCascade) != 0, tangent, owner.MaxPenumbra);
+                parameters.Set(maskKey, mask ?? stand);
+                parameters.Set(maskSizeKey, mask != null ? new Vector2(mask.Width, mask.Height) : Vector2.Zero);
                 var sunmap = context.RenderContext.Tags.Get(Stride.Rendering.Voxels.ForwardRendererVoxels.SunLightmapKey) ?? stand;
                 parameters.Set(sunLightmapKey, sunmap);
                 parameters.Set(sunLightmapTexelKey, sunmap != null ? new Vector2(1f / sunmap.Width, 1f / sunmap.Height) : Vector2.Zero);

@@ -1,0 +1,21 @@
+/// <summary>Which tiles of 16x16 texels of the cascade atlas (Texture0) hold a caster: 1 where any texel
+/// is nearer than the cleared depth. FigureShadowMask skips the blocker search over empty tiles.</summary>
+shader FigureShadowTiles : ImageEffectShader
+{
+    stage override float4 Shading()
+    {
+        int2 tile = int2(streams.ShadingPosition.xy);
+        float found = 0.0;
+        for (int j = 0; j < 16; j += 2)
+        {
+            for (int i = 0; i < 16; i += 2)
+            {
+                // The corner between four texels: the gather takes all four.
+                float2 uv = (float2(tile * 16 + int2(i, j)) + 1.0) * Texture0TexelSize;
+                if (any(Texture0.GatherRed(PointSampler, uv) < 1.0))
+                    found = 1.0;
+            }
+        }
+        return found;
+    }
+};

@@ -1,0 +1,45 @@
+/// <summary>What the sun's shadow receivers share (CascadeShadowReceiver for the static map,
+/// FigureShadowMask for the cascades): a map's projection with its bias and receiver plane, and
+/// the per-pixel turn of the filter disks.</summary>
+shader SunShadowCommon
+{
+    // Position in the map (biased), the receiver plane's depth gradient from the facet
+    // normal n (its sign does not matter), depth units per metre and the texel's width in metres.
+    void ProjectToMap(float3 positionWS, float4x4 toUV, float texelUV, float depthBias, float offsetScale, float3 n,
+                      out float4 shadowPosition, out float2 gradient, out float depthPerMetre, out float texel)
+    {
+        float3 axisU = float3(toUV._11, toUV._21, toUV._31);
+        float3 axisV = float3(toUV._12, toUV._22, toUV._32);
+        float3 axisZ = float3(toUV._13, toUV._23, toUV._33);
+
+        // Map units per metre across and along the light give the texel and depth scales.
+        float uvPerMetre = length(axisU);
+        depthPerMetre = length(axisZ);
+        texel = texelUV / uvPerMetre;
+        float bias = depthBias + offsetScale * texel;
+
+        shadowPosition = mul(float4(positionWS, 1.0), toUV);
+        shadowPosition.z -= bias * depthPerMetre;
+
+        // The plane's depth change per atlas unit: the shadow axes are orthogonal, so the
+        // normal maps to (a_i . n) / |a_i|^2. Steeper than 10:1 to the light is clamped.
+        float nz = dot(axisZ, n) / (depthPerMetre * depthPerMetre);
+        float2 nuv = float2(dot(axisU, n), dot(axisV, n)) / (uvPerMetre * uvPerMetre);
+        float limit = 10.0 * depthPerMetre / uvPerMetre;
+        gradient = clamp(-nuv / (abs(nz) > 1e-12 ? nz : 1e-12), -limit, limit);
+    }
+
+    // A noise turn per pixel (interleaved gradient noise) as cos, sin, one of two:
+    // the 64 taps are two disks of 32, each with its own turn (Luca); their angles
+    // stay constants. The bake keeps them still, the second half a golden angle on.
+    float2 Twist(float2 shadingPixel, float which)
+    {
+#ifdef KOTH_LIGHTMAP_BAKE
+        float angle = which * 1.19998;
+#else
+        float2 pixel = shadingPixel + which * float2(47.0, 17.0);
+        float angle = 6.2831853 * frac(52.9829189 * frac(dot(pixel, float2(0.06711056, 0.00583715))));
+#endif
+        return float2(cos(angle), sin(angle));
+    }
+};
