@@ -23,7 +23,7 @@ namespace KotH.Client.Rendering
         }
 
         /// <summary>A mesh of the map's model (lightmapped) that has no lightmap UV itself.</summary>
-        static bool IsLeaves(RenderMesh mesh) =>
+        internal static bool IsLeaves(RenderMesh mesh) =>
             !LightmapRenderFeature.HasSecondUV(mesh) && SunShadowStageSelector.IsStatic(mesh);
 
         public override void PrepareEffectPermutations(RenderDrawContext context)

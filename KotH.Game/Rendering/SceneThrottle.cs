@@ -69,7 +69,7 @@ namespace KotH.Client.Rendering
         }
 
         /// <summary>The game's camera pass, also inside the collection, SceneThrottle and DlssRenderer around it.</summary>
-        internal static SceneCameraRenderer FindView(ISceneRenderer renderer) => renderer switch
+        public static SceneCameraRenderer FindView(ISceneRenderer renderer) => renderer switch
         {
             SceneCameraRenderer camera => camera,
             SceneThrottle throttle => FindView(throttle.Child),

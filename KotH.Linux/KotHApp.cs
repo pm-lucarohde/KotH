@@ -1023,17 +1023,23 @@ sealed class KotHGame : Game
         }
     }
 
-    // Test aid: KOTH_HIDE=Name[,Name] disables every model under entities of that name or component type.
+    // Test aid: KOTH_HIDE=Name[,Name] disables every model under entities of that name (Name* its start) or
+    // component type; groupN takes render group N out of the game's view (grass 5, shells 6).
     readonly string[] hide = Environment.GetEnvironmentVariable("KOTH_HIDE")?.Split(',');
     void Hide()
     {
         if (hide == null || SceneSystem.SceneInstance?.RootScene is not { } scene)
             return;
+        if (KotH.Client.Rendering.SceneThrottle.FindView(SceneSystem.GraphicsCompositor?.Game) is { } view)
+            foreach (string h in hide)
+                if (h.StartsWith("group") && int.TryParse(h[5..], out int g))
+                    view.RenderMask &= ~(Stride.Rendering.RenderGroupMask)(1u << g);
         foreach (Entity e in scene.Entities)
             Look(e, false);
         void Look(Entity e, bool off)
         {
-            off |= hide.Contains(e.Name) || e.Components.Any(c => hide.Contains(c.GetType().Name));
+            off |= hide.Any(h => h == e.Name || h.EndsWith('*') && e.Name.StartsWith(h[..^1]))
+                   || e.Components.Any(c => hide.Contains(c.GetType().Name));
             if (off)
                 foreach (ModelComponent m in e.GetAll<ModelComponent>())
                     m.Enabled = false;
