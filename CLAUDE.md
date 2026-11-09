@@ -26,9 +26,9 @@ Tools/publish_aot.sh windows probes-windows  # on request only (lld-link, xwin)
   (`--map Test`); network `--host`/`--join`/`--bot` (`NetPlay.cs`). Traces `KOTH_TRACE=BotName`, `KOTH_FALLS=1`.
 - Test aids (`KotHApp.cs` fields, times from the end of the load screen): `KOTH_SHOT=shot.png` (+ `_SECONDS`, `_YAW`,
   `_AT`, `_MOVE`, `_BLASTER`, `_FIRE`, `_VIDEO` …), `KOTH_HEADLESS=1`, `KOTH_SIZE`, `KOTH_MUSIC_VOLUME=0` (mute), `KOTH_EFFECTLOG`,
-  `KOTH_POSLOG`; menu shots `KOTH_SHOT_MENU`, `_PAUSE`, `_HUD=banner`, `_LOAD`, `_SETTINGS=tab`, `_APPLY=s:x.toml`; `KOTH_SETTINGS`;
+  `KOTH_POSLOG`; menu shots `KOTH_SHOT_MENU`, `_PAUSE`, `_HUD=banner`, `_CHAT=text`, `_TALK=1`, `_LOAD`, `_SETTINGS=tab`, `_APPLY=s:x.toml`; `KOTH_SETTINGS`;
   start log `~/.local/share/KotH/logs` (always), `KOTH_START_AWAY=focus|minimize` (`.work/startup/real.sh`); `KOTH_FRAMELOG=f`
-  (+`_SECONDS`, `KOTH_VKTIMES=1`), `KOTH_GPULOG`, `KOTH_SHOT_PILOT=1` (bot pilot, `.work/perf/round.sh`); still shots `KOTH_SHOT_STILL=1`, `KOTH_HIDE`, `KOTH_MAPCULL`.
+  (+`_SECONDS`, `KOTH_VKTIMES=1`), `KOTH_GPULOG`, `KOTH_SHOT_PILOT=1` (bot pilot, `.work/perf/round.sh`); voice `KOTH_VOICE_LOOPBACK=m` (+`_HOLD=1`); still shots `KOTH_SHOT_STILL=1`, `KOTH_HIDE`, `KOTH_MAPCULL`.
 
 ## Tests: probes and regression
 
@@ -67,8 +67,9 @@ dotnet run Tools/Regress.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # nu
 - Rollback in a star: `HostSession` confirms ticks (inputs, joins, leaves), checksums every 40 ticks, state on desync;
   `PeerSession` (host too, `LocalTransport`) predicts, rolls back (ring 128, ≤ 15 ticks). `StateCodec` v4, `NetId` ≥ 4,
   same `BuildId` (MVID, instruction set, assets). `GameRoot` = `INetWorld`; wins only confirmed; never smooth corrections.
-- Steam menu (app 480, `KotH.Game/Steam`, `SteamTransport`; shots only with `KOTH_STEAM=1`): the lobby's "host" hosts,
-  a gone or slow one hands over (`HostChange.cs`, probe `migrate`); private rounds `PasswordKey` (probe `password`).
+- Steam (app 480, `KotH.Game/Steam`; shots with `KOTH_STEAM=1`): the lobby's "host" hosts, a gone or slow one hands over
+  (`HostChange.cs`, probe `migrate`); private rounds `PasswordKey` (probe `password`). Chat (T), push-to-talk voice
+  (Opus, full ≤ 4 m, silent ≥ 30 m), Esc Players mutes: member to member (`SteamMesh`, `Comms`, `VoiceChat`).
   Else UDP (LiteNetLib 2.1.4, `--host`/`--join`, server), encrypted, key pinned by invite `koth://…&key=` (probe `secure`).
 
 ### Round (`KotH.Shared/Match`)
@@ -82,8 +83,7 @@ dotnet run Tools/Regress.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # nu
   assets; `Hosting/Maps.cs` (`All` = host's choice). Map change in-process (`GameRoot.UnloadMap`); menu always MountDestiny.
 - Probes load `Test`, except `bots climb`/`jumplab`. **MountDestiny** (123 m): `Tools/maps/Mountain.cs` → `MapUV`;
   textures `Textures.cs`, sky `Sky.cs`, clouds `Clouds.cs`; grass `GrassField`, shells `ShellField`. View ≤ 20 km.
-- Game Studio runs under Proton (Steam shortcut, prefix `compatdata/2392464373`, setup in the memory); saving writes
-  CRLF; the prefix `.nuget` is a symlink: never replace files there.
+- Game Studio under Proton (prefix `compatdata/2392464373`, memory); saves CRLF; its `.nuget` is a symlink, never replace files there.
 
 ### Client
 - HUD `HudRenderer` (SpriteBatch) with Avalonia parts (`HillBoard`→`HudView`, `LoadView`) via `MenuOverlay`; main menu

@@ -158,12 +158,12 @@ namespace KotH.Client.Menu
             Volume("Sound effects", s => s.Effects, (s, v) => s.Effects = v),
             Volume("Music", s => s.Music, (s, v) => s.Music = v),
             Volume("Ambience", s => s.Ambient, (s, v) => s.Ambient = v),
+            Volume("Voices", s => s.Voice, (s, v) => s.Voice = v),
             new HeadingRow("Devices"),
             new ChoiceRow<string>("Output", _ => AudioDevices.Outputs(), s => s.OutputDevice, (s, v) => s.OutputDevice = v,
                                   AudioDevices.Text, "after a restart"),
             new ChoiceRow<string>("Input", _ => AudioDevices.Inputs(), s => s.InputDevice, (s, v) => s.InputDevice = v,
                                   AudioDevices.Text, "voice chat"),
-            new KeyRow("Push to talk", Binding.PushToTalk, "voice chat"),
         };
 
         static readonly WindowMode[] Windows = { WindowMode.Borderless, WindowMode.Windowed, WindowMode.Exclusive };
@@ -256,6 +256,8 @@ namespace KotH.Client.Menu
             new KeyRow("Crouch", Binding.Crouch, "slide, dash"),
             new KeyRow("Cane", Binding.Cane),
             new KeyRow("Blaster", Binding.Blaster),
+            new KeyRow("Chat", Binding.Chat, "Steam rounds"),
+            new KeyRow("Push to talk", Binding.PushToTalk, "voice chat"),
         };
     }
 }

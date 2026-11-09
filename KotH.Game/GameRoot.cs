@@ -147,6 +147,8 @@ namespace KotH.Client
             CoverWhileLoading();
             var pause = new PauseMenu { Driver = Entity.Get<SimulationDriver>(), ToMainMenu = ReturnToMenu };
             Entity.Scene.Entities.Add(new Entity("PauseMenu") { pause });
+            Entity.Scene.Entities.Add(new Entity("Chat") { new ChatBox { Driver = pause.Driver, Pause = pause } });
+            Entity.Scene.Entities.Add(new Entity("Voice") { new VoiceChat { Driver = pause.Driver } });
             if (!options.Joining)
             {
                 // The main menu and a host's lobby are on Mount Destiny (Luca); --map is the round's map.
@@ -716,7 +718,10 @@ namespace KotH.Client
                 BindLocal(e, (PlayerInputReader)body);
             }
             else
+            {
                 label = AddLabel(e, name);
+                label.Get<DamageLabel>().NetId = netId;
+            }
             shown[body] = (visual, label);
             return body;
         }

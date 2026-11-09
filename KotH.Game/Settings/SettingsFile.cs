@@ -60,6 +60,7 @@ namespace KotH.Client.Settings
             var t = new StringBuilder("# KotH settings; the game rewrites this file on Apply\n");
             t.Append("\n[sound]\n");
             Number(t, "overall", s.Overall); Number(t, "effects", s.Effects); Number(t, "music", s.Music); Number(t, "ambient", s.Ambient);
+            Number(t, "voice", s.Voice);
             Text(t, "output_device", s.OutputDevice); Text(t, "input_device", s.InputDevice);
             t.Append("\n[graphics]\n");
             Text(t, "window", s.Window.ToString().ToLowerInvariant());
@@ -135,6 +136,7 @@ namespace KotH.Client.Settings
                 case ("sound", "effects"): s.Effects = Unit(v, s.Effects); break;
                 case ("sound", "music"): s.Music = Unit(v, s.Music); break;
                 case ("sound", "ambient"): s.Ambient = Unit(v, s.Ambient); break;
+                case ("sound", "voice"): s.Voice = Unit(v, s.Voice); break;
                 case ("sound", "output_device"): s.OutputDevice = v; break;
                 case ("sound", "input_device"): s.InputDevice = v; break;
                 case ("graphics", "window"): s.Window = Enum.TryParse(v, true, out WindowMode w) ? w : s.Window; break;

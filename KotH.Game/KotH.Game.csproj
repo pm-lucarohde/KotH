@@ -10,6 +10,7 @@
     <NoWarn>$(NoWarn);AVA3001</NoWarn>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Concentus" Version="2.2.2" />
     <PackageReference Include="Stride.Engine" Version="4.4.1" />
     <PackageReference Include="Stride.BepuPhysics" Version="4.4.1" />
     <PackageReference Include="Stride.UI" Version="4.4.1" />

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using KotH.Client.Audio;
 using KotH.Client.Hud;
 using KotH.Client.Net;
 using KotH.Client.Player;
@@ -62,6 +63,7 @@ namespace KotH.Client.Menu
             view.QuitRequested += () => quitWanted = true;
             view.InviteOpened += ListFriends;
             view.MapsOpened += ListMaps;
+            view.PlayersOpened += ListPlayers;
             view.Confirmed += leave =>
             {
                 if (leave)
@@ -71,7 +73,7 @@ namespace KotH.Client.Menu
             };
             var parts = view.TakeParts();
             // In the middle of a screen 1080 high.
-            board = new MenuOverlay(parts.Board, MenuOverlay.Corner.TopCenter, 0f, (1080f - 586f) / 2f) { Visible = false };
+            board = new MenuOverlay(parts.Board, MenuOverlay.Corner.TopCenter, 0f, (1080f - 730f) / 2f) { Visible = false };
             page = new MenuOverlay(parts.Page, MenuOverlay.Corner.TopCenter, 0f, (1080f - 610f) / 2f) { Visible = false };
             confirm = new MenuOverlay(parts.Confirm, MenuOverlay.Corner.TopCenter, 0f, (1080f - 330f) / 2f) { Visible = false };
             overlays = new[] { board, page, confirm };
@@ -126,7 +128,7 @@ namespace KotH.Client.Menu
             if (Open && view.PageOpen && view.SettingsView.Capture(Input))
             {
             }
-            else if (KeyPresses.Pressed(Input, Keys.Escape))
+            else if (!Hud.ChatBox.Busy && KeyPresses.Pressed(Input, Keys.Escape))
             {
                 if (confirming)
                     Show(false);
@@ -149,7 +151,9 @@ namespace KotH.Client.Menu
             MenuOverlay.Tick(Game.UpdateTime.FrameCount);
             // The round may end (or begin) while the menu is open: leaving unlocks (or locks).
             if (locked != RoundRunning())
-                view.Offer(invite: Lobby != null || InviteCode != null, maps: LobbyHost != null, locked = RoundRunning());
+                Offer();
+            if (view.PlayersShown && Game.UpdateTime.Total.TotalSeconds - listedAt > 0.5)
+                ListPlayers();
             board.Visible = !view.PageOpen && !confirming;
             page.Visible = view.PageOpen && !confirming;
             confirm.Visible = confirming;
@@ -177,7 +181,7 @@ namespace KotH.Client.Menu
             resumeWanted = menuWanted = confirming = false;
             view.PageOpen = false;
             if (open)
-                view.Offer(invite: Lobby != null || InviteCode != null, maps: LobbyHost != null, locked = RoundRunning());
+                Offer();
             since = 0f;
             if (!open)
             {
@@ -185,6 +189,33 @@ namespace KotH.Client.Menu
                 board.Visible = page.Visible = confirm.Visible = false;
             }
         }
+
+        void Offer() => view.Offer(invite: Lobby != null || InviteCode != null, players: Talk != null,
+                                   maps: LobbyHost != null, locked = RoundRunning());
+
+        // The Steam round's chat and voice, for the Players page.
+        Comms Talk => Lobby != null ? Services.GetService<NetClient>()?.Comms : null;
+
+        // Everyone else in the lobby, muted or not; the list keeps up with who speaks.
+        void ListPlayers()
+        {
+            listedAt = Game.UpdateTime.Total.TotalSeconds;
+            var rows = new List<RowList.Row>();
+            if (Talk is { } talk)
+                foreach (ulong member in talk.Others())
+                {
+                    bool muted = talk.IsMuted(member);
+                    string detail = muted ? "muted" : VoiceChat.IsSpeaking(talk.NetIdOf(member)) ? "speaking" : "";
+                    rows.Add(new RowList.Row(talk.NameOf(member), detail, muted ? "Unmute" : "Mute", () =>
+                    {
+                        talk.SetMuted(member, !muted);
+                        ListPlayers();
+                    }));
+                }
+            view.ShowList(rows, "Nobody else here", "Muted players are not heard and their chat lines not shown.");
+        }
+
+        double listedAt;
 
         // An online round on its map (stage Round, its win pause included): no leaving until the lobby.
         bool RoundRunning() => Services.GetService<NetClient>() is { Stage: MatchStage.Round };
@@ -276,6 +307,8 @@ namespace KotH.Client.Menu
             }
             else if (what == "menu")
                 view.Pretend(2);
+            else if (what == "players")
+                view.Pretend(4);
         }
 
         /// <summary>The veil under the board.</summary>

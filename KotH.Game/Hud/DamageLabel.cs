@@ -1,3 +1,4 @@
+using KotH.Client.Audio;
 using KotH.Shared.Combat;
 using KotH.Shared.Mathematics;
 using KotH.Shared.Player;
@@ -32,6 +33,11 @@ namespace KotH.Client.Hud
 
         /// <summary>Shown before the percent, for other players; null for none.</summary>
         [DataMemberIgnore] public string Name { get; set; }
+
+        /// <summary>The player's NetId, whose voice tints the label while it is heard; 0 for none.</summary>
+        [DataMemberIgnore] public int NetId { get; set; }
+
+        static readonly Color SpeakingColor = new Color(127, 224, 138);
 
         /// <summary>The camera the text turns towards.</summary>
         [DataMemberIgnore] public TransformComponent Camera { get; set; }
@@ -97,6 +103,8 @@ namespace KotH.Client.Hud
 
             if (Camera != null)
                 Entity.Transform.Rotation = Facing(Camera.Position - position);
+
+            text.TextColor = NetId != 0 && VoiceChat.IsSpeaking(NetId) ? SpeakingColor : Color;
 
             // Rewritten only when the number moved, so a still dummy costs
             // nothing per frame.

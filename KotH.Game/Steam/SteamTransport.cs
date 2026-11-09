@@ -66,12 +66,24 @@ namespace KotH.Client.Steam
                 if (peerOf.ContainsKey(remote) || hosting && lobby.Has(remote))
                     Accept(remote);
                 else
-                    waiting.Add(remote);   // its lobby entry may still be on the way, or it is this peer's turn to host
+                {
+                    // Another member's chat and voice (SteamMesh), or its lobby entry may still be on the way,
+                    // or it is this peer's turn to host: the session is taken, the game's line only once mapped.
+                    waiting.Add(remote);
+                    if (lobby.Has(remote))
+                        AcceptOnly(remote);
+                }
                 return;
             }
             // SteamNetConnectionInfo_t: identity (136), user data, socket, address (18), pad, POPs, state, end reason.
             Console.WriteLine($"[steam] session with {remote} failed: {*(int*)(p + 180)} {Text((byte*)(p + 184))}");
             Lost(remote);
+        }
+
+        void AcceptOnly(ulong remote)
+        {
+            fixed (byte* who = Identity(remote))
+                SteamAPI_ISteamNetworkingMessages_AcceptSessionWithUser(SteamClient.Messages, who);
         }
 
         void Accept(ulong remote)
@@ -90,6 +102,8 @@ namespace KotH.Client.Steam
         {
             if (hosting && waiting.Contains(member))
                 Accept(member);
+            else if (waiting.Contains(member))
+                AcceptOnly(member);
         }
 
         void Left(ulong member)

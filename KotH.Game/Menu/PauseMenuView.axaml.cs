@@ -26,6 +26,9 @@ namespace KotH.Client.Menu
         /// <summary>Invite friends was chosen: time to list them.</summary>
         public event Action InviteOpened;
 
+        /// <summary>Players was chosen: time to list the others to mute.</summary>
+        public event Action PlayersOpened;
+
         /// <summary>Map was chosen: time to list the maps.</summary>
         public event Action MapsOpened;
 
@@ -48,6 +51,11 @@ namespace KotH.Client.Menu
                 ShowPage("Invite friends", list: true);
                 InviteOpened?.Invoke();
             };
+            Players.Click += (_, _) =>
+            {
+                ShowPage("Players", list: true);
+                PlayersOpened?.Invoke();
+            };
             Maps.Click += (_, _) => OpenMaps();
             Stay.Click += (_, _) => Confirmed?.Invoke(false);
             Leave.Click += (_, _) => Confirmed?.Invoke(true);
@@ -57,16 +65,21 @@ namespace KotH.Client.Menu
         /// <summary>Whether a page shows instead of the buttons.</summary>
         public bool PageOpen { get; set; }
 
-        /// <summary>The buttons for this game: Invite friends in a Steam round, Map for the host in the lobby;
-        /// in a running online round leaving is locked (Main menu, To desktop greyed, a word why).</summary>
-        public void Offer(bool invite, bool maps, bool locked)
+        /// <summary>The buttons for this game: Invite friends (and Players) in a Steam round, Map for the host in
+        /// the lobby; in a running online round leaving is locked (Main menu, To desktop greyed, a word why).</summary>
+        public void Offer(bool invite, bool players, bool maps, bool locked)
         {
             Invite.IsVisible = invite;
+            Players.IsVisible = players;
             Maps.IsVisible = maps;
             Quit.IsEnabled = ToMenu.IsEnabled = !locked;
             Locked.IsVisible = locked;
-            Board.Height = BoardHeight + ButtonStep * ((invite ? 1 : 0) + (maps ? 1 : 0)) + (locked ? LockedHeight : 0);
+            int extra = (invite ? 1 : 0) + (players ? 1 : 0) + (maps ? 1 : 0);
+            Board.Height = BoardHeight + ButtonStep * extra + (locked ? LockedHeight : 0);
         }
+
+        /// <summary>Whether the Players page shows.</summary>
+        public bool PlayersShown => PageOpen && ListPage.IsVisible && PageTitle.Text == "Players";
 
         const double LockedHeight = 60;
 
@@ -112,10 +125,10 @@ namespace KotH.Client.Menu
             return (BoardPart, PagePart, ConfirmPart);
         }
 
-        /// <summary>Test aid (KOTH_SHOT_PAUSE): clicks button 0-3.</summary>
+        /// <summary>Test aid (KOTH_SHOT_PAUSE): clicks button 0-4 (4 Players, also where it is hidden).</summary>
         public void Pretend(int button)
         {
-            Button[] buttons = { Resume, Settings, ToMenu, Quit };
+            Button[] buttons = { Resume, Settings, ToMenu, Quit, Players };
             if (button >= 0 && button < buttons.Length)
                 buttons[button].RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         }

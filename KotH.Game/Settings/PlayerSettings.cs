@@ -12,14 +12,14 @@ namespace KotH.Client.Settings
 
     /// <summary>The keys the player may move to another key (keyboard only; the arrows,
     /// the left button, the wheel, Escape, F3 and F11 stay where they are).</summary>
-    public enum Binding { Forward, Back, Left, Right, Jump, Sprint, Crouch, Cane, Blaster, PushToTalk }
+    public enum Binding { Forward, Back, Left, Right, Jump, Sprint, Crouch, Cane, Blaster, PushToTalk, Chat }
 
     /// <summary>Everything the Settings page offers. The defaults are the game as it was before
     /// the page: 80 % is today's loudness, High today's look, FOV 85, no cap, no V-Sync, FXAA.</summary>
     public sealed class PlayerSettings
     {
         // Sound, 0 to 1 (0.8 today's loudness); devices by OpenAL's name, empty the system's.
-        public float Overall = 0.8f, Effects = 0.8f, Music = 0.8f, Ambient = 0.8f;
+        public float Overall = 0.8f, Effects = 0.8f, Music = 0.8f, Ambient = 0.8f, Voice = 0.8f;
         public string OutputDevice = "", InputDevice = "";
 
         // Graphics. Width and Height 0: the screen's own.
@@ -56,6 +56,7 @@ namespace KotH.Client.Settings
         {
             Stride.Input.Keys.W, Stride.Input.Keys.S, Stride.Input.Keys.A, Stride.Input.Keys.D, Stride.Input.Keys.Space,
             Stride.Input.Keys.LeftShift, Stride.Input.Keys.E, Stride.Input.Keys.D1, Stride.Input.Keys.D2, Stride.Input.Keys.V,
+            Stride.Input.Keys.T,
         };
 
         public Keys Key(Binding binding) => Keys[(int)binding];
@@ -78,8 +79,8 @@ namespace KotH.Client.Settings
         public void ResetSound()
         {
             var d = new PlayerSettings();
-            (Overall, Effects, Music, Ambient, OutputDevice, InputDevice) = (d.Overall, d.Effects, d.Music, d.Ambient, d.OutputDevice, d.InputDevice);
-            Keys[(int)Binding.PushToTalk] = d.Key(Binding.PushToTalk);
+            (Overall, Effects, Music, Ambient, Voice) = (d.Overall, d.Effects, d.Music, d.Ambient, d.Voice);
+            (OutputDevice, InputDevice) = (d.OutputDevice, d.InputDevice);
         }
 
         public void ResetGraphics()
@@ -92,10 +93,8 @@ namespace KotH.Client.Settings
 
         public void ResetInput()
         {
-            Keys talk = Key(Binding.PushToTalk);
             MouseSensitivity = new PlayerSettings().MouseSensitivity;
             Keys = DefaultKeys();
-            Keys[(int)Binding.PushToTalk] = talk;
         }
 
         /// <summary>Equal when they would be saved alike.</summary>

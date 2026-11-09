@@ -55,7 +55,21 @@ namespace KotH.Client
             }
         }
 
-        bool inMenu, paused, settling;
+        /// <summary>The chat is open: the own figure holds no key; the mouse stays grabbed. Closing it
+        /// lets that frame neither look nor swing, as after the pause menu.</summary>
+        [DataMemberIgnore]
+        public bool Typing
+        {
+            get => typing;
+            set
+            {
+                if (typing && !value)
+                    settling = true;
+                typing = value;
+            }
+        }
+
+        bool inMenu, paused, settling, typing;
 
         public SimulationDriver()
         {
@@ -73,7 +87,7 @@ namespace KotH.Client
             if (system == null)
                 return;
 
-            if (paused || inMenu)
+            if (paused || inMenu || typing)
                 LocalInput?.Rest();
             else
                 LocalInput?.Collect(Input, Captured && !settling);

@@ -185,13 +185,13 @@ namespace KotH.Client.Audio
             if (failed || sound == null || listener == null)
                 return;
             if (Trace)
-                Console.WriteLine($"[sound] {what} at {at.X:F1} {at.Y:F1} {at.Z:F1}, from ear {FromEar(at).X:F1} {FromEar(at).Y:F1} {FromEar(at).Z:F1}, volume {volume:F2}");
+                Console.WriteLine($"[sound] {what} at {at.X:F1} {at.Y:F1} {at.Z:F1}, from ear {FromEar(camera, at).X:F1} {FromEar(camera, at).Y:F1} {FromEar(camera, at).Z:F1}, volume {volume:F2}");
             Guard(() =>
             {
                 SoundInstance voice = Voice(sound);
                 if (voice == null)
                     return;
-                emitter.Position = FromEar(at);
+                emitter.Position = FromEar(camera, at);
                 voice.Volume = volume * Master * PlayerSettings.Gain(ClientSettings.Applied.Effects);
                 voice.Pitch = vary ? 1f + PitchSpread * (2f * (float)random.NextDouble() - 1f) : 1f;
                 voice.Apply3D(emitter);
@@ -202,7 +202,7 @@ namespace KotH.Client.Audio
         /// <summary>The point as heard from the own eye, also in third person (Luca), turned with the
         /// view. Stride moves a listener only for an AudioListenerComponent, so the default one stays
         /// at the origin facing +Z: the point goes there in the view's axes (right +X, up +Y, ahead +Z).</summary>
-        Vector3 FromEar(Vector3 at)
+        public static Vector3 FromEar(PlayerCamera camera, Vector3 at)
         {
             if (camera == null)
                 return Vector3.Zero;

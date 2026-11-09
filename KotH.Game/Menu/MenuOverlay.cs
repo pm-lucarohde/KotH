@@ -30,7 +30,7 @@ namespace KotH.Client.Menu
     public sealed class MenuOverlay : IHudElement, IDisposable
     {
         /// <summary>The screen corner a part is placed from; the centres centre it, x moves it right.</summary>
-        public enum Corner { TopLeft, TopRight, BottomRight, TopCenter, BottomCenter }
+        public enum Corner { TopLeft, TopRight, BottomRight, TopCenter, BottomCenter, BottomLeft }
 
         /// <summary>The height parts are laid out for, in their units.</summary>
         public const double DesignHeight = 1080;
@@ -124,11 +124,11 @@ namespace KotH.Client.Menu
             int width = (int)MathF.Ceiling(size.X * scale), height = (int)MathF.Ceiling(size.Y * scale);
             float left = corner switch
             {
-                Corner.TopLeft => offset.X * scale,
+                Corner.TopLeft or Corner.BottomLeft => offset.X * scale,
                 Corner.TopCenter or Corner.BottomCenter => (screen.X - size.X * scale) * 0.5f + offset.X * scale,
                 _ => screen.X - (offset.X + size.X) * scale,
             };
-            float top = corner is Corner.BottomRight or Corner.BottomCenter ? screen.Y - (offset.Y + size.Y) * scale : offset.Y * scale;
+            float top = corner is Corner.BottomRight or Corner.BottomCenter or Corner.BottomLeft ? screen.Y - (offset.Y + size.Y) * scale : offset.Y * scale;
             rect = new RectangleF(MathF.Round(left), MathF.Round(top), width, height);
             scaler.LayoutTransform = new ScaleTransform(scale, scale);
             surface.Resize(width, height);

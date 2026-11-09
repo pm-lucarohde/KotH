@@ -224,10 +224,17 @@ namespace KotH.Client.Steam
         public List<ulong> Members()
         {
             var list = new List<ulong>();
+            Members(list);
+            return list;
+        }
+
+        /// <summary>The members into a list of the caller's (cleared first), so a frame allocates nothing.</summary>
+        public void Members(List<ulong> into)
+        {
+            into.Clear();
             int count = Id == 0 ? 0 : SteamAPI_ISteamMatchmaking_GetNumLobbyMembers(SteamClient.Matchmaking, Id);
             for (int i = 0; i < count; i++)
-                list.Add(SteamAPI_ISteamMatchmaking_GetLobbyMemberByIndex(SteamClient.Matchmaking, Id, i));
-            return list;
+                into.Add(SteamAPI_ISteamMatchmaking_GetLobbyMemberByIndex(SteamClient.Matchmaking, Id, i));
         }
 
         /// <summary>This player's data for the others (NetId, the host it plays with); kept while unchanged.</summary>

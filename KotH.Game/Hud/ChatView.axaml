@@ -1,0 +1,29 @@
+<!-- The chat top left (ChatBox): the newest lines on chips of dark glass, which fade when nobody
+     writes; opened with the chat key, the glass behind them all and the line to type in. Laid out for a screen
+     1080 high, 24 of room round the glass for its shadow. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="KotH.Client.Hud.ChatView"
+             x:CompileBindings="True">
+    <Panel Name="Parts">
+        <Grid Name="ChatPart" Width="660" Height="560">
+            <!-- The glass grows with the lines; closed it is see-through, the lines on chips -->
+            <Border Name="Back" Margin="24" CornerRadius="16" Padding="16" VerticalAlignment="Top">
+                <StackPanel Spacing="12">
+                    <StackPanel Name="Lines" Spacing="6" />
+                    <Panel Name="Field" IsVisible="False" />
+                </StackPanel>
+            </Border>
+        </Grid>
+        <!-- Bottom left while the own voice goes out (or the key finds no microphone) -->
+        <Grid Name="TalkPart" Width="360" Height="96">
+            <Border Classes="Glass" Margin="24" CornerRadius="14" Padding="14,6,16,7"
+                    HorizontalAlignment="Left" VerticalAlignment="Bottom">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Ellipse Name="TalkDot" Width="12" Height="12" VerticalAlignment="Center" />
+                    <TextBlock Name="TalkText" Classes="Hud" FontSize="21" />
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Panel>
+</UserControl>

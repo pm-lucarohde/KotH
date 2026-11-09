@@ -30,6 +30,8 @@ namespace KotH.Client.Net
         public NetClient(LaunchOptions options, INetWorld world, Func<MoveInput> sampleLocal, HillMatch round, SteamLobby lobby = null)
         {
             Lobby = lobby;
+            if (lobby != null)
+                Comms = new Comms(lobby, id => Session.BodyOf(id)?.Entity?.Name);
             this.world = world;
             this.sampleLocal = sampleLocal;
             name = options.Name;
@@ -76,6 +78,12 @@ namespace KotH.Client.Net
 
         /// <summary>The Steam lobby of this game, null over direct IP.</summary>
         public SteamLobby Lobby { get; }
+
+        /// <summary>Chat (and voice) with the other players, over Steam only; null over direct IP.</summary>
+        public Comms Comms { get; }
+
+        /// <summary>The own player's name as the host gave it ("Luca 2"), else the one asked for.</summary>
+        public string OwnName => Session.BodyOf(Session.LocalNetId)?.Entity?.Name ?? name;
 
         /// <summary>GameRoot: takes the game down and builds this map in this stage for a restart.</summary>
         public Action<string, MatchStage> ChangeMap { get; set; }
@@ -135,6 +143,7 @@ namespace KotH.Client.Net
                 Session.Join(now);
             }
             Lobby?.Refresh();
+            Comms?.Update(now);
             FollowHost(now);
             if (Host != null && Lobby != null)
             {
