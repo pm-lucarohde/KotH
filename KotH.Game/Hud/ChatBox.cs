@@ -144,13 +144,17 @@ namespace KotH.Client.Hud
             overlay.Upload(Game.GraphicsContext.CommandList);
         }
 
-        // Test aid (KOTH_SHOT_CHAT=text): a few lines and the chat open with the text typed.
+        // Test aid (KOTH_SHOT_CHAT=text): a few lines (Bot 3 says the text) and the chat open with it typed;
+        // KOTH_SHOT_CHAT_OPEN=0 leaves it closed, the lines as they show after a message.
         void Pretend(string sample)
         {
             local = new Comms(null, _ => null);
             local.Note("Lobby: Mount Destiny", 0);
             local.Say("anyone up for the summit?", "Luca", Environment.TickCount64);
             local.Pretend("Bot 2", "ja, gleich oben", Environment.TickCount64);
+            local.Pretend("Bot 3", sample, Environment.TickCount64);
+            if (Environment.GetEnvironmentVariable("KOTH_SHOT_CHAT_OPEN") == "0")
+                return;
             open = true;
             view.Typing.Text = sample;
             MenuTextBox.Focus(view.Typing);

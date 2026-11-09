@@ -1,4 +1,4 @@
-<!-- The chat top left (ChatBox): the newest lines on chips of dark glass, which fade when nobody
+<!-- The chat top left (ChatBox): the newest lines bare with a soft shadow, which fade when nobody
      writes; opened with the chat key, the glass behind them all and the line to type in; under it the voice's
      sign. Laid out for a screen 1080 high, 24 of room round the glass for its shadow. -->
 <UserControl xmlns="https://github.com/avaloniaui"
@@ -7,7 +7,7 @@
              x:CompileBindings="True">
     <Panel Name="Parts">
         <Grid Name="ChatPart" Width="660" Height="560">
-            <!-- The glass grows with the lines; closed it is see-through, the lines on chips -->
+            <!-- The glass grows with the lines; closed it is see-through, the lines bare -->
             <Border Name="Back" Margin="24" CornerRadius="16" Padding="16" VerticalAlignment="Top">
                 <StackPanel Spacing="12">
                     <StackPanel Name="Lines" Spacing="6" />

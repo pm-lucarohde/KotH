@@ -7,11 +7,12 @@ using KotH.Client.Net;
 
 namespace KotH.Client.Hud
 {
-    /// <summary>The chat's controls for ChatBox: the lines it is given, closed on chips of their own,
+    /// <summary>The chat's controls for ChatBox: the lines it is given, closed bare with a soft shadow,
     /// open on the glass with the typing line. Rebuilt only when what is shown changed.</summary>
     public partial class ChatView : UserControl
     {
-        static readonly IBrush Chip = new SolidColorBrush(Color.Parse("#B3121820"));
+        // Closed, the lines stand on the scene without glass (Luca): a soft shadow to read them, as the speaker.
+        static readonly DropShadowEffect Shadow = new DropShadowEffect { OffsetX = 0, OffsetY = 1, BlurRadius = 6, Color = Color.Parse("#B0000000") };
         static readonly IBrush NameBrush = new SolidColorBrush(Color.Parse("#FFD27A"));
         static readonly IBrush OwnBrush = new SolidColorBrush(Color.Parse("#7FD8F0"));
         static readonly IBrush NoteBrush = new SolidColorBrush(Color.Parse("#B3FFFFFF"));
@@ -81,13 +82,15 @@ namespace KotH.Client.Hud
                 text.Inlines!.Add(new Run(line.Text) { Foreground = NoteBrush });
             else
             {
-                text.Inlines!.Add(new Run(line.Name + ": ") { Foreground = line.Own ? OwnBrush : NameBrush });
+                // No-break spaces: name and text stay on one line, a long word breaks at the line's end (Luca).
+                text.Inlines!.Add(new Run(line.Name.Replace(' ', '\u00A0') + ":\u00A0") { Foreground = line.Own ? OwnBrush : NameBrush });
                 text.Inlines.Add(new Run(line.Text));
             }
+            if (!open)
+                text.Effect = Shadow;
             return new Border
             {
-                Child = text, CornerRadius = new(9), Padding = new(12, 5, 12, 6),
-                Background = open ? Brushes.Transparent : Chip, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left,
+                Child = text, Padding = new(12, 5, 12, 6), HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left,
             };
         }
     }
