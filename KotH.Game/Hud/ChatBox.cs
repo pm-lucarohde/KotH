@@ -113,7 +113,7 @@ namespace KotH.Client.Hud
             talkOverlay.Visible = mic != VoiceChat.Mic.Off && !(Driver?.InMenu ?? true);
             if (!talkOverlay.Visible)
                 return;
-            view.ShowTalk(mic == VoiceChat.Mic.Talking);
+            view.ShowTalk(mic);
             var backBuffer = GraphicsDevice.Presenter.BackBuffer;
             talkOverlay.Place(new Vector2(backBuffer.Width, backBuffer.Height));
             MenuOverlay.Tick(frame);

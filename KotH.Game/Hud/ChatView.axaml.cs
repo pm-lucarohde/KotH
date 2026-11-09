@@ -32,7 +32,7 @@ namespace KotH.Client.Hud
 
         static readonly IBrush TalkBrush = new SolidColorBrush(Color.Parse("#7FE08A"));
         static readonly IBrush MissingBrush = new SolidColorBrush(Color.Parse("#F07F7F"));
-        bool? shownTalking;
+        Audio.VoiceChat.Mic shownMic;
 
         /// <summary>The parts, out of this control, to be the contents of overlays.</summary>
         public (Control Chat, Control Talk) TakeParts()
@@ -41,14 +41,19 @@ namespace KotH.Client.Hud
             return (ChatPart, TalkPart);
         }
 
-        /// <summary>The voice's chip: going out, or the key held without a working microphone.</summary>
-        public void ShowTalk(bool talking)
+        /// <summary>The voice's chip: going out, or why the held key sends nothing.</summary>
+        public void ShowTalk(Audio.VoiceChat.Mic mic)
         {
-            if (shownTalking == talking)
+            if (shownMic == mic)
                 return;
-            shownTalking = talking;
-            TalkDot.Fill = talking ? TalkBrush : MissingBrush;
-            TalkText.Text = talking ? "Talking" : "No microphone";
+            shownMic = mic;
+            TalkDot.Fill = mic == Audio.VoiceChat.Mic.Talking ? TalkBrush : MissingBrush;
+            TalkText.Text = mic switch
+            {
+                Audio.VoiceChat.Mic.Talking => "Talking",
+                Audio.VoiceChat.Mic.Missing => "No microphone",
+                _ => "Voice needs a Steam round",
+            };
         }
 
         /// <summary>The newest count lines of the chat, closed or open for typing.</summary>

@@ -29,11 +29,11 @@ namespace KotH.Client.Audio
         const byte Talk = 1, End = 2;
         const ulong Loopback = 1;   // no Steam ID is this small
 
-        public enum Mic { Off, Talking, Missing }
+        public enum Mic { Off, Talking, Missing, NoRound }
 
         [DataMemberIgnore] public SimulationDriver Driver { get; set; }
 
-        /// <summary>The own microphone: off, going out, or held without one that works.</summary>
+        /// <summary>The own microphone: off, going out, held without one that works, or outside a Steam round.</summary>
         public static Mic State { get; private set; }
 
         /// <summary>Whether the player with this NetId was heard in the last 300 ms.</summary>
@@ -94,7 +94,7 @@ namespace KotH.Client.Audio
             camera ??= FindCamera();
             if (comms == null && float.IsNaN(loopback) || camera?.Motor == null)
             {
-                State = Mic.Off;
+                State = Held() ? Mic.NoRound : Mic.Off;   // the key says why it is silent
                 return;
             }
             Send();
@@ -112,8 +112,7 @@ namespace KotH.Client.Audio
         // The own voice: recorded while the key is held and a little after, out in packets of 40 ms.
         void Send()
         {
-            bool held = Driver is { InMenu: false, Typing: false }
-                        && (hold || Input.IsKeyDown(ClientSettings.Applied.Key(Binding.PushToTalk)));
+            bool held = Held();
             if (held)
                 talkUntil = now + TailMs;
             bool wanted = now < talkUntil;
@@ -146,6 +145,9 @@ namespace KotH.Client.Audio
                 State = Mic.Off;
             }
         }
+
+        bool Held() => Driver is { InMenu: false, Typing: false }
+                       && (hold || Input.IsKeyDown(ClientSettings.Applied.Key(Binding.PushToTalk)));
 
         // Kind, the sequence number of the first frame, then the frame count (set in Out).
         void Head(byte kind)
