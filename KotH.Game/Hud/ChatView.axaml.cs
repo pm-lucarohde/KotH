@@ -30,9 +30,13 @@ namespace KotH.Client.Hud
             Field.Children.Add(Typing);
         }
 
-        static readonly IBrush TalkBrush = new SolidColorBrush(Color.Parse("#7FE08A"));
-        static readonly IBrush MissingBrush = new SolidColorBrush(Color.Parse("#F07F7F"));
         Audio.VoiceChat.Mic shownMic;
+
+        /// <summary>Where the chat ends in its part, as last laid out (the voice's sign goes right under it).</summary>
+        public double ChatBottom => Back.Bounds.Bottom;
+
+        /// <summary>Where the chat begins: the voice's sign stands there while no chat shows.</summary>
+        public double ChatTop => Back.Bounds.Top;
 
         /// <summary>The parts, out of this control, to be the contents of overlays.</summary>
         public (Control Chat, Control Talk) TakeParts()
@@ -41,16 +45,17 @@ namespace KotH.Client.Hud
             return (ChatPart, TalkPart);
         }
 
-        /// <summary>The voice's chip: going out, or why the held key sends nothing.</summary>
+        /// <summary>The voice's sign: going out (the speaker with waves alone), or crossed out with why the key sends nothing.</summary>
         public void ShowTalk(Audio.VoiceChat.Mic mic)
         {
             if (shownMic == mic)
                 return;
             shownMic = mic;
-            TalkDot.Fill = mic == Audio.VoiceChat.Mic.Talking ? TalkBrush : MissingBrush;
+            TalkWaves.IsVisible = mic == Audio.VoiceChat.Mic.Talking;
+            TalkCross.IsVisible = TalkText.IsVisible = !TalkWaves.IsVisible;
             TalkText.Text = mic switch
             {
-                Audio.VoiceChat.Mic.Talking => "Talking",
+                Audio.VoiceChat.Mic.Talking => "",   // the speaker alone (Luca)
                 Audio.VoiceChat.Mic.Missing => "No microphone",
                 _ => "Voice needs a Steam round",
             };

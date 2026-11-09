@@ -1,6 +1,6 @@
 <!-- The chat top left (ChatBox): the newest lines on chips of dark glass, which fade when nobody
-     writes; opened with the chat key, the glass behind them all and the line to type in. Laid out for a screen
-     1080 high, 24 of room round the glass for its shadow. -->
+     writes; opened with the chat key, the glass behind them all and the line to type in; under it the voice's
+     sign. Laid out for a screen 1080 high, 24 of room round the glass for its shadow. -->
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="KotH.Client.Hud.ChatView"
@@ -15,15 +15,25 @@
                 </StackPanel>
             </Border>
         </Grid>
-        <!-- Bottom left while the own voice goes out (or the key finds no microphone) -->
-        <Grid Name="TalkPart" Width="360" Height="96">
-            <Border Classes="Glass" Margin="24" CornerRadius="14" Padding="14,6,16,7"
-                    HorizontalAlignment="Left" VerticalAlignment="Bottom">
-                <StackPanel Orientation="Horizontal" Spacing="10">
-                    <Ellipse Name="TalkDot" Width="12" Height="12" VerticalAlignment="Center" />
-                    <TextBlock Name="TalkText" Classes="Hud" FontSize="21" />
-                </StackPanel>
-            </Border>
+        <!-- Right under the chat while the own voice goes out (or why the held key sends nothing): a white
+             speaker of its own drawing, with waves or crossed out, no glass, a soft shadow to read it on the sky -->
+        <Grid Name="TalkPart" Width="660" Height="64">
+            <StackPanel Orientation="Horizontal" Spacing="10" Margin="40,6,0,0"
+                        HorizontalAlignment="Left" VerticalAlignment="Top">
+                <StackPanel.Effect>
+                    <DropShadowEffect OffsetX="0" OffsetY="1" BlurRadius="6" Color="#B0000000" />
+                </StackPanel.Effect>
+                <Viewbox Width="28" Height="28" VerticalAlignment="Center">
+                <Canvas Width="24" Height="24">
+                    <Path Fill="White" Data="M3,9 L7,9 L12,4 L12,20 L7,15 L3,15 Z" />
+                    <Path Name="TalkWaves" Stroke="White" StrokeThickness="2" StrokeLineCap="Round"
+                          Data="M15.5,8.5 A5,5 0 0 1 15.5,15.5 M18.5,5.5 A9,9 0 0 1 18.5,18.5" />
+                    <Path Name="TalkCross" Stroke="White" StrokeThickness="2" StrokeLineCap="Round" IsVisible="False"
+                          Data="M15.5,9.5 L20.5,14.5 M20.5,9.5 L15.5,14.5" />
+                </Canvas>
+                </Viewbox>
+                <TextBlock Name="TalkText" Classes="Hud" FontSize="21" />
+            </StackPanel>
         </Grid>
     </Panel>
 </UserControl>

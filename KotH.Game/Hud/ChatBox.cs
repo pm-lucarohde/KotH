@@ -19,7 +19,7 @@ namespace KotH.Client.Hud
     {
         const int ClosedLines = 8, OpenLines = 14;
         const double ShowMs = 10000.0, FadeMs = 1500.0, NoteMs = 3000.0;
-        const float Size = 0.9f;   // as the HUD
+        const float Size = 0.9f, Top = 20f;   // as the HUD; from the top, the voice's sign under the chat
 
         /// <summary>The chat has the keys this frame (open, or closed by its own Escape or Enter).</summary>
         public static bool Busy { get; private set; }
@@ -30,7 +30,7 @@ namespace KotH.Client.Hud
         ChatView view;
         HudRenderer hud;
         MenuOverlay overlay, talkOverlay;
-        bool open, sent, shotTalk;   // shotTalk: test aid KOTH_SHOT_TALK=1, the voice's chip on
+        bool open, sent, shotTalk;   // shotTalk: test aid KOTH_SHOT_TALK=1, the voice's sign on
         long openedFrame;
         Comms local;   // no Steam: the chat's own notes (and the shot's sample)
 
@@ -46,8 +46,8 @@ namespace KotH.Client.Hud
             view = new ChatView();
             view.Typing.Submitted += () => sent = true;
             (Avalonia.Controls.Control chat, Avalonia.Controls.Control talk) = view.TakeParts();
-            overlay = new MenuOverlay(chat, MenuOverlay.Corner.TopLeft, 0f, 20f, Size) { Visible = false };
-            talkOverlay = new MenuOverlay(talk, MenuOverlay.Corner.BottomLeft, 0f, 16f, Size) { Visible = false };
+            overlay = new MenuOverlay(chat, MenuOverlay.Corner.TopLeft, 0f, Top, Size) { Visible = false };
+            talkOverlay = new MenuOverlay(talk, MenuOverlay.Corner.TopLeft, 0f, Top, Size) { Visible = false };
             hud.Add(overlay);
             hud.Add(talkOverlay);
             if (Environment.GetEnvironmentVariable("KOTH_SHOT_CHAT") is { Length: > 0 } sample)
@@ -115,6 +115,8 @@ namespace KotH.Client.Hud
                 return;
             view.ShowTalk(mic);
             var backBuffer = GraphicsDevice.Presenter.BackBuffer;
+            float scale = backBuffer.Height / (float)MenuOverlay.DesignHeight * Size;
+            talkOverlay.Shift = new Vector2(0f, (float)(overlay.Visible ? view.ChatBottom : view.ChatTop) * scale);
             talkOverlay.Place(new Vector2(backBuffer.Width, backBuffer.Height));
             MenuOverlay.Tick(frame);
             talkOverlay.Upload(Game.GraphicsContext.CommandList);
