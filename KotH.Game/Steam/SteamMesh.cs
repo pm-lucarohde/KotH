@@ -13,7 +13,7 @@ namespace KotH.Client.Steam
     public sealed unsafe class SteamMesh
     {
         public const int ChatChannel = 1, VoiceChannel = 2;
-        public const int MaxChatChars = 160;
+        public const int MaxChatChars = 64;   // Luca
         const int MaxChatBytes = 4 * MaxChatChars, MaxVoiceBytes = 600;
         const int Reliable = 9, Unreliable = 1;   // both NoNagle: out at once
         const int ChatsPer10s = 5, VoicePerSecond = 60;

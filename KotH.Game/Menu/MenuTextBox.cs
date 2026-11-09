@@ -129,6 +129,8 @@ namespace KotH.Client.Menu
             bool empty = text.Length == 0;
             string body = Password ? new string('•', text.Length) : text;
             shown.Text = HasFocus ? body + "|" : empty ? Placeholder : body;
+            // While typing the end shows (the caret's side); a long text loses its beginning, not what is typed.
+            shown.TextTrimming = HasFocus ? TextTrimming.LeadingCharacterEllipsis : TextTrimming.CharacterEllipsis;
             shown.Foreground = new SolidColorBrush(Color.Parse(empty && !HasFocus ? "#A08A70" : "#5A3A22"));
             BorderBrush = new SolidColorBrush(Color.Parse(HasFocus ? "#C8231F" : "#D3BEA1"));
         }
