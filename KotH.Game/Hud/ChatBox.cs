@@ -17,7 +17,7 @@ namespace KotH.Client.Hud
     [DataContract("KotH.ChatBox")]
     public sealed class ChatBox : SyncScript
     {
-        const int ClosedLines = 8, OpenLines = 14;
+        const int ClosedLines = 5, OpenLines = 5;   // at most five lines stacked (Luca)
         const double ShowMs = 10000.0, FadeMs = 1500.0, NoteMs = 3000.0;
         const float Size = 0.9f, Top = 20f;   // as the HUD; from the top, the voice's sign under the chat
 

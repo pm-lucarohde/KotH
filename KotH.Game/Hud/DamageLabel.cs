@@ -7,8 +7,10 @@ using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Graphics;
 using Stride.Rendering;
+using Stride.Rendering.Sprites;
 using Stride.UI;
 using Stride.UI.Controls;
+using Stride.UI.Panels;
 
 namespace KotH.Client.Hud
 {
@@ -37,7 +39,6 @@ namespace KotH.Client.Hud
         /// <summary>The player's NetId, whose voice tints the label while it is heard; 0 for none.</summary>
         [DataMemberIgnore] public int NetId { get; set; }
 
-        static readonly Color SpeakingColor = new Color(127, 224, 138);
 
         /// <summary>The camera the text turns towards.</summary>
         [DataMemberIgnore] public TransformComponent Camera { get; set; }
@@ -62,6 +63,28 @@ namespace KotH.Client.Hud
         /// <summary>What the label shows right now.</summary>
         [DataMemberIgnore] public string Text => text?.Text;
 
+        // The text between a hidden spacer and the speaker (shown while the player is heard, Luca): the text
+        // stays centred whether the speaker shows or not.
+        StackPanel Row()
+        {
+            float size = FontSize * PixelsPerMeter * 1.15f, gap = FontSize * PixelsPerMeter * 0.35f;
+            var sprite = new SpriteFromTexture { Texture = SpeakerIcon.Of(GraphicsDevice) };
+            speaker = new ImageElement
+            {
+                Source = sprite, Width = size, Height = size, Margin = new Thickness(gap, 0f, 0f, 0f),
+                Visibility = Visibility.Hidden, CanBeHitByUser = false, VerticalAlignment = VerticalAlignment.Center,
+            };
+            var spacer = new ImageElement { Width = size, Height = size, Margin = new Thickness(0f, 0f, gap, 0f), Visibility = Visibility.Hidden };
+            return new StackPanel
+            {
+                Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center, Children = { spacer, text, speaker },
+            };
+        }
+
+        ImageElement speaker;
+        static readonly bool ShotTalk = System.Environment.GetEnvironmentVariable("KOTH_SHOT_TALK") == "1";   // test aid
+
         public override void Start()
         {
             text = new TextBlock
@@ -78,7 +101,7 @@ namespace KotH.Client.Hud
 
             Entity.Add(new UIComponent
             {
-                Page = new UIPage { RootElement = text },
+                Page = new UIPage { RootElement = Row() },
                 IsFullScreen = false,
                 IsBillboard = false,
                 Size = new Vector3(RectMeters, 1f),
@@ -104,7 +127,9 @@ namespace KotH.Client.Hud
             if (Camera != null)
                 Entity.Transform.Rotation = Facing(Camera.Position - position);
 
-            text.TextColor = NetId != 0 && VoiceChat.IsSpeaking(NetId) ? SpeakingColor : Color;
+            bool speaking = ShotTalk || NetId != 0 && VoiceChat.IsSpeaking(NetId);
+            if (speaking != (speaker.Visibility == Visibility.Visible))
+                speaker.Visibility = speaking ? Visibility.Visible : Visibility.Hidden;
 
             // Rewritten only when the number moved, so a still dummy costs
             // nothing per frame.
