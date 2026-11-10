@@ -270,13 +270,25 @@ namespace KotH.Shared.Bots
 
         // Teams: a neighbour further than this and at least FollowMargin seconds further up the way is caught up with
         // first. Waiting rules all made it worse: one standing still anchors the chain and the other's jump falls short.
-        const float FollowFar = 2f, FollowMargin = 0.3f;
+        // A row of three or four follows closer (measured: squad 20 to 56 of 144 on top, trio median 494 to 328 s).
+        const float FollowFar = 2f, RowFollowFar = 1.2f, FollowMargin = 0.3f;
         bool hasMate2;
         Vector3 mateAt2;
+        int teamSize;                // teams: the members in the view, this bot too
 
         bool Behind(bool seen, Vector3 theirs, Vector3 feet)
-            => seen && UMath.Magnitude(UMath.Sub(feet, theirs)) > FollowFar
+            => seen && UMath.Magnitude(UMath.Sub(feet, theirs)) > (teamSize > 2 ? RowFollowFar : FollowFar)
                && nav.Grid.TimeToZone(theirs, variant) + FollowMargin < nav.Grid.TimeToZone(feet, variant);
+
+        // A row of three or four: a jump that missed with a link near taut is the chain's fault, not the jump's
+        // (the team's shared memory would learn the good way off); a pair keeps learning from every miss.
+        const float TautAt = 3.6f;
+        bool tautInFlight, landedTaut;
+        Vector3 hopTo;               // the landing the hop was prepared for
+
+        bool Taut(Vector3 feet)
+            => teamSize > 2 && (hasMate && UMath.Magnitude(UMath.Sub(Feet(mateAt), feet)) > TautAt
+                                || hasMate2 && UMath.Magnitude(UMath.Sub(Feet(mateAt2), feet)) > TautAt);
 
         // The chain neighbour to catch up with: up the chain first, else down it.
         bool Catch(Vector3 feet, out Vector3 to)
@@ -292,6 +304,7 @@ namespace KotH.Shared.Bots
         void Neighbours(WorldSnapshot view, out int lead, out int up, out int down)
         {
             lead = up = down = 0;
+            teamSize = 1;
             if (team == 0)
                 return;
             for (int i = 0; i < view.Count; i++)
@@ -299,6 +312,7 @@ namespace KotH.Shared.Bots
                 int id = view.BodyAt(i).NetId;
                 if (id == netId || view.StateAt(i).Team != team)
                     continue;
+                teamSize++;
                 if (id < netId && (lead == 0 || id < lead))
                     lead = id;
                 if (id < netId && id > up)
@@ -600,9 +614,11 @@ namespace KotH.Shared.Bots
                     landedFrom = fromFloor;
                     landedTo = toFloor;
                     landedTime = nav.Grid.TimeToZone(landing, variant);
+                    landedTaut = tautInFlight;
                 }
                 else
                 {
+                    tautInFlight |= Taut(feet);
                     LookAt(u, b, landing, UMath.Atan2(-hop.DX, -hop.DZ) * (180f / MathF.PI));
                     MoveInput flying = pilot.Drive(hop, b, yaw, ref attempt);
                     flying.Pitch = pitch;
@@ -618,10 +634,11 @@ namespace KotH.Shared.Bots
                 if (Flat(feet, k.Position) > RunUp)
                     break;
                 Corner land = corners[c + 1];
-                if (!hopping || fromFloor != k.Floor || toFloor != land.Floor)
+                if (!hopping || fromFloor != k.Floor || toFloor != land.Floor || teamSize > 2 && Flat(land.Position, hopTo) > 0.2f)
                 {
                     fromFloor = k.Floor;
                     toFloor = land.Floor;
+                    hopTo = land.Position;
                     Vector3 was = hop.From;
                     hopping = pilot.Prepare(k.Position, land.Position, out hop);
                     attempt = default;
@@ -659,6 +676,7 @@ namespace KotH.Shared.Bots
                         $"{u} Bot {netId}: jump {(attempt.Twice ? "double" : "single")} at {b.X:F2} {b.Y:F2} {b.Z:F2} v {b.VX:F1} {b.VZ:F1}, from {hop.From.X:F2} {hop.From.Y:F2} {hop.From.Z:F2} direction {hop.DX:F2} {hop.DZ:F2}, edge {hop.Edge:F1} lip {hop.Lip:F1} target {hop.Target:F1} end {hop.End:F1} rise {hop.Rise:F2} need {hop.Need:F2}"));
                     flight = k.Link;
                     landing = land.Position;
+                    tautInFlight = Taut(feet);
                 }
                 return input;
             }
@@ -671,7 +689,7 @@ namespace KotH.Shared.Bots
             // Down on the top, or anywhere at least as close to the zone.
             bool missed = seen.Y < landed.Y - 0.3f ||
                           Flat(seen, landed) > 0.8f && nav.Grid.TimeToZone(seen, variant) > landedTime + 0.5f;
-            if (missed)
+            if (missed && !landedTaut)
                 nav.Grid.Punish(landedFrom, landedTo, FailedJump, memory);
             HopsLanded += missed ? 0 : 1;
             HopLog?.Invoke(FormattableString.Invariant(
