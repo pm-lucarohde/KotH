@@ -146,12 +146,14 @@ namespace KotH.Client
             Services.AddService(system);
 
             builder = new WorldBuilder(Entity.Scene, Content, queries);
+            if (SteamClient.Ready)
+                builder.Library.Installed = SteamUgc.Installed;
             simulation = system;
             visuals = Entity.Get<PlayerVisualSystem>();
 
             LaunchOptions options = LaunchOptions.Current;
             CoverWhileLoading();
-            var pause = new PauseMenu { Driver = Entity.Get<SimulationDriver>(), ToMainMenu = ReturnToMenu };
+            var pause = new PauseMenu { Driver = Entity.Get<SimulationDriver>(), ToMainMenu = ReturnToMenu, Library = builder.Library };
             Entity.Scene.Entities.Add(new Entity("PauseMenu") { pause });
             Entity.Scene.Entities.Add(new Entity("Chat") { new ChatBox { Driver = pause.Driver, Pause = pause } });
             Entity.Scene.Entities.Add(new Entity("Voice") { new VoiceChat { Driver = pause.Driver } });
@@ -217,14 +219,22 @@ namespace KotH.Client
                 return;
             }
 
+            StartAlone(options.Bots);
+        }
+
+        /// <summary>A round alone on the loaded map (--offline, the Maps page's Test): the player
+        /// and the bots on the player slots.</summary>
+        void StartAlone(int botsWanted)
+        {
+            LaunchOptions options = LaunchOptions.Current;
             var reader = new PlayerInputReader { NetId = NetWorld.FirstPlayerId };
             Entity player = Spawn(builder, WorldBuilder.PlayerBodyUrl, "PlayerSpawn", "Player", reader, new DamagePercent());
 
             // The bots on the player slots, numbered on from the player like
             // joiners, so they think exactly as they would on a host.
             // Teams (Luca): bots fill the last team, so nobody plays short.
-            int size = HillMatch.Size(options.Mode), short_ = (size - (1 + options.Bots) % size) % size;
-            int botCount = Math.Min(options.Bots + short_, NetWorld.MaxPlayers - 1);
+            int size = HillMatch.Size(options.Mode), short_ = (size - (1 + botsWanted) % size) % size;
+            int botCount = Math.Min(botsWanted + short_, NetWorld.MaxPlayers - 1);
             var states = new LocalFinalStates(simulation);
             BotDirector director = botCount > 0 ? BotDirector.Create(builder, simulation, states, options.BotSeed) : null;
             WorkAhead(director);
@@ -256,7 +266,8 @@ namespace KotH.Client
         {
             var script = new MainMenu
             {
-                StartHost = HostFromMenu, StartJoin = JoinFromMenu, StartInvite = JoinByInvite, Note = menuNote,
+                StartHost = HostFromMenu, StartJoin = JoinFromMenu, StartInvite = JoinByInvite, StartTest = TestFromMenu,
+                Library = builder.Library, Note = menuNote,
                 PlayerName = LaunchOptions.Current.Name, Cover = cover, Look = LaunchOptions.Current.Look,
                 LookChanged = LookChanged,
                 CustomizeShown = open => visuals.MoveShowcase(menuFigure, open ? MenuFigureCustomizeAt : MenuFigureAt),
@@ -281,6 +292,20 @@ namespace KotH.Client
             options.Password = password;
             options.Mode = flags.Mode;
             StartNetworked(options, options.Steam ? SteamLobby.Open(builder.Map, flags) : null);
+        }
+
+        /// <summary>The Maps page's Test: the package alone with three bots, as --offline --map-file
+        /// would; the pause menu's Main menu comes back.</summary>
+        void TestFromMenu(string map)
+        {
+            if (!builder.HasMap(map) || !LeaveMenu())
+                return;
+            LaunchOptions options = LaunchOptions.Current;
+            options.Host = options.Steam = false;
+            options.JoinAddress = null;
+            UnloadMap();
+            LoadMap(map);
+            StartAlone(3);
         }
 
         /// <summary>A round from the lobby list or an invite, its lobby entered. On another map the
@@ -487,6 +512,9 @@ namespace KotH.Client
             {
                 ChangeMap = RestartOn,
                 MapReady = () => cover.IsLoaded,
+                FetchMap = FetchMap,
+                TitleOf = MapTitle,
+                PrefetchMap = map => SteamUgc.Fetch(MapPackage.WorkshopOf(map), StartLog.Now / 1000.0, out _),
                 MapUnavailable = map =>
                 {
                     // Not inside the client's own update: the next frame takes the game down.
@@ -646,7 +674,7 @@ namespace KotH.Client
         void CoverWhileLoading()
         {
             HudRenderer hud = HudRenderer.Of(this);
-            cover = new LoadScreen(hud) { Text = () => net?.Notice };
+            cover = new LoadScreen(hud) { Text = () => fetchNote ?? net?.Notice };
             hud.Cover = cover;
             Services.AddService(cover);
         }
@@ -977,6 +1005,21 @@ namespace KotH.Client
 
         // Why the game ends on its own (a missing map), shown in the menu after it.
         string leaveNote;
+
+        // The load screen's line while a workshop map downloads.
+        string fetchNote;
+
+        /// <summary>A workshop map the host plays and this side lacks: downloads it (true while that
+        /// runs); false when it cannot, or when the installed version is another one than the host's.</summary>
+        bool FetchMap(string map)
+        {
+            ulong item = MapPackage.WorkshopOf(map);
+            SteamUgc.Fetched state = SteamUgc.Fetch(item, StartLog.Now / 1000.0, out float progress);
+            fetchNote = state == SteamUgc.Fetched.Downloading ? $"Downloading {MapTitle(map)}  {progress * 100f:F0} %" : null;
+            if (state == SteamUgc.Fetched.Installed && !builder.HasMap(map))
+                Log.Warning($"Network: workshop item {item} is installed, but not as {map} (another version)");
+            return state == SteamUgc.Fetched.Downloading || state == SteamUgc.Fetched.Installed && builder.HasMap(map);
+        }
 
         /// <summary>A map's name for people: a package's title, else the name itself.</summary>
         string MapTitle(string map)

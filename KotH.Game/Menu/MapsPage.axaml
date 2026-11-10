@@ -1,0 +1,28 @@
+<!-- Maps: the custom maps here (the player's own from the map kit, workshop ones), each with Test and,
+     for the own, Upload; the upload's progress underneath, Open folder to find the packages. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="KotH.Client.Menu.MapsPage"
+             x:CompileBindings="True" ClipToBounds="False">
+    <!-- The buttons' pictures reach 24 px past the page's edge: nothing here may clip them. -->
+    <UserControl.Styles>
+        <Style Selector="UserControl /template/ ContentPresenter">
+            <Setter Property="ClipToBounds" Value="False" />
+        </Style>
+    </UserControl.Styles>
+    <Grid RowDefinitions="*,Auto">
+        <Border Classes="Well" Padding="0,8">
+            <Panel Name="Inside">
+                <StackPanel Name="Empty" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" Margin="26,0">
+                    <TextBlock Classes="Label" Text="No custom maps yet" HorizontalAlignment="Center" FontSize="28" />
+                    <TextBlock Classes="Hint" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
+                               Text="Build one with the map kit, or subscribe to maps in the Steam Workshop." />
+                </StackPanel>
+            </Panel>
+        </Border>
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,18,0,0">
+            <TextBlock Name="Status" Classes="Hint" VerticalAlignment="Center" TextWrapping="Wrap" />
+            <Button Name="OpenFolder" Grid.Column="1" Classes="Menu Small" Content="Open folder" Width="210" Margin="18,0,0,0" />
+        </Grid>
+    </Grid>
+</UserControl>

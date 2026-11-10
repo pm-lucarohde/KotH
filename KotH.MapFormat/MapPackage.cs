@@ -28,6 +28,7 @@ namespace KotH.MapFormat
         /// <summary>The Steam Workshop item it is (or was uploaded as), 0 for none.</summary>
         public ulong WorkshopItem { get; private set; }
 
+        public string ManifestPath => Path.Combine(Folder, ManifestFile);
         public string ModelPath => Path.Combine(Folder, ModelFile);
         public string CollisionPath => Path.Combine(Folder, CollisionFile);
         public string PreviewPath => Path.Combine(Folder, PreviewFile);

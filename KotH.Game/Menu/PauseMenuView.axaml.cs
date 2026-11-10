@@ -128,7 +128,7 @@ namespace KotH.Client.Menu
         /// <summary>Test aid (KOTH_SHOT_PAUSE): clicks button 0-4 (4 Players, also where it is hidden).</summary>
         public void Pretend(int button)
         {
-            Button[] buttons = { Resume, Settings, ToMenu, Quit, Players };
+            Button[] buttons = { Resume, Settings, ToMenu, Quit, Players, Maps };
             if (button >= 0 && button < buttons.Length)
                 buttons[button].RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         }

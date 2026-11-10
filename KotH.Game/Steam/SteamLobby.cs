@@ -79,6 +79,7 @@ namespace KotH.Client.Steam
             Create(lobby, Public, NetWorld.MaxPlayers, () =>
             {
                 lobby.Set("map", lobby.map);
+                lobby.Set("maptitle", lobby.mapTitle ?? lobby.map);
                 lobby.Set("name", host);
                 // Flags as Steam filters them, by equality: one key per language.
                 lobby.Set("access", flags.Private ? "private" : "public");
@@ -201,7 +202,7 @@ namespace KotH.Client.Steam
                     foreach ((string code, _) in LobbyFlags.AllLanguages)
                         if (Data(id, "lang_" + code) == "1")
                             languages.Add(code);
-                    list.Add(new LobbyListing(id, Data(id, "name") ?? "?", Data(id, "map"), n, SteamClient.EstimatePing(Data(id, "ping")),
+                    list.Add(new LobbyListing(id, Data(id, "name") ?? "?", Data(id, "maptitle") ?? Data(id, "map"), n, SteamClient.EstimatePing(Data(id, "ping")),
                                               Data(id, "access") == "private", Data(id, "country") ?? "", languages.ToArray(), Data(id, "modded") == "1",
                                               HillMatch.ParseMode(Data(id, "mode")) ?? MatchMode.Solo));
                 }
@@ -319,15 +320,20 @@ namespace KotH.Client.Steam
                 SteamAPI_ISteamMatchmaking_SetLobbyJoinable(SteamClient.Matchmaking, Id, open ? (byte)1 : (byte)0);
         }
 
-        /// <summary>The host: the map the game is on now, for the list.</summary>
-        public void SetMap(string value)
+        /// <summary>The host: the map the game is on now and its title (a custom map's id says little), for the list.</summary>
+        public void SetMap(string value, string title)
         {
             if (value == null || value == map)
                 return;
             map = value;
-            if (Id != 0)
-                Set("map", value);
+            mapTitle = title;
+            if (Id == 0)
+                return;
+            Set("map", value);
+            Set("maptitle", title ?? value);
         }
+
+        string mapTitle;
 
         string map;
 

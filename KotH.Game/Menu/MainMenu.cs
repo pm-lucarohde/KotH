@@ -50,6 +50,12 @@ namespace KotH.Client.Menu
         /// <summary>GameRoot: joins a direct-IP host by its invite code.</summary>
         [DataMemberIgnore] public Action<string> StartInvite { get; set; }
 
+        /// <summary>The Maps page's Test: a round alone on this custom map.</summary>
+        [DataMemberIgnore] public Action<string> StartTest { get; set; }
+
+        /// <summary>The custom maps, for the Maps page.</summary>
+        [DataMemberIgnore] public KotH.Shared.Hosting.MapLibrary Library { get; set; }
+
         /// <summary>Why the last game ended before it began (a wrong password): Find server opens with it.</summary>
         [DataMemberIgnore] public string Note { get; set; }
 
@@ -90,7 +96,7 @@ namespace KotH.Client.Menu
         float searched;
         int searches;
         SteamLobby entered;
-        string enteredPassword;
+        string enteredPassword, testWanted;
         float since;
 
         public override void Start()
@@ -103,6 +109,9 @@ namespace KotH.Client.Menu
             view.Label(PlayerName ?? Environment.UserName, $"Build {NetProtocol.BuildText[..8]}");
             view.HostOpened += () => view.Hoster.Open(PlayerName ?? Environment.UserName);
             view.PartyOpened += () => view.Partier.Open();
+            view.Mapper.Library = Library;
+            view.MapsOpened += () => view.Mapper.Open();
+            view.Mapper.TestRequested += map => testWanted = map;
             view.Hoster.HostRequested += (flags, password) =>
             {
                 (hostFlags, hostPassword) = (flags, password);
@@ -183,7 +192,16 @@ namespace KotH.Client.Menu
                 Search(again: true);
             if (shown && !entering && entered == null)
                 Follow((float)Game.UpdateTime.Elapsed.TotalSeconds);
-            if (hostWanted)
+            if (view.MapsOpen)
+                view.Mapper.Tick();
+            if (testWanted != null)
+            {
+                // Out of Avalonia's dispatcher, as hosting: the test removes this menu.
+                string map = testWanted;
+                testWanted = null;
+                StartTest?.Invoke(map);
+            }
+            else if (hostWanted)
             {
                 // Out of Avalonia's dispatcher: the host removes this menu.
                 hostWanted = false;
@@ -334,7 +352,8 @@ namespace KotH.Client.Menu
         {
             shown = true;
             // Test aids for shots: KOTH_SHOT_MENU_HOT=n lights button n, KOTH_SHOT_MENU_PAGE=n clicks it (0 hosts),
-            // KOTH_SHOT_SETTINGS=sound|graphics|input picks the Settings tab, KOTH_SHOT_HOST_PRIVATE=pw a private round.
+            // KOTH_SHOT_SETTINGS=sound|graphics|input picks the Settings tab, KOTH_SHOT_HOST_PRIVATE=pw a private round,
+            // KOTH_SHOT_MAPS_TEST=n tests the Maps page's map n.
             if (int.TryParse(Environment.GetEnvironmentVariable("KOTH_SHOT_MENU_HOT"), out int hot))
                 view.Pretend(hot, false);
             if (int.TryParse(Environment.GetEnvironmentVariable("KOTH_SHOT_MENU_PAGE"), out int open))
@@ -343,6 +362,9 @@ namespace KotH.Client.Menu
                 view.Hoster.Pretend(pass);
             if (Environment.GetEnvironmentVariable("KOTH_SHOT_SETTINGS") is { } tab)
                 view.SettingsView.Choose(tab);
+            if (int.TryParse(Environment.GetEnvironmentVariable("KOTH_SHOT_MAPS_TEST"), out int test) && Library?.All() is { } maps
+                && test >= 0 && test < maps.Count)
+                testWanted = maps[test].Id;
             if (Note != null)
             {
                 view.OpenFind();

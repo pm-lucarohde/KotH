@@ -21,20 +21,21 @@
             <!-- The buttons on their bamboo board, the note underneath -->
             <StackPanel Name="Column" Margin="90,170,0,0" Width="460"
                         HorizontalAlignment="Left" VerticalAlignment="Top">
-                <Panel Width="440" Height="614" HorizontalAlignment="Left">
+                <Panel Width="440" Height="690" HorizontalAlignment="Left">
                     <Image Source="/Menu/Art/Panel.png" Margin="-24" Stretch="Fill" />
                     <StackPanel Name="Buttons" Spacing="18" HorizontalAlignment="Center" VerticalAlignment="Center"
                                 KeyboardNavigation.TabNavigation="Cycle">
                         <Button Name="Host" Classes="Menu" Content="Host server" />
                         <Button Name="Find" Classes="Menu" Content="Find server" />
                         <Button Name="Party" Classes="Menu" Content="Party" />
+                        <Button Name="Maps" Classes="Menu" Content="Maps" />
                         <Button Name="Customize" Classes="Menu" Content="Customize" />
                         <Button Name="Settings" Classes="Menu" Content="Settings" />
                         <Button Name="Languages" Classes="Menu" Content="Languages" />
                         <Button Name="Quit" Classes="Menu" Content="Quit game" />
                     </StackPanel>
                 </Panel>
-                <Panel Name="Note" Width="460" Height="112" Margin="-10,30,0,0" HorizontalAlignment="Left">
+                <Panel Name="Note" Width="460" Height="112" Margin="-10,20,0,0" HorizontalAlignment="Left">
                     <Image Source="/Menu/Art/Note.png" Margin="-24" Stretch="Fill" />
                     <TextBlock Name="Description" Foreground="{StaticResource CreamBrush}" FontSize="21"
                                FontWeight="Medium" TextWrapping="Wrap" LineHeight="27" Margin="30,0,26,10"
@@ -43,7 +44,7 @@
             </StackPanel>
         </Grid>
 
-        <!-- The pages behind Host server, Find server, Party, Settings and Languages (the last only to look at for now) -->
+        <!-- The pages behind Host server, Find server, Party, Maps, Settings and Languages (the last only to look at for now) -->
         <Grid Name="PagePart" Width="870" Height="610">
             <Panel Name="Page" Width="820" Height="560" Margin="24,24,0,0"
                    HorizontalAlignment="Left" VerticalAlignment="Top">
@@ -59,6 +60,9 @@
 
                     <!-- Party -->
                     <menu:PartyPage Name="PartyPage" Grid.Row="1" Margin="0,20,0,0" />
+
+                    <!-- Maps -->
+                    <menu:MapsPage Name="MapsPage" Grid.Row="1" Margin="0,20,0,0" />
 
                     <!-- Settings, over the whole page with its own title and buttons -->
                     <menu:SettingsPage Name="SettingsPage" Grid.RowSpan="3" />

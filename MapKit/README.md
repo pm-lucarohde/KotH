@@ -34,9 +34,12 @@ Add components from the **KotH map** category:
 - The kit exports when the scene shows (the camera's view becomes the preview) and lists errors and warnings;
   fly the camera (right mouse, W A S D) and press F5 to export again.
 - The package lands in the game's maps folder (`~/.local/share/KotH/maps/NAME`, Windows `%LOCALAPPDATA%\KotH\maps`;
-  under Proton the Linux folder). Test it: `KotH --offline --map-file <folder>`.
+  under Proton the Linux folder). Test it in the game: **Maps → Test** (alone with three bots).
 
 ## Upload
+- **In the game:** Maps → Upload (later Update). The first upload creates the workshop item and writes its id
+  into `map.toml`; visibility, title and description come from Map info.
 - **SteamCMD:** the export writes `NAME.workshop.vdf` beside the folder.
   `steamcmd +login <user> +workshop_build_item <path to NAME.workshop.vdf> +quit`; SteamCMD writes the new item id
   back into the vdf and later exports keep it.
+- Hosts pick the map in the lobby (Esc → Map); guests without it download it from the workshop when they join.

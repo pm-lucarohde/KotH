@@ -97,6 +97,13 @@ namespace KotH.Client.Net
         public Action<string> MapUnavailable { get; set; }
         bool gaveUpMap;
 
+        /// <summary>GameRoot: a map's title for the lobby list (a custom map's from its package).</summary>
+        public Func<string, string> TitleOf { get; set; }
+
+        /// <summary>GameRoot: the lobby's next map is not here; starts its download before the round.</summary>
+        public Action<string> PrefetchMap { get; set; }
+        string prefetched;
+
         /// <summary>GameRoot: a new bot director for the restarted world (or a host change's, whose states
         /// begin at the given tick), thinking from these states.</summary>
         public Func<IFinalStates, int, BotDirector> MakeBots { get; set; }
@@ -152,6 +159,11 @@ namespace KotH.Client.Net
                     MapUnavailable?.Invoke(missing);
                 }
             }
+            if (NextMap is { } next && next != prefetched && KotH.MapFormat.MapPackage.IsId(next) && !world.HasMap(next))
+            {
+                prefetched = next;
+                PrefetchMap?.Invoke(next);
+            }
             if (joinWhen != null && Session.MapKnown && joinWhen())
             {
                 joinWhen = null;
@@ -167,7 +179,7 @@ namespace KotH.Client.Net
             {
                 int players = HillMatch.CountPlayers(Session.Simulation.Bodies);
                 Lobby.SetPlayers(players);
-                Lobby.SetMap(world.Map);
+                Lobby.SetMap(world.Map, TitleOf?.Invoke(world.Map));
                 Lobby.SetJoinable(players < NetWorld.MaxPlayers && !Host.Restarting && Host.CanJoin());
             }
         }

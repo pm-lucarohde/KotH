@@ -36,6 +36,9 @@ namespace KotH.Client.Menu
         /// <summary>The driver it pauses the own input with; it stays shut while the main menu is open.</summary>
         [DataMemberIgnore] public SimulationDriver Driver { get; set; }
 
+        /// <summary>The custom maps the host may choose besides the built-in ones.</summary>
+        [DataMemberIgnore] public MapLibrary Library { get; set; }
+
         /// <summary>Whether it is open.</summary>
         [DataMemberIgnore] public bool Open { get; private set; }
 
@@ -248,19 +251,28 @@ namespace KotH.Client.Menu
             if (LobbyHost is not { } client)
                 return;
             var rows = new List<RowList.Row>();
-            string chosen = client.NextMap ?? Maps.Default;
+            string chosen = client.NextMap ?? Maps.Default, chosenTitle = chosen;
+            var maps = new List<(string Id, string Title, string Kind)>();
             foreach (string map in Maps.All)
+                maps.Add((map, map, ""));
+            // Custom maps: guests without one download it from the workshop (a local one only they lack).
+            if (Library != null)
+                foreach (KotH.MapFormat.MapPackage p in Library.All())
+                    maps.Add((p.Id, p.Manifest.Title, p.WorkshopItem != 0 || p.Manifest.WorkshopId != 0 ? "workshop" : "local"));
+            foreach ((string id, string title, string kind) in maps)
             {
-                string pick = map;
+                string pick = id;
+                if (id == chosen)
+                    chosenTitle = title;
                 // Choosing closes the menu, as Resume does (out of Avalonia's dispatcher).
-                rows.Add(new RowList.Row(map, map == chosen ? "chosen" : "", "Choose", () =>
+                rows.Add(new RowList.Row(title, id == chosen ? "chosen" : kind, "Choose", () =>
                 {
                     client.Host.NextMap = pick;
                     ListMaps();
                     resumeWanted = true;
                 }));
             }
-            view.ShowList(rows, "", $"The round starts on {chosen} when the countdown ends.");
+            view.ShowList(rows, "", $"The round starts on {chosenTitle} when the countdown ends.");
         }
 
         // The lobby of the round, if it runs over Steam.
@@ -320,6 +332,8 @@ namespace KotH.Client.Menu
                 view.Pretend(2);
             else if (what == "players")
                 view.Pretend(4);
+            else if (what == "maps")
+                view.Pretend(5);
         }
 
         /// <summary>The veil under the board.</summary>

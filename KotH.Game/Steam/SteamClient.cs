@@ -5,13 +5,14 @@ using static KotH.Client.Steam.SteamApi;
 
 namespace KotH.Client.Steam
 {
-    /// <summary>Steam for the client, as app 480 (Valve's Spacewar, for testing) until KotH has its own:
-    /// started once at launch, pumped once per frame on the game thread (manual dispatch). Not Ready
+    /// <summary>Steam for the client as MapBuilder.AppId (480, Spacewar, until KotH has its own; KOTH_STEAM_APPID
+    /// overrides): started at launch, pumped once per frame on the game thread (manual dispatch). Not Ready
     /// without a running Steam, with KOTH_STEAM=0 or in shot and headless runs (unless KOTH_STEAM=1);
     /// the game then plays as before, direct IP only.</summary>
     public static unsafe class SteamClient
     {
-        public const uint AppId = 480;
+        public static readonly uint AppId
+            = uint.TryParse(Environment.GetEnvironmentVariable("KOTH_STEAM_APPID"), out uint id) && id != 0 ? id : KotH.MapFormat.MapBuilder.AppId;
 
         // Callback ids (k_iCallback): SteamAPICallCompleted_t, GameLobbyJoinRequested_t.
         const int CallCompleted = 703;

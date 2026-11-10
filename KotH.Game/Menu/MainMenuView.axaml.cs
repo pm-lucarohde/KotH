@@ -5,8 +5,8 @@ using Avalonia.Interactivity;
 namespace KotH.Client.Menu
 {
     /// <summary>The main menu's controls: buttons, the note on the one under the pointer, the pages behind
-    /// five of them (Host server, Find server, Party, Settings; Languages only to look at), Customize, title and
-    /// small print. Five parts of a screen 1080 high that MainMenu takes out (<see cref="TakeParts"/>), shows and slides in.</summary>
+    /// six of them (Host server, Find server, Party, Maps, Settings; Languages only to look at), Customize, title
+    /// and small print. Five parts of a screen 1080 high that MainMenu takes out (<see cref="TakeParts"/>), shows and slides in.</summary>
     public partial class MainMenuView : UserControl
     {
         /// <summary>Party was opened: time to list the friends.</summary>
@@ -14,6 +14,9 @@ namespace KotH.Client.Menu
 
         /// <summary>Host server's page was opened: time to fill it.</summary>
         public event Action HostOpened;
+
+        /// <summary>Maps was opened: time to list them.</summary>
+        public event Action MapsOpened;
 
         /// <summary>Find server was opened: time to search.</summary>
         public event Action FindOpened;
@@ -41,12 +44,15 @@ namespace KotH.Client.Menu
         /// <summary>The Party page.</summary>
         public PartyPage Partier => PartyPage;
 
+        /// <summary>The Maps page.</summary>
+        public MapsPage Mapper => MapsPage;
+
 
         public MainMenuView()
         {
             InitializeComponent();
             Describe(Host);
-            foreach (Button button in new[] { Host, Find, Party, Customize, Settings, Languages, Quit })
+            foreach (Button button in new[] { Host, Find, Party, Maps, Customize, Settings, Languages, Quit })
                 button.PointerEntered += (_, _) => Describe(button);
             Host.Click += (_, _) =>
             {
@@ -60,6 +66,11 @@ namespace KotH.Client.Menu
                 FindOpened?.Invoke();
             };
             Party.Click += (_, _) => OpenParty();
+            Maps.Click += (_, _) =>
+            {
+                OpenPage(Maps, "Maps", MapsPage);
+                MapsOpened?.Invoke();
+            };
             Customize.Click += (_, _) => OpenPage(Customize, null, null);
             CustomizeView.BackRequested += () => GoBack();
             Settings.Click += (_, _) => OpenPage(Settings, "Settings", SettingsPage);
@@ -68,7 +79,7 @@ namespace KotH.Client.Menu
             Back.Click += (_, _) => GoBack();
         }
 
-        Button[] Lit => new[] { Host, Find, Party, Customize, Settings, Languages, Quit, Back };
+        Button[] Lit => new[] { Host, Find, Party, Maps, Customize, Settings, Languages, Quit, Back };
 
         /// <summary>Behind the load screen: every button shows all its pictures, so Skia
         /// decodes the lit and pressed ones there (hidden ones it skips, and their first
@@ -88,6 +99,9 @@ namespace KotH.Client.Menu
 
         /// <summary>Whether Party is open.</summary>
         public bool PartyOpen => open == Party;
+
+        /// <summary>Whether Maps is open.</summary>
+        public bool MapsOpen => open == Maps;
 
         /// <summary>Whether Find server is open.</summary>
         public bool FindOpen => open == Find;
@@ -132,10 +146,10 @@ namespace KotH.Client.Menu
             return true;
         }
 
-        /// <summary>Test aid (KOTH_SHOT_MENU): shows button 0-6 as under the pointer, or clicks it.</summary>
+        /// <summary>Test aid (KOTH_SHOT_MENU): shows button 0-7 as under the pointer, or clicks it.</summary>
         public void Pretend(int button, bool click)
         {
-            Button[] buttons = { Host, Find, Party, Customize, Settings, Languages, Quit };
+            Button[] buttons = { Host, Find, Party, Maps, Customize, Settings, Languages, Quit };
             if (button < 0 || button >= buttons.Length)
                 return;
             Describe(buttons[button]);
@@ -156,6 +170,7 @@ namespace KotH.Client.Menu
             FindPage.IsVisible = content == FindPage;
             HostPage.IsVisible = content == HostPage;
             PartyPage.IsVisible = content == PartyPage;
+            MapsPage.IsVisible = content == MapsPage;
             SettingsPage.IsVisible = content == SettingsPage;
             LanguagesPage.IsVisible = content == LanguagesPage;
             PageTitle.IsVisible = Back.IsVisible = content != SettingsPage;
@@ -168,6 +183,7 @@ namespace KotH.Client.Menu
             Description.Text = button == Host ? "Open a lobby on Mount Destiny, public or private with a password, and choose the round's map. Bots fill the free slots."
                              : button == Find ? "Find other players' rounds on Steam and join them."
                              : button == Party ? "Play with a friend: invite them, they follow you into rounds, and duo pairs you."
+                             : button == Maps ? "Maps made with the map kit or from the Steam Workshop: test them, upload your own."
                              : button == Customize ? "Colour your mushroom: cap, skin, leaves, gloves and spores."
                              : button == Settings ? "Graphics, sound and controls to your taste."
                              : button == Languages ? "Choose the game's language."
