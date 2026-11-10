@@ -48,22 +48,43 @@ namespace KotH.Client.Menu
             Describe(Host);
             foreach (Button button in new[] { Host, Find, Party, Customize, Settings, Languages, Quit })
                 button.PointerEntered += (_, _) => Describe(button);
+            // A second click on the open page's button closes it again, as Escape does.
             Host.Click += (_, _) =>
             {
+                if (Closed(Host))
+                    return;
                 OpenPage(Host, "Host server", HostPage);
                 HostOpened?.Invoke();
             };
             Quit.Click += (_, _) => QuitRequested?.Invoke();
             Find.Click += (_, _) =>
             {
+                if (Closed(Find))
+                    return;
                 OpenFind();
                 FindOpened?.Invoke();
             };
-            Party.Click += (_, _) => OpenParty();
-            Customize.Click += (_, _) => OpenPage(Customize, null, null);
+            Party.Click += (_, _) =>
+            {
+                if (!Closed(Party))
+                    OpenParty();
+            };
+            Customize.Click += (_, _) =>
+            {
+                if (!Closed(Customize))
+                    OpenPage(Customize, null, null);
+            };
             CustomizeView.BackRequested += () => GoBack();
-            Settings.Click += (_, _) => OpenPage(Settings, "Settings", SettingsPage);
-            Languages.Click += (_, _) => OpenPage(Languages, "Languages", LanguagesPage);
+            Settings.Click += (_, _) =>
+            {
+                if (!Closed(Settings))
+                    OpenPage(Settings, "Settings", SettingsPage);
+            };
+            Languages.Click += (_, _) =>
+            {
+                if (!Closed(Languages))
+                    OpenPage(Languages, "Languages", LanguagesPage);
+            };
             SettingsPage.BackRequested += () => GoBack();
             Back.Click += (_, _) => GoBack();
         }
@@ -131,6 +152,9 @@ namespace KotH.Client.Menu
             open = null;
             return true;
         }
+
+        // The button's page is open: closed now (true).
+        bool Closed(Button button) => open == button && GoBack();
 
         /// <summary>Test aid (KOTH_SHOT_MENU): shows button 0-6 as under the pointer, or clicks it.</summary>
         public void Pretend(int button, bool click)
