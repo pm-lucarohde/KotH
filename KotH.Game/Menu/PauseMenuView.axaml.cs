@@ -11,8 +11,8 @@ namespace KotH.Client.Menu
     /// </summary>
     public partial class PauseMenuView : UserControl
     {
-        // The board's height with four buttons; each further one adds a button and its gap.
-        const double BoardHeight = 370, ButtonStep = 66 + 18;
+        // The board's height with four buttons (seven as the main menu's); each further one adds a button and its gap.
+        const double BoardHeight = 380, ButtonStep = 66 + 12;
 
         /// <summary>Resume was chosen.</summary>
         public event Action ResumeRequested;

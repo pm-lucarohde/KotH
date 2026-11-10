@@ -9,9 +9,9 @@
              x:CompileBindings="True">
     <Panel Name="Parts">
         <Grid Name="BoardPart" Width="488" Height="730">
-            <Panel Name="Board" Width="440" Height="370" Margin="24" VerticalAlignment="Center">
+            <Panel Name="Board" Width="440" Height="380" Margin="24" VerticalAlignment="Center">
                 <Image Source="/Menu/Art/Panel.png" Margin="-24" Stretch="Fill" />
-                <StackPanel Spacing="18" HorizontalAlignment="Center" VerticalAlignment="Center"
+                <StackPanel Spacing="12" HorizontalAlignment="Center" VerticalAlignment="Center"
                             KeyboardNavigation.TabNavigation="Cycle">
                     <Button Name="Resume" Classes="Menu" Content="Resume" />
                     <Button Name="Maps" Classes="Menu" Content="Map" IsVisible="False" />
