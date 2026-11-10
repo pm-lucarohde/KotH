@@ -46,6 +46,7 @@ Hierarchy:
                         Fall: 2BB6BEF4-E4F8-4AAC-9386-65C3971A33EC:Sounds/Fall
                         Slide: F83D14FC-8C91-4757-9A80-F7047AF0E8B2:Sounds/Slide
                         Swing: 516307D1-3DF7-4B43-98AF-5859A11D7AB6:Sounds/Wind
+                        Shot: 280619DD-40C8-47BA-B309-D797EF8E5104:Sounds/Blaster
                         Hits:
                             4128e20c94de4a419351c4b92b331d0e: 56344623-DBF6-458E-8D30-882D71160A39:Sounds/Hit1
                             8bac52c48d5e47699955bd7b3b8f187c: 8D1176FC-3ECF-4C14-95A3-88B60B7D4CD7:Sounds/Hit3

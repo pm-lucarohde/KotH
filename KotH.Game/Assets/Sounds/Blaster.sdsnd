@@ -1,0 +1,7 @@
+!Sound
+Id: 280619DD-40C8-47BA-B309-D797EF8E5104
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Sounds/blaster.wav
+StreamFromDisk: false
+Spatialized: true

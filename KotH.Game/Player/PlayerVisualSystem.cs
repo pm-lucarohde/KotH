@@ -522,7 +522,11 @@ namespace KotH.Client.Player
                 float pitch = f.Body.PreviousLookPitch + (f.Body.LookPitch - f.Body.PreviousLookPitch) * alpha;
                 Vector3 aim = Vector3.Transform(-Vector3.UnitZ, Quaternion.RotationYawPitchRoll(
                     f.HeadYaw - f.TorsoYaw, MathUtil.DegreesToRadians(pitch), 0f));
+                bool watching = f.Gun.Watching;
+                int kicks = f.Gun.SeenKick;
                 HoldGun(f.Gun, f.Swing, HoldPath.Figure, aim, dt);
+                if (watching && f.Gun.SeenKick != kicks)
+                    Sound(f, FigureSound.Shot, 1f);
             }
             f.Swing.Update(f.Model?.Skeleton, f.Melee, f.Body?.NetId ?? 0, Swing(), SwingPath.Figure, dt);
             if (f.Swing.Started != f.SwingsHeard)

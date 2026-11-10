@@ -19,5 +19,7 @@ namespace KotH.Client.Player
         Hit,
         /// <summary>A dash struck the ground: the deep fall's impact.</summary>
         Slam,
+        /// <summary>A spore left the blaster.</summary>
+        Shot,
     }
 }

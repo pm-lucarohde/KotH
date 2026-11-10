@@ -49,6 +49,10 @@ namespace KotH.Client.Audio
         [Display("Swing", "Figures")] public Sound Swing;
         [Display("Swing volume", "Figures")] public float SwingVolume = 0.07f;
 
+        /// <userdoc>Every spore the blaster fires.</userdoc>
+        [Display("Blaster shot", "Figures")] public Sound Shot;
+        [Display("Blaster shot volume", "Figures")] public float ShotVolume = 0.12f;
+
         /// <userdoc>One of these at random when another figure is hit.</userdoc>
         [Display("Hits", "Figures")] public List<Sound> Hits = new List<Sound>();
         [Display("Hit volume", "Figures")] public float HitVolume = 0.645f;
@@ -170,6 +174,9 @@ namespace KotH.Client.Audio
                     break;
                 case FigureSound.Swing:
                     Play(Swing, SwingVolume, at, true, what);
+                    break;
+                case FigureSound.Shot:
+                    Play(Shot, ShotVolume, at, true, what);
                     break;
                 case FigureSound.Hit:
                     if (motor != null && motor == camera?.Motor)
