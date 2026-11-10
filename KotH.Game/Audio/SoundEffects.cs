@@ -34,12 +34,20 @@ namespace KotH.Client.Audio
         [Display("Double jump", "Figures")] public Sound DoubleJump;
         [Display("Double jump volume", "Figures")] public float DoubleJumpVolume = 0.08f;
 
-        /// <userdoc>On landing after a deep fall or a dash; after smaller jumps a step sounds.</userdoc>
+        /// <userdoc>On landing after a deep fall; after smaller jumps a step sounds.</userdoc>
         [Display("Impact", "Figures")] public Sound Fall;
         [Display("Impact volume", "Figures")] public float FallVolume = 0.16f;
 
         /// <userdoc>From this fall height (metres from the highest point) the impact sounds. A double jump on flat ground reaches about 2.7 m.</userdoc>
         [Display("Impact from (m)", "Figures")] public float FallHeight = 8.0f;
+
+        /// <userdoc>When a dash starts, the figure diving down from the air.</userdoc>
+        [Display("Dash", "Figures")] public Sound Dash;
+        [Display("Dash volume", "Figures")] public float DashVolume = 0.1f;
+
+        /// <userdoc>Where a dash strikes the ground (without it: the impact).</userdoc>
+        [Display("Dash impact", "Figures")] public Sound DashImpact;
+        [Display("Dash impact volume", "Figures")] public float DashImpactVolume = 0.16f;
 
         /// <userdoc>Once, when the figure goes from sprint into a slide.</userdoc>
         [Display("Slide", "Figures")] public Sound Slide;
@@ -166,8 +174,14 @@ namespace KotH.Client.Audio
                     else
                         Play(Step, StepVolume, at, true, what);
                     break;
+                case FigureSound.Dash:
+                    Play(Dash, DashVolume, at, false, what);
+                    break;
                 case FigureSound.Slam:
-                    Play(Fall, FallVolume, at, false, what);
+                    if (DashImpact != null)
+                        Play(DashImpact, DashImpactVolume, at, false, what);
+                    else
+                        Play(Fall, FallVolume, at, false, what);
                     break;
                 case FigureSound.Slide:
                     Play(Slide, SlideVolume, at, true, what);

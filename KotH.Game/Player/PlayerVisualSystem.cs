@@ -264,7 +264,7 @@ namespace KotH.Client.Player
             public int[] Leaves;
             public Vector2[] LeafBend, LeafRate;
             public float LeafClock, Yaw, Spin, MouthClock;
-            public bool HasYaw, Kicked, HasBody, WasSliding, Placed;
+            public bool HasYaw, Kicked, HasBody, WasSliding, WasSlamming, Placed;
             // Lean and head lag: tilts as rotation vectors (radians, X right, Y back) on springs.
             public Vector2 LeanBend, LeanRate, HeadBend, HeadRate;
             public Vector3 LastVelocity;
@@ -1029,6 +1029,9 @@ namespace KotH.Client.Player
             if (motor.IsSliding && !f.WasSliding)
                 Sound(f, FigureSound.Slide, 1f);
             f.WasSliding = motor.IsSliding;
+            if (motor.IsSlamming && !f.WasSlamming)
+                Sound(f, FigureSound.Dash, 1f);
+            f.WasSlamming = motor.IsSlamming;
             f.KickAge += dt;
             if (airborne)
             {

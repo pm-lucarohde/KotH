@@ -17,7 +17,9 @@ namespace KotH.Client.Player
         Swing,
         /// <summary>The figure was hit.</summary>
         Hit,
-        /// <summary>A dash struck the ground: the deep fall's impact.</summary>
+        /// <summary>A dash started: the dive from the air.</summary>
+        Dash,
+        /// <summary>A dash struck the ground.</summary>
         Slam,
         /// <summary>A spore left the blaster.</summary>
         Shot,

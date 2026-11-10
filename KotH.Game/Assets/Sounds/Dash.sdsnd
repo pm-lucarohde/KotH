@@ -1,0 +1,7 @@
+!Sound
+Id: 2DA75ECF-F0BB-4F8A-8577-45F41FAAB313
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Sounds/dash.wav
+StreamFromDisk: false
+Spatialized: true

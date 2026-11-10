@@ -23,7 +23,7 @@ const double Peak = -1.0;            // dBFS
 const double Silence = -60.0;        // dBFS: quieter than this at either end is cut
 const double Fade = 0.03;            // seconds faded out at the end
 const double LoopFade = 1.0;         // seconds of the ambient's end laid over its start
-string[] sounds = ["blaster", "fall", "hit1", "hit2", "hit3", "jump", "slide", "sporejump", "steps", "wind"];
+string[] sounds = ["blaster", "dash", "dash_impact", "fall", "hit1", "hit2", "hit3", "jump", "slide", "sporejump", "steps", "wind"];
 var filters = new Dictionary<string, string> { ["steps"] = "lowpass=f=1000" };   // ffmpeg filters on decoding (Luca: steps too harsh)
 var dryAt = new Dictionary<string, (double, double)> { ["steps"] = (0.04, 0.12) };  // the room's reverb faded out here (Luca: sounded like a hall)
 

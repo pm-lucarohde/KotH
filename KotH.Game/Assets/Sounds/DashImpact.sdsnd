@@ -1,0 +1,7 @@
+!Sound
+Id: CA3D981C-827D-491B-B500-E3BA78E80318
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Sounds/dash_impact.wav
+StreamFromDisk: false
+Spatialized: true
