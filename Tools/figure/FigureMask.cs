@@ -8,12 +8,12 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using KotH.Tools;
 
 const int N = 1024;                  // the masks are smooth: half the body texture's size
 const int Grow = 4;                  // texels the masks reach past the UV islands, for the mips
-const float Brim = 0.12f;            // glTF height of the cap's rim: red below it is not cap
-const float CapTriangle = 0.4f;      // share of red texels that makes a triangle part of the cap
+const float GillsFrom = 0.3f;        // islands facing down above this are gills (lower: the jaw)
 const float Boots = -0.6f;           // glTF height below which brown is the boots (coloured as the gloves)
 
 string root = Path.GetFullPath(Path.Combine(Here(), "../.."));
@@ -44,26 +44,20 @@ for (int y = 0; y < N; y++)
     for (int x = 0; x < N; x++)
         cls[y * N + x] = Classes(body, x, y, N);
 
-// Pass 1: each triangle's share of red texels. Pass 2: per texel the highest triangle's
-// height and normal, and whether any covering triangle is cap.
+// The cap by shape, not colour (its white dots and pink rims are cap too): per texel the most
+// cap-like covering triangle. Also each texel's highest triangle's height and normal.
+var axis = Axis();
 int triangles = idx.Length / 3;
-var capShare = new float[triangles];
 var height = new float[N * N];
 var normalY = new float[N * N];
 var capArea = new float[N * N];
 Array.Fill(height, float.NaN);
 for (int t = 0; t < triangles; t++)
 {
-    int red = 0, all = 0;
-    Raster(t, (x, y) => { all++; if (cls[y * N + x].red > 0.5f) red++; });
-    capShare[t] = all > 0 ? red / (float)all : 0f;
-}
-for (int t = 0; t < triangles; t++)
-{
     int a = idx[t * 3], b = idx[t * 3 + 1], c = idx[t * 3 + 2];
     float h = (pos[a * 3 + 1] + pos[b * 3 + 1] + pos[c * 3 + 1]) / 3f;
     float ny = NormalY(a, b, c);
-    float cap = Smooth(CapTriangle - 0.15f, CapTriangle + 0.15f, capShare[t]) * Smooth(Brim - 0.04f, Brim + 0.04f, h);
+    float cap = CapLike(h, Radius(a, b, c), ny, Radial(a, b, c));
     Raster(t, (x, y) =>
     {
         int i = y * N + x;
@@ -84,9 +78,8 @@ int[] label = Islands(island, out int islands);
 // no guide: the forehead tucks under the cap as steeply as the gills curve).
 float[] islandNy = Means(label, islands, normalY), islandH = Means(label, islands, height);
 
-// The masks: cap = cap triangles above the brim (see the dots below), not on islands that are
-// mostly skin (the face: brows, mouth); skin = pale outside cap triangles and gill islands
-// (the dots stay white); leaves = green; boots (A) = brown below the knee, as the gloves.
+// The masks: cap = the cap's whole area (FigureTint moves only its red share); skin = pale outside
+// the cap and the gill islands; leaves = green outside the cap; boots (A) = brown below the knee.
 var mask = new float[4][];
 for (int k = 0; k < 4; k++)
     mask[k] = new float[N * N];
@@ -94,29 +87,31 @@ for (int i = 0; i < N * N; i++)
 {
     if (!island[i])
         continue;
-    mask[0][i] = cls[i].red * capArea[i];
-    bool gill = islandNy[label[i]] < -0.4f && islandH[label[i]] > Brim;
+    mask[0][i] = capArea[i];
+    bool gill = islandNy[label[i]] < -0.4f && islandH[label[i]] > GillsFrom;
     mask[1][i] = gill ? 0f : cls[i].pale * (1f - capArea[i]);
-    mask[2][i] = cls[i].green;
+    mask[2][i] = cls[i].green * (1f - capArea[i]);
     mask[3][i] = Brown(body, i % N, i / N, N) * Smooth(Boots + 0.05f, Boots - 0.05f, height[i]);
 }
-var dot = new float[N * N];
-foreach (int i in Dots(mask[1], Widen(mask[0], 3), island))
-{
-    mask[1][i] = 0f;
-    dot[i] = 1f;
-}
-// The whole cap is recoloured but the dots' white centres: their painted shade turns with it.
-float[] nearDot = Widen(dot, 3);
-for (int i = 0; i < N * N; i++)
-    if (island[i])
-        mask[0][i] = MathF.Max(capArea[i], nearDot[i] * Smooth(Brim - 0.04f, Brim + 0.04f, height[i])) * (1f - cls[i].pale);
-float[] islandSkin = Means(label, islands, mask[1]);
-for (int i = 0; i < N * N; i++)
-    if (island[i] && islandSkin[label[i]] > 0.5f)
-        mask[0][i] = 0f;
+FillShades(mask, island);
+// Softened edges, but a blur only adds weight: a skin texel beside a brow keeps all of it (else the
+// painted light skin shows as a rim round every feature on dark skin); overlaps share to 1.
 for (int k = 0; k < 4; k++)
-    mask[k] = Spread(Blur(mask[k], island), island);
+{
+    float[] soft = Blur(mask[k], island);
+    for (int i = 0; i < N * N; i++)
+        soft[i] = MathF.Max(soft[i], mask[k][i]);
+    mask[k] = soft;
+}
+for (int i = 0; i < N * N; i++)
+{
+    float sum = mask[0][i] + mask[1][i] + mask[2][i] + mask[3][i];
+    if (sum > 1f)
+        for (int k = 0; k < 4; k++)
+            mask[k][i] /= sum;
+}
+for (int k = 0; k < 4; k++)
+    mask[k] = Spread(mask[k], island);
 
 // The lids: skin wherever pale (blush included), the rest (lashes, eyes, mouth) stays.
 int L = lid.Width;
@@ -125,8 +120,8 @@ for (int i = 0; i < L * L; i++)
     lidSkin[i] = Classes(lid, i % L, i / L, L).pale;
 lidSkin = Blur(lidSkin, null, L);
 
-// References: each region's mean colour where its mask is nearly whole.
-float[] capRef = Mean(body, mask[0], N), skinRef = Mean(body, mask[1], N), leafRef = Mean(body, mask[2], N);
+// References: each region's mean colour where its mask is nearly whole (the cap's: its red).
+float[] capRef = Mean(body, Product(mask[0], cls.Select(c => c.red).ToArray()), N), skinRef = Mean(body, mask[1], N), leafRef = Mean(body, mask[2], N);
 float[] gloveRef = Mean(glove, null, glove.Width);
 Png spore = Png.Read(Path.Combine(root, "KotH.Game/Resources/Effects/Spore.png"));
 Console.WriteLine($"cap    {Hex(capRef)}");
@@ -163,10 +158,13 @@ static (float red, float pale, float green) Classes(Png png, int x, int y, int s
     float max = MathF.Max(r, MathF.Max(g, b)), min = MathF.Min(r, MathF.Min(g, b));
     float s = max > 1e-4f ? (max - min) / max : 0f;
     float redness = Smooth(0.45f, 0.6f, s) * Smooth(0.15f, 0.25f, r) * Smooth(0.45f, 0.3f, MathF.Max(g, b) / MathF.Max(r, 1e-4f));
-    float pale = Smooth(0.42f, 0.28f, s) * Smooth(0.5f, 0.65f, max);
-    // The blush: light pink, half moved with the skin, so it stays a blush on any colour.
+    float pale = Smooth(0.33f, 0.25f, s) * Smooth(0.5f, 0.65f, max);
+    // The blush: light pink, moved with the skin less the more pink (half at its heart), so it stays
+    // a blush on any colour and its soft rim fades into the skin without a light ring.
     float gr = g / MathF.Max(r, 1e-4f);
-    pale = MathF.Max(pale, 0.5f * Smooth(0.6f, 0.75f, r) * Smooth(0.45f, 0.55f, gr) * Smooth(0.9f, 0.8f, gr) * Smooth(0.6f, 0.5f, s));
+    float orange = (g - b) / MathF.Max(max - min, 1e-4f);   // 0 pink (the blush), 0.4 the bag's peach linen
+    pale = MathF.Max(pale, (1f - 0.5f * Smooth(0.25f, 0.5f, s)) * Smooth(0.6f, 0.75f, r) * Smooth(0.45f, 0.55f, gr)
+                           * Smooth(0.6f, 0.5f, s) * Smooth(0.36f, 0.3f, orange));
     float greenness = g > r * 1.15f && g > b * 1.2f ? Smooth(0.15f, 0.3f, s) : 0f;
     return (redness, pale, greenness);
 }
@@ -180,6 +178,87 @@ static float Brown(Png png, int x, int y, int size)
     float s = max > 1e-4f ? (max - min) / max : 0f;
     float gr = g / MathF.Max(r, 1e-4f);
     return r >= g && g >= b ? Smooth(0.25f, 0.35f, s) * Smooth(0.3f, 0.45f, gr) * Smooth(0.85f, 0.75f, gr) * Smooth(0.75f, 0.6f, max) : 0f;
+}
+
+// Shaded seams (greyish texels between skin and leaves, under the chin) belong to no region and kept
+// their colour: the rest of their weight goes to the nearest skin or leaf texel within 8 texels.
+// Only unsaturated ones: the tint keeps dark texels dark, so lines and pupils stay black.
+void FillShades(float[][] m, bool[] inside)
+{
+    var near = new int[N * N];
+    Array.Fill(near, -1);
+    var front = new List<int>();
+    for (int i = 0; i < N * N; i++)
+        if (inside[i] && m[0][i] < 0.5f && (m[1][i] >= 0.5f || m[2][i] >= 0.5f))
+        { near[i] = m[1][i] >= m[2][i] ? 1 : 2; front.Add(i); }
+    for (int step = 0; step < 8 && front.Count > 0; step++)
+    {
+        var next = new List<int>();
+        foreach (int i in front)
+            foreach (int j in (ReadOnlySpan<int>)[i - 1, i + 1, i - N, i + N])
+                if (j >= 0 && j < N * N && Math.Abs(j % N - i % N) <= 1 && inside[j] && near[j] < 0)
+                { near[j] = near[i]; next.Add(j); }
+        front = next;
+    }
+    for (int i = 0; i < N * N; i++)
+    {
+        float rest = 1f - m[0][i] - m[1][i] - m[2][i] - m[3][i];
+        if (near[i] > 0 && rest > 0f && m[0][i] < 0.5f && m[3][i] < 0.5f && Saturation(body, i % N, i / N, N) < 0.25f)
+            m[near[i]][i] += rest;
+    }
+}
+
+static float Saturation(Png png, int x, int y, int size)
+{
+    int i = (y * png.Height / size * png.Width + x * png.Width / size) * png.Channels;
+    float r = png.Pixels[i], g = png.Pixels[i + 1], b = png.Pixels[i + 2];
+    float max = MathF.Max(r, MathF.Max(g, b)), min = MathF.Min(r, MathF.Min(g, b));
+    return max > 0.5f ? (max - min) / max : 0f;
+}
+
+// The cap's outer shell and rim beyond the face's reach (r 0.25), the gills facing down, in or
+// sideways (the face faces out), everything over the head; glTF metres, radius from the head's axis.
+static float CapLike(float h, float r, float ny, float radial) =>
+    MathF.Max(MathF.Max(Smooth(0.31f, 0.35f, r) * Smooth(0.16f, 0.2f, h),
+                        Smooth(0.23f, 0.27f, r) * Smooth(-0.2f, -0.4f, ny) * Smooth(0.28f, 0.32f, h)),
+              MathF.Max(MathF.Max(Smooth(0.18f, 0.21f, r) * Smooth(-0.2f, -0.4f, radial) * Smooth(0.28f, 0.3f, h),
+                                  Smooth(0.24f, 0.27f, r) * Smooth(0.6f, 0.4f, radial) * Smooth(0.28f, 0.3f, h)),
+                        Smooth(0.53f, 0.57f, h)));
+
+// The head's vertical axis: the mean x, z of the vertices above the shoulders.
+(float x, float z) Axis()
+{
+    float sx = 0f, sz = 0f;
+    int n = 0;
+    for (int v = 0; v < pos.Length / 3; v++)
+        if (pos[v * 3 + 1] > 0.3f)
+        { sx += pos[v * 3]; sz += pos[v * 3 + 2]; n++; }
+    return (sx / n, sz / n);
+}
+
+float Radius(int a, int b, int c)
+{
+    float x = (pos[a * 3] + pos[b * 3] + pos[c * 3]) / 3f - axis.x, z = (pos[a * 3 + 2] + pos[b * 3 + 2] + pos[c * 3 + 2]) / 3f - axis.z;
+    return MathF.Sqrt(x * x + z * z);
+}
+
+// The normal's share pointing away from the head's axis (negative: towards it).
+float Radial(int a, int b, int c)
+{
+    float ux = pos[b * 3] - pos[a * 3], uy = pos[b * 3 + 1] - pos[a * 3 + 1], uz = pos[b * 3 + 2] - pos[a * 3 + 2];
+    float vx = pos[c * 3] - pos[a * 3], vy = pos[c * 3 + 1] - pos[a * 3 + 1], vz = pos[c * 3 + 2] - pos[a * 3 + 2];
+    float nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+    float x = (pos[a * 3] + pos[b * 3] + pos[c * 3]) / 3f - axis.x, z = (pos[a * 3 + 2] + pos[b * 3 + 2] + pos[c * 3 + 2]) / 3f - axis.z;
+    float len = MathF.Sqrt(nx * nx + ny * ny + nz * nz) * MathF.Sqrt(x * x + z * z);
+    return len > 1e-12f ? (nx * x + nz * z) / len : 0f;
+}
+
+static float[] Product(float[] a, float[] b)
+{
+    var o = new float[a.Length];
+    for (int i = 0; i < a.Length; i++)
+        o[i] = a[i] * b[i];
+    return o;
 }
 
 float NormalY(int a, int b, int c)
@@ -233,54 +312,6 @@ static float[] Means(int[] label, int count, float[] v)
     for (int k = 0; k < count; k++)
         mean[k] = (float)(sum[k] / Math.Max(1, n[k]));
     return mean;
-}
-
-// The cap's white dots: pale patches whose rim (inside the islands) is mostly cap.
-static List<int> Dots(float[] pale, float[] cap, bool[] inside)
-{
-    var dots = new List<int>();
-    var seen = new bool[N * N];
-    var patch = new List<int>();
-    var stack = new Stack<int>();
-    for (int start = 0; start < N * N; start++)
-    {
-        if (seen[start] || pale[start] < 0.5f)
-            continue;
-        patch.Clear(); int rim = 0, red = 0;
-        seen[start] = true; stack.Push(start);
-        while (stack.Count > 0)
-        {
-            int i = stack.Pop(); patch.Add(i);
-            foreach (int j in (ReadOnlySpan<int>)[i - 1, i + 1, i - N, i + N])
-            {
-                if (j < 0 || j >= N * N || Math.Abs(j % N - i % N) > 1 || !inside[j] || seen[j])
-                    continue;
-                if (pale[j] >= 0.5f)
-                { seen[j] = true; stack.Push(j); }
-                else
-                { rim++; if (cap[j] > 0.5f) red++; }
-            }
-        }
-        if (red > 0.5f * rim)
-            dots.AddRange(patch);
-    }
-    return dots;
-}
-
-// Max filter over (2r+1)², so a dot's antialiased rim counts as cap.
-static float[] Widen(float[] m, int r)
-{
-    var o = new float[N * N];
-    for (int y = 0; y < N; y++)
-        for (int x = 0; x < N; x++)
-        {
-            float best = 0f;
-            for (int v = Math.Max(0, y - r); v <= Math.Min(N - 1, y + r); v++)
-                for (int u = Math.Max(0, x - r); u <= Math.Min(N - 1, x + r); u++)
-                    best = MathF.Max(best, m[v * N + u]);
-            o[y * N + x] = best;
-        }
-    return o;
 }
 
 // A 3×3 box inside the islands (null: everywhere), so edges between regions soften by a texel.

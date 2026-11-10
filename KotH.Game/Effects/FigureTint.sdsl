@@ -1,6 +1,6 @@
 /// <summary>A figure part's texture recoloured per player: per mask region (R cap, G skin,
 /// B leaves, A not glove: a clear mask lost its colours on import) the colour times the texel's
-/// brightness, xyz = colour / lum(reference), blended in by w (FigureColors: more the further
+/// brightness (the cap: its red share), xyz = colour / lum(reference), blended in by w (more the further
 /// from the painted colour, 0 for it, so zero keys are the plain texture).</summary>
 shader FigureTint<LinkType TextureKey, LinkType MaskKey>
     : ComputeColor, Texturing
@@ -25,7 +25,15 @@ shader FigureTint<LinkType TextureKey, LinkType MaskKey>
         float4 c = Paint.Sample(LinearRepeatSampler, uv);
         float4 m = Mask.Sample(LinearRepeatSampler, uv);
         float lum = dot(c.rgb, float3(0.2126, 0.7152, 0.0722));
-        float3 d = m.r * CapShift.w * (CapShift.rgb * lum - c.rgb) + m.g * SkinShift.w * (SkinShift.rgb * lum - c.rgb)
+        // The cap (R = its whole area, gills and dots too) is painted white mixed with red: the red share
+        // t (saturation, red hues only) takes the colour, the rest stays as light; beige warts keep theirs.
+        float hi = max(c.r, max(c.g, c.b)), lo = min(c.r, min(c.g, c.b));
+        float sat = (hi - lo) / max(hi, 1e-4), hue = (c.g - c.b) / max(hi - lo, 1e-4);
+        float red = c.r >= hi ? smoothstep(0.3, 0.17, hue) : 0.0;
+        float t = smoothstep(0.08, 0.85, sat) * red;
+        float family = 1.0 - smoothstep(0.1, 0.25, sat) * (1.0 - red);
+        float3 cap = lerp(c.rgb, lerp(float3(hi, hi, hi), CapShift.rgb * lum, t), family);
+        float3 d = m.r * CapShift.w * (cap - c.rgb) + m.g * SkinShift.w * (SkinShift.rgb * lum - c.rgb)
                  + m.b * LeafShift.w * (LeafShift.rgb * lum - c.rgb) + (1.0 - m.a) * GloveShift.w * (GloveShift.rgb * lum - c.rgb);
         return float4(saturate(c.rgb + d), c.a);
     }
