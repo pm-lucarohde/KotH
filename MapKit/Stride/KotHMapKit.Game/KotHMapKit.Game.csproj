@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>KotH.MapKit</RootNamespace>
+    <!-- The package format's sources: from the KotH repo, or the copy a packed kit carries. -->
+    <KotHMapFormat Condition="'$(KotHMapFormat)' == '' And Exists('$(MSBuildThisFileDirectory)..\MapFormat')">$(MSBuildThisFileDirectory)..\MapFormat\</KotHMapFormat>
+    <KotHMapFormat Condition="'$(KotHMapFormat)' == ''">$(MSBuildThisFileDirectory)..\..\..\KotH.MapFormat\</KotHMapFormat>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Stride.Engine" Version="4.4.1" />
+    <!-- The template compositor draws particles and UI too. -->
+    <PackageReference Include="Stride.Particles" Version="4.4.1" />
+    <PackageReference Include="Stride.UI" Version="4.4.1" />
+    <PackageReference Include="Stride.AssetCompiler" Version="4.4.1" IncludeAssets="build;buildTransitive" />
+    <!-- The lightmap UVs of baked objects (KotH.MapFormat/Unwrap). -->
+    <PackageReference Include="Prowl.Unwrapper" Version="3.7.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="$(KotHMapFormat)*.cs;$(KotHMapFormat)Unwrap\*.cs" LinkBase="MapFormat" />
+  </ItemGroup>
+</Project>

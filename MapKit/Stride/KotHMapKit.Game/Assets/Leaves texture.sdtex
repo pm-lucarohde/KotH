@@ -1,0 +1,9 @@
+!Texture
+Id: 2E6C71E8-3BA0-41A7-B0E6-80878F00C016
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../Resources/Leaves.png
+IsCompressed: true
+IsStreamable: false
+Type: !ColorTextureType
+    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}

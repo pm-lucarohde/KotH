@@ -20,6 +20,9 @@ namespace KotH.MapFormat
         /// <summary>The app the workshop items belong to (Steam's test app until KotH has its own).</summary>
         public static uint AppId = 480;
 
+        /// <summary>Turns a folder into the path SteamCMD sees (the Stride kit under Wine: Z:\x to /x).</summary>
+        public static Func<string, string> HostPath = p => p;
+
         public sealed class Result
         {
             public readonly List<string> Errors = new List<string>();
@@ -178,9 +181,9 @@ namespace KotH.MapFormat
             void Key(string k, string v) => sb.Append("\t\"").Append(k).Append("\"\t\t\"").Append(Escape(v)).Append("\"\n");
             Key("appid", AppId.ToString(CultureInfo.InvariantCulture));
             Key("publishedfileid", item.ToString(CultureInfo.InvariantCulture));
-            Key("contentfolder", p.Folder);
+            Key("contentfolder", HostPath(p.Folder));
             if (File.Exists(p.PreviewPath))
-                Key("previewfile", p.PreviewPath);
+                Key("previewfile", HostPath(p.PreviewPath));
             Key("visibility", visibility.ToString(CultureInfo.InvariantCulture));
             Key("title", m.Title);
             Key("description", m.Description);

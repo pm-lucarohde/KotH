@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="KotHMapKit.Game/KotHMapKit.Game.csproj" />
+  <Project Path="KotHMapKit.Windows/KotHMapKit.Windows.csproj" DefaultStartup="true" />
+  <Project Path="KotHMapKit.Linux/KotHMapKit.Linux.csproj" />
+</Solution>

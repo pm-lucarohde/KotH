@@ -1,0 +1,9 @@
+!Texture
+Id: B3084AAB-67E4-479C-BDBB-F0EE90F21158
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../Resources/Rock.png
+IsCompressed: true
+IsStreamable: false
+Type: !ColorTextureType
+    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}

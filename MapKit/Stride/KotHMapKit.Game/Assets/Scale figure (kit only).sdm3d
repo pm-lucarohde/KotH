@@ -1,0 +1,24 @@
+!Model
+Id: 3944E5B3-7044-4626-9015-57CE9CBAE8C8
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../Resources/ScaleFigure.glb
+PivotPosition: {X: 0.0, Y: 0.0, Z: 0.0}
+Materials:
+    2944a7b46ad63b7332117647321d2d77:
+        Name: Mushroom
+        MaterialInstance:
+            Material: 7C42A34D-50EE-475F-9A98-79EC13434FD6:Mushroom
+            IsShadowCaster: true
+    d2a8f022dba60344d2e83b832127401e:
+        Name: MushroomGlove
+        MaterialInstance:
+            Material: 21E86A88-A794-453F-ABCE-6067F17E3340:MushroomGlove
+            IsShadowCaster: true
+    1fab5f0928d50bf1cd8ff651c11f2c47:
+        Name: MushroomLid
+        MaterialInstance:
+            Material: B2A7C1BF-3B96-4F11-97CB-BC3C86563FFE:MushroomLid
+            IsShadowCaster: false
+Skeleton: null
+Modifiers: {}

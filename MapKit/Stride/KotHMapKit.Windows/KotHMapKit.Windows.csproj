@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net11.0-windows</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>KotH.MapKit.Windows</RootNamespace>
+    <AssemblyName>KotHMapKit</AssemblyName>
+    <OutputPath>..\Bin\Windows\$(Configuration)\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
+    <StrideCurrentPackagePath>$(MSBuildThisFileDirectory)..\KotHMapKit.Game\KotHMapKit.Game.sdpkg</StrideCurrentPackagePath>
+    <StridePlatform>Windows</StridePlatform>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\KotHMapKit.Game\KotHMapKit.Game.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,9 @@
+!Texture
+Id: DC1E573F-27C5-4138-94DF-3FFA85E42498
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../Resources/Grass.png
+IsCompressed: true
+IsStreamable: false
+Type: !ColorTextureType
+    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}

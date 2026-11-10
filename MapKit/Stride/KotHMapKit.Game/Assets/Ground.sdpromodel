@@ -1,0 +1,13 @@
+!ProceduralModelAsset
+Id: 790FB53F-B672-405A-8CE8-7E83CFE50A9A
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Type: !PlaneProceduralModel
+    Size: {X: 1.0, Y: 1.0}
+    Tessellation: {X: 1, Y: 1}
+    Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+    UvScale: {X: 16.0, Y: 16.0}
+    LocalOffset: {X: 0.0, Y: 0.0, Z: 0.0}
+    NumberOfTextureCoordinates: 1
+    MaterialInstance:
+        Material: A093F26E-3E29-478A-B29E-898238D4C4BF:Grass

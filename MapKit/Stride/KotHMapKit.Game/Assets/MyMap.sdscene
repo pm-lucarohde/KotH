@@ -1,0 +1,639 @@
+!SceneAsset
+Id: 20DF53F1-DFFB-43B7-90DD-90021E663E2E
+SerializedVersion: {Stride: 3.1.0.1}
+Tags: []
+ChildrenIds: []
+Offset: {X: 0.0, Y: 0.0, Z: 0.0}
+Hierarchy:
+    RootParts:
+        - ref!! 4A91F2A8-D532-4AE6-A1CC-6F33BF7787D8
+        - ref!! CD6113D5-28F8-4140-A634-66EC32804210
+        - ref!! 84EB9D81-971D-47DC-B8AE-D9B55222ED25
+        - ref!! B8183BD7-A180-4B8B-B781-EEE9927F0DFD
+        - ref!! B467407C-5F89-4C9F-AE78-7ED885E02EC1
+        - ref!! 82604914-7E2A-4EE1-9C0C-68EA5A5A2F89
+        - ref!! 2903DCF6-6F4D-4BF2-B7CE-15D254890AEA
+        - ref!! 6FE41915-A6F4-4CB8-9192-5CCBBFFE45B2
+        - ref!! D4B46EAD-879A-4404-9943-8A275A9D3B54
+        - ref!! AC2FE1E1-D686-4C0F-9D24-2C865EB56C39
+        - ref!! 79868F95-0A5D-4FDA-953D-820BC13654C7
+        - ref!! 20009A3C-870C-488F-A781-CDF5728ED2BD
+        - ref!! 99935109-E436-40CA-B385-9EB727712283
+        - ref!! A52B2D05-1137-4829-A987-BA74A810796E
+        - ref!! DE9A7BE4-9827-49F8-A2FF-BCF889BDD7A1
+        - ref!! 84D4752C-C9F7-4960-9F8B-49047DFBD792
+    Parts:
+        -   Entity:
+                Id: 4A91F2A8-D532-4AE6-A1CC-6F33BF7787D8
+                Name: Camera
+                Components:
+                    83620b91dfefd7723aabeacfb3672d90: !TransformComponent
+                        Id: ACF8F161-7C96-4D2C-8EE9-2C531DBAC8F6
+                        Position: {X: 26.0, Y: 14.0, Z: 26.0}
+                        Rotation: {X: -0.1223042, Y: 0.3793154, Z: 0.05066004, W: 0.9157484}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    62f0a2843184d975f954e8f59aff4f6f: !CameraComponent
+                        Id: A4E6BFE9-6468-43F2-98DF-3F59F4B7170E
+                        Name: null
+                        Projection: Perspective
+                        Slot: 78A2D30D-B964-4965-B7C1-CADCD6C6C5C0
+                    47868f07f3ad6288667d8a31d6849328: !KotH.MapKit.BasicCameraController,KotHMapKit.Game
+                        Id: A63EAC4D-E5EF-4855-8782-2E7F1ED54992
+        -   Entity:
+                Id: CD6113D5-28F8-4140-A634-66EC32804210
+                Name: Directional light
+                Components:
+                    851a180237eb407e720277dd69bfde8d: !TransformComponent
+                        Id: 054D6D65-86D7-4DED-8980-A9F2DAFA2447
+                        Position: {X: 0.0, Y: 20.0, Z: 0.0}
+                        Rotation: {X: -0.1093817, Y: -0.8754261, Z: -0.4082179, W: 0.2345697}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    fc33e35db97bc30b6a3c05f6d1191b68: !LightComponent
+                        Id: 03406D9E-D815-4851-B972-149848072C11
+                        Type: !LightDirectional
+                            Color: !ColorRgbProvider
+                                Value: {R: 1.0, G: 1.0, B: 1.0}
+                            Shadow:
+                                Enabled: true
+                                Filter: !LightShadowMapFilterTypePcf
+                                    FilterSize: Filter5x5
+                                Size: Large
+                                DepthRange: {}
+                                PartitionMode: !LightDirectionalShadowMap.PartitionLogarithmic {}
+                                ComputeTransmittance: false
+                                BiasParameters: {}
+                        Intensity: 20.0
+        -   Entity:
+                Id: 84EB9D81-971D-47DC-B8AE-D9B55222ED25
+                Name: Skybox
+                Components:
+                    f67ad8c8f065965d080de91561a08e06: !TransformComponent
+                        Id: 5331A803-3063-4DF7-80F4-7E03EFE98A30
+                        Position: {X: 0.0, Y: 2.0, Z: -2.0}
+                        Rotation: {X: 0, Y: 0, Z: 0, W: 1}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    e0a16f6b760b64c85cac1c1516ee7626: !BackgroundComponent
+                        Id: 3A6D023F-FE51-4C7E-A1C1-78C0B9B64240
+                        Texture: E1DBC343-8BCB-41F2-B772-644D16A3F4A1:Skybox texture
+                    fa9bd9e4bcdc43c76d1199b507aa0fd9: !LightComponent
+                        Id: 68E19A25-F72C-4A9D-B38F-829C890E6F14
+                        Type: !LightSkybox
+                            Skybox: 2E6293EB-E6A0-4E66-BE61-AB8B79F8B380:Skybox
+        -   Entity:
+                Id: B8183BD7-A180-4B8B-B781-EEE9927F0DFD
+                Name: Map
+                Components:
+                    6dd5be45f7408d5d83152f97e174e5d6: !TransformComponent
+                        Id: 698EE7F6-2E3E-4EF3-B651-D30D6D2A10D6
+                        Position: {X: 0.0, Y: 0.0, Z: 0.0}
+                        Rotation: {X: 0, Y: 0, Z: 0, W: 1}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    1f702e2ba3fa16fc7d962415c14aa60c: !KotH.MapKit.MapInfo
+                        Id: F72A1510-B4F9-4E35-99E9-4B17A34247ED
+                        Name: MyMap
+                        Title: My map
+                        Author: ""
+                        Description: The map kit's sample, a stepped hill on a meadow.
+                        Visibility: Private
+                        ChangeNote: ""
+        -   Entity:
+                Id: B467407C-5F89-4C9F-AE78-7ED885E02EC1
+                Name: Ground
+                Components:
+                    39d025ca02d5467c35e7b6cc51a587e4: !TransformComponent
+                        Id: 2A03A428-1B91-4E50-9505-17E18E501F20
+                        Position: {X: 0.0, Y: 0.0, Z: 0.0}
+                        Rotation: {X: 0, Y: 0, Z: 0, W: 1}
+                        Scale: {X: 64.0, Y: 1.0, Z: 64.0}
+                        Children: {}
+                    27ae05e12c575b06fd375a4c9073d027: !ModelComponent
+                        Id: C9C74444-2C55-43AB-980A-5F1F580960BE
+                        Model: 790FB53F-B672-405A-8CE8-7E83CFE50A9A:Ground
+                        Materials: {}
+                    183101240e66671c566133f5e938ce1c: !KotH.MapKit.MapObject
+                        Id: CB442EDE-8EC9-40B0-B6CB-B500FF088E30
+                        Shadows: Baked
+                        Collision: Mesh
+                        Template: Terrain
+                        TextureScale: 4.0
+        -   Entity:
+                Id: 82604914-7E2A-4EE1-9C0C-68EA5A5A2F89
+                Name: Hill
+                Components:
+                    0b06d37ed22b401b5557a6663c995870: !TransformComponent
+                        Id: 1EF172F7-219A-4368-8920-33600260BBD4
+                        Position: {X: 0.0, Y: 0.0, Z: 0.0}
+                        Rotation: {X: 0, Y: 0, Z: 0, W: 1}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: 
+                            ec81084f00ae79f42675cbff0a385193: ref!! 4561B99C-E7B6-46CC-A3D6-2BD52BEDCBC9
+                            797714f69f854530e67d3024a7c359b1: ref!! D356954D-DD6D-4B0F-A9B5-45157CEFD971
+                            a07890525c56ef8b50dfcfdb3dd81b9d: ref!! E223C279-685A-4D93-A834-471AEA359357
+                    df0614d93f4b64ea8fec2905cdeca278: !KotH.MapKit.MapObject
+                        Id: B11258A0-4816-477B-93DA-AAA7EC97BE40
+                        Shadows: Baked
+                        Collision: Mesh
+                        Template: Terrain
+                        TextureScale: 4.0
+        -   Entity:
+                Id: 7CFCF23F-4C72-454D-A40D-2CFFF089DF6A
+                Name: Step 1
+                Components:
+                    38f22e58d79f9d5f87d6fdd440653812: !TransformComponent
+                        Id: 4561B99C-E7B6-46CC-A3D6-2BD52BEDCBC9
+                        Position: {X: 0.0, Y: 0.75, Z: 0.0}
+                        Rotation: {X: 0, Y: 0, Z: 0, W: 1}
+                        Scale: {X: 12.0, Y: 1.5, Z: 12.0}
+                        Children: {}
+                    22b7a48191eddf14d853d0f0641c5455: !ModelComponent
+                        Id: 65154323-CCF8-4066-84BE-D1FB8BFFD154
+                        Model: E59417EF-C2D6-464D-8690-77D04FDEA6EA:Rock block
+                        Materials: {}
+        -   Entity:
+                Id: 4F977356-EA36-4A0A-AD8A-D8F3CEF051D1
+                Name: Step 2
+                Components:
+                    dafb4554bdd732e5a2d0fc94edf3c44d: !TransformComponent
+                        Id: D356954D-DD6D-4B0F-A9B5-45157CEFD971
+                        Position: {X: 0.0, Y: 2.25, Z: 0.0}
+                        Rotation: {X: 0, Y: 0, Z: 0, W: 1}
+                        Scale: {X: 8.0, Y: 1.5, Z: 8.0}
+                        Children: {}
+                    3ddc8442bfd28114e9a227d0450478fe: !ModelComponent
+                        Id: D5331718-62E3-4A0D-A922-5728B2092A85
+                        Model: E59417EF-C2D6-464D-8690-77D04FDEA6EA:Rock block
+                        Materials: {}
+        -   Entity:
+                Id: 12518613-27BC-4A1E-B5AA-EDED2DA24CCC
+                Name: Step 3
+                Components:
+                    da175cd14d4a24ad637380ed3af6e698: !TransformComponent
+                        Id: E223C279-685A-4D93-A834-471AEA359357
+                        Position: {X: 0.0, Y: 3.75, Z: 0.0}
+                        Rotation: {X: 0, Y: 0, Z: 0, W: 1}
+                        Scale: {X: 4.0, Y: 1.5, Z: 4.0}
+                        Children: {}
+                    cdb7957991853cdb957da3b000648b35: !ModelComponent
+                        Id: D6510219-7D92-42B2-B340-2F1A17187936
+                        Model: E59417EF-C2D6-464D-8690-77D04FDEA6EA:Rock block
+                        Materials: {}
+        -   Entity:
+                Id: 2903DCF6-6F4D-4BF2-B7CE-15D254890AEA
+                Name: Zone
+                Components:
+                    8a0e42ec4aedce83e0a1de6c3c60601a: !TransformComponent
+                        Id: A17BE102-0560-4F96-9BA8-95FE18478260
+                        Position: {X: 0.0, Y: 6.25, Z: 0.0}
+                        Rotation: {X: 0, Y: 0, Z: 0, W: 1}
+                        Scale: {X: 4.0, Y: 3.5, Z: 4.0}
+                        Children: {}
+                    21771e6cf53cf0a304899ae699fb3f3c: !ModelComponent
+                        Id: AA3F79F9-F2EC-4E75-82A3-E5CD5B10A798
+                        Model: E9D3E105-5EE0-43D5-BF78-1177C2CA49AD:Zone box (kit only)
+                        Materials: {}
+                    0be6b15a826db9c0f2c673fb57230afc: !KotH.MapKit.MapZone
+                        Id: 99DD1440-45E9-4C0A-8AA2-A213DFDC74B3
+                        CaptureSeconds: 3.0
+                        WinPoints: 100
+                        TimeLimitMinutes: 20.0
+                        RespawnBelow: -5.0
+                        RingInner: 0.0
+                        RingOuter: 0.0
+                        RingSpacing: 6.0
+                        WinPauseSeconds: 15.0
+                        CountdownSeconds: 60.0
+                        JoinSeconds: 60.0
+        -   Entity:
+                Id: 6FE41915-A6F4-4CB8-9192-5CCBBFFE45B2
+                Name: Spawn 1
+                Components:
+                    6e1f1b9e645ed479e4c8e5153301b873: !TransformComponent
+                        Id: 94FC0D23-1BD0-471D-BF43-88A308DC610F
+                        Position: {X: 20.0, Y: 0.0, Z: 20.0}
+                        Rotation: {X: 0, Y: 0, Z: 0, W: 1}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: 
+                            65c46cf4e0d69e3971183ec01d673ec4: ref!! D0723A49-254A-4B4E-B413-0C55D93D5C78
+                    bb180384cc4e04b70bba395ae5799e68: !KotH.MapKit.MapSpawn
+                        Id: D2E0F849-3706-42D5-9DBD-8E337E71CAF1
+                        FaceZone: true
+        -   Entity:
+                Id: 75548C48-7F70-4822-BC37-8A4F55979664
+                Name: Scale figure
+                Components:
+                    f50b282ecc6c30abd8e04689d809fad8: !TransformComponent
+                        Id: D0723A49-254A-4B4E-B413-0C55D93D5C78
+                        Position: {X: 0.0, Y: 0.9, Z: 0.0}
+                        Rotation: {X: 0, Y: 0.3826834, Z: 0, W: 0.9238795}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    2d82637bf1e8c8b6247e41266f5f0380: !ModelComponent
+                        Id: 50EAE85D-5943-449E-9099-6F4598562B12
+                        Model: 3944E5B3-7044-4626-9015-57CE9CBAE8C8:Scale figure (kit only)
+                        Materials: {}
+        -   Entity:
+                Id: D4B46EAD-879A-4404-9943-8A275A9D3B54
+                Name: Spawn 2
+                Components:
+                    a543000fbb40b7f4a7ccc8990c321bf2: !TransformComponent
+                        Id: 13EB854E-18E5-43C5-8BEE-82752A28BD31
+                        Position: {X: -20.0, Y: 0.0, Z: 20.0}
+                        Rotation: {X: 0, Y: 0, Z: 0, W: 1}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: 
+                            0fb8bbeb4c761dce313bf6d29b361dd7: ref!! 3AE5B36C-E53B-4F8C-8105-B6249838211E
+                    a3f31080c44f2e8aca87638590f90981: !KotH.MapKit.MapSpawn
+                        Id: 89407704-4FDD-462E-925A-3FE7BD52C48D
+                        FaceZone: true
+        -   Entity:
+                Id: 2948E5FC-3DA3-4162-98B1-B5B27C871D61
+                Name: Scale figure
+                Components:
+                    4681b1eeb0f1d62acf1ba655d63ec528: !TransformComponent
+                        Id: 3AE5B36C-E53B-4F8C-8105-B6249838211E
+                        Position: {X: 0.0, Y: 0.9, Z: 0.0}
+                        Rotation: {X: 0, Y: -0.3826834, Z: 0, W: 0.9238795}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    c164ae38e92794f4517b156e23ee41f2: !ModelComponent
+                        Id: 6B85A7DE-E559-40E9-90EC-F98E8950AA39
+                        Model: 3944E5B3-7044-4626-9015-57CE9CBAE8C8:Scale figure (kit only)
+                        Materials: {}
+        -   Entity:
+                Id: AC2FE1E1-D686-4C0F-9D24-2C865EB56C39
+                Name: Spawn 3
+                Components:
+                    9560cda25586489bd4ec79b4f675065c: !TransformComponent
+                        Id: D477F275-F650-412A-A731-932726E99532
+                        Position: {X: 20.0, Y: 0.0, Z: -20.0}
+                        Rotation: {X: 0, Y: 0, Z: 0, W: 1}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: 
+                            287c9b2046527275d271be48a71e3ce4: ref!! 70230474-37FE-4438-9B60-926E98D172AA
+                    cd3fb16b0f19b0af1d0dfe8f76e8b5fb: !KotH.MapKit.MapSpawn
+                        Id: 00577511-6EC3-47FA-BEF4-6069D335C1A1
+                        FaceZone: true
+        -   Entity:
+                Id: 0728FDC1-7A4B-4494-8D58-9C956F7AA8B9
+                Name: Scale figure
+                Components:
+                    ea97253b82c5c17c7f414de1af21bc0a: !TransformComponent
+                        Id: 70230474-37FE-4438-9B60-926E98D172AA
+                        Position: {X: 0.0, Y: 0.9, Z: 0.0}
+                        Rotation: {X: 0, Y: 0.9238795, Z: 0, W: 0.3826834}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    b00649b89051760b5ed6443e36d60cbe: !ModelComponent
+                        Id: 64D19F8C-3C24-46D7-9455-C4B0A1032622
+                        Model: 3944E5B3-7044-4626-9015-57CE9CBAE8C8:Scale figure (kit only)
+                        Materials: {}
+        -   Entity:
+                Id: 79868F95-0A5D-4FDA-953D-820BC13654C7
+                Name: Spawn 4
+                Components:
+                    c97af14aa0876fb6b2f3c180adb501c4: !TransformComponent
+                        Id: 52439B68-0F33-40AC-B4B1-A3EB1FA4F9A7
+                        Position: {X: -20.0, Y: 0.0, Z: -20.0}
+                        Rotation: {X: 0, Y: 0, Z: 0, W: 1}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: 
+                            f410eab0829ed3a1b6cb2493229338d7: ref!! DAB6AF81-1430-423F-A3E1-AB2FE17378B5
+                    33353c215c2c5b07d2dd765522898017: !KotH.MapKit.MapSpawn
+                        Id: 5F19B18A-B73B-4058-8E56-6668C10CCB72
+                        FaceZone: true
+        -   Entity:
+                Id: 2A918633-F92C-4E93-B458-D2D129274BE9
+                Name: Scale figure
+                Components:
+                    31e4721b26204abb5cffbb19430b9282: !TransformComponent
+                        Id: DAB6AF81-1430-423F-A3E1-AB2FE17378B5
+                        Position: {X: 0.0, Y: 0.9, Z: 0.0}
+                        Rotation: {X: 0, Y: -0.9238795, Z: 0, W: 0.3826834}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    fa66f9b0a271ca08df686a2354a801c9: !ModelComponent
+                        Id: C806C4C0-3430-4130-968C-73E6F3489DF2
+                        Model: 3944E5B3-7044-4626-9015-57CE9CBAE8C8:Scale figure (kit only)
+                        Materials: {}
+        -   Entity:
+                Id: 20009A3C-870C-488F-A781-CDF5728ED2BD
+                Name: Pillar (live shadow)
+                Components:
+                    5c408f0b10fda21c2aed2e9635308965: !TransformComponent
+                        Id: 81B5B503-3519-42D0-BDAC-EAB51600E8AB
+                        Position: {X: 10.0, Y: 3.0, Z: -8.0}
+                        Rotation: {X: 0, Y: 0, Z: 0, W: 1}
+                        Scale: {X: 2.0, Y: 6.0, Z: 2.0}
+                        Children: {}
+                    c88128b270641270cc08a827d3f0089d: !ModelComponent
+                        Id: 10ADD2C0-BBBE-4164-8DA4-B434B4844A96
+                        Model: E819C196-7C1B-46AA-B513-A41D82E47B84:Pillar
+                        Materials: {}
+                    f114a8811217ca880a0d24197878f3ca: !KotH.MapKit.MapObject
+                        Id: ED07AE25-5417-44E2-BC9D-F8448BFB73AC
+                        Shadows: Live
+                        Collision: Mesh
+                        Template: Surface
+                        TextureScale: 4.0
+        -   Entity:
+                Id: 99935109-E436-40CA-B385-9EB727712283
+                Name: Crates
+                Components:
+                    f142f57eccd9e5a2e10fe14d9666052d: !TransformComponent
+                        Id: F13F871F-61C4-49B3-BC68-D829A68A0600
+                        Position: {X: 0.0, Y: 0.0, Z: 0.0}
+                        Rotation: {X: 0, Y: 0, Z: 0, W: 1}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: 
+                            1f1a215c0b7b80040b71cd907ac0215f: ref!! 325E9CE1-87C1-47FC-90CA-E863A47201F1
+                            69cc16d8852cf8e374a57ea9551d88bf: ref!! 07CC91C2-1620-4988-9A5A-78E15F65D39B
+        -   Entity:
+                Id: 29018E65-B5B3-402E-8260-DA3FEAC32483
+                Name: Crate 1
+                Components:
+                    cf478fa32957e45037cc0f97828e177f: !TransformComponent
+                        Id: 325E9CE1-87C1-47FC-90CA-E863A47201F1
+                        Position: {X: 9.0, Y: 1.0, Z: 6.0}
+                        Rotation: {X: 0, Y: 0.1736482, Z: 0, W: 0.9848078}
+                        Scale: {X: 2.0, Y: 2.0, Z: 2.0}
+                        Children: {}
+                    9922437b5922a898bb3cbcafe0c6c688: !ModelComponent
+                        Id: E6F6413C-5DCA-499B-883F-3AA530300457
+                        Model: 4F56E1F3-5887-4359-88BA-6572AB204005:Crate
+                        Materials: {}
+        -   Entity:
+                Id: E520261B-81BB-4650-9462-6B5814CD47B2
+                Name: Crate 2
+                Components:
+                    45f26c176c30b4404c4adc59ed3e4dc4: !TransformComponent
+                        Id: 07CC91C2-1620-4988-9A5A-78E15F65D39B
+                        Position: {X: 11.2, Y: 0.6, Z: 7.5}
+                        Rotation: {X: 0, Y: -0.08715574, Z: 0, W: 0.9961947}
+                        Scale: {X: 1.2, Y: 1.2, Z: 1.2}
+                        Children: {}
+                    7bfaf4f2878d963c8c37f4b2c7ed9283: !ModelComponent
+                        Id: BE0FDA23-B491-4B1F-81D3-0C461F0ECE90
+                        Model: 4F56E1F3-5887-4359-88BA-6572AB204005:Crate
+                        Materials: {}
+        -   Entity:
+                Id: A52B2D05-1137-4829-A987-BA74A810796E
+                Name: Bush
+                Components:
+                    aa2ee489531f7acf5c6abe0e0ec10163: !TransformComponent
+                        Id: 55BC327B-FF0F-4782-98BD-075C328E3B69
+                        Position: {X: -10.0, Y: 0.0, Z: -10.0}
+                        Rotation: {X: 0, Y: 0, Z: 0, W: 1}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: 
+                            60071851985e0887388dd0daa04a8e64: ref!! A07E3897-20CE-4CB8-B1EA-27FD9AF8A346
+                            6575d6dc22dbdd4341f6bb040baf5369: ref!! 7BA0C420-4B35-4EFF-B199-4897241EC550
+                    5e2805009990cccee9bdfe6ab00a9805: !KotH.MapKit.MapObject
+                        Id: 54C0162B-1360-43B9-8E2E-C67EC6F71569
+                        Shadows: Baked
+                        Collision: None
+                        Template: Leaves
+                        TextureScale: 4.0
+        -   Entity:
+                Id: 2BE99771-4D7F-43CA-8466-2E5E4C906C26
+                Name: Card 1
+                Components:
+                    65c16a0c586acc35a400fb9b66c66d0b: !TransformComponent
+                        Id: A07E3897-20CE-4CB8-B1EA-27FD9AF8A346
+                        Position: {X: 0.0, Y: 1.0, Z: 0.0}
+                        Rotation: {X: 0.7071068, Y: 0, Z: 0, W: 0.7071068}
+                        Scale: {X: 2.0, Y: 1.0, Z: 2.0}
+                        Children: {}
+                    48fa1d0a9601d23155a1b8c6e0b386ac: !ModelComponent
+                        Id: 58DF20E7-E87B-4579-B0A0-4303E28536DE
+                        Model: 8D4D1F8E-E0AC-4DA7-8FED-4E0980629D8D:Leaf card
+                        Materials: {}
+        -   Entity:
+                Id: 70195C20-B41F-48B7-95CC-F9FDF261FDB2
+                Name: Card 2
+                Components:
+                    4a7318a9c294e73fcd9eaa80a22e6ef1: !TransformComponent
+                        Id: 7BA0C420-4B35-4EFF-B199-4897241EC550
+                        Position: {X: 0.0, Y: 1.0, Z: 0.0}
+                        Rotation: {X: 0.5, Y: 0.5, Z: -0.5, W: 0.5}
+                        Scale: {X: 2.0, Y: 1.0, Z: 2.0}
+                        Children: {}
+                    d46273be66c34fa4c500faba7dbeed71: !ModelComponent
+                        Id: F0506857-DD8F-44FB-A113-72E2F8AAFB18
+                        Model: 8D4D1F8E-E0AC-4DA7-8FED-4E0980629D8D:Leaf card
+                        Materials: {}
+        -   Entity:
+                Id: DE9A7BE4-9827-49F8-A2FF-BCF889BDD7A1
+                Name: Pond
+                Components:
+                    56a94a0a95d853f7c6ddef44348f6811: !TransformComponent
+                        Id: 6D5CA348-D93E-4A4C-B668-3B08BC8C6483
+                        Position: {X: -14.0, Y: 0.05, Z: 12.0}
+                        Rotation: {X: 0, Y: 0, Z: 0, W: 1}
+                        Scale: {X: 8.0, Y: 1.0, Z: 8.0}
+                        Children: {}
+                    796e5b2efcc24221394c763cec274e72: !ModelComponent
+                        Id: EE801542-D391-473A-984D-AD0C948A2BCE
+                        Model: E7C69DE7-C552-433A-BDA2-F8190042FDE2:Water plane
+                        Materials: {}
+                    43bba9fd0197af35bfcc44be04776495: !KotH.MapKit.MapObject
+                        Id: E8442322-9BAD-4556-9C7A-38EC0FAF05C7
+                        Shadows: Off
+                        Collision: None
+                        Template: Water
+                        TextureScale: 4.0
+        -   Entity:
+                Id: 84D4752C-C9F7-4960-9F8B-49047DFBD792
+                Name: Bounds 256 m (kit only)
+                Components:
+                    bb5350547f02220dd14fcb81f82a62ab: !TransformComponent
+                        Id: 1FE137CB-73A4-43D7-819E-DBD995DB9B51
+                        Position: {X: 0.0, Y: 0.0, Z: 0.0}
+                        Rotation: {X: 0, Y: 0, Z: 0, W: 1}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: 
+                            ad8d7bd07fe7c9defbf317eb5e6bd8c4: ref!! B7FB495D-67F0-4CCA-8AF3-A80C41153C09
+                            9f1bfa43079ec35d79c83ad8bc75dafb: ref!! 7A30689C-FB73-4FD5-98E8-1C42337A2518
+                            a904c13502c8f819136907e04ab43dfb: ref!! 151DECEC-C3E7-4C3E-8294-B92F345720DF
+                            9a1e8477a05ef992fa5571fcee1e85df: ref!! 0C3D93D7-517E-463C-A463-B5189C596C5D
+                            e33bbe6656a2635325da10c7fd0a783d: ref!! 9D816A57-BD11-48AD-9953-C0803B93F379
+                            cdc87f556a5ceae399f1bda55aad6283: ref!! C6D73D75-99B0-49A4-B714-0D5DD9DB69B8
+                            a153e2addaf1b1ea516a50ea7c5884b8: ref!! B28530B2-C6B1-4FF8-9957-6344EB4B2E9F
+                            38dfaa8d8b3e41e7b2150273c7e5a87b: ref!! 5D491D3D-013E-44FF-8140-FF4462B4B31B
+                            917989046309581aa319ff31cae42f59: ref!! BFA8A0AA-1E9B-444C-A3F0-B1852840C117
+                            d20f3c54fb43294f74e6f9f8203f75ac: ref!! 5C213965-C820-444F-9160-12521AE119EC
+                            d4d844804a72feeef71873f55d7bad2c: ref!! 4D3C7CC3-45C9-41A9-9DD7-5CC9AACD394E
+                            2c8300f7bbd594f21a68805d4d842d75: ref!! 76DD34CB-173A-4ABB-A492-559B5C29444D
+                    2d42c7c219ecadb74cb755f7ef55e654: !KotH.MapKit.MapIgnore
+                        Id: B84CACC0-AAB7-4DBE-8E0A-28C148F3E4F0
+        -   Entity:
+                Id: 8DBD5AB5-7231-4280-9809-5D6943BF95C5
+                Name: Edge 1
+                Components:
+                    ccfdd5157b53a1875712d70f7efd3d61: !TransformComponent
+                        Id: B7FB495D-67F0-4CCA-8AF3-A80C41153C09
+                        Position: {X: 0.0, Y: -20.0, Z: -128.0}
+                        Rotation: {X: 0, Y: 0, Z: 0, W: 1}
+                        Scale: {X: 256.0, Y: 0.3, Z: 0.3}
+                        Children: {}
+                    7620912199415dffd9e4ecd8bde0564c: !ModelComponent
+                        Id: 71ED67FE-EC98-40E8-8DAC-DE1190059DF8
+                        Model: 6A19E7AD-CEA0-4C7D-A6F2-5C71BE20498A:Bounds edge (kit only)
+                        Materials: {}
+        -   Entity:
+                Id: ABABBA29-2A53-41FC-ADC5-A7029ECC8E15
+                Name: Edge 2
+                Components:
+                    5eaeaf0ff86e8604b345595fd5e6dfa0: !TransformComponent
+                        Id: 7A30689C-FB73-4FD5-98E8-1C42337A2518
+                        Position: {X: 0.0, Y: -20.0, Z: 128.0}
+                        Rotation: {X: 0, Y: 0, Z: 0, W: 1}
+                        Scale: {X: 256.0, Y: 0.3, Z: 0.3}
+                        Children: {}
+                    f75aa35e6684119d18fba6a54f0a0c6a: !ModelComponent
+                        Id: 2F39D7EA-B86F-4EC4-87A4-F759D32A336A
+                        Model: 6A19E7AD-CEA0-4C7D-A6F2-5C71BE20498A:Bounds edge (kit only)
+                        Materials: {}
+        -   Entity:
+                Id: D4B83ACE-D04B-47C5-BF3A-BB27FE393210
+                Name: Edge 3
+                Components:
+                    a1affcf2d6d60ccf1618be72414c235a: !TransformComponent
+                        Id: 151DECEC-C3E7-4C3E-8294-B92F345720DF
+                        Position: {X: 0.0, Y: 236.0, Z: -128.0}
+                        Rotation: {X: 0, Y: 0, Z: 0, W: 1}
+                        Scale: {X: 256.0, Y: 0.3, Z: 0.3}
+                        Children: {}
+                    9046e8fe68f4361a1f8d5043fb3b9408: !ModelComponent
+                        Id: B0B7A4EE-BF6E-4246-AA51-1ED1BE77BB5E
+                        Model: 6A19E7AD-CEA0-4C7D-A6F2-5C71BE20498A:Bounds edge (kit only)
+                        Materials: {}
+        -   Entity:
+                Id: 5C546BD5-0684-4628-B6F8-AD87705B97EB
+                Name: Edge 4
+                Components:
+                    fab4be7677f3ee2df340226a8954a6d4: !TransformComponent
+                        Id: 0C3D93D7-517E-463C-A463-B5189C596C5D
+                        Position: {X: 0.0, Y: 236.0, Z: 128.0}
+                        Rotation: {X: 0, Y: 0, Z: 0, W: 1}
+                        Scale: {X: 256.0, Y: 0.3, Z: 0.3}
+                        Children: {}
+                    9f564f36256b45a60ef528226477d6a2: !ModelComponent
+                        Id: C80D879D-DFAE-4D3D-8085-E0A51C709897
+                        Model: 6A19E7AD-CEA0-4C7D-A6F2-5C71BE20498A:Bounds edge (kit only)
+                        Materials: {}
+        -   Entity:
+                Id: 80B995A4-327C-48B0-B4DD-9C6D5296C595
+                Name: Edge 5
+                Components:
+                    899f5840e5aaa1cc37bc772badc5158a: !TransformComponent
+                        Id: 9D816A57-BD11-48AD-9953-C0803B93F379
+                        Position: {X: -128.0, Y: 108.0, Z: -128.0}
+                        Rotation: {X: 0, Y: 0, Z: 0, W: 1}
+                        Scale: {X: 0.3, Y: 256.0, Z: 0.3}
+                        Children: {}
+                    868b80f04b87c8499c9fc7072d5b627c: !ModelComponent
+                        Id: 6788F2FA-875C-49B9-9363-530631A68DE3
+                        Model: 6A19E7AD-CEA0-4C7D-A6F2-5C71BE20498A:Bounds edge (kit only)
+                        Materials: {}
+        -   Entity:
+                Id: E55EFB5A-1D7E-40F5-97D1-5626AB6132D3
+                Name: Edge 6
+                Components:
+                    8841ac61edff81b14cf03d7ad12306cf: !TransformComponent
+                        Id: C6D73D75-99B0-49A4-B714-0D5DD9DB69B8
+                        Position: {X: -128.0, Y: 108.0, Z: 128.0}
+                        Rotation: {X: 0, Y: 0, Z: 0, W: 1}
+                        Scale: {X: 0.3, Y: 256.0, Z: 0.3}
+                        Children: {}
+                    4c09cdca200e7f5d7768b788df7b5cc9: !ModelComponent
+                        Id: EDBE9BDB-575C-49AC-A7B7-32E502C94FDD
+                        Model: 6A19E7AD-CEA0-4C7D-A6F2-5C71BE20498A:Bounds edge (kit only)
+                        Materials: {}
+        -   Entity:
+                Id: 6F4857EE-644F-4420-A628-07873DA057CB
+                Name: Edge 7
+                Components:
+                    860d3e9ff3f223245bd97a502faf9ddd: !TransformComponent
+                        Id: B28530B2-C6B1-4FF8-9957-6344EB4B2E9F
+                        Position: {X: 128.0, Y: 108.0, Z: -128.0}
+                        Rotation: {X: 0, Y: 0, Z: 0, W: 1}
+                        Scale: {X: 0.3, Y: 256.0, Z: 0.3}
+                        Children: {}
+                    6a4c6ee116c2d1cebc3bcb31334a3d55: !ModelComponent
+                        Id: C9AABF79-52D1-4DA5-8755-2153922BD1C6
+                        Model: 6A19E7AD-CEA0-4C7D-A6F2-5C71BE20498A:Bounds edge (kit only)
+                        Materials: {}
+        -   Entity:
+                Id: 4947E6B5-1D9B-4B58-B904-FD58778D7057
+                Name: Edge 8
+                Components:
+                    f6cfcc77efd98388ac2c59c9d8a7086a: !TransformComponent
+                        Id: 5D491D3D-013E-44FF-8140-FF4462B4B31B
+                        Position: {X: 128.0, Y: 108.0, Z: 128.0}
+                        Rotation: {X: 0, Y: 0, Z: 0, W: 1}
+                        Scale: {X: 0.3, Y: 256.0, Z: 0.3}
+                        Children: {}
+                    9bae78b4db2cab1a92834a19881765dd: !ModelComponent
+                        Id: 7429BB10-0249-4D3B-A544-B66433AC7243
+                        Model: 6A19E7AD-CEA0-4C7D-A6F2-5C71BE20498A:Bounds edge (kit only)
+                        Materials: {}
+        -   Entity:
+                Id: B1BC3B98-A034-4258-8D10-50C93AC799CC
+                Name: Edge 9
+                Components:
+                    cb17dbfac6c51f4ac5acb48500a5bfdf: !TransformComponent
+                        Id: BFA8A0AA-1E9B-444C-A3F0-B1852840C117
+                        Position: {X: -128.0, Y: -20.0, Z: 0.0}
+                        Rotation: {X: 0, Y: 0, Z: 0, W: 1}
+                        Scale: {X: 0.3, Y: 0.3, Z: 256.0}
+                        Children: {}
+                    3f949d356ac1d3617bfe92e5da7d3b2d: !ModelComponent
+                        Id: 3321B0EE-B0A5-444C-9B71-4F76823E1079
+                        Model: 6A19E7AD-CEA0-4C7D-A6F2-5C71BE20498A:Bounds edge (kit only)
+                        Materials: {}
+        -   Entity:
+                Id: 72F79F26-ECAF-4F72-8C52-203473BF119A
+                Name: Edge 10
+                Components:
+                    822da9a992dc9d00abf7f8d8d05dd058: !TransformComponent
+                        Id: 5C213965-C820-444F-9160-12521AE119EC
+                        Position: {X: -128.0, Y: 236.0, Z: 0.0}
+                        Rotation: {X: 0, Y: 0, Z: 0, W: 1}
+                        Scale: {X: 0.3, Y: 0.3, Z: 256.0}
+                        Children: {}
+                    9968a2111a636f0eaaabc7731fe79d02: !ModelComponent
+                        Id: 725C59E7-7108-43B9-B951-0F0D916079A7
+                        Model: 6A19E7AD-CEA0-4C7D-A6F2-5C71BE20498A:Bounds edge (kit only)
+                        Materials: {}
+        -   Entity:
+                Id: 479A3AE9-457A-47A9-935D-565561270E07
+                Name: Edge 11
+                Components:
+                    3e58ef074f35f30eaa3913a460ac9e56: !TransformComponent
+                        Id: 4D3C7CC3-45C9-41A9-9DD7-5CC9AACD394E
+                        Position: {X: 128.0, Y: -20.0, Z: 0.0}
+                        Rotation: {X: 0, Y: 0, Z: 0, W: 1}
+                        Scale: {X: 0.3, Y: 0.3, Z: 256.0}
+                        Children: {}
+                    d5e9d2dcbc2db5724ef9db70223312ea: !ModelComponent
+                        Id: DC4EE634-EED8-4326-A95C-EB68EBCB869D
+                        Model: 6A19E7AD-CEA0-4C7D-A6F2-5C71BE20498A:Bounds edge (kit only)
+                        Materials: {}
+        -   Entity:
+                Id: 3CAE39A6-6F14-4747-8A20-4EF70D18553E
+                Name: Edge 12
+                Components:
+                    5c7e74efb71a8d687fda3257e759d353: !TransformComponent
+                        Id: 76DD34CB-173A-4ABB-A492-559B5C29444D
+                        Position: {X: 128.0, Y: 236.0, Z: 0.0}
+                        Rotation: {X: 0, Y: 0, Z: 0, W: 1}
+                        Scale: {X: 0.3, Y: 0.3, Z: 256.0}
+                        Children: {}
+                    e3e0a84b0faf5222c47326c79cdb6cab: !ModelComponent
+                        Id: B1F52C19-A9E2-4E8E-BF2C-68EDD6909F26
+                        Model: 6A19E7AD-CEA0-4C7D-A6F2-5C71BE20498A:Bounds edge (kit only)
+                        Materials: {}

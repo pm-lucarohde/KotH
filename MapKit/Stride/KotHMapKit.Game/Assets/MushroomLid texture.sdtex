@@ -1,0 +1,9 @@
+!Texture
+Id: 66BADADD-8E15-4F8B-99AD-F0F20851B023
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../Resources/MushroomLid.png
+IsCompressed: true
+IsStreamable: false
+Type: !ColorTextureType
+    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}

@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>KotH.MapKit.Linux</RootNamespace>
+    <AssemblyName>KotHMapKit</AssemblyName>
+    <OutputPath>..\Bin\Linux\$(Configuration)\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <DisableFastUpToDateCheck>true</DisableFastUpToDateCheck>
+    <StrideCurrentPackagePath>$(MSBuildThisFileDirectory)..\KotHMapKit.Game\KotHMapKit.Game.sdpkg</StrideCurrentPackagePath>
+    <StridePlatform>Linux</StridePlatform>
+    <StrideGraphicsApi>Vulkan</StrideGraphicsApi>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\KotHMapKit.Game\KotHMapKit.Game.csproj" />
+  </ItemGroup>
+</Project>

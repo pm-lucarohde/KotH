@@ -1,0 +1,9 @@
+!Texture
+Id: 66A15447-B7B4-4FA9-9474-C09A3A4C4D21
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../Resources/Mushroom.png
+IsCompressed: true
+IsStreamable: false
+Type: !ColorTextureType
+    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}

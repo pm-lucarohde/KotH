@@ -1,0 +1,24 @@
+!GameSettingsAsset
+Id: BBE32829-8148-4F3D-A6E1-6F53DF904953
+SerializedVersion: {Stride: 3.1.0.1}
+Tags: []
+DefaultScene: 20DF53F1-DFFB-43B7-90DD-90021E663E2E:MyMap
+GraphicsCompositor: 90F95193-2C91-4A42-A506-930D4C964C45:GraphicsCompositor
+Defaults:
+    - !Stride.Audio.AudioEngineSettings,Stride.Audio
+        HrtfSupport: false
+    - !Stride.Assets.EditorSettings,Stride.Assets
+        RenderingMode: HDR
+    - !Stride.Graphics.RenderingSettings,Stride.Graphics
+        DefaultBackBufferWidth: 1280
+        DefaultBackBufferHeight: 720
+        AdaptBackBufferToScreen: false
+        DefaultGraphicsProfile: Level_11_0
+        ColorSpace: Linear
+        DisplayOrientation: Default
+    - !Stride.Streaming.StreamingSettings,Stride.Rendering
+        Enabled: false
+    - !Stride.Assets.Textures.TextureSettings,Stride.Assets
+        TextureQuality: Fast
+SplashScreenTexture: null
+SplashScreenColor: {R: 0, G: 0, B: 0, A: 255}
