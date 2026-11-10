@@ -1,0 +1,73 @@
+!PrefabAsset
+Id: F9B7EB49-EEF4-4DFF-863F-3AB9FA64CD03
+SerializedVersion: {Stride: 3.1.0.1}
+Tags: []
+Hierarchy:
+    RootParts:
+        - ref!! 7BADA017-E434-4D36-84C8-A2E3676BB3F3
+    Parts:
+        -   Entity:
+                Id: 7BADA017-E434-4D36-84C8-A2E3676BB3F3
+                Name: CustomVisual
+                Components:
+                    9b641ddd85e6469cb4fa70a6f19f36aa: !TransformComponent
+                        Id: A4769DE4-FAD9-41D5-B1D0-5EFEE2E7B4F6
+                        Position: {X: 0.0, Y: 0.0, Z: 0.0}
+                        Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children:
+                            0fcffb45403949808f6c0363de5eabfe: ref!! 2E7D623D-0999-4E05-8971-A8EA6B21E890
+                    1d3eb51a4d6c44f2838edc817cfbf1f8: !KotH.Client.Rendering.Atmosphere,KotH.Game
+                        Id: D48D0BE3-013C-4AE6-8336-BF4C0D47757A
+                        CloudMap: 8BA09DCC-912C-49F1-8FBE-495F36149FAB:Textures/CloudMap
+                    e5d069aad0e247e1a8fc9dfe62f2efe8: !KotH.CustomMapVisual
+                        Id: D0A902CC-28E8-4318-9567-2813B914CB79
+                        Surface: D7C7263F-D59B-4598-9399-9457B27ADCFE:Materials/MapKit/MapSurface
+                        Leaves: D74A1FB1-1210-4706-95DC-665667FB4319:Materials/MapKit/MapLeaves
+                        Water: 91EBDB63-CFF5-4D49-8B1D-A103DE3D4804:Materials/MapKit/MapWater
+        -   Entity:
+                Id: DE245A2C-BE31-4F9F-A50B-1A010D3E183F
+                Name: GI
+                Components:
+                    430342c3fad74e228ba0af72703fd4ac: !TransformComponent
+                        Id: 2E7D623D-0999-4E05-8971-A8EA6B21E890
+                        Position: {X: 0.0, Y: 60.0, Z: 0.0}
+                        Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    8d6b72dc3c614530a531d74d3b46f4a7: !Stride.Rendering.Voxels.VoxelVolumeComponent,Stride.Voxels
+                        Id: AD5BA8C1-2EDC-4B4E-97C2-8D40D7137332
+                        Voxelize: false
+                        VoxelizationMethod: !Stride.Rendering.Voxels.VoxelizationMethodDominantAxis,Stride.Voxels {}
+                        Storage: !Stride.Rendering.Voxels.VoxelStorageSparse,Stride.Voxels {}
+                        Attributes:
+                            86b32be0c3694d3d94b8bccd809037c7: !Stride.Rendering.Voxels.VoxelAttributeEmissionOpacity,Stride.Voxels
+                                VoxelLayout: !Stride.Rendering.Voxels.VoxelLayoutIsotropic,Stride.Voxels
+                                    StorageFormat: RGBA8
+                                    maxBrightness: 2.0
+                                Modifiers: {}
+                        VoxelVolumeSize: 256.0
+                        AproximateVoxelSize: 0.125
+                        VoxelGridSnapping: true
+                        StaticGroups: Group3
+                        VisualizeVoxels: false
+                        VisualizeIndex: 0
+                    c265537768714444a3cacce167e76346: !LightComponent
+                        Id: CBF9765B-8701-4DF9-99A6-9650C0838011
+                        Type: !Stride.Rendering.Voxels.VoxelGI.LightVoxel,Stride.Voxels
+                            Volume: ref!! AD5BA8C1-2EDC-4B4E-97C2-8D40D7137332
+                            AttributeIndex: 0
+                            DiffuseMarcher: !Stride.Rendering.Voxels.VoxelMarchSetHemisphere6,Stride.Voxels
+                                Marcher: !Stride.Rendering.Voxels.VoxelMarchConePerMipmap,Stride.Voxels
+                                    Steps: 7
+                            BounceIntensityScale: 0.0
+                            SpecularIntensityScale: 0.0
+                            Sky: F9A75D1E-7197-4A46-90CF-5A7F970DCDCA:Skybox
+                            SkyIntensity: 0.195
+                            LightmapSize: 4096
+                        Intensity: 0.27
+                    4c7bef6f4b344b2da49b63b3a6864009: !KotH.Client.Rendering.BakeVoxels,KotH.Game
+                        Id: 69E829AC-8F47-43AC-A24A-C48013337303
+                        Frames: 2
+                    e19a2389d6764d69b2ca8a911cc4c83e: !KotH.Client.Rendering.FigureOccluders,KotH.Game
+                        Id: D75EE216-B41A-401C-B658-66E6BB3B48FC

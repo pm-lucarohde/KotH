@@ -5,7 +5,7 @@
 // The sample custom map, as a kit would export it: a 48 m meadow with a stepped tower (zone on
 // top), crates and a pillar; four spawns facing the zone. Writes the package the probe
 // `custommap` loads; with --install also into the player's map folder (KotH's Maps page).
-//   dotnet run Tools/maps/SampleMap.cs [-- --install]
+//   dotnet run Tools/maps/SampleMap.cs [-- --install | --live DIR]
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -22,7 +22,10 @@ model.Materials.Add(new MapMaterial { Name = "Meadow", Template = "Terrain", Col
 model.Materials.Add(new MapMaterial { Name = "Stone", Template = "Terrain", Color = [0.55f, 0.53f, 0.5f, 1f], TextureScale = 4f });
 model.Materials.Add(new MapMaterial { Name = "Crate", Template = "Surface", Color = [1f, 1f, 1f, 1f], ColorTexture = 0, Roughness = 0.9f });
 model.Materials.Add(new MapMaterial { Name = "Pillar", Template = "Surface", Color = [0.8f, 0.3f, 0.25f, 1f], Roughness = 0.5f });
+model.Materials.Add(new MapMaterial { Name = "Pond", Template = "Water" });
+model.Materials.Add(new MapMaterial { Name = "Bush", Template = "Leaves", Color = [0.35f, 0.6f, 0.25f, 1f], ColorTexture = 1 });
 model.Textures.Add(Checker());
+model.Textures.Add(Blob());
 
 Box("Ground", 0, -24, -1, -24, 24, 0, 24);
 for (int step = 0; step < 5; step++)
@@ -34,6 +37,10 @@ Box("Crate1", 2, 12, 0, 4, 14, 2, 6, MapShadows.Baked);
 Box("Crate2", 2, -14, 0, -7, -12, 1.2f, -5, MapShadows.Baked);
 Box("Crate3", 2, 4, 0, 13, 6, 2, 15, MapShadows.Baked);
 Box("Pillar", 3, -15, 0, 12, -13, 6, 14, MapShadows.Live);
+// A pond on the meadow and a bush of two crossed cards, neither solid.
+Quad("Pond", 4, [-20f, 0.04f, -20f], [-20f, 0.04f, -14f], [-14f, 0.04f, -14f], [-14f, 0.04f, -20f], MapShadows.Off);
+Quad("BushA", 5, [17f, 0f, -12f], [19f, 0f, -12f], [19f, 2f, -12f], [17f, 2f, -12f], MapShadows.Baked);
+Quad("BushB", 5, [18f, 0f, -13f], [18f, 0f, -11f], [18f, 2f, -11f], [18f, 2f, -13f], MapShadows.Baked);
 // An invisible wall round the edge: the meadow ends at a drop otherwise.
 Box("EdgeNorth", 0, -24, 0, -25, 24, 3, -24, MapShadows.Off, MapCollide.Only);
 
@@ -49,6 +56,15 @@ foreach (var (x, z) in new[] { (16f, 16f), (-16f, 16f), (16f, -16f), (-16f, -16f
     manifest.Spawns.Add(new MapSpawn { X = x, Y = 0f, Z = z });
 
 string folder = Path.Combine(root, "KotH.Probes/Resources/MapPackages/Sample");
+// --live DIR: every object's shadow live, written to DIR instead (a test of the cascades).
+int live = Array.IndexOf(args, "--live");
+if (live >= 0)
+{
+    foreach (MapMesh m in model.Meshes)
+        if (m.Shadows == MapShadows.Baked)
+            m.Shadows = MapShadows.Live;
+    folder = Path.GetFullPath(args[live + 1]);
+}
 var result = MapBuilder.Write(folder, manifest, model, Preview(), LightmapUnwrap.Run, "The sample");
 foreach (string w in result.Warnings)
     Console.WriteLine("warning: " + w);
@@ -96,6 +112,39 @@ void Box(string name, int material, float x0, float y0, float z0, float x1, floa
         Name = name, Material = material, Shadows = shadows, Collide = collide,
         Positions = [.. p], Normals = [.. n], Uv0 = [.. uv], Indices = [.. idx],
     });
+}
+
+// One flat card (counter-clockwise as given), UV over its corners, facing its normal.
+void Quad(string name, int material, float[] a, float[] b, float[] c, float[] d, MapShadows shadows)
+{
+    float ux = b[0] - a[0], uy = b[1] - a[1], uz = b[2] - a[2], vx = d[0] - a[0], vy = d[1] - a[1], vz = d[2] - a[2];
+    float nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+    float len = MathF.Sqrt(nx * nx + ny * ny + nz * nz);
+    model.Meshes.Add(new MapMesh
+    {
+        Name = name, Material = material, Shadows = shadows, Collide = MapCollide.None,
+        Positions = [.. a, .. b, .. c, .. d],
+        Normals = [nx / len, ny / len, nz / len, nx / len, ny / len, nz / len, nx / len, ny / len, nz / len, nx / len, ny / len, nz / len],
+        Uv0 = [0, 1, 1, 1, 1, 0, 0, 0],
+        Indices = [0, 1, 2, 0, 2, 3],
+    });
+}
+
+// A leafy blob: white with alpha, round lobes cut out of a 128² card.
+static byte[] Blob()
+{
+    var png = new Png(128, 128, 4);
+    for (int y = 0; y < 128; y++)
+        for (int x = 0; x < 128; x++)
+        {
+            float dx = (x - 64) / 64f, dy = (y - 70) / 58f;
+            float lobes = 0.8f + 0.2f * MathF.Cos(7f * MathF.Atan2(dy, dx));
+            bool inside = dx * dx + dy * dy < lobes * lobes;
+            int i = (y * 128 + x) * 4;
+            png.Pixels[i] = png.Pixels[i + 1] = png.Pixels[i + 2] = (byte)(200 + (x * 7 + y * 3) % 55);
+            png.Pixels[i + 3] = (byte)(inside ? 255 : 0);
+        }
+    return png.Encode();
 }
 
 // Planks: a 64² wood checker.

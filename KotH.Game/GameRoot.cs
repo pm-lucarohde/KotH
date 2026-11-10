@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using KotH.Client.Audio;
+using KotH.Client.CustomMaps;
 using KotH.Client.Hud;
 using KotH.Client.Match;
 using KotH.Client.Menu;
@@ -531,10 +532,12 @@ namespace KotH.Client
             builder.LoadArena(map);
             if (builder.Zone != null)
                 simulation.Match = new HillMatch(builder.Zone) { Seed = (uint)Random.Shared.Next(), Mode = LaunchOptions.Current.Mode };  // a guest takes the host's
-            string url = MapPackage.IsId(map) ? null : Maps.VisualUrl(map);
-            if (url != null && Content.Exists(url))
+            string url = VisualUrl(map);
+            if (Content.Exists(url))
             {
                 List<Entity> loaded = Content.Load<Prefab>(url).Instantiate();
+                if (builder.Package != null)
+                    BuildCustom(builder.Package, loaded[0]);
                 long cullAt = StartLog.Now;
                 StartLog.Took($"map meshes sorted into {MapCulling.Split(loaded, Services, GraphicsDevice)} clusters", cullAt);
                 foreach (Entity e in loaded)
@@ -554,6 +557,35 @@ namespace KotH.Client
             StartLog.Took($"map {map} loaded", loadAt);
         }
 
+        /// <summary>The prefab of what a map shows: its own, or for every custom map the shared one
+        /// (light, atmosphere, material templates) that CustomMapVisual fills from the package.</summary>
+        static string VisualUrl(string map) => MapPackage.IsId(map) ? CustomVisualUrl : Maps.VisualUrl(map);
+
+        const string CustomVisualUrl = "Maps/Custom/CustomVisual";
+
+        /// <summary>The package's models under the shared prefab, the light's cube centred on them;
+        /// a broken map.glb leaves the map unseen but playable (logged).</summary>
+        void BuildCustom(MapPackage package, Entity root)
+        {
+            long at = StartLog.Now;
+            CustomMapVisual look = root.Get<CustomMapVisual>();
+            try
+            {
+                look.Build(package, GraphicsDevice);
+            }
+            catch (Exception e) when (e is IOException || e is InvalidDataException || e is FormatException || e is System.Text.Json.JsonException
+                                      || e is KeyNotFoundException || e is InvalidOperationException || e is IndexOutOfRangeException)
+            {
+                Log.Error($"Map {package.Id}: {MapPackage.ModelFile} unreadable: {e.Message}");
+                return;
+            }
+            foreach (TransformComponent child in root.Transform.Children)
+                if (child.Entity.Name == "GI" && look.Bounds.Minimum.X <= look.Bounds.Maximum.X)
+                    child.Position = look.Bounds.Center;
+            var (objects, models, triangles) = look.Counts;
+            StartLog.Took($"custom map {package.Manifest.Title}: {objects} objects in {models} models, {triangles} triangles", at);
+        }
+
         /// <summary>Takes the loaded map down for another, with no body left: what is drawn of it
         /// (its scripts and the voxel light free their GPU memory), its colliders and its round.
         /// The load screen covers until the next map is loaded and baked.</summary>
@@ -566,8 +598,8 @@ namespace KotH.Client
                 Entity.Scene.Entities.Remove(e);
             mapVisuals.Clear();
             MapCulling.Clear();
-            if (!MapPackage.IsId(map) && Content.IsLoaded(Maps.VisualUrl(map)))
-                Content.Unload(Maps.VisualUrl(map));
+            if (Content.IsLoaded(VisualUrl(map)))
+                Content.Unload(VisualUrl(map));
             builder.UnloadArena();
             simulation.Match = null;
             if (visuals != null)

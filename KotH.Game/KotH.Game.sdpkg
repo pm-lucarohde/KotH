@@ -14,3 +14,4 @@ ResourceFolders:
 RootAssets:
     - 46D114C1-A654-4966-99B0-65DDD52B7B21:Maps/Test/TestVisual
     - 4E878930-C65F-4510-AD75-AA5358104790:Maps/MountDestiny/MountDestinyVisual
+    - F9B7EB49-EEF4-4DFF-863F-3AB9FA64CD03:Maps/Custom/CustomVisual

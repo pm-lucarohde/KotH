@@ -1,0 +1,34 @@
+/// <summary>A custom map's surface (CustomMapVisual): its colour map times a tint, sampled by the
+/// mesh's UVs or, with Triplanar, projected from three sides by world position (one repeat per
+/// TextureScale metres), so rock and ground need no UVs. One permutation for every such material.</summary>
+shader MapSurface : ComputeColor, PositionStream4, NormalStream, Texturing
+{
+    cbuffer PerMaterial
+    {
+        stage float4 Tint;
+        stage float Triplanar;
+        stage float TextureScale;
+    }
+
+    rgroup PerMaterial
+    {
+        stage Texture2D ColorMap;
+    }
+
+    override float4 Compute()
+    {
+        float4 color;
+        if (Triplanar > 0.5)
+        {
+            float3 p = streams.PositionWS.xyz / max(TextureScale, 0.01);
+            float3 w = pow(abs(normalize(streams.normalWS)), 4.0);
+            w /= max(w.x + w.y + w.z, 1e-5);
+            color = ColorMap.Sample(LinearRepeatSampler, p.zy) * w.x
+                  + ColorMap.Sample(LinearRepeatSampler, p.xz) * w.y
+                  + ColorMap.Sample(LinearRepeatSampler, p.xy) * w.z;
+        }
+        else
+            color = ColorMap.Sample(LinearRepeatSampler, streams.TexCoord);
+        return color * Tint;
+    }
+};
