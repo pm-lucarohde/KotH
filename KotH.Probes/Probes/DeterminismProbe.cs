@@ -659,10 +659,13 @@ namespace KotH.Probes.Probes
                 case float f: Mix(ref h, BitConverter.SingleToInt32Bits(f)); return;
                 case int i: Mix(ref h, i); return;
                 case bool b: Mix(ref h, b ? 1 : 0); return;
+                case byte by: Mix(ref h, by); return;
             }
 
+            // Duo's fields count only when set: solo hashes as before them (chain 67AB05EEE3468AFD).
             foreach (FieldInfo f in Fields(value.GetType()))
-                HashObject(ref h, f.GetValue(value));
+                if (f.GetValue(value) is var v && !(f.Name is "Partner" or "Wish" or "Bot" && Convert.ToInt32(v) == 0))
+                    HashObject(ref h, v);
         }
 
         // Every struct the hash and the diff walk through, kept by name for
@@ -730,7 +733,7 @@ namespace KotH.Probes.Probes
                 got = Ref.ToUnity((Quaternion)got);
             }
 
-            if (want is float || want is int || want is bool)
+            if (want is float || want is int || want is bool || want is byte)
             {
                 bool same = want is float a
                     ? BitConverter.SingleToInt32Bits(a)

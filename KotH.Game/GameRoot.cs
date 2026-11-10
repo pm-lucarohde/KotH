@@ -96,6 +96,9 @@ namespace KotH.Client
         /// <userdoc>The mushroom blaster, held instead of the cane on key 2; modelled in the rest pose like the cane (.work/rig/blaster.py), bones Breech and Muzzle give its barrel.</userdoc>
         [Display("Blaster", "Visuals")] public Model BlasterModel;
 
+        /// <userdoc>One link of the duo chain between partners (Tools/figure/ChainLink.cs); ChainView strings 32 of them.</userdoc>
+        [Display("Chain link", "Visuals")] public Model ChainModel;
+
         /// <userdoc>The figure in the main menu: its centre in the menu camera's frame (x right, y up, -z ahead), in metres.</userdoc>
         [Display("Figure place", "Main menu")] public Vector3 MenuFigureAt = new Vector3(0.46f, -0.82f, -2.0f);
 
@@ -149,6 +152,10 @@ namespace KotH.Client
             Entity.Scene.Entities.Add(new Entity("PauseMenu") { pause });
             Entity.Scene.Entities.Add(new Entity("Chat") { new ChatBox { Driver = pause.Driver, Pause = pause } });
             Entity.Scene.Entities.Add(new Entity("Voice") { new VoiceChat { Driver = pause.Driver } });
+            Entity.Scene.Entities.Add(new Entity("Chains")
+            {
+                new ChainView { Simulation = system, Link = ChainModel, VisualOf = b => shown.TryGetValue(b, out var v) ? v.Visual : null },
+            });
             if (!options.Joining)
             {
                 // The main menu and a host's lobby are on Mount Destiny (Luca); --map is the round's map.
@@ -201,11 +208,13 @@ namespace KotH.Client
 
             // The bots on the player slots, numbered on from the player like
             // joiners, so they think exactly as they would on a host.
+            // Duo (Luca): an odd count gets one bot more, so nobody plays alone.
+            int botCount = options.Bots + (options.Mode == MatchMode.Duo && options.Bots % 2 == 0 && options.Bots + 1 < NetWorld.MaxPlayers ? 1 : 0);
             var states = new LocalFinalStates(simulation);
-            BotDirector director = options.Bots > 0 ? BotDirector.Create(builder, simulation, states, options.BotSeed) : null;
+            BotDirector director = botCount > 0 ? BotDirector.Create(builder, simulation, states, options.BotSeed) : null;
             WorkAhead(director);
             var bots = new List<Entity>();
-            for (int i = 0; i < options.Bots; i++)
+            for (int i = 0; i < botCount; i++)
             {
                 var bot = new BotBody(director, states, NetWorld.FirstPlayerId + 1 + i);
                 Entity marker = NetWorld.SlotMarker(builder, NetWorld.BotSlots[i]);
@@ -255,6 +264,7 @@ namespace KotH.Client
             options.Host = true;
             options.Steam = SteamClient.Ready;
             options.Password = password;
+            options.Mode = flags.Duo ? MatchMode.Duo : MatchMode.Solo;
             StartNetworked(options, options.Steam ? SteamLobby.Open(builder.Map, flags) : null);
         }
 
@@ -317,7 +327,7 @@ namespace KotH.Client
             if (builder.Zone != null)
             {
                 // The host's own round; a guest takes the host's state when it joins.
-                simulation.Match = new HillMatch(builder.Zone) { Seed = (uint)Random.Shared.Next(), Stage = stage };
+                simulation.Match = new HillMatch(builder.Zone) { Seed = (uint)Random.Shared.Next(), Stage = stage, Mode = LaunchOptions.Current.Mode };
                 if (stage == MatchStage.Lobby)
                     simulation.Match.MinPlayers = LaunchOptions.Current.MinPlayers;
             }
@@ -406,6 +416,7 @@ namespace KotH.Client
                     board.Match = null;
                     board.Simulation = null;
                     board.Self = null;
+                    DamageLabel.Self = null;
                     board.Notice = null;
                     board.ConfirmedRound = null;
                 }
@@ -485,7 +496,7 @@ namespace KotH.Client
             cover?.Begin();
             builder.LoadArena(map);
             if (builder.Zone != null)
-                simulation.Match = new HillMatch(builder.Zone) { Seed = (uint)Random.Shared.Next() };  // a guest takes the host's
+                simulation.Match = new HillMatch(builder.Zone) { Seed = (uint)Random.Shared.Next(), Mode = LaunchOptions.Current.Mode };  // a guest takes the host's
             string url = Maps.VisualUrl(map);
             if (Content.Exists(url))
             {
@@ -657,6 +668,7 @@ namespace KotH.Client
                     board.Match = simulation.Match;
                     board.Simulation = simulation;
                     board.Self = self;
+                    DamageLabel.Self = self;
                     if (net != null)
                     {
                         NetClient client = net;

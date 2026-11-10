@@ -31,6 +31,8 @@ namespace KotH.Client.Menu
             name.TextChanged += value => edited.HostName = value.Trim();
             password.TextChanged += _ => Refresh();
             rows.Add(new FieldRow("Name", name));
+            rows.Add(new ChoiceRow<bool>("Mode", _ => new[] { false, true }, s => s.HostDuo, (s, v) => s.HostDuo = v,
+                                         v => v ? "Duo" : "Solo", "duo: teams of two, chained"));
             rows.Add(new ChoiceRow<bool>("Access", _ => new[] { false, true }, s => s.HostPrivate, (s, v) => s.HostPrivate = v,
                                          v => v ? "Private" : "Public"));
             rows.Add(new FieldRow("Password", password, "private only") { Locked = s => s.HostPrivate ? null : "" });
@@ -85,7 +87,7 @@ namespace KotH.Client.Menu
             MenuTextBox.Focus(null);
             ClientSettings.RememberHost(edited);
             string shown = edited.HostName.Length > 0 ? edited.HostName : fallbackName;
-            var flags = new LobbyFlags(shown, edited.HostPrivate, edited.HostCountry, (string[])edited.HostLanguages.Clone(), edited.HostModded);
+            var flags = new LobbyFlags(shown, edited.HostPrivate, edited.HostCountry, (string[])edited.HostLanguages.Clone(), edited.HostModded, edited.HostDuo);
             HostRequested?.Invoke(flags, edited.HostPrivate ? password.Text : null);
         }
 

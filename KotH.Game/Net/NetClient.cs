@@ -140,9 +140,12 @@ namespace KotH.Client.Net
             if (joinWhen != null && Session.MapKnown && joinWhen())
             {
                 joinWhen = null;
+                // Duo: the player it came with, by the NetId that player's lobby member data says.
+                Session.Wish = Lobby?.PartnerNetId() ?? 0;
                 Session.Join(now);
             }
             Lobby?.Refresh();
+            SteamParty.Playing(Lobby?.Id ?? 0);
             Comms?.Update(now);
             FollowHost(now);
             if (Host != null && Lobby != null)
@@ -166,7 +169,10 @@ namespace KotH.Client.Net
                 && Session.TryConfirmedMatch(out MatchState m) && m.PhaseTicks == 0)
             {
                 if (Host.Stage == MatchStage.Lobby && m.Phase == MatchPhase.Countdown)
+                {
+                    FillDuo(m);
                     Host.Restart(Host.NextMap ?? Maps.Default, MatchStage.Round);
+                }
                 else if (Host.Stage == MatchStage.Round && m.Phase == MatchPhase.Over)
                     Host.Restart(Maps.Default, MatchStage.Lobby);
             }
@@ -184,6 +190,14 @@ namespace KotH.Client.Net
                 else
                     Session = new PeerSession(world, transport, sampleLocal, name, founder: false, now, look: look);
             }
+        }
+
+        // Duo (Luca): an odd count gets one bot more for the round, so nobody plays it alone.
+        void FillDuo(in MatchState m)
+        {
+            int count = HillMatch.CountPlayers(Session.Simulation.Bodies);
+            if (m.Mode == MatchMode.Duo && MakeBots != null && count % 2 == 1 && count < NetWorld.MaxPlayers)
+                Host.AddBot($"Bot {Host.BotIds.Count + 1}");
         }
 
         // A restart begins: the host's own peer starts the new timeline, its bots think anew.

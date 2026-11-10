@@ -130,7 +130,7 @@ namespace KotH.Client.Hud
                 return ZoneLook.Free;
             if (m.Holder == null)
                 return ZoneLook.Contested;
-            if (m.Holder == self)
+            if (HillMatch.SameTeam(m.Holder, self))
                 return ZoneLook.Own;
             return m.Holder.AloneTicks > warmupTicks ? ZoneLook.Enemy : ZoneLook.EnemyTaking;
         }
@@ -212,12 +212,15 @@ namespace KotH.Client.Hud
             string time = Clock(left);
 
             ZoneLook look = Look(m, Self, Match.WarmupTicks);
+            // In duo the team is meant: "you" for the own, both names for another pair.
+            bool team = Match.Duo && Mate(Self) != null;
             statusText = look switch
             {
-                ZoneLook.Own => Self.AloneTicks > Match.WarmupTicks ? "You hold the zone" : "You are capturing",
+                ZoneLook.Own => Self.AloneTicks > Match.WarmupTicks ? team ? "Your team holds the zone" : "You hold the zone"
+                                                                    : team ? "Your team is capturing" : "You are capturing",
                 ZoneLook.Contested => "Contested",
-                ZoneLook.Enemy => NameOf(m.Holder) + " holds the zone",
-                ZoneLook.EnemyTaking => NameOf(m.Holder) + " is capturing",
+                ZoneLook.Enemy => TeamName(m.Holder) + (Mate(m.Holder) != null ? " hold the zone" : " holds the zone"),
+                ZoneLook.EnemyTaking => TeamName(m.Holder) + (Mate(m.Holder) != null ? " are capturing" : " is capturing"),
                 _ => "Zone free",
             };
 
@@ -226,13 +229,13 @@ namespace KotH.Client.Hud
 
             if (m.Phase == MatchPhase.Waiting)
             {
-                caption = "Waiting for players";
+                caption = Match.Duo ? "Duo: waiting for players" : "Waiting for players";
                 count = string.Format(HudRenderer.Numbers, "{0} / {1}", HillMatch.CountPlayers(Simulation.Bodies), m.MinPlayers);
                 time = statusText = "";
             }
             else if (m.Phase == MatchPhase.Countdown)
             {
-                caption = "Match starts in";
+                caption = Match.Duo ? "Duo match starts in" : "Match starts in";
                 count = "";
                 time = Clock((m.PhaseTicks + HillMatch.TicksPerPoint - 1) / HillMatch.TicksPerPoint);
                 statusText = "";
@@ -244,20 +247,23 @@ namespace KotH.Client.Hud
             MatchState final = ConfirmedRound != null ? ConfirmedRound() ?? default : m;
             if (final.Over || PretendBanner)
             {
+                bool ownWin = HillMatch.SameTeam(final.Winner, Self) && Self != null;
                 bannerText = PretendBanner ? "You win!"
                            : final.Winner == null ? "Draw"
-                           : final.Winner == Self ? "You win!"
-                           : NameOf(final.Winner) + " wins";
+                           : ownWin ? "You win!"
+                           : TeamName(final.Winner) + (Mate(final.Winner) != null ? " win" : " wins");
                 int seconds = PretendBanner ? 10 : (final.PhaseTicks + HillMatch.TicksPerPoint - 1) / HillMatch.TicksPerPoint;
-                view.Win(bannerText, PretendBanner || final.Winner == Self && Self != null,
+                view.Win(bannerText, PretendBanner || ownWin,
                          string.Format(HudRenderer.Numbers, Match.Stage == MatchStage.Round ? "Lobby in {0}" : "New round in {0}", seconds));
             }
             else
                 bannerText = "";
 
+            // One row per team: its lead, named for both.
             ranking.Clear();
             foreach (SimulationBody body in Simulation.Bodies)
-                ranking.Add(body);
+                if (HillMatch.LeadOf(body, Simulation.Bodies) == body)
+                    ranking.Add(body);
             // Ties keep the body list's order, so the list does not flicker.
             ranking.Sort((a, b) =>
             {
@@ -268,8 +274,8 @@ namespace KotH.Client.Hud
             int ranked = Math.Min(Math.Min(Leaders, HudView.Rows), ranking.Count);
             view.Ranked(ranked);
             for (int i = 0; i < ranked; i++)
-                view.Rank(i, (i + 1).ToString(HudRenderer.Numbers), NameOf(ranking[i]),
-                          HillMatch.Points(ranking[i].ScoreTicks).ToString(HudRenderer.Numbers), ranking[i] == Self);
+                view.Rank(i, (i + 1).ToString(HudRenderer.Numbers), TeamName(ranking[i]),
+                          HillMatch.Points(ranking[i].ScoreTicks).ToString(HudRenderer.Numbers), HillMatch.SameTeam(ranking[i], Self));
         }
 
         /// <summary>The own damage percent to the view when it changed; false while there is none.</summary>
@@ -344,6 +350,25 @@ namespace KotH.Client.Hud
         static global::Avalonia.Media.Color ToAvalonia(Color c) => global::Avalonia.Media.Color.FromArgb(c.A, c.R, c.G, c.B);
 
         string NameOf(SimulationBody body) => body == Self ? "You" : body.Entity.Name;
+
+        SimulationBody Mate(SimulationBody body) => body == null ? null : HillMatch.PartnerOf(body, Simulation.Bodies);
+
+        // A pair's names, the own one first ("You & Bot 2"); kept per lead while the pair stays.
+        readonly Dictionary<SimulationBody, (SimulationBody Mate, bool Own, string Name)> teamNames =
+            new Dictionary<SimulationBody, (SimulationBody, bool, string)>();
+
+        string TeamName(SimulationBody body)
+        {
+            SimulationBody mate = Mate(body);
+            if (mate == null)
+                return NameOf(body);
+            bool own = mate == Self;
+            if (teamNames.TryGetValue(body, out var known) && known.Mate == mate && known.Own == own)
+                return known.Name;
+            string name = own ? NameOf(mate) + " & " + NameOf(body) : NameOf(body) + " & " + NameOf(mate);
+            teamNames[body] = (mate, own, name);
+            return name;
+        }
 
         int IndexOf(SimulationBody body)
         {

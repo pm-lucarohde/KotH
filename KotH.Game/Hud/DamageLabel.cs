@@ -1,7 +1,9 @@
 using KotH.Client.Audio;
 using KotH.Shared.Combat;
+using KotH.Shared.Match;
 using KotH.Shared.Mathematics;
 using KotH.Shared.Player;
+using KotH.Shared.Simulation;
 using Stride.Core;
 using Stride.Core.Mathematics;
 using Stride.Engine;
@@ -39,6 +41,14 @@ namespace KotH.Client.Hud
         /// <summary>The player's NetId, whose voice tints the label while it is heard; 0 for none.</summary>
         [DataMemberIgnore] public int NetId { get; set; }
 
+
+        /// <summary>The body this screen plays; its duo partner's label shows in the own colour.</summary>
+        public static SimulationBody Self { get; set; }
+
+        /// <summary>The own colour (HillBoard's own zone), for the partner's label.</summary>
+        public static readonly Color MateColor = new Color(30, 200, 230);
+
+        SimulationBody body;
 
         /// <summary>The camera the text turns towards.</summary>
         [DataMemberIgnore] public TransformComponent Camera { get; set; }
@@ -126,6 +136,11 @@ namespace KotH.Client.Hud
 
             if (Camera != null)
                 Entity.Transform.Rotation = Facing(Camera.Position - position);
+
+            body ??= Motor.Entity.Get<SimulationBody>();
+            Color tint = Self != null && body != Self && HillMatch.SameTeam(body, Self) ? MateColor : Color;
+            if (text.TextColor != tint)
+                text.TextColor = tint;
 
             bool speaking = ShotTalk || NetId != 0 && VoiceChat.IsSpeaking(NetId);
             if (speaking != (speaker.Visibility == Visibility.Visible))

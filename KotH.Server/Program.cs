@@ -17,7 +17,7 @@ using Stride.Engine;
 // The headless host (arena, dummy or bots, 40 Hz), no window and no GPU: real time until
 // Ctrl+C or --seconds N; --ticks N as fast as it can, then timing and exact end state;
 // --bodies N BenchBots (load test, --map Test) with --warmup N; --bots N --bot-seed N;
-// --map NAME (Maps.Default); --host / --join ADDRESS see NetPlay.
+// --map NAME (Maps.Default); --mode duo (teams of two); --host / --join ADDRESS see NetPlay.
 
 CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
 CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
@@ -43,6 +43,8 @@ if (!world.Builder.HasMap(map))
 world.LoadArena(map);
 HillMatch match = world.StartMatch();
 match.Seed = (uint)botSeed;
+if (Text(args, "--mode") == "duo")
+    match.Mode = MatchMode.Duo;
 
 if (hillBots > 0)
 {

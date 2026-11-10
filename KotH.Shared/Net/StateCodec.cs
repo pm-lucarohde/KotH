@@ -15,13 +15,13 @@ namespace KotH.Shared.Net
     public static class StateCodec
     {
         const uint Magic = 0x4B6F5448; // "KoTH"
-        const int Version = 5;
+        const int Version = 6;
 
         /// <summary>Bytes before the round: magic, version, tick, body count.</summary>
         public const int HeadBytes = 16;
 
-        // RoundTicks, Phase, PhaseTicks, Inside, Winner, Holder, MinPlayers, Seed.
-        public const int MatchBytes = 4 + 1 + 4 + 4 + 4 + 4 + 1 + 4;
+        // RoundTicks, Phase, PhaseTicks, Inside, Winner, Holder, MinPlayers, Seed, Mode.
+        public const int MatchBytes = 4 + 1 + 4 + 4 + 4 + 4 + 1 + 4 + 1;
 
         public static int BodyStateSize => Unsafe.SizeOf<BodyState>();
 
@@ -108,6 +108,7 @@ namespace KotH.Shared.Net
             BinaryPrimitives.WriteInt32LittleEndian(to[17..], m.Holder?.NetId ?? 0);
             to[21] = (byte)m.MinPlayers;
             BinaryPrimitives.WriteUInt32LittleEndian(to[22..], m.Seed);
+            to[26] = (byte)m.Mode;
         }
 
         static MatchState ReadMatch(ReadOnlySpan<byte> from, Func<int, SimulationBody> bodyOf)
@@ -124,6 +125,7 @@ namespace KotH.Shared.Net
                 Holder = holder != 0 ? bodyOf(holder) : null,
                 MinPlayers = from[21],
                 Seed = BinaryPrimitives.ReadUInt32LittleEndian(from[22..]),
+                Mode = (MatchMode)from[26],
             };
         }
 

@@ -33,6 +33,7 @@ namespace KotH.Shared.Net
             public int Slot;
             public string Name;
             public FigureLook Look;
+            public int Wish;   // duo: the NetId of the player it came with
             public Phase Phase;
             public int JoinTick = -1;
             public int LeaveTick = int.MaxValue;
@@ -266,7 +267,7 @@ namespace KotH.Shared.Net
             {
                 var c = new Client
                 {
-                    NetId = e.NetId, Slot = e.Slot, Name = e.Name, Look = e.Look, IsBot = e.Bot,
+                    NetId = e.NetId, Slot = e.Slot, Name = e.Name, Look = e.Look, IsBot = e.Bot, Wish = e.Wish,
                     JoinTick = Math.Max(0, from.Tick - 1), AckFloor = from.Tick - 1,
                 };
                 if (e.Bot)
@@ -562,6 +563,7 @@ namespace KotH.Shared.Net
             FigureLook look = FigureLook.Read(ref r);
             ReadOnlySpan<byte> proof = r.Bytes(r.Byte());
             int resume = r.Int();
+            int wish = r.Int();
             if (!r.Failed && resume != 0 && build.SequenceEqual(NetProtocol.BuildId) && TakeBack(peer, resume, sent))
                 return;
             if (!r.Failed && clients.TryGetValue(peer, out Client back))
@@ -572,7 +574,7 @@ namespace KotH.Shared.Net
                     back.Rejoining = false;
                     back.EchoTime = sent;
                     back.EchoReceived = now;
-                    pending.Add(new NetEvent { Join = true, NetId = back.NetId, Slot = back.Slot, Name = back.Name, Look = back.Look });
+                    pending.Add(new NetEvent { Join = true, NetId = back.NetId, Slot = back.Slot, Name = back.Name, Look = back.Look, Wish = back.Wish });
                 }
                 return;
             }
@@ -587,12 +589,12 @@ namespace KotH.Shared.Net
             name = UniqueName(string.IsNullOrWhiteSpace(name) ? "Player" : name.Trim());
             var c = new Client
             {
-                Peer = peer, NetId = nextNetId++, Slot = FreeSlot(), Name = name, Look = look,
+                Peer = peer, NetId = nextNetId++, Slot = FreeSlot(), Name = name, Look = look, Wish = wish,
                 Phase = Phase.Waiting, EchoTime = sent, EchoReceived = now,
             };
             clients[peer] = c;
             Players++;
-            pending.Add(new NetEvent { Join = true, NetId = c.NetId, Slot = c.Slot, Name = name, Look = look });
+            pending.Add(new NetEvent { Join = true, NetId = c.NetId, Slot = c.Slot, Name = name, Look = look, Wish = c.Wish });
         }
 
         // A bot's slot: the first free one in the given order.
@@ -850,7 +852,7 @@ namespace KotH.Shared.Net
                     roster.Add(c);
             w.Int(roster.Count);
             foreach (Client c in roster)
-                NetProtocol.WriteEvent(ref w, new NetEvent { Join = true, Bot = c.IsBot, NetId = c.NetId, Slot = c.Slot, Name = c.Name, Look = c.Look });
+                NetProtocol.WriteEvent(ref w, new NetEvent { Join = true, Bot = c.IsBot, NetId = c.NetId, Slot = c.Slot, Name = c.Name, Look = c.Look, Wish = c.Wish });
         }
 
         // The tick sits after the codec's magic and version.

@@ -8,7 +8,7 @@ namespace KotH.Client.Steam
 {
     /// <summary>A round open on Steam, as the lobby list shows it; PingMs -1 when unknown.</summary>
     public readonly record struct LobbyListing(ulong Id, string Host, string Map, int Players, int PingMs,
-                                               bool Private, string Country, string[] Languages, bool Modded);
+                                               bool Private, string Country, string[] Languages, bool Modded, bool Duo = false);
 
     /// <summary>A KotH round as a Steam lobby: the host opens one (Open) with its name, map, build, player
     /// count, flags and ping location as lobby data, others find it (Search) and enter it (Enter); the
@@ -49,6 +49,13 @@ namespace KotH.Client.Steam
         /// <summary>Whether a password guards the round (the host checks it).</summary>
         public bool Private { get; private set; }
 
+        /// <summary>A party's lobby (SteamParty), not a round's.</summary>
+        public bool IsParty { get; private set; }
+
+        /// <summary>A joiner: the friend it came with (an accepted invite, a friend's Join, the party's
+        /// leader), 0 for none; duo pairs them (<see cref="PartnerNetId"/>).</summary>
+        public ulong CameWith { get; set; }
+
         /// <summary>Why opening it failed; null while it goes well.</summary>
         public string Failure { get; private set; }
 
@@ -68,7 +75,45 @@ namespace KotH.Client.Steam
             var lobby = new SteamLobby(hosting: true) { HostName = host, Private = flags.Private };
             lobby.map = map;
             const int Public = 2;   // k_ELobbyTypePublic
-            SteamClient.Await(SteamAPI_ISteamMatchmaking_CreateLobby(SteamClient.Matchmaking, Public, NetWorld.MaxPlayers), (p, ok) =>
+            Create(lobby, Public, NetWorld.MaxPlayers, () =>
+            {
+                lobby.Set("map", lobby.map);
+                lobby.Set("name", host);
+                // Flags as Steam filters them, by equality: one key per language.
+                lobby.Set("access", flags.Private ? "private" : "public");
+                lobby.Set("country", flags.Country ?? "");
+                foreach (string language in flags.Languages)
+                    lobby.Set("lang_" + language, "1");
+                lobby.Set("modded", flags.Modded ? "1" : "0");
+                lobby.Set("mode", flags.Duo ? "duo" : "solo");
+                lobby.Set("host", SteamClient.SteamId.ToString(CultureInfo.InvariantCulture));
+                lobby.Refresh(force: true);
+                if (lobby.players >= 0)
+                    lobby.Set("players", lobby.players.ToString(CultureInfo.InvariantCulture));
+                if (!lobby.joinable)
+                    SteamAPI_ISteamMatchmaking_SetLobbyJoinable(SteamClient.Matchmaking, lobby.Id, 0);
+                Console.WriteLine($"[steam] lobby {lobby.Id} open on {map}");
+            });
+            return lobby;
+        }
+
+        /// <summary>Opens a party (SteamParty): friends only, two members, never in a round's search.</summary>
+        public static SteamLobby OpenParty()
+        {
+            var lobby = new SteamLobby(hosting: true) { IsParty = true };
+            const int FriendsOnly = 1;   // k_ELobbyTypeFriendsOnly
+            Create(lobby, FriendsOnly, 2, () =>
+            {
+                lobby.Set("kind", "party");
+                Console.WriteLine($"[steam] party {lobby.Id} open");
+            });
+            return lobby;
+        }
+
+        // Asks Steam for a lobby; once made (and not given up) it has the game's keys, then the caller's.
+        static void Create(SteamLobby lobby, int type, int members, Action filled)
+        {
+            SteamClient.Await(SteamAPI_ISteamMatchmaking_CreateLobby(SteamClient.Matchmaking, type, members), (p, ok) =>
             {
                 // LobbyCreated_t: EResult, then the lobby's id (moved by the packing).
                 int result = ok ? *(int*)p : 0;
@@ -88,23 +133,8 @@ namespace KotH.Client.Steam
                 lobby.Id = id;
                 lobby.Set("game", Game);
                 lobby.Set("build", NetProtocol.BuildText);
-                lobby.Set("map", lobby.map);
-                lobby.Set("name", host);
-                // Flags as Steam filters them, by equality: one key per language.
-                lobby.Set("access", flags.Private ? "private" : "public");
-                lobby.Set("country", flags.Country ?? "");
-                foreach (string language in flags.Languages)
-                    lobby.Set("lang_" + language, "1");
-                lobby.Set("modded", flags.Modded ? "1" : "0");
-                lobby.Set("host", SteamClient.SteamId.ToString(CultureInfo.InvariantCulture));
-                lobby.Refresh(force: true);
-                if (lobby.players >= 0)
-                    lobby.Set("players", lobby.players.ToString(CultureInfo.InvariantCulture));
-                if (!lobby.joinable)
-                    SteamAPI_ISteamMatchmaking_SetLobbyJoinable(SteamClient.Matchmaking, id, 0);
-                Console.WriteLine($"[steam] lobby {id} open on {map}");
+                filled();
             });
-            return lobby;
         }
 
         /// <summary>Enters a lobby; done gets it with its owner known, or null and why not.</summary>
@@ -133,6 +163,7 @@ namespace KotH.Client.Steam
                 lobby.Map = lobby.Get("map");
                 lobby.Build = lobby.Get("build");
                 lobby.Private = lobby.Get("access") == "private";
+                lobby.IsParty = lobby.Get("kind") == "party";
                 Console.WriteLine($"[steam] in lobby {id}, host {lobby.Owner}");
                 done(lobby, null);
             });
@@ -152,6 +183,8 @@ namespace KotH.Client.Steam
                 Filter("lang_" + filter.Language, "1");
             if (filter.Modded is bool modded)
                 Filter("modded", modded ? "1" : "0");
+            if (filter.Duo is bool duo)
+                Filter("mode", duo ? "duo" : "solo");
             SteamAPI_ISteamMatchmaking_AddRequestLobbyListResultCountFilter(SteamClient.Matchmaking, 100);
             const int Worldwide = 3;   // k_ELobbyDistanceFilterWorldwide
             SteamAPI_ISteamMatchmaking_AddRequestLobbyListDistanceFilter(SteamClient.Matchmaking, Worldwide);
@@ -168,7 +201,7 @@ namespace KotH.Client.Steam
                         if (Data(id, "lang_" + code) == "1")
                             languages.Add(code);
                     list.Add(new LobbyListing(id, Data(id, "name") ?? "?", Data(id, "map"), n, SteamClient.EstimatePing(Data(id, "ping")),
-                                              Data(id, "access") == "private", Data(id, "country") ?? "", languages.ToArray(), Data(id, "modded") == "1"));
+                                              Data(id, "access") == "private", Data(id, "country") ?? "", languages.ToArray(), Data(id, "modded") == "1", Data(id, "mode") == "duo"));
                 }
                 list.Sort((a, b) => (a.PingMs < 0, b.PingMs < 0) switch
                 {
@@ -325,12 +358,33 @@ namespace KotH.Client.Steam
             if (Id == 0 || SteamAPI_ISteamMatchmaking_InviteUserToLobby(SteamClient.Matchmaking, Id, friend) == 0)
                 return false;
             invited.Add(friend);
+            SetMemberData("invited", string.Join(",", invited));
             return true;
         }
 
         readonly HashSet<ulong> invited = new HashSet<ulong>();
 
-        public bool WasInvited(ulong member) => invited.Contains(member);
+        /// <summary>The host: whether it invited the member, or the member is its party's (they need no password).</summary>
+        public bool WasInvited(ulong member) => invited.Contains(member) || member != 0 && member == SteamParty.Mate;
+
+        /// <summary>Duo: the NetId of the player this one should be paired with, 0 for none. That is the
+        /// friend it came with, else its party's mate, else a member who invited it; each by its member data.</summary>
+        public int PartnerNetId()
+        {
+            ulong me = SteamClient.SteamId;
+            int found = NetIdOf(CameWith);
+            if (found == 0)
+                found = NetIdOf(SteamParty.Mate);
+            string mine = me.ToString(CultureInfo.InvariantCulture);
+            foreach (ulong member in Members())
+                if (found == 0 && member != me && MemberData(member, "invited") is { } list && Array.IndexOf(list.Split(','), mine) >= 0)
+                    found = NetIdOf(member);
+            return found;
+        }
+
+        int NetIdOf(ulong member)
+            => member != 0 && member != SteamClient.SteamId && Has(member)
+               && int.TryParse(MemberData(member, "netid"), NumberStyles.None, CultureInfo.InvariantCulture, out int id) ? id : 0;
 
         void OnCallback(int id, nint p)
         {

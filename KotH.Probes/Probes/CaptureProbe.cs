@@ -54,6 +54,7 @@ namespace KotH.Probes.Probes
             OutOfArena(spawnA);
             Lobby();
             Slots();
+            Duo();
 
             Log(failures == 0 ? "[capture] PASSED" : $"[capture] {failures} errors");
             return failures == 0 ? 0 : 1;
@@ -346,6 +347,123 @@ namespace KotH.Probes.Probes
             }
             Check(players.Count == 12 && moved == 0, $"12 spawn points free and on the ground (largest deviation {worst * 100f:F1} cm)");
         }
+
+        /// <summary>Duo (Luca's rule): pairs by wish then the rest, a team takes the zone alone or two against
+        /// at most one of each other team, two full teams contest it, the partners share the points, a
+        /// taken zone stays while one of the team is in, a partner gone leaves the other alone, and a
+        /// rollback through it all. The chain is out of reach here (the chain probe has it).</summary>
+        void Duo()
+        {
+            world = new HeadlessWorld();
+            world.LoadArena(Maps.Test);
+            match = world.StartMatch();
+            match.Mode = MatchMode.Duo;
+            world.Simulation.ChainLength = 1000f;
+            var t = new ScriptedBody[8];
+            for (int i = 0; i < t.Length; i++)
+            {
+                t[i] = Spawn(((char)('A' + i)).ToString(), Out(i));
+                t[i].NetId = NetWorld.FirstPlayerId + i;
+            }
+            // A and B came together, C and D too; E asked for F only; G and H by lot.
+            (t[0].Wish, t[1].Wish, t[2].Wish, t[3].Wish, t[4].Wish) = (t[1].NetId, t[0].NetId, t[3].NetId, t[2].NetId, t[5].NetId);
+            ScriptedBody a = t[0], b = t[1], c = t[2], d = t[3], e = t[4], f = t[5], g = t[6], h = t[7];
+            Ticks(1);
+            Check(HillMatch.SameTeam(a, b) && HillMatch.SameTeam(c, d) && HillMatch.SameTeam(e, f) && HillMatch.SameTeam(g, h) &&
+                  !HillMatch.SameTeam(a, c), $"pairs by wish, then the rest (A-{Partner(a)} C-{Partner(c)} E-{Partner(e)} G-{Partner(g)})");
+
+            In(a, 0);
+            Ticks(match.WarmupTicks + 1);
+            Check(match.State.Holder == a && a.ScoreTicks == 1 && b.ScoreTicks == 1 && b.AloneTicks == a.AloneTicks,
+                  $"A alone takes it for the team, B outside scores alike (A {a.ScoreTicks}, B {b.ScoreTicks})");
+            Everyone(t);
+            In(b, 1);
+            Ticks(match.WarmupTicks + 1);
+            Check(match.State.Holder == a && b.ScoreTicks == 2 && a.ScoreTicks == 2,
+                  $"B alone: the team again, held as its lead A ({Name(match.State.Holder)}, {b.ScoreTicks})");
+
+            Everyone(t);
+            In(a, 0);
+            In(c, 2);
+            Ticks(match.WarmupTicks + 1);
+            Check(match.State.Holder == null && a.AloneTicks == 0 && c.AloneTicks == 0, "one of each of two teams: nobody");
+
+            In(b, 1);
+            Ticks(match.WarmupTicks + 1);
+            Check(match.State.Holder == a && a.ScoreTicks == 3, $"both of A's against one: A's team takes it ({a.ScoreTicks})");
+
+            Everyone(t);
+            In(a, 0); In(b, 1); In(c, 2); In(e, 4);
+            Ticks(match.WarmupTicks + 1);
+            Check(match.State.Holder == a, $"two against one and one: taken ({Name(match.State.Holder)})");
+
+            Everyone(t);
+            In(a, 0); In(b, 1); In(c, 2); In(d, 3);
+            Ticks(match.WarmupTicks + 1);
+            Check(match.State.Holder == null && a.AloneTicks == 0 && c.AloneTicks == 0, "two full teams: contested");
+
+            Everyone(t);
+            In(a, 0); In(b, 1);
+            Ticks(match.WarmupTicks + 1);
+            int held = a.ScoreTicks;
+            In(c, 2); In(d, 3); In(e, 4); In(f, 5);
+            b.Motor.Teleport(Out(1));
+            Ticks(40);
+            Check(match.State.Holder == a && a.ScoreTicks == held + 40 && b.ScoreTicks == a.ScoreTicks,
+                  $"taken: held with only A in against two teams (+{a.ScoreTicks - held})");
+            a.Motor.Teleport(Out(0));
+            e.Motor.Teleport(Out(4)); f.Motor.Teleport(Out(5));
+            Ticks(1);
+            Check(match.State.Holder == c, $"A out: C's team alone in takes it ({Name(match.State.Holder)})");
+
+            // A rollback through scoring, leaving and coming back.
+            Everyone(t);
+            In(g, 6);
+            var snap = new WorldSnapshot();
+            world.Simulation.Capture(snap);
+            var inputs = new List<MoveInput[]>();
+            IReadOnlyList<SimulationBody> bodies = world.Simulation.Bodies;
+            for (int k = 0; k < 240; k++)
+            {
+                g.Input.Move = k >= 160 ? new Vector2(0f, 0.6f) : Vector2.Zero;
+                var tick = new MoveInput[bodies.Count];
+                for (int i = 0; i < bodies.Count; i++)
+                    tick[i] = ((ScriptedBody)bodies[i]).Input;
+                inputs.Add(tick);
+                Ticks(1);
+            }
+            g.Input.Move = Vector2.Zero;
+            BodyState endG = g.CaptureState(), endH = h.CaptureState();
+            MatchState end = match.State;
+            world.Simulation.Resimulate(snap, inputs, SimulationSystem.TickSeconds);
+            Check(endG.ScoreTicks > 0 && endG.ScoreTicks == endH.ScoreTicks && Same(g.CaptureState(), endG) && Same(h.CaptureState(), endH) &&
+                  match.State.Holder == end.Holder && match.State.RoundTicks == end.RoundTicks,
+                  $"rollback bit-identical, the team's points on both ({endG.ScoreTicks})");
+
+            world.Simulation.Leave(b);
+            Ticks(1);
+            Check(a.Partner == 0 && !HillMatch.SameTeam(a, b), "B leaves: A alone");
+
+            match.LimitTicks = match.State.RoundTicks + 1;
+            Ticks(1);
+            Check(match.State.Over && match.State.Winner != null, $"time up: a team wins ({Name(match.State.Winner)}), not a draw of partners");
+        }
+
+        // Ground before the hill, 2 m apart, and places on the plateau 2 m apart.
+        static Vector3 Out(int i) => new Vector3(-7f + 2f * i, 0.9f, -2f);
+        static Vector3 Hill(int i) => new Vector3(-4.5f + 1.5f * (i % 4) * 2f, 5.95f, -13f - 3f * (i / 4));
+
+        static void In(ScriptedBody body, int place) => body.Motor.Teleport(Hill(place));
+
+        // All out for a tick: the zone free, every warm-up over.
+        void Everyone(ScriptedBody[] t)
+        {
+            for (int i = 0; i < t.Length; i++)
+                t[i].Motor.Teleport(Out(i));
+            Ticks(1);
+        }
+
+        static string Partner(SimulationBody body) => body.Partner == 0 ? "-" : ((char)('A' + body.Partner - NetWorld.FirstPlayerId)).ToString();
 
         void Ticks(int n)
         {

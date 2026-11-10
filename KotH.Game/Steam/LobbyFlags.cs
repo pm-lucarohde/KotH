@@ -5,8 +5,8 @@ namespace KotH.Client.Steam
 {
     /// <summary>What a host tells the lobby list about its round besides map and players: its name,
     /// private (a password guards it) or public, country, languages and whether it is modded (only a
-    /// label for now). Countries are ISO 3166 codes, languages ISO 639-1.</summary>
-    public sealed record LobbyFlags(string Name, bool Private, string Country, string[] Languages, bool Modded)
+    /// label for now), and solo or duo. Countries are ISO 3166 codes, languages ISO 639-1.</summary>
+    public sealed record LobbyFlags(string Name, bool Private, string Country, string[] Languages, bool Modded, bool Duo = false)
     {
         /// <summary>Languages a host can name, by code, with their English names (the menu's font
         /// has no CJK or Cyrillic letters).</summary>
@@ -108,7 +108,7 @@ namespace KotH.Client.Steam
     }
 
     /// <summary>What Find server asks Steam for: null or Any means no filter.</summary>
-    public sealed record LobbyFilter(bool? Private = null, string Country = null, string Language = null, bool? Modded = null)
+    public sealed record LobbyFilter(bool? Private = null, string Country = null, string Language = null, bool? Modded = null, bool? Duo = null)
     {
         public static readonly LobbyFilter Any = new LobbyFilter();
     }

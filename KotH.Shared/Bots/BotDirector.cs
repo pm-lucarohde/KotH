@@ -366,6 +366,7 @@ namespace KotH.Shared.Bots
             this.director = director;
             this.states = states;
             NetId = netId;
+            Bot = true;
             director.Add(netId);
         }
 

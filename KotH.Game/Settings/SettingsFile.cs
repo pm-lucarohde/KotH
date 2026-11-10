@@ -77,7 +77,7 @@ namespace KotH.Client.Settings
                 Text(t, KeyName(b), s.Key(b).ToString());
             t.Append("\n[host]\n");
             Text(t, "name", s.HostName); Flag(t, "private", s.HostPrivate); Text(t, "country", s.HostCountry);
-            Text(t, "languages", string.Join(",", s.HostLanguages)); Flag(t, "modded", s.HostModded);
+            Text(t, "languages", string.Join(",", s.HostLanguages)); Flag(t, "modded", s.HostModded); Flag(t, "duo", s.HostDuo);
             return t.ToString();
         }
 
@@ -162,6 +162,7 @@ namespace KotH.Client.Settings
                 case ("host", "country"): s.HostCountry = v.Length == 2 ? v.ToUpperInvariant() : ""; break;
                 case ("host", "languages"): s.HostLanguages = v.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                 case ("host", "modded"): s.HostModded = Bool(v, s.HostModded); break;
+                case ("host", "duo"): s.HostDuo = Bool(v, s.HostDuo); break;
                 case ("keys", _):
                     foreach (Binding b in Enum.GetValues<Binding>())
                         if (KeyName(b) == key && Enum.TryParse(v, true, out Keys k) && Enum.IsDefined(k))

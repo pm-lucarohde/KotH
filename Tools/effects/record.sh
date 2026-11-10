@@ -1,6 +1,6 @@
 #!/bin/bash
 # Records the effect permutations the game uses (KOTH_EFFECTLOG) on a headless, silent tour of
-# the AOT client (menus, Customize, rounds with bots, blaster, dash, Esc menu, banner, Test
+# the AOT client (menus, Customize, rounds with bots, duo chains, blaster, dash, Esc menu, banner, Test
 # map), then merges them into KotH.Game/Assets/EffectCompileLog.sdeffectlog (EffectLog.cs).
 #   Tools/effects/record.sh [BIN]   (default Bin/Linux/aot; then publish again)
 set -e
@@ -14,7 +14,7 @@ run() {  # run "ENV=.. ENV=.." ARGS..
   echo "$(grep -c '^\[effects\] [0-9]' $out/run.log) new: $envs $*"
 }
 run "KOTH_SHOT_MENU=1 KOTH_SHOT_SECONDS=4"
-run "KOTH_SHOT_MENU=1 KOTH_SHOT_MENU_PAGE=2 KOTH_SHOT_LOOK=2E5BD8,8A5A3C,D8B020,E0E0E0,FF3080 KOTH_SHOT_SECONDS=4"
+run "KOTH_SHOT_MENU=1 KOTH_SHOT_MENU_PAGE=3 KOTH_SHOT_LOOK=2E5BD8,8A5A3C,D8B020,E0E0E0,FF3080 KOTH_SHOT_SECONDS=4"
 run "KOTH_SHOT_MENU=1 KOTH_SHOT_MENU_PAGE=0 KOTH_SHOT_SECONDS=10"
 run "KOTH_SHOT_LOAD=1 KOTH_SHOT_SECONDS=2" --offline
 run "KOTH_SHOT_SECONDS=14 KOTH_SHOT_STRIKE=2,4,6 KOTH_SHOT_HIT=0,0.5 KOTH_SHOT_MOVE=0,1,sprint KOTH_SHOT_CROUCH=8 KOTH_SHOT_JUMP=10,10.3" --offline --bots 3
@@ -28,16 +28,17 @@ run "KOTH_SHOT_SECONDS=6 KOTH_SHOT_PAUSE=settings" --offline --bots 3
 run "KOTH_SHOT_SECONDS=6 KOTH_SHOT_HUD=banner" --offline --bots 3
 run "KOTH_SHOT_SECONDS=10 KOTH_SHOT_STRIKE=2,4 KOTH_SHOT_HIT=0" --offline --bots 3 --map Test
 run "KOTH_SHOT_SECONDS=8 KOTH_SHOT_THIRD=1" --offline --bots 3 --map Test
+run "KOTH_SHOT_SECONDS=8 KOTH_SHOT_THIRD=1" --offline --bots 3 --mode duo
 # DLSS (needs an RTX card): every material once more with the object velocity output.
 run "KOTH_SHOT_MENU=1 KOTH_SHOT_SECONDS=4 KOTH_DLSS=quality"
 run "KOTH_SHOT_SECONDS=10 KOTH_SHOT_THIRD=1 KOTH_SHOT_STRIKE=2,4 KOTH_SHOT_BLASTER=5 KOTH_SHOT_FIRE=6,7 KOTH_SHOT_DASH=8.6,9" --offline --bots 3 --dlss quality
 run "KOTH_SHOT_SECONDS=8 KOTH_SHOT_STRIKE=2,4" --offline --bots 3 --dlss quality
-run "KOTH_SHOT_SECONDS=8 KOTH_SHOT_THIRD=1" --offline --bots 3 --map Test --dlss quality
+run "KOTH_SHOT_SECONDS=8 KOTH_SHOT_THIRD=1" --offline --bots 3 --map Test --mode duo --dlss quality
 run "KOTH_SHOT_SECONDS=6 KOTH_SHOT_DASH=2.6,3" --offline --bots 3 --map Test
 # The graphics levels (Settings page): Low (no FXAA), Medium and Ultra change shaders (GI steps).
 for q in low medium ultra; do
   run "KOTH_SETTINGS=$root/Tools/effects/$q.toml KOTH_SHOT_MENU=1 KOTH_SHOT_SECONDS=4"
   run "KOTH_SETTINGS=$root/Tools/effects/$q.toml KOTH_SHOT_SECONDS=10 KOTH_SHOT_THIRD=1 KOTH_SHOT_STRIKE=2,4 KOTH_SHOT_BLASTER=5 KOTH_SHOT_FIRE=6,7 KOTH_SHOT_DASH=8.6,9" --offline --bots 3
-  run "KOTH_SETTINGS=$root/Tools/effects/$q.toml KOTH_SHOT_SECONDS=6" --offline --bots 3 --map Test
+  run "KOTH_SETTINGS=$root/Tools/effects/$q.toml KOTH_SHOT_SECONDS=6" --offline --bots 3 --map Test --mode duo
 done
 dotnet run Tools/effects/EffectLog.cs -- $log KotH.Game/Assets/EffectCompileLog.sdeffectlog

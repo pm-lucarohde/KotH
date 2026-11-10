@@ -107,6 +107,7 @@ namespace KotH.Probes.Probes
                 w.Byte((byte)proof.Length);
                 w.Bytes(proof);
                 w.Int(0);   // a fresh join, no NetId taken back
+                w.Int(0);   // no partner wished
             });
             MsgType answer = 0;
             Pump(1500.0, data =>

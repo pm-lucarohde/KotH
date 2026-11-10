@@ -41,6 +41,8 @@ namespace KotH.Shared.Net
         public int Slot;
         public string Name;
         public FigureLook Look;
+        /// <summary>Duo: the NetId of the player this one came with (invite, friend, party); 0 for none.</summary>
+        public int Wish;
     }
 
     /// <summary>
@@ -204,6 +206,7 @@ namespace KotH.Shared.Net
             w.Byte((byte)e.Slot);
             w.Text(e.Name);
             e.Look.Write(ref w);
+            w.Int(e.Wish);
         }
 
         public static NetEvent ReadEvent(ref Reader r)
@@ -215,6 +218,7 @@ namespace KotH.Shared.Net
                 e.Slot = r.Byte();
                 e.Name = r.Text();
                 e.Look = FigureLook.Read(ref r);
+                e.Wish = r.Int();
             }
             return e;
         }

@@ -14,15 +14,14 @@ KotH: king-of-the-hill game on **Stride 4.4**, **.NET 11 RC2** (`global.json`), 
 ## Build and run
 
 ```bash
-Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Probes}/aot (Luca tests only AOT)
-Tools/publish_aot.sh windows probes-windows  # on request only (lld-link, xwin)
+Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Probes}/aot (Luca tests only AOT); windows on request
 ```
 
 - AOT links in the distrobox `aot`; ILC sometimes crashes, then rerun; always `--no-incremental` (else an old scene
   bundle). After new materials/effects/scenes: `Tools/effects/record.sh`. JIT = AOT only with `DOTNET_EnableAVX=0`.
 - Client: no arguments = main menu, `--offline` alone; `--host`/`--join ADDRESS[:PORT]`, `--name`, `--port`,
-  `--min-players`, `--bots N`, `--display N`, `--map NAME`, `--fps N`, `--dlss MODE`. Two clients: `Tools/two_clients.sh`.
-- Server: real time, `--seconds N` or `--ticks N` (fast, exact end state); `--map`, `--bots`, load test `--bodies N`
+  `--min-players`, `--bots N`, `--mode duo`, `--display N`, `--map NAME`, `--fps N`, `--dlss MODE`. Two clients: `Tools/two_clients.sh`.
+- Server: real time, `--seconds N` or `--ticks N` (fast, exact end state); `--map`, `--bots`, `--mode duo`, load test `--bodies N`
   (`--map Test`); network `--host`/`--join`/`--bot` (`NetPlay.cs`). Traces `KOTH_TRACE=BotName`, `KOTH_FALLS=1`.
 - Test aids (`KotHApp.cs` fields, times from the end of the load screen): `KOTH_SHOT=shot.png` (+ `_SECONDS`, `_YAW`,
   `_AT`, `_MOVE`, `_BLASTER`, `_FIRE`, `_VIDEO` …), `KOTH_HEADLESS=1`, `KOTH_SIZE`, `KOTH_MUSIC_VOLUME=0` (mute), `KOTH_EFFECTLOG`,
@@ -36,7 +35,7 @@ No unit tests; probes against the frozen Unity reference, exit 0 = passed (known
 
 ```bash
 Bin/Probes/aot/KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|blaster|dash|step|
-  determinism|clock|stairrun|rampfoot|crouchedge|knockback|thirdperson|wallknock|capture|netstate|netplay|bots>
+  determinism|clock|stairrun|rampfoot|crouchedge|knockback|thirdperson|wallknock|capture|chain|netstate|netplay|bots>
 Bin/Probes/aot/KotH.Probes determinism hashes   # hash chain 67AB05EEE3468AFD
 Bin/Probes/aot/KotH.Probes bots climb 12        # MountDestiny, mean ≤ 140 s; also bots stats 12, bots jumplab
 .work/tools/climb_many.sh DIR 8 13 && dotnet run .work/tools/climb_many.cs -- DIR   # 104 seeds, each bot
@@ -46,7 +45,7 @@ dotnet run Tools/Regress.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # nu
 ```
 - Deviations and intended changes: `Reference/REGRESSION.md`. Regression only if the measuring path is touched; bots
   ≥ 100 runs; runs ≤ 15 min. `.work/` holds tools and measurements (`/tmp` is volatile).
-- Bot traces: `KOTH_BOTTRACE=tick` (`_BOT=n`), `KOTH_HOPLOG=n`, `KOTH_BOTPATH=file`, `KOTH_CLIMB_FIRST=k`.
+- Bot traces: `KOTH_BOTTRACE=tick` (`_BOT=n`), `KOTH_HOPLOG=n`, `KOTH_BOTPATH=file`, `KOTH_CLIMB_FIRST=k`, `KOTH_CLIMB_DUO=1`.
 
 ## Architecture
 
@@ -54,7 +53,7 @@ dotnet run Tools/Regress.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # nu
 (exe), **KotH.Server** (`HeadlessWorld`, 40 Hz), **KotH.Probes** (`Harness/`, `Ref` = Unity), **ThirdParty** (READMEs).
 
 ### Simulation
-- `SimulationSystem` is the only clock: contacts → `Motor.Simulate` → `SeparateBodies` → `Publish` → `SyncHull` →
+- `SimulationSystem` is the only clock: contacts → `Motor.Simulate` → `SeparateBodies` → `TieTeams` → `Publish` → `SyncHull` →
   combat → `HillMatch`. `Capture`/`Restore`/`Resimulate` (`WorldSnapshot`); no static state; client ticks in Draw (`SimulationJob`).
 - `MotorState` holds **every** motor field (`Pack = 1`); `DeterminismProbe` checks bit-exactly with mutation tests.
 - `TickClock` = Unity's player loop (`dt = 0.025f`); visuals interpolate, never feed back. Never read `TransformComponent`.
@@ -76,6 +75,7 @@ dotnet run Tools/Regress.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # nu
 - `HillMatch`: 3 s alone takes the zone, holder scores inside; phases `Running`/`Over` (+ `Waiting`/`Countdown` net).
   Net `MatchStage`: lobby on MountDestiny, host picks the map (Esc), countdown end restarts there, round end back.
   Respawn below `RespawnBelow` (percent, points, shots stay), spawn ring round the zone (`MatchState.Seed`), lobby on markers.
+- Duo (`MatchMode`): `Partner` NetIds paired at round start (wishes: invite, `SteamParty`), 2-vs-1 rule, chain `TieTeams`.
 
 ### Maps and assets
 - **Game Studio is the source of all assets** (YAML may be edited directly). `GraphicsCompositor` without `Archetype`.

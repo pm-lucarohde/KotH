@@ -21,5 +21,10 @@ namespace KotH.Shared.Simulation
 
         public BlasterState Blaster;
         public DashState Dash;
+
+        // Duo: the partner's NetId (0 alone), the one it came with (Wish), and whether a bot drives it.
+        public int Partner;
+        public int Wish;
+        public byte Bot;
     }
 }

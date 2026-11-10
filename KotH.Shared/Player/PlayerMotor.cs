@@ -518,6 +518,52 @@ namespace KotH.Shared.Player
             position = UMath.Add(position, free);
         }
 
+        /// <summary>The duo chain's pull on the position: up or down first, then across, each swept, so the
+        /// body slides along ground and walls but never into them. Body centre and eye follow at once.
+        /// Returns how far it really moved.</summary>
+        public Vector3 Tug(Vector3 shift)
+        {
+            Vector3 start = position;
+            if (shift.Y != 0f)
+                position = UMath.Add(position, sweep.Clear(world, position, FootOffset, currentHeight,
+                                                           BodyRadius, SkinWidth, new Vector3(0f, shift.Y, 0f), WorldMask));
+            var across = new Vector3(shift.X, 0f, shift.Z);
+            if (UMath.SqrMagnitude(across) > 0f)
+                position = UMath.Add(position, sweep.Clear(world, position, FootOffset, currentHeight,
+                                                           BodyRadius, SkinWidth, across, WorldMask));
+            eyePosition = CurrentEyeWorldPosition();
+            bodyCenter = CurrentBodyCenter();
+            return UMath.Sub(position, start);
+        }
+
+        /// <summary>The chain's pull on the velocity, ground control left as it is (unlike AddVelocity):
+        /// a body standing can hold its partner. A knock pulled against loses as much; that part is
+        /// returned, for the partner to carry on as its own knock (CarryKnock).</summary>
+        public Vector3 Pull(Vector3 delta)
+        {
+            velocity = UMath.Add(velocity, delta);
+            var across = new Vector3(delta.X, 0f, delta.Z);
+            float size = UMath.Magnitude(across);
+            if (size <= 0f || UMath.SqrMagnitude(knock) <= 0f)
+                return Vector3.Zero;
+            Vector3 n = UMath.Div(across, size);
+            float against = -UMath.Dot(knock, n);
+            if (against <= 0f)
+                return Vector3.Zero;
+            Vector3 taken = UMath.Mul(n, UMath.Min(against, size));
+            knock = UMath.Add(knock, taken);
+            return taken;
+        }
+
+        /// <summary>Counts part of the velocity, horizontal, as knock from now on: the chain hands a
+        /// knocked partner's flight on, which then sheds like a knock instead of under ground control.</summary>
+        public void CarryKnock(Vector3 part)
+        {
+            if (part.X == 0f && part.Z == 0f)
+                return;
+            knock = new Vector3(knock.X + part.X, 0f, knock.Z + part.Z);
+        }
+
         /// <summary>
         /// Hands the simulated pose to the entity. The physics world is left
         /// to the caller: SyncHull once all bodies have published.

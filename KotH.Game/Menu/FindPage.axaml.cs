@@ -24,7 +24,7 @@ namespace KotH.Client.Menu
 
         readonly RowList list = new RowList();
         readonly List<string> countriesSeen = new List<string>();
-        readonly Border access, country, language, modded;
+        readonly Border access, country, language, modded, mode;
         readonly MenuTextBox password = new MenuTextBox { Password = true, MaxLength = 64, Width = 330, Placeholder = "Type it, Enter joins" };
         LobbyListing? asking;
         bool busy, saysWhy;
@@ -43,6 +43,7 @@ namespace KotH.Client.Menu
             country = Pill(step => Filter = Filter with { Country = Next(Countries(), Filter.Country, step) });
             language = Pill(step => Filter = Filter with { Language = Next(Languages(), Filter.Language, step) });
             modded = Pill(step => Filter = Filter with { Modded = Next(new bool?[] { null, false, true }, Filter.Modded, step) });
+            mode = Pill(step => Filter = Filter with { Duo = Next(new bool?[] { null, false, true }, Filter.Duo, step) });
             ShowFilter();
             Refresh.Click += (_, _) => RefreshRequested?.Invoke();
             InviteField.Children.Add(invite);
@@ -83,7 +84,7 @@ namespace KotH.Client.Menu
                 if (round.Country.Length == 2 && !countriesSeen.Contains(round.Country))
                     countriesSeen.Add(round.Country);
                 string ping = round.PingMs < 0 ? "? ms" : $"{round.PingMs} ms";
-                string marks = (round.Private ? "  private" : "") + (round.Modded ? "  modded" : "");
+                string marks = (round.Duo ? "  duo" : "") + (round.Private ? "  private" : "") + (round.Modded ? "  modded" : "");
                 rows.Add(new RowList.Row(round.Host, $"{round.Map}  {round.Players}/{NetWorld.MaxPlayers}  {round.Country}{marks}  {ping}", "Join",
                                          () => { if (!busy) Choose(chosen); }));
             }
@@ -179,6 +180,8 @@ namespace KotH.Client.Menu
             country.Classes.Set("Chosen", Filter.Country != null);
             language.Classes.Set("Chosen", Filter.Language != null);
             modded.Classes.Set("Chosen", Filter.Modded != null);
+            Say(mode, Filter.Duo switch { null => "Solo or duo", true => "Duo", false => "Solo" });
+            mode.Classes.Set("Chosen", Filter.Duo != null);
         }
 
         static void Say(Border pill, string text) => ((TextBlock)pill.Child).Text = text;

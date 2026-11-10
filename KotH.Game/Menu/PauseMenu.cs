@@ -196,6 +196,13 @@ namespace KotH.Client.Menu
         // The Steam round's chat and voice, for the Players page.
         Comms Talk => Lobby != null ? Services.GetService<NetClient>()?.Comms : null;
 
+        // Duo: whether the player with this NetId is chained to the own body.
+        bool IsPartner(int netId)
+        {
+            NetClient net = Services.GetService<NetClient>();
+            return netId != 0 && net?.Session?.BodyOf(net.Session.LocalNetId) is { } self && self.Partner == netId;
+        }
+
         // Everyone else in the lobby, muted or not; the list keeps up with who speaks.
         void ListPlayers()
         {
@@ -205,7 +212,10 @@ namespace KotH.Client.Menu
                 foreach (ulong member in talk.Others())
                 {
                     bool muted = talk.IsMuted(member);
-                    string detail = muted ? "muted" : VoiceChat.IsSpeaking(talk.NetIdOf(member)) ? "speaking" : "";
+                    int netId = talk.NetIdOf(member);
+                    string detail = muted ? "muted" : VoiceChat.IsSpeaking(netId) ? "speaking" : "";
+                    if (IsPartner(netId))
+                        detail = detail.Length > 0 ? "partner, " + detail : "partner";
                     rows.Add(new RowList.Row(talk.NameOf(member), detail, muted ? "Unmute" : "Mute", () =>
                     {
                         talk.SetMuted(member, !muted);

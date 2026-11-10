@@ -165,6 +165,9 @@ namespace KotH.Shared.Net
             return true;
         }
 
+        /// <summary>Duo: the NetId of the player this one came with (invite, friend, party), told in the Hello.</summary>
+        public int Wish { get; set; }
+
         /// <summary>After a host change: the player this peer was, 0 for a fresh join; set before Join.</summary>
         public int ResumeNetId { get; set; }
 
@@ -220,6 +223,7 @@ namespace KotH.Shared.Net
             else
                 w.Byte(0);
             w.Int(ResumeNetId);
+            w.Int(Wish);
             transport.Send(0, outgoing.WrittenSpan, reliable: true);
         }
 
@@ -922,6 +926,8 @@ namespace KotH.Shared.Net
         {
             SimulationBody body = world.SpawnPlayer(e.NetId, e.Slot, e.Name, e.Look);
             body.NetId = e.NetId;
+            body.Wish = e.Wish;
+            body.Bot = e.Bot;
             bodies[e.NetId] = body;
             roster[e.NetId] = e;
             joinStates[e.NetId] = body.CaptureState();

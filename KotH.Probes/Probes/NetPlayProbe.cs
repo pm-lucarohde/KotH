@@ -278,6 +278,7 @@ namespace KotH.Probes.Probes
             FigureLook.Default.Write(ref w);
             w.Byte(0);   // no password proof
             w.Int(0);    // a fresh join
+            w.Int(0);    // no partner wished
             end.Send(0, hello.WrittenSpan, reliable: true);
             return end;
         }

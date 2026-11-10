@@ -102,6 +102,7 @@ namespace KotH.Client.Menu
             view = new MainMenuView();
             view.Label(PlayerName ?? Environment.UserName, $"Build {NetProtocol.BuildText[..8]}");
             view.HostOpened += () => view.Hoster.Open(PlayerName ?? Environment.UserName);
+            view.PartyOpened += () => view.Partier.Open();
             view.Hoster.HostRequested += (flags, password) =>
             {
                 (hostFlags, hostPassword) = (flags, password);
@@ -110,7 +111,7 @@ namespace KotH.Client.Menu
             view.QuitRequested += () => quitWanted = true;
             view.FindOpened += Search;
             view.Finder.RefreshRequested += Search;
-            view.Finder.JoinRequested += (round, password) => Enter(round.Id, round.Host, password);
+            view.Finder.JoinRequested += (round, password) => Enter(round.Id, round.Host, password, 0);
             view.Finder.InviteRequested += code => StartInvite?.Invoke(code);
             view.Customizer.Look = Look;
             view.Customizer.LookChanged += look =>
@@ -180,11 +181,8 @@ namespace KotH.Client.Menu
             searched += (float)Game.UpdateTime.Elapsed.TotalSeconds;
             if (view.FindOpen && !searching && !entering && searched >= SearchEvery && SteamClient.Ready)
                 Search(again: true);
-            if (shown && !entering && entered == null && SteamClient.TakeInvite(out ulong invited))
-            {
-                view.OpenFind();
-                Enter(invited, null, null);
-            }
+            if (shown && !entering && entered == null)
+                Follow((float)Game.UpdateTime.Elapsed.TotalSeconds);
             if (hostWanted)
             {
                 // Out of Avalonia's dispatcher: the host removes this menu.
@@ -225,8 +223,34 @@ namespace KotH.Client.Menu
             });
         }
 
+        // An accepted invite (a round's or a party's), else the round the party's leader went to; the
+        // party's leader is in no round here. The Party page shows who came or went, once a second.
+        void Follow(float seconds)
+        {
+            SteamParty.Playing(0);
+            if (SteamClient.TakeInvite(out ulong invited, out ulong friend))
+            {
+                view.OpenFind();
+                Enter(invited, null, null, friend);
+            }
+            else if (SteamParty.FollowTo(out ulong round, out ulong leader))
+            {
+                view.OpenFind();
+                Enter(round, $"{SteamClient.NameOf(leader)}'s round", null, leader);
+            }
+            partyShown += seconds;
+            if (view.PartyOpen && partyShown >= 1f)
+            {
+                partyShown = 0f;
+                view.Partier.Refresh();
+            }
+        }
+
+        float partyShown;
+
         // Enters a round's lobby; it is joined only on the host's build (GameRoot changes the map if need be).
-        void Enter(ulong id, string host, string password)
+        // A party's lobby becomes the party instead. cameWith: the friend this player came with, 0 for none.
+        void Enter(ulong id, string host, string password, ulong cameWith)
         {
             if (entering || !SteamClient.Ready)
                 return;
@@ -246,10 +270,18 @@ namespace KotH.Client.Menu
                 if (lobby.Build != NetProtocol.BuildText)
                 {
                     lobby.Dispose();
-                    view.Finder.Failed("Different build than the host");
+                    view.Finder.Failed(lobby.IsParty ? "Different build than your friend" : "Different build than the host");
+                }
+                else if (lobby.IsParty)
+                {
+                    SteamParty.Joined(lobby);
+                    view.OpenParty();
                 }
                 else
+                {
+                    lobby.CameWith = cameWith;
                     entered = lobby;
+                }
             });
         }
 

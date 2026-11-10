@@ -1,0 +1,13 @@
+!Model
+Id: 7371058E-FD6A-4A72-A995-FC0C5DF1A128
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Models/ChainLink.glb
+PivotPosition: {X: 0.0, Y: 0.0, Z: 0.0}
+Materials:
+    a94db485c6e94ce98fe348da5208af35:
+        Name: ChainLink
+        MaterialInstance:
+            Material: 7F2CA03F-A5E6-43AC-8E35-178406D8E7A5:Materials/ChainLink
+            IsShadowCaster: true
+Modifiers: {}

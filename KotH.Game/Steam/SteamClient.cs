@@ -39,7 +39,7 @@ namespace KotH.Client.Steam
         internal static event Action<int, nint> Callback;
 
         static readonly Dictionary<ulong, Action<nint, bool>> calls = new Dictionary<ulong, Action<nint, bool>>();
-        static readonly Queue<ulong> invites = new Queue<ulong>();
+        static readonly Queue<(ulong Lobby, ulong Friend)> invites = new Queue<(ulong, ulong)>();
         static readonly byte[] result = new byte[4096];
         static int pipe;
 
@@ -121,7 +121,7 @@ namespace KotH.Client.Steam
                     if (id == CallCompleted)
                         Complete(param);
                     else if (id == JoinRequestedId)
-                        invites.Enqueue(*(ulong*)param);
+                        invites.Enqueue((*(ulong*)param, *(ulong*)(param + 8)));   // lobby, the friend's
                     else
                         Callback?.Invoke(id, param);
                 }
@@ -198,11 +198,21 @@ namespace KotH.Client.Steam
         /// <summary>Whether an accepted invite waits for the main menu.</summary>
         public static bool HasInvite => invites.Count > 0;
 
-        /// <summary>A lobby a friend invited to and the player accepted in Steam, if one is waiting.</summary>
-        public static bool TakeInvite(out ulong lobby) => invites.TryDequeue(out lobby);
+        /// <summary>A lobby a friend invited to (or plays in) and the player accepted in Steam, if one is
+        /// waiting; friend is who it came from, 0 when unknown.</summary>
+        public static bool TakeInvite(out ulong lobby, out ulong friend)
+        {
+            bool any = invites.TryDequeue(out (ulong Lobby, ulong Friend) invite);
+            (lobby, friend) = invite;
+            return any;
+        }
 
         /// <summary>Queues a lobby as if accepted (+connect_lobby on the command line).</summary>
-        public static void Invite(ulong lobby) => invites.Enqueue(lobby);
+        public static void Invite(ulong lobby) => invites.Enqueue((lobby, 0));
+
+        /// <summary>A Steam user's name as Steam knows it (friends, lobby members), "?" when it does not.</summary>
+        public static string NameOf(ulong id)
+            => Ready && Text(SteamAPI_ISteamFriends_GetFriendPersonaName(Friends, id)) is { Length: > 0 } name ? name : "?";
 
         /// <summary>Friends online now, by name.</summary>
         public static List<(ulong Id, string Name)> OnlineFriends()

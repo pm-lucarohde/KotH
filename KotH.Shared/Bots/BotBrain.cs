@@ -74,6 +74,7 @@ namespace KotH.Shared.Bots
         bool hasSpot;
         Vector3 goal;
         int variant = -1;            // the route variant it takes, chosen at its first way to the zone
+        int mate;                    // duo: the partner's NetId as the last view said, 0 alone
         bool climbing;               // on the way up to the zone: the pilot steers
         bool farBelow;               // and still far below it: no fights
         LinkKind flight;             // the jump under way while climbing, None on the ground
@@ -192,8 +193,9 @@ namespace KotH.Shared.Bots
                 Think(view, self, at, phase, knocked);
                 // Up the hill along the own route; inside the zone to the own spot.
                 bool toZone = match != null && intent != BotIntent.Attack && intent != BotIntent.Idle && !match.Contains(at);
+                // Duo: partners go the lead's way (route counts on with the NetId), not pulling apart.
                 if (toZone && variant < 0)
-                    variant = nav.ChooseVariant(feet, route, settings.RouteDetour);
+                    variant = nav.ChooseVariant(feet, mate != 0 && mate < netId ? route - (netId - mate) : route, settings.RouteDetour);
                 if (toZone)
                     Progress(u, feet);
                 if (!(toZone ? nav.PlanToZone(feet, variant, memory, corners) : nav.Plan(feet, goal, corners)))
@@ -272,6 +274,10 @@ namespace KotH.Shared.Bots
             // Far below the zone a bot climbs and chases nobody (Luca's rule).
             bool below = match != null && !inZone && match.Center.Y - match.HalfSize.Y - Feet(at).Y > ClimbBelow;
             SimulationBody holder = view.Match.Holder;
+            // Duo: the partner is never fought, and its team's hold is this bot's own (both from the view).
+            mate = view.StateAt(self).Partner;
+            int holderMate = holder != null && IndexOf(view, holder.NetId) is var h and >= 0 ? view.StateAt(h).Partner : 0;
+            bool weHold = holder != null && (holder.NetId == netId || holder.NetId == mate);
             float reach = shotsLeft > 0 ? UMath.Max(settings.EngageRange, settings.BlasterRange) : settings.EngageRange;
 
             if (knocked)
@@ -279,14 +285,14 @@ namespace KotH.Shared.Bots
             if (live && match != null)
             {
                 Offer(BotIntent.Capture, 0, inZone ? 0f : 1.2f);
-                Offer(BotIntent.Hold, 0, inZone ? 0.9f + (holder != null && holder.NetId == netId ? 0.2f : 0f) : 0f);
+                Offer(BotIntent.Hold, 0, inZone ? 0.9f + (weHold ? 0.2f : 0f) : 0f);
             }
             Offer(BotIntent.Idle, 0, live ? 0.05f : phase == MatchPhase.Over ? 1f : 0.4f);
 
             for (int i = 0; i < view.Count; i++)
             {
                 SimulationBody other = view.BodyAt(i);
-                if (i == self || other.NetId == 0)
+                if (i == self || other.NetId == 0 || mate != 0 && other.NetId == mate)
                     continue;
                 BodyState s = view.StateAt(i);
                 Vector3 there = Ahead(s.Motor.Position, s.Motor.Velocity, Reaction * Dt);
@@ -300,7 +306,7 @@ namespace KotH.Shared.Bots
                 bool theyHold = match != null && match.Contains(there);
                 float score = 0.3f + 0.5f * UMath.Max(0f, 1f - d / settings.EngageRange)
                             + (theyHold ? 0.6f : 0f)
-                            + (holder == other ? 0.4f : 0f)
+                            + (holder == other || holderMate != 0 && other.NetId == holderMate ? 0.4f : 0f)
                             + 0.2f * UMath.Min(1f, s.DamagePercent / 100f);
                 if (nav.NearestEdge(Feet(there), 2.5f, out _, out _))
                     score += 0.2f;
@@ -609,11 +615,11 @@ namespace KotH.Shared.Bots
                 return input;
             Vector3 eye = Ahead(me.Motor.EyePosition, me.Motor.Velocity, Reaction * Dt);
             float best = fists.Range - 0.2f;
-            int pick = -1;
+            int pick = -1, mate = me.Partner;
             Vector3 aim = Vector3.Zero;
             for (int i = 0; i < view.Count; i++)
             {
-                if (i == self || view.BodyAt(i).NetId == 0)
+                if (i == self || view.BodyAt(i).NetId == 0 || mate != 0 && view.BodyAt(i).NetId == mate)
                     continue;
                 BodyState s = view.StateAt(i);
                 Vector3 d = UMath.Sub(Ahead(s.Motor.BodyCenter, s.Motor.Velocity, Reaction * Dt), eye);

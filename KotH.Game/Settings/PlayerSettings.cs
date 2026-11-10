@@ -42,7 +42,7 @@ namespace KotH.Client.Settings
         // Hosting, from the Host page: the round's name, private or public and its flags. Never the password.
         // An empty country or no language: Steam's guess for this player when hosting.
         public string HostName = "";
-        public bool HostPrivate, HostModded;
+        public bool HostPrivate, HostModded, HostDuo;
         public string HostCountry = "";
         public string[] HostLanguages = System.Array.Empty<string>();
 

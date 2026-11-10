@@ -36,6 +36,7 @@ Probe probe = name switch
     "thirdperson" => new ThirdPersonProbe(),
     "wallknock" => new WallKnockProbe { Trace = Array.IndexOf(args, "trace") > 0 },
     "capture" => new CaptureProbe(),
+    "chain" => new ChainProbe(),
     "netstate" => new NetStateProbe(),
     "netplay" => new NetPlayProbe(),
     "password" => new PasswordProbe(),
@@ -52,7 +53,7 @@ Probe probe = name switch
 
 if (probe == null)
 {
-    Console.Error.WriteLine("Usage: KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|blaster|dash|step|determinism|clock|stairrun|rampfoot|crouchedge|knockback|thirdperson|wallknock|capture|netstate|netplay|password|migrate|secure|bots>");
+    Console.Error.WriteLine("Usage: KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|blaster|dash|step|determinism|clock|stairrun|rampfoot|crouchedge|knockback|thirdperson|wallknock|capture|chain|netstate|netplay|password|migrate|secure|bots>");
     return 64;
 }
 
