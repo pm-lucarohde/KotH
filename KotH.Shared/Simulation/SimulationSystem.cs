@@ -71,8 +71,8 @@ namespace KotH.Shared.Simulation
         /// <summary>How long ground control stays soft after a push.</summary>
         public float KnockbackLock = 0.2f;
 
-        /// <summary>Duo: the chain between partners, body centre to body centre (Luca: 3.5 m).</summary>
-        public float ChainLength = 3.5f;
+        /// <summary>Duo: the chain between partners, body centre to body centre (Luca: 4 m, first 3.5 m).</summary>
+        public float ChainLength = 4f;
 
         // Reused across ticks so a step allocates nothing.
         readonly List<BodyContact.Body> states = new List<BodyContact.Body>();

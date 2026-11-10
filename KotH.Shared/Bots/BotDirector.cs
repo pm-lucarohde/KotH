@@ -145,6 +145,7 @@ namespace KotH.Shared.Bots
             {
                 Brain = new BotBrain(netId, BotRandom.Seed(seed, netId), bots.Count + seed, Navigation, settings, match, motor, fists, gun, dash),
             };
+            bot.Brain.Peer = BrainOf;
             lock (gate)
             {
                 bots[netId] = bot;

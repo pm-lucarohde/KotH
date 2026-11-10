@@ -1,6 +1,6 @@
 #!/usr/bin/env -S dotnet run
-// One link of the duo chain (Luca: a metal chain, 3.5 m): a round wire bent into a stadium, its long
-// axis along +Z, lying in the XZ plane, inner length = the chain's pitch (32 links make 3.5 m).
+// One link of the duo chain (Luca: a metal chain, now 4 m): a round wire bent into a stadium, its long
+// axis along +Z, lying in the XZ plane, inner length = the chain's pitch (32 links made 3.5 m; the 4 m chain draws 36).
 // Writes KotH.Game/Resources/Models/ChainLink.glb (Models/ChainLink in Game Studio). Run from the repo.
 #:include ../Common/Glb.cs
 using System;

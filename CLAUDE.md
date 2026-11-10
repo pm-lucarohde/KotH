@@ -45,7 +45,7 @@ dotnet run Tools/Regress.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # nu
 ```
 - Deviations and intended changes: `Reference/REGRESSION.md`. Regression only if the measuring path is touched; bots
   ≥ 100 runs; runs ≤ 15 min. `.work/` holds tools and measurements (`/tmp` is volatile).
-- Bot traces: `KOTH_BOTTRACE=tick` (`_BOT=n`), `KOTH_HOPLOG=n`, `KOTH_BOTPATH=file`, `KOTH_CLIMB_FIRST=k`, `KOTH_CLIMB_DUO=1`.
+- Bot traces: `KOTH_BOTTRACE=tick` (`_BOT=n`), `KOTH_HOPLOG=n`, `KOTH_BOTPATH=file`, `KOTH_CLIMB_FIRST=k`, `KOTH_CLIMB_DUO=1` (+`KOTH_CLIMB_SECONDS=1200`).
 
 ## Architecture
 
@@ -93,8 +93,8 @@ dotnet run Tools/Regress.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # nu
 
 ### Bots (`KotH.Shared/Bots`) and figure
 - **Only the host computes them, deterministically:** `BotDirector` decides tick t from the final state at t − 8;
-  no bot state in the snapshot; in the client on its own thread. Read only snapshot states, no `System.Random`.
+  no bot state in the snapshot; in the client on its own thread. Read only snapshot states (duo: the lead's memory via `Peer`), no `System.Random`.
 - `ClimbGrid` (0.5 m columns, floors, moves in seconds), RTAA* to the zone, `JumpPilot` flies every jump in the motor
-  model first (no jitter, Luca), `BotBrain` utility AI with `ManeuverWfc`. Status: 312/312 on top, mean 90 s.
+  model first (no jitter, Luca), `BotBrain` utility AI with `ManeuverWfc`. Status: 312/312 on top, mean 90 s; duo 72/72 (≤ 470 s).
 - Figure (visuals only): `Mushroom.glb` (17 clips, `.work/rig/build.sh`), FP arms in render group 2. The game moves
   `Mouth`, `Leaf.*`, lids, `Look`, `Recoil`, `*ArmSwing.R`: **clips must have no channels for them.** Cane/`Blaster` (1/2) on `Grip.R`.

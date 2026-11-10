@@ -19,7 +19,7 @@ namespace KotH.Probes.Probes
         /// <summary>Seeds for "bots climb N": three bots up the mountain of map MountDestiny.</summary>
         public int Climb = 0;
 
-        const int ClimbTicks = 40 * 360;
+        static readonly int ClimbTicks = 40 * int.Parse(Environment.GetEnvironmentVariable("KOTH_CLIMB_SECONDS") ?? "360");
         const float ClimbGoal = 140f;
         static readonly float[] Heights = { 20f, 50f, 90f };
         readonly int[] HopStats = new int[3], Predictions = new int[2];

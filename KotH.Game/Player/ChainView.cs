@@ -11,13 +11,13 @@ using Stride.Rendering;
 
 namespace KotH.Client.Player
 {
-    /// <summary>The duo chain between partners (Luca: metal, 3.5 m, at the belt, sagging, lying on the ground):
-    /// per pair a rope of 32 links from hip to hip, moved by Verlet each frame, drawn as one instanced model.
+    /// <summary>The duo chain between partners (Luca: metal, 4 m, at the belt, sagging, lying on the ground):
+    /// per pair a rope of 36 links from hip to hip, moved by Verlet each frame, drawn as one instanced model.
     /// It lies on the map's ground (rays down). Presentation only: the simulation's chain is SimulationSystem's.</summary>
     [DataContract("KotH.ChainView")]
     public sealed class ChainView : SyncScript
     {
-        const int Links = 32, Steps = 16, Probe = 4;
+        const int Links = 36, Steps = 16, Probe = 4;
         const float Damping = 0.985f, Gravity = 9.81f, Thick = 0.012f, NearEye = 0.45f;
         const string HipsBone = "Hips", FeetBone = "Root";
 

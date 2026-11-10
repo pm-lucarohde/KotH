@@ -75,6 +75,8 @@ namespace KotH.Shared.Bots
         Vector3 goal;
         int variant = -1;            // the route variant it takes, chosen at its first way to the zone
         int mate;                    // duo: the partner's NetId as the last view said, 0 alone
+        bool hasMate;                // duo: the partner is in this tick's view, its centre at mateAt (carried forward)
+        Vector3 mateAt;
         bool climbing;               // on the way up to the zone: the pilot steers
         bool farBelow;               // and still far below it: no fights
         LinkKind flight;             // the jump under way while climbing, None on the ground
@@ -90,7 +92,8 @@ namespace KotH.Shared.Bots
         float landedTime;
         readonly MoveInput[] past = new MoveInput[64];
         readonly int[] pastTick = new int[64];
-        readonly ClimbGrid.Memory memory = new ClimbGrid.Memory();
+        readonly ClimbGrid.Memory own = new ClimbGrid.Memory();
+        ClimbGrid.Memory memory;     // own, or in duo the lead's (the partner with the lower NetId)
         float bestTime = float.MaxValue;
         int bestTick;
 
@@ -111,7 +114,11 @@ namespace KotH.Shared.Bots
             wfc = new ManeuverWfc(Math.Max(2, settings.SlotsPerPlan), Math.Max(1, settings.SlotTicks), fists.CooldownTicks);
             allowed = new ushort[wfc.Slots];
             pilot = new JumpPilot(nav.Grid, body);
+            memory = own;
         }
+
+        /// <summary>The director's brains by NetId: a duo follower learns into its lead's memory.</summary>
+        public Func<int, BotBrain> Peer;
 
         public int NetId => netId;
         public BotIntent Intent => intent;
@@ -124,7 +131,7 @@ namespace KotH.Shared.Bots
         public bool Hopping => hopping || flight != LinkKind.None;
         public LinkKind Flight => flight;
         public Vector3 Landing => landing;
-        public int Lessons => memory.Lessons;
+        public int Lessons => own.Lessons;
 
         /// <summary>Jumps climbing so far, those that landed where they should, and those given up before take-off; for probes.</summary>
         public int Hops, HopsLanded, HopsGivenUp;
@@ -185,6 +192,16 @@ namespace KotH.Shared.Bots
                 view.Match.RoundTicks + Reaction < (int)MathF.Round(settings.StartWait / Dt))
                 return Remember(u, new MoveInput { Yaw = yaw, Pitch = pitch });
 
+            // Duo: the follower learns into the lead's memory and takes its variant, so both plan one way
+            // (the director steps the brains in a fixed order, so this stays deterministic).
+            BotBrain lead = mate != 0 && mate < netId ? Peer?.Invoke(mate) : null;
+            memory = lead != null ? lead.own : own;
+            if (lead != null && lead.variant >= 0 && variant != lead.variant && match != null && !match.Contains(at))
+            {
+                variant = lead.variant;
+                nextThink = u;
+            }
+            hasMate = mate != 0 && Seen(view, mate, ahead, out mateAt);
             if (u >= nextThink)
             {
                 nextThink = u + Math.Max(1, settings.ThinkTicks);
@@ -193,12 +210,17 @@ namespace KotH.Shared.Bots
                 Think(view, self, at, phase, knocked);
                 // Up the hill along the own route; inside the zone to the own spot.
                 bool toZone = match != null && intent != BotIntent.Attack && intent != BotIntent.Idle && !match.Contains(at);
-                // Duo: partners go the lead's way (route counts on with the NetId), not pulling apart.
+                // Duo: partners go the lead's way, chosen from where the lead stands (its route counts on with the NetId).
                 if (toZone && variant < 0)
-                    variant = nav.ChooseVariant(feet, mate != 0 && mate < netId ? route - (netId - mate) : route, settings.RouteDetour);
+                    variant = mate != 0 && mate < netId && Seen(view, mate, ahead, out Vector3 leader)
+                        ? nav.ChooseVariant(Feet(leader), route - (netId - mate), settings.RouteDetour)
+                        : nav.ChooseVariant(feet, route, settings.RouteDetour);
                 if (toZone)
                     Progress(u, feet);
-                if (!(toZone ? nav.PlanToZone(feet, variant, memory, corners) : nav.Plan(feet, goal, corners)))
+                // Duo: the one behind goes to its partner first, not along its own way (which may part from it).
+                bool chase = toZone && Behind(Feet(mateAt), feet);
+                if (!(chase ? nav.Plan(feet, Feet(mateAt), corners)
+                      : toZone ? nav.PlanToZone(feet, variant, memory, corners) : nav.Plan(feet, goal, corners)))
                     corners.Clear();
                 climbing = toZone;
                 farBelow = toZone && match.Center.Y - match.HalfSize.Y - feet.Y > ClimbBelow;
@@ -233,6 +255,22 @@ namespace KotH.Shared.Bots
 
         // Share of the remaining angle turned per tick.
         const float Ease = 0.3f;
+
+        // A body's centre as seen, carried forward like the own; false when it is not in the view.
+        static bool Seen(WorldSnapshot view, int id, float ahead, out Vector3 at)
+        {
+            int i = IndexOf(view, id);
+            at = i < 0 ? default : Ahead(view.StateAt(i).Motor.Position, view.StateAt(i).Motor.Velocity, ahead);
+            return i >= 0;
+        }
+
+        // Duo: a partner further than this and at least FollowMargin seconds further up the way is caught up with
+        // first. Waiting rules all made it worse: one standing still anchors the chain and the other's jump falls short.
+        const float FollowFar = 2f, FollowMargin = 0.3f;
+
+        bool Behind(Vector3 theirs, Vector3 feet)
+            => hasMate && UMath.Magnitude(UMath.Sub(feet, theirs)) > FollowFar
+               && nav.Grid.TimeToZone(theirs, variant) + FollowMargin < nav.Grid.TimeToZone(feet, variant);
 
         static int IndexOf(WorldSnapshot view, int id)
         {

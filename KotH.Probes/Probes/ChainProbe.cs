@@ -11,7 +11,7 @@ using Stride.Engine;
 
 namespace KotH.Probes.Probes
 {
-    /// <summary>The duo chain (3.5 m, Luca) on the Test arena: partners running apart stay within it,
+    /// <summary>The duo chain (4 m, Luca) on the Test arena: partners running apart stay within it,
     /// one walking away drags the other, a partner over the plateau's edge hangs and is pulled up, a
     /// knock drags the partner along, a rollback through it is bit-identical, solo has no chain.</summary>
     public sealed class ChainProbe : Probe
