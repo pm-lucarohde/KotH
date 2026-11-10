@@ -44,8 +44,8 @@
         </Grid>
 
         <!-- The pages behind Host server, Find server, Party, Settings and Languages (the last only to look at for now) -->
-        <Grid Name="PagePart" Width="870" Height="610">
-            <Panel Name="Page" Width="820" Height="560" Margin="24,24,0,0"
+        <Grid Name="PagePart" Width="1090" Height="770">
+            <Panel Name="Page" Width="1040" Height="720" Margin="24,24,0,0"
                    HorizontalAlignment="Left" VerticalAlignment="Top">
                 <Image Source="/Menu/Art/Wide.png" Margin="-24" Stretch="Fill" />
                 <Grid RowDefinitions="Auto,*,Auto" Margin="50,36,50,34">

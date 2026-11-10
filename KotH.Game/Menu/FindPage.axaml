@@ -12,7 +12,7 @@
         </Style>
     </UserControl.Styles>
     <Grid RowDefinitions="Auto,*,Auto,Auto">
-        <StackPanel Name="Filters" Orientation="Horizontal" Spacing="10" Margin="0,0,0,14" />
+        <WrapPanel Name="Filters" ItemSpacing="10" LineSpacing="10" Margin="0,0,0,14" />
         <Border Grid.Row="1" Classes="Well" Padding="0,8">
             <Panel Name="Inside">
                 <StackPanel Name="Empty" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" Margin="26,0">
