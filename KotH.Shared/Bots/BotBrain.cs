@@ -205,6 +205,8 @@ namespace KotH.Shared.Bots
             // The chain neighbours, up the chain first; the one to catch up with is picked in Behind.
             hasMate = up != 0 && Seen(view, up, ahead, out mateAt);
             hasMate2 = down != 0 && Seen(view, down, ahead, out mateAt2);
+            hangUp = Hangs(view, up, me) ? hangUp + 1 : 0;
+            hangDown = Hangs(view, down, me) ? hangDown + 1 : 0;
             if (u >= nextThink)
             {
                 nextThink = u + Math.Max(1, settings.ThinkTicks);
@@ -235,6 +237,11 @@ namespace KotH.Shared.Bots
                 Replan(u, view, at, airborne);
             Arm(u, view, at, phase);
 
+            if (climbing && me.Motor.Grounded && (hangUp > HangTicks || hangDown > HangTicks))
+            {
+                running = Maneuver.Sprint;
+                return Remember(u, LetDown(u, me, Feet(hangUp > HangTicks ? mateAt : mateAt2)));
+            }
             if (climbing)
             {
                 running = Maneuver.Sprint;
@@ -270,7 +277,7 @@ namespace KotH.Shared.Bots
 
         // Teams: a neighbour further than this and at least FollowMargin seconds further up the way is caught up with
         // first. Waiting rules all made it worse: one standing still anchors the chain and the other's jump falls short.
-        // A row of three or four follows closer (measured: squad 20 to 56 of 144 on top, trio median 494 to 328 s).
+        // A row of three or four follows closer (measured at 4 m: squad 20 to 56 of 144 on top, trio median 494 to 328 s).
         const float FollowFar = 2f, RowFollowFar = 1.2f, FollowMargin = 0.3f;
         bool hasMate2;
         Vector3 mateAt2;
@@ -282,13 +289,40 @@ namespace KotH.Shared.Bots
 
         // A row of three or four: a jump that missed with a link near taut is the chain's fault, not the jump's
         // (the team's shared memory would learn the good way off); a pair keeps learning from every miss.
-        const float TautAt = 3.6f;
+        const float TautAt = 4.6f;  // 0.4 m short of the 5 m link
         bool tautInFlight, landedTaut;
         Vector3 hopTo;               // the landing the hop was prepared for
 
         bool Taut(Vector3 feet)
             => teamSize > 2 && (hasMate && UMath.Magnitude(UMath.Sub(Feet(mateAt), feet)) > TautAt
                                 || hasMate2 && UMath.Magnitude(UMath.Sub(Feet(mateAt2), feet)) > TautAt);
+
+        // Teams: a neighbour hanging off the ground below on a taut link for 3 s is let down, the bot
+        // walks towards it (else three can hang down a cliff from one for minutes). Measured, squad 5 m: 113 to 124 of
+        // 144 on top; after 1 s worse (101), hauling (walking away) worse still (75); duo the same (mean 118 vs 120 s).
+        const int HangTicks = 120;
+        int hangUp, hangDown;
+
+        bool Hangs(WorldSnapshot view, int id, in BodyState me)
+        {
+            int i = id != 0 ? IndexOf(view, id) : -1;
+            if (i < 0)
+                return false;
+            MotorState s = view.StateAt(i).Motor;
+            return !s.Grounded && s.Position.Y < me.Motor.Position.Y - 1f
+                   && UMath.Magnitude(UMath.Sub(s.Position, me.Motor.Position)) > TautAt;
+        }
+
+        MoveInput LetDown(int u, in BodyState me, Vector3 to)
+        {
+            flight = LinkKind.None;
+            hopping = false;
+            Vector3 feet = Feet(me.Motor.Position);
+            float moveYaw = UMath.Atan2(-(to.X - feet.X), -(to.Z - feet.Z)) * (180f / MathF.PI);
+            LookAt(u, new JumpPilot.Body { X = feet.X, Y = feet.Y, Z = feet.Z }, to, moveYaw);
+            walkKeys = JumpPilot.Keys(moveYaw - yaw, true, walkKeys);
+            return new MoveInput { Yaw = yaw, Pitch = pitch, Move = walkKeys };
+        }
 
         // The chain neighbour to catch up with: up the chain first, else down it.
         bool Catch(Vector3 feet, out Vector3 to)

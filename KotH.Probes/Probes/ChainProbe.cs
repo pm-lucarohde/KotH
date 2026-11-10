@@ -11,7 +11,7 @@ using Stride.Engine;
 
 namespace KotH.Probes.Probes
 {
-    /// <summary>The duo chain (4 m, Luca) on the Test arena: partners running apart stay within it,
+    /// <summary>The team chain (5 m, Luca) on the Test arena: partners running apart stay within it,
     /// one walking away drags the other, a partner over the plateau's edge hangs and is pulled up, a
     /// knock drags the partner along, a rollback through it is bit-identical, solo has no chain.</summary>
     public sealed class ChainProbe : Probe
@@ -76,7 +76,7 @@ namespace KotH.Probes.Probes
 
             // A knocked away from B drags B along.
             a.Motor.Teleport(new Vector3(0f, 0.9f, -2f));
-            b.Motor.Teleport(new Vector3(3f, 0.9f, -2f));
+            b.Motor.Teleport(new Vector3(length - 1f, 0.9f, -2f));
             Ticks(20);
             Vector3 startB = b.Motor.Position;
             a.Motor.Knock(new Vector3(-1f, 0f, 0f), 12f, 1.2f, 0f, 0f, SimulationSystem.TickSeconds);

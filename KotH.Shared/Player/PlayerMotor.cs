@@ -518,19 +518,14 @@ namespace KotH.Shared.Player
             position = UMath.Add(position, free);
         }
 
-        /// <summary>The duo chain's pull on the position: up or down first, then across, each swept, so the
-        /// body slides along ground and walls but never into them. Body centre and eye follow at once.
+        /// <summary>The team chain's pull on the position, swept and sliding along what it meets (Luca:
+        /// one on top hauls a hanging one up the wall), never into it. Body centre and eye follow at once.
         /// Returns how far it really moved.</summary>
         public Vector3 Tug(Vector3 shift)
         {
             Vector3 start = position;
-            if (shift.Y != 0f)
-                position = UMath.Add(position, sweep.Clear(world, position, FootOffset, currentHeight,
-                                                           BodyRadius, SkinWidth, new Vector3(0f, shift.Y, 0f), WorldMask));
-            var across = new Vector3(shift.X, 0f, shift.Z);
-            if (UMath.SqrMagnitude(across) > 0f)
-                position = UMath.Add(position, sweep.Clear(world, position, FootOffset, currentHeight,
-                                                           BodyRadius, SkinWidth, across, WorldMask));
+            position = UMath.Add(position, sweep.Slide(world, position, FootOffset, currentHeight,
+                                                       BodyRadius, SkinWidth, shift, WorldMask));
             eyePosition = CurrentEyeWorldPosition();
             bodyCenter = CurrentBodyCenter();
             return UMath.Sub(position, start);

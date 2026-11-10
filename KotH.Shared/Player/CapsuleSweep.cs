@@ -228,6 +228,13 @@ namespace KotH.Shared.Player
                              CollisionMask mask)
             => Shift(world, position, footOffset, height, radius, skin, delta, mask, 1);
 
+        /// <summary>Like Clear, but what a face refuses slides along it (as Move, four casts at most):
+        /// the chain hauls a body hanging under an edge up the wall instead of into it.</summary>
+        public Vector3 Slide(WorldQueries world, Vector3 position, float footOffset,
+                             float height, float radius, float skin, Vector3 delta,
+                             CollisionMask mask)
+            => Shift(world, position, footOffset, height, radius, skin, delta, mask, MovePasses);
+
         /// <summary>Moves along delta like Clear, but what a face refuses slides along it
         /// for up to passes - 1 more casts. Colliders the capsule already overlaps do not
         /// stop it, Cast skips them. Unblocked, delta comes back bit for bit.</summary>

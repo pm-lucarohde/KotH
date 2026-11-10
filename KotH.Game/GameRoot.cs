@@ -96,7 +96,7 @@ namespace KotH.Client
         /// <userdoc>The mushroom blaster, held instead of the cane on key 2; modelled in the rest pose like the cane (.work/rig/blaster.py), bones Breech and Muzzle give its barrel.</userdoc>
         [Display("Blaster", "Visuals")] public Model BlasterModel;
 
-        /// <userdoc>One link of the team chain between neighbours (Tools/figure/ChainLink.cs); ChainView strings 36 per 4 m.</userdoc>
+        /// <userdoc>One link of the team chain between neighbours (Tools/figure/ChainLink.cs); ChainView strings 44 per 5 m.</userdoc>
         [Display("Chain link", "Visuals")] public Model ChainModel;
 
         /// <userdoc>The figure in the main menu: its centre in the menu camera's frame (x right, y up, -z ahead), in metres.</userdoc>
