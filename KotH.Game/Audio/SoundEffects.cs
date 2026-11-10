@@ -39,7 +39,7 @@ namespace KotH.Client.Audio
         [Display("Impact volume", "Figures")] public float FallVolume = 0.16f;
 
         /// <userdoc>From this fall height (metres from the highest point) the impact sounds. A double jump on flat ground reaches about 2.7 m.</userdoc>
-        [Display("Impact from (m)", "Figures")] public float FallHeight = 5.0f;
+        [Display("Impact from (m)", "Figures")] public float FallHeight = 8.0f;
 
         /// <userdoc>Once, when the figure goes from sprint into a slide.</userdoc>
         [Display("Slide", "Figures")] public Sound Slide;
