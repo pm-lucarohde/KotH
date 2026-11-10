@@ -128,7 +128,7 @@ sealed class KotHGame : Game
     // where F11 returns to. A fixed KOTH_SIZE stays a window.
     readonly bool startFullscreen = Environment.GetEnvironmentVariable("KOTH_SIZE") == null &&
                                     Environment.GetEnvironmentVariable("KOTH_HEADLESS") != "1";
-    int restoreFrames;
+    int restoreFrames, maximiseFrames;
     readonly KotH.Client.Settings.SettingsApplier settings;
     WindowMode? windowShown;
     Int2 sizeShown;
@@ -652,12 +652,12 @@ sealed class KotHGame : Game
         confined = confine;
     }
 
-    /// <summary>F11: from fullscreen (borderless or exclusive, as set) to the window and back;
-    /// for this session only, the settings stay.</summary>
+    /// <summary>F11: from fullscreen (borderless or exclusive, as set) to a maximised window and
+    /// back; for this session only, the settings stay.</summary>
     void ToggleFullscreen()
     {
         if (GraphicsDeviceManager.IsFullScreen)
-            GoWindowed(windowedSize);
+            GoWindowed(Int2.Zero);
         else
             GoFullscreen(ClientSettings.Applied.Window == WindowMode.Exclusive, new Int2(ClientSettings.Applied.Width, ClientSettings.Applied.Height));
     }
@@ -691,7 +691,7 @@ sealed class KotHGame : Game
             Rectangle bounds = Window.ClientBounds;
             windowedSize = new Int2(bounds.Width, bounds.Height);
         }
-        restoreFrames = 0;
+        restoreFrames = maximiseFrames = 0;
         Int2 native = DisplayModes.Native();
         Int2 full = exclusive && size != Int2.Zero ? size : native != Int2.Zero ? native : new Int2(Window.ClientBounds.Width, Window.ClientBounds.Height);
         Window.FullscreenIsBorderlessWindow = !exclusive;
@@ -757,6 +757,7 @@ sealed class KotHGame : Game
                 SdlGrab.SDL_SetWindowFullscreen(sdl.SdlHandle, 0);
         }
         restoreFrames = maximise ? 0 : 30;
+        maximiseFrames = maximise ? 20 : 0;
         if (Window.NativeWindow?.NativeWindow is not Stride.Graphics.SDL.Window window)
             return;
         if (maximise)
@@ -774,6 +775,15 @@ sealed class KotHGame : Game
     /// window is back, for half a second at most.</summary>
     void RestoreWindowSize()
     {
+        // Likewise a maximised window: maximised again until the window manager says so.
+        if (maximiseFrames > 0 && Window.NativeWindow?.NativeWindow is Stride.Graphics.SDL.Window maximised)
+        {
+            maximiseFrames--;
+            if ((SdlGrab.SDL_GetWindowFlags(maximised.SdlHandle) & SdlGrab.Maximized) != 0)
+                maximiseFrames = 0;
+            else
+                SdlGrab.SDL_MaximizeWindow(maximised.SdlHandle);
+        }
         if (restoreFrames <= 0)
             return;
         restoreFrames--;
@@ -1136,7 +1146,7 @@ static class SdlGrab
     [DllImport(Lib)] public static extern int SDL_SetWindowFullscreen(nint window, uint flags);
 
     /// <summary>SDL_WINDOW_FULLSCREEN_DESKTOP: borderless at the desktop's size; SDL_WINDOW_FULLSCREEN: the screen's mode switched.</summary>
-    public const uint FullscreenDesktop = 0x1001, Fullscreen = 0x1, Hidden = 0x8, Minimized = 0x40;
+    public const uint FullscreenDesktop = 0x1001, Fullscreen = 0x1, Hidden = 0x8, Minimized = 0x40, Maximized = 0x80;
     [DllImport(Lib)] public static extern void SDL_SetWindowSize(nint window, int w, int h);
     [DllImport(Lib)] public static extern void SDL_MaximizeWindow(nint window);
     [DllImport(Lib)] public static extern int SDL_SetWindowDisplayMode(nint window, ref DisplayMode mode);
