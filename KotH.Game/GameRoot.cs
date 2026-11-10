@@ -222,7 +222,7 @@ namespace KotH.Client
             StartAlone(options.Bots);
         }
 
-        /// <summary>A round alone on the loaded map (--offline, the Maps page's Test): the player
+        /// <summary>A round alone on the loaded map (--offline): the player
         /// and the bots on the player slots.</summary>
         void StartAlone(int botsWanted)
         {
@@ -266,8 +266,8 @@ namespace KotH.Client
         {
             var script = new MainMenu
             {
-                StartHost = HostFromMenu, StartJoin = JoinFromMenu, StartInvite = JoinByInvite, StartTest = TestFromMenu,
-                Library = builder.Library, Note = menuNote,
+                StartHost = HostFromMenu, StartJoin = JoinFromMenu, StartInvite = JoinByInvite,
+                Note = menuNote,
                 PlayerName = LaunchOptions.Current.Name, Cover = cover, Look = LaunchOptions.Current.Look,
                 LookChanged = LookChanged,
                 CustomizeShown = open => visuals.MoveShowcase(menuFigure, open ? MenuFigureCustomizeAt : MenuFigureAt),
@@ -292,20 +292,6 @@ namespace KotH.Client
             options.Password = password;
             options.Mode = flags.Mode;
             StartNetworked(options, options.Steam ? SteamLobby.Open(builder.Map, flags) : null);
-        }
-
-        /// <summary>The Maps page's Test: the package alone with three bots, as --offline --map-file
-        /// would; the pause menu's Main menu comes back.</summary>
-        void TestFromMenu(string map)
-        {
-            if (!builder.HasMap(map) || !LeaveMenu())
-                return;
-            LaunchOptions options = LaunchOptions.Current;
-            options.Host = options.Steam = false;
-            options.JoinAddress = null;
-            UnloadMap();
-            LoadMap(map);
-            StartAlone(3);
         }
 
         /// <summary>A round from the lobby list or an invite, its lobby entered. On another map the

@@ -40,12 +40,11 @@ Add the **KotH map** components:
 - **Unity:** **KotH → Export map** (Ctrl+Shift+E); the main camera's view becomes the preview, errors and warnings
   go to the Console. Command line: `Unity -batchmode -quit -projectPath P -executeMethod KotH.MapKit.Editor.MapKitMenu.Batch`.
 - The package lands in the game's maps folder (`~/.local/share/KotH/maps/NAME`, Windows `%LOCALAPPDATA%\KotH\maps`;
-  under Proton the Linux folder). Test it in the game: **Maps → Test** (alone with three bots).
+  under Proton the Linux folder). Test it in the game: **Host server**, then in the lobby **Esc → Map**
+  (or alone with bots: `KotH --offline --map-file FOLDER`).
 
 ## Upload
-- **In the game:** Maps → Upload (later Update). The first upload creates the workshop item and writes its id
-  into `map.toml`; visibility, title and description come from Map info.
-- **SteamCMD:** the export writes `NAME.workshop.vdf` beside the folder.
-  `steamcmd +login <user> +workshop_build_item <path to NAME.workshop.vdf> +quit`; SteamCMD writes the new item id
-  back into the vdf and later exports keep it.
+- **SteamCMD:** the export writes `NAME.workshop.vdf` beside the folder (visibility, title, description and change
+  note from Map info). `steamcmd +login <user> +workshop_build_item <path to NAME.workshop.vdf> +quit`; SteamCMD
+  writes the new item id back into the vdf and later exports keep it.
 - Hosts pick the map in the lobby (Esc → Map); guests without it download it from the workshop when they join.

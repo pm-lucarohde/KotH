@@ -108,23 +108,8 @@ namespace KotH.Client.Steam
         [DllImport(Lib)] public static extern ulong SteamAPI_SteamNetworkingIdentity_GetSteamID64(byte* self);
         [DllImport(Lib)] public static extern void SteamAPI_SteamNetworkingMessage_t_Release(nint message);
 
-        // Workshop items (ISteamUGC). SteamParamStringArray_t: the strings, then their count.
-        public struct StringArray
-        {
-            public byte** Strings;
-            public int Count;
-        }
+        // Workshop items (ISteamUGC): installed and downloaded ones.
         [DllImport(Lib)] public static extern nint SteamAPI_SteamUGC_v021();
-        [DllImport(Lib)] public static extern ulong SteamAPI_ISteamUGC_CreateItem(nint self, uint app, int fileType);
-        [DllImport(Lib)] public static extern ulong SteamAPI_ISteamUGC_StartItemUpdate(nint self, uint app, ulong item);
-        [DllImport(Lib)] public static extern byte SteamAPI_ISteamUGC_SetItemTitle(nint self, ulong handle, byte* title);
-        [DllImport(Lib)] public static extern byte SteamAPI_ISteamUGC_SetItemDescription(nint self, ulong handle, byte* text);
-        [DllImport(Lib)] public static extern byte SteamAPI_ISteamUGC_SetItemVisibility(nint self, ulong handle, int visibility);
-        [DllImport(Lib)] public static extern byte SteamAPI_ISteamUGC_SetItemTags(nint self, ulong handle, StringArray* tags, byte adminTags);
-        [DllImport(Lib)] public static extern byte SteamAPI_ISteamUGC_SetItemContent(nint self, ulong handle, byte* folder);
-        [DllImport(Lib)] public static extern byte SteamAPI_ISteamUGC_SetItemPreview(nint self, ulong handle, byte* file);
-        [DllImport(Lib)] public static extern ulong SteamAPI_ISteamUGC_SubmitItemUpdate(nint self, ulong handle, byte* note);
-        [DllImport(Lib)] public static extern int SteamAPI_ISteamUGC_GetItemUpdateProgress(nint self, ulong handle, ulong* sent, ulong* total);
         [DllImport(Lib)] public static extern uint SteamAPI_ISteamUGC_GetNumSubscribedItems(nint self, byte includeDisabled);
         [DllImport(Lib)] public static extern uint SteamAPI_ISteamUGC_GetSubscribedItems(nint self, ulong* items, uint max, byte includeDisabled);
         [DllImport(Lib)] public static extern uint SteamAPI_ISteamUGC_GetItemState(nint self, ulong item);

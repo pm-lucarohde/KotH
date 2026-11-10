@@ -73,7 +73,7 @@ namespace KotH.MapKit.Editor
             foreach (string n in notes)
                 Debug.LogWarning("[KotH] " + n);
             string said = result.Ok
-                ? $"Exported {result.Package.Manifest.Title} to {result.Package.Folder}; test it in the game: Maps → Test."
+                ? $"Exported {result.Package.Manifest.Title} to {result.Package.Folder}; in the game host a round and pick it in the lobby (Esc → Map)."
                 : $"{result.Errors.Count} error(s), nothing written: {result.Errors[0]}";
             if (result.Ok)
                 Debug.Log("[KotH] " + said);
