@@ -16,7 +16,7 @@ namespace KotH.Client.Steam
         // + 6 DownloadItemResult_t.
         const int DownloadResultId = 3406;
         const int ItemInstalled = 4, ItemNeedsUpdate = 8;
-        const int ResultOk = 1;
+        const int ResultOk = 1, ResultLimitExceeded = 25;
 
         static nint ugc;
         static readonly Dictionary<ulong, Download> downloads = new Dictionary<ulong, Download>();
@@ -123,6 +123,8 @@ namespace KotH.Client.Steam
             public ulong Item;
             /// <summary>Steam wants the workshop agreement accepted before the item can be seen.</summary>
             public bool NeedsAgreement;
+            /// <summary>Steam had no room for the preview; the item went up without it.</summary>
+            public bool NoPreview;
             internal ulong Handle;
 
             /// <summary>Updates Progress and Status from Steam while the files go up.</summary>
@@ -207,7 +209,9 @@ namespace KotH.Client.Steam
             return again;
         }
 
-        static void Submit(Upload up, MapPackage p, string changeNote)
+        // A preview counts against the app's Steam Cloud space, which on app 480 is full: then
+        // Steam answers LimitExceeded and the item goes up once more without it.
+        static void Submit(Upload up, MapPackage p, string changeNote, bool preview = true)
         {
             MapManifest m = p.Manifest;
             ulong handle = SteamAPI_ISteamUGC_StartItemUpdate(ugc, SteamClient.AppId, up.Item);
@@ -218,9 +222,10 @@ namespace KotH.Client.Steam
                 SteamAPI_ISteamUGC_SetItemDescription(ugc, handle, text);
             fixed (byte* content = Z(Path.GetFullPath(p.Folder)))
                 SteamAPI_ISteamUGC_SetItemContent(ugc, handle, content);
-            if (File.Exists(p.PreviewPath))
-                fixed (byte* preview = Z(Path.GetFullPath(p.PreviewPath)))
-                    SteamAPI_ISteamUGC_SetItemPreview(ugc, handle, preview);
+            preview &= File.Exists(p.PreviewPath);
+            if (preview)
+                fixed (byte* image = Z(Path.GetFullPath(p.PreviewPath)))
+                    SteamAPI_ISteamUGC_SetItemPreview(ugc, handle, image);
             fixed (byte* tag = Z("Map"))
             {
                 byte* one = tag;
@@ -235,6 +240,13 @@ namespace KotH.Client.Steam
                 {
                     // SubmitItemUpdateResult_t: EResult, agreement flag, item (at 8 either way).
                     up.Handle = 0;
+                    if (ok && *(int*)result == ResultLimitExceeded && preview)
+                    {
+                        Submit(up, p, changeNote, preview: false);
+                        up.Status = "Uploading without the preview";
+                        up.NoPreview = true;
+                        return;
+                    }
                     if (!ok || *(int*)result != ResultOk)
                     {
                         up.Failed = true;
@@ -244,7 +256,8 @@ namespace KotH.Client.Steam
                     up.NeedsAgreement |= *(byte*)(result + 4) != 0;
                     up.Progress = 1f;
                     up.Done = true;
-                    up.Status = up.NeedsAgreement ? "Uploaded; accept the workshop agreement on Steam to show it" : "Uploaded";
+                    up.Status = up.NeedsAgreement ? "Uploaded; accept the workshop agreement on Steam to show it"
+                        : up.NoPreview ? "Uploaded without the preview (Steam has no room for it)" : "Uploaded";
                 });
         }
 

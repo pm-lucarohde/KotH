@@ -41,7 +41,7 @@ namespace KotH.Client.Menu
                 MapPackage map = p;
                 bool mine = Path.GetFullPath(p.Folder).StartsWith(own, StringComparison.Ordinal);
                 ulong item = p.Manifest.WorkshopId != 0 ? p.Manifest.WorkshopId : p.WorkshopItem;
-                string detail = mine ? item != 0 ? "yours, on the workshop" : "yours" : "workshop";
+                string detail = mine ? item != 0 ? "yours, shared" : "yours" : "workshop";
                 Action send = mine && SteamClient.Ready && upload == null ? () => Send(map) : null;
                 rows.Add(new RowList.Row(p.Manifest.Title, detail, "Test", () => TestRequested?.Invoke(map.Id),
                                          mine ? item != 0 ? "Update" : "Upload" : null, send));
@@ -51,6 +51,14 @@ namespace KotH.Client.Menu
             if (Library != null && Library.Problems.Count > 0)
                 said = $"Not readable: {Library.Problems[0]}";
             Tick();
+        }
+
+        /// <summary>Test aid (KOTH_SHOT_MAPS_UPLOAD=n): uploads the library's map n as its button would.</summary>
+        public void PretendUpload(int index)
+        {
+            List<MapPackage> all = Library?.All();
+            if (all != null && index >= 0 && index < all.Count && SteamClient.Ready)
+                Send(all[index]);
         }
 
         void Send(MapPackage map)
@@ -70,6 +78,7 @@ namespace KotH.Client.Menu
                 if (upload.Done || upload.Failed)
                 {
                     said = Status.Text;
+                    Console.WriteLine($"[maps] upload of {uploading}: {upload.Status}, item {upload.Item}");
                     if (upload.Done && upload.NeedsAgreement)
                         Reveal(SteamUgc.PageUrl(upload.Item));
                     upload = null;

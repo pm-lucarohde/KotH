@@ -353,7 +353,7 @@ namespace KotH.Client.Menu
             shown = true;
             // Test aids for shots: KOTH_SHOT_MENU_HOT=n lights button n, KOTH_SHOT_MENU_PAGE=n clicks it (0 hosts),
             // KOTH_SHOT_SETTINGS=sound|graphics|input picks the Settings tab, KOTH_SHOT_HOST_PRIVATE=pw a private round,
-            // KOTH_SHOT_MAPS_TEST=n tests the Maps page's map n.
+            // KOTH_SHOT_MAPS_TEST=n tests the Maps page's map n, KOTH_SHOT_MAPS_UPLOAD=n uploads it.
             if (int.TryParse(Environment.GetEnvironmentVariable("KOTH_SHOT_MENU_HOT"), out int hot))
                 view.Pretend(hot, false);
             if (int.TryParse(Environment.GetEnvironmentVariable("KOTH_SHOT_MENU_PAGE"), out int open))
@@ -365,6 +365,11 @@ namespace KotH.Client.Menu
             if (int.TryParse(Environment.GetEnvironmentVariable("KOTH_SHOT_MAPS_TEST"), out int test) && Library?.All() is { } maps
                 && test >= 0 && test < maps.Count)
                 testWanted = maps[test].Id;
+            if (int.TryParse(Environment.GetEnvironmentVariable("KOTH_SHOT_MAPS_UPLOAD"), out int send))
+            {
+                view.Pretend(3, true);
+                view.Mapper.PretendUpload(send);
+            }
             if (Note != null)
             {
                 view.OpenFind();
