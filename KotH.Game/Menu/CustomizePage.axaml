@@ -1,5 +1,6 @@
 <!-- Customize, beside the main menu's buttons and narrower than the other pages, so the figure
-     on the right stays in sight: a tab per part, its colour on a wheel with a brightness slider. -->
+     on the right stays in sight: a tab per part, its colour on a wheel with a brightness slider,
+     Reset (the part) and Reset all. -->
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:menu="using:KotH.Client.Menu"
@@ -30,9 +31,11 @@
                     </Grid>
                 </Border>
 
-                <Grid Grid.Row="3" ColumnDefinitions="Auto,*,Auto" Margin="0,18,0,0">
-                    <Button Name="Reset" Classes="Menu Small" Content="Reset" Width="190" />
-                    <Button Name="Back" Grid.Column="2" Classes="Menu Small" Content="Back" Width="190" />
+                <!-- Reset: the chosen part's painted colour; Reset all: every part's -->
+                <Grid Grid.Row="3" ColumnDefinitions="*,22,*,22,*" Margin="0,18,0,0">
+                    <Button Name="Reset" Width="NaN" Classes="Menu Small" Content="Reset" HorizontalAlignment="Stretch" />
+                    <Button Name="ResetAll" Width="NaN" Grid.Column="2" Classes="Menu Small" Content="Reset all" HorizontalAlignment="Stretch" />
+                    <Button Name="Back" Width="NaN" Grid.Column="4" Classes="Menu Small" Content="Back" HorizontalAlignment="Stretch" />
                 </Grid>
             </Grid>
         </Panel>

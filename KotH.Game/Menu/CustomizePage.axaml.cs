@@ -8,7 +8,7 @@ using KotH.Shared.Net;
 namespace KotH.Client.Menu
 {
     /// <summary>The Customize page: a tab per figure part, its colour on a wheel (hue, saturation)
-    /// and a brightness slider, Reset to the painted colour. Every change goes out at once (<see cref="LookChanged"/>); the menu saves
+    /// and a brightness slider, Reset to the painted colour (Reset all: every part's). Every change goes out at once (<see cref="LookChanged"/>); the menu saves
     /// the look when the page closes.</summary>
     public partial class CustomizePage : UserControl
     {
@@ -48,6 +48,15 @@ namespace KotH.Client.Menu
             Wheel.Picked += Slid;
             Light.ValueChanged += (_, _) => Slid();
             Reset.Click += (_, _) => Set(FigureLook.PaintedColor(part));
+            ResetAll.Click += (_, _) =>
+            {
+                FigureLook painted = FigureLook.Default;
+                if (painted.Equals(look))
+                    return;
+                look = painted;
+                Choose(part);
+                LookChanged?.Invoke(look);
+            };
             Back.Click += (_, _) => BackRequested?.Invoke();
             Choose(0);
         }
