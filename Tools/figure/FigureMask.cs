@@ -77,6 +77,11 @@ int[] label = Islands(island, out int islands);
 // The gills: whole islands above the brim that face down on average (a texel's own normal is
 // no guide: the forehead tucks under the cap as steeply as the gills curve).
 float[] islandNy = Means(label, islands, normalY), islandH = Means(label, islands, height);
+// An island is cap or not: the face's outer cheeks look like sideways gills (purple blush).
+float[] islandCap = Means(label, islands, capArea);
+for (int i = 0; i < N * N; i++)
+    if (island[i] && islandCap[label[i]] < 0.2f)
+        capArea[i] = 0f;
 
 // The masks: cap = the cap's whole area (FigureTint moves only its red share); skin = pale outside
 // the cap and the gill islands; leaves = green outside the cap; boots (A) = brown below the knee.
@@ -93,14 +98,18 @@ for (int i = 0; i < N * N; i++)
     mask[2][i] = cls[i].green * (1f - capArea[i]);
     mask[3][i] = Brown(body, i % N, i / N, N) * Smooth(Boots + 0.05f, Boots - 0.05f, height[i]);
 }
-FillShades(mask, island);
+bool[] whites = EyeWhites(body, N, island);
+for (int i = 0; i < N * N; i++)
+    if (whites[i])
+        mask[1][i] = 0f;
+FillShades(mask, island, whites);
 // Softened edges, but a blur only adds weight: a skin texel beside a brow keeps all of it (else the
 // painted light skin shows as a rim round every feature on dark skin); overlaps share to 1.
 for (int k = 0; k < 4; k++)
 {
     float[] soft = Blur(mask[k], island);
     for (int i = 0; i < N * N; i++)
-        soft[i] = MathF.Max(soft[i], mask[k][i]);
+        soft[i] = k == 1 && whites[i] ? 0f : MathF.Max(soft[i], mask[k][i]);
     mask[k] = soft;
 }
 for (int i = 0; i < N * N; i++)
@@ -116,9 +125,12 @@ for (int k = 0; k < 4; k++)
 // The lids: skin wherever pale (blush included), the rest (lashes, eyes, mouth) stays.
 int L = lid.Width;
 var lidSkin = new float[L * L];
+bool[] lidWhites = EyeWhites(lid, L, null);
 for (int i = 0; i < L * L; i++)
-    lidSkin[i] = Classes(lid, i % L, i / L, L).pale;
-lidSkin = Blur(lidSkin, null, L);
+    lidSkin[i] = lidWhites[i] ? 0f : Classes(lid, i % L, i / L, L).pale;
+float[] lidSoft = Blur(lidSkin, null, L);
+for (int i = 0; i < L * L; i++)
+    lidSkin[i] = lidWhites[i] ? 0f : MathF.Max(lidSoft[i], lidSkin[i]);
 
 // References: each region's mean colour where its mask is nearly whole (the cap's: its red).
 float[] capRef = Mean(body, Product(mask[0], cls.Select(c => c.red).ToArray()), N), skinRef = Mean(body, mask[1], N), leafRef = Mean(body, mask[2], N);
@@ -159,12 +171,13 @@ static (float red, float pale, float green) Classes(Png png, int x, int y, int s
     float s = max > 1e-4f ? (max - min) / max : 0f;
     float redness = Smooth(0.45f, 0.6f, s) * Smooth(0.15f, 0.25f, r) * Smooth(0.45f, 0.3f, MathF.Max(g, b) / MathF.Max(r, 1e-4f));
     float pale = Smooth(0.33f, 0.25f, s) * Smooth(0.5f, 0.65f, max);
-    // The blush: light pink, moved with the skin less the more pink (half at its heart), so it stays
-    // a blush on any colour and its soft rim fades into the skin without a light ring.
+    // The blush: light pink, moved with the skin less the more pink (a fifth at its heart), so it
+    // stays pink on any colour and its soft rim fades into the skin without a light ring. Not the
+    // tongue (pink towards blue) nor the bag's peach linen (orange 0.4).
     float gr = g / MathF.Max(r, 1e-4f);
-    float orange = (g - b) / MathF.Max(max - min, 1e-4f);   // 0 pink (the blush), 0.4 the bag's peach linen
-    pale = MathF.Max(pale, (1f - 0.5f * Smooth(0.25f, 0.5f, s)) * Smooth(0.6f, 0.75f, r) * Smooth(0.45f, 0.55f, gr)
-                           * Smooth(0.6f, 0.5f, s) * Smooth(0.36f, 0.3f, orange));
+    float orange = (g - b) / MathF.Max(max - min, 1e-4f);
+    pale = MathF.Max(pale, (1f - 0.8f * Smooth(0.38f, 0.48f, s)) * Smooth(0.6f, 0.75f, r) * Smooth(0.45f, 0.55f, gr)
+                           * Smooth(0.6f, 0.5f, s) * Smooth(0.36f, 0.3f, orange) * Smooth(-0.04f, 0f, orange));
     float greenness = g > r * 1.15f && g > b * 1.2f ? Smooth(0.15f, 0.3f, s) : 0f;
     return (redness, pale, greenness);
 }
@@ -183,7 +196,7 @@ static float Brown(Png png, int x, int y, int size)
 // Shaded seams (greyish texels between skin and leaves, under the chin) belong to no region and kept
 // their colour: the rest of their weight goes to the nearest skin or leaf texel within 8 texels.
 // Only unsaturated ones: the tint keeps dark texels dark, so lines and pupils stay black.
-void FillShades(float[][] m, bool[] inside)
+void FillShades(float[][] m, bool[] inside, bool[] keep)
 {
     var near = new int[N * N];
     Array.Fill(near, -1);
@@ -203,9 +216,61 @@ void FillShades(float[][] m, bool[] inside)
     for (int i = 0; i < N * N; i++)
     {
         float rest = 1f - m[0][i] - m[1][i] - m[2][i] - m[3][i];
-        if (near[i] > 0 && rest > 0f && m[0][i] < 0.5f && m[3][i] < 0.5f && Saturation(body, i % N, i / N, N) < 0.25f)
+        if (near[i] > 0 && rest > 0f && !keep[i] && m[0][i] < 0.5f && m[3][i] < 0.5f && Saturation(body, i % N, i / N, N) < 0.25f)
             m[near[i]][i] += rest;
     }
+}
+
+// The eyes' whites: white patches (size² grid) walled in by the eyes' dark outline, unlike light
+// skin, which borders skin (cut by a UV seam: only the island's side counts); white on any skin.
+static bool[] EyeWhites(Png png, int size, bool[] inside)
+{
+    var white = new bool[size * size];
+    var dark = new bool[size * size];
+    for (int i = 0; i < size * size; i++)
+    {
+        int k = ((i / size) * png.Height / size * png.Width + (i % size) * png.Width / size) * png.Channels;
+        float r = png.Pixels[k] / 255f, g = png.Pixels[k + 1] / 255f, b = png.Pixels[k + 2] / 255f;
+        float max = MathF.Max(r, MathF.Max(g, b)), min = MathF.Min(r, MathF.Min(g, b));
+        white[i] = max > 0.85f && (max - min) / max < 0.1f;
+        dark[i] = max < 0.3f;
+    }
+    var seen = new bool[size * size];
+    var result = new bool[size * size];
+    var part = new List<int>();
+    for (int start = 0; start < size * size; start++)
+    {
+        if (!white[start] || seen[start])
+            continue;
+        part.Clear(); part.Add(start); seen[start] = true;
+        int border = 0, darkBorder = 0;
+        for (int n = 0; n < part.Count; n++)
+        {
+            int i = part[n];
+            foreach (int j in (ReadOnlySpan<int>)[i - 1, i + 1, i - size, i + size])
+            {
+                if (j < 0 || j >= size * size || Math.Abs(j % size - i % size) > 1)
+                    continue;
+                if (inside != null && !inside[j])
+                    continue;
+                if (white[j])
+                {
+                    if (!seen[j]) { seen[j] = true; part.Add(j); }
+                }
+                else
+                {
+                    border++;
+                    if (dark[j]) darkBorder++;
+                }
+            }
+        }
+        if (part.Count < size * size / 300 && darkBorder > 0.25f * border)
+        {
+            foreach (int i in part)
+                result[i] = true;
+        }
+    }
+    return result;
 }
 
 static float Saturation(Png png, int x, int y, int size)
