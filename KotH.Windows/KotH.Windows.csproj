@@ -20,6 +20,8 @@
          is given; without it they are built for Direct3D11, which cannot be compiled on Linux. -->
     <StrideCompileAssetOptions>--property:StrideGraphicsApi=Vulkan</StrideCompileAssetOptions>
     <PublishAot>true</PublishAot>
+    <DlssSdk>$(MSBuildThisFileDirectory)..\.work\dlss\v310.9.16\</DlssSdk>
+    <NgxLoader>$(DlssSdk)lib/Windows_x86_64/x64/nvsdk_ngx_s.lib</NgxLoader>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\KotH.Linux\KotHApp.cs" Link="KotHApp.cs" />
@@ -29,6 +31,13 @@
     <TrimmerRootAssembly Include="KotH.Game" />
     <TrimmerRootAssembly Include="KotH.Shared" />
     <TrimmerRootAssembly Include="Stride.Voxels" />
+    <!-- DLSS as in KotH.Linux: the static NGX loader (static CRT, as NativeAOT links) linked in,
+         nvngx_dlss.dll beside the game; both fetched by Tools/dlss/fetch.sh windows. -->
+    <NativeLibrary Include="$(NgxLoader)" Condition="Exists('$(NgxLoader)')" />
+    <DirectPInvoke Include="nvsdk_ngx" Condition="Exists('$(NgxLoader)')" />
+    <None Include="$(DlssSdk)lib/Windows_x86_64/rel/nvngx_dlss.dll" Link="nvngx_dlss.dll"
+          Condition="Exists('$(DlssSdk)lib/Windows_x86_64/rel/nvngx_dlss.dll')"
+          CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <None Include="..\ThirdParty\Steamworks\win64\steam_api64.dll" Link="steam_api64.dll"
           CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>

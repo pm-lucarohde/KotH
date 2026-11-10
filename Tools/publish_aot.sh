@@ -4,8 +4,9 @@
 # (old scene bundle); ILC sometimes crashes, run again. Windows on request (lld-link + xwin).
 #   Tools/publish_aot.sh [linux|server|probes|windows|probes-windows ...]   (default: the first three)
 set -e
-# DLSS SDK files (not in the repo) for the Linux client.
-case " ${*:-linux} " in *" linux "*) "$(dirname "$0")/dlss/fetch.sh" ;; esac
+# DLSS SDK files (not in the repo) for the clients.
+case " ${*:-linux} " in *" linux "*) "$(dirname "$0")/dlss/fetch.sh" linux ;; esac
+case " $* " in *" windows "*) "$(dirname "$0")/dlss/fetch.sh" windows ;; esac
 cd "$(dirname "$0")/.."
 targets=${*:-linux server probes}
 for t in $targets; do

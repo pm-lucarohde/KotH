@@ -5,8 +5,8 @@ using Vortice.Vulkan;
 namespace KotH.Client.Rendering.Dlss
 {
     /// <summary>NVIDIA's NGX for Vulkan (DLSS SDK 310.9.16, include/nvsdk_ngx_vk.h), only what DLSS Super
-    /// Resolution needs. The loader libnvsdk_ngx.a is linked into the AOT binary (DirectPInvoke); without it
-    /// (JIT, Windows for now) every call throws DllNotFoundException and DLSS stays off.</summary>
+    /// Resolution needs. The loader (libnvsdk_ngx.a, on Windows nvsdk_ngx_s.lib) is linked into the AOT binary
+    /// (DirectPInvoke); without it (JIT) every call throws DllNotFoundException and DLSS stays off.</summary>
     internal static unsafe class Ngx
     {
         const string Lib = "nvsdk_ngx";
