@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
 using KotH.Client.Menu;
+using KotH.Client.Net;
+using KotH.Client.Player;
 using KotH.Shared.Combat;
 using KotH.Shared.Match;
+using KotH.Shared.Net;
 using KotH.Shared.Simulation;
 using Stride.Core;
 using Stride.Core.Mathematics;
@@ -64,6 +67,7 @@ namespace KotH.Client.Hud
         // The own blaster's shots and progress as last shown.
         Blaster blaster;
         int shownShots = -1, shownNext = -1;
+        uint shownSpores = uint.MaxValue;
 
         // The own dash and its progress as last shown.
         Dash dash;
@@ -294,6 +298,15 @@ namespace KotH.Client.Hud
                 blaster = Self?.Entity.Get<Blaster>();
             if (blaster == null || !blaster.State.Selected)
                 return false;
+            // In the own spore colour (Luca), set again when it changed.
+            uint spores = LaunchOptions.Current.Look[FigureLook.Spores];
+            if (spores != shownSpores)
+            {
+                shownSpores = spores;
+                var painted = new Color3(HudView.SporePainted.R / 255f, HudView.SporePainted.G / 255f, HudView.SporePainted.B / 255f);
+                Color3 c = FigureColors.Spores(LaunchOptions.Current.Look, painted);
+                view.Spores(ToAvalonia(new Color(c.R, c.G, c.B, 1f)));
+            }
             BlasterState s = blaster.State;
             int per = blaster.PointsPerShot * HillMatch.TicksPerPoint;
             // In whole pixels of the bar, so a tick only redraws when it shows.

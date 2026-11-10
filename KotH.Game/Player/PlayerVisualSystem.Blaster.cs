@@ -200,9 +200,12 @@ namespace KotH.Client.Player
             g.Muzzle = muzzle;
         }
 
-        /// <summary>Where the gun's muzzle is drawn, as of the frame before.</summary>
-        static Vector3 MuzzleAt(Gun g)
-            => Vector3.TransformCoordinate(g.Muzzle, g.Model.Model.Entity.Transform.WorldMatrix);
+        /// <summary>Where the gun's muzzle is drawn, as of the frame before; the arms' through their own lens.</summary>
+        Vector3 MuzzleAt(Gun g)
+        {
+            Vector3 at = Vector3.TransformCoordinate(g.Muzzle, g.Model.Model.Entity.Transform.WorldMatrix);
+            return g == armsGun && armsTransform?.Parent?.Entity.Get<CameraComponent>() is { } eye ? ArmsInFront.Drawn(at, eye) : at;
+        }
 
         /// <summary>The spores of one body in flight, between the last two ticks; a puff at the muzzle
         /// on every shot (from muzzle, the gun the eye sees) and where a spore lands.</summary>

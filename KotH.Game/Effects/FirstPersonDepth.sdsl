@@ -1,15 +1,23 @@
 /// <summary>Squeezes the depth of the first-person arms and stick to the front of the
 /// depth range, so they draw over a wall they reach into, lit and shaded as before
-/// (ArmsInFront mixes it in for the arms' render group only).</summary>
+/// (ArmsInFront mixes it in for the arms' render group only). They are drawn at their
+/// own field of view, so the player's FOV setting never stretches them (Luca).</summary>
 shader FirstPersonDepth : TransformationBase
 {
     // Share of the depth range the arms keep: in front of anything farther
     // than about a millimetre past the near plane, still fine enough inside.
     static const float Squeeze = 0.01;
 
+    // 1 / tan(85° / 2): the arms' vertical field of view, the default one they were made for.
+    static const float ArmsFocal = 1.0913085;
+
     stage override float4 ComputeShadingPosition(float4 world)
     {
         float4 p = base.ComputeShadingPosition(world);
+        // Rescaled about the view's centre, the DLSS jitter (M31, M32 of the projection) kept as it is.
+        float4x4 projection = Transformation.Projection;
+        float2 jitter = float2(projection[2][0], projection[2][1]) / projection[2][3] * p.w;
+        p.xy = (p.xy - jitter) * (ArmsFocal / projection[1][1]) + jitter;
         p.z *= Squeeze;
         return p;
     }

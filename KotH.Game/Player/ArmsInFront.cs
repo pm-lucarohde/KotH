@@ -1,4 +1,6 @@
+using System;
 using System.Linq;
+using Stride.Core.Mathematics;
 using Stride.Engine;
 using Stride.Rendering;
 using Stride.Shaders;
@@ -22,6 +24,20 @@ namespace KotH.Client.Player
             var meshes = scene.GraphicsCompositor?.RenderFeatures.OfType<MeshRenderFeature>().FirstOrDefault();
             if (meshes != null && !meshes.RenderFeatures.OfType<ArmsInFront>().Any())
                 meshes.RenderFeatures.Add(new ArmsInFront { Group = group });
+        }
+
+        /// <summary>The arms' vertical field of view in degrees (FirstPersonDepth's ArmsFocal), whatever the player's.</summary>
+        public const float ArmsFov = 85f;
+
+        /// <summary>Where a point of the arms (a child of camera) is drawn in the world: as far ahead, its
+        /// distance from the view's axis scaled as FirstPersonDepth scales it on screen.</summary>
+        public static Vector3 Drawn(Vector3 world, CameraComponent camera)
+        {
+            float k = MathF.Tan(MathUtil.DegreesToRadians(camera.VerticalFieldOfView) * 0.5f)
+                      / MathF.Tan(MathUtil.DegreesToRadians(ArmsFov) * 0.5f);
+            Matrix eye = camera.Entity.Transform.WorldMatrix;
+            Vector3 local = Vector3.TransformCoordinate(world, Matrix.Invert(eye));
+            return Vector3.TransformCoordinate(new Vector3(local.X * k, local.Y * k, local.Z), eye);
         }
 
         public override void PrepareEffectPermutations(RenderDrawContext context)

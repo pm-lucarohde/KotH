@@ -87,6 +87,14 @@ namespace KotH.Client.Player
             }
         }
 
+        /// <summary>A colour painted for the yellow spores (the HUD's spore green) moved to look's spore colour,
+        /// as the trails and balls are; the painted yellow leaves it as it is.</summary>
+        public static Color3 Spores(FigureLook look, Color3 painted)
+        {
+            Vector3 f = SporeFactor(look, painted);
+            return new Color3(MathF.Min(1f, painted.R * f.X), MathF.Min(1f, painted.G * f.Y), MathF.Min(1f, painted.B * f.Z));
+        }
+
         // Spore.sdmat's emissive colour as entered.
         static readonly Color3 SporeGlowPainted = new Color3(0.55f, 1f, 0.25f);
 

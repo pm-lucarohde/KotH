@@ -94,7 +94,17 @@ namespace KotH.Client.Hud
 
         public void Hurt(string percent) => Set(Damage, percent);
 
-        static readonly IBrush Spore = new SolidColorBrush(Color.FromRgb(0xA8, 0xF0, 0x60));
+        /// <summary>The spores' green as painted, before the own spore colour moves it (Spores).</summary>
+        public static readonly Color SporePainted = Color.FromRgb(0xA8, 0xF0, 0x60);
+
+        IBrush spore = new SolidColorBrush(SporePainted);
+
+        /// <summary>The colour of the shots' spores and bar: the own spore colour (Luca).</summary>
+        public void Spores(Color color)
+        {
+            spore = new SolidColorBrush(color);
+            Next.Background = spore;
+        }
 
         /// <summary>The blaster's shots left as filled spores, and the share towards the next.</summary>
         public void Shots(int shots, double next)
@@ -102,11 +112,11 @@ namespace KotH.Client.Hud
             Ellipse[] dots = { Shot1, Shot2, Shot3 };
             for (int i = 0; i < dots.Length; i++)
             {
-                IBrush fill = i < shots ? Spore : null;
+                IBrush fill = i < shots ? spore : null;
                 if (dots[i].Fill != fill)
                     dots[i].Fill = fill;
-                if (dots[i].Stroke != Spore)
-                    dots[i].Stroke = Spore;
+                if (dots[i].Stroke != spore)
+                    dots[i].Stroke = spore;
             }
             double width = 170 * System.Math.Clamp(next, 0, 1);
             if (Next.Width != width)
