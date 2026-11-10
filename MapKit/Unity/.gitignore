@@ -1,0 +1,8 @@
+# Unity's caches and per-user files in the template project
+KotHMapKit/[Ll]ibrary/
+KotHMapKit/[Tt]emp/
+KotHMapKit/[Ll]ogs/
+KotHMapKit/[Uu]ser[Ss]ettings/
+KotHMapKit/[Oo]bj/
+KotHMapKit/*.csproj
+KotHMapKit/*.sln

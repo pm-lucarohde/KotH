@@ -83,7 +83,7 @@ dotnet run Tools/Regress.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # nu
   assets; `Hosting/Maps.cs` (`All` = host's choice). Map change in-process (`GameRoot.UnloadMap`); menu always MountDestiny.
 - Probes load `Test`, except `bots climb`/`jumplab`. **MountDestiny** (123 m): `Tools/maps/Mountain.cs` → `MapUV`;
   textures `Textures.cs`, sky `Sky.cs`, clouds `Clouds.cs`; grass `GrassField`, shells `ShellField`. View ≤ 20 km.
-- Custom maps: `KotH.MapFormat` (map.toml, map.glb, KTRN collision.bin), id `local:|ws:NAME@HASH`, `MapLibrary`; kit `MapKit/` (Stride: `export.sh`, textures not streamable); workshop `SteamUgc` (Maps page uploads, guests download on join).
+- Custom maps: `KotH.MapFormat` (map.toml, map.glb, KTRN collision.bin), id `local:|ws:NAME@HASH`, `MapLibrary`; kit `MapKit/` (Stride: `export.sh`, textures not streamable; Unity 2022.3/6 package `com.koth.mapkit`, box `unity`, `sync.sh` after MapFormat changes); workshop `SteamUgc` (Maps page uploads, guests download on join).
 
 ### Client
 - HUD `HudRenderer` (SpriteBatch) with Avalonia parts (`HillBoard`→`HudView`, `LoadView`) via `MenuOverlay`; main menu

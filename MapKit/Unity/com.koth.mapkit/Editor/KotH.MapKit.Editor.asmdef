@@ -1,0 +1,7 @@
+{
+    "name": "KotH.MapKit.Editor",
+    "rootNamespace": "KotH.MapKit.Editor",
+    "references": ["KotH.MapKit"],
+    "includePlatforms": ["Editor"],
+    "autoReferenced": true
+}

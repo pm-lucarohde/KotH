@@ -1,0 +1,8 @@
+{
+  "name": "com.koth.mapkit",
+  "version": "1.0.0",
+  "displayName": "KotH map kit",
+  "description": "Build a KotH map in Unity, export it as a map package, play it and share it on the Steam Workshop.",
+  "unity": "2022.3",
+  "author": { "name": "KotH" }
+}
