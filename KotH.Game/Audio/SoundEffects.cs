@@ -25,49 +25,49 @@ namespace KotH.Client.Audio
         [Display("Ambient volume", "Ambience")] public float AmbientVolume = 0.00765f;
 
         [Display("Step", "Figures")] public Sound Step;
-        [Display("Step volume", "Figures")] public float StepVolume = 0.154f;
+        [Display("Step volume", "Figures")] public float StepVolume = 0.169f;
 
         [Display("Jump", "Figures")] public Sound Jump;
-        [Display("Jump volume", "Figures")] public float JumpVolume = 0.08f;
+        [Display("Jump volume", "Figures")] public float JumpVolume = 0.088f;
 
         /// <userdoc>On the double jump, when the spores burst.</userdoc>
         [Display("Double jump", "Figures")] public Sound DoubleJump;
-        [Display("Double jump volume", "Figures")] public float DoubleJumpVolume = 0.08f;
+        [Display("Double jump volume", "Figures")] public float DoubleJumpVolume = 0.088f;
 
         /// <userdoc>On landing after a deep fall; after smaller jumps a step sounds.</userdoc>
         [Display("Impact", "Figures")] public Sound Fall;
-        [Display("Impact volume", "Figures")] public float FallVolume = 0.16f;
+        [Display("Impact volume", "Figures")] public float FallVolume = 0.176f;
 
         /// <userdoc>From this fall height (metres from the highest point) the impact sounds. A double jump on flat ground reaches about 2.7 m.</userdoc>
         [Display("Impact from (m)", "Figures")] public float FallHeight = 8.0f;
 
         /// <userdoc>When a dash starts, the figure diving down from the air.</userdoc>
         [Display("Dash", "Figures")] public Sound Dash;
-        [Display("Dash volume", "Figures")] public float DashVolume = 0.1f;
+        [Display("Dash volume", "Figures")] public float DashVolume = 0.11f;
 
         /// <userdoc>Where a dash strikes the ground (without it: the impact).</userdoc>
         [Display("Dash impact", "Figures")] public Sound DashImpact;
-        [Display("Dash impact volume", "Figures")] public float DashImpactVolume = 0.16f;
+        [Display("Dash impact volume", "Figures")] public float DashImpactVolume = 0.176f;
 
         /// <userdoc>Once, when the figure goes from sprint into a slide.</userdoc>
         [Display("Slide", "Figures")] public Sound Slide;
-        [Display("Slide volume", "Figures")] public float SlideVolume = 0.083f;
+        [Display("Slide volume", "Figures")] public float SlideVolume = 0.091f;
 
         /// <userdoc>The cane whooshes on every swing, hit or not.</userdoc>
         [Display("Swing", "Figures")] public Sound Swing;
-        [Display("Swing volume", "Figures")] public float SwingVolume = 0.07f;
+        [Display("Swing volume", "Figures")] public float SwingVolume = 0.077f;
 
         /// <userdoc>Every spore the blaster fires.</userdoc>
         [Display("Blaster shot", "Figures")] public Sound Shot;
-        [Display("Blaster shot volume", "Figures")] public float ShotVolume = 0.12f;
+        [Display("Blaster shot volume", "Figures")] public float ShotVolume = 0.132f;
 
         /// <userdoc>One of these at random when another figure is hit.</userdoc>
         [Display("Hits", "Figures")] public List<Sound> Hits = new List<Sound>();
-        [Display("Hit volume", "Figures")] public float HitVolume = 0.645f;
+        [Display("Hit volume", "Figures")] public float HitVolume = 0.71f;
 
         /// <userdoc>When one is hit oneself.</userdoc>
         [Display("Hurt", "Figures")] public Sound Hurt;
-        [Display("Hurt volume", "Figures")] public float HurtVolume = 0.645f;
+        [Display("Hurt volume", "Figures")] public float HurtVolume = 0.71f;
 
         /// <userdoc>Steps and swings sound up to this share higher or lower, so they do not sound the same.</userdoc>
         [Display("Pitch spread", "Figures")] public float PitchSpread = 0.05f;
