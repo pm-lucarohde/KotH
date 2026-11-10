@@ -30,6 +30,9 @@ namespace KotH.Shared.Net
         /// <summary>The loaded map's name, null before one is; the host's goes to everyone who joins.</summary>
         string Map { get; }
 
+        /// <summary>Whether this world can build a map: a built-in one or an installed package.</summary>
+        bool HasMap(string map);
+
         /// <summary>Builds the host's map on joining, before its state arrives; a world that has it already keeps it.</summary>
         void LoadMap(string map);
 
@@ -98,6 +101,8 @@ namespace KotH.Shared.Net
         public SimulationSystem Simulation => world.Simulation;
 
         public string Map => builder.Map;
+
+        public bool HasMap(string map) => builder.HasMap(map);
 
         public void LoadMap(string map)
         {

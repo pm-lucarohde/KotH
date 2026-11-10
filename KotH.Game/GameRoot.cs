@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using KotH.Client.Audio;
 using KotH.Client.Hud;
 using KotH.Client.Match;
@@ -9,6 +10,7 @@ using KotH.Client.Player;
 using KotH.Client.Rendering;
 using KotH.Client.Settings;
 using KotH.Client.Steam;
+using KotH.MapFormat;
 using KotH.Shared.Bots;
 using KotH.Shared.Combat;
 using KotH.Shared.Hosting;
@@ -156,6 +158,17 @@ namespace KotH.Client
             {
                 new ChainView { Simulation = system, Link = ChainModel, VisualOf = b => shown.TryGetValue(b, out var v) ? v.Visual : null },
             });
+            if (options.MapFile != null)
+            {
+                try
+                {
+                    options.Map = builder.Library.AddFolder(options.MapFile).Id;
+                }
+                catch (Exception e) when (e is IOException || e is FormatException)
+                {
+                    Log.Error($"Map package {options.MapFile}: {e.Message}");
+                }
+            }
             if (!options.Joining)
             {
                 // The main menu and a host's lobby are on Mount Destiny (Luca); --map is the round's map.
@@ -320,7 +333,15 @@ namespace KotH.Client
                 ((INetWorld)this).Despawn(body);
             Unbind();
             simulation.ResetTickCounter();
-            if (builder.Map != map && builder.HasMap(map))
+            if (builder.Map != map && !builder.HasMap(map))
+            {
+                // A custom map this guest does not have (and could not fetch): out, with the reason.
+                leaveNote = $"Map not installed: {MapTitle(map)}";
+                Log.Warning($"Network: restart on {map}, which is not here; back to the menu");
+                ReturnToMenu();
+                return;
+            }
+            if (builder.Map != map)
             {
                 UnloadMap();
                 LoadMap(map);
@@ -357,7 +378,8 @@ namespace KotH.Client
             if (menu != null)
                 return;
             // A private round's door stayed shut: Find server says why.
-            menuNote = net?.Session.Rejected == RejectReason.Password ? "Wrong password" : net?.KeyRefused;
+            menuNote = leaveNote ?? (net?.Session.Rejected == RejectReason.Password ? "Wrong password" : net?.KeyRefused);
+            leaveNote = null;
             SimulationJob.Drop();
             games++;
             if (net != null)
@@ -464,6 +486,17 @@ namespace KotH.Client
             {
                 ChangeMap = RestartOn,
                 MapReady = () => cover.IsLoaded,
+                MapUnavailable = map =>
+                {
+                    // Not inside the client's own update: the next frame takes the game down.
+                    leaveNote = $"Map not installed: {MapTitle(map)}";
+                    Log.Warning($"Network: the host's map {map} is not here; back to the menu");
+                    Script.AddTask(async () =>
+                    {
+                        await Script.NextFrame();
+                        ReturnToMenu();
+                    });
+                },
                 MakeBots = (states, since) =>
                 {
                     DropBots();
@@ -498,8 +531,8 @@ namespace KotH.Client
             builder.LoadArena(map);
             if (builder.Zone != null)
                 simulation.Match = new HillMatch(builder.Zone) { Seed = (uint)Random.Shared.Next(), Mode = LaunchOptions.Current.Mode };  // a guest takes the host's
-            string url = Maps.VisualUrl(map);
-            if (Content.Exists(url))
+            string url = MapPackage.IsId(map) ? null : Maps.VisualUrl(map);
+            if (url != null && Content.Exists(url))
             {
                 List<Entity> loaded = Content.Load<Prefab>(url).Instantiate();
                 long cullAt = StartLog.Now;
@@ -533,7 +566,7 @@ namespace KotH.Client
                 Entity.Scene.Entities.Remove(e);
             mapVisuals.Clear();
             MapCulling.Clear();
-            if (Content.IsLoaded(Maps.VisualUrl(map)))
+            if (!MapPackage.IsId(map) && Content.IsLoaded(Maps.VisualUrl(map)))
                 Content.Unload(Maps.VisualUrl(map));
             builder.UnloadArena();
             simulation.Match = null;
@@ -554,6 +587,8 @@ namespace KotH.Client
         void ApplyTextures(PlayerSettings settings) => QualityLevels.ApplyTextures(mapVisuals);
 
         string INetWorld.Map => builder.Map;
+
+        bool INetWorld.HasMap(string map) => builder.HasMap(map);
 
         // Before the state: the own body arrives with it and binds the displays. A guest from
         // the menu on another map than the host's (only before it has joined) changes maps.
@@ -907,6 +942,13 @@ namespace KotH.Client
         Entity menuFigure;
         int games;
         string menuNote;
+
+        // Why the game ends on its own (a missing map), shown in the menu after it.
+        string leaveNote;
+
+        /// <summary>A map's name for people: a package's title, else the name itself.</summary>
+        string MapTitle(string map)
+            => builder.Library.Find(map)?.Manifest.Title ?? (MapPackage.IsId(map) ? map.Substring(0, map.IndexOf('@')) : map);
         PlayerInputReader localReader;
         Entity arms;
         readonly Dictionary<SimulationBody, (Entity Visual, Entity Label)> shown =

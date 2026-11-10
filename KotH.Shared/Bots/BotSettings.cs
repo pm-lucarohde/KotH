@@ -1,3 +1,4 @@
+using System;
 using Stride.Core;
 using Stride.Engine;
 using Stride.Engine.Design;
@@ -65,5 +66,30 @@ namespace KotH.Shared.Bots
 
         /// <userdoc>A bot jumps no wider gap than this, in metres.</userdoc>
         [Display("Gap up to (m)", "Climb grid")] public float GapMax = 3f;
+
+        /// <summary>A field by its name (a custom map's [bots] table); false for an unknown name.
+        /// Only for settings that are safe for a map to change, not for the reaction time.</summary>
+        public bool Set(string name, double value)
+        {
+            switch (name)
+            {
+                case nameof(ThinkTicks): ThinkTicks = Math.Clamp((int)value, 1, 40); return true;
+                case nameof(AimError): AimError = (float)value; return true;
+                case nameof(BlasterAimError): BlasterAimError = (float)value; return true;
+                case nameof(TurnRate): TurnRate = (float)value; return true;
+                case nameof(EngageRange): EngageRange = (float)value; return true;
+                case nameof(BlasterRange): BlasterRange = (float)value; return true;
+                case nameof(Randomness): Randomness = (float)value; return true;
+                case nameof(Persistence): Persistence = (float)value; return true;
+                case nameof(StartWait): StartWait = (float)value; return true;
+                case nameof(CellSize): CellSize = Math.Clamp((float)value, 0.25f, 2f); return true;
+                case nameof(RouteVariants): RouteVariants = Math.Clamp((int)value, 0, 16); return true;
+                case nameof(RouteDetour): RouteDetour = (float)value; return true;
+                case nameof(JumpUp): JumpUp = (float)value; return true;
+                case nameof(DoubleJumpUp): DoubleJumpUp = (float)value; return true;
+                case nameof(GapMax): GapMax = (float)value; return true;
+                default: return false;
+            }
+        }
     }
 }

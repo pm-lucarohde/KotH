@@ -15,6 +15,9 @@
     <AdditionalFiles Include="BannedSymbols.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\KotH.MapFormat\KotH.MapFormat.csproj" />
+  </ItemGroup>
+  <ItemGroup>
     <!-- Generated ground (Tools/maps): triangles too many for a prefab, loaded by WorldBuilder. -->
     <EmbeddedResource Include="Resources/Maps/*Terrain.bin" LogicalName="Maps/%(Filename)%(Extension)" />
   </ItemGroup>

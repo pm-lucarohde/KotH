@@ -34,6 +34,9 @@ namespace KotH.Server
             string map = Text(args, "--map") ?? Maps.Default;
 
             using var world = new HeadlessWorld();
+            // A custom map package: the host plays it, a joiner has it for the host's id.
+            if (Text(args, "--map-file") is { } mapFile)
+                map = world.Builder.Library.AddFolder(mapFile).Id;
             // A joiner builds the host's map once it is welcomed, see HeadlessNetWorld.
             if (hosting)
             {
@@ -120,6 +123,12 @@ namespace KotH.Server
                     {
                         Console.WriteLine($"[net] rejected: {why}");
                         code = 2;
+                        break;
+                    }
+                    if (session.MissingMap is { } missing)
+                    {
+                        Console.WriteLine($"[net] the host's map {missing} is not here (--map-file DIR)");
+                        code = 4;
                         break;
                     }
                     if (session.HostLost)

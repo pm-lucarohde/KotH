@@ -241,6 +241,20 @@ namespace KotH.Shared.Net
         /// <summary>The host has said which map, and it is loaded; see Join.</summary>
         public bool MapKnown { get; private set; }
 
+        /// <summary>The host's map while this peer lacks it (a custom map not installed): the game
+        /// fetches it and calls MapInstalled, or gives up; null once it is there.</summary>
+        public string MissingMap { get; private set; }
+
+        /// <summary>Loads the host's map once it is there; until then MissingMap names it.</summary>
+        public void MapInstalled()
+        {
+            if (MissingMap == null || !world.HasMap(MissingMap))
+                return;
+            world.LoadMap(MissingMap);
+            MissingMap = null;
+            MapKnown = true;
+        }
+
         /// <summary>The host restarted the game on this map and stage: this session is done, the
         /// client loads the map and joins again with a new one (NetClient).</summary>
         public (string Map, Match.MatchStage Stage)? RestartTo { get; private set; }
@@ -435,8 +449,8 @@ namespace KotH.Shared.Net
                         challenge = (r.Bytes(PasswordKey.SaltSize).ToArray(), r.Bytes(PasswordKey.NonceSize).ToArray());
                     if (!r.Failed)
                     {
-                        world.LoadMap(map);
-                        MapKnown = true;
+                        MissingMap = map;
+                        MapInstalled();
                     }
                     break;
                 case MsgType.Confirmed:
@@ -477,6 +491,11 @@ namespace KotH.Shared.Net
             {
                 if (r.Failed)
                     return;
+                if (!world.HasMap(map))
+                {
+                    MissingMap = map;   // a joiner that skipped the Map step; the game gives up
+                    return;
+                }
                 world.LoadMap(map);
                 if (sim.Match != null)
                     sim.Match.Stage = Stage;

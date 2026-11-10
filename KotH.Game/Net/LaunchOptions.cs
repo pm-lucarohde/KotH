@@ -30,6 +30,9 @@ namespace KotH.Client.Net
         public int Bots = 3;
         public int BotSeed = 1;
         public string Map = Maps.Default;
+
+        /// <summary>--map-file DIR: a custom map package, played instead of --map (alone) and known as a guest.</summary>
+        public string MapFile;
         public int? Fps;
         /// <summary>--dlss or KOTH_DLSS, over the settings; null when neither is given.</summary>
         public KotH.Client.Rendering.Dlss.DlssMode? Dlss;
@@ -96,6 +99,7 @@ namespace KotH.Client.Net
             if (Number(args, "--bot-seed") is { } seed)
                 o.BotSeed = seed;
             o.Map = Text(args, "--map") ?? o.Map;
+            o.MapFile = Text(args, "--map-file");
             o.Password = Text(args, "--password");
             o.Fps = Number(args, "--fps");
             if ((Text(args, "--dlss") ?? Environment.GetEnvironmentVariable("KOTH_DLSS")) is { } dlss)

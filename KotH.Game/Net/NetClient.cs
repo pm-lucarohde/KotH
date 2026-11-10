@@ -91,6 +91,12 @@ namespace KotH.Client.Net
         /// <summary>GameRoot: whether the restart's map is loaded and baked.</summary>
         public Func<bool> MapReady { get; set; }
 
+        /// <summary>The host's map is not here: true while it is being fetched (a workshop download),
+        /// false when it cannot be; then MapUnavailable names it and the game leaves.</summary>
+        public Func<string, bool> FetchMap { get; set; }
+        public Action<string> MapUnavailable { get; set; }
+        bool gaveUpMap;
+
         /// <summary>GameRoot: a new bot director for the restarted world (or a host change's, whose states
         /// begin at the given tick), thinking from these states.</summary>
         public Func<IFinalStates, int, BotDirector> MakeBots { get; set; }
@@ -137,6 +143,15 @@ namespace KotH.Client.Net
             Host?.Update(now);
             Session.Exchange(now);
             FollowRestart(now);
+            if (Session.MissingMap is { } missing && !gaveUpMap)
+            {
+                Session.MapInstalled();
+                if (Session.MissingMap != null && !(FetchMap?.Invoke(missing) ?? false))
+                {
+                    gaveUpMap = true;
+                    MapUnavailable?.Invoke(missing);
+                }
+            }
             if (joinWhen != null && Session.MapKnown && joinWhen())
             {
                 joinWhen = null;

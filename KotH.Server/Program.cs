@@ -17,7 +17,7 @@ using Stride.Engine;
 // The headless host (arena, dummy or bots, 40 Hz), no window and no GPU: real time until
 // Ctrl+C or --seconds N; --ticks N as fast as it can, then timing and exact end state;
 // --bodies N BenchBots (load test, --map Test) with --warmup N; --bots N --bot-seed N;
-// --map NAME (Maps.Default); --mode duo (teams of two); --host / --join ADDRESS see NetPlay.
+// --map NAME (Maps.Default) or --map-file DIR (a custom map package); --mode duo (teams of two); --host / --join ADDRESS see NetPlay.
 
 CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
 CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
@@ -32,9 +32,10 @@ int warmup = (int)(Option(args, "--warmup") ?? 0);
 int hillBots = (int)(Option(args, "--bots") ?? 0);
 int botSeed = (int)(Option(args, "--bot-seed") ?? 1);
 
-string map = Text(args, "--map") ?? Maps.Default;
-
 using var world = new HeadlessWorld();
+string map = Text(args, "--map") ?? Maps.Default;
+if (Text(args, "--map-file") is { } mapFile)
+    map = world.Builder.Library.AddFolder(mapFile).Id;
 if (!world.Builder.HasMap(map))
 {
     Console.WriteLine($"[server] unknown map: {map}");

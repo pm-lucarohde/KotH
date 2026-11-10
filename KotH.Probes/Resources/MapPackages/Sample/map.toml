@@ -1,0 +1,35 @@
+# A KotH map, written by the map kit. Edit in the kit and export again.
+game = "KotH"
+format = 1
+name = "Sample"
+title = "Sample tower"
+author = "KotH"
+description = "The map kit's sample: a stepped tower on a meadow, the zone on top."
+visibility = "private"
+workshop_id = "0"
+
+[zone]
+position = [0, 6.75, 0]
+size = [3, 3.5, 3]
+capture_seconds = 3
+win_points = 100
+time_limit_minutes = 20
+win_pause_seconds = 15
+countdown_seconds = 60
+join_seconds = 60
+respawn_below = -5
+ring_inner = 0
+ring_outer = 0
+ring_spacing = 6
+
+[[spawn]]
+position = [16, 0, 16]
+
+[[spawn]]
+position = [-16, 0, 16]
+
+[[spawn]]
+position = [16, 0, -16]
+
+[[spawn]]
+position = [-16, 0, -16]

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The custom map package (map.toml, map.glb, collision.bin): written by the map kits, read by the game.
+       Plain C# 9 without engine types, so the Stride and Unity kits compile the same sources. -->
+  <PropertyGroup>
+    <RootNamespace>KotH.MapFormat</RootNamespace>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Compiled in by the Stride kit and the tools only (Prowl.Unwrapper); Unity unwraps its own way. -->
+    <Compile Remove="Unwrap/**" />
+  </ItemGroup>
+</Project>

@@ -8,8 +8,8 @@ KotH: king-of-the-hill game on **Stride 4.4**, **.NET 11 RC2** (`global.json`), 
 - Everything in the repo is **English** (code, logs, `Display`/`userdoc` texts, docs, commits). Replies to Luca in **German**.
 - Code comments **at most 4 lines per block**, XML doc included (`.work/english/cblocks.py` checks).
 - Docs short: README ≤ 50 lines, this file ≤ 100. Ask about architecture instead of assuming; no leftovers unasked.
-- Logic as in Unity: no regression, bit-exact determinism. Do not touch `Bildschirmfoto_*.png`, `mono_crash.*`.
-- End game processes by PID, never `pkill -f KotH…`. Git: push `origin main` after Luca's approval.
+- Logic as in Unity: no regression, bit-exact determinism. Do not touch `Bildschirmfoto_*.png`, `mono_crash.*`. End game
+  processes by PID, never `pkill -f KotH…`. Git: push `origin main` after Luca's approval.
 
 ## Build and run
 
@@ -20,7 +20,7 @@ Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Pr
 - AOT links in the distrobox `aot`; ILC sometimes crashes, then rerun; always `--no-incremental` (else an old scene
   bundle). After new materials/effects/scenes: `Tools/effects/record.sh`. JIT = AOT only with `DOTNET_EnableAVX=0`.
 - Client: no arguments = main menu, `--offline` alone; `--host`/`--join ADDRESS[:PORT]`, `--name`, `--port`,
-  `--min-players`, `--bots N`, `--mode duo|trio|squad`, `--display N`, `--map NAME`, `--fps N`, `--dlss MODE`. Two clients: `Tools/two_clients.sh`.
+  `--min-players`, `--bots N`, `--mode duo|trio|squad`, `--display N`, `--map NAME`, `--map-file DIR`, `--fps N`, `--dlss MODE`. Two clients: `Tools/two_clients.sh`.
 - Server: real time, `--seconds N` or `--ticks N` (fast, exact end state); `--map`, `--bots`, `--mode …`, load test `--bodies N`
   (`--map Test`); network `--host`/`--join`/`--bot` (`NetPlay.cs`). Traces `KOTH_TRACE=BotName`, `KOTH_FALLS=1`.
 - Test aids (`KotHApp.cs` fields, times from the end of the load screen): `KOTH_SHOT=shot.png` (+ `_SECONDS`, `_YAW`,
@@ -35,7 +35,7 @@ No unit tests; probes against the frozen Unity reference, exit 0 = passed (known
 
 ```bash
 Bin/Probes/aot/KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|blaster|dash|step|
-  determinism|clock|stairrun|rampfoot|crouchedge|knockback|thirdperson|wallknock|capture|chain|netstate|netplay|bots>
+  determinism|clock|stairrun|rampfoot|crouchedge|knockback|thirdperson|wallknock|capture|chain|netstate|netplay|custommap|bots>
 Bin/Probes/aot/KotH.Probes determinism hashes   # hash chain 67AB05EEE3468AFD
 Bin/Probes/aot/KotH.Probes bots climb 12        # MountDestiny, mean ≤ 140 s; also bots stats 12, bots jumplab
 .work/tools/climb_many.sh DIR 8 13 && dotnet run .work/tools/climb_many.cs -- DIR   # 104 seeds, each bot
@@ -78,12 +78,12 @@ dotnet run Tools/Regress.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # nu
 - Teams (`MatchMode` duo/trio/squad): `Team` ids at round start (wishes: invite, `SteamParty`), most inside take, row chain.
 
 ### Maps and assets
-- **Game Studio is the source of all assets** (YAML may be edited directly). `GraphicsCompositor` without `Archetype`.
+- **Game Studio is the source of all assets** (YAML editable; Proton: CRLF, `.nuget` a symlink, never replace files there); `GraphicsCompositor` without `Archetype`.
 - Per map `Maps/NAME`: `NAMECollision` (Shared: collision, markers, zone, bots; no models) and `NAMEVisual` (Game), root
   assets; `Hosting/Maps.cs` (`All` = host's choice). Map change in-process (`GameRoot.UnloadMap`); menu always MountDestiny.
 - Probes load `Test`, except `bots climb`/`jumplab`. **MountDestiny** (123 m): `Tools/maps/Mountain.cs` → `MapUV`;
   textures `Textures.cs`, sky `Sky.cs`, clouds `Clouds.cs`; grass `GrassField`, shells `ShellField`. View ≤ 20 km.
-- Game Studio under Proton (prefix `compatdata/2392464373`, memory); saves CRLF; its `.nuget` is a symlink, never replace files there.
+- Custom maps: `KotH.MapFormat` package (map.toml, map.glb, KTRN collision.bin), id `local:|ws:NAME@HASH`, `MapLibrary`.
 
 ### Client
 - HUD `HudRenderer` (SpriteBatch) with Avalonia parts (`HillBoard`→`HudView`, `LoadView`) via `MenuOverlay`; main menu

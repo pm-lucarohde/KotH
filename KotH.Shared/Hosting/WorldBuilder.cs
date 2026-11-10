@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using KotH.MapFormat;
 using KotH.Shared.Bots;
+using KotH.Shared.Mathematics;
 using KotH.Shared.Match;
 using KotH.Shared.Net;
 using KotH.Shared.Physics;
@@ -32,7 +34,14 @@ namespace KotH.Shared.Hosting
             this.content = content;
             this.queries = queries;
             NetProtocol.AddAssets(content);
+            Library.AddRoot(MapPackage.UserFolder());
         }
+
+        /// <summary>The custom map packages this builder finds by id.</summary>
+        public MapLibrary Library { get; } = new MapLibrary();
+
+        /// <summary>The loaded custom map's package, null for a built-in map or none.</summary>
+        public MapPackage Package { get; private set; }
 
         public Scene Scene { get; }
 
@@ -50,7 +59,9 @@ namespace KotH.Shared.Hosting
 
         readonly List<Entity> arena = new List<Entity>();
 
-        public bool HasMap(string map) => !string.IsNullOrEmpty(map) && content.Exists(Maps.CollisionUrl(map));
+        public bool HasMap(string map)
+            => MapPackage.IsId(map) ? Library.Find(map) != null
+             : !string.IsNullOrEmpty(map) && map.IndexOf(':') < 0 && content.Exists(Maps.CollisionUrl(map));
 
         /// <summary>Adds every collider of the map's arena prefab, then of its generated
         /// terrain if it has one, in prefab order, and gives each its place in the stable
@@ -62,6 +73,11 @@ namespace KotH.Shared.Hosting
             if (!HasMap(map))
                 throw new ArgumentException($"Unknown map: {map}");
             Map = map;
+            if (MapPackage.IsId(map))
+            {
+                LoadPackage(Library.Find(map));
+                return;
+            }
             foreach (Entity e in content.Load<Prefab>(Maps.CollisionUrl(map)).Instantiate())
             {
                 AddStatic(e);
@@ -82,7 +98,9 @@ namespace KotH.Shared.Hosting
                 if (e.Scene != null)
                     Scene.Entities.Remove(e);
             arena.Clear();
-            content.Unload(Maps.CollisionUrl(Map));
+            if (Package == null)
+                content.Unload(Maps.CollisionUrl(Map));
+            Package = null;
             queries.Clear();
             Map = null;
             Zone = null;
@@ -95,33 +113,105 @@ namespace KotH.Shared.Hosting
         void AddTerrain(string map)
         {
             using Stream stream = typeof(WorldBuilder).Assembly.GetManifestResourceStream(Maps.TerrainResource(map));
-            if (stream == null)
-                return;
-            using var reader = new BinaryReader(new ZLibStream(stream, CompressionMode.Decompress));
-            if (reader.ReadUInt32() != 0x4E52544B || reader.ReadUInt32() != 1)   // "KTRN", version 1
-                throw new InvalidDataException($"{Maps.TerrainResource(map)} has an unknown format.");
+            if (stream != null)
+                AddCollision(MapCollision.Read(stream));
+        }
 
-            var vertices = new Vector3[reader.ReadUInt32()];
-            for (int i = 0; i < vertices.Length; i++)
-                vertices[i] = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
-
-            uint chunks = reader.ReadUInt32();
-            for (uint c = 0; c < chunks; c++)
+        /// <summary>Per chunk, in file order, one static compound of its triangles.</summary>
+        void AddCollision(MapCollision collision)
+        {
+            float[] v = collision.Vertices;
+            foreach (MapCollision.Chunk chunk in collision.Chunks)
             {
-                int x = reader.ReadInt32(), z = reader.ReadInt32();
-                uint count = reader.ReadUInt32();
                 var compound = new CompoundCollider();
-                for (uint t = 0; t < count; t++)
+                int[] t = chunk.Triangles;
+                for (int i = 0; i < t.Length; i += 3)
                     compound.Colliders.Add(new TriangleCollider
                     {
-                        A = vertices[reader.ReadUInt32()],
-                        B = vertices[reader.ReadUInt32()],
-                        C = vertices[reader.ReadUInt32()],
+                        A = new Vector3(v[3 * t[i]], v[3 * t[i] + 1], v[3 * t[i] + 2]),
+                        B = new Vector3(v[3 * t[i + 1]], v[3 * t[i + 1] + 1], v[3 * t[i + 1] + 2]),
+                        C = new Vector3(v[3 * t[i + 2]], v[3 * t[i + 2] + 1], v[3 * t[i + 2] + 2]),
                     });
-                var entity = new Entity($"Terrain_{x}_{z}") { new StaticComponent { Collider = compound } };
+                var entity = new Entity($"Terrain_{chunk.X}_{chunk.Z}") { new StaticComponent { Collider = compound } };
                 AddStatic(entity);
                 arena.Add(entity);
             }
+        }
+
+        /// <summary>A custom map built in code as its prefab would be: zone, spawn markers under the
+        /// built-in names (PlayerSpawn, PlayerSpawn0..11, DummySpawn), bot settings, collision.</summary>
+        void LoadPackage(MapPackage package)
+        {
+            Package = package;
+            MapManifest m = package.Manifest;
+            MapZone z = m.Zone;
+            var zoneAt = new Vector3(z.X, z.Y, z.Z);
+            Zone = new CaptureZone
+            {
+                Size = new Vector3(z.SizeX, z.SizeY, z.SizeZ),
+                WarmupSeconds = z.CaptureSeconds,
+                WinPoints = z.WinPoints,
+                TimeLimitMinutes = z.TimeLimitMinutes,
+                WinPauseSeconds = z.WinPauseSeconds,
+                CountdownSeconds = z.CountdownSeconds,
+                JoinSeconds = z.JoinSeconds,
+                RespawnBelow = z.RespawnBelow,
+                SpawnRingInner = z.RingInner,
+                SpawnRingOuter = z.RingOuter,
+                SpawnSpacing = z.RingSpacing,
+            };
+            Mark(new Entity("CaptureZone") { Zone }, zoneAt, Quaternion.Identity);
+
+            Mark(new Entity("PlayerSpawn"), Feet(m.Spawns[0]), Facing(m.Spawns[0], zoneAt));
+            MapSpawn d = m.Dummies;
+            if (d == null)
+            {
+                Quaternion f = Facing(m.Spawns[0], zoneAt);
+                Vector3 ahead = UMath.Mul(UMath.Rotate(f, new Vector3(0f, 0f, -1f)), 5f);
+                Mark(new Entity("DummySpawn"), UMath.Add(Feet(m.Spawns[0]), ahead), Quaternion.Identity);
+            }
+            else
+                Mark(new Entity("DummySpawn"), Feet(d), Facing(d, zoneAt));
+            // Twelve slots over the spawns in turn; a spawn used again puts the next one 1.5 m
+            // aside, alternating right and left of its facing.
+            for (int slot = 0; slot < NetWorld.MaxPlayers; slot++)
+            {
+                MapSpawn s = m.Spawns[slot % m.Spawns.Count];
+                int again = slot / m.Spawns.Count;
+                Quaternion f = Facing(s, zoneAt);
+                float side = again == 0 ? 0f : ((again + 1) / 2) * (again % 2 == 1 ? 1.5f : -1.5f);
+                Vector3 at = UMath.Add(Feet(s), UMath.Mul(UMath.Rotate(f, UMath.Right), side));
+                Mark(new Entity("PlayerSpawn" + slot), at, f);
+            }
+
+            Bots = new BotSettings();
+            foreach (KeyValuePair<string, double> kv in m.Bots)
+                Bots.Set(kv.Key, kv.Value);   // unknown names: from a newer kit, ignored
+            Mark(new Entity("Bots") { Bots }, Vector3.Zero, Quaternion.Identity);
+
+            using Stream file = File.OpenRead(package.CollisionPath);
+            AddCollision(MapCollision.Read(file));
+        }
+
+        // A spawn stands on the ground; the body's centre is half a body above its feet.
+        const float SpawnLift = 0.95f;
+
+        static Vector3 Feet(MapSpawn s) => new Vector3(s.X, s.Y + SpawnLift, s.Z);
+
+        /// <summary>The spawn's yaw, or towards the zone; Stride's yaw looks along (-sin, -cos).</summary>
+        static Quaternion Facing(MapSpawn s, Vector3 zone)
+        {
+            float yaw = s.Yaw.HasValue ? s.Yaw.Value * (MathF.PI / 180f)
+                      : UMath.Atan2(-(zone.X - s.X), -(zone.Z - s.Z));
+            return new Quaternion(0f, DetMath.SinF(yaw * 0.5f), 0f, DetMath.CosF(yaw * 0.5f));
+        }
+
+        void Mark(Entity e, Vector3 at, Quaternion facing)
+        {
+            e.Transform.Position = at;
+            e.Transform.Rotation = facing;
+            AddStatic(e);
+            arena.Add(e);
         }
 
         /// <summary>
