@@ -4,9 +4,9 @@ using System.Globalization;
 
 namespace KotH.Client.Steam
 {
-    /// <summary>A party of two over Steam (Luca: friends play duo together), a friends-only lobby of its
-    /// own that lasts across rounds until Leave. Its owner leads: the leader names the round it plays in
-    /// (lobby data "round"), the mate follows from the main menu, and duo pairs them (SteamLobby.PartnerNetId).</summary>
+    /// <summary>A party of up to four over Steam (Luca: friends play a team together), a friends-only lobby
+    /// of its own that lasts across rounds until Leave. Its owner leads: the leader names the round it plays
+    /// in (lobby data "round"), the others follow from the main menu, and teams join them (SteamLobby.PartnerNetId).</summary>
     public static class SteamParty
     {
         static SteamLobby lobby;
@@ -20,19 +20,34 @@ namespace KotH.Client.Steam
         /// <summary>Whether this player leads it: its rounds are the party's.</summary>
         public static bool Leads => lobby is { Id: not 0 } && lobby.Owner == SteamClient.SteamId;
 
-        /// <summary>The other member, 0 while alone.</summary>
+        /// <summary>The largest party: a squad.</summary>
+        public const int MaxMembers = 4;
+
+        /// <summary>Who this player teams up with: a member wishes the leader, the leader the first other
+        /// member (the wishes join them all into one team); 0 while alone.</summary>
         public static ulong Mate
         {
             get
             {
                 if (lobby is not { Id: not 0 })
                     return 0;
+                if (!Leads)
+                    return lobby.Owner;
                 lobby.Members(members);
                 foreach (ulong m in members)
                     if (m != SteamClient.SteamId)
                         return m;
                 return 0;
             }
+        }
+
+        /// <summary>Whether the player is another member of this party.</summary>
+        public static bool Has(ulong member)
+        {
+            if (member == 0 || member == SteamClient.SteamId || lobby is not { Id: not 0 })
+                return false;
+            lobby.Members(members);
+            return members.Contains(member);
         }
 
         /// <summary>Makes a party with this player alone in it, if it has none; then friends are invited.</summary>
@@ -95,15 +110,19 @@ namespace KotH.Client.Steam
         public static string Status()
         {
             if (lobby == null)
-                return "No party: invite a friend to play together, paired in duo.";
+                return "No party: invite up to three friends to play together as one team.";
             if (lobby.Id == 0)
                 return lobby.Failure ?? "Making the party ...";
-            ulong mate = Mate;
-            if (mate == 0)
+            lobby.Members(members);
+            var others = new List<string>();
+            foreach (ulong m in members)
+                if (m != SteamClient.SteamId)
+                    others.Add(SteamClient.NameOf(m));
+            if (others.Count == 0)
                 return "Your party: just you. Invite a friend.";
-            string name = SteamClient.NameOf(mate);
-            return Leads ? $"Your party: you and {name}. {name} follows you into rounds."
-                         : $"Your party: you and {name}. You follow {name} into rounds.";
+            string names = others.Count == 1 ? others[0] : string.Join(", ", others.GetRange(0, others.Count - 1)) + " and " + others[^1];
+            return Leads ? $"Your party: you and {names}. They follow you into rounds."
+                         : $"Your party: you and {names}. You follow {SteamClient.NameOf(lobby.Owner)} into rounds.";
         }
     }
 }

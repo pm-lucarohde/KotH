@@ -55,6 +55,8 @@ namespace KotH.Probes.Probes
             Lobby();
             Slots();
             Duo();
+            Trio();
+            Squad();
 
             Log(failures == 0 ? "[capture] PASSED" : $"[capture] {failures} errors");
             return failures == 0 ? 0 : 1;
@@ -370,7 +372,7 @@ namespace KotH.Probes.Probes
             ScriptedBody a = t[0], b = t[1], c = t[2], d = t[3], e = t[4], f = t[5], g = t[6], h = t[7];
             Ticks(1);
             Check(HillMatch.SameTeam(a, b) && HillMatch.SameTeam(c, d) && HillMatch.SameTeam(e, f) && HillMatch.SameTeam(g, h) &&
-                  !HillMatch.SameTeam(a, c), $"pairs by wish, then the rest (A-{Partner(a)} C-{Partner(c)} E-{Partner(e)} G-{Partner(g)})");
+                  !HillMatch.SameTeam(a, c), $"pairs by wish, then the rest (A-{TeamOf(a)} C-{TeamOf(c)} E-{TeamOf(e)} G-{TeamOf(g)})");
 
             In(a, 0);
             Ticks(match.WarmupTicks + 1);
@@ -442,7 +444,7 @@ namespace KotH.Probes.Probes
 
             world.Simulation.Leave(b);
             Ticks(1);
-            Check(a.Partner == 0 && !HillMatch.SameTeam(a, b), "B leaves: A alone");
+            Check(a.Team == 0 && !HillMatch.SameTeam(a, b), "B leaves: A alone");
 
             match.LimitTicks = match.State.RoundTicks + 1;
             Ticks(1);
@@ -463,7 +465,111 @@ namespace KotH.Probes.Probes
             Ticks(1);
         }
 
-        static string Partner(SimulationBody body) => body.Partner == 0 ? "-" : ((char)('A' + body.Partner - NetWorld.FirstPlayerId)).ToString();
+        static string TeamOf(SimulationBody body) => body.Team == 0 ? "-" : ((char)('A' + body.Team - NetWorld.FirstPlayerId)).ToString();
+
+        ScriptedBody[] Teams(MatchMode mode, int count)
+        {
+            world = new HeadlessWorld();
+            world.LoadArena(Maps.Test);
+            match = world.StartMatch();
+            match.Mode = mode;
+            world.Simulation.ChainLength = 1000f;
+            var t = new ScriptedBody[count];
+            for (int i = 0; i < t.Length; i++)
+            {
+                t[i] = Spawn(((char)('A' + i)).ToString(), Out(i));
+                t[i].NetId = NetWorld.FirstPlayerId + i;
+            }
+            return t;
+        }
+
+        static string Teams(ScriptedBody[] t)
+        {
+            var text = new System.Text.StringBuilder();
+            foreach (ScriptedBody body in t)
+                text.Append(body.Entity.Name).Append(TeamOf(body)).Append(' ');
+            return text.ToString().TrimEnd();
+        }
+
+        /// <summary>Trio (Luca: a row of three, the most inside take it): teams by wish (both ways, then one way,
+        /// joined while there is room), the rest by lot in threes, the chain in NetId order, majority captures,
+        /// a joiner fills the short team, one leaving keeps the other two chained.</summary>
+        void Trio()
+        {
+            ScriptedBody[] t = Teams(MatchMode.Trio, 8);
+            // A and B came together, C asked for B, D for A (full by then); the rest by lot.
+            (t[0].Wish, t[1].Wish, t[2].Wish, t[3].Wish) = (t[1].NetId, t[0].NetId, t[1].NetId, t[0].NetId);
+            ScriptedBody a = t[0], b = t[1], c = t[2], d = t[3];
+            Ticks(1);
+            int sizeD = 0, others = 0;
+            foreach (ScriptedBody x in t)
+            {
+                sizeD += HillMatch.SameTeam(x, d) ? 1 : 0;
+                others += !HillMatch.SameTeam(x, a) && !HillMatch.SameTeam(x, d) ? 1 : 0;
+            }
+            Check(HillMatch.SameTeam(a, b) && HillMatch.SameTeam(a, c) && !HillMatch.SameTeam(a, d) && sizeD + others == 5
+                  && (sizeD == 3 || sizeD == 2) && (others == 2 || others == 3), $"wishes then threes by lot ({Teams(t)})");
+            Check(HillMatch.AheadOf(b, world.Simulation.Bodies) == a && HillMatch.AheadOf(c, world.Simulation.Bodies) == b
+                  && HillMatch.AheadOf(a, world.Simulation.Bodies) == null && HillMatch.BehindOf(b, world.Simulation.Bodies) == c,
+                  "the chain runs A-B-C by NetId");
+
+            ScriptedBody other = t[Array.FindIndex(t, x => !HillMatch.SameTeam(x, a) && !HillMatch.SameTeam(x, d))];
+            In(a, 0); In(b, 1); In(d, 3);
+            Ticks(match.WarmupTicks + 1);
+            Check(match.State.Holder == a && c.ScoreTicks == 1, $"two against one: the two's team takes it, C outside scores ({Name(match.State.Holder)})");
+
+            Everyone(t);
+            In(a, 0); In(d, 3);
+            Ticks(match.WarmupTicks + 1);
+            Check(match.State.Holder == null, "one against one: contested");
+
+            Everyone(t);
+            In(a, 0); In(b, 1); In(d, 3);
+            foreach (ScriptedBody x in t)
+                if (x != d && HillMatch.SameTeam(x, d))
+                {
+                    In(x, 4);
+                    break;
+                }
+            Ticks(match.WarmupTicks + 1);
+            Check(match.State.Holder == null, "two against two: contested");
+
+            In(c, 2);
+            In(other, 5);
+            Ticks(match.WarmupTicks + 1);
+            Check(match.State.Holder == a, $"three against two and one: taken ({Name(match.State.Holder)})");
+
+            // A joiner in the running round fills the short team.
+            Everyone(t);
+            ScriptedBody shortOne = sizeD == 2 ? d : other;
+            ScriptedBody i = Spawn("I", Out(8));
+            i.NetId = NetWorld.FirstPlayerId + 8;
+            Ticks(1);
+            Check(HillMatch.SameTeam(i, shortOne), $"a joiner fills the team of two ({TeamOf(i)})");
+
+            world.Simulation.Leave(b);
+            Ticks(1);
+            Check(HillMatch.SameTeam(a, c) && HillMatch.AheadOf(c, world.Simulation.Bodies) == a, "B leaves: A and C stay chained");
+            world.Simulation.Leave(c);
+            Ticks(1);
+            Check(a.Team == 0, "C leaves too: A alone");
+        }
+
+        /// <summary>Squad: eight by lot are two teams of four, and the majority takes the zone.</summary>
+        void Squad()
+        {
+            ScriptedBody[] t = Teams(MatchMode.Squad, 9);
+            Ticks(1);
+            ScriptedBody one = Array.Find(t, x => x.Team != 0);
+            ScriptedBody[] mine = Array.FindAll(t, x => HillMatch.SameTeam(x, one));
+            ScriptedBody[] theirs = Array.FindAll(t, x => x.Team != 0 && !HillMatch.SameTeam(x, one));
+            int alone = Array.FindAll(t, x => x.Team == 0).Length;
+            Check(mine.Length == 4 && theirs.Length == 4 && alone == 1, $"nine by lot: two fours and one alone ({Teams(t)})");
+            In(mine[0], 0); In(mine[1], 1); In(mine[2], 2);
+            In(theirs[0], 4); In(theirs[1], 5);
+            Ticks(match.WarmupTicks + 1);
+            Check(match.State.Holder == HillMatch.LeadOf(mine[0], world.Simulation.Bodies), $"three against two: taken ({Name(match.State.Holder)})");
+        }
 
         void Ticks(int n)
         {

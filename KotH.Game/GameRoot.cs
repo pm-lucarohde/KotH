@@ -96,7 +96,7 @@ namespace KotH.Client
         /// <userdoc>The mushroom blaster, held instead of the cane on key 2; modelled in the rest pose like the cane (.work/rig/blaster.py), bones Breech and Muzzle give its barrel.</userdoc>
         [Display("Blaster", "Visuals")] public Model BlasterModel;
 
-        /// <userdoc>One link of the duo chain between partners (Tools/figure/ChainLink.cs); ChainView strings 32 of them.</userdoc>
+        /// <userdoc>One link of the team chain between neighbours (Tools/figure/ChainLink.cs); ChainView strings 36 per 4 m.</userdoc>
         [Display("Chain link", "Visuals")] public Model ChainModel;
 
         /// <userdoc>The figure in the main menu: its centre in the menu camera's frame (x right, y up, -z ahead), in metres.</userdoc>
@@ -208,8 +208,9 @@ namespace KotH.Client
 
             // The bots on the player slots, numbered on from the player like
             // joiners, so they think exactly as they would on a host.
-            // Duo (Luca): an odd count gets one bot more, so nobody plays alone.
-            int botCount = options.Bots + (options.Mode == MatchMode.Duo && options.Bots % 2 == 0 && options.Bots + 1 < NetWorld.MaxPlayers ? 1 : 0);
+            // Teams (Luca): bots fill the last team, so nobody plays short.
+            int size = HillMatch.Size(options.Mode), short_ = (size - (1 + options.Bots) % size) % size;
+            int botCount = Math.Min(options.Bots + short_, NetWorld.MaxPlayers - 1);
             var states = new LocalFinalStates(simulation);
             BotDirector director = botCount > 0 ? BotDirector.Create(builder, simulation, states, options.BotSeed) : null;
             WorkAhead(director);
@@ -264,7 +265,7 @@ namespace KotH.Client
             options.Host = true;
             options.Steam = SteamClient.Ready;
             options.Password = password;
-            options.Mode = flags.Duo ? MatchMode.Duo : MatchMode.Solo;
+            options.Mode = flags.Mode;
             StartNetworked(options, options.Steam ? SteamLobby.Open(builder.Map, flags) : null);
         }
 

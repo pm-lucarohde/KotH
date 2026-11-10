@@ -212,8 +212,8 @@ namespace KotH.Client.Hud
             string time = Clock(left);
 
             ZoneLook look = Look(m, Self, Match.WarmupTicks);
-            // In duo the team is meant: "you" for the own, both names for another pair.
-            bool team = Match.Duo && Mate(Self) != null;
+            // In teams the team is meant: "you" for the own, all names for another team.
+            bool team = Match.Teamed && Mate(Self) != null;
             statusText = look switch
             {
                 ZoneLook.Own => Self.AloneTicks > Match.WarmupTicks ? team ? "Your team holds the zone" : "You hold the zone"
@@ -229,13 +229,21 @@ namespace KotH.Client.Hud
 
             if (m.Phase == MatchPhase.Waiting)
             {
-                caption = Match.Duo ? "Duo: waiting for players" : "Waiting for players";
+                caption = Match.Mode switch
+                {
+                    MatchMode.Duo => "Duo: waiting for players", MatchMode.Trio => "Trio: waiting for players",
+                    MatchMode.Squad => "Squad: waiting for players", _ => "Waiting for players",
+                };
                 count = string.Format(HudRenderer.Numbers, "{0} / {1}", HillMatch.CountPlayers(Simulation.Bodies), m.MinPlayers);
                 time = statusText = "";
             }
             else if (m.Phase == MatchPhase.Countdown)
             {
-                caption = Match.Duo ? "Duo match starts in" : "Match starts in";
+                caption = Match.Mode switch
+                {
+                    MatchMode.Duo => "Duo match starts in", MatchMode.Trio => "Trio match starts in",
+                    MatchMode.Squad => "Squad match starts in", _ => "Match starts in",
+                };
                 count = "";
                 time = Clock((m.PhaseTicks + HillMatch.TicksPerPoint - 1) / HillMatch.TicksPerPoint);
                 statusText = "";
@@ -259,7 +267,7 @@ namespace KotH.Client.Hud
             else
                 bannerText = "";
 
-            // One row per team: its lead, named for both.
+            // One row per team: its lead, named for all.
             ranking.Clear();
             foreach (SimulationBody body in Simulation.Bodies)
                 if (HillMatch.LeadOf(body, Simulation.Bodies) == body)
@@ -351,22 +359,39 @@ namespace KotH.Client.Hud
 
         string NameOf(SimulationBody body) => body == Self ? "You" : body.Entity.Name;
 
-        SimulationBody Mate(SimulationBody body) => body == null ? null : HillMatch.PartnerOf(body, Simulation.Bodies);
+        // Any other of the body's team, null alone.
+        SimulationBody Mate(SimulationBody body)
+            => body == null ? null : HillMatch.AheadOf(body, Simulation.Bodies) ?? HillMatch.BehindOf(body, Simulation.Bodies);
 
-        // A pair's names, the own one first ("You & Bot 2"); kept per lead while the pair stays.
-        readonly Dictionary<SimulationBody, (SimulationBody Mate, bool Own, string Name)> teamNames =
-            new Dictionary<SimulationBody, (SimulationBody, bool, string)>();
+        // A team's names, the own one first ("You, Bot 2 & Bot 3"); kept per lead while the team stays.
+        readonly Dictionary<SimulationBody, (int Members, bool Own, string Name)> teamNames =
+            new Dictionary<SimulationBody, (int, bool, string)>();
+        readonly List<string> names = new List<string>();
 
         string TeamName(SimulationBody body)
         {
-            SimulationBody mate = Mate(body);
-            if (mate == null)
+            IReadOnlyList<SimulationBody> bodies = Simulation.Bodies;
+            SimulationBody lead = HillMatch.LeadOf(body, bodies);
+            if (Mate(lead) == null)
                 return NameOf(body);
-            bool own = mate == Self;
-            if (teamNames.TryGetValue(body, out var known) && known.Mate == mate && known.Own == own)
+            int members = 17;
+            bool own = false;
+            for (SimulationBody m = lead; m != null; m = HillMatch.BehindOf(m, bodies))
+            {
+                members = members * 31 + m.NetId;
+                own |= m == Self;
+            }
+            if (teamNames.TryGetValue(body, out var known) && known.Members == members && known.Own == own)
                 return known.Name;
-            string name = own ? NameOf(mate) + " & " + NameOf(body) : NameOf(body) + " & " + NameOf(mate);
-            teamNames[body] = (mate, own, name);
+            names.Clear();
+            if (own)
+                names.Add(NameOf(Self));
+            for (SimulationBody m = lead; m != null; m = HillMatch.BehindOf(m, bodies))
+                if (m != Self)
+                    names.Add(NameOf(m));
+            string name = names.Count == 1 ? names[0]
+                : string.Join(", ", names.GetRange(0, names.Count - 1)) + " & " + names[^1];
+            teamNames[body] = (members, own, name);
             return name;
         }
 

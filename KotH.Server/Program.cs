@@ -43,8 +43,7 @@ if (!world.Builder.HasMap(map))
 world.LoadArena(map);
 HillMatch match = world.StartMatch();
 match.Seed = (uint)botSeed;
-if (Text(args, "--mode") == "duo")
-    match.Mode = MatchMode.Duo;
+match.Mode = HillMatch.ParseMode(Text(args, "--mode")) ?? MatchMode.Solo;
 
 if (hillBots > 0)
 {

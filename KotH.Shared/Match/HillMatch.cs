@@ -19,9 +19,9 @@ namespace KotH.Shared.Match
     /// the host changes maps; every peer has the same stage (HostSession sends it).</summary>
     public enum MatchStage : byte { Single, Lobby, Round }
 
-    /// <summary>Solo: everyone for themselves. Duo: teams of two, chained together, paired at the round's
-    /// start (Luca). Chosen by whoever starts the game; travels with the state.</summary>
-    public enum MatchMode : byte { Solo, Duo }
+    /// <summary>Solo: everyone for themselves. Duo, trio, squad: teams of two, three, four, chained in a row
+    /// and formed at the round's start (Luca). Chosen by whoever starts the game; travels with the state.</summary>
+    public enum MatchMode : byte { Solo, Duo, Trio, Squad }
 
     /// <summary>Everything a round keeps besides the bodies' own scores. Part of a
     /// snapshot: a restore puts the phase, the clocks and who stood in the zone back
@@ -44,7 +44,7 @@ namespace KotH.Shared.Match
 
         /// <summary>Who holds the zone: the one body alone in it while it takes the zone,
         /// then whoever took it for as long as it stays inside, even with others in. Null
-        /// for none, or several while nobody has it. In duo the team's lead (HillMatch.LeadOf).</summary>
+        /// for none, or several while nobody has it. In teams the team's lead (HillMatch.LeadOf).</summary>
         public SimulationBody Holder;
 
         /// <summary>
@@ -59,7 +59,7 @@ namespace KotH.Shared.Match
         /// </summary>
         public uint Seed;
 
-        /// <summary>Solo or teams of two.</summary>
+        /// <summary>Solo or teams of two to four.</summary>
         public MatchMode Mode;
 
         /// <summary>The round has ended and the winner is shown.</summary>
@@ -143,14 +143,32 @@ namespace KotH.Shared.Match
             set => state.Seed = value;
         }
 
-        /// <summary>Solo or duo; set before the game starts (like MinPlayers, it travels with the state).</summary>
+        /// <summary>Solo or teams; set before the game starts (like MinPlayers, it travels with the state).</summary>
         public MatchMode Mode
         {
             get => state.Mode;
             set => state.Mode = value;
         }
 
-        public bool Duo => state.Mode == MatchMode.Duo;
+        /// <summary>Bodies per full team: 1 in solo, up to 4.</summary>
+        public int TeamSize => Size(state.Mode);
+
+        public static int Size(MatchMode mode) => mode switch { MatchMode.Duo => 2, MatchMode.Trio => 3, MatchMode.Squad => 4, _ => 1 };
+
+        /// <summary>The mode's word on the command line, in settings and lobby data ("duo").</summary>
+        public static string ModeName(MatchMode mode) => mode switch
+        {
+            MatchMode.Duo => "duo", MatchMode.Trio => "trio", MatchMode.Squad => "squad", _ => "solo",
+        };
+
+        /// <summary>A mode from its word (any case), null for none.</summary>
+        public static MatchMode? ParseMode(string word) => word?.ToLowerInvariant() switch
+        {
+            "solo" => MatchMode.Solo, "duo" => MatchMode.Duo, "trio" => MatchMode.Trio, "squad" => MatchMode.Squad, _ => null,
+        };
+
+        /// <summary>Whether the round plays in chained teams.</summary>
+        public bool Teamed => state.Mode != MatchMode.Solo;
 
         /// <summary>The middle of the zone's box and half its size, for the bots.</summary>
         public Vector3 Center => center;
@@ -220,9 +238,9 @@ namespace KotH.Shared.Match
                     moving.Add(bodies[i]);
                 }
 
-            // Into a running round: a partner among those alone, then straight to a place round the hill.
-            if (moving.Count > 0 && state.Phase == MatchPhase.Running && Duo)
-                PairLone(bodies);
+            // Into a running round: a team with room, then straight to a place round the hill.
+            if (moving.Count > 0 && state.Phase == MatchPhase.Running && Teamed)
+                FormTeams(bodies);
             if (moving.Count > 0 && state.Phase == MatchPhase.Running && HasSpawnRing)
                 Place(bodies);
         }
@@ -243,9 +261,11 @@ namespace KotH.Shared.Match
                 {
                     if (!moving.Contains(bodies[i]))
                         moving.Add(bodies[i]);
-                    // The chained partner comes along, to stand beside it (Luca).
-                    if (PartnerOf(bodies[i], bodies) is { HasSpawn: true } mate && !moving.Contains(mate))
-                        moving.Add(mate);
+                    // The chained team comes along, to stand beside it (Luca).
+                    if (bodies[i].Team != 0)
+                        for (int j = 0; j < count; j++)
+                            if (bodies[j].Team == bodies[i].Team && bodies[j].HasSpawn && !moving.Contains(bodies[j]))
+                                moving.Add(bodies[j]);
                 }
             if (moving.Count > 0)
             {
@@ -270,7 +290,7 @@ namespace KotH.Shared.Match
                     Reset();
                     if (state.Phase == MatchPhase.Running)
                     {
-                        PairEveryone(bodies);
+                        TeamEveryone(bodies);
                         PlaceEveryone(bodies);
                     }
                     return;
@@ -301,51 +321,44 @@ namespace KotH.Shared.Match
                     for (int i = 0; i < count; i++)
                         bodies[i].ResetToSpawn();
                     state = new MatchState { MinPlayers = state.MinPlayers, Seed = state.Seed, Mode = state.Mode };
-                    PairEveryone(bodies);
+                    TeamEveryone(bodies);
                     PlaceEveryone(bodies);
                     return;
             }
 
-            Teams(bodies);
-            int inside = 0, teamsIn = 0, fullTeams = 0;
-            SimulationBody only = null, full = null;
+            ReadTeams(bodies);
+            int inside = 0;
             bool holderIn = false;
             for (int i = 0; i < count; i++)
-            {
-                if (!ins[i])
-                    continue;
-                inside++;
-                SimulationBody lead = leads[i];
-                holderIn |= lead == state.Holder;
-                // Each team inside once: at its lead, or at the partner while the lead is out.
-                int mate = mates[i];
-                if (lead == bodies[i])
+                if (ins[i])
                 {
-                    teamsIn++;
-                    only = lead;
-                    if (mate >= 0 && ins[mate])
-                    {
-                        fullTeams++;
-                        full = lead;
-                    }
+                    inside++;
+                    holderIn |= leads[i] == state.Holder;
+                    insideOf[IndexOfLead(i, bodies)]++;
                 }
-                else if (!ins[mate])
+
+            // The team with the most inside, none for a tie at the top.
+            SimulationBody most = null;
+            int top = 0;
+            for (int i = 0; i < count; i++)
+                if (insideOf[i] > top)
                 {
-                    teamsIn++;
-                    only = lead;
+                    top = insideOf[i];
+                    most = bodies[i];
                 }
-            }
+                else if (insideOf[i] == top && top > 0)
+                    most = null;
 
             state.Inside = inside;
             // Taken (warmed up) the zone stays its holder's team's while one of it is inside.
-            // Taking it needs the team alone in it, or both partners against at most one of
-            // every other team; two full teams contest it (Luca). Alone, a team is one body.
+            // Taking it needs more of the team inside than of any other; a tie at the top
+            // contests it (Luca). Alone, a team is one body: solo stays as it was.
             bool taken = holderIn && state.Holder.AloneTicks > WarmupTicks;
             if (!taken)
-                state.Holder = teamsIn == 1 ? only : fullTeams == 1 ? full : null;
+                state.Holder = most;
 
             // The warm-up starts over as soon as a team leaves or shares the zone
-            // before it is taken; both partners count alike and carry the team's points.
+            // before it is taken; the team's members count alike and carry its points.
             for (int i = 0; i < count; i++)
             {
                 SimulationBody body = bodies[i];
@@ -368,101 +381,141 @@ namespace KotH.Shared.Match
                 End(bodies, Leader(bodies));
         }
 
-        // This tick's teams: per body whether it stands in the zone, its partner's index (-1 alone) and its
-        // team's lead. A partner gone (left) leaves the body alone for good.
+        // This tick's teams: per body whether it stands in the zone and its team's lead (the lowest NetId
+        // there), and per lead how many of its team are inside. A team left with one body is none.
         readonly List<bool> ins = new List<bool>();
-        readonly List<int> mates = new List<int>();
         readonly List<SimulationBody> leads = new List<SimulationBody>();
+        readonly List<int> insideOf = new List<int>();
 
-        void Teams(IReadOnlyList<SimulationBody> bodies)
+        void ReadTeams(IReadOnlyList<SimulationBody> bodies)
         {
             ins.Clear();
-            mates.Clear();
             leads.Clear();
+            insideOf.Clear();
             for (int i = 0; i < bodies.Count; i++)
             {
                 SimulationBody body = bodies[i];
                 ins.Add(Contains(body.Motor.Position));
-                int mate = IndexOfPartner(body, bodies);
-                if (mate < 0)
-                    body.Partner = 0;
-                mates.Add(mate);
-                leads.Add(mate >= 0 && bodies[mate].NetId < body.NetId ? bodies[mate] : body);
+                if (body.Team != 0 && Members(body.Team, bodies) < 2)
+                    body.Team = 0;
+                leads.Add(LeadOf(body, bodies));
+                insideOf.Add(0);
             }
             if (state.Holder != null)
                 state.Holder = LeadOf(state.Holder, bodies);
         }
 
-        static int IndexOfPartner(SimulationBody body, IReadOnlyList<SimulationBody> bodies)
+        int IndexOfLead(int i, IReadOnlyList<SimulationBody> bodies)
         {
-            if (body.Partner == 0)
-                return -1;
+            for (int j = 0; j < bodies.Count; j++)
+                if (bodies[j] == leads[i])
+                    return j;
+            return i;
+        }
+
+        static int Members(int team, IReadOnlyList<SimulationBody> bodies)
+        {
+            int n = 0;
             for (int i = 0; i < bodies.Count; i++)
-                if (bodies[i].NetId == body.Partner && bodies[i] != body)
-                    return i;
-            return -1;
+                if (bodies[i].Team == team)
+                    n++;
+            return n;
         }
 
-        /// <summary>The body's chained partner among bodies; null alone or with the partner gone.</summary>
-        public static SimulationBody PartnerOf(SimulationBody body, IReadOnlyList<SimulationBody> bodies)
-        {
-            int i = IndexOfPartner(body, bodies);
-            return i >= 0 ? bodies[i] : null;
-        }
+        // A body's team id, its own NetId alone.
+        static int Key(SimulationBody body) => body.Team != 0 ? body.Team : body.NetId;
 
-        /// <summary>Who stands for the body's team: of a pair the lower NetId, else the body itself.</summary>
+        static int Size(SimulationBody body, IReadOnlyList<SimulationBody> bodies)
+            => body.Team != 0 ? Members(body.Team, bodies) : 1;
+
+        /// <summary>Who stands for the body's team: its lowest NetId, else the body itself.</summary>
         public static SimulationBody LeadOf(SimulationBody body, IReadOnlyList<SimulationBody> bodies)
-            => PartnerOf(body, bodies) is { } mate && mate.NetId < body.NetId ? mate : body;
+        {
+            SimulationBody lead = body;
+            if (body.Team != 0)
+                for (int i = 0; i < bodies.Count; i++)
+                    if (bodies[i].Team == body.Team && bodies[i].NetId < lead.NetId)
+                        lead = bodies[i];
+            return lead;
+        }
 
-        /// <summary>Whether the two are one team: the same body or partners.</summary>
+        /// <summary>The body's link up the chain: the team's next lower NetId; null for the lead or alone.</summary>
+        public static SimulationBody AheadOf(SimulationBody body, IReadOnlyList<SimulationBody> bodies)
+        {
+            SimulationBody ahead = null;
+            if (body.Team != 0)
+                for (int i = 0; i < bodies.Count; i++)
+                    if (bodies[i].Team == body.Team && bodies[i].NetId < body.NetId && (ahead == null || bodies[i].NetId > ahead.NetId))
+                        ahead = bodies[i];
+            return ahead;
+        }
+
+        /// <summary>The body's link down the chain: the team's next higher NetId; null for the last or alone.</summary>
+        public static SimulationBody BehindOf(SimulationBody body, IReadOnlyList<SimulationBody> bodies)
+        {
+            SimulationBody behind = null;
+            if (body.Team != 0)
+                for (int i = 0; i < bodies.Count; i++)
+                    if (bodies[i].Team == body.Team && bodies[i].NetId > body.NetId && (behind == null || bodies[i].NetId < behind.NetId))
+                        behind = bodies[i];
+            return behind;
+        }
+
+        /// <summary>Whether the two are one team: the same body or the same team id.</summary>
         public static bool SameTeam(SimulationBody a, SimulationBody b)
-            => a == b || a != null && b != null && a.Partner != 0 && a.Partner == b.NetId && b.Partner == a.NetId;
+            => a == b || a != null && b != null && a.Team != 0 && a.Team == b.Team;
 
-        // ---------- pairs (duo) ----------
+        // ---------- teams ----------
 
         readonly List<SimulationBody> lone = new List<SimulationBody>();
         readonly List<SimulationBody> loneBots = new List<SimulationBody>();
 
-        /// <summary>A new round's teams: everyone apart, then paired afresh.</summary>
-        void PairEveryone(IReadOnlyList<SimulationBody> bodies)
+        /// <summary>A new round's teams: everyone apart, then teamed afresh.</summary>
+        void TeamEveryone(IReadOnlyList<SimulationBody> bodies)
         {
-            if (!Duo)
+            if (!Teamed)
                 return;
             for (int i = 0; i < bodies.Count; i++)
-                bodies[i].Partner = 0;
-            PairLone(bodies);
+                bodies[i].Team = 0;
+            FormTeams(bodies);
         }
 
-        /// <summary>Pairs the players without a partner: first who came together (both ways, then one
-        /// way), then at random from the game's seed and the tick, players with players and a bot to
-        /// fill; one may stay alone. By NetId, so the list's order stays out of it.</summary>
-        void PairLone(IReadOnlyList<SimulationBody> bodies)
+        /// <summary>Teams the players with room: first who came together (both ways, then one way), then
+        /// teams short of members filled, then the rest at random from the game's seed and the tick in
+        /// rows of TeamSize, players first and bots to fill; one may stay alone. By NetId, so the list's
+        /// order stays out of it.</summary>
+        void FormTeams(IReadOnlyList<SimulationBody> bodies)
         {
+            int full = TeamSize;
             lone.Clear();
             for (int i = 0; i < bodies.Count; i++)
-                if (bodies[i].NetId >= NetWorld.FirstPlayerId && IndexOfPartner(bodies[i], bodies) < 0)
+                if (bodies[i].NetId >= NetWorld.FirstPlayerId && Size(bodies[i], bodies) < full)
                     lone.Add(bodies[i]);
             SortByNetId(lone);
             for (int pass = 0; pass < 2; pass++)
                 for (int i = 0; i < lone.Count; i++)
                 {
                     SimulationBody a = lone[i];
-                    if (a.Partner != 0 || a.Wish == 0)
+                    if (a.Wish == 0)
                         continue;
                     for (int j = 0; j < lone.Count; j++)
-                        if (lone[j].NetId == a.Wish && lone[j] != a && lone[j].Partner == 0 && (pass == 1 || lone[j].Wish == a.NetId))
+                    {
+                        SimulationBody b = lone[j];
+                        if (b.NetId == a.Wish && !SameTeam(a, b) && (pass == 1 || b.Wish == a.NetId)
+                            && Size(a, bodies) + Size(b, bodies) <= full)
                         {
-                            Tie(a, lone[j]);
+                            Join(a, b, bodies);
                             break;
                         }
+                    }
                 }
 
-            // The rest shuffled: players first, bots after, so a bot only fills.
+            // Teams short of members (from wishes, or a round's joiners) first, by lead.
             loneBots.Clear();
             for (int i = lone.Count - 1; i >= 0; i--)
-                if (lone[i].Partner != 0 || lone[i].Bot)
+                if (lone[i].Team != 0 || lone[i].Bot)
                 {
-                    if (lone[i].Partner == 0)
+                    if (lone[i].Team == 0)
                         loneBots.Insert(0, lone[i]);
                     lone.RemoveAt(i);
                 }
@@ -471,20 +524,44 @@ namespace KotH.Shared.Match
             Shuffle(lone, ref dice);
             Shuffle(loneBots, ref dice);
             lone.AddRange(loneBots);
-            for (int i = 0; i + 1 < lone.Count; i += 2)
-                Tie(lone[i], lone[i + 1]);
+            int next = 0;
+            for (int after = 0; next < lone.Count;)
+            {
+                SimulationBody team = null;
+                for (int i = 0; i < bodies.Count; i++)
+                {
+                    SimulationBody b = bodies[i];
+                    if (b.Team != 0 && b.NetId > after && (team == null || b.NetId < team.NetId) && LeadOf(b, bodies) == b)
+                        team = b;
+                }
+                if (team == null)
+                    break;
+                after = team.NetId;
+                while (next < lone.Count && Size(team, bodies) < full)
+                    Join(team, lone[next++], bodies);
+            }
+
+            // The rest in rows of a full team; a last one on its own stays alone.
+            for (; next + 1 < lone.Count; next++)
+                for (int k = 1; k < full && next + 1 < lone.Count; k++)
+                    Join(lone[next], lone[++next], bodies);
             lone.Clear();
             loneBots.Clear();
         }
 
-        // Partners share the team's points: the newer one takes the other's.
-        static void Tie(SimulationBody a, SimulationBody b)
+        // Two teams become one under the lower id; all share the best points (the newer take the other's).
+        static void Join(SimulationBody a, SimulationBody b, IReadOnlyList<SimulationBody> bodies)
         {
-            a.Partner = b.NetId;
-            b.Partner = a.NetId;
+            int ka = Key(a), kb = Key(b), id = Math.Min(ka, kb);
             SimulationBody ahead = a.ScoreTicks >= b.ScoreTicks ? a : b;
-            a.ScoreTicks = b.ScoreTicks = ahead.ScoreTicks;
-            a.AloneTicks = b.AloneTicks = ahead.AloneTicks;
+            int score = ahead.ScoreTicks, alone = ahead.AloneTicks;
+            for (int i = 0; i < bodies.Count; i++)
+                if (bodies[i] == a || bodies[i] == b || bodies[i].Team != 0 && (bodies[i].Team == ka || bodies[i].Team == kb))
+                {
+                    bodies[i].Team = id;
+                    bodies[i].ScoreTicks = score;
+                    bodies[i].AloneTicks = alone;
+                }
         }
 
         static void Shuffle(List<SimulationBody> list, ref uint dice)
@@ -568,8 +645,8 @@ namespace KotH.Shared.Match
 
             foreach (SimulationBody body in moving)
             {
-                // Beside the partner, if it stays or was placed just now (lower NetId first).
-                if (PartnerOf(body, bodies) is { } mate && (!moving.Contains(mate) || mate.NetId < body.NetId))
+                // Beside the next up the chain (placed just now, lower NetId first), or the next down if it stays.
+                if ((AheadOf(body, bodies) ?? BehindOf(body, bodies)) is { } mate && (!moving.Contains(mate) || mate.NetId < body.NetId))
                 {
                     PlaceNear(body, mate);
                     taken.Add(body.Motor.Position);
@@ -617,13 +694,13 @@ namespace KotH.Shared.Match
             moving.Clear();
         }
 
-        /// <summary>Back at the start places, without a ring: a pair's second beside the first.</summary>
+        /// <summary>Back at the start places, without a ring: a team's others each beside the one before.</summary>
         void Respawn(IReadOnlyList<SimulationBody> bodies)
         {
             SortByNetId(moving);
             foreach (SimulationBody body in moving)
             {
-                if (PartnerOf(body, bodies) is { } mate && moving.Contains(mate) && mate.NetId < body.NetId)
+                if (AheadOf(body, bodies) is { } mate && moving.Contains(mate))
                     PlaceNear(body, mate);
                 else
                     body.Respawn();
@@ -631,7 +708,7 @@ namespace KotH.Shared.Match
             moving.Clear();
         }
 
-        // Partners start this far apart: well inside the chain's reach.
+        // Neighbours in a team start this far apart: well inside the chain's reach.
         const float NearMin = 1.5f, NearMax = 2.5f;
 
         /// <summary>Puts the body on open ground beside mate, about as high, facing the zone; with none

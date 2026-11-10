@@ -74,8 +74,8 @@ namespace KotH.Shared.Bots
         bool hasSpot;
         Vector3 goal;
         int variant = -1;            // the route variant it takes, chosen at its first way to the zone
-        int mate;                    // duo: the partner's NetId as the last view said, 0 alone
-        bool hasMate;                // duo: the partner is in this tick's view, its centre at mateAt (carried forward)
+        int team;                    // teams: the own team's id as the last view said, 0 alone
+        bool hasMate;                // teams: a chain neighbour to catch up with is in this tick's view, at mateAt
         Vector3 mateAt;
         bool climbing;               // on the way up to the zone: the pilot steers
         bool farBelow;               // and still far below it: no fights
@@ -93,7 +93,7 @@ namespace KotH.Shared.Bots
         readonly MoveInput[] past = new MoveInput[64];
         readonly int[] pastTick = new int[64];
         readonly ClimbGrid.Memory own = new ClimbGrid.Memory();
-        ClimbGrid.Memory memory;     // own, or in duo the lead's (the partner with the lower NetId)
+        ClimbGrid.Memory memory;     // own, or in a team the lead's (its lowest NetId)
         float bestTime = float.MaxValue;
         int bestTick;
 
@@ -117,7 +117,7 @@ namespace KotH.Shared.Bots
             memory = own;
         }
 
-        /// <summary>The director's brains by NetId: a duo follower learns into its lead's memory.</summary>
+        /// <summary>The director's brains by NetId: a team's follower learns into its lead's memory.</summary>
         public Func<int, BotBrain> Peer;
 
         public int NetId => netId;
@@ -192,16 +192,19 @@ namespace KotH.Shared.Bots
                 view.Match.RoundTicks + Reaction < (int)MathF.Round(settings.StartWait / Dt))
                 return Remember(u, new MoveInput { Yaw = yaw, Pitch = pitch });
 
-            // Duo: the follower learns into the lead's memory and takes its variant, so both plan one way
+            // Teams: a follower learns into the lead's memory and takes its variant, so all plan one way
             // (the director steps the brains in a fixed order, so this stays deterministic).
-            BotBrain lead = mate != 0 && mate < netId ? Peer?.Invoke(mate) : null;
+            Neighbours(view, out int leadId, out int up, out int down);
+            BotBrain lead = leadId != 0 ? Peer?.Invoke(leadId) : null;
             memory = lead != null ? lead.own : own;
             if (lead != null && lead.variant >= 0 && variant != lead.variant && match != null && !match.Contains(at))
             {
                 variant = lead.variant;
                 nextThink = u;
             }
-            hasMate = mate != 0 && Seen(view, mate, ahead, out mateAt);
+            // The chain neighbours, up the chain first; the one to catch up with is picked in Behind.
+            hasMate = up != 0 && Seen(view, up, ahead, out mateAt);
+            hasMate2 = down != 0 && Seen(view, down, ahead, out mateAt2);
             if (u >= nextThink)
             {
                 nextThink = u + Math.Max(1, settings.ThinkTicks);
@@ -210,16 +213,17 @@ namespace KotH.Shared.Bots
                 Think(view, self, at, phase, knocked);
                 // Up the hill along the own route; inside the zone to the own spot.
                 bool toZone = match != null && intent != BotIntent.Attack && intent != BotIntent.Idle && !match.Contains(at);
-                // Duo: partners go the lead's way, chosen from where the lead stands (its route counts on with the NetId).
+                // Teams: all go the lead's way, chosen from where the lead stands (its route counts on with the NetId).
                 if (toZone && variant < 0)
-                    variant = mate != 0 && mate < netId && Seen(view, mate, ahead, out Vector3 leader)
-                        ? nav.ChooseVariant(Feet(leader), route - (netId - mate), settings.RouteDetour)
+                    variant = leadId != 0 && Seen(view, leadId, ahead, out Vector3 leader)
+                        ? nav.ChooseVariant(Feet(leader), route - (netId - leadId), settings.RouteDetour)
                         : nav.ChooseVariant(feet, route, settings.RouteDetour);
                 if (toZone)
                     Progress(u, feet);
-                // Duo: the one behind goes to its partner first, not along its own way (which may part from it).
-                bool chase = toZone && Behind(Feet(mateAt), feet);
-                if (!(chase ? nav.Plan(feet, Feet(mateAt), corners)
+                // Teams: one behind goes to its neighbour first, not along its own way (which may part from it).
+                Vector3 neighbour = default;
+                bool chase = toZone && Catch(feet, out neighbour);
+                if (!(chase ? nav.Plan(feet, neighbour, corners)
                       : toZone ? nav.PlanToZone(feet, variant, memory, corners) : nav.Plan(feet, goal, corners)))
                     corners.Clear();
                 climbing = toZone;
@@ -264,13 +268,45 @@ namespace KotH.Shared.Bots
             return i >= 0;
         }
 
-        // Duo: a partner further than this and at least FollowMargin seconds further up the way is caught up with
+        // Teams: a neighbour further than this and at least FollowMargin seconds further up the way is caught up with
         // first. Waiting rules all made it worse: one standing still anchors the chain and the other's jump falls short.
         const float FollowFar = 2f, FollowMargin = 0.3f;
+        bool hasMate2;
+        Vector3 mateAt2;
 
-        bool Behind(Vector3 theirs, Vector3 feet)
-            => hasMate && UMath.Magnitude(UMath.Sub(feet, theirs)) > FollowFar
+        bool Behind(bool seen, Vector3 theirs, Vector3 feet)
+            => seen && UMath.Magnitude(UMath.Sub(feet, theirs)) > FollowFar
                && nav.Grid.TimeToZone(theirs, variant) + FollowMargin < nav.Grid.TimeToZone(feet, variant);
+
+        // The chain neighbour to catch up with: up the chain first, else down it.
+        bool Catch(Vector3 feet, out Vector3 to)
+        {
+            to = Feet(hasMate ? mateAt : mateAt2);
+            if (Behind(hasMate, to, feet))
+                return true;
+            to = Feet(mateAt2);
+            return Behind(hasMate2, to, feet);
+        }
+
+        // From the view: the team's lead (lowest NetId, 0 for this bot or alone) and the chain neighbours.
+        void Neighbours(WorldSnapshot view, out int lead, out int up, out int down)
+        {
+            lead = up = down = 0;
+            if (team == 0)
+                return;
+            for (int i = 0; i < view.Count; i++)
+            {
+                int id = view.BodyAt(i).NetId;
+                if (id == netId || view.StateAt(i).Team != team)
+                    continue;
+                if (id < netId && (lead == 0 || id < lead))
+                    lead = id;
+                if (id < netId && id > up)
+                    up = id;
+                if (id > netId && (down == 0 || id < down))
+                    down = id;
+            }
+        }
 
         static int IndexOf(WorldSnapshot view, int id)
         {
@@ -312,10 +348,10 @@ namespace KotH.Shared.Bots
             // Far below the zone a bot climbs and chases nobody (Luca's rule).
             bool below = match != null && !inZone && match.Center.Y - match.HalfSize.Y - Feet(at).Y > ClimbBelow;
             SimulationBody holder = view.Match.Holder;
-            // Duo: the partner is never fought, and its team's hold is this bot's own (both from the view).
-            mate = view.StateAt(self).Partner;
-            int holderMate = holder != null && IndexOf(view, holder.NetId) is var h and >= 0 ? view.StateAt(h).Partner : 0;
-            bool weHold = holder != null && (holder.NetId == netId || holder.NetId == mate);
+            // Teams: the own team is never fought, and its hold is this bot's own (both from the view).
+            team = view.StateAt(self).Team;
+            int holderTeam = holder != null && IndexOf(view, holder.NetId) is var h and >= 0 ? view.StateAt(h).Team : 0;
+            bool weHold = holder != null && (holder.NetId == netId || team != 0 && holderTeam == team);
             float reach = shotsLeft > 0 ? UMath.Max(settings.EngageRange, settings.BlasterRange) : settings.EngageRange;
 
             if (knocked)
@@ -330,9 +366,9 @@ namespace KotH.Shared.Bots
             for (int i = 0; i < view.Count; i++)
             {
                 SimulationBody other = view.BodyAt(i);
-                if (i == self || other.NetId == 0 || mate != 0 && other.NetId == mate)
-                    continue;
                 BodyState s = view.StateAt(i);
+                if (i == self || other.NetId == 0 || team != 0 && s.Team == team)
+                    continue;
                 Vector3 there = Ahead(s.Motor.Position, s.Motor.Velocity, Reaction * Dt);
                 float d = UMath.Magnitude(UMath.Sub(there, at));
                 // Only a running round is fought over: no hits in the lobby,
@@ -344,7 +380,7 @@ namespace KotH.Shared.Bots
                 bool theyHold = match != null && match.Contains(there);
                 float score = 0.3f + 0.5f * UMath.Max(0f, 1f - d / settings.EngageRange)
                             + (theyHold ? 0.6f : 0f)
-                            + (holder == other || holderMate != 0 && other.NetId == holderMate ? 0.4f : 0f)
+                            + (holder == other || holderTeam != 0 && s.Team == holderTeam ? 0.4f : 0f)
                             + 0.2f * UMath.Min(1f, s.DamagePercent / 100f);
                 if (nav.NearestEdge(Feet(there), 2.5f, out _, out _))
                     score += 0.2f;
@@ -653,11 +689,11 @@ namespace KotH.Shared.Bots
                 return input;
             Vector3 eye = Ahead(me.Motor.EyePosition, me.Motor.Velocity, Reaction * Dt);
             float best = fists.Range - 0.2f;
-            int pick = -1, mate = me.Partner;
+            int pick = -1, mine = me.Team;
             Vector3 aim = Vector3.Zero;
             for (int i = 0; i < view.Count; i++)
             {
-                if (i == self || view.BodyAt(i).NetId == 0 || mate != 0 && view.BodyAt(i).NetId == mate)
+                if (i == self || view.BodyAt(i).NetId == 0 || mine != 0 && view.StateAt(i).Team == mine)
                     continue;
                 BodyState s = view.StateAt(i);
                 Vector3 d = UMath.Sub(Ahead(s.Motor.BodyCenter, s.Motor.Velocity, Reaction * Dt), eye);

@@ -65,8 +65,7 @@ namespace KotH.Server
                 host.AttachFounder(session);
                 HillMatch round = world.Simulation.Match;
                 round.MinPlayers = minPlayers;
-                if (Text(args, "--mode") == "duo")
-                    round.Mode = MatchMode.Duo;
+                round.Mode = HillMatch.ParseMode(Text(args, "--mode")) ?? MatchMode.Solo;
                 host.CanJoin = () => round.AcceptsJoin;
                 Console.WriteLine($"[net] host on port {port}, map {map}, round from {minPlayers} players, build {NetProtocol.BuildText}");
                 if (bots > 0)

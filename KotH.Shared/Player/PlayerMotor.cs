@@ -537,8 +537,8 @@ namespace KotH.Shared.Player
         }
 
         /// <summary>The chain's pull on the velocity, ground control left as it is (unlike AddVelocity):
-        /// a body standing can hold its partner. A knock pulled against loses as much; that part is
-        /// returned, for the partner to carry on as its own knock (CarryKnock).</summary>
+        /// a body standing can hold its neighbour. A knock pulled against loses as much; that part is
+        /// returned, for the neighbour to carry on as its own knock (CarryKnock).</summary>
         public Vector3 Pull(Vector3 delta)
         {
             velocity = UMath.Add(velocity, delta);
@@ -556,7 +556,7 @@ namespace KotH.Shared.Player
         }
 
         /// <summary>Counts part of the velocity, horizontal, as knock from now on: the chain hands a
-        /// knocked partner's flight on, which then sheds like a knock instead of under ground control.</summary>
+        /// knocked neighbour's flight on, which then sheds like a knock instead of under ground control.</summary>
         public void CarryKnock(Vector3 part)
         {
             if (part.X == 0f && part.Z == 0f)

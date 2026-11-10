@@ -42,10 +42,10 @@ namespace KotH.Client.Hud
         [DataMemberIgnore] public int NetId { get; set; }
 
 
-        /// <summary>The body this screen plays; its duo partner's label shows in the own colour.</summary>
+        /// <summary>The body this screen plays; its team mates' labels show in the own colour.</summary>
         public static SimulationBody Self { get; set; }
 
-        /// <summary>The own colour (HillBoard's own zone), for the partner's label.</summary>
+        /// <summary>The own colour (HillBoard's own zone), for the team mates' labels.</summary>
         public static readonly Color MateColor = new Color(30, 200, 230);
 
         SimulationBody body;

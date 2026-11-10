@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Layout;
+using KotH.Shared.Match;
 using KotH.Client.Settings;
 using KotH.Client.Steam;
 
@@ -31,8 +32,9 @@ namespace KotH.Client.Menu
             name.TextChanged += value => edited.HostName = value.Trim();
             password.TextChanged += _ => Refresh();
             rows.Add(new FieldRow("Name", name));
-            rows.Add(new ChoiceRow<bool>("Mode", _ => new[] { false, true }, s => s.HostDuo, (s, v) => s.HostDuo = v,
-                                         v => v ? "Duo" : "Solo", "duo: teams of two, chained"));
+            rows.Add(new ChoiceRow<MatchMode>("Mode", _ => new[] { MatchMode.Solo, MatchMode.Duo, MatchMode.Trio, MatchMode.Squad },
+                                              s => s.HostMode, (s, v) => s.HostMode = v, v => v.ToString(),
+                                              "teams of 2, 3 or 4, chained in a row"));
             rows.Add(new ChoiceRow<bool>("Access", _ => new[] { false, true }, s => s.HostPrivate, (s, v) => s.HostPrivate = v,
                                          v => v ? "Private" : "Public"));
             rows.Add(new FieldRow("Password", password, "private only") { Locked = s => s.HostPrivate ? null : "" });
@@ -87,7 +89,7 @@ namespace KotH.Client.Menu
             MenuTextBox.Focus(null);
             ClientSettings.RememberHost(edited);
             string shown = edited.HostName.Length > 0 ? edited.HostName : fallbackName;
-            var flags = new LobbyFlags(shown, edited.HostPrivate, edited.HostCountry, (string[])edited.HostLanguages.Clone(), edited.HostModded, edited.HostDuo);
+            var flags = new LobbyFlags(shown, edited.HostPrivate, edited.HostCountry, (string[])edited.HostLanguages.Clone(), edited.HostModded, edited.HostMode);
             HostRequested?.Invoke(flags, edited.HostPrivate ? password.Text : null);
         }
 

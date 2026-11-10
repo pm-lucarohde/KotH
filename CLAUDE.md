@@ -20,8 +20,8 @@ Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Pr
 - AOT links in the distrobox `aot`; ILC sometimes crashes, then rerun; always `--no-incremental` (else an old scene
   bundle). After new materials/effects/scenes: `Tools/effects/record.sh`. JIT = AOT only with `DOTNET_EnableAVX=0`.
 - Client: no arguments = main menu, `--offline` alone; `--host`/`--join ADDRESS[:PORT]`, `--name`, `--port`,
-  `--min-players`, `--bots N`, `--mode duo`, `--display N`, `--map NAME`, `--fps N`, `--dlss MODE`. Two clients: `Tools/two_clients.sh`.
-- Server: real time, `--seconds N` or `--ticks N` (fast, exact end state); `--map`, `--bots`, `--mode duo`, load test `--bodies N`
+  `--min-players`, `--bots N`, `--mode duo|trio|squad`, `--display N`, `--map NAME`, `--fps N`, `--dlss MODE`. Two clients: `Tools/two_clients.sh`.
+- Server: real time, `--seconds N` or `--ticks N` (fast, exact end state); `--map`, `--bots`, `--mode …`, load test `--bodies N`
   (`--map Test`); network `--host`/`--join`/`--bot` (`NetPlay.cs`). Traces `KOTH_TRACE=BotName`, `KOTH_FALLS=1`.
 - Test aids (`KotHApp.cs` fields, times from the end of the load screen): `KOTH_SHOT=shot.png` (+ `_SECONDS`, `_YAW`,
   `_AT`, `_MOVE`, `_BLASTER`, `_FIRE`, `_VIDEO` …), `KOTH_HEADLESS=1`, `KOTH_SIZE`, `KOTH_MUSIC_VOLUME=0` (mute), `KOTH_EFFECTLOG`,
@@ -45,7 +45,7 @@ dotnet run Tools/Regress.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # nu
 ```
 - Deviations and intended changes: `Reference/REGRESSION.md`. Regression only if the measuring path is touched; bots
   ≥ 100 runs; runs ≤ 15 min. `.work/` holds tools and measurements (`/tmp` is volatile).
-- Bot traces: `KOTH_BOTTRACE=tick` (`_BOT=n`), `KOTH_HOPLOG=n`, `KOTH_BOTPATH=file`, `KOTH_CLIMB_FIRST=k`, `KOTH_CLIMB_DUO=1` (+`KOTH_CLIMB_SECONDS=1200`).
+- Bot traces: `KOTH_BOTTRACE=tick` (`_BOT=n`), `KOTH_HOPLOG=n`, `KOTH_BOTPATH=file`, `KOTH_CLIMB_FIRST=k`, `KOTH_CLIMB_TEAM=2|3|4` (+`KOTH_CLIMB_SECONDS=1200`).
 
 ## Architecture
 
@@ -75,7 +75,7 @@ dotnet run Tools/Regress.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # nu
 - `HillMatch`: 3 s alone takes the zone, holder scores inside; phases `Running`/`Over` (+ `Waiting`/`Countdown` net).
   Net `MatchStage`: lobby on MountDestiny, host picks the map (Esc), countdown end restarts there, round end back.
   Respawn below `RespawnBelow` (percent, points, shots stay), spawn ring round the zone (`MatchState.Seed`), lobby on markers.
-- Duo (`MatchMode`): `Partner` NetIds paired at round start (wishes: invite, `SteamParty`), 2-vs-1 rule, chain `TieTeams`.
+- Teams (`MatchMode` duo/trio/squad): `Team` ids at round start (wishes: invite, `SteamParty`), most inside take, row chain.
 
 ### Maps and assets
 - **Game Studio is the source of all assets** (YAML may be edited directly). `GraphicsCompositor` without `Archetype`.
@@ -93,7 +93,7 @@ dotnet run Tools/Regress.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # nu
 
 ### Bots (`KotH.Shared/Bots`) and figure
 - **Only the host computes them, deterministically:** `BotDirector` decides tick t from the final state at t − 8;
-  no bot state in the snapshot; in the client on its own thread. Read only snapshot states (duo: the lead's memory via `Peer`), no `System.Random`.
+  no bot state in the snapshot; in the client on its own thread. Read only snapshot states (teams: the lead's memory via `Peer`), no `System.Random`.
 - `ClimbGrid` (0.5 m columns, floors, moves in seconds), RTAA* to the zone, `JumpPilot` flies every jump in the motor
   model first (no jitter, Luca), `BotBrain` utility AI with `ManeuverWfc`. Status: 312/312 on top, mean 90 s; duo 72/72 (≤ 470 s).
 - Figure (visuals only): `Mushroom.glb` (17 clips, `.work/rig/build.sh`), FP arms in render group 2. The game moves

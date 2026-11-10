@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Avalonia.Controls;
+using KotH.Shared.Match;
 using KotH.Client.Steam;
 using KotH.Shared.Net;
 
@@ -43,7 +44,10 @@ namespace KotH.Client.Menu
             country = Pill(step => Filter = Filter with { Country = Next(Countries(), Filter.Country, step) });
             language = Pill(step => Filter = Filter with { Language = Next(Languages(), Filter.Language, step) });
             modded = Pill(step => Filter = Filter with { Modded = Next(new bool?[] { null, false, true }, Filter.Modded, step) });
-            mode = Pill(step => Filter = Filter with { Duo = Next(new bool?[] { null, false, true }, Filter.Duo, step) });
+            mode = Pill(step => Filter = Filter with
+            {
+                Mode = Next(new MatchMode?[] { null, MatchMode.Solo, MatchMode.Duo, MatchMode.Trio, MatchMode.Squad }, Filter.Mode, step),
+            });
             ShowFilter();
             Refresh.Click += (_, _) => RefreshRequested?.Invoke();
             InviteField.Children.Add(invite);
@@ -84,7 +88,7 @@ namespace KotH.Client.Menu
                 if (round.Country.Length == 2 && !countriesSeen.Contains(round.Country))
                     countriesSeen.Add(round.Country);
                 string ping = round.PingMs < 0 ? "? ms" : $"{round.PingMs} ms";
-                string marks = (round.Duo ? "  duo" : "") + (round.Private ? "  private" : "") + (round.Modded ? "  modded" : "");
+                string marks = (round.Mode != MatchMode.Solo ? "  " + HillMatch.ModeName(round.Mode) : "") + (round.Private ? "  private" : "") + (round.Modded ? "  modded" : "");
                 rows.Add(new RowList.Row(round.Host, $"{round.Map}  {round.Players}/{NetWorld.MaxPlayers}  {round.Country}{marks}  {ping}", "Join",
                                          () => { if (!busy) Choose(chosen); }));
             }
@@ -180,8 +184,8 @@ namespace KotH.Client.Menu
             country.Classes.Set("Chosen", Filter.Country != null);
             language.Classes.Set("Chosen", Filter.Language != null);
             modded.Classes.Set("Chosen", Filter.Modded != null);
-            Say(mode, Filter.Duo switch { null => "Solo or duo", true => "Duo", false => "Solo" });
-            mode.Classes.Set("Chosen", Filter.Duo != null);
+            Say(mode, Filter.Mode?.ToString() ?? "Any mode");
+            mode.Classes.Set("Chosen", Filter.Mode != null);
         }
 
         static void Say(Border pill, string text) => ((TextBlock)pill.Child).Text = text;

@@ -11,8 +11,8 @@ using Stride.Rendering;
 
 namespace KotH.Client.Player
 {
-    /// <summary>The duo chain between partners (Luca: metal, 4 m, at the belt, sagging, lying on the ground):
-    /// per pair a rope of 36 links from hip to hip, moved by Verlet each frame, drawn as one instanced model.
+    /// <summary>The team chain (Luca: metal, 4 m per link of the row, at the belt, sagging, lying on the ground):
+    /// per pair of neighbours a rope of 36 links from hip to hip, moved by Verlet each frame, drawn as one instanced model.
     /// It lies on the map's ground (rays down). Presentation only: the simulation's chain is SimulationSystem's.</summary>
     [DataContract("KotH.ChainView")]
     public sealed class ChainView : SyncScript
@@ -53,13 +53,13 @@ namespace KotH.Client.Player
             foreach (Rope r in ropes)
                 r.Seen = false;
             IReadOnlyList<SimulationBody> bodies = Simulation?.Bodies;
-            if (Simulation?.Match is { Duo: true } && bodies != null && Link != null)
+            if (Simulation?.Match is { Teamed: true } && bodies != null && Link != null)
             {
                 float dt = Math.Clamp((float)Game.UpdateTime.Elapsed.TotalSeconds, 1e-4f, 1f / 30f);
                 for (int i = 0; i < bodies.Count; i++)
                 {
-                    SimulationBody a = bodies[i];
-                    if (a.Partner == 0 || HillMatch.PartnerOf(a, bodies) is not { } b || b.NetId < a.NetId)
+                    SimulationBody b = bodies[i];
+                    if (b.Team == 0 || HillMatch.AheadOf(b, bodies) is not { } a)
                         continue;
                     Entity va = VisualOf?.Invoke(a), vb = VisualOf?.Invoke(b);
                     if (va == null || vb == null)

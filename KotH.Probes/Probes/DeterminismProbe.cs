@@ -664,7 +664,7 @@ namespace KotH.Probes.Probes
 
             // Duo's fields count only when set: solo hashes as before them (chain 67AB05EEE3468AFD).
             foreach (FieldInfo f in Fields(value.GetType()))
-                if (f.GetValue(value) is var v && !(f.Name is "Partner" or "Wish" or "Bot" && Convert.ToInt32(v) == 0))
+                if (f.GetValue(value) is var v && !(f.Name is "Team" or "Wish" or "Bot" && Convert.ToInt32(v) == 0))
                     HashObject(ref h, v);
         }
 

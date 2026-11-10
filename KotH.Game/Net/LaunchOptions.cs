@@ -24,7 +24,7 @@ namespace KotH.Client.Net
         public string Name;
         public int MinPlayers = HillMatch.DefaultMinPlayers;
 
-        /// <summary>Solo or duo (--mode duo, the Host server page); a guest plays the host's.</summary>
+        /// <summary>Solo or teams (--mode duo|trio|squad, the Host server page); a guest plays the host's.</summary>
         public MatchMode Mode;
         public int? Display;
         public int Bots = 3;
@@ -89,7 +89,7 @@ namespace KotH.Client.Net
             if (Number(args, "--min-players") is { } min)
                 o.MinPlayers = Math.Clamp(min, 1, NetWorld.MaxPlayers);
             if (Text(args, "--mode") is { } mode)
-                o.Mode = mode.Equals("duo", StringComparison.OrdinalIgnoreCase) ? MatchMode.Duo : MatchMode.Solo;
+                o.Mode = HillMatch.ParseMode(mode) ?? MatchMode.Solo;
             o.Display = Number(args, "--display");
             if (Number(args, "--bots") is { } bots)
                 o.Bots = Math.Clamp(bots, 0, NetWorld.MaxPlayers - 1);

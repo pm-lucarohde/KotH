@@ -213,17 +213,16 @@ namespace KotH.Probes.Probes
             world.LoadArena(Maps.Default);
             HillMatch match = world.StartMatch();
             match.Seed = (uint)seed;
-            // KOTH_CLIMB_DUO=1: four bots in two chained pairs (information only, not a pass mark).
-            bool duo = Environment.GetEnvironmentVariable("KOTH_CLIMB_DUO") == "1";
-            if (duo)
-                match.Mode = MatchMode.Duo;
+            // KOTH_CLIMB_TEAM=2|3|4: two chained teams of that size (information only, not a pass mark).
+            int teamSize = int.TryParse(Environment.GetEnvironmentVariable("KOTH_CLIMB_TEAM"), out int size) ? Math.Clamp(size, 1, 4) : 1;
+            match.Mode = teamSize switch { 2 => MatchMode.Duo, 3 => MatchMode.Trio, 4 => MatchMode.Squad, _ => MatchMode.Solo };
             var states = new LocalFinalStates(world.Simulation);
             long started = Stopwatch.GetTimestamp();
             BotDirector director = BotDirector.Create(world.Builder, world.Simulation, states, seed);
             double buildMs = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
 
             var bots = new List<BotBody>();
-            for (int i = 0; i < (duo ? 4 : 3); i++)
+            for (int i = 0; i < (teamSize > 1 ? 2 * teamSize : 3); i++)
             {
                 Entity marker = NetWorld.SlotMarker(world.Builder, NetWorld.BotSlots[i]);
                 var bot = new BotBody(director, states, NetWorld.FirstPlayerId + 1 + i);

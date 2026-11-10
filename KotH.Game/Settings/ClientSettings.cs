@@ -20,7 +20,7 @@ namespace KotH.Client.Settings
         public static void RememberHost(PlayerSettings from)
         {
             PlayerSettings s = Applied;
-            (s.HostName, s.HostPrivate, s.HostCountry, s.HostModded, s.HostDuo) = (from.HostName, from.HostPrivate, from.HostCountry, from.HostModded, from.HostDuo);
+            (s.HostName, s.HostPrivate, s.HostCountry, s.HostModded, s.HostMode) = (from.HostName, from.HostPrivate, from.HostCountry, from.HostModded, from.HostMode);
             s.HostLanguages = (string[])from.HostLanguages.Clone();
             SettingsFile.Save(s);
         }

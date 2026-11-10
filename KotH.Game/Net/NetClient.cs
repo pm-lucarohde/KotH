@@ -140,7 +140,7 @@ namespace KotH.Client.Net
             if (joinWhen != null && Session.MapKnown && joinWhen())
             {
                 joinWhen = null;
-                // Duo: the player it came with, by the NetId that player's lobby member data says.
+                // Teams: the player it came with, by the NetId that player's lobby member data says.
                 Session.Wish = Lobby?.PartnerNetId() ?? 0;
                 Session.Join(now);
             }
@@ -170,7 +170,7 @@ namespace KotH.Client.Net
             {
                 if (Host.Stage == MatchStage.Lobby && m.Phase == MatchPhase.Countdown)
                 {
-                    FillDuo(m);
+                    FillTeams(m);
                     Host.Restart(Host.NextMap ?? Maps.Default, MatchStage.Round);
                 }
                 else if (Host.Stage == MatchStage.Round && m.Phase == MatchPhase.Over)
@@ -192,11 +192,13 @@ namespace KotH.Client.Net
             }
         }
 
-        // Duo (Luca): an odd count gets one bot more for the round, so nobody plays it alone.
-        void FillDuo(in MatchState m)
+        // Teams (Luca): bots fill the last team for the round, so nobody plays it short.
+        void FillTeams(in MatchState m)
         {
-            int count = HillMatch.CountPlayers(Session.Simulation.Bodies);
-            if (m.Mode == MatchMode.Duo && MakeBots != null && count % 2 == 1 && count < NetWorld.MaxPlayers)
+            int count = HillMatch.CountPlayers(Session.Simulation.Bodies), size = HillMatch.Size(m.Mode);
+            if (MakeBots == null)
+                return;
+            for (int k = (size - count % size) % size; k > 0 && count < NetWorld.MaxPlayers; k--, count++)
                 Host.AddBot($"Bot {Host.BotIds.Count + 1}");
         }
 

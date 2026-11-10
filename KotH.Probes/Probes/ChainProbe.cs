@@ -94,8 +94,69 @@ namespace KotH.Probes.Probes
             float apart = Vector3.Distance(a.Motor.BodyCenter, b.Motor.BodyCenter);
             Check(apart > length + 2f, $"solo: no chain ({apart:F2} m apart)");
 
+            Row(length);
+
             Log(failures == 0 ? "[chain] PASSED" : $"[chain] {failures} errors");
             return failures == 0 ? 0 : 1;
+        }
+
+        /// <summary>Squad: four in a row A-B-C-D, the ends run apart (and one is knocked): every link holds,
+        /// the middle ones are dragged along, and a rollback replays it bit-exactly.</summary>
+        void Row(float length)
+        {
+            world = new HeadlessWorld();
+            world.LoadArena(Maps.Test);
+            match = world.StartMatch();
+            match.Mode = MatchMode.Squad;
+            var row = new ScriptedBody[4];
+            for (int i = 0; i < row.Length; i++)
+                row[i] = Spawn(((char)('A' + i)).ToString(), new Vector3(-2f + 2f * i, 0.9f, 5f), NetWorld.FirstPlayerId + i);   // open ground
+            a = row[0];
+            b = row[3];
+            Ticks(1);
+            bool chained = true;
+            for (int i = 1; i < row.Length; i++)
+                chained &= HillMatch.AheadOf(row[i], world.Simulation.Bodies) == row[i - 1];
+            Check(chained, "squad: one team, chained A-B-C-D");
+            var snap = new WorldSnapshot();
+            world.Simulation.Capture(snap);
+            var inputs = new List<MoveInput[]>();
+            a.Input.Move = new Vector2(-1f, 0f);
+            b.Input.Move = new Vector2(1f, 0f);
+            float link = 0f;
+            for (int t = 0; t < 120; t++)
+            {
+                Record(inputs, 1);
+                link = Math.Max(link, Longest(row));
+            }
+            float ends = Vector3.Distance(row[0].Motor.BodyCenter, row[3].Motor.BodyCenter);
+            Check(link <= length + 0.05f, $"squad: the ends apart, every link holds (longest {link:F3} m, ends {ends:F2} m apart)");
+            BodyState endA = row[0].CaptureState(), endD = row[3].CaptureState();
+            world.Simulation.Resimulate(snap, inputs, SimulationSystem.TickSeconds);
+            Check(Same(row[0].CaptureState(), endA) && Same(row[3].CaptureState(), endD), "squad: rollback bit-identical");
+
+            // The end knocked away drags the whole row.
+            Stop();
+            Ticks(40);
+            Vector3 startD = row[3].Motor.Position;
+            a.Motor.Knock(new Vector3(-1f, 0f, 0f), 12f, 1.2f, 0f, 0f, SimulationSystem.TickSeconds);
+            link = 0f;
+            for (int t = 0; t < 80; t++)
+            {
+                Ticks(1);
+                link = Math.Max(link, Longest(row));
+            }
+            float pulled = startD.X - row[3].Motor.Position.X;
+            Check(pulled > 0.5f && link <= length + 0.05f, $"squad: A knocked drags D {pulled:F2} m, longest link {link:F3} m");
+            Stop();
+        }
+
+        static float Longest(ScriptedBody[] row)
+        {
+            float link = 0f;
+            for (int i = 1; i < row.Length; i++)
+                link = Math.Max(link, Vector3.Distance(row[i - 1].Motor.BodyCenter, row[i].Motor.BodyCenter));
+            return link;
         }
 
         ScriptedBody Spawn(string name, Vector3 at, int netId)
@@ -118,7 +179,7 @@ namespace KotH.Probes.Probes
             for (int i = 0; i < n; i++)
             {
                 world.Simulation.Tick();
-                if (match.Duo)
+                if (match.Teamed && b.Team != 0)
                     longest = Math.Max(longest, Vector3.Distance(a.Motor.BodyCenter, b.Motor.BodyCenter));
             }
         }
@@ -144,6 +205,6 @@ namespace KotH.Probes.Probes
         }
 
         static bool Same(in BodyState x, in BodyState y)
-            => x.Motor.Equals(y.Motor) && x.ScoreTicks == y.ScoreTicks && x.Partner == y.Partner;
+            => x.Motor.Equals(y.Motor) && x.ScoreTicks == y.ScoreTicks && x.Team == y.Team;
     }
 }

@@ -71,7 +71,7 @@ namespace KotH.Shared.Simulation
         /// <summary>How long ground control stays soft after a push.</summary>
         public float KnockbackLock = 0.2f;
 
-        /// <summary>Duo: the chain between partners, body centre to body centre (Luca: 4 m, first 3.5 m).</summary>
+        /// <summary>Teams: each chain link between neighbours, body centre to body centre (Luca: 4 m, first 3.5 m).</summary>
         public float ChainLength = 4f;
 
         // Reused across ticks so a step allocates nothing.
@@ -192,7 +192,7 @@ namespace KotH.Shared.Simulation
             // before combat, so a swing sees where everyone really stands.
             SeparateBodies();
 
-            // After the push apart, so partners never end up farther than the chain.
+            // After the push apart, so chained neighbours never end up farther than the chain.
             TieTeams();
 
             BeforePublish?.Invoke();
@@ -327,43 +327,55 @@ namespace KotH.Shared.Simulation
             }
         }
 
-        /// <summary>Duo: the chain holds partners at most ChainLength apart. Past it each is pulled half the
-        /// way, what the world keeps one from the other takes; their speed apart goes, half from each
-        /// (momentum kept), so whoever falls or is knocked away drags the other along (Luca). Pairs never
-        /// share a body, so the order of the list stays out of it.</summary>
+        /// <summary>Teams: each chain link holds two neighbours at most ChainLength apart; past it each is pulled
+        /// half the way and their speed apart goes, half from each, so whoever falls or is knocked drags the
+        /// others (Luca). Links go by NetId, so the list's order stays out; a row goes over them back and
+        /// forth (a pair once, a squad five times) so the pull passes along.</summary>
         void TieTeams()
         {
-            if (Match is not { Duo: true })
+            if (Match is not { Teamed: true })
                 return;
-            int count = bodies.Count;
-            for (int i = 0; i < count; i++)
-            {
-                SimulationBody a = bodies[i];
-                if (a.Partner == 0 || HillMatch.PartnerOf(a, bodies) is not { } b || b.NetId < a.NetId)
-                    continue;
-                Vector3 d = UMath.Sub(b.Motor.BodyCenter, a.Motor.BodyCenter);
-                float distance = UMath.Magnitude(d);
-                float excess = distance - ChainLength;
-                if (excess <= 0f)
-                    continue;
-                Vector3 n = UMath.Div(d, distance);
-                float half = excess * 0.5f;
-                float leftA = half - UMath.Dot(a.Motor.Tug(UMath.Mul(n, half)), n);
-                float wantB = half + leftA;
-                float leftB = wantB + UMath.Dot(b.Motor.Tug(UMath.Mul(n, -wantB)), n);
-                if (leftB > 1e-4f)
-                    a.Motor.Tug(UMath.Mul(n, leftB));
-
-                float apart = UMath.Dot(UMath.Sub(b.Motor.Velocity, a.Motor.Velocity), n);
-                if (apart <= 0f)
-                    continue;
-                Vector3 takenA = a.Motor.Pull(UMath.Mul(n, apart * 0.5f));
-                Vector3 takenB = b.Motor.Pull(UMath.Mul(n, -apart * 0.5f));
-                // A knock pulled back goes on in the partner: knocked away, it drags the other along.
-                a.Motor.CarryKnock(UMath.Mul(takenB, -1f));
-                b.Motor.CarryKnock(UMath.Mul(takenA, -1f));
-            }
+            linked.Clear();
+            for (int i = 0; i < bodies.Count; i++)
+                if (bodies[i].Team != 0)
+                    linked.Add(bodies[i]);
+            for (int i = 1; i < linked.Count; i++)
+                for (int j = i; j > 0 && linked[j - 1].NetId > linked[j].NetId; j--)
+                    (linked[j - 1], linked[j]) = (linked[j], linked[j - 1]);
+            for (int pass = 0, passes = 2 * Match.TeamSize - 3; pass < passes; pass++)
+                for (int k = 0; k < linked.Count; k++)
+                    Tie(linked[pass % 2 == 0 ? k : linked.Count - 1 - k]);
         }
+
+        // One link: b and the next up its chain.
+        void Tie(SimulationBody b)
+        {
+            if (HillMatch.AheadOf(b, bodies) is not { } a)
+                return;
+            Vector3 d = UMath.Sub(b.Motor.BodyCenter, a.Motor.BodyCenter);
+            float distance = UMath.Magnitude(d);
+            float excess = distance - ChainLength;
+            if (excess <= 0f)
+                return;
+            Vector3 n = UMath.Div(d, distance);
+            float half = excess * 0.5f;
+            float leftA = half - UMath.Dot(a.Motor.Tug(UMath.Mul(n, half)), n);
+            float wantB = half + leftA;
+            float leftB = wantB + UMath.Dot(b.Motor.Tug(UMath.Mul(n, -wantB)), n);
+            if (leftB > 1e-4f)
+                a.Motor.Tug(UMath.Mul(n, leftB));
+
+            float apart = UMath.Dot(UMath.Sub(b.Motor.Velocity, a.Motor.Velocity), n);
+            if (apart <= 0f)
+                return;
+            Vector3 takenA = a.Motor.Pull(UMath.Mul(n, apart * 0.5f));
+            Vector3 takenB = b.Motor.Pull(UMath.Mul(n, -apart * 0.5f));
+            // A knock pulled back goes on in the neighbour: knocked away, it drags the other along.
+            a.Motor.CarryKnock(UMath.Mul(takenB, -1f));
+            b.Motor.CarryKnock(UMath.Mul(takenA, -1f));
+        }
+
+        readonly List<SimulationBody> linked = new List<SimulationBody>();
 
         /// <summary>Pushes touching bodies apart. Impulses are collected first and
         /// applied afterwards, so no body sees a half resolved world and the outcome does

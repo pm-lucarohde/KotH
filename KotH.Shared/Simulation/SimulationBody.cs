@@ -39,10 +39,11 @@ namespace KotH.Shared.Simulation
         /// <summary>Ticks in a row this body has held the zone, alone while taking it.</summary>
         [DataMemberIgnore] public int AloneTicks { get; internal set; }
 
-        /// <summary>Duo: the partner's NetId, 0 alone; HillMatch pairs at the round's start (state).</summary>
-        [DataMemberIgnore] public int Partner { get; internal set; }
+        /// <summary>Teams: the team's id (its first lead's NetId), 0 alone; HillMatch forms teams at the
+        /// round's start (state). The chain runs through the team by NetId.</summary>
+        [DataMemberIgnore] public int Team { get; internal set; }
 
-        /// <summary>Duo: the NetId of the player this one came with, paired first; 0 for none (state).</summary>
+        /// <summary>Teams: the NetId of the player this one came with, paired first; 0 for none (state).</summary>
         [DataMemberIgnore] public int Wish { get; set; }
 
         /// <summary>Driven by a bot, as its join said: pairs go to players first (state).</summary>
@@ -148,7 +149,7 @@ namespace KotH.Shared.Simulation
                 AloneTicks = AloneTicks,
                 Blaster = blaster != null ? blaster.State : default,
                 Dash = dash != null ? dash.State : default,
-                Partner = Partner,
+                Team = Team,
                 Wish = Wish,
                 Bot = Bot ? (byte)1 : (byte)0,
             };
@@ -160,7 +161,7 @@ namespace KotH.Shared.Simulation
             spawn = CaptureState();
             spawn.ScoreTicks = 0;
             spawn.AloneTicks = 0;
-            spawn.Partner = 0;
+            spawn.Team = 0;
             spawn.Blaster.ScoreSeen = 0;
             spawn.Dash.ScoreSeen = 0;
             HasSpawn = true;
@@ -210,7 +211,7 @@ namespace KotH.Shared.Simulation
 
             ScoreTicks = state.ScoreTicks;
             AloneTicks = state.AloneTicks;
-            Partner = state.Partner;
+            Team = state.Team;
             Wish = state.Wish;
             Bot = state.Bot != 0;
         }
