@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using KotH.Client.Menu;
 using KotH.Client.Player;
 using KotH.Client.Settings;
 using Stride.Core;
@@ -42,6 +43,8 @@ namespace KotH.Client.Rendering
         [DataMember(20)] public float FullReach { get; set; } = 25f;
         /// <userdoc>From this many metres the blades are gone (thinner in between), only the ground texture remains.</userdoc>
         [DataMember(21)] public float FarReach { get; set; } = 90f;
+        /// <userdoc>Behind the main menu (its camera flies far out) the thinned grass reaches this many metres.</userdoc>
+        [DataMember(27)] public float MenuReach { get; set; } = 650f;
         /// <userdoc>Height of the shortest blades in metres.</userdoc>
         [DataMember(22)] public float HeightMin { get; set; } = 0.125f;
         /// <userdoc>Height of the tallest blades in metres.</userdoc>
@@ -124,6 +127,7 @@ namespace KotH.Client.Rendering
         }
 
         float fullReach, farReach;
+        bool menu;
 
         public override void Update()
         {
@@ -133,6 +137,10 @@ namespace KotH.Client.Rendering
             // The Effects setting's share of the reach.
             float reach = QualityLevels.Reach;
             (fullReach, farReach) = (FullReach * reach, FarReach * reach);
+            // Behind the main menu the far patches (a quarter of the blades) all the way.
+            menu = camera.Entity.Get<MenuCamera>() is { Active: true };
+            if (menu)
+                (fullReach, farReach) = (MenuReach, MenuReach * 1.05f);
             parameters.Set(ReachKey, new Vector4(fullReach, farReach, HeightMin, HeightMax));
             parameters.Set(FormKey, new Vector4(Width, 0f, PetalRadius, FlowerShare));
             Vector2 axis = RenderContext.GetShared(Services).Tags.Get(Atmosphere.Key)?.WindAxis ?? Vector2.UnitX;
@@ -167,7 +175,7 @@ namespace KotH.Client.Rendering
                     continue;
                 float t = Math.Clamp((distance - fullReach) / Math.Max(farReach - fullReach, 0.01f), 0f, 1f);
                 float density = 1f - t * t * (3f - 2f * t);
-                (density <= FarShare ? far : near).Wanted.Add(Matrix.Translation(p.X, 0f, p.Y));
+                (density <= FarShare || menu ? far : near).Wanted.Add(Matrix.Translation(p.X, 0f, p.Y));
             }
             CommandList commandList = Game.GraphicsContext.CommandList;
             near.Show(commandList);
