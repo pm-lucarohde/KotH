@@ -9,13 +9,25 @@
              x:CompileBindings="True">
     <Panel Name="Parts">
         <Grid Name="ColumnPart" Width="600" Height="1000">
-            <!-- The player's name on a green band -->
-            <Panel Name="NameTag" Width="340" Height="58" Margin="90,62,0,0"
+            <!-- The player's name on a green band, the level beside it and the XP to the next under it -->
+            <Panel Name="NameTag" Width="400" Height="88" Margin="90,48,0,0"
                    HorizontalAlignment="Left" VerticalAlignment="Top">
                 <Image Source="/Menu/Art/Ribbon.png" Margin="-24" Stretch="Fill" />
-                <TextBlock Name="PlayerName" Text="Player" Foreground="{StaticResource CreamBrush}"
-                           FontSize="27" FontWeight="SemiBold" Margin="28,0,20,10"
-                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                <Grid RowDefinitions="*,Auto" ColumnDefinitions="*,Auto" Margin="28,6,26,20">
+                    <TextBlock Name="PlayerName" Text="Player" Foreground="{StaticResource CreamBrush}"
+                               FontSize="27" FontWeight="SemiBold" VerticalAlignment="Center"
+                               TextTrimming="CharacterEllipsis" />
+                    <TextBlock Name="LevelText" Grid.Column="1" Text="Level 1" Foreground="{StaticResource CreamBrush}"
+                               FontSize="22" FontWeight="Bold" VerticalAlignment="Center" Margin="14,0,0,0" />
+                    <Grid Grid.Row="1" Grid.ColumnSpan="2" ColumnDefinitions="Auto,*">
+                        <Border Width="210" Height="10" CornerRadius="5" Background="#4D1E3D18" VerticalAlignment="Center">
+                            <Border Name="XpFill" Width="0" CornerRadius="5" Background="#F2C25C"
+                                    HorizontalAlignment="Left" />
+                        </Border>
+                        <TextBlock Name="XpText" Grid.Column="1" Foreground="#E6F6ECDE" FontSize="17" FontWeight="SemiBold"
+                                   HorizontalAlignment="Right" VerticalAlignment="Center" />
+                    </Grid>
+                </Grid>
             </Panel>
 
             <!-- The buttons on their bamboo board, the note underneath -->
@@ -27,7 +39,7 @@
                                 KeyboardNavigation.TabNavigation="Cycle">
                         <Button Name="Host" Classes="Menu" Content="Host server" />
                         <Button Name="Find" Classes="Menu" Content="Find server" />
-                        <Button Name="Party" Classes="Menu" Content="Party" />
+                        <Button Name="SocialButton" Classes="Menu" Content="Social" />
                         <Button Name="Customize" Classes="Menu" Content="Customize" />
                         <Button Name="Settings" Classes="Menu" Content="Settings" />
                         <Button Name="Languages" Classes="Menu" Content="Languages" />
@@ -43,7 +55,7 @@
             </StackPanel>
         </Grid>
 
-        <!-- The pages behind Host server, Find server, Party, Settings and Languages (the last only to look at for now) -->
+        <!-- The pages behind Host server, Find server, Social, Settings and Languages (the last only to look at for now) -->
         <Grid Name="PagePart" Width="1090" Height="770">
             <Panel Name="Page" Width="1040" Height="720" Margin="24,24,0,0"
                    HorizontalAlignment="Left" VerticalAlignment="Top">
@@ -57,8 +69,8 @@
                     <!-- Host server -->
                     <menu:HostPage Name="HostPage" Grid.Row="1" Margin="0,20,0,0" />
 
-                    <!-- Party -->
-                    <menu:PartyPage Name="PartyPage" Grid.Row="1" Margin="0,20,0,0" />
+                    <!-- Social (Party and Leaderboard), with its own title and tabs -->
+                    <menu:SocialPage Name="SocialPage" Grid.RowSpan="2" />
 
                     <!-- Settings, over the whole page with its own title and buttons -->
                     <menu:SettingsPage Name="SettingsPage" Grid.RowSpan="3" />

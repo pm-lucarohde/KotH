@@ -5,6 +5,7 @@ using KotH.Client.Net;
 using KotH.Client.Player;
 using KotH.Client.Rendering;
 using KotH.Client.Steam;
+using KotH.Shared.Match;
 using KotH.Shared.Net;
 using Stride.Core;
 using Stride.Core.Mathematics;
@@ -102,7 +103,6 @@ namespace KotH.Client.Menu
             view = new MainMenuView();
             view.Label(PlayerName ?? Environment.UserName, $"Build {NetProtocol.BuildText[..8]}");
             view.HostOpened += () => view.Hoster.Open(PlayerName ?? Environment.UserName);
-            view.PartyOpened += () => view.Partier.Open();
             view.Hoster.HostRequested += (flags, password) =>
             {
                 (hostFlags, hostPassword) = (flags, password);
@@ -163,6 +163,8 @@ namespace KotH.Client.Menu
                 pointer.Update(Input, screen, pointed);
             }
 
+            if (progressShown != SteamStats.Version)
+                ShowProgress();
             MenuOverlay.Tick(Game.UpdateTime.FrameCount);
             page.Visible = view.PageOpen;
             customize.Visible = view.CustomizeOpen;
@@ -239,10 +241,10 @@ namespace KotH.Client.Menu
                 Enter(round, $"{SteamClient.NameOf(leader)}'s round", null, leader);
             }
             partyShown += seconds;
-            if (view.PartyOpen && partyShown >= 1f)
+            if (view.SocialOpen && partyShown >= 1f)
             {
                 partyShown = 0f;
-                view.Partier.Refresh();
+                view.SocialView.Refresh();
             }
         }
 
@@ -275,7 +277,7 @@ namespace KotH.Client.Menu
                 else if (lobby.IsParty)
                 {
                     SteamParty.Joined(lobby);
-                    view.OpenParty();
+                    view.OpenSocial(party: true);
                 }
                 else
                 {
@@ -334,7 +336,8 @@ namespace KotH.Client.Menu
         {
             shown = true;
             // Test aids for shots: KOTH_SHOT_MENU_HOT=n lights button n, KOTH_SHOT_MENU_PAGE=n clicks it (0 hosts),
-            // KOTH_SHOT_SETTINGS=sound|graphics|input picks the Settings tab, KOTH_SHOT_HOST_PRIVATE=pw a private round.
+            // KOTH_SHOT_SETTINGS=sound|graphics|input picks the Settings tab, KOTH_SHOT_HOST_PRIVATE=pw a private round,
+            // KOTH_SHOT_SOCIAL=board the Leaderboard tab (=sample with made-up rows).
             if (int.TryParse(Environment.GetEnvironmentVariable("KOTH_SHOT_MENU_HOT"), out int hot))
                 view.Pretend(hot, false);
             if (int.TryParse(Environment.GetEnvironmentVariable("KOTH_SHOT_MENU_PAGE"), out int open))
@@ -343,6 +346,10 @@ namespace KotH.Client.Menu
                 view.Hoster.Pretend(pass);
             if (Environment.GetEnvironmentVariable("KOTH_SHOT_SETTINGS") is { } tab)
                 view.SettingsView.Choose(tab);
+            if (Environment.GetEnvironmentVariable("KOTH_SHOT_SOCIAL") is "board" or "sample")
+                view.SocialView.Choose(true);
+            if (Environment.GetEnvironmentVariable("KOTH_SHOT_SOCIAL") == "sample")
+                view.SocialView.Leaderboard.Sample();
             if (Note != null)
             {
                 view.OpenFind();
@@ -378,6 +385,18 @@ namespace KotH.Client.Menu
 
         static float ElasticOut(float t)
             => t >= 1f ? 1f : MathF.Sin(-13f * MathF.PI / 2f * (t + 1f)) * MathF.Pow(2f, -10f * t) + 1f;
+
+        // The level bar and the Customize lock as Steam (or the file) has them; the figure loses or
+        // regains its colours with the level.
+        void ShowProgress()
+        {
+            progressShown = SteamStats.Version;
+            (int level, int into, int span) = Levels.Into(PlayerProgress.Xp);
+            view.Progress(level, into, span, !PlayerProgress.Live, !PlayerProgress.CanCustomize);
+            LookChanged?.Invoke(view.Customizer.Look);
+        }
+
+        int progressShown = -1;
 
         // The look goes to look.toml when the page closes or the menu goes, if it changed.
         void Save()

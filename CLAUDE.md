@@ -25,17 +25,16 @@ Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Pr
   (`--map Test`); network `--host`/`--join`/`--bot` (`NetPlay.cs`). Traces `KOTH_TRACE=BotName`, `KOTH_FALLS=1`.
 - Test aids (`KotHApp.cs` fields, times from the end of the load screen): `KOTH_SHOT=shot.png` (+ `_SECONDS`, `_YAW`,
   `_AT`, `_THIRD=N` (> 1: metres), `_MOVE`, `_BLASTER`, `_FIRE`, `_VIDEO` …), `KOTH_HEADLESS=1`, `KOTH_SIZE`, `KOTH_MUSIC_VOLUME=0` (mute), `KOTH_EFFECTLOG`,
-  `KOTH_POSLOG`, `KOTH_SHADOWLOG=1` (tiles); menu shots `KOTH_SHOT_MENU`, `_PAUSE`, `_HUD=banner`, `_CHAT=text`, `_TALK=1`, `_LOAD`, `_SETTINGS=tab`, `_APPLY=s:x.toml`; `KOTH_SETTINGS`;
+  `KOTH_POSLOG`, `KOTH_SHADOWLOG=1` (tiles); menu shots `KOTH_SHOT_MENU`, `_PAUSE`, `_HUD=banner`, `_CHAT=text`, `_TALK=1`, `_LOAD`, `_SETTINGS=tab`, `_APPLY=s:x.toml`, `_SOCIAL=board|sample`; `KOTH_XP=N` (shows), `KOTH_XP_SOLO=1`; `KOTH_SETTINGS`;
   start log `~/.local/share/KotH/logs` (always), `KOTH_START_AWAY=focus|minimize` (`.work/startup/real.sh`); `KOTH_FRAMELOG=f`
   (+`_SECONDS`, `KOTH_VKTIMES=1`; `f.gc` per collection, `KOTH_GCLATENCY`), `KOTH_GPULOG`, `KOTH_SHOT_PILOT=1` (bot pilot, `.work/perf/round.sh`); voice `KOTH_VOICE_LOOPBACK=m` (+`_HOLD=1`); still shots `KOTH_SHOT_STILL=1`, `KOTH_HIDE`, `KOTH_MAPCULL`.
 
 ## Tests: probes and regression
-
 No unit tests; probes against the frozen Unity reference, exit 0 = passed (known fails: `netstate` since 5c95973, `rotation` ≤ 3 ULP).
 
 ```bash
 Bin/Probes/aot/KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|blaster|dash|step|
-  determinism|clock|stairrun|rampfoot|crouchedge|knockback|thirdperson|wallknock|capture|chain|netstate|netplay|custommap|bots>
+  determinism|clock|stairrun|rampfoot|crouchedge|knockback|thirdperson|wallknock|capture|chain|netstate|netplay|custommap|progress|bots>
 Bin/Probes/aot/KotH.Probes determinism hashes   # hash chain 67AB05EEE3468AFD
 Bin/Probes/aot/KotH.Probes bots climb 12        # MountDestiny, mean ≤ 140 s; also bots stats 12, bots jumplab
 .work/tools/climb_many.sh DIR 8 13 && dotnet run .work/tools/climb_many.cs -- DIR   # 104 seeds, each bot
@@ -88,6 +87,7 @@ dotnet run Tools/Regress.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # nu
 ### Client
 - HUD `HudRenderer` (SpriteBatch) with Avalonia parts (`HillBoard`→`HudView`, `LoadView`) via `MenuOverlay`; main menu
   `KotH.Game/Menu` (map behind at 30 fps), Esc `PauseMenu`; `KotH.Game/Settings` (TOML, `QualityLevels`: High = assets).
+  Levels (`Match/Progress.cs`, `ProgressKeeper`): Steam rounds with a person; boards "KotH XP"/"KotH Wins" (`SteamStats`).
 - `MusicPlayer`, `SoundEffects` (sounds relative to the camera). Light: VXGI with a 4096² lightmap, static sun map,
   a shadow tile per moving caster (`SunShadowMapRenderer`, `FigureShadowMasks`); fog, clouds `AtmosphereEffects` before FXAA/DLSS; map clusters `MapCulling`.
 

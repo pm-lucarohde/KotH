@@ -48,6 +48,8 @@ else if (GC.GetConfigurationVariables().ContainsKey("SatoriGC"))
 long steamAt = StartLog.Now;
 SteamClient.Start();
 StartLog.Took("steam", steamAt, SteamClient.Ready ? "ready" : SteamClient.Failure);
+// The own XP and wins come from Steam's leaderboards (KotH.Client.Steam.SteamStats).
+KotH.Client.Steam.SteamStats.Start();
 using var game = new KotHGame();
 game.Run();
 SteamClient.Shutdown();

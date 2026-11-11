@@ -116,5 +116,14 @@ namespace KotH.Client.Steam
         [DllImport(Lib)] public static extern byte SteamAPI_ISteamUGC_GetItemInstallInfo(nint self, ulong item, ulong* size, byte* folder, uint folderSize, uint* stamp);
         [DllImport(Lib)] public static extern byte SteamAPI_ISteamUGC_GetItemDownloadInfo(nint self, ulong item, ulong* done, ulong* total);
         [DllImport(Lib)] public static extern byte SteamAPI_ISteamUGC_DownloadItem(nint self, ulong item, byte highPriority);
+
+        // Leaderboards (ISteamUserStats) and names of strangers.
+        [DllImport(Lib)] public static extern nint SteamAPI_SteamUserStats_v013();
+        [DllImport(Lib)] public static extern ulong SteamAPI_ISteamUserStats_FindOrCreateLeaderboard(nint self, byte* name, int sort, int display);
+        [DllImport(Lib)] public static extern ulong SteamAPI_ISteamUserStats_DownloadLeaderboardEntries(nint self, ulong board, int request, int start, int end);
+        [DllImport(Lib)] public static extern ulong SteamAPI_ISteamUserStats_DownloadLeaderboardEntriesForUsers(nint self, ulong board, ulong* users, int count);
+        [DllImport(Lib)] public static extern byte SteamAPI_ISteamUserStats_GetDownloadedLeaderboardEntry(nint self, ulong entries, int index, byte* entry, int* details, int maxDetails);
+        [DllImport(Lib)] public static extern ulong SteamAPI_ISteamUserStats_UploadLeaderboardScore(nint self, ulong board, int method, int score, int* details, int count);
+        [DllImport(Lib)] public static extern byte SteamAPI_ISteamFriends_RequestUserInformation(nint self, ulong user, byte nameOnly);
     }
 }

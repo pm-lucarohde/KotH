@@ -268,7 +268,7 @@ namespace KotH.Client
             {
                 StartHost = HostFromMenu, StartJoin = JoinFromMenu, StartInvite = JoinByInvite,
                 Note = menuNote,
-                PlayerName = LaunchOptions.Current.Name, Cover = cover, Look = LaunchOptions.Current.Look,
+                PlayerName = LaunchOptions.Current.Name, Cover = cover, Look = LaunchOptions.Current.SavedLook,
                 LookChanged = LookChanged,
                 CustomizeShown = open => visuals.MoveShowcase(menuFigure, open ? MenuFigureCustomizeAt : MenuFigureAt),
             };
@@ -394,6 +394,7 @@ namespace KotH.Client
             leaveNote = null;
             SimulationJob.Drop();
             games++;
+            keeper?.Unbind();
             if (net != null)
             {
                 Services.RemoveService<NetClient>();
@@ -739,9 +740,11 @@ namespace KotH.Client
             visuals.RegisterArms(arms, player.Get<PlayerMotor>(), LaunchOptions.Current.Look);
         }
 
-        /// <summary>Hands the round, the zone and the own body (null for none yet) to their displays.</summary>
+        /// <summary>Hands the round, the zone and the own body (null for none yet) to their displays and the XP keeper.</summary>
         void BindWorld(SimulationBody self)
         {
+            if (net != null)
+                Keeper().Bind(net.Session, self);
             HillBoard board = null;
             foreach (Entity e in Entity.Scene.Entities)
                 if (e.Get<HillBoard>() is { } found)
@@ -939,11 +942,13 @@ namespace KotH.Client
             menuFigure = figure;
         }
 
-        /// <summary>The customize page changed the own colours: they show on the menu figure at once.</summary>
+        /// <summary>The customize page changed the own colours, or the level changed what may show: they show on
+        /// the menu figure at once (the painted ones below level 10).</summary>
         void LookChanged(FigureLook look)
         {
-            LaunchOptions.Current.Look = look;
-            FigureColors.Apply(menuFigure?.Get<ModelComponent>(), look);
+            LaunchOptions.Current.SavedLook = look;
+            LaunchOptions.Current.Look = PlayerProgress.Shown(look);
+            FigureColors.Apply(menuFigure?.Get<ModelComponent>(), LaunchOptions.Current.Look);
         }
 
         /// <summary>Hangs model on HeldBone of figure's model, as a child named name so it goes
@@ -981,6 +986,16 @@ namespace KotH.Client
         SimulationSystem simulation;
         PlayerVisualSystem visuals;
         NetClient net;
+
+        // Counts the own XP and wins of a networked game for Steam.
+        ProgressKeeper keeper;
+
+        ProgressKeeper Keeper()
+        {
+            if (keeper == null)
+                Entity.Add(keeper = new ProgressKeeper());
+            return keeper;
+        }
         BotDirector botDirector;
         LoadScreen cover;
         readonly List<Entity> mapVisuals = new List<Entity>();

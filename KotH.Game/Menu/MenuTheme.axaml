@@ -122,6 +122,10 @@
     <Style Selector="Button.Menu.Small:pressed /template/ ContentPresenter#Label">
         <Setter Property="RenderTransform" Value="translate(0px, 4px)" />
     </Style>
+    <!-- Not yet open to the player (Customize below level 10): dim, but still pointed at for its note -->
+    <Style Selector="Button.Menu.Locked">
+        <Setter Property="Opacity" Value="0.55" />
+    </Style>
     <Style Selector="Button.Menu:disabled">
         <Setter Property="Opacity" Value="0.55" />
         <Setter Property="Cursor" Value="Arrow" />

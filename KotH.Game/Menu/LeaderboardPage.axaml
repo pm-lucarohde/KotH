@@ -1,0 +1,46 @@
+<!-- Leaderboard: the most wins on Steam, globally or among friends, in a well; the own row red,
+     and a little apart under the ten when it is not among them. Below: the own rank, and Global / Friends. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="KotH.Client.Menu.LeaderboardPage"
+             x:CompileBindings="True" ClipToBounds="False">
+    <UserControl.Styles>
+        <Style Selector="UserControl /template/ ContentPresenter">
+            <Setter Property="ClipToBounds" Value="False" />
+        </Style>
+        <Style Selector="Border.Line">
+            <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="Padding" Value="22,3" />
+        </Style>
+        <Style Selector="Border.Line TextBlock">
+            <Setter Property="FontSize" Value="21" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{StaticResource BrownBrush}" />
+        </Style>
+        <Style Selector="Border.Line.Head TextBlock">
+            <Setter Property="FontSize" Value="19" />
+            <Setter Property="Foreground" Value="{StaticResource SoftBrownBrush}" />
+        </Style>
+        <Style Selector="Border.Line.Own">
+            <Setter Property="Background" Value="{StaticResource RedBrush}" />
+        </Style>
+        <Style Selector="Border.Line.Own TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource CreamBrush}" />
+        </Style>
+    </UserControl.Styles>
+    <Grid RowDefinitions="*,Auto">
+        <Border Classes="Well" Padding="26,14">
+            <Panel>
+                <StackPanel Name="Rows" Spacing="2" VerticalAlignment="Top" />
+                <TextBlock Name="Empty" Classes="Hint" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Panel>
+        </Border>
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,18,0,0">
+            <TextBlock Name="Status" Classes="Hint" VerticalAlignment="Center" TextWrapping="Wrap" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" Margin="18,0,0,4">
+                <Border Name="GlobalTab" Classes="Tab"><TextBlock Text="Global" /></Border>
+                <Border Name="FriendsTab" Classes="Tab"><TextBlock Text="Friends" /></Border>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</UserControl>

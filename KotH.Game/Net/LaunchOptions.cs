@@ -37,9 +37,12 @@ namespace KotH.Client.Net
         /// <summary>--dlss or KOTH_DLSS, over the settings; null when neither is given.</summary>
         public KotH.Client.Rendering.Dlss.DlssMode? Dlss;
 
-        /// <summary>The own figure's colours: look.toml (LookFile), for shots KOTH_SHOT_LOOK
-        /// ("cap,skin,leaves,gloves,spores" as hex, empty keeps one).</summary>
+        /// <summary>The own figure's colours as shown and sent: look.toml (LookFile) from level 10, the painted
+        /// ones below (PlayerProgress); for shots KOTH_SHOT_LOOK ("cap,skin,leaves,gloves,spores" as hex, empty keeps one).</summary>
         public FigureLook Look;
+
+        /// <summary>The colours in look.toml, what Customize changes; Look once the level allows.</summary>
+        public FigureLook SavedLook;
 
         /// <summary>Hosting or joining through a Steam lobby (the main menu), not direct IP.</summary>
         public bool Steam;
@@ -107,13 +110,14 @@ namespace KotH.Client.Net
             o.Name = Text(args, "--name") ?? SteamClient.PersonaName ?? Environment.UserName;
             if (ulong.TryParse(Text(args, "+connect_lobby"), NumberStyles.Integer, CultureInfo.InvariantCulture, out ulong lobby))
                 SteamClient.Invite(lobby);
-            o.Look = LookFile.Load();
+            o.SavedLook = LookFile.Load();
+            o.Look = PlayerProgress.Shown(o.SavedLook);
             if (Environment.GetEnvironmentVariable("KOTH_SHOT_LOOK") is { } shot)
             {
                 string[] parts = shot.Split(',');
                 for (int i = 0; i < Math.Min(parts.Length, FigureLook.Parts); i++)
                     if (LookFile.ParseHex(parts[i]) is { } rgb)
-                        o.Look[i] = rgb;
+                        o.Look[i] = o.SavedLook[i] = rgb;
             }
             bool test = Environment.GetEnvironmentVariable("KOTH_SHOT") != null || Environment.GetEnvironmentVariable("KOTH_HEADLESS") == "1";
             o.ShowsMenu = !o.Networked && !o.Offline && (!test || Environment.GetEnvironmentVariable("KOTH_SHOT_MENU") == "1");

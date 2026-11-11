@@ -1,0 +1,25 @@
+<!-- Social: the title with the tabs Party and Leaderboard beside it (as Settings has them), then the
+     chosen tab's page. The main menu's Back stays below. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:menu="using:KotH.Client.Menu"
+             x:Class="KotH.Client.Menu.SocialPage"
+             x:CompileBindings="True" ClipToBounds="False">
+    <!-- The buttons' pictures reach 24 px past the page's edge: nothing here may clip them. -->
+    <UserControl.Styles>
+        <Style Selector="UserControl /template/ ContentPresenter">
+            <Setter Property="ClipToBounds" Value="False" />
+        </Style>
+    </UserControl.Styles>
+    <Grid RowDefinitions="Auto,*">
+        <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Classes="Title" Text="Social" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                <Border Name="PartyTab" Classes="Tab"><TextBlock Text="Party" /></Border>
+                <Border Name="BoardTab" Classes="Tab"><TextBlock Text="Leaderboard" /></Border>
+            </StackPanel>
+        </Grid>
+        <menu:PartyPage Name="Party" Grid.Row="1" Margin="0,20,0,0" />
+        <menu:LeaderboardPage Name="Board" Grid.Row="1" Margin="0,20,0,0" />
+    </Grid>
+</UserControl>
