@@ -21,6 +21,7 @@ Hierarchy:
                             823c0830481744578c80cab5023a3dba: ref!! 8D92E31D-D627-4D62-B070-8CB6ACBDC051
                     0875387e85ce44c78e98419243ef6c64: !KotH.Client.Rendering.Atmosphere,KotH.Game
                         Id: 0087C368-1BFD-495A-BD12-CC61446B5042
+                        FogStart: 0.0
                         CloudMap: 8BA09DCC-912C-49F1-8FBE-495F36149FAB:Textures/CloudMap
         -   Entity:
                 Id: 10AE1D12-A48F-45D4-9E64-79E4670B24EE
