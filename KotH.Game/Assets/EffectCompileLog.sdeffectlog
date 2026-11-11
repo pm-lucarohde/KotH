@@ -15014,6 +15014,155 @@ UsedParameters:
 !EffectCompileRequest
 EffectName: StrideForwardShadingEffect
 UsedParameters:
+    Material.PixelStageSurfaceShaders: !ShaderMixinSource
+        Mixins:
+            - !ShaderClassSource
+                ClassName: MaterialSurfaceArray
+        Compositions:
+            layers: !ShaderArraySource
+                Values:
+                    - !ShaderMixinSource
+                        Mixins:
+                            - !ShaderClassSource
+                                ClassName: MaterialSurfaceDiffuse
+                        Compositions:
+                            diffuseMap: !ShaderClassSource
+                                ClassName: GrassColor
+                                GenericArguments: [Material.DiffuseMap]
+                    - !ShaderMixinSource
+                        Mixins:
+                            - !ShaderClassSource
+                                ClassName: MaterialSurfaceGlossinessMap
+                                GenericArguments: [false]
+                        Compositions:
+                            glossinessMap: !ShaderClassSource
+                                ClassName: ComputeColorConstantFloatLink
+                                GenericArguments: [Material.GlossinessValue]
+                    - !ShaderMixinSource
+                        Mixins:
+                            - !ShaderClassSource
+                                ClassName: MaterialSurfaceMetalness
+                        Compositions:
+                            metalnessMap: !ShaderClassSource
+                                ClassName: ComputeColorConstantFloatLink
+                                GenericArguments: [Material.MetalnessValue]
+                    - !ShaderMixinSource
+                        Mixins:
+                            - !ShaderClassSource
+                                ClassName: MaterialSurfaceLightingAndShading
+                        Compositions:
+                            surfaces: !ShaderArraySource
+                                Values:
+                                    - !ShaderClassSource
+                                        ClassName: MaterialSurfaceShadingDiffuseLambert
+                                        GenericArguments: [false]
+                                    - !ShaderMixinSource
+                                        Mixins:
+                                            - !ShaderClassSource
+                                                ClassName: MaterialSurfaceShadingSpecularMicrofacet
+                                        Compositions:
+                                            environmentFunction: !ShaderClassSource
+                                                ClassName: MaterialSpecularMicrofacetEnvironmentGGXLUT
+                                            fresnelFunction: !ShaderClassSource
+                                                ClassName: MaterialSpecularMicrofacetFresnelSchlick
+                                            geometricShadowingFunction: !ShaderClassSource
+                                                ClassName: MaterialSpecularMicrofacetVisibilitySmithSchlickGGX
+                                            normalDistributionFunction: !ShaderClassSource
+                                                ClassName: MaterialSpecularMicrofacetNormalDistributionGGX
+    Material.PixelStageStreamInitializer: !ShaderMixinSource
+        Mixins:
+            - !ShaderClassSource
+                ClassName: MaterialStream
+            - !ShaderClassSource
+                ClassName: MaterialPixelShadingStream
+    Lighting.DirectLightGroups:
+        - !ShaderMixinSource
+            Mixins:
+                - !ShaderClassSource
+                    ClassName: LightDirectionalGroup
+                    GenericArguments: [1]
+                - !ShaderClassSource
+                    ClassName: CascadeShadowReceiver
+                    GenericArguments: [1, 1, false, false, false, false]
+                - !ShaderClassSource
+                    ClassName: ShadowMapFilterPcf
+                    GenericArguments: [PerView.Lighting, 5]
+    Lighting.EnvironmentLights:
+        - !ShaderClassSource
+            ClassName: LightSimpleAmbient
+        - !ShaderClassSource
+            ClassName: EnvironmentLight
+        - !ShaderMixinGeneratorSource
+            Name: LightVoxelEffect
+    LightVoxelShader.diffuseMarcher.environmentLights[2]: !ShaderMixinSource
+        Mixins:
+            - !ShaderClassSource
+                ClassName: VoxelMarchSetHemisphere6
+        Compositions:
+            Marcher: !ShaderMixinSource
+                Mixins:
+                    - !ShaderClassSource
+                        ClassName: VoxelMarchConePerMipmap
+                        GenericArguments: [7]
+                Compositions:
+                    AttributeSamplers: !ShaderArraySource
+                        Values:
+                            - !ShaderMixinSource
+                                Mixins:
+                                    - !ShaderClassSource
+                                        ClassName: VoxelIsotropicSampler
+                                Compositions:
+                                    storage: !ShaderClassSource
+                                        ClassName: VoxelStorageTextureSparseShader
+                                        GenericArguments: [0.125]
+                Macros:
+                    -   Name: AttributeID
+                        Definition: 0
+    LightVoxelShader.specularMarcher.environmentLights[2]: !ShaderMixinSource
+        Mixins:
+            - !ShaderClassSource
+                ClassName: VoxelMarchCone
+                GenericArguments: [30, 0.5, 1, 1]
+        Compositions:
+            AttributeSamplers: !ShaderArraySource
+                Values:
+                    - !ShaderMixinSource
+                        Mixins:
+                            - !ShaderClassSource
+                                ClassName: VoxelIsotropicSampler
+                        Compositions:
+                            storage: !ShaderClassSource
+                                ClassName: VoxelStorageTextureSparseShader
+                                GenericArguments: [0.125]
+        Macros:
+            -   Name: sampleFunction
+                Definition: Sample
+            -   Name: AttributeID
+                Definition: 0
+    StrideEffectBase.ComputeVelocityShader: !ShaderClassSource
+        ClassName: DlssObjectVelocity
+    StrideEffectBase.ExtensionPostVertexStageShader: !ShaderMixinSource
+        Mixins:
+            - !ShaderClassSource
+                ClassName: GrassBlade
+            - !ShaderClassSource
+                ClassName: GrassNudge
+        Macros:
+            -   Name: KOTH_LIGHTMAP
+                Definition: 1
+    StrideEffectBase.RenderTargetExtensions: !ShaderMixinSource
+        Compositions:
+            ShadingColor1: !ShaderClassSource
+                ClassName: VelocityOutput
+        Macros:
+            -   Name: STRIDE_RENDER_TARGET_COUNT
+                Definition: 2
+            -   Name: STRIDE_MULTISAMPLE_COUNT
+                Definition: 1
+---
+!EffectCompileRequest
+EffectName: StrideForwardShadingEffect
+UsedParameters:
     Material.HasSkinningPosition: true
     Material.HasSkinningNormal: true
     Material.HasSkinningTangent: false
@@ -37655,6 +37804,148 @@ UsedParameters:
                                 ClassName: MaterialSurfaceDiffuse
                         Compositions:
                             diffuseMap: !ShaderClassSource
+                                ClassName: ComputeColorFromStream
+                                GenericArguments: [COLOR0, rgba]
+                    - !ShaderMixinSource
+                        Mixins:
+                            - !ShaderClassSource
+                                ClassName: MaterialSurfaceGlossinessMap
+                                GenericArguments: [false]
+                        Compositions:
+                            glossinessMap: !ShaderClassSource
+                                ClassName: ComputeColorConstantFloatLink
+                                GenericArguments: [Material.GlossinessValue]
+                    - !ShaderMixinSource
+                        Mixins:
+                            - !ShaderClassSource
+                                ClassName: MaterialSurfaceMetalness
+                        Compositions:
+                            metalnessMap: !ShaderClassSource
+                                ClassName: ComputeColorConstantFloatLink
+                                GenericArguments: [Material.MetalnessValue]
+                    - !ShaderMixinSource
+                        Mixins:
+                            - !ShaderClassSource
+                                ClassName: MaterialSurfaceLightingAndShading
+                        Compositions:
+                            surfaces: !ShaderArraySource
+                                Values:
+                                    - !ShaderClassSource
+                                        ClassName: MaterialSurfaceShadingDiffuseLambert
+                                        GenericArguments: [false]
+                                    - !ShaderMixinSource
+                                        Mixins:
+                                            - !ShaderClassSource
+                                                ClassName: MaterialSurfaceShadingSpecularMicrofacet
+                                        Compositions:
+                                            environmentFunction: !ShaderClassSource
+                                                ClassName: MaterialSpecularMicrofacetEnvironmentGGXLUT
+                                            fresnelFunction: !ShaderClassSource
+                                                ClassName: MaterialSpecularMicrofacetFresnelSchlick
+                                            geometricShadowingFunction: !ShaderClassSource
+                                                ClassName: MaterialSpecularMicrofacetVisibilitySmithSchlickGGX
+                                            normalDistributionFunction: !ShaderClassSource
+                                                ClassName: MaterialSpecularMicrofacetNormalDistributionGGX
+    Material.PixelStageStreamInitializer: !ShaderMixinSource
+        Mixins:
+            - !ShaderClassSource
+                ClassName: MaterialStream
+            - !ShaderClassSource
+                ClassName: MaterialPixelShadingStream
+    Lighting.DirectLightGroups:
+        - !ShaderMixinSource
+            Mixins:
+                - !ShaderClassSource
+                    ClassName: LightDirectionalGroup
+                    GenericArguments: [1]
+                - !ShaderClassSource
+                    ClassName: CascadeShadowReceiver
+                    GenericArguments: [1, 1, false, false, false, false]
+                - !ShaderClassSource
+                    ClassName: ShadowMapFilterPcf
+                    GenericArguments: [PerView.Lighting, 5]
+    Lighting.EnvironmentLights:
+        - !ShaderClassSource
+            ClassName: LightSimpleAmbient
+        - !ShaderClassSource
+            ClassName: EnvironmentLight
+        - !ShaderMixinGeneratorSource
+            Name: LightVoxelEffect
+    LightVoxelShader.diffuseMarcher.environmentLights[2]: !ShaderMixinSource
+        Mixins:
+            - !ShaderClassSource
+                ClassName: VoxelMarchSetHemisphere6
+        Compositions:
+            Marcher: !ShaderMixinSource
+                Mixins:
+                    - !ShaderClassSource
+                        ClassName: VoxelMarchConePerMipmap
+                        GenericArguments: [4]
+                Compositions:
+                    AttributeSamplers: !ShaderArraySource
+                        Values:
+                            - !ShaderMixinSource
+                                Mixins:
+                                    - !ShaderClassSource
+                                        ClassName: VoxelIsotropicSampler
+                                Compositions:
+                                    storage: !ShaderClassSource
+                                        ClassName: VoxelStorageTextureSparseShader
+                                        GenericArguments: [0.125]
+                Macros:
+                    -   Name: AttributeID
+                        Definition: 0
+    LightVoxelShader.specularMarcher.environmentLights[2]: !ShaderMixinSource
+        Mixins:
+            - !ShaderClassSource
+                ClassName: VoxelMarchCone
+                GenericArguments: [30, 0.5, 1, 1]
+        Compositions:
+            AttributeSamplers: !ShaderArraySource
+                Values:
+                    - !ShaderMixinSource
+                        Mixins:
+                            - !ShaderClassSource
+                                ClassName: VoxelIsotropicSampler
+                        Compositions:
+                            storage: !ShaderClassSource
+                                ClassName: VoxelStorageTextureSparseShader
+                                GenericArguments: [0.125]
+        Macros:
+            -   Name: sampleFunction
+                Definition: Sample
+            -   Name: AttributeID
+                Definition: 0
+    StrideEffectBase.ExtensionPostVertexStageShader: !ShaderMixinSource
+        Mixins:
+            - !ShaderClassSource
+                ClassName: ShellLight
+        Macros:
+            -   Name: KOTH_LIGHTMAP
+                Definition: 1
+    StrideEffectBase.RenderTargetExtensions: !ShaderMixinSource
+        Macros:
+            -   Name: STRIDE_RENDER_TARGET_COUNT
+                Definition: 1
+            -   Name: STRIDE_MULTISAMPLE_COUNT
+                Definition: 1
+---
+!EffectCompileRequest
+EffectName: StrideForwardShadingEffect
+UsedParameters:
+    Material.PixelStageSurfaceShaders: !ShaderMixinSource
+        Mixins:
+            - !ShaderClassSource
+                ClassName: MaterialSurfaceArray
+        Compositions:
+            layers: !ShaderArraySource
+                Values:
+                    - !ShaderMixinSource
+                        Mixins:
+                            - !ShaderClassSource
+                                ClassName: MaterialSurfaceDiffuse
+                        Compositions:
+                            diffuseMap: !ShaderClassSource
                                 ClassName: GrassColor
                                 GenericArguments: [Material.DiffuseMap]
                     - !ShaderMixinSource
@@ -49694,6 +49985,135 @@ UsedParameters:
                     - !ShaderClassSource
                         ClassName: VoxelMarchConePerMipmap
                         GenericArguments: [5]
+                Compositions:
+                    AttributeSamplers: !ShaderArraySource
+                        Values:
+                            - !ShaderMixinSource
+                                Mixins:
+                                    - !ShaderClassSource
+                                        ClassName: VoxelIsotropicSampler
+                                Compositions:
+                                    storage: !ShaderClassSource
+                                        ClassName: VoxelStorageTextureSparseShader
+                                        GenericArguments: [0.125]
+                Macros:
+                    -   Name: AttributeID
+                        Definition: 0
+    LightVoxelShader.specularMarcher.environmentLights[2]: !ShaderMixinSource
+        Mixins:
+            - !ShaderClassSource
+                ClassName: VoxelMarchCone
+                GenericArguments: [30, 0.5, 1, 1]
+        Compositions:
+            AttributeSamplers: !ShaderArraySource
+                Values:
+                    - !ShaderMixinSource
+                        Mixins:
+                            - !ShaderClassSource
+                                ClassName: VoxelIsotropicSampler
+                        Compositions:
+                            storage: !ShaderClassSource
+                                ClassName: VoxelStorageTextureSparseShader
+                                GenericArguments: [0.125]
+        Macros:
+            -   Name: sampleFunction
+                Definition: Sample
+            -   Name: AttributeID
+                Definition: 0
+---
+!EffectCompileRequest
+EffectName: StrideForwardShadingEffect.ZPrepass
+UsedParameters:
+    Material.PixelStageSurfaceShaders: !ShaderMixinSource
+        Mixins:
+            - !ShaderClassSource
+                ClassName: MaterialSurfaceArray
+        Compositions:
+            layers: !ShaderArraySource
+                Values:
+                    - !ShaderMixinSource
+                        Mixins:
+                            - !ShaderClassSource
+                                ClassName: MaterialSurfaceDiffuse
+                        Compositions:
+                            diffuseMap: !ShaderClassSource
+                                ClassName: ComputeColorFromStream
+                                GenericArguments: [COLOR0, rgba]
+                    - !ShaderMixinSource
+                        Mixins:
+                            - !ShaderClassSource
+                                ClassName: MaterialSurfaceGlossinessMap
+                                GenericArguments: [false]
+                        Compositions:
+                            glossinessMap: !ShaderClassSource
+                                ClassName: ComputeColorConstantFloatLink
+                                GenericArguments: [Material.GlossinessValue]
+                    - !ShaderMixinSource
+                        Mixins:
+                            - !ShaderClassSource
+                                ClassName: MaterialSurfaceMetalness
+                        Compositions:
+                            metalnessMap: !ShaderClassSource
+                                ClassName: ComputeColorConstantFloatLink
+                                GenericArguments: [Material.MetalnessValue]
+                    - !ShaderMixinSource
+                        Mixins:
+                            - !ShaderClassSource
+                                ClassName: MaterialSurfaceLightingAndShading
+                        Compositions:
+                            surfaces: !ShaderArraySource
+                                Values:
+                                    - !ShaderClassSource
+                                        ClassName: MaterialSurfaceShadingDiffuseLambert
+                                        GenericArguments: [false]
+                                    - !ShaderMixinSource
+                                        Mixins:
+                                            - !ShaderClassSource
+                                                ClassName: MaterialSurfaceShadingSpecularMicrofacet
+                                        Compositions:
+                                            environmentFunction: !ShaderClassSource
+                                                ClassName: MaterialSpecularMicrofacetEnvironmentGGXLUT
+                                            fresnelFunction: !ShaderClassSource
+                                                ClassName: MaterialSpecularMicrofacetFresnelSchlick
+                                            geometricShadowingFunction: !ShaderClassSource
+                                                ClassName: MaterialSpecularMicrofacetVisibilitySmithSchlickGGX
+                                            normalDistributionFunction: !ShaderClassSource
+                                                ClassName: MaterialSpecularMicrofacetNormalDistributionGGX
+    Material.PixelStageStreamInitializer: !ShaderMixinSource
+        Mixins:
+            - !ShaderClassSource
+                ClassName: MaterialStream
+            - !ShaderClassSource
+                ClassName: MaterialPixelShadingStream
+    Lighting.DirectLightGroups:
+        - !ShaderMixinSource
+            Mixins:
+                - !ShaderClassSource
+                    ClassName: LightDirectionalGroup
+                    GenericArguments: [1]
+                - !ShaderClassSource
+                    ClassName: CascadeShadowReceiver
+                    GenericArguments: [1, 1, false, false, false, false]
+                - !ShaderClassSource
+                    ClassName: ShadowMapFilterPcf
+                    GenericArguments: [PerView.Lighting, 5]
+    Lighting.EnvironmentLights:
+        - !ShaderClassSource
+            ClassName: LightSimpleAmbient
+        - !ShaderClassSource
+            ClassName: EnvironmentLight
+        - !ShaderMixinGeneratorSource
+            Name: LightVoxelEffect
+    LightVoxelShader.diffuseMarcher.environmentLights[2]: !ShaderMixinSource
+        Mixins:
+            - !ShaderClassSource
+                ClassName: VoxelMarchSetHemisphere6
+        Compositions:
+            Marcher: !ShaderMixinSource
+                Mixins:
+                    - !ShaderClassSource
+                        ClassName: VoxelMarchConePerMipmap
+                        GenericArguments: [4]
                 Compositions:
                     AttributeSamplers: !ShaderArraySource
                         Values:

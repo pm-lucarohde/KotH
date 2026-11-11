@@ -1,15 +1,20 @@
-/// <summary>The grass's colour pass a few depth steps nearer than its depth prepass:
-/// GrassBlade's sums round a hair apart in the two passes (compiled apart), and a blade a
-/// step behind its own prepass depth failed the test and let the clear colour through.
-/// Seen from a metre it is far below a millimetre.</summary>
-shader GrassNudge : TransformationBase
+/// <summary>The grass's colour pass nearer than its depth prepass: GrassBlade's sums round a
+/// hair apart in the two passes (compiled apart), and a blade behind its own prepass depth failed
+/// the test and showed the clear colour. Moved 0.2 mm towards the eye (what counts up close, where
+/// depth changes fast) plus a few depth steps (what counts far off); x and y stay.</summary>
+shader GrassNudge : TransformationBase, Transformation
 {
     // In clip depth (0 near, 1 far): about ten float steps near the far end.
     static const float Nudge = 6e-7;
 
+    // Metres towards the eye: many float steps of world coordinates in the hundreds of metres.
+    static const float Closer = 2e-4;
+
     stage override float4 ComputeShadingPosition(float4 world)
     {
         float4 p = base.ComputeShadingPosition(world);
+        // A view depth w nearer by Closer has clip z + Closer * Projection._33 over w - Closer.
+        p.z = (p.z + Closer * Projection._33) * p.w / (p.w - Closer);
         p.z -= Nudge * p.w;
         return p;
     }
