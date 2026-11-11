@@ -97,7 +97,19 @@ static double Exit(Vector3 o, Vector3 d, double radius)
     return -b + Math.Sqrt(b * b - c);
 }
 
-// The sky in direction d without the disc: below the horizon the horizon's colour fades to ground.
+// The horizon's brightness all round, for the ground straight down.
+float HorizonBright(Vector3 flat)
+{
+    var (r, m) = Scatter(flat);
+    return Vector3.Dot(r + m, new Vector3(0.2126f, 0.7152f, 0.0722f));
+}
+float roundBright = 0f;
+for (int k = 0; k < 360; k++)
+    roundBright += HorizonBright(Vector3.Normalize(new Vector3(MathF.Cos(k * MathF.PI / 180), 0.0005f, MathF.Sin(k * MathF.PI / 180)))) / 360;
+
+// The sky in direction d without the disc: below the horizon the horizon's colour fades to ground,
+// whose brightness turns from the horizon's below it to the all-round one towards straight down
+// (else every azimuth's shade meets in a point there).
 Vector3 Sky(Vector3 d)
 {
     if (d.Y >= 0)
@@ -110,6 +122,8 @@ Vector3 Sky(Vector3 d)
     float t = MathF.Min(1f, -d.Y / 0.12f);
     Vector3 horizon = hr + hm;
     float bright = Vector3.Dot(horizon, new Vector3(0.2126f, 0.7152f, 0.0722f));
+    float u = Math.Clamp((-d.Y - 0.12f) / 0.6f, 0f, 1f);
+    bright += (roundBright - bright) * u * u * (3 - 2 * u);
     return Vector3.Lerp(horizon, ground * bright, t * t * (3 - 2 * t));
 }
 
