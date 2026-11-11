@@ -58,6 +58,8 @@ namespace KotH.Client.Net
                 return;
             bool connected = LaunchOptions.Current.Steam && SteamClient.Ready;
             int newest = session.NewestFinal;
+            if (newest < 0)
+                return;
             // From now at the start, after a map's restart (the ticks begin anew) or a stall.
             if (fed < 0 || newest < fed || newest - fed > Behind)
                 fed = newest - 1;

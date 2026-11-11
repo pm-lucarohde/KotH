@@ -407,7 +407,8 @@ namespace KotH.Shared.Net
         /// </summary>
         public bool TryFinalState(int tick, out WorldSnapshot state)
         {
-            state = snaps[tick % Ring];
+            // Before the first confirmed tick the newest is -1: no slot for it.
+            state = snaps[Math.Max(tick, 0) % Ring];
             return tick >= 0 && tick <= FinalTick && snapTicks[tick % Ring] == tick;
         }
 
