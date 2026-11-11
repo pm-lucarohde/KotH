@@ -23,8 +23,8 @@ namespace KotH.Client.Rendering
     }
 
     /// <summary>Draws the casters that never move (<see cref="SunShadowStageSelector"/>) once from
-    /// the sun, orthographic, into one depth map; cascades then hold only the figures. Redraws
-    /// until every caster's effect is compiled.</summary>
+    /// the sun, orthographic, into one depth map; only what moves is left for the per-frame tiles
+    /// (<see cref="SunShadowMapRenderer"/>). Redraws until every caster's effect is compiled.</summary>
     /// <userdoc>Draws the still casters (map) once from the sun into a large shadow map.</userdoc>
     [DataContract("StaticSunShadowRenderer")]
     [Display("Static sun shadow")]

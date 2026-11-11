@@ -163,12 +163,7 @@ Hierarchy:
                                 Filter: !LightShadowMapFilterTypePcf
                                     FilterSize: Filter5x5
                                 Size: XLarge
-                                DepthRange:
-                                    IsAutomatic: false
-                                    ManualMinDistance: 0.1
-                                    ManualMaxDistance: 400.0
-                                PartitionMode: !LightDirectionalShadowMap.PartitionLogarithmic
-                                    PSSMFactor: 0.1
+                                CascadeCount: OneCascade
                                 ComputeTransmittance: false
                                 BiasParameters:
                                     DepthBias: 0.005

@@ -1,0 +1,23 @@
+/// <summary>One level of the pyramid over the shadow sheet (FigureShadowMask reads it): per block of 2x2 the
+/// casters' cover, their depth and squared depth, each averaged over the block. The first level reads the
+/// atlas' depth (Texture0), every further one the level before, which lies in the other of two textures.</summary>
+shader FigureShadowPyramid : ImageEffectShader
+{
+    float2 SourceAt;    // corner of what is read, in its texels
+    float2 TargetAt;    // corner of the level written, in its texels
+    float First;        // 1: Texture0 is the depth atlas
+
+    stage override float4 Shading()
+    {
+        // The corner between the block's four texels: one gather or one bilinear read takes them all.
+        float2 block = floor(streams.ShadingPosition.xy) - TargetAt;
+        float2 uv = (SourceAt + block * 2.0 + 1.0) * Texture0TexelSize;
+        if (First > 0.5)
+        {
+            float4 depth = Texture0.GatherRed(PointSampler, uv);
+            float4 caster = depth < 1.0 ? 1.0 : 0.0;
+            return float4(dot(caster, 0.25), dot(caster * depth, 0.25), dot(caster * depth * depth, 0.25), 0.0);
+        }
+        return Texture0.SampleLevel(LinearSampler, uv, 0.0);
+    }
+};

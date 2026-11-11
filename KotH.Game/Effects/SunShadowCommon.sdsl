@@ -1,6 +1,6 @@
 /// <summary>What the sun's shadow receivers share (CascadeShadowReceiver for the static map,
-/// FigureShadowMask for the cascades): a map's projection with its bias and receiver plane, and
-/// the per-pixel turn of the filter disks.</summary>
+/// FigureShadowMask for the moving casters' tiles): a map's projection with its bias and receiver
+/// plane, and the per-pixel turn of the filter disks.</summary>
 shader SunShadowCommon
 {
     // Position in the map (biased), the receiver plane's depth gradient from the facet

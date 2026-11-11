@@ -10,8 +10,11 @@ namespace KotH.Client.Settings
     {
         static PlayerSettings S => ClientSettings.Applied;
 
-        /// <summary>Share of the figures' cascade shadow maps.</summary>
-        public static float CascadeShare => S.Shadows switch { Quality.Low => 0.5f, Quality.Medium => 0.75f, _ => 1f };
+        /// <summary>Edge of the sheet the moving casters' shadow tiles share.</summary>
+        public static int ShadowSheet(int asset) => S.Shadows switch { Quality.Low => asset / 2, Quality.Ultra => asset * 2, _ => asset };
+
+        /// <summary>The tiles' texels as a multiple of the asset's (High: about one per pixel).</summary>
+        public static float ShadowTexel => S.Shadows switch { Quality.Low => 4f, Quality.Medium => 2f, Quality.Ultra => 0.5f, _ => 1f };
 
         /// <summary>The static sun shadow's edge (the map's shadows, baked into the lightmap too).</summary>
         public static int StaticSunSize(int asset) => S.Shadows switch { Quality.Low => asset / 2, Quality.Ultra => asset * 2, _ => asset };

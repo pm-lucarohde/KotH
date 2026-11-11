@@ -12,36 +12,38 @@ using Stride.Rendering.Shadows;
 
 namespace KotH.Client.Rendering
 {
-    /// <summary>Draws the figures' sun shadow from the cascades (FigureShadowMask.sdsl) into a mask per camera
-    /// view, at the start of the opaque stage after the depth prepass; CascadeShadowReceiver reads it per
-    /// pixel. Filtering the cascades in every material held registers and slowed the whole colour pass
-    /// (0.7 ms of 2.7 at the spawn). Views without a prepass (voxels, bakes) get no mask and no figure shadow.</summary>
+    /// <summary>Draws the moving casters' sun shadow from their tiles (FigureShadowMask.sdsl) into a mask per
+    /// camera view, at the start of the opaque stage after the depth prepass; CascadeShadowReceiver reads it per
+    /// pixel. First the pyramid over the sheet (FigureShadowPyramid.sdsl), which finds blockers and wide
+    /// penumbrae in a few reads. Views without a prepass (voxels, bakes) get no mask and no such shadow.</summary>
     public sealed class FigureShadowMasks : RootRenderFeature
     {
         static readonly Logger Log = GlobalLogger.GetLogger("FigureShadowMasks");
         static readonly ValueParameterKey<Matrix> ClipToRay = ParameterKeys.NewValue<Matrix>(default, "FigureShadowMask.ClipToRay");
         static readonly ValueParameterKey<Vector2> NearFar = ParameterKeys.NewValue<Vector2>(default, "FigureShadowMask.NearFar");
         static readonly ValueParameterKey<Vector3> Eye = ParameterKeys.NewValue<Vector3>(default, "FigureShadowMask.Eye");
-        static readonly ValueParameterKey<Matrix> WorldToCascadeUV = ParameterKeys.NewValue<Matrix>(default, "FigureShadowMask.WorldToCascadeUV");
-        static readonly ValueParameterKey<Vector4> CascadeRects = ParameterKeys.NewValue<Vector4>(default, "FigureShadowMask.CascadeRects");
-        static readonly ValueParameterKey<Vector4> CascadeSplits = ParameterKeys.NewValue<Vector4>(default, "FigureShadowMask.CascadeSplits");
-        static readonly ValueParameterKey<float> CascadeCount = ParameterKeys.NewValue<float>(default, "FigureShadowMask.CascadeCount");
-        static readonly ValueParameterKey<float> BlendCascades = ParameterKeys.NewValue<float>(default, "FigureShadowMask.BlendCascades");
+        static readonly ValueParameterKey<float> TileCount = ParameterKeys.NewValue<float>(default, "FigureShadowMask.TileCount");
+        static readonly ValueParameterKey<Matrix> WorldToTile = ParameterKeys.NewValue<Matrix>(default, "FigureShadowMask.WorldToTile");
+        static readonly ValueParameterKey<Vector4> TileRects = ParameterKeys.NewValue<Vector4>(default, "FigureShadowMask.TileRects");
+        static readonly ValueParameterKey<Vector4> TileScreens = ParameterKeys.NewValue<Vector4>(default, "FigureShadowMask.TileScreens");
+        static readonly ValueParameterKey<Vector4> TileScales = ParameterKeys.NewValue<Vector4>(default, "FigureShadowMask.TileScales");
         static readonly ValueParameterKey<float> DepthBias = ParameterKeys.NewValue<float>(default, "FigureShadowMask.DepthBias");
         static readonly ValueParameterKey<float> OffsetScale = ParameterKeys.NewValue<float>(default, "FigureShadowMask.OffsetScale");
         static readonly ValueParameterKey<float> SunTangent = ParameterKeys.NewValue<float>(default, "FigureShadowMask.SunTangent");
-        static readonly ValueParameterKey<float> MaxPenumbra = ParameterKeys.NewValue<float>(default, "FigureShadowMask.MaxPenumbra");
+        static readonly ValueParameterKey<float> Throw = ParameterKeys.NewValue<float>(default, "FigureShadowMask.Throw");
         static readonly ValueParameterKey<Vector2> ShadowMapSize = ParameterKeys.NewValue<Vector2>(default, "FigureShadowMask.ShadowMapSize");
         static readonly ValueParameterKey<Vector2> ShadowMapTexelSize = ParameterKeys.NewValue<Vector2>(default, "FigureShadowMask.ShadowMapTexelSize");
+        static readonly ValueParameterKey<Vector2> SheetAt = ParameterKeys.NewValue<Vector2>(default, "FigureShadowMask.SheetAt");
+        static readonly ValueParameterKey<Vector4> PyramidLevels = ParameterKeys.NewValue<Vector4>(default, "FigureShadowMask.PyramidLevels");
         static readonly ObjectParameterKey<Texture> ShadowMap = ParameterKeys.NewObject<Texture>(null, "FigureShadowMask.ShadowMap");
-        static readonly ObjectParameterKey<Texture> CasterTiles = ParameterKeys.NewObject<Texture>(null, "FigureShadowMask.CasterTiles");
-        static readonly ValueParameterKey<Vector2> TileCount = ParameterKeys.NewValue<Vector2>(default, "FigureShadowMask.TileCount");
+        static readonly ObjectParameterKey<Texture> PyramidEven = ParameterKeys.NewObject<Texture>(null, "FigureShadowMask.PyramidEven");
+        static readonly ObjectParameterKey<Texture> PyramidOdd = ParameterKeys.NewObject<Texture>(null, "FigureShadowMask.PyramidOdd");
+        static readonly ValueParameterKey<Vector2> SourceAt = ParameterKeys.NewValue<Vector2>(default, "FigureShadowPyramid.SourceAt");
+        static readonly ValueParameterKey<Vector2> TargetAt = ParameterKeys.NewValue<Vector2>(default, "FigureShadowPyramid.TargetAt");
+        static readonly ValueParameterKey<float> First = ParameterKeys.NewValue<float>(default, "FigureShadowPyramid.First");
 
-        // Texels per side of a tile in FigureShadowTiles.
-        const int TileTexels = 16;
-
-        /// <summary>The most cascades the mask shader takes (1, 2 or 4, with a fixed depth range).</summary>
-        public const int Cascades = 4;
+        /// <summary>The pyramid's levels: level n holds blocks of 2^(n+1) texels, the last a whole tile of 1024.</summary>
+        public const int Levels = 10;
 
         /// <summary>No render objects: it only draws once per opaque stage.</summary>
         sealed class Nothing : RenderObject { }
@@ -51,24 +53,22 @@ namespace KotH.Client.Rendering
         {
             public Texture Texture;
             public Size2 Wanted;   // the depth's size the last draw found (zero: the view's size)
-            public LightDirectionalShadowMapRenderer.ShaderData Shadow;
-            public float SunTangent, MaxPenumbra;
-            public int Count;
-            public bool Blend;
+            public SunShadowTiles Tiles;
+            public float SunTangent;
             public int Frame;      // the frame it was last bound
         }
 
         public override Type SupportedRenderObjectType => typeof(Nothing);
 
         RenderStage opaque, prepass;
-        ImageEffectShader shader, tiler;
-        Texture tiles;
+        ImageEffectShader shader, builder;
+        // The pyramid in two textures, even and odd levels: a level is drawn from the one before it.
+        Texture even, odd;
         readonly Dictionary<RenderView, ViewMask> views = new Dictionary<RenderView, ViewMask>();
-        readonly Matrix[] toUV = new Matrix[Cascades];
-        readonly Vector4[] rects = new Vector4[Cascades];
+        readonly Vector4[] levels = new Vector4[Levels];
         int frame;
 
-        /// <summary>Hooks it into the scene's compositor once and hands it to the cascades' renderer.</summary>
+        /// <summary>Hooks it into the scene's compositor once and hands it to the sun's shadow renderer.</summary>
         public static void Install(SceneSystem scene)
         {
             GraphicsCompositor compositor = scene.GraphicsCompositor;
@@ -76,17 +76,17 @@ namespace KotH.Client.Rendering
                 return;
             var lighting = compositor.RenderFeatures.OfType<MeshRenderFeature>().FirstOrDefault()?.RenderFeatures
                 .OfType<Stride.Rendering.Lights.ForwardLightingRenderFeature>().FirstOrDefault();
-            var cascades = (lighting?.ShadowMapRenderer as ShadowMapRenderer)?.Renderers.OfType<CascadeShadowMapRenderer>().FirstOrDefault();
+            var sun = (lighting?.ShadowMapRenderer as ShadowMapRenderer)?.Renderers.OfType<SunShadowMapRenderer>().FirstOrDefault();
             RenderStage opaque = compositor.RenderStages.FirstOrDefault(s => s.Name == "Opaque");
             RenderStage prepass = compositor.RenderStages.FirstOrDefault(s => s.Name == "GBuffer");
-            if (cascades == null || opaque == null || prepass == null)
+            if (sun == null || opaque == null || prepass == null)
             {
-                Log.Warning("No cascade renderer, opaque or prepass stage: figures keep no sun shadow.");
+                Log.Warning("No sun shadow renderer, opaque or prepass stage: figures keep no sun shadow.");
                 return;
             }
             var masks = new FigureShadowMasks { opaque = opaque, prepass = prepass };
             compositor.RenderFeatures.Add(masks);
-            cascades.Masks = masks;
+            sun.Masks = masks;
         }
 
         protected override void InitializeCore()
@@ -94,28 +94,31 @@ namespace KotH.Client.Rendering
             base.InitializeCore();
             shader = new ImageEffectShader("FigureShadowMask");
             shader.Initialize(Context);
-            tiler = new ImageEffectShader("FigureShadowTiles");
-            tiler.Initialize(Context);
+            builder = new ImageEffectShader("FigureShadowPyramid");
+            builder.Initialize(Context);
         }
 
         public override void Unload()
         {
             shader?.Dispose();
-            tiler?.Dispose();
-            tiles?.Dispose();
-            (shader, tiler, tiles) = (null, null, null);
+            builder?.Dispose();
+            even?.Dispose();
+            odd?.Dispose();
+            (shader, builder, even, odd) = (null, null, null, null);
             foreach (ViewMask mask in views.Values)
                 mask.Texture?.Dispose();
             views.Clear();
             base.Unload();
         }
 
-        /// <summary>The mask the view's materials read this frame, drawn from the cascades' data; null for a
-        /// view without the depth prepass. Called while the lighting prepares (perhaps several times a view).</summary>
-        public Texture Bind(RenderView view, LightDirectionalShadowMapRenderer.ShaderData shadow, int count, bool blend,
-                            float sunTangent, float maxPenumbra)
+        /// <summary>Whether the view gets a mask: it draws the opaque stage after a depth prepass.</summary>
+        public bool Wants(RenderView view) => Has(view, opaque) && Has(view, prepass);
+
+        /// <summary>The mask the view's materials read this frame, drawn from its tiles; null for a view without
+        /// the depth prepass or without tiles. Called while the lighting prepares (perhaps several times a view).</summary>
+        public Texture Bind(RenderView view, SunShadowTiles tiles, float sunTangent)
         {
-            if (!Has(view, opaque) || !Has(view, prepass))
+            if (tiles.Count == 0 || !Wants(view))
                 return null;
             lock (views)
             {
@@ -130,8 +133,7 @@ namespace KotH.Client.Rendering
                     mask.Texture = Texture.New2D(Context.GraphicsDevice, size.Width, size.Height, PixelFormat.R32_Float,
                                                  TextureFlags.RenderTarget | TextureFlags.ShaderResource);
                 }
-                (mask.Shadow, mask.Count, mask.Blend, mask.SunTangent, mask.MaxPenumbra, mask.Frame) =
-                    (shadow, count, blend, sunTangent, maxPenumbra, frame);
+                (mask.Tiles, mask.SunTangent, mask.Frame) = (tiles, sunTangent, frame);
                 return mask.Texture;
             }
         }
@@ -158,7 +160,8 @@ namespace KotH.Client.Rendering
             lock (views)
                 if (!views.TryGetValue(renderView, out mask) || mask.Frame != frame)
                     return;
-            if (mask.Shadow?.Texture is not { } atlas)
+            SunShadowTiles tiles = mask.Tiles;
+            if (tiles?.Texture is not { } atlas)
                 return;
             Texture depth = context.CommandList.DepthStencilBuffer;
             if (depth == null)
@@ -171,52 +174,76 @@ namespace KotH.Client.Rendering
                 return;
             }
 
-            var shadow = mask.Shadow;
             var p = shader.Parameters;
             p.Set(ClipToRay, AtmosphereEffects.ClipToRayOf(renderView));
             p.Set(NearFar, new Vector2(renderView.NearClipPlane, renderView.FarClipPlane));
             p.Set(Eye, Matrix.Invert(renderView.View).TranslationVector);
-            Array.Copy(shadow.WorldToShadowCascadeUV, toUV, mask.Count);
-            Array.Copy(shadow.TextureCoords, rects, mask.Count);
-            Vector4 splits = default;
-            for (int i = 0; i < mask.Count; i++)
-                splits[i] = shadow.CascadeSplits[i];
-            p.Set(WorldToCascadeUV, Cascades, ref toUV[0]);
-            p.Set(CascadeRects, Cascades, ref rects[0]);
-            p.Set(CascadeSplits, splits);
-            p.Set(CascadeCount, (float)mask.Count);
-            p.Set(BlendCascades, mask.Blend ? 1f : 0f);
-            p.Set(DepthBias, shadow.DepthBias);
-            p.Set(OffsetScale, shadow.OffsetScale);
+            p.Set(TileCount, (float)tiles.Count);
+            p.Set(WorldToTile, SunShadowTiles.Most, ref tiles.WorldToUV[0]);
+            p.Set(TileRects, SunShadowTiles.Most, ref tiles.Rects[0]);
+            p.Set(TileScreens, SunShadowTiles.Most, ref tiles.Screens[0]);
+            p.Set(TileScales, SunShadowTiles.Most, ref tiles.Scales[0]);
+            p.Set(DepthBias, tiles.DepthBias);
+            p.Set(OffsetScale, tiles.OffsetScale);
             p.Set(SunTangent, mask.SunTangent);
-            p.Set(MaxPenumbra, mask.MaxPenumbra);
+            p.Set(Throw, tiles.Throw);
             p.Set(ShadowMapSize, new Vector2(atlas.Width, atlas.Height));
             p.Set(ShadowMapTexelSize, new Vector2(1f / atlas.Width, 1f / atlas.Height));
+            p.Set(SheetAt, new Vector2(tiles.Sheet.X, tiles.Sheet.Y));
             p.Set(ShadowMap, atlas);
             using (context.PushRenderTargetsAndRestore())
             {
-                DrawTiles(context, atlas);
-                p.Set(CasterTiles, tiles);
-                p.Set(TileCount, new Vector2(tiles.Width, tiles.Height));
+                DrawPyramid(context, tiles, atlas);
+                p.Set(PyramidLevels, Levels, ref levels[0]);
+                p.Set(PyramidEven, even);
+                p.Set(PyramidOdd, odd);
                 shader.SetInput(0, depth);
                 shader.SetOutput(mask.Texture);
                 shader.Draw(context);
             }
         }
 
-        /// <summary>The atlas' caster tiles, anew for each view (another renderer may cast into it between).</summary>
-        void DrawTiles(RenderDrawContext context, Texture atlas)
+        /// <summary>The pyramid over the sheet's used part, anew for each view (another may share the atlas):
+        /// level 0 from the atlas' depth, each further level from the one before in the other texture.</summary>
+        void DrawPyramid(RenderDrawContext context, SunShadowTiles tiles, Texture atlas)
         {
-            int width = (atlas.Width + TileTexels - 1) / TileTexels, height = (atlas.Height + TileTexels - 1) / TileTexels;
-            if (tiles == null || tiles.Width != width || tiles.Height != height)
+            int sheet = tiles.Sheet.Width;
+            if (even == null || even.Height != sheet / 2)
             {
-                tiles?.Dispose();
-                tiles = Texture.New2D(Context.GraphicsDevice, width, height, PixelFormat.R8_UNorm,
-                                      TextureFlags.RenderTarget | TextureFlags.ShaderResource);
+                even?.Dispose();
+                odd?.Dispose();
+                even = Texture.New2D(Context.GraphicsDevice, sheet / 2 + sheet / 8, sheet / 2, PixelFormat.R32G32B32A32_Float,
+                                     TextureFlags.RenderTarget | TextureFlags.ShaderResource);
+                odd = Texture.New2D(Context.GraphicsDevice, sheet / 4 + sheet / 16, sheet / 4, PixelFormat.R32G32B32A32_Float,
+                                    TextureFlags.RenderTarget | TextureFlags.ShaderResource);
             }
-            tiler.SetInput(0, atlas);
-            tiler.SetOutput(tiles);
-            tiler.Draw(context);
+            Int2 before = new Int2(tiles.Sheet.X, tiles.Sheet.Y);
+            for (int level = 0; level < Levels; level++)
+            {
+                Texture target = (level & 1) == 0 ? even : odd;
+                Int2 at = Corner(level, sheet);
+                int block = 2 << level;
+                levels[level] = new Vector4(at.X, at.Y, 1f / target.Width, 1f / target.Height);
+                builder.Parameters.Set(SourceAt, new Vector2(before.X, before.Y));
+                builder.Parameters.Set(TargetAt, new Vector2(at.X, at.Y));
+                builder.Parameters.Set(First, level == 0 ? 1f : 0f);
+                builder.SetInput(0, level == 0 ? atlas : (level & 1) == 0 ? odd : even);
+                builder.SetOutput(target);
+                builder.SetViewport(new Viewport(at.X, at.Y, Math.Max(1, (tiles.Used.X + block - 1) / block), Math.Max(1, (tiles.Used.Y + block - 1) / block)));
+                builder.Draw(context);
+                before = at;
+            }
+        }
+
+        // Where a level lies in its texture: the first of each fills the left, the further ones stack beside it.
+        static Int2 Corner(int level, int sheet)
+        {
+            if (level < 2)
+                return Int2.Zero;
+            int y = 0;
+            for (int above = level - 2; above >= 2; above -= 2)
+                y += sheet >> (above + 1);
+            return new Int2(sheet >> (1 + (level & 1)), y);
         }
     }
 }

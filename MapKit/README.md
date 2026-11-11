@@ -26,7 +26,7 @@ Add the **KotH map** components:
 - **Templates:** Surface (colour and texture by UVs), Terrain (texture projected from the sides, `TextureScale`
   metres per repeat), Leaves (alpha cut, both sides), Water (the game's waves). Colour, texture, glossiness and
   metalness come from the material; normal maps are not drawn yet.
-- **Shadows:** Baked is cheapest (lightmap, static sun shadow). Live costs time each frame; use it sparingly.
+- **Shadows:** Baked is cheapest (lightmap, static sun shadow). Live costs time each frame (drawn into the moving casters' shadow tiles); use it sparingly.
 - **Collision** is the drawn mesh itself. Decoration you walk through: None. Invisible walls: InvisibleWall.
 - **Unity terrains** export as one mesh with their first layer's texture; place trees as objects.
 - **Stride textures:** untick **Stream** in each texture asset, else the export keeps only the colour.

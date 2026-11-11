@@ -1,4 +1,4 @@
-/// <summary>Stride's directional shadow receiver: the figures' shadow from the cascades is read per pixel
+/// <summary>Stride's directional shadow receiver: the moving casters' shadow (their tiles) is read per pixel
 /// from FigureShadowMask (drawn after the depth prepass), the static map's is multiplied in (lightmapped
 /// meshes read it baked, bicubic; else PCSS with a receiver plane per tap, disks turned per pixel), the
 /// clouds' shadow comes last, live.</summary>

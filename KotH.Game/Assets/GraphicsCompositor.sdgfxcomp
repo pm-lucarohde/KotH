@@ -93,6 +93,7 @@ RenderFeatures:
                 TransparentRenderStage: ref!! 6539832E-7F51-447C-AC7D-1B2049315B8A
             26c899b17f88c21ab13bf60a7220ccd1: !Stride.Rendering.ShadowMeshPipelineProcessor,Stride.Rendering
                 ShadowMapRenderStage: ref!! 78C668F8-9DE2-4D2A-83CE-AAE987C047E7
+                DepthClipping: true
             4b8e2f6a1c9d4e3f8a7b6c5d4e3f2a1b: !Stride.Rendering.ShadowMeshPipelineProcessor,Stride.Rendering
                 ShadowMapRenderStage: ref!! 5A7C2E31-8B44-4F0B-9D7E-3C1F6A2B9E05
             ff51170a7d1a4761b73ef6a5c9f0cba2: !Stride.Rendering.ShadowMeshPipelineProcessor,Stride.Rendering
@@ -122,7 +123,7 @@ RenderFeatures:
                     e658234519ffb99a3f45f76c2ac5a918: !Stride.Rendering.Voxels.VoxelGI.LightVoxelRenderer,Stride.Voxels {}
                 ShadowMapRenderer: !Stride.Rendering.Shadows.ShadowMapRenderer,Stride.Rendering
                     Renderers:
-                        7c3d3d4c86834c3551bacde2527b3836: !KotH.Client.Rendering.CascadeShadowMapRenderer,KotH.Game
+                        7c3d3d4c86834c3551bacde2527b3836: !KotH.Client.Rendering.SunShadowMapRenderer,KotH.Game
                             ShadowCasterRenderStage: ref!! 78C668F8-9DE2-4D2A-83CE-AAE987C047E7
                             SunAngle: 2.0
                             MaxPenumbra: 8.0

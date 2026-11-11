@@ -57,7 +57,8 @@ sealed class KotHGame : Game
     readonly double shotSpin = Number("KOTH_SHOT_SPIN") ?? 0.0; // turns the view steadily, deg/s
     readonly double shotPitch = Number("KOTH_SHOT_PITCH") ?? 0.0;
     readonly double? shotFov = Number("KOTH_SHOT_FOV");
-    readonly bool shotThird = Environment.GetEnvironmentVariable("KOTH_SHOT_THIRD") == "1"; // third person
+    readonly double shotThirdDistance = Number("KOTH_SHOT_THIRD") ?? 0.0; // third person (1), above 1 the camera's distance in metres
+    bool shotThird => shotThirdDistance > 0.0;
     readonly bool shotStill = Environment.GetEnvironmentVariable("KOTH_SHOT_STILL") == "1"; // no fog, clouds or their shadow
     Vector3? shotAt = Point("KOTH_SHOT_AT"); // body there (Stride metres), again on every placing
     readonly double? shotFace = Number("KOTH_SHOT_FACE"); // turned this way (deg) when placed
@@ -549,6 +550,8 @@ sealed class KotHGame : Game
         {
             if (shotThird && (shotTurn == null || now >= shotTurn[1] + 0.2))
                 player.ThirdPerson = true;
+            if (shotThirdDistance > 1.0 && Find<PlayerCamera>() is { } behind)
+                behind.Distance = (float)shotThirdDistance;
             // Every own body anew: networked, the round's restart spawns another.
             if (shotMove != null && player != shotMoved)
             {

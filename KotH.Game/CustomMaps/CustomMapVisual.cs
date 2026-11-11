@@ -12,10 +12,10 @@ using Buffer = Stride.Graphics.Buffer;
 
 namespace KotH.Client.CustomMaps
 {
-    /// <summary>What a custom map package shows: map.glb's objects as models in the map's render
-    /// group, one per material and shadow mode. Baked ones carry the lightmap UV, so they are
-    /// lightmapped and cast once into the static sun map; live ones cast into the cascades every
-    /// frame; off casts none. Materials are copies of the templates with the object's values.</summary>
+    /// <summary>What a custom map package shows: map.glb's objects as models in the map's render group, one
+    /// per material and shadow mode. Baked ones carry the lightmap UV, so they are lightmapped and cast once
+    /// into the static sun map; live ones stay a model each and cast into a shadow tile fitted to them every
+    /// frame (<see cref="Rendering.SunShadowMapRenderer"/>); off casts none. Materials copy the templates.</summary>
     [DataContract("KotH.CustomMapVisual")]
     [Display("Custom map visual")]
     public sealed class CustomMapVisual : StartupScript
@@ -74,21 +74,24 @@ namespace KotH.Client.CustomMaps
             Texture white = MapTextures.Plain(device, 255, 255, 255, 255);
             owned.Add(white);
 
-            var groups = new SortedDictionary<(int, MapShadows), List<MapMesh>>();
-            foreach (MapMesh m in model.Meshes)
+            var groups = new SortedDictionary<(int, MapShadows, int), List<MapMesh>>();
+            for (int i = 0; i < model.Meshes.Count; i++)
             {
+                MapMesh m = model.Meshes[i];
                 if (m.Collide == MapCollide.Only || m.Indices.Length == 0)
                     continue;
                 // A baked mesh without lightmap UVs cannot be baked: it is drawn live.
                 MapShadows shadows = m.Shadows == MapShadows.Baked && m.Uv1 == null ? MapShadows.Live : m.Shadows;
-                if (!groups.TryGetValue((m.Material, shadows), out List<MapMesh> list))
-                    groups[(m.Material, shadows)] = list = new List<MapMesh>();
+                // A live caster on its own: its shadow tile then is as small as the object.
+                var key = (m.Material, shadows, shadows == MapShadows.Live ? i : -1);
+                if (!groups.TryGetValue(key, out List<MapMesh> list))
+                    groups[key] = list = new List<MapMesh>();
                 list.Add(m);
             }
 
             var bounds = BoundingBox.Empty;
             int triangles = 0;
-            foreach (var ((material, shadows), meshes) in groups)
+            foreach (var ((material, shadows, _), meshes) in groups)
             {
                 Mesh mesh = shadows == MapShadows.Baked ? Merge<LitVertex>(meshes, true, device) : Merge<Vertex>(meshes, false, device);
                 triangles += mesh.Draw.DrawCount / 3;
