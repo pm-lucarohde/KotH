@@ -37,6 +37,10 @@ CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 if (Environment.GetEnvironmentVariable("STRIDE_MAX_PARALLELISM") == null)
     Dispatcher.MaxDegreeOfParallelism = 6;
 
+// Measuring aid: KOTH_GCLATENCY=Interactive|LowLatency|SustainedLowLatency sets the GC's latency mode.
+if (Enum.TryParse(Environment.GetEnvironmentVariable("KOTH_GCLATENCY"), out System.Runtime.GCLatencyMode latency))
+    System.Runtime.GCSettings.LatencyMode = latency;
+
 // Before the options are read: the player's name comes from Steam.
 long steamAt = StartLog.Now;
 SteamClient.Start();
@@ -96,8 +100,9 @@ sealed class KotHGame : Game
     readonly Queue<double> shotStrikes = new Queue<double>(
         (Environment.GetEnvironmentVariable("KOTH_SHOT_STRIKE") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)
             .Select(s => double.Parse(s, CultureInfo.InvariantCulture)));
-    // KOTH_FRAMELOG=path writes a line per frame at the end (FrameRow); KOTH_FRAMELOG_SECONDS=s quits after
-    // s seconds of running round, KOTH_SHOT_PILOT=1 has the host's bot director fly the own figure.
+    // KOTH_FRAMELOG=path writes a line per frame at the end (FrameRow) and one per collection to path.gc (GcRow);
+    // KOTH_FRAMELOG_SECONDS=s quits after s seconds of running round, KOTH_SHOT_PILOT=1 has the host's bot
+    // director fly the own figure.
     readonly string frameLogPath = Environment.GetEnvironmentVariable("KOTH_FRAMELOG");
     readonly double frameLogSeconds = Number("KOTH_FRAMELOG_SECONDS") ?? double.PositiveInfinity;
     readonly bool shotPilot = Environment.GetEnvironmentVariable("KOTH_SHOT_PILOT") == "1";
@@ -139,6 +144,7 @@ sealed class KotHGame : Game
     // ticks, collections, KiB allocated, what showed (Shown), camera and view, the end on the monotonic clock
     // (perf -k CLOCK_MONOTONIC), the game thread's CPU ms in update and draw, and with KOTH_VKTIMES=1 per
     // Vulkan call (VulkanTimes) its ms and count on the game thread and its ms on the others.
+    struct GcRow { public int Frame, Index, Generation, Count, Unseen; public float PauseMs, PausePercent; public long PromotedKiB, HeapKiB; }
     struct FrameRow { public float Ms, Update, Draw, UpdateCpu, DrawCpu; public byte Ticks, Gc0, Gc1, Gc2, Shown; public int KiB; public Vector3 Eye; public float Yaw, Pitch; public long End; public VkRow Vk; }
     [System.Runtime.CompilerServices.InlineArray((int)KotH.Client.Rendering.VulkanTimes.Call.Count)] struct VkMs { float first; }
     [System.Runtime.CompilerServices.InlineArray((int)KotH.Client.Rendering.VulkanTimes.Call.Count)] struct VkCount { int first; }
@@ -151,7 +157,8 @@ sealed class KotHGame : Game
 
     // Ten minutes at 2000 FPS, allocated once so logging never allocates.
     FrameRow[] frameLog;
-    int frameCount;
+    GcRow[] gcLog;
+    int frameCount, gcCount;
     long updateStart, lastFrameEnd, lastAllocated;
     int lastTick, lastGc0, lastGc1, lastGc2;
     double roundSeconds;
@@ -164,7 +171,7 @@ sealed class KotHGame : Game
         ConsoleLogLevel = LogMessageType.Warning;
 
         if (frameLogPath != null)
-            frameLog = new FrameRow[600 * 2000];
+            (frameLog, gcLog) = (new FrameRow[600 * 2000], new GcRow[4096]);
         if (gpuLogPath != null)
         {
             gpuEvents = new();
@@ -468,6 +475,17 @@ sealed class KotHGame : Game
             writer.WriteLine();
         }
         Console.WriteLine($"[frames] {frameCount} frames to {frameLogPath}");
+        using var gcWriter = new StreamWriter(frameLogPath + ".gc");
+        gcWriter.WriteLine($"# gc {(System.Runtime.GCSettings.IsServerGC ? "server" : "workstation")}" +
+                           $"{(GC.GetConfigurationVariables().ContainsKey("SatoriGC") ? " satori" : "")}, " +
+                           $"latency {System.Runtime.GCSettings.LatencyMode}, gen0size {Environment.GetEnvironmentVariable("DOTNET_GCgen0size")}");
+        gcWriter.WriteLine("# frame index generation collections pause(ms) pause(% of time) promoted(KiB) heap(KiB) unseen(1: CollectUnseen)");
+        for (int i = 0; i < gcCount; i++)
+        {
+            GcRow g = gcLog[i];
+            gcWriter.WriteLine(FormattableString.Invariant(
+                $"{g.Frame} {g.Index} {g.Generation} {g.Count} {g.PauseMs:F3} {g.PausePercent:F2} {g.PromotedKiB} {g.HeapKiB} {g.Unseen}"));
+        }
     }
 
     protected override void Update(GameTime gameTime)
@@ -832,6 +850,7 @@ sealed class KotHGame : Game
         if (frameLog != null)
             drawCpu = ThreadCpuNanos();
         base.Draw(gameTime);
+        CollectUnseen();
         if (frameLog != null)
             LogFrame(drawStart);
 
@@ -980,6 +999,33 @@ sealed class KotHGame : Game
         notedPitch = loggedReader?.Pitch ?? 0f;
     }
 
+    // A gen0 collection (a few ms) where no one sees the hitch: the view jumped (respawn, teleport, a new
+    // round or map) or the load screen came up. Each resets the gen0 budget, so the next one mid-round
+    // comes that much later; below 16 MB of new garbage it would not push it far enough to pay.
+    Vector3 quietEye;
+    bool quietCovered, quietSeen;
+    int quietGc0;
+    long quietSince;
+    bool quietNow; // collected this frame (for the frame log)
+
+    void CollectUnseen()
+    {
+        quietNow = false;
+        if (SceneSystem.GraphicsCompositor?.Cameras is not { Count: > 0 } slots || slots[0].Camera is not { } camera)
+            return;
+        Vector3 eye = camera.Entity.Transform.WorldMatrix.TranslationVector;
+        bool covered = Services.GetService<LoadScreen>() is { Covers: true };
+        bool cut = quietSeen && (Vector3.DistanceSquared(eye, quietEye) > 4f || covered && !quietCovered);
+        (quietEye, quietCovered, quietSeen) = (eye, covered, true);
+        int gc0 = GC.CollectionCount(0);
+        if (gc0 != quietGc0)
+            (quietGc0, quietSince) = (gc0, GC.GetTotalAllocatedBytes());
+        if (!cut || GC.GetTotalAllocatedBytes() - quietSince < 16L << 20)
+            return;
+        GC.Collect(0, GCCollectionMode.Forced, blocking: true);
+        (quietGc0, quietSince, quietNow) = (GC.CollectionCount(0), GC.GetTotalAllocatedBytes(), true);
+    }
+
     void LogFrame(long drawStart)
     {
         long now = System.Diagnostics.Stopwatch.GetTimestamp();
@@ -992,6 +1038,17 @@ sealed class KotHGame : Game
         VkRow vk = default;
         KotH.Client.Rendering.VulkanTimes.Take(vk.Game, vk.Count, vk.Other);
         long cpu = ThreadCpuNanos();
+        // The last collection of a frame that had any (GetGCMemoryInfo allocates, but only then).
+        if (gc0 != lastGc0 && lastFrameEnd != 0 && gcCount < gcLog.Length)
+        {
+            GCMemoryInfo info = GC.GetGCMemoryInfo(GCKind.Any);
+            gcLog[gcCount++] = new GcRow
+            {
+                Frame = frameCount, Index = (int)info.Index, Generation = info.Generation, Count = gc0 - lastGc0,
+                PauseMs = (float)info.PauseDurations[0].TotalMilliseconds, PausePercent = (float)info.PauseTimePercentage,
+                PromotedKiB = info.PromotedBytes >> 10, HeapKiB = info.HeapSizeBytes >> 10, Unseen = quietNow ? 1 : 0,
+            };
+        }
         if (lastFrameEnd != 0 && frameCount < frameLog.Length)
         {
             frameLog[frameCount++] = new FrameRow

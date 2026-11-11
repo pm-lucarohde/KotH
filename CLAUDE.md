@@ -27,7 +27,7 @@ Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Pr
   `_AT`, `_THIRD=N` (> 1: metres), `_MOVE`, `_BLASTER`, `_FIRE`, `_VIDEO` …), `KOTH_HEADLESS=1`, `KOTH_SIZE`, `KOTH_MUSIC_VOLUME=0` (mute), `KOTH_EFFECTLOG`,
   `KOTH_POSLOG`, `KOTH_SHADOWLOG=1` (tiles); menu shots `KOTH_SHOT_MENU`, `_PAUSE`, `_HUD=banner`, `_CHAT=text`, `_TALK=1`, `_LOAD`, `_SETTINGS=tab`, `_APPLY=s:x.toml`; `KOTH_SETTINGS`;
   start log `~/.local/share/KotH/logs` (always), `KOTH_START_AWAY=focus|minimize` (`.work/startup/real.sh`); `KOTH_FRAMELOG=f`
-  (+`_SECONDS`, `KOTH_VKTIMES=1`), `KOTH_GPULOG`, `KOTH_SHOT_PILOT=1` (bot pilot, `.work/perf/round.sh`); voice `KOTH_VOICE_LOOPBACK=m` (+`_HOLD=1`); still shots `KOTH_SHOT_STILL=1`, `KOTH_HIDE`, `KOTH_MAPCULL`.
+  (+`_SECONDS`, `KOTH_VKTIMES=1`; `f.gc` per collection, `KOTH_GCLATENCY`), `KOTH_GPULOG`, `KOTH_SHOT_PILOT=1` (bot pilot, `.work/perf/round.sh`); voice `KOTH_VOICE_LOOPBACK=m` (+`_HOLD=1`); still shots `KOTH_SHOT_STILL=1`, `KOTH_HIDE`, `KOTH_MAPCULL`.
 
 ## Tests: probes and regression
 
