@@ -1,0 +1,8 @@
+!Texture
+Id: 7AC0710E-7BEC-4C19-BB2E-581ADED7A76C
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../../Resources/Textures/Terrain/Planks.png
+IsCompressed: true
+Type: !ColorTextureType
+    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}

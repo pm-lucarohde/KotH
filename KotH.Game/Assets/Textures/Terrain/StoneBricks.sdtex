@@ -1,0 +1,8 @@
+!Texture
+Id: 4778C8CD-BDB9-439F-8370-C60DBFD262D4
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../../Resources/Textures/Terrain/StoneBricks.png
+IsCompressed: true
+Type: !ColorTextureType
+    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}

@@ -8,12 +8,19 @@ static class GrassMap
 {
     const int Size = 1024;
     const float Half = 128f;
-    const float MaxHeight = 8f;
+    // Blades grow up to this height (Atrium: its garden ring at 6.4 m); none above it.
+    public static float MaxHeight = 8f;
     // Blades stand only on ground flatter than this (normal's y), fully from the second.
     const float FlatFrom = 0.8f, FlatFull = 0.95f;
     // Bark below this height is a trunk's foot in the meadow (GRASS_Y 2); no grass this
     // close to it, nor inside.
-    const float TrunkFootY = 2.6f, TrunkMargin = 0.08f;
+    public static float TrunkFootY = 2.6f;
+    // Bark below this is no foot in the grass (Atrium: the logs and beams under its garden).
+    public static float TrunkFootLow = float.NegativeInfinity;
+    const float TrunkMargin = 0.08f;
+    // GrassBlade lerps the height between four cells: next to a cell without grass at another
+    // height (Atrium's ledges) a blade would hang in the air, dark from that cell's lightmap uv.
+    public static bool Borders;
 
     public static void Write(string path, List<Primitive> primitives)
     {
@@ -57,7 +64,7 @@ static class GrassMap
                         top[i] = y;
                         float up = wa * nrm[3 * a + 1] + wb * nrm[3 * b + 1] + wc * nrm[3 * c + 1];
                         float grass = wa * col[4 * a] + wb * col[4 * b] + wc * col[4 * c];
-                        amount[i] = Math.Clamp(grass, 0, 1) * SmoothStep(FlatFrom, FlatFull, up);
+                        amount[i] = y > MaxHeight ? 0 : Math.Clamp(grass, 0, 1) * SmoothStep(FlatFrom, FlatFull, up);
                         shade[i] = wa * tc0[2 * a] + wb * tc0[2 * b] + wc * tc0[2 * c];
                         uv[2 * i] = wa * tc1[2 * a] + wb * tc1[2 * b] + wc * tc1[2 * c];
                         uv[2 * i + 1] = wa * tc1[2 * a + 1] + wb * tc1[2 * b + 1] + wc * tc1[2 * c + 1];
@@ -66,6 +73,8 @@ static class GrassMap
         }
 
         int trunks = ClearTrunks(primitives, amount, cell);
+        if (Borders)
+            Border(top, amount, shade, uv);
         int grassy = amount.Count(v => v > 0);
 
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
@@ -100,7 +109,7 @@ static class GrassMap
             float[] pos = prim.Attributes["POSITION"];
             for (int v = 0; v < pos.Length / 3; v++)
             {
-                if (pos[3 * v + 1] > TrunkFootY)
+                if (pos[3 * v + 1] > TrunkFootY || pos[3 * v + 1] < TrunkFootLow)
                     continue;
                 float x = pos[3 * v], z = pos[3 * v + 2];
                 int k = feet.FindIndex(f => Math.Abs(f.X - x) < 2 && Math.Abs(f.Z - z) < 2);
@@ -171,6 +180,36 @@ static class GrassMap
                 }
         }
         return feet.Count;
+    }
+
+    /// <summary>Gives every cell without grass next to grass that grass's height, shade and
+    /// lightmap uv (of the neighbour with the most grass), so blades at the border stand on it.</summary>
+    static void Border(float[] top, float[] amount, float[] shade, float[] uv)
+    {
+        var grassy = (float[])amount.Clone();
+        for (int z = 0; z < Size; z++)
+            for (int x = 0; x < Size; x++)
+            {
+                int i = z * Size + x, from = -1;
+                if (grassy[i] > 0)
+                    continue;
+                for (int dz = -1; dz <= 1; dz++)
+                    for (int dx = -1; dx <= 1; dx++)
+                    {
+                        int nx = x + dx, nz = z + dz;
+                        if (nx < 0 || nz < 0 || nx >= Size || nz >= Size)
+                            continue;
+                        int n = nz * Size + nx;
+                        if (grassy[n] > 0 && (from < 0 || grassy[n] > grassy[from]))
+                            from = n;
+                    }
+                if (from < 0)
+                    continue;
+                top[i] = top[from];
+                shade[i] = shade[from];
+                uv[2 * i] = uv[2 * from];
+                uv[2 * i + 1] = uv[2 * from + 1];
+            }
     }
 
     static float SmoothStep(float a, float b, float x)

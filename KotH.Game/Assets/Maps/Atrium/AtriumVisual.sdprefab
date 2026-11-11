@@ -1,0 +1,99 @@
+!PrefabAsset
+Id: C70FC4CD-BBAD-43D1-B721-169612B86AF5
+SerializedVersion: {Stride: 3.1.0.1}
+Tags: []
+Hierarchy:
+    RootParts:
+        - ref!! FFB6AEF3-365A-4F56-B625-149F60E8A392
+    Parts:
+        -   Entity:
+                Id: FFB6AEF3-365A-4F56-B625-149F60E8A392
+                Name: AtriumVisual
+                Components:
+                    efd90b82df9e44209a2483e8d78ac84c: !TransformComponent
+                        Id: DB40FB58-6271-4A68-9294-4EC9A48E561B
+                        Position: {X: 0.0, Y: 0.0, Z: 0.0}
+                        Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children:
+                            4300cf6d473544e396feae841d6138e4: ref!! DF622543-BBBF-4364-AF76-C7F2875C242B
+                            51bcdaf74a74499aa9f9f5f99072e0aa: ref!! A12082E9-CB59-430E-BEDD-F4DE9853ABD3
+                            823c0830481744578c80cab5023a3dba: ref!! 8D92E31D-D627-4D62-B070-8CB6ACBDC051
+                    0875387e85ce44c78e98419243ef6c64: !KotH.Client.Rendering.Atmosphere,KotH.Game
+                        Id: 0087C368-1BFD-495A-BD12-CC61446B5042
+                        CloudMap: 8BA09DCC-912C-49F1-8FBE-495F36149FAB:Textures/CloudMap
+        -   Entity:
+                Id: 10AE1D12-A48F-45D4-9E64-79E4670B24EE
+                Name: Atrium
+                Components:
+                    f5115a932b054c7482ce490e31399002: !TransformComponent
+                        Id: DF622543-BBBF-4364-AF76-C7F2875C242B
+                        Position: {X: 0.0, Y: 0.0, Z: 0.0}
+                        Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    daf588529dd14bcb9e2500d66873f9f6: !ModelComponent
+                        Id: 9F4546B6-E6C8-475C-A9C0-DA29BF225AA2
+                        Model: B8D80735-4D78-4BDB-8AF1-0124E013C998:Models/Atrium
+                        Materials: {}
+                        RenderGroup: Group3
+        -   Entity:
+                Id: A0AE58FA-B429-42CB-9FA1-EED9E9FCCA54
+                Name: GI
+                Components:
+                    632e7336380042379a755ee8f6863de3: !TransformComponent
+                        Id: A12082E9-CB59-430E-BEDD-F4DE9853ABD3
+                        Position: {X: -7.5, Y: 52.5, Z: 9.0}
+                        Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    aaa6f10a0faf4abc8bf230aae8a581e5: !Stride.Rendering.Voxels.VoxelVolumeComponent,Stride.Voxels
+                        Id: B6A9E45C-C38A-4157-B9C1-63B6EBF5006F
+                        Voxelize: false
+                        VoxelizationMethod: !Stride.Rendering.Voxels.VoxelizationMethodDominantAxis,Stride.Voxels {}
+                        Storage: !Stride.Rendering.Voxels.VoxelStorageSparse,Stride.Voxels {}
+                        Attributes:
+                            3f853c4b6e8c4669817f1df0846b0913: !Stride.Rendering.Voxels.VoxelAttributeEmissionOpacity,Stride.Voxels
+                                VoxelLayout: !Stride.Rendering.Voxels.VoxelLayoutIsotropic,Stride.Voxels
+                                    StorageFormat: RGBA8
+                                    maxBrightness: 2.0
+                                Modifiers: {}
+                        VoxelVolumeSize: 256.0
+                        AproximateVoxelSize: 0.125
+                        VoxelGridSnapping: true
+                        StaticGroups: Group3
+                        VisualizeVoxels: false
+                        VisualizeIndex: 0
+                    57147e939fa7462e914688a4b057efc9: !LightComponent
+                        Id: 044D6DAF-70FF-4FF5-948D-346929F97CE7
+                        Type: !Stride.Rendering.Voxels.VoxelGI.LightVoxel,Stride.Voxels
+                            Volume: ref!! B6A9E45C-C38A-4157-B9C1-63B6EBF5006F
+                            AttributeIndex: 0
+                            DiffuseMarcher: !Stride.Rendering.Voxels.VoxelMarchSetHemisphere6,Stride.Voxels
+                                Marcher: !Stride.Rendering.Voxels.VoxelMarchConePerMipmap,Stride.Voxels
+                                    Steps: 7
+                            BounceIntensityScale: 0.0
+                            SpecularIntensityScale: 0.0
+                            Sky: F9A75D1E-7197-4A46-90CF-5A7F970DCDCA:Skybox
+                            SkyIntensity: 0.195
+                            LightmapSize: 4096
+                        Intensity: 0.27
+                    8c38ec162ca34353a7cd80712509f0a2: !KotH.Client.Rendering.BakeVoxels,KotH.Game
+                        Id: 08735D8D-806A-4D2D-A0B9-5A25B5FF0123
+                        Frames: 2
+                    fbe17760fba94bffa48fcfcc911354aa: !KotH.Client.Rendering.FigureOccluders,KotH.Game
+                        Id: 4C0C99E9-F350-4E11-B06A-07AE79AF57EA
+        -   Entity:
+                Id: 2F42FD6F-5B8B-45A6-A5EA-D3182619279A
+                Name: Grass
+                Components:
+                    58a5f042f0984d4d8208f76573e8d176: !TransformComponent
+                        Id: 8D92E31D-D627-4D62-B070-8CB6ACBDC051
+                        Position: {X: 0.0, Y: 0.0, Z: 0.0}
+                        Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    c2cbc930c44a490fa8c2cf34cde3ce95: !KotH.Client.Rendering.GrassField,KotH.Game
+                        Id: 8BCC8EFC-DBE0-47C9-95AB-D91F2E52C5E9
+                        Material: AE7A280E-E2E7-4617-A2F4-0F7D275E4F48:Materials/Grass
+                        MapResource: Maps/AtriumGrass.bin

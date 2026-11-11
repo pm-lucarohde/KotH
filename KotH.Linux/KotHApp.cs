@@ -72,7 +72,7 @@ sealed class KotHGame : Game
     readonly bool shotStill = Environment.GetEnvironmentVariable("KOTH_SHOT_STILL") == "1"; // no fog, clouds or their shadow
     Vector3? shotAt = Point("KOTH_SHOT_AT"); // body there (Stride metres), again on every placing
     readonly double? shotFace = Number("KOTH_SHOT_FACE"); // turned this way (deg) when placed
-    int shotPlaced = -1;
+    int shotPlaced = int.MinValue;   // placed once at the start too (maps without a spawn ring never place)
     bool shotSwing = Environment.GetEnvironmentVariable("KOTH_SHOT_SWING") == "1"; // swings 1 s before, reports the hit
     bool shotShake = Environment.GetEnvironmentVariable("KOTH_SHOT_SHAKE") == "1"; // takes a hit, reports the shake
     bool shotBlink = Environment.GetEnvironmentVariable("KOTH_SHOT_BLINK") == "1"; // every figure shows shut lids
@@ -586,7 +586,7 @@ sealed class KotHGame : Game
                 shotMoved = player;
             }
             // Also after the round has put everyone at its start (MountDestiny: at random).
-            if (shotAt.HasValue && player.PlacedTick != shotPlaced &&
+            if (shotAt.HasValue && player.PlacedTick != shotPlaced && player.Simulation is { CurrentTick: > 0 } &&
                 player.Entity.Get<KotH.Shared.Player.PlayerMotor>() is { } motor)
             {
                 if (shotFace.HasValue)

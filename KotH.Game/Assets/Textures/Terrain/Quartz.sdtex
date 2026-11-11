@@ -1,0 +1,8 @@
+!Texture
+Id: DF5803C0-795E-4044-B994-244712EE32BA
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../../Resources/Textures/Terrain/Quartz.png
+IsCompressed: true
+Type: !ColorTextureType
+    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}

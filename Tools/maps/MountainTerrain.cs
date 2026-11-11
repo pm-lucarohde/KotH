@@ -965,7 +965,7 @@ public static class Trees
     /// cards inside, twig cards standing out, single leaves outside; lit as round clump and crown,
     /// darker deeper and lower; quads wound both ways. COLOR_0: shade, tint, sway (0 held, 1 free
     /// end), phase.</summary>
-    static void Leaves(Mesh mesh, PyRandom rng, List<(V3 C, double R)> clumps)
+    public static void Leaves(Mesh mesh, PyRandom rng, List<(V3 C, double R)> clumps)
     {
         var centre = Scale(clumps.Aggregate(new V3(0, 0, 0), (s, c) => Add(s, c.C)), 1.0 / clumps.Count);
         double low = clumps.Min(c => c.C.Y - 0.8 * c.R), high = clumps.Max(c => c.C.Y + 0.8 * c.R);

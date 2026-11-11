@@ -210,7 +210,8 @@ namespace KotH.Probes.Probes
         float[] ClimbRound(int seed, StreamWriter path, List<double> ticks, out float spread, out string extra)
         {
             using var world = new HeadlessWorld();
-            world.LoadArena(Maps.Default);
+            // KOTH_CLIMB_MAP=Atrium: another map (the heights and the spread are MountDestiny's).
+            world.LoadArena(Environment.GetEnvironmentVariable("KOTH_CLIMB_MAP") ?? Maps.Default);
             HillMatch match = world.StartMatch();
             match.Seed = (uint)seed;
             // KOTH_CLIMB_TEAM=2|3|4: two chained teams of that size (information only, not a pass mark).

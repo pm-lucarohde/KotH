@@ -11,8 +11,11 @@ namespace KotH.Shared.Hosting
         /// <summary>The test ground the probes measure on, as it came from Unity.</summary>
         public const string Test = "Test";
 
+        /// <summary>Shotbow's Smash map from Minecraft (Tools/maps/Atrium.cs).</summary>
+        public const string Atrium = "Atrium";
+
         /// <summary>Every map a host may choose, in the menu's order; a new map is added here.</summary>
-        public static readonly string[] All = { Default, Test };
+        public static readonly string[] All = { Default, Atrium, Test };
 
         public static string CollisionUrl(string map) => $"/KotH.Shared/Maps/{map}/{map}Collision";
 

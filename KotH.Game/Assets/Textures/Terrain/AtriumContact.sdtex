@@ -1,0 +1,7 @@
+!Texture
+Id: 92AA38D9-ADF7-41E9-B9EE-2A753C26C128
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../../Resources/Textures/Terrain/AtriumContact.png
+IsCompressed: true
+Type: !GrayscaleTextureType {}

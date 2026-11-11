@@ -1,7 +1,7 @@
 #!/usr/bin/env -S dotnet run
 // Painted, tileable textures of Mount Destiny in the figures' style (Luca: "a touch softer and
-// more like a comic"): grass, dirt, sand, snow, rock, bark, leaves, clumps, twig, relief maps to
-// KotH.Game/Resources/Textures/Terrain. Seeded, Pillow's algorithms (Common/Pil.cs).
+// more like a comic"): grass, dirt, sand, snow, rock, bark, leaves, clumps, twig, relief maps, and
+// Atrium's blocks, to KotH.Game/Resources/Textures/Terrain. Seeded, Pillow's algorithms (Common/Pil.cs).
 //   dotnet run Tools/maps/Textures.cs [-- --preview]
 #:include ../Common/Libm.cs
 #:include ../Common/Py.cs
@@ -31,6 +31,9 @@ var painters = new (string Name, Func<PyRandom, (PilImage Image, double[] Relief
 {
     ("Grass", Grass), ("Dirt", Flat(Dirt)), ("Sand", Sand), ("Snow", Flat(Snow)), ("Rock", Flat(Rock)),
     ("Leaves", Flat(Leaves)), ("Bark", Flat(Bark)), ("LeafClump", Flat(Clump)),
+    // Atrium's blocks (Atrium.cs), last so the ones above keep their seeds.
+    ("StoneBricks", Flat(StoneBricks)), ("NetherBricks", Flat(NetherBricks)), ("SmoothStone", Flat(SmoothStone)),
+    ("Quartz", Flat(Quartz)), ("Planks", Flat(Planks)), ("Cobble", Flat(Cobble)), ("Sandstone", Flat(Sandstone)),
 };
 Directory.CreateDirectory(outDir);
 var painted = new List<PilImage>();
@@ -725,6 +728,141 @@ static PilImage Bark(PyRandom rng)
     }
     img.AlphaComposite(Blur(lay, Edge));
     return img.Convert("RGB");
+}
+
+// Atrium's blocks for PaintedTriplanar: 2 m per repeat, so a texture holds 2 x 2 blocks and its
+// joints fall on the block grid. Bricks as Minecraft lays them (rows, staggered), painted in the
+// figures' style; per brick a lit top-left edge, a dark lower one, strokes and the odd crack.
+static PilImage Masonry(PyRandom rng, int[] mortar, int[][] tones, int rows, int perRow, double stagger, double joint, double bevel)
+{
+    int size = Small;
+    PilImage img = Tinted(mortar, Shade(mortar, 1.08), Shade(mortar, 0.9), Clouds(rng, size, 4, 80, 180));
+    var (lay, d) = Layer(size);
+    double h = (double)size / rows, w = (double)size / perRow;
+    for (int row = 0; row < rows; row++)
+        for (int k = 0; k <= perRow; k++)
+        {
+            double x0 = (k + (row % 2 == 1 ? stagger : 0)) * w, y0 = row * h;
+            int[] c = Shade(rng.Choice(tones), rng.Uniform(0.94, 1.06));
+            double j = joint / 2;
+            Wrap((sx, sy) =>
+            {
+                d.Rectangle(sx + j, sy + j, sx + w - j, sy + h - j, Ink(Shade(c, 0.78)));
+                d.Rectangle(sx + j, sy + j, sx + w - j - bevel, sy + h - j - bevel, Ink(Shade(c, 1.12)));
+                d.Rectangle(sx + j + bevel, sy + j + bevel, sx + w - j - bevel, sy + h - j - bevel, Ink(c));
+            }, size, x0, y0, w);
+        }
+    img.AlphaComposite(Blur(lay, Edge));
+    return img;
+}
+
+static PilImage StoneBricks(PyRandom rng)
+{
+    PilImage img = Masonry(rng, [96, 96, 94], [[150, 150, 144], [140, 141, 136], [158, 157, 150]], 4, 2, 0.5, 14, 9);
+    Brush(img, rng, 160, [[166, 165, 158, 90], [128, 128, 122, 90]], (40, 110), (10, 20), 0.0, 0.25);
+    Cracks(img, rng, 4, [84, 84, 82, 230], [182, 180, 172, 170]);
+    return img.Convert("RGB");
+}
+
+static PilImage NetherBricks(PyRandom rng)
+{
+    PilImage img = Masonry(rng, [40, 20, 24], [[88, 40, 44], [78, 34, 40], [98, 46, 50]], 8, 4, 0.5, 10, 6);
+    Brush(img, rng, 120, [[110, 54, 58, 80], [62, 28, 32, 80]], (24, 60), (6, 12), 0.0, 0.25);
+    return img.Convert("RGB");
+}
+
+// Smooth stone and quartz: one plain slab per block with a soft bevelled rim.
+static PilImage SmoothStone(PyRandom rng)
+{
+    PilImage img = Masonry(rng, [138, 138, 134], [[176, 176, 172], [170, 171, 167]], 2, 2, 0.0, 8, 12);
+    Brush(img, rng, 90, [[186, 186, 180, 60], [160, 160, 156, 60]], (60, 140), (14, 26), 0.0, 1.5);
+    return img.Convert("RGB");
+}
+
+static PilImage Quartz(PyRandom rng)
+{
+    PilImage img = Masonry(rng, [198, 190, 178], [[236, 230, 220], [230, 224, 213]], 2, 2, 0.0, 6, 12);
+    Brush(img, rng, 70, [[244, 240, 232, 60], [214, 206, 194, 60]], (60, 140), (14, 26), 1.57, 0.2);
+    return img.Convert("RGB");
+}
+
+// Cut sandstone: warm slabs, two to a block, with fine level strata.
+static PilImage Sandstone(PyRandom rng)
+{
+    PilImage img = Masonry(rng, [168, 140, 92], [[222, 196, 142], [216, 189, 134], [228, 204, 152]], 2, 2, 0.0, 6, 12);
+    Brush(img, rng, 120, [[236, 214, 166, 70], [196, 168, 116, 60]], (120, 260), (4, 9), 0.0, 0.02);
+    return img.Convert("RGB");
+}
+
+// Spruce boards a quarter block wide, their joints staggered from row to row, with grain.
+static PilImage Planks(PyRandom rng)
+{
+    int size = Small;
+    PilImage img = Tinted([70, 48, 30], [80, 56, 34], [60, 40, 26], Clouds(rng, size, 4, 80, 180));
+    var (lay, d) = Layer(size);
+    double h = size / 8.0, w = size / 2.0;
+    double[] shift = [0, 0.5, 0.25, 0.75];
+    for (int row = 0; row < 8; row++)
+        for (int k = 0; k <= 2; k++)
+        {
+            double x0 = (k + shift[row % 4]) * w, y0 = row * h;
+            int[] c = Shade(rng.Choice(new[] { new[] { 118, 84, 52 }, [110, 78, 48], [126, 90, 56] }), rng.Uniform(0.93, 1.07));
+            Wrap((sx, sy) =>
+            {
+                d.Rectangle(sx + 3, sy + 3, sx + w - 3, sy + h - 3, Ink(Shade(c, 0.8)));
+                d.Rectangle(sx + 3, sy + 3, sx + w - 8, sy + h - 8, Ink(c));
+                d.Rectangle(sx + 3, sy + 3, sx + w - 8, sy + 9, Ink(Shade(c, 1.12)));
+            }, size, x0, y0, w);
+        }
+    img.AlphaComposite(Blur(lay, Edge));
+    Brush(img, rng, 260, [[138, 100, 62, 110], [92, 64, 38, 120]], (80, 200), (3, 6), 0.0, 0.03, 0.02);
+    return img.Convert("RGB");
+}
+
+// Cobblestone: rounded stones packed on a jittered grid over dark mortar.
+static PilImage Cobble(PyRandom rng)
+{
+    int size = Small;
+    PilImage img = Tinted([70, 70, 68], [80, 80, 78], [60, 60, 58], Clouds(rng, size, 4, 80, 180));
+    var specs = new List<(double, double, double, int[], double, int)>();
+    const int Grid = 7;
+    double cell = (double)size / Grid;
+    for (int j = 0; j < Grid; j++)
+        for (int i = 0; i < Grid; i++)
+        {
+            int[] c = Shade(rng.Choice(new[] { new[] { 132, 132, 128 }, [118, 118, 114], [146, 145, 140], [108, 110, 106] }), rng.Uniform(0.92, 1.06));
+            double x = (i + 0.5 + (j % 2 == 1 ? 0.5 : 0)) * cell + rng.Uniform(-0.12, 0.12) * cell;
+            double y = (j + 0.5) * cell + rng.Uniform(-0.12, 0.12) * cell;
+            specs.Add((x, y, cell * rng.Uniform(0.5, 0.58), c, rng.Uniform(0.72, 0.95), rng.RandInt(6, 9)));
+        }
+    Stones(img, rng, specs, 0.7, 150);
+    Brush(img, rng, 90, [[152, 150, 144, 70], [96, 96, 92, 70]], (30, 70), (8, 14), 0.0, 1.5);
+    return img.Convert("RGB");
+}
+
+// A few long cracks with a lit lip, as on the rock.
+static void Cracks(PilImage img, PyRandom rng, int count, byte[] dark, byte[] lip)
+{
+    int size = img.Width;
+    var (lay, d) = Layer(size);
+    for (int i = 0; i < count; i++)
+    {
+        double x = rng.Uniform(0, size), y = rng.Uniform(0, size), a = rng.Uniform(0, 2 * Math.PI);
+        var pts = new Pts();
+        for (int k = 0; k < rng.RandInt(4, 8); k++)
+        {
+            pts.Add((x, y));
+            a += rng.Uniform(-0.6, 0.6);
+            (x, y) = (x + Libm.cos(a) * 18 * K, y + Libm.sin(a) * 18 * K);
+        }
+        var (ox, oy) = pts[0];
+        Wrap((sx, sy) =>
+        {
+            d.Line([.. pts.Select(p => (sx - ox + p.X + 3 * K, sy - oy + p.Y + 2 * K))], lip, (int)(3 * K));
+            d.Line([.. pts.Select(p => (sx - ox + p.X, sy - oy + p.Y))], dark, (int)(4 * K));
+        }, size, ox, oy, 200 * K);
+    }
+    img.AlphaComposite(Blur(lay, Edge));
 }
 
 // Relief of a ground texture: height in metres per pixel (Size px are 4 m), tiling.

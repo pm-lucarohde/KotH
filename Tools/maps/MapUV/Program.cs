@@ -1,7 +1,7 @@
-// Adds TEXCOORD_1 to Mountain.glb and Sea.glb: terrain and bark unwrapped into one lightmap
-// atlas, the inner sea as one square from above (outer sea clamped); writes MountDestinyGrass.bin
-// MountDestinyContact.png and MountDestinySurface.bin too (--grass: only those). Run on Mountain.cs's fresh output.
-//   dotnet run --project Tools/maps/MapUV -c Release [-- --size 4096 --pad 3]
+// Adds TEXCOORD_1 to Mountain.glb and Sea.glb (terrain, bark, the inner sea as one square) or with
+// --map Atrium to Atrium.glb (every opaque part, no sea), one lightmap atlas; writes the map's Grass.bin,
+// Contact.png and Surface.bin too (--grass: only those). Run on the generator's fresh output.
+//   dotnet run --project Tools/maps/MapUV -c Release [-- --map NAME --size 4096 --pad 3]
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Prowl.Unwrapper;
@@ -10,15 +10,22 @@ using Prowl.Vector;
 string root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../.."));
 int size = Option("--size", 4096);
 int pad = Option("--pad", 3);
-string[] lit = ["Terrain", "Bark"];
+int mapAt = Array.IndexOf(args, "--map");
+string map = mapAt >= 0 ? args[mapAt + 1] : "MountDestiny";
+bool destiny = map == "MountDestiny";
 // The sea's square is unwrapped this much smaller: its light is soft, the mountain keeps the texels.
 const double SeaShrink = 4.0;
 
-var mountain = new Glb(Path.Combine(root, "KotH.Game/Resources/Models/Mountain.glb"));
-var sea = new Glb(Path.Combine(root, "KotH.Game/Resources/Models/Sea.glb"));
-string grassPath = Path.Combine(root, "KotH.Game/Resources/Maps/MountDestinyGrass.bin");
-string contactPath = Path.Combine(root, "KotH.Game/Resources/Textures/Terrain/MountDestinyContact.png");
-string surfacePath = Path.Combine(root, "KotH.Game/Resources/Maps/MountDestinySurface.bin");
+var mountain = new Glb(Path.Combine(root, "KotH.Game/Resources/Models", (destiny ? "Mountain" : map) + ".glb"));
+Glb? sea = destiny ? new Glb(Path.Combine(root, "KotH.Game/Resources/Models/Sea.glb")) : null;
+// Atrium: everything but what is see-through, glows or is leaves (Atrium.cs's part names).
+string[] lit = destiny ? ["Terrain", "Bark"]
+    : [.. mountain.Primitives.Select(p => p.Material).Where(m => m is not ("Water" or "Glass" or "Glow" or "Leaves" or "LeafCards"))];
+if (!destiny)
+    (GrassMap.MaxHeight, GrassMap.TrunkFootY, GrassMap.TrunkFootLow, GrassMap.Borders) = (8f, 7f, 6f, true);
+string grassPath = Path.Combine(root, $"KotH.Game/Resources/Maps/{map}Grass.bin");
+string contactPath = Path.Combine(root, $"KotH.Game/Resources/Textures/Terrain/{map}Contact.png");
+string surfacePath = Path.Combine(root, $"KotH.Game/Resources/Maps/{map}Surface.bin");
 if (args.Contains("--grass") && mountain.HadSecondUV)
 {
     GrassMap.Write(grassPath, mountain.Primitives);
@@ -26,14 +33,14 @@ if (args.Contains("--grass") && mountain.HadSecondUV)
     GrassMap.WriteSurface(surfacePath, mountain.Primitives);
     return 0;
 }
-if (mountain.HadSecondUV || sea.HadSecondUV)
+if (mountain.HadSecondUV || sea is { HadSecondUV: true })
 {
     // Its corners are split along the old charts already; unwrapped again, they would stay split.
-    Console.Error.WriteLine("Mountain.glb/Sea.glb already have lightmap UVs: run Tools/maps/Mountain.cs first.");
+    Console.Error.WriteLine("The model already has lightmap UVs: run its generator (Mountain.cs, Atrium.cs) first.");
     return 1;
 }
 var primitives = mountain.Primitives;
-Primitive water = sea.Primitives[0];
+Primitive? water = sea?.Primitives[0];
 
 // All lit faces in one unwrap, so they share the atlas.
 var positions = new List<Double3>();
@@ -52,18 +59,21 @@ foreach (Primitive prim in primitives.Where(p => lit.Contains(p.Material)))
 }
 // The inner sea (inside the outer tiles' rim) as one more chart, far off and shrunk.
 // Its strips are 1 m deep; the outer tiles, growing outwards, are far deeper.
-float[] seaPos = water.Attributes["POSITION"];
-double half = water.Indices.Chunk(3)
+float[] seaPos = water?.Attributes["POSITION"] ?? [];
+double half = water == null ? 0 : water.Indices.Chunk(3)
     .Where(t => t.Max(i => seaPos[3 * i + 2]) - t.Min(i => seaPos[3 * i + 2]) <= 1.001f)
     .SelectMany(t => t).Max(i => Math.Abs(seaPos[3 * i]));
 int litTriangles = triangles.Count;
 int quad = positions.Count;
-foreach (var (x, z) in new[] { (-1, -1), (1, -1), (1, 1), (-1, 1) })
+if (water != null)
 {
-    positions.Add(new Double3(x * half / SeaShrink, -1000, z * half / SeaShrink));
-    normals.Add(new Double3(0, 1, 0));
+    foreach (var (x, z) in new[] { (-1, -1), (1, -1), (1, 1), (-1, 1) })
+    {
+        positions.Add(new Double3(x * half / SeaShrink, -1000, z * half / SeaShrink));
+        normals.Add(new Double3(0, 1, 0));
+    }
+    triangles.AddRange([quad, quad + 3, quad + 2, quad, quad + 2, quad + 1]);
 }
-triangles.AddRange([quad, quad + 3, quad + 2, quad, quad + 2, quad + 1]);
 Console.WriteLine($"Unwrapping: {triangles.Count / 3} triangles, {positions.Count} vertices ...");
 var watch = System.Diagnostics.Stopwatch.StartNew();
 UnwrapResult result = new UnwrapMesh(positions.ToArray(), triangles.ToArray())
@@ -123,24 +133,27 @@ foreach (Primitive prim in primitives.Where(p => lit.Contains(p.Material)))
 }
 
 // The sea: affine from the square's corners (-h,-h), (h,-h) and (-h,h); outside it clamped to the rim.
-Double2 uv00 = result.PerCornerUVs[litTriangles], uv01 = result.PerCornerUVs[litTriangles + 1];
-Double2 uv10 = result.PerCornerUVs[litTriangles + 5];
-var seaUV = new float[seaPos.Length / 3 * 2];
-for (int v = 0; v < seaPos.Length / 3; v++)
+if (water != null)
 {
-    double s = (Math.Clamp(seaPos[3 * v], -half, half) + half) / (2 * half);
-    double t = (Math.Clamp(seaPos[3 * v + 2], -half, half) + half) / (2 * half);
-    Double2 uv = uv00 + (uv10 - uv00) * s + (uv01 - uv00) * t;
-    seaUV[2 * v] = (float)uv.X;
-    seaUV[2 * v + 1] = (float)uv.Y;
+    Double2 uv00 = result.PerCornerUVs[litTriangles], uv01 = result.PerCornerUVs[litTriangles + 1];
+    Double2 uv10 = result.PerCornerUVs[litTriangles + 5];
+    var seaUV = new float[seaPos.Length / 3 * 2];
+    for (int v = 0; v < seaPos.Length / 3; v++)
+    {
+        double s = (Math.Clamp(seaPos[3 * v], -half, half) + half) / (2 * half);
+        double t = (Math.Clamp(seaPos[3 * v + 2], -half, half) + half) / (2 * half);
+        Double2 uv = uv00 + (uv10 - uv00) * s + (uv01 - uv00) * t;
+        seaUV[2 * v] = (float)uv.X;
+        seaUV[2 * v + 1] = (float)uv.Y;
+    }
+    water.Attributes["TEXCOORD_1"] = seaUV;
+    // Stride's importer fails on a second UV set without a first one; the sea's material reads none.
+    water.Attributes["TEXCOORD_0"] = seaUV;
+    Console.WriteLine($"Sea: ±{half:F0} m, {Math.Sqrt(world / atlas) / size * SeaShrink * 100:F0} cm/texel at {size}²");
 }
-water.Attributes["TEXCOORD_1"] = seaUV;
-// Stride's importer fails on a second UV set without a first one; the sea's material reads none.
-water.Attributes["TEXCOORD_0"] = seaUV;
-Console.WriteLine($"Sea: ±{half:F0} m, {Math.Sqrt(world / atlas) / size * SeaShrink * 100:F0} cm/texel at {size}²");
 
 mountain.Write();
-sea.Write();
+sea?.Write();
 GrassMap.Write(grassPath, primitives);
 GrassMap.WriteContact(contactPath, primitives);
 GrassMap.WriteSurface(surfacePath, primitives);

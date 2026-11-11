@@ -1,0 +1,78 @@
+!Model
+Id: B8D80735-4D78-4BDB-8AF1-0124E013C998
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Models/Atrium.glb
+PivotPosition: {X: 0.0, Y: 0.0, Z: 0.0}
+Materials:
+    2510c98c62cb46b19daa6cb49fea0489:
+        Name: Bark
+        MaterialInstance:
+            Material: 96A66F9A-15A0-4DFC-86F7-A47229FD80D2:Materials/Bark
+            IsShadowCaster: true
+    cbe24f1006da490986ca069092cfd992:
+        Name: Bricks
+        MaterialInstance:
+            Material: A2EDDF15-F2F9-4606-85AA-585372E758FD:Materials/Atrium/Bricks
+            IsShadowCaster: true
+    5d93e69cb080420bbd0b06cbc384da21:
+        Name: Cobble
+        MaterialInstance:
+            Material: 45227FAF-095D-41D0-B5DC-415444B9F7CF:Materials/Atrium/Cobble
+            IsShadowCaster: true
+    c254e98afa874080924307f62dcdf26f:
+        Name: Dark
+        MaterialInstance:
+            Material: CDA7EDEF-9F3C-485B-87BB-FEB8DA22DD7A:Materials/Atrium/Dark
+            IsShadowCaster: true
+    71335fdb27424cbab963094b2555c445:
+        Name: Glass
+        MaterialInstance:
+            Material: C51614D4-40C4-46E3-812D-C1F0A3BAB531:Materials/Atrium/Glass
+            IsShadowCaster: false
+    762b93fbd1ee4eb78b1719d30c86e928:
+        Name: Glow
+        MaterialInstance:
+            Material: 6B0C613C-28CA-4781-B146-DF561A8ECA1E:Materials/Atrium/Glow
+            IsShadowCaster: false
+    b56b0c81075244b9a352e720fcb0ed1e:
+        Name: LeafCards
+        MaterialInstance:
+            Material: 1ECD50E8-3995-45B7-A554-D7338DC794E0:Materials/LeafCards
+            IsShadowCaster: true
+    9f3a2c7e5b1d4e8aa6c0d2f4b8e1a7c3:
+        Name: Leaves
+        MaterialInstance:
+            Material: B1025513-FAA8-447E-9F14-4A811DE2B837:Materials/Leaves
+            IsShadowCaster: true
+    6e62c4c7facd4d289d6e167cb8bf498a:
+        Name: Planks
+        MaterialInstance:
+            Material: 758240C0-D685-4A7A-B529-797CC0282586:Materials/Atrium/Planks
+            IsShadowCaster: true
+    570cbdcd9e0c4b2bb0ae24a2abeac277:
+        Name: Quartz
+        MaterialInstance:
+            Material: D1EF286B-1D49-4447-BAB3-76678100DED5:Materials/Atrium/Quartz
+            IsShadowCaster: true
+    07cc1f6fa03d4b85afbf3a388caffbb5:
+        Name: Sandstone
+        MaterialInstance:
+            Material: 908E770A-B883-483C-A525-322E7B22B379:Materials/Atrium/Sandstone
+            IsShadowCaster: true
+    a42d8f148bcf41a2a5d60e01fc876403:
+        Name: Smooth
+        MaterialInstance:
+            Material: 053D9A91-49A8-45AC-BA46-B1B72826A58C:Materials/Atrium/Smooth
+            IsShadowCaster: true
+    3de23a681e8a44a792f1daff0bab0730:
+        Name: Terrain
+        MaterialInstance:
+            Material: 1AC4B78A-8A32-42E0-8682-3416181FA2DA:Materials/Atrium/AtriumTerrain
+            IsShadowCaster: true
+    ef982c74b7384f57baa31da74d6df39b:
+        Name: Water
+        MaterialInstance:
+            Material: 3E6B2A71-5C4D-4F0B-9A1E-7D2C8B4F6A93:Materials/Atrium/Water
+            IsShadowCaster: false
+Modifiers: {}
