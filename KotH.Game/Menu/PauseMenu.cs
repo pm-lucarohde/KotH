@@ -77,7 +77,7 @@ namespace KotH.Client.Menu
             var parts = view.TakeParts();
             // In the middle of a screen 1080 high.
             board = new MenuOverlay(parts.Board, MenuOverlay.Corner.TopCenter, 0f, (1080f - 730f) / 2f) { Visible = false };
-            page = new MenuOverlay(parts.Page, MenuOverlay.Corner.TopCenter, 0f, (1080f - 610f) / 2f) { Visible = false };
+            page = new MenuOverlay(parts.Page, MenuOverlay.Corner.TopCenter, 0f, (1080f - 770f) / 2f) { Visible = false };
             confirm = new MenuOverlay(parts.Confirm, MenuOverlay.Corner.TopCenter, 0f, (1080f - 330f) / 2f) { Visible = false };
             overlays = new[] { board, page, confirm };
             hud.AddFront(this);
