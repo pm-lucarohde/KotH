@@ -337,7 +337,7 @@ namespace KotH.Client.Menu
             shown = true;
             // Test aids for shots: KOTH_SHOT_MENU_HOT=n lights button n, KOTH_SHOT_MENU_PAGE=n clicks it (0 hosts),
             // KOTH_SHOT_SETTINGS=sound|graphics|input picks the Settings tab, KOTH_SHOT_HOST_PRIVATE=pw a private round,
-            // KOTH_SHOT_SOCIAL=board the Leaderboard tab (=sample with made-up rows).
+            // KOTH_SHOT_SOCIAL=board the Leaderboard tab (=sample with made-up rows), KOTH_SHOT_FIND_DROP=0-4 opens a filter.
             if (int.TryParse(Environment.GetEnvironmentVariable("KOTH_SHOT_MENU_HOT"), out int hot))
                 view.Pretend(hot, false);
             if (int.TryParse(Environment.GetEnvironmentVariable("KOTH_SHOT_MENU_PAGE"), out int open))
@@ -350,6 +350,8 @@ namespace KotH.Client.Menu
                 view.SocialView.Choose(true);
             if (Environment.GetEnvironmentVariable("KOTH_SHOT_SOCIAL") == "sample")
                 view.SocialView.Leaderboard.Sample();
+            if (int.TryParse(Environment.GetEnvironmentVariable("KOTH_SHOT_FIND_DROP"), out int drop))
+                view.Finder.Pretend(drop);
             if (Note != null)
             {
                 view.OpenFind();

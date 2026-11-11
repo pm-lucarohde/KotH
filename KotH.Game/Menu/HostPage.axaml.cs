@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using KotH.Shared.Match;
@@ -10,8 +9,8 @@ using KotH.Client.Steam;
 namespace KotH.Client.Menu
 {
     /// <summary>The Host server page: what the lobby list will say about the round (name, public or
-    /// private, country, languages, modded) and the password a private one asks for. Host hands the
-    /// flags and the password to the menu; the rest is remembered (ClientSettings.RememberHost).</summary>
+    /// private, up to 2 regions, up to 4 languages, modded) and the password a private one asks for. Host
+    /// hands the flags and the password to the menu; the rest is remembered (ClientSettings.RememberHost).</summary>
     public partial class HostPage : UserControl
     {
         /// <summary>A password needs at least this many characters.</summary>
@@ -38,11 +37,11 @@ namespace KotH.Client.Menu
             rows.Add(new ChoiceRow<bool>("Access", _ => new[] { false, true }, s => s.HostPrivate, (s, v) => s.HostPrivate = v,
                                          v => v ? "Private" : "Public"));
             rows.Add(new FieldRow("Password", password, "private only") { Locked = s => s.HostPrivate ? null : "" });
-            rows.Add(new ChoiceRow<string>("Country", _ => LobbyFlags.AllCountries.Select(c => c.Code).ToArray(),
-                                           s => s.HostCountry, (s, v) => s.HostCountry = v, LobbyFlags.CountryName));
             rows.Add(new ToggleRow("Modded", s => s.HostModded, (s, v) => s.HostModded = v, "a label for now"));
-            rows.Add(new HeadingRow("Languages", "spoken in the round"));
-            rows.Add(new LanguagesRow());
+            rows.Add(new HeadingRow("Regions", $"where the players are, up to {LobbyFlags.MaxRegions}"));
+            rows.Add(new ChipsRow(LobbyFlags.AllRegions, LobbyFlags.MaxRegions, s => s.HostRegions, (s, v) => s.HostRegions = v));
+            rows.Add(new HeadingRow("Languages", $"spoken in the round, up to {LobbyFlags.MaxLanguages}"));
+            rows.Add(new ChipsRow(LobbyFlags.AllLanguages, LobbyFlags.MaxLanguages, s => s.HostLanguages, (s, v) => s.HostLanguages = v));
             foreach (SettingRow row in rows)
             {
                 row.Edited = () => edited;
@@ -57,8 +56,8 @@ namespace KotH.Client.Menu
         {
             edited = ClientSettings.Applied.Clone();
             fallbackName = $"{playerName}'s round";
-            if (edited.HostCountry.Length != 2)
-                edited.HostCountry = SteamClient.IpCountry.Length == 2 ? SteamClient.IpCountry : "US";
+            if (edited.HostRegions.Length == 0)
+                edited.HostRegions = new[] { LobbyFlags.RegionOf(SteamClient.IpCountry, TimeZoneInfo.Local.BaseUtcOffset.TotalHours) };
             if (edited.HostLanguages.Length == 0)
                 edited.HostLanguages = new[] { SteamClient.Language };
             name.Text = edited.HostName;
@@ -79,6 +78,7 @@ namespace KotH.Client.Menu
 
         string Problem()
             => edited.HostPrivate && password.Text.Length < MinPassword ? $"A private round needs a password of {MinPassword} characters or more."
+             : edited.HostRegions.Length == 0 ? "Choose at least one region."
              : edited.HostLanguages.Length == 0 ? "Choose at least one language."
              : null;
 
@@ -89,7 +89,7 @@ namespace KotH.Client.Menu
             MenuTextBox.Focus(null);
             ClientSettings.RememberHost(edited);
             string shown = edited.HostName.Length > 0 ? edited.HostName : fallbackName;
-            var flags = new LobbyFlags(shown, edited.HostPrivate, edited.HostCountry, (string[])edited.HostLanguages.Clone(), edited.HostModded, edited.HostMode);
+            var flags = new LobbyFlags(shown, edited.HostPrivate, (string[])edited.HostRegions.Clone(), (string[])edited.HostLanguages.Clone(), edited.HostModded, edited.HostMode);
             HostRequested?.Invoke(flags, edited.HostPrivate ? password.Text : null);
         }
 
@@ -112,15 +112,19 @@ namespace KotH.Client.Menu
             protected override void Fill(PlayerSettings s, string reason) { }
         }
 
-        /// <summary>The languages as chips under the heading, any number of them chosen.</summary>
-        sealed class LanguagesRow : SettingRow
+        /// <summary>Regions or languages as chips under their heading, up to max of them chosen (the rest greyed then).</summary>
+        sealed class ChipsRow : SettingRow
         {
             readonly WrapPanel chips = new WrapPanel { Orientation = Orientation.Horizontal, Margin = new Avalonia.Thickness(0, 4, 0, 12) };
             readonly Dictionary<string, Border> byCode = new Dictionary<string, Border>();
+            readonly Func<PlayerSettings, string[]> get;
+            readonly int max;
 
-            public LanguagesRow() : base("", null)
+            public ChipsRow((string Code, string Name)[] values, int max, Func<PlayerSettings, string[]> get, Action<PlayerSettings, string[]> set)
+                : base("", null)
             {
-                foreach ((string code, string title) in LobbyFlags.AllLanguages)
+                (this.get, this.max) = (get, max);
+                foreach ((string code, string title) in values)
                 {
                     var chip = new Border
                     {
@@ -129,10 +133,10 @@ namespace KotH.Client.Menu
                     };
                     chip.PointerPressed += (_, _) => Change(s =>
                     {
-                        var set = new List<string>(s.HostLanguages);
-                        if (!set.Remove(code))
-                            set.Add(code);
-                        s.HostLanguages = set.ToArray();
+                        var chosen = new List<string>(get(s));
+                        if (!chosen.Remove(code) && chosen.Count < max)
+                            chosen.Add(code);
+                        set(s, chosen.ToArray());
                     });
                     byCode[code] = chip;
                     chips.Children.Add(chip);
@@ -146,8 +150,13 @@ namespace KotH.Client.Menu
 
             protected override void Fill(PlayerSettings s, string reason)
             {
+                string[] chosen = get(s);
                 foreach ((string code, Border chip) in byCode)
-                    chip.Classes.Set("Chosen", Array.IndexOf(s.HostLanguages, code) >= 0);
+                {
+                    bool on = Array.IndexOf(chosen, code) >= 0;
+                    chip.Classes.Set("Chosen", on);
+                    chip.Classes.Set("Off", !on && chosen.Length >= max);
+                }
             }
         }
     }

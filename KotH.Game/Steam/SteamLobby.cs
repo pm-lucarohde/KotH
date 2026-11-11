@@ -9,7 +9,7 @@ namespace KotH.Client.Steam
 {
     /// <summary>A round open on Steam, as the lobby list shows it; PingMs -1 when unknown.</summary>
     public readonly record struct LobbyListing(ulong Id, string Host, string Map, int Players, int PingMs,
-                                               bool Private, string Country, string[] Languages, bool Modded, MatchMode Mode = MatchMode.Solo);
+                                               bool Private, string[] Regions, string[] Languages, bool Modded, MatchMode Mode = MatchMode.Solo);
 
     /// <summary>A KotH round as a Steam lobby: the host opens one (Open) with its name, map, build, player
     /// count, flags and ping location as lobby data, others find it (Search) and enter it (Enter); the
@@ -81,9 +81,10 @@ namespace KotH.Client.Steam
                 lobby.Set("map", lobby.map);
                 lobby.Set("maptitle", lobby.mapTitle ?? lobby.map);
                 lobby.Set("name", host);
-                // Flags as Steam filters them, by equality: one key per language.
+                // Flags as Steam filters them, by equality: one key per region and language.
                 lobby.Set("access", flags.Private ? "private" : "public");
-                lobby.Set("country", flags.Country ?? "");
+                foreach (string region in flags.Regions)
+                    lobby.Set("region_" + region, "1");
                 foreach (string language in flags.Languages)
                     lobby.Set("lang_" + language, "1");
                 lobby.Set("modded", flags.Modded ? "1" : "0");
@@ -179,8 +180,8 @@ namespace KotH.Client.Steam
             Filter("build", NetProtocol.BuildText);
             if (filter.Private is bool locked)
                 Filter("access", locked ? "private" : "public");
-            if (!string.IsNullOrEmpty(filter.Country))
-                Filter("country", filter.Country);
+            if (!string.IsNullOrEmpty(filter.Region))
+                Filter("region_" + filter.Region, "1");
             if (!string.IsNullOrEmpty(filter.Language))
                 Filter("lang_" + filter.Language, "1");
             if (filter.Modded is bool modded)
@@ -198,12 +199,9 @@ namespace KotH.Client.Steam
                 {
                     ulong id = SteamAPI_ISteamMatchmaking_GetLobbyByIndex(SteamClient.Matchmaking, i);
                     int.TryParse(Data(id, "players"), NumberStyles.Integer, CultureInfo.InvariantCulture, out int n);
-                    var languages = new List<string>();
-                    foreach ((string code, _) in LobbyFlags.AllLanguages)
-                        if (Data(id, "lang_" + code) == "1")
-                            languages.Add(code);
+                    string[] regions = Marked(id, "region_", LobbyFlags.AllRegions), languages = Marked(id, "lang_", LobbyFlags.AllLanguages);
                     list.Add(new LobbyListing(id, Data(id, "name") ?? "?", Data(id, "maptitle") ?? Data(id, "map"), n, SteamClient.EstimatePing(Data(id, "ping")),
-                                              Data(id, "access") == "private", Data(id, "country") ?? "", languages.ToArray(), Data(id, "modded") == "1",
+                                              Data(id, "access") == "private", regions, languages, Data(id, "modded") == "1",
                                               HillMatch.ParseMode(Data(id, "mode")) ?? MatchMode.Solo));
                 }
                 list.Sort((a, b) => (a.PingMs < 0, b.PingMs < 0) switch
@@ -214,6 +212,16 @@ namespace KotH.Client.Steam
                 });
                 done(list);
             });
+        }
+
+        // The codes a lobby marks with key prefix + code = "1".
+        static string[] Marked(ulong id, string prefix, (string Code, string Name)[] all)
+        {
+            var marked = new List<string>();
+            foreach ((string code, _) in all)
+                if (Data(id, prefix + code) == "1")
+                    marked.Add(code);
+            return marked.ToArray();
         }
 
         // String filters for the next RequestLobbyList, compared for equality.

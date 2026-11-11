@@ -119,8 +119,8 @@ namespace KotH.Client.Menu
         }
     }
 
-    /// <summary>A choice among a few values, stepped with ‹ and › (no drop-down: its popup is a
-    /// window of its own, which the overlays never draw). Wraps round at both ends.</summary>
+    /// <summary>A choice among a few values, stepped with ‹ and › (no ComboBox: its popup is a window of
+    /// its own, which the overlays never draw; longer lists use MenuDropdown). Wraps round at both ends.</summary>
     public sealed class ChoiceRow<T> : SettingRow
     {
         readonly TextBlock value = new TextBlock { Classes = { "Value" }, Width = 250, TextAlignment = TextAlignment.Center,

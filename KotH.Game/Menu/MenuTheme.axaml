@@ -184,6 +184,40 @@
     <Style Selector="Border.Tab.Chosen TextBlock">
         <Setter Property="Foreground" Value="{StaticResource CreamBrush}" />
     </Style>
+    <!-- A chip that cannot be chosen now: a limit is reached -->
+    <Style Selector="Border.Tab.Off">
+        <Setter Property="Opacity" Value="0.45" />
+    </Style>
+
+    <!-- A drop-down's open list (MenuDropdown): a cream sheet over the page, a line per value -->
+    <Style Selector="Border.Drop">
+        <Setter Property="Background" Value="#F7EEE1" />
+        <Setter Property="CornerRadius" Value="18" />
+        <Setter Property="Padding" Value="6" />
+        <Setter Property="BoxShadow" Value="0 6 18 0 #66503018" />
+    </Style>
+    <Style Selector="Border.Tab Path.Caret">
+        <Setter Property="Fill" Value="{StaticResource BrownBrush}" />
+    </Style>
+    <Style Selector="Border.Tab.Chosen Path.Caret">
+        <Setter Property="Fill" Value="{StaticResource CreamBrush}" />
+    </Style>
+    <Style Selector="Border.Pick">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Padding" Value="18,7" />
+    </Style>
+    <Style Selector="Border.Pick:pointerover">
+        <Setter Property="Background" Value="{StaticResource WellBrush}" />
+    </Style>
+    <Style Selector="Border.Pick TextBlock">
+        <Setter Property="FontSize" Value="22" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{StaticResource BrownBrush}" />
+    </Style>
+    <Style Selector="Border.Pick.Chosen TextBlock">
+        <Setter Property="Foreground" Value="{StaticResource RedBrush}" />
+    </Style>
 
     <!-- Settings rows: a value beside its control, headings between groups, ‹ and › to step a choice -->
     <Style Selector="TextBlock.Value">

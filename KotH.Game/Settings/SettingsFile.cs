@@ -3,6 +3,7 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 using KotH.Client.Rendering.Dlss;
+using KotH.Client.Steam;
 using Stride.Input;
 
 namespace KotH.Client.Settings
@@ -76,7 +77,7 @@ namespace KotH.Client.Settings
             foreach (Binding b in Enum.GetValues<Binding>())
                 Text(t, KeyName(b), s.Key(b).ToString());
             t.Append("\n[host]\n");
-            Text(t, "name", s.HostName); Flag(t, "private", s.HostPrivate); Text(t, "country", s.HostCountry);
+            Text(t, "name", s.HostName); Flag(t, "private", s.HostPrivate); Text(t, "regions", string.Join(",", s.HostRegions));
             Text(t, "languages", string.Join(",", s.HostLanguages)); Flag(t, "modded", s.HostModded);
             Text(t, "mode", KotH.Shared.Match.HillMatch.ModeName(s.HostMode));
             return t.ToString();
@@ -160,8 +161,8 @@ namespace KotH.Client.Settings
                     break;
                 case ("host", "name"): s.HostName = v.Length > 40 ? v[..40] : v; break;
                 case ("host", "private"): s.HostPrivate = Bool(v, s.HostPrivate); break;
-                case ("host", "country"): s.HostCountry = v.Length == 2 ? v.ToUpperInvariant() : ""; break;
-                case ("host", "languages"): s.HostLanguages = v.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
+                case ("host", "regions"): s.HostRegions = LobbyFlags.Known(List(v), LobbyFlags.AllRegions, LobbyFlags.MaxRegions); break;
+                case ("host", "languages"): s.HostLanguages = LobbyFlags.Known(List(v), LobbyFlags.AllLanguages, LobbyFlags.MaxLanguages); break;
                 case ("host", "modded"): s.HostModded = Bool(v, s.HostModded); break;
                 case ("host", "mode"): s.HostMode = KotH.Shared.Match.HillMatch.ParseMode(v) ?? s.HostMode; break;
                 case ("keys", _):
@@ -178,6 +179,8 @@ namespace KotH.Client.Settings
         static float Unit(string v, float fallback) => Math.Clamp(Float(v, fallback), 0f, 1f);
 
         static int Int(string v, int fallback) => int.TryParse(v, NumberStyles.Integer, Invariant, out int i) ? i : fallback;
+
+        static string[] List(string v) => v.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
         static bool Bool(string v, bool fallback) => v == "true" ? true : v == "false" ? false : fallback;
 

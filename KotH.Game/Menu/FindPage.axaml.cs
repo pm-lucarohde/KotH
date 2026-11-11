@@ -24,8 +24,7 @@ namespace KotH.Client.Menu
         readonly MenuTextBox invite = new MenuTextBox { MaxLength = 160, Placeholder = "koth://join?… from the host, Ctrl+V pastes" };
 
         readonly RowList list = new RowList();
-        readonly List<string> countriesSeen = new List<string>();
-        readonly Border access, country, language, modded, mode;
+        readonly MenuDropdown access, region, language, modded, mode;
         readonly MenuTextBox password = new MenuTextBox { Password = true, MaxLength = 64, Width = 330, Placeholder = "Type it, Enter joins" };
         LobbyListing? asking;
         bool busy, saysWhy;
@@ -40,15 +39,24 @@ namespace KotH.Client.Menu
             Ask.Children.Add(password);
             password.Submitted += JoinAsked;
             JoinPrivate.Click += (_, _) => JoinAsked();
-            access = Pill(step => Filter = Filter with { Private = Next(new bool?[] { null, false, true }, Filter.Private, step) });
-            country = Pill(step => Filter = Filter with { Country = Next(Countries(), Filter.Country, step) });
-            language = Pill(step => Filter = Filter with { Language = Next(Languages(), Filter.Language, step) });
-            modded = Pill(step => Filter = Filter with { Modded = Next(new bool?[] { null, false, true }, Filter.Modded, step) });
-            mode = Pill(step => Filter = Filter with
-            {
-                Mode = Next(new MatchMode?[] { null, MatchMode.Solo, MatchMode.Duo, MatchMode.Trio, MatchMode.Squad }, Filter.Mode, step),
-            });
+            bool?[] either = { null, false, true };
+            MatchMode?[] modes = { null, MatchMode.Solo, MatchMode.Duo, MatchMode.Trio, MatchMode.Squad };
+            access = Drop(either, () => Filter.Private, v => Filter = Filter with { Private = v },
+                          v => v switch { null => "Any access", true => "Private", false => "Public" });
+            region = Drop(Regions(), () => Filter.Region, v => Filter = Filter with { Region = v },
+                          v => v == null ? "Any region" : LobbyFlags.RegionName(v) + (v == OwnRegion ? " (you)" : ""));
+            language = Drop(Languages(), () => Filter.Language, v => Filter = Filter with { Language = v },
+                            v => v == null ? "Any language" : LobbyFlags.LanguageName(v));
+            modded = Drop(either, () => Filter.Modded, v => Filter = Filter with { Modded = v },
+                          v => v switch { null => "Modded or not", true => "Modded", false => "Not modded" });
+            mode = Drop(modes, () => Filter.Mode, v => Filter = Filter with { Mode = v }, v => v?.ToString() ?? "Any mode");
             ShowFilter();
+            // A press anywhere but on a drop-down closes its list (before the press does its own thing).
+            AddHandler(PointerPressedEvent, (_, e) =>
+            {
+                if (e.Source is Avalonia.Visual v && !Owner(v))
+                    Drops.Children.Clear();
+            }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
             Refresh.Click += (_, _) => RefreshRequested?.Invoke();
             InviteField.Children.Add(invite);
             invite.Submitted += JoinInvited;
@@ -85,11 +93,10 @@ namespace KotH.Client.Menu
             foreach (LobbyListing round in rounds)
             {
                 LobbyListing chosen = round;
-                if (round.Country.Length == 2 && !countriesSeen.Contains(round.Country))
-                    countriesSeen.Add(round.Country);
+                string where = round.Regions.Length == 0 ? "" : "  " + string.Join(", ", Array.ConvertAll(round.Regions, LobbyFlags.RegionName));
                 string ping = round.PingMs < 0 ? "? ms" : $"{round.PingMs} ms";
                 string marks = (round.Mode != MatchMode.Solo ? "  " + HillMatch.ModeName(round.Mode) : "") + (round.Private ? "  private" : "") + (round.Modded ? "  modded" : "");
-                rows.Add(new RowList.Row(round.Host, $"{round.Map}  {round.Players}/{NetWorld.MaxPlayers}  {round.Country}{marks}  {ping}", "Join",
+                rows.Add(new RowList.Row(round.Host, $"{round.Map}  {round.Players}/{NetWorld.MaxPlayers}{where}{marks}  {ping}", "Join",
                                          () => { if (!busy) Choose(chosen); }));
             }
             list.Show(rows, keepPlace: again);
@@ -148,57 +155,80 @@ namespace KotH.Client.Menu
                 MenuTextBox.Focus(null);
         }
 
-        /// <summary>Escape: closes the password prompt; false when none was open.</summary>
+        /// <summary>Escape: closes an open drop-down or the password prompt; false when neither was open.</summary>
         public bool Cancel()
         {
+            if (Drops.Children.Count > 0)
+            {
+                Drops.Children.Clear();
+                return true;
+            }
             if (asking == null)
                 return false;
             AskFor(null);
             return true;
         }
 
-        // A filter as a pill: a click steps it on, a right click back; then the list searches again.
-        Border Pill(Action<int> step)
+        // A filter as a drop-down over the values; a choice searches again.
+        MenuDropdown Drop<T>(IReadOnlyList<T> values, Func<T> get, Action<T> set, Func<T, string> text)
         {
-            var pill = new Border
+            MenuDropdown drop = null;
+            drop = new MenuDropdown(Drops, () => Array.ConvertAll(Values(values), v => text(v)), () => IndexOf(values, get()), i =>
             {
-                Classes = { "Tab" }, Child = new TextBlock(), Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand),
-            };
-            pill.PointerPressed += (_, e) =>
-            {
-                step(e.GetCurrentPoint(pill).Properties.IsRightButtonPressed ? -1 : 1);
+                set(values[i]);
                 ShowFilter();
                 RefreshRequested?.Invoke();
-            };
-            Filters.Children.Add(pill);
-            return pill;
+            });
+            drops.Add((drop, () => (text(get()), get() != null)));
+            Filters.Children.Add(drop.Head);
+            return drop;
+        }
+
+        readonly List<(MenuDropdown Drop, Func<(string, bool)> Shown)> drops = new List<(MenuDropdown, Func<(string, bool)>)>();
+
+        bool Owner(Avalonia.Visual v)
+        {
+            foreach ((MenuDropdown drop, _) in drops)
+                if (drop.Owns(v))
+                    return true;
+            return false;
         }
 
         void ShowFilter()
         {
-            Say(access, Filter.Private switch { null => "Any access", true => "Private", false => "Public" });
-            Say(country, Filter.Country == null ? "Any country" : LobbyFlags.CountryName(Filter.Country));
-            Say(language, Filter.Language == null ? "Any language" : LobbyFlags.LanguageName(Filter.Language));
-            Say(modded, Filter.Modded switch { null => "Modded or not", true => "Modded", false => "Not modded" });
-            access.Classes.Set("Chosen", Filter.Private != null);
-            country.Classes.Set("Chosen", Filter.Country != null);
-            language.Classes.Set("Chosen", Filter.Language != null);
-            modded.Classes.Set("Chosen", Filter.Modded != null);
-            Say(mode, Filter.Mode?.ToString() ?? "Any mode");
-            mode.Classes.Set("Chosen", Filter.Mode != null);
+            foreach ((MenuDropdown drop, Func<(string, bool)> shown) in drops)
+            {
+                (string text, bool set) = shown();
+                drop.Show(text, set);
+            }
         }
 
-        static void Say(Border pill, string text) => ((TextBlock)pill.Child).Text = text;
-
-        // Any, the own country, then those the lists showed.
-        IReadOnlyList<string> Countries()
+        static T[] Values<T>(IReadOnlyList<T> values)
         {
-            var list = new List<string> { null };
-            if (SteamClient.IpCountry.Length == 2)
-                list.Add(SteamClient.IpCountry);
-            foreach (string c in countriesSeen)
-                if (!list.Contains(c))
-                    list.Add(c);
+            var copy = new T[values.Count];
+            for (int i = 0; i < copy.Length; i++)
+                copy[i] = values[i];
+            return copy;
+        }
+
+        static int IndexOf<T>(IReadOnlyList<T> values, T value)
+        {
+            for (int i = 0; i < values.Count; i++)
+                if (EqualityComparer<T>.Default.Equals(values[i], value))
+                    return i;
+            return -1;
+        }
+
+        // The own region by Steam's country and the PC's time zone.
+        static string OwnRegion => LobbyFlags.RegionOf(SteamClient.IpCountry, TimeZoneInfo.Local.BaseUtcOffset.TotalHours);
+
+        // Any, the own region, then the others.
+        static IReadOnlyList<string> Regions()
+        {
+            var list = new List<string> { null, OwnRegion };
+            foreach ((string code, _) in LobbyFlags.AllRegions)
+                if (!list.Contains(code))
+                    list.Add(code);
             return list;
         }
 
@@ -212,13 +242,19 @@ namespace KotH.Client.Menu
             return list;
         }
 
-        static T Next<T>(IReadOnlyList<T> values, T now, int step)
+        /// <summary>Test aid (KOTH_SHOT_FIND_DROP): opens filter n's list once the page is laid out.</summary>
+        public void Pretend(int n)
         {
-            int at = 0;
-            for (int i = 0; i < values.Count; i++)
-                if (EqualityComparer<T>.Default.Equals(values[i], now))
-                    at = i;
-            return values[(at + step + values.Count) % values.Count];
+            if (n < 0 || n >= drops.Count)
+                return;
+            void Laid(object sender, EventArgs e)
+            {
+                if (drops[n].Drop.Head.Bounds.Width <= 0)
+                    return;
+                LayoutUpdated -= Laid;
+                drops[n].Drop.Open();
+            }
+            LayoutUpdated += Laid;
         }
 
         /// <summary>A round is being entered; the list waits.</summary>

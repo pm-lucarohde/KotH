@@ -40,11 +40,11 @@ namespace KotH.Client.Settings
         public Keys[] Keys = DefaultKeys();
 
         // Hosting, from the Host page: the round's name, private or public and its flags. Never the password.
-        // An empty country or no language: Steam's guess for this player when hosting.
+        // No region or no language: Steam's guess for this player when hosting.
         public string HostName = "";
         public bool HostPrivate, HostModded;
         public KotH.Shared.Match.MatchMode HostMode;
-        public string HostCountry = "";
+        public string[] HostRegions = System.Array.Empty<string>();
         public string[] HostLanguages = System.Array.Empty<string>();
 
         public const float DefaultFov = 85f, MinFov = 60f, MaxFov = 120f;
@@ -74,6 +74,7 @@ namespace KotH.Client.Settings
             var copy = (PlayerSettings)MemberwiseClone();
             copy.Keys = (Keys[])Keys.Clone();
             copy.HostLanguages = (string[])HostLanguages.Clone();
+            copy.HostRegions = (string[])HostRegions.Clone();
             return copy;
         }
 

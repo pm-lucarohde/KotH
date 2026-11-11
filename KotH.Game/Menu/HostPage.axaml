@@ -1,5 +1,5 @@
-<!-- Host server: the round's name, public or private (with a password), country, languages and
-     modded, then Host; the choices but the password stay for next time (settings.toml [host]). -->
+<!-- Host server: the round's name, public or private (with a password), modded, up to 2 regions and
+     up to 4 languages, then Host; the choices but the password stay for next time (settings.toml [host]). -->
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="KotH.Client.Menu.HostPage"

@@ -1,4 +1,4 @@
-<!-- Find server: filters (access, country, language, modded; a click steps on, a right click back),
+<!-- Find server: filters as drop-downs (access, region, language, modded, mode; their lists open on Drops),
      the open KotH rounds on Steam with the same build, nearest first, a Join per round in a list that
      scrolls with the wheel; a word underneath, Refresh to search again; a direct-IP invite code. -->
 <UserControl xmlns="https://github.com/avaloniaui"
@@ -36,5 +36,7 @@
             <Panel Name="InviteField" Grid.Column="1" />
             <Button Name="JoinInvite" Grid.Column="2" Classes="Menu Small" Content="Join" Width="190" Margin="18,0,0,0" />
         </Grid>
+        <!-- An open drop-down's list, over everything below its filter -->
+        <Canvas Name="Drops" Grid.RowSpan="4" ZIndex="10" ClipToBounds="False" />
     </Grid>
 </UserControl>
