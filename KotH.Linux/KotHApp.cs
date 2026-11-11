@@ -52,6 +52,7 @@ StartLog.Took("steam", steamAt, SteamClient.Ready ? "ready" : SteamClient.Failur
 KotH.Client.Steam.SteamStats.Start();
 using var game = new KotHGame();
 game.Run();
+KotH.Client.Steam.SteamStats.Settle(3);
 SteamClient.Shutdown();
 
 /// <summary>The game: borderless fullscreen, F11 toggles the window. Plus test aids (KOTH_*

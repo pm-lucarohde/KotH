@@ -153,7 +153,7 @@ namespace KotH.Client
 
             LaunchOptions options = LaunchOptions.Current;
             CoverWhileLoading();
-            var pause = new PauseMenu { Driver = Entity.Get<SimulationDriver>(), ToMainMenu = ReturnToMenu, Library = builder.Library };
+            var pause = new PauseMenu { Driver = Entity.Get<SimulationDriver>(), ToMainMenu = ReturnToMenu, Library = builder.Library, Progress = Keeper() };
             Entity.Scene.Entities.Add(new Entity("PauseMenu") { pause });
             Entity.Scene.Entities.Add(new Entity("Chat") { new ChatBox { Driver = pause.Driver, Pause = pause } });
             Entity.Scene.Entities.Add(new Entity("Voice") { new VoiceChat { Driver = pause.Driver } });

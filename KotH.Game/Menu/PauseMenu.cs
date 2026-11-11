@@ -18,10 +18,10 @@ using Stride.Input;
 
 namespace KotH.Client.Menu
 {
-    /// <summary>What Escape opens in a game (Luca): Resume, Settings, To desktop and Main menu on a board over a
-    /// veil, in front of the load screen too; Invite friends in a Steam round, Map for the host in the lobby (opens
-    /// by itself on landing). The game runs on, the own figure lets go of every key (SimulationDriver.Paused). A
-    /// Steam invite accepted before the round runs goes to the main menu, which joins it.</summary>
+    /// <summary>What Escape opens in a game (Luca): Resume, Settings, To desktop and Main menu on a board over a veil,
+    /// in front of the load screen too; Invite friends in a Steam round, Map for the host in the lobby (opens by itself).
+    /// The own figure lets go of every key (SimulationDriver.Paused). An accepted Steam invite goes to the main menu,
+    /// which joins it. Leaving a running online round asks first, naming the XP it costs where XP counts.</summary>
     [DataContract("KotH.PauseMenu")]
     public sealed class PauseMenu : SyncScript, IHudElement
     {
@@ -36,6 +36,9 @@ namespace KotH.Client.Menu
         /// <summary>The driver it pauses the own input with; it stays shut while the main menu is open.</summary>
         [DataMemberIgnore] public SimulationDriver Driver { get; set; }
 
+        /// <summary>The XP keeper: whether leaving costs XP, and the penalty.</summary>
+        [DataMemberIgnore] public ProgressKeeper Progress { get; set; }
+
         /// <summary>The custom maps the host may choose besides the built-in ones.</summary>
         [DataMemberIgnore] public MapLibrary Library { get; set; }
 
@@ -47,13 +50,13 @@ namespace KotH.Client.Menu
         MenuOverlay board, page, confirm;
         MenuOverlay[] overlays;
         readonly OverlayPointer pointer = new OverlayPointer();
-        bool resumeWanted, menuWanted, quitWanted, confirming, locked;
+        bool resumeWanted, menuWanted, quitWanted, leaveWanted, confirming, toDesktop;
         float since;
 
         // The lobby session the map choice opened by itself for: once per landing.
         PeerSession landed;
 
-        // Test aid for shots: KOTH_SHOT_PAUSE=open, settings or menu, once per process.
+        // Test aid for shots: KOTH_SHOT_PAUSE=open, settings, menu or leave (Main menu once a round runs), once per process.
         static string pretend = Environment.GetEnvironmentVariable("KOTH_SHOT_PAUSE") is { Length: > 0 } p ? p : null;
 
         public override void Start()
@@ -70,9 +73,9 @@ namespace KotH.Client.Menu
             view.Confirmed += leave =>
             {
                 if (leave)
-                    quitWanted = true;
+                    leaveWanted = true;
                 else
-                    resumeWanted = true;
+                    confirming = false;
             };
             var parts = view.TakeParts();
             // In the middle of a screen 1080 high.
@@ -100,7 +103,7 @@ namespace KotH.Client.Menu
                 {
                     if (!Open)
                         Show(true);
-                    confirming = true;
+                    Ask(desktop: true);
                 }
             }
             if (Driver.InMenu)
@@ -134,7 +137,7 @@ namespace KotH.Client.Menu
             else if (!Hud.ChatBox.Busy && KeyPresses.Pressed(Input, Keys.Escape))
             {
                 if (confirming)
-                    Show(false);
+                    confirming = false;
                 else if (!Open)
                     Show(true);
                 else if (view.PageOpen)
@@ -152,9 +155,8 @@ namespace KotH.Client.Menu
                 overlay.Place(screen);
             pointer.Update(Input, screen, overlays);
             MenuOverlay.Tick(Game.UpdateTime.FrameCount);
-            // The round may end (or begin) while the menu is open: leaving unlocks (or locks).
-            if (locked != RoundRunning())
-                Offer();
+            if (confirming)
+                view.Ask(Penalty);
             if (view.PlayersShown && Game.UpdateTime.Total.TotalSeconds - listedAt > 0.5)
                 ListPlayers();
             board.Visible = !view.PageOpen && !confirming;
@@ -167,21 +169,43 @@ namespace KotH.Client.Menu
             // Out of Avalonia's dispatcher: the main menu removes the game.
             if (resumeWanted)
                 Show(false);
-            if (menuWanted && !locked)
+            if ((menuWanted || quitWanted) && RoundRunning())
+            {
+                Ask(desktop: quitWanted);
+                menuWanted = quitWanted = false;
+            }
+            if (leaveWanted)
+            {
+                if (Penalty)
+                    Progress.Forfeit();
+                (menuWanted, quitWanted) = (!toDesktop, toDesktop);
+            }
+            if (menuWanted)
             {
                 Show(false);
                 ToMainMenu?.Invoke();
             }
-            if (quitWanted && (!locked || confirming))
+            if (quitWanted)
                 ((GameBase)Game).Exit();
-            quitWanted = false;
+            quitWanted = leaveWanted = false;
         }
+
+        // "Leave the round?" before the main menu or the desktop.
+        void Ask(bool desktop)
+        {
+            confirming = true;
+            toDesktop = desktop;
+            view.Ask(Penalty);
+        }
+
+        // Leaving now costs XP: a running online round that counts for the own XP.
+        bool Penalty => RoundRunning() && Progress is { AtStake: true };
 
         void Show(bool open)
         {
             Open = open;
             Driver.Paused = open;
-            resumeWanted = menuWanted = confirming = false;
+            resumeWanted = menuWanted = leaveWanted = confirming = false;
             view.PageOpen = false;
             if (open)
                 Offer();
@@ -194,7 +218,7 @@ namespace KotH.Client.Menu
         }
 
         void Offer() => view.Offer(invite: Lobby != null || InviteCode != null, players: Talk != null,
-                                   maps: LobbyHost != null, locked = RoundRunning());
+                                   maps: LobbyHost != null);
 
         // The Steam round's chat and voice, for the Players page.
         Comms Talk => Lobby != null ? Services.GetService<NetClient>()?.Comms : null;
@@ -317,7 +341,7 @@ namespace KotH.Client.Menu
 
         void Pretend()
         {
-            if (pretend == null || Services.GetService<LoadScreen>() is { Covers: true })
+            if (pretend == null || Services.GetService<LoadScreen>() is { Covers: true } || pretend == "leave" && !RoundRunning())
                 return;
             string what = pretend;
             pretend = null;
@@ -328,7 +352,7 @@ namespace KotH.Client.Menu
                 view.Pretend(1);
                 view.SettingsView.Choose(Environment.GetEnvironmentVariable("KOTH_SHOT_SETTINGS") ?? "sound");
             }
-            else if (what == "menu")
+            else if (what is "menu" or "leave")
                 view.Pretend(2);
             else if (what == "players")
                 view.Pretend(4);

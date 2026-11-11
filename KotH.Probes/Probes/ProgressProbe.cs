@@ -5,7 +5,8 @@ using KotH.Shared.Match;
 namespace KotH.Probes.Probes
 {
     /// <summary>Levels and XP (Luca, 11.11.2026): the curve's fixed points and its order, then XpCounter
-    /// on made-up confirmed ticks: a running minute, the zone, a win, offline, a new round, the win pause.</summary>
+    /// on made-up confirmed ticks: a running minute, the zone, a win, offline, a new round, the win pause,
+    /// and leaving: 200 XP only out of a running round that counts.</summary>
     public sealed class ProgressProbe : Probe
     {
         protected override string Tag => "progress";
@@ -80,6 +81,21 @@ namespace KotH.Probes.Probes
                 c.Step(m, 0, false, true);
             }
             Check(c.Take() == (0, 0), "the countdown: nothing");
+            c.Forfeit();
+            Check(c.Take() == (0, 0), "leaving in the countdown: nothing");
+
+            m = new MatchState { Phase = MatchPhase.Running };
+            Play(Minute, false, online: false);
+            c.Forfeit();
+            Check(c.Take() == (0, 0), "leaving a round that does not count: nothing");
+            Play(Minute, false);
+            c.Forfeit();
+            c.Forfeit();
+            Check(c.Take() == (10 - XpCounter.LeaveXp, 0), "leaving a running round: 200 XP off what it earned, once");
+            m.Phase = MatchPhase.Over;
+            c.Step(m, score, false, true);
+            c.Forfeit();
+            Check(c.Take() == (0, 0), "leaving after the round's end: nothing");
         }
 
         void Check(bool ok, string what)

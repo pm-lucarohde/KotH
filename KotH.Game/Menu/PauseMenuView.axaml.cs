@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using KotH.Shared.Match;
 
 namespace KotH.Client.Menu
 {
@@ -32,7 +33,7 @@ namespace KotH.Client.Menu
         /// <summary>Map was chosen: time to list the maps.</summary>
         public event Action MapsOpened;
 
-        /// <summary>The question before closing the window in a running round: Leave (true) or Stay.</summary>
+        /// <summary>The question before leaving a running round: Leave (true) or Stay.</summary>
         public event Action<bool> Confirmed;
 
         readonly RowList rows = new RowList();
@@ -65,23 +66,27 @@ namespace KotH.Client.Menu
         /// <summary>Whether a page shows instead of the buttons.</summary>
         public bool PageOpen { get; set; }
 
-        /// <summary>The buttons for this game: Invite friends (and Players) in a Steam round, Map for the host in
-        /// the lobby; in a running online round leaving is locked (Main menu, To desktop greyed, a word why).</summary>
-        public void Offer(bool invite, bool players, bool maps, bool locked)
+        /// <summary>The buttons for this game: Invite friends (and Players) in a Steam round, Map for the host in the lobby.</summary>
+        public void Offer(bool invite, bool players, bool maps)
         {
             Invite.IsVisible = invite;
             Players.IsVisible = players;
             Maps.IsVisible = maps;
-            Quit.IsEnabled = ToMenu.IsEnabled = !locked;
-            Locked.IsVisible = locked;
             int extra = (invite ? 1 : 0) + (players ? 1 : 0) + (maps ? 1 : 0);
-            Board.Height = BoardHeight + ButtonStep * extra + (locked ? LockedHeight : 0);
+            Board.Height = BoardHeight + ButtonStep * extra;
+        }
+
+        /// <summary>The question's words: with a penalty, what leaving costs.</summary>
+        public void Ask(bool penalty)
+        {
+            string text = penalty ? $"The round is still running. Leaving it now costs {XpCounter.LeaveXp} XP."
+                                  : "The round is still running; the others play on without you.";
+            if (Why.Text != text)
+                Why.Text = text;
         }
 
         /// <summary>Whether the Players page shows.</summary>
         public bool PlayersShown => PageOpen && ListPage.IsVisible && PageTitle.Text == "Players";
-
-        const double LockedHeight = 60;
 
         /// <summary>The Settings page, which takes keys while one of its rows waits for one.</summary>
         public SettingsPage SettingsView => SettingsPage;

@@ -42,11 +42,13 @@ namespace KotH.Shared.Match
 
     /// <summary>The XP and wins one player earns, fed every confirmed tick (no rollback undoes those):
     /// 10 XP a minute of a running round, 1 per second the own team holds the zone, 100 and a win for
-    /// winning. Only while online with another person; what is taken (Take) goes to Steam.</summary>
+    /// winning. Only while online with another person; what is taken (Take) goes to Steam. Leaving a
+    /// round that counts costs LeaveXp (Forfeit).</summary>
     public sealed class XpCounter
     {
         public const int TicksPerPlayXp = 6 * HillMatch.TicksPerPoint;
         public const int WinXp = 100;
+        public const int LeaveXp = 200;
 
         int roundTicks, scoreTicks, playLeft, zoneLeft;
         bool over, seen;
@@ -54,6 +56,9 @@ namespace KotH.Shared.Match
         /// <summary>Earned and not yet taken.</summary>
         public int Xp { get; private set; }
         public int Wins { get; private set; }
+
+        /// <summary>Whether the last tick was of a running round that counts: leaving it now costs LeaveXp.</summary>
+        public bool AtStake { get; private set; }
 
         /// <summary>One confirmed tick: the round, the own body's score ticks, whether the own team won it.</summary>
         public void Step(in MatchState m, int ownScoreTicks, bool ownTeamWon, bool online)
@@ -67,6 +72,7 @@ namespace KotH.Shared.Match
             }
             bool won = seen && m.Over && !over && ownTeamWon;
             (roundTicks, scoreTicks, over, seen) = (m.RoundTicks, ownScoreTicks, m.Over, true);
+            AtStake = online && m.Phase == MatchPhase.Running;
             if (!online)
                 return;
 
@@ -101,6 +107,14 @@ namespace KotH.Shared.Match
 
         /// <summary>Test aid (KOTH_XP_SOLO=1): a round without another person counts too.</summary>
         public bool Solo { get; set; }
+
+        /// <summary>The player leaves: a round at stake costs LeaveXp (Luca, 11.11.2026).</summary>
+        public void Forfeit()
+        {
+            if (AtStake)
+                Xp -= LeaveXp;
+            AtStake = false;
+        }
 
         /// <summary>The XP and wins earned since the last take.</summary>
         public (int Xp, int Wins) Take()

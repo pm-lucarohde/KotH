@@ -7,7 +7,8 @@ namespace KotH.Client.Steam
 {
     /// <summary>The player's XP and wins as two Steam leaderboards ("KotH XP", "KotH Wins"), which are
     /// the truth; progress.toml only shows them while Steam has not answered. Earned values are added
-    /// (Add) and uploaded on Flush (keep best: a stale PC cannot lower them). Cheating needs a changed client.</summary>
+    /// (Add) and uploaded on Flush (keep best: a stale PC cannot lower them; only a penalty is forced down,
+    /// never below 0). Cheating needs a changed client.</summary>
     public static unsafe class SteamStats
     {
         public const int XpBoard = 0, WinsBoard = 1;
@@ -23,7 +24,7 @@ namespace KotH.Client.Steam
 
         // k_iSteamUserStatsCallbacks + 4, 5, 6 (call results) and PersonaStateChange_t.
         const int FoundId = 1104, DownloadedId = 1105, UploadedId = 1106, PersonaChangeId = 304;
-        const int Descending = 2, Numeric = 1, KeepBest = 1, Global = 0, Friends = 2;
+        const int Descending = 2, Numeric = 1, KeepBest = 1, ForceUpdate = 2, Global = 0, Friends = 2;
 
         /// <summary>Counts up whenever the own values change, for the menu to redraw.</summary>
         public static int Version { get; private set; }
@@ -35,8 +36,8 @@ namespace KotH.Client.Steam
         public static bool Known => own[XpBoard] >= 0 && own[WinsBoard] >= 0;
 
         /// <summary>The player's values on Steam plus what was earned since and is not there yet.</summary>
-        public static int Xp => Math.Max(own[XpBoard], 0) + earned[XpBoard] + sending[XpBoard];
-        public static int Wins => Math.Max(own[WinsBoard], 0) + earned[WinsBoard] + sending[WinsBoard];
+        public static int Xp => Math.Max(Math.Max(own[XpBoard], 0) + earned[XpBoard] + sending[XpBoard], 0);
+        public static int Wins => Math.Max(Math.Max(own[WinsBoard], 0) + earned[WinsBoard] + sending[WinsBoard], 0);
 
         /// <summary>Finds both boards and reads the own entries; again after a failure.</summary>
         public static void Start()
@@ -81,7 +82,7 @@ namespace KotH.Client.Steam
             });
         }
 
-        /// <summary>Earned in a confirmed round; goes to Steam on the next Flush.</summary>
+        /// <summary>Earned in a confirmed round (negative: a penalty); goes to Steam on the next Flush.</summary>
         public static void Add(int xp, int wins)
         {
             if (xp == 0 && wins == 0)
@@ -102,12 +103,13 @@ namespace KotH.Client.Steam
                     continue;
                 int board = b;
                 (sending[b], earned[b]) = (earned[b], 0);
-                int score = own[b] + sending[b];
-                SteamClient.Await(SteamAPI_ISteamUserStats_UploadLeaderboardScore(stats, boards[b], KeepBest, score, null, 0), (result, ok) =>
+                int score = Math.Max(own[b] + sending[b], 0);
+                bool down = sending[b] < 0;
+                SteamClient.Await(SteamAPI_ISteamUserStats_UploadLeaderboardScore(stats, boards[b], down ? ForceUpdate : KeepBest, score, null, 0), (result, ok) =>
                 {
                     // LeaderboardScoreUploaded_t: success, then the handle at Pack.
                     if (ok && *(byte*)result != 0)
-                        own[board] = Math.Max(own[board], score);
+                        own[board] = down ? score : Math.Max(own[board], score);
                     else
                     {
                         earned[board] += sending[board];
@@ -116,6 +118,33 @@ namespace KotH.Client.Steam
                     sending[board] = 0;
                     Changed();
                 });
+            }
+        }
+
+        /// <summary>Before Steam shuts down: flushes and waits for the answers, at most the given seconds,
+        /// so XP earned (or lost by leaving) just before quitting arrives.</summary>
+        public static void Settle(double seconds)
+        {
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            while (SteamClient.Ready && clock.Elapsed.TotalSeconds < seconds)
+            {
+                Flush();
+                if (Pending == 0)
+                    return;
+                SteamClient.RunFrame();
+                System.Threading.Thread.Sleep(10);
+            }
+        }
+
+        // What waits for Steam: earned on known boards plus what is on the way.
+        static int Pending
+        {
+            get
+            {
+                int n = 0;
+                for (int b = 0; b < 2; b++)
+                    n += sending[b] != 0 || boards[b] != 0 && own[b] >= 0 && earned[b] != 0 ? 1 : 0;
+                return n;
             }
         }
 

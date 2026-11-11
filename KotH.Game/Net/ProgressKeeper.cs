@@ -33,6 +33,17 @@ namespace KotH.Client.Net
             this.self = self;
         }
 
+        /// <summary>Whether leaving now costs XP: a running round that counts, as of the newest confirmed tick.</summary>
+        public bool AtStake => session != null && counter.AtStake;
+
+        /// <summary>The player chose to leave a running round: the penalty goes to Steam with the rest.</summary>
+        public void Forfeit()
+        {
+            Feed();
+            counter.Forfeit();
+            Hand();
+        }
+
         /// <summary>The game is left: what it earned goes to Steam.</summary>
         public void Unbind()
         {
