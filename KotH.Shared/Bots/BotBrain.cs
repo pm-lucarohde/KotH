@@ -213,8 +213,11 @@ namespace KotH.Shared.Bots
                 BotIntent was = intent;
                 int wasTarget = target;
                 Think(view, self, at, phase, knocked);
-                // Up the hill along the own route; inside the zone to the own spot.
-                bool toZone = match != null && intent != BotIntent.Attack && intent != BotIntent.Idle && !match.Contains(at);
+                // Up the hill along the own route; inside the zone to the own spot. A target in the zone is
+                // climbed to the same way: straight at it the search ends on the floor nearest below it.
+                int ti = intent == BotIntent.Attack ? IndexOf(view, target) : -1;
+                bool upToTarget = ti >= 0 && match != null && match.Contains(view.StateAt(ti).Motor.Position);
+                bool toZone = match != null && (intent != BotIntent.Attack || upToTarget) && intent != BotIntent.Idle && !match.Contains(at);
                 // Teams: all go the lead's way, chosen from where the lead stands (its route counts on with the NetId).
                 if (toZone && variant < 0)
                     variant = leadId != 0 && Seen(view, leadId, ahead, out Vector3 leader)
