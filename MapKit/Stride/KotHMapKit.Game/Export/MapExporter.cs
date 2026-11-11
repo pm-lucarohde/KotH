@@ -104,6 +104,24 @@ namespace KotH.MapKit
             z.SizeX = Math.Abs(scale.X);
             z.SizeY = Math.Abs(scale.Y);
             z.SizeZ = Math.Abs(scale.Z);
+            z.Shape = c.Shape.ToString().ToLowerInvariant();
+            if (c.Shape == MapZoneShape.Polygon)
+            {
+                // Corners from the children's places, relative to the centre; the box spans them.
+                var corners = new List<float>();
+                foreach (TransformComponent child in c.Entity.Transform.Children)
+                {
+                    Vector3 p = child.WorldMatrix.TranslationVector;
+                    corners.Add(p.X - at.X);
+                    corners.Add(p.Z - at.Z);
+                }
+                z.Corners = corners.ToArray();
+                for (int i = 0; i + 1 < z.Corners.Length; i += 2)
+                {
+                    z.SizeX = Math.Max(z.SizeX, 2f * Math.Abs(z.Corners[i]));
+                    z.SizeZ = Math.Max(z.SizeZ, 2f * Math.Abs(z.Corners[i + 1]));
+                }
+            }
             z.CaptureSeconds = c.CaptureSeconds;
             z.WinPoints = c.WinPoints;
             z.TimeLimitMinutes = c.TimeLimitMinutes;

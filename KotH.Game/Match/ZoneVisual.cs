@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using KotH.Client.Hud;
 using KotH.Shared.Match;
@@ -14,7 +15,7 @@ using Stride.Rendering.Materials;
 
 namespace KotH.Client.Match
 {
-    /// <summary>Draws the capture zone as glowing rails along its floor edges, with motes rising off them, in the
+    /// <summary>Draws the capture zone as glowing rails along its floor outline, with motes rising off them, in the
     /// colour of what the zone does for this screen. Built from the zone's box once the game root has wired it, so
     /// moving the zone in the arena moves the rails along. Presentation only.</summary>
     [DataContract("KotH.ZoneVisual")]
@@ -84,6 +85,11 @@ namespace KotH.Client.Match
             Vector3 s = Zone.Size;
             float bottom = -s.Y * 0.5f + Lift;
             float y = bottom + RailHeight * 0.5f;
+            if (Zone.Shape == ZoneShape.Cylinder || Zone.Shape == ZoneShape.Polygon && Zone.Corners.Count >= 3)
+            {
+                Outline(Corners(s), bottom, y);
+                return;
+            }
             float inX = (s.X - Thickness) * 0.5f, inZ = (s.Z - Thickness) * 0.5f;
 
             Part(new Vector3(0f, y, -inZ), new Vector3(s.X, RailHeight, Thickness));
@@ -95,6 +101,53 @@ namespace KotH.Client.Match
             AddMotes(new Vector3(0f, bottom, inZ), 0f, s.X);
             AddMotes(new Vector3(-inX, bottom, 0f), MathUtil.PiOverTwo, s.Z);
             AddMotes(new Vector3(inX, bottom, 0f), MathUtil.PiOverTwo, s.Z);
+        }
+
+        /// <summary>The floor outline: the drawn corners, or the ellipse in segments of about half a metre.</summary>
+        List<Vector2> Corners(Vector3 s)
+        {
+            if (Zone.Shape == ZoneShape.Polygon)
+                return new List<Vector2>(Zone.Corners);
+            float rx = s.X * 0.5f, rz = s.Z * 0.5f;
+            int n = Math.Max(24, (int)MathF.Ceiling(MathUtil.TwoPi * Math.Max(rx, rz) / 0.5f));
+            var ring = new List<Vector2>(n);
+            for (int i = 0; i < n; i++)
+            {
+                float a = MathUtil.TwoPi * i / n;
+                ring.Add(new Vector2(rx * MathF.Cos(a), rz * MathF.Sin(a)));
+            }
+            return ring;
+        }
+
+        // A rail along every edge, half its width inside, long enough to close the
+        // joints. Motes per stretch of about 2 m, so a round zone keeps few emitters.
+        void Outline(List<Vector2> c, float bottom, float y)
+        {
+            float area = 0f;
+            for (int i = 0, j = c.Count - 1; i < c.Count; j = i++)
+                area += c[j].X * c[i].Y - c[i].X * c[j].Y;
+            float inward = area > 0f ? 1f : -1f;
+            int from = 0;
+            float run = 0f;
+            for (int i = 0; i < c.Count; i++)
+            {
+                Vector2 a = c[i], b = c[(i + 1) % c.Count], d = b - a;
+                float length = d.Length();
+                if (length < 1e-4f)
+                    continue;
+                Vector2 n = new Vector2(-d.Y, d.X) / length * (inward * Thickness * 0.5f);
+                Vector2 mid = (a + b) * 0.5f + n;
+                Quaternion turn = Quaternion.RotationY(MathF.Atan2(-d.Y, d.X));
+                Part(new Vector3(mid.X, y, mid.Y), new Vector3(length + Thickness, RailHeight, Thickness), turn);
+                run += length;
+                if (run >= 2f || i == c.Count - 1)
+                {
+                    Vector2 p = c[from], q = b, e = q - p, at = (p + q) * 0.5f + n;
+                    AddMotes(new Vector3(at.X, bottom, at.Y), MathF.Atan2(-e.Y, e.X), e.Length());
+                    from = i + 1;
+                    run = 0f;
+                }
+            }
         }
 
         // One side's motes: the prefab's metre of rail stretched to its length,
@@ -132,12 +185,15 @@ namespace KotH.Client.Match
                 }
         }
 
-        void Part(Vector3 at, Vector3 scale)
+        void Part(Vector3 at, Vector3 scale) => Part(at, scale, Quaternion.Identity);
+
+        void Part(Vector3 at, Vector3 scale, Quaternion turn)
         {
             // Light, not a solid: nothing of the zone throws a shadow.
             var model = new ModelComponent(Cube) { IsShadowCaster = false, RenderGroup = RailGroup };
             var part = new Entity("ZonePart") { model };
             part.Transform.Position = at;
+            part.Transform.Rotation = turn;
             part.Transform.Scale = scale;
             Entity.AddChild(part);
         }

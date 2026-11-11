@@ -77,6 +77,8 @@ namespace KotH.Shared.Match
         readonly Vector3 center;
         readonly Vector3 half;
         readonly Quaternion inverse;
+        readonly ZoneShape shape;
+        readonly Vector2[] corners;
 
         MatchState state;
 
@@ -84,6 +86,12 @@ namespace KotH.Shared.Match
         {
             center = zone.Entity.Transform.Position;
             half = UMath.Mul(zone.Size, 0.5f);
+            shape = zone.Shape == ZoneShape.Polygon && (zone.Corners?.Count ?? 0) < 3 ? ZoneShape.Box : zone.Shape;
+            corners = shape == ZoneShape.Polygon ? zone.Corners.ToArray() : Array.Empty<Vector2>();
+
+            // A polygon's half size is the reach of its corners, for the bots' sense of the zone.
+            foreach (Vector2 c in corners)
+                half = new Vector3(UMath.Max(half.X, UMath.Abs(c.X)), half.Y, UMath.Max(half.Z, UMath.Abs(c.Y)));
 
             // A unit quaternion's inverse is its conjugate.
             Quaternion r = zone.Entity.Transform.Rotation;
@@ -170,7 +178,7 @@ namespace KotH.Shared.Match
         /// <summary>Whether the round plays in chained teams.</summary>
         public bool Teamed => state.Mode != MatchMode.Solo;
 
-        /// <summary>The middle of the zone's box and half its size, for the bots.</summary>
+        /// <summary>The middle of the zone and half its bounding box, for the bots.</summary>
         public Vector3 Center => center;
         public Vector3 HalfSize => half;
 
@@ -207,8 +215,28 @@ namespace KotH.Shared.Match
         public bool Contains(Vector3 point)
         {
             Vector3 local = UMath.Rotate(inverse, UMath.Sub(point, center));
-            return UMath.Abs(local.X) <= half.X && UMath.Abs(local.Y) <= half.Y &&
-                   UMath.Abs(local.Z) <= half.Z;
+            if (shape == ZoneShape.Box)
+                return UMath.Abs(local.X) <= half.X && UMath.Abs(local.Y) <= half.Y &&
+                       UMath.Abs(local.Z) <= half.Z;
+            if (UMath.Abs(local.Y) > half.Y)
+                return false;
+            if (shape == ZoneShape.Cylinder)
+            {
+                float x = local.X / half.X, z = local.Z / half.Z;
+                return x * x + z * z <= 1f;
+            }
+            return Inside(corners, local.X, local.Z);
+        }
+
+        /// <summary>Even-odd test of a floor point against the drawn corners (Y holds Z).</summary>
+        static bool Inside(Vector2[] c, float x, float z)
+        {
+            bool inside = false;
+            for (int i = 0, j = c.Length - 1; i < c.Length; j = i++)
+                if ((c[i].Y > z) != (c[j].Y > z) &&
+                    x < (c[j].X - c[i].X) * (z - c[i].Y) / (c[j].Y - c[i].Y) + c[i].X)
+                    inside = !inside;
+            return inside;
         }
 
         /// <summary>Puts the round back to a captured tick.</summary>

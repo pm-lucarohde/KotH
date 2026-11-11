@@ -15,6 +15,11 @@ namespace KotH.MapFormat
     {
         public float X, Y = 2f, Z;
         public float SizeX = 12f, SizeY = 3.5f, SizeZ = 12f;
+
+        /// <summary>box, cylinder (the ellipse in SizeX and SizeZ) or polygon (Corners, with SizeY).</summary>
+        public string Shape = "box";
+        /// <summary>Polygon corners as x, z pairs in metres from the zone's centre, in order.</summary>
+        public float[] Corners = Array.Empty<float>();
         public float CaptureSeconds = 3f;
         public int WinPoints = 100;
         public float TimeLimitMinutes = 20f;
@@ -54,6 +59,7 @@ namespace KotH.MapFormat
         public readonly SortedDictionary<string, double> Bots = new SortedDictionary<string, double>(StringComparer.Ordinal);
 
         public static readonly string[] Visibilities = { "public", "friends", "unlisted", "private" };
+        public static readonly string[] Shapes = { "box", "cylinder", "polygon" };
 
         public static MapManifest Parse(string text)
         {
@@ -95,7 +101,14 @@ namespace KotH.MapFormat
                 RingInner = (float)z.Number("ring_inner", 0),
                 RingOuter = (float)z.Number("ring_outer", 0),
                 RingSpacing = (float)z.Number("ring_spacing", 6),
+                Shape = z.String("shape", "box"),
             };
+            if (Array.IndexOf(Shapes, m.Zone.Shape) < 0)
+                throw new FormatException($"zone shape \"{m.Zone.Shape}\": box, cylinder or polygon");
+            double[] corners = z.Numbers("corners") ?? Array.Empty<double>();
+            if (m.Zone.Shape == "polygon" && (corners.Length < 6 || corners.Length % 2 != 0))
+                throw new FormatException("zone corners = [x1, z1, x2, z2, x3, z3, ...]: at least 3 pairs");
+            m.Zone.Corners = Array.ConvertAll(corners, c => (float)c);
             foreach (TomlTable s in t.Array("spawn"))
                 m.Spawns.Add(Spawn(s, "spawn"));
             if (m.Spawns.Count == 0)
@@ -139,6 +152,11 @@ namespace KotH.MapFormat
              .Key("countdown_seconds", z.CountdownSeconds).Key("join_seconds", z.JoinSeconds)
              .Key("respawn_below", z.RespawnBelow)
              .Key("ring_inner", z.RingInner).Key("ring_outer", z.RingOuter).Key("ring_spacing", z.RingSpacing);
+            // A box writes neither, so box maps read the same in games before shapes.
+            if (z.Shape != "box")
+                w.Key("shape", z.Shape);
+            if (z.Shape == "polygon")
+                w.Key("corners", Array.ConvertAll(z.Corners, c => (double)c));
             if (Dummies != null)
                 WriteSpawn(w.Table("dummies"), Dummies);
             if (Bots.Count > 0)

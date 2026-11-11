@@ -33,6 +33,10 @@ namespace KotH.MapFormat
         public double[] Numbers(string key, int length)
             => Values.TryGetValue(key, out object v) && v is double[] a && a.Length == length ? a : null;
 
+        /// <summary>A flat array of numbers of any length, null when missing.</summary>
+        public double[] Numbers(string key)
+            => Values.TryGetValue(key, out object v) && v is double[] a ? a : null;
+
         public static TomlTable Parse(string text)
         {
             var root = new TomlTable();

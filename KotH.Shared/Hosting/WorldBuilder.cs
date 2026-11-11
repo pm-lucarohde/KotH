@@ -159,7 +159,10 @@ namespace KotH.Shared.Hosting
                 SpawnRingInner = z.RingInner,
                 SpawnRingOuter = z.RingOuter,
                 SpawnSpacing = z.RingSpacing,
+                Shape = z.Shape == "cylinder" ? ZoneShape.Cylinder : z.Shape == "polygon" ? ZoneShape.Polygon : ZoneShape.Box,
             };
+            for (int i = 0; i + 1 < z.Corners.Length; i += 2)
+                Zone.Corners.Add(new Vector2(z.Corners[i], z.Corners[i + 1]));
             Mark(new Entity("CaptureZone") { Zone }, zoneAt, Quaternion.Identity);
 
             Mark(new Entity("PlayerSpawn"), Feet(m.Spawns[0]), Facing(m.Spawns[0], zoneAt));

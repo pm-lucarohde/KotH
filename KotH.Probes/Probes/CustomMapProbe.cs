@@ -28,6 +28,30 @@ namespace KotH.Probes.Probes
 
         public CustomMapProbe(string repo) => folder = Path.Combine(repo, "KotH.Probes", "Resources", "MapPackages", "Sample");
 
+        /// <summary>Zone shapes: a polygon reads back from map.toml, and each shape's inside test.</summary>
+        void Shapes()
+        {
+            var m = new MapManifest();
+            m.Spawns.Add(new MapSpawn());
+            m.Zone.Shape = "polygon";
+            m.Zone.Corners = new[] { -2f, -2f, 2f, -2f, 0f, 2f };
+            MapZone back = MapManifest.Parse(m.ToString()).Zone;
+            Check(back.Shape == "polygon" && back.Corners.Length == 6 && back.Corners[5] == 2f, "a polygon zone reads back");
+
+            HillMatch Match(ZoneShape shape)
+            {
+                var zone = new CaptureZone { Size = new Vector3(4f, 2f, 4f), Shape = shape };
+                zone.Corners.AddRange(new[] { new Vector2(-2f, -2f), new Vector2(2f, -2f), new Vector2(0f, 2f) });
+                _ = new Entity { zone };
+                return new HillMatch(zone);
+            }
+            Vector3 corner = new Vector3(1.8f, 0f, 1.8f), edge = new Vector3(0f, 0f, 1.9f), high = new Vector3(0f, 1.1f, 0f);
+            HillMatch box = Match(ZoneShape.Box), round = Match(ZoneShape.Cylinder), drawn = Match(ZoneShape.Polygon);
+            Check(box.Contains(corner) && !round.Contains(corner) && round.Contains(edge) && !box.Contains(high), "box and cylinder");
+            Check(drawn.Contains(new Vector3(0f, 0f, -1.9f)) && !drawn.Contains(corner) && drawn.Contains(new Vector3(0f, 0f, 1.9f)) &&
+                  !drawn.Contains(new Vector3(1.2f, 0f, 1f)) && !drawn.Contains(high), "polygon");
+        }
+
         public override int Run(HeadlessWorld world, int maxTicks)
         {
             MapPackage package = world.Builder.Library.AddFolder(folder);
@@ -53,6 +77,7 @@ namespace KotH.Probes.Probes
                 Check(Vector3.Dot(ahead, toZone) > 0.97f, $"slot {slot} faces the zone ({Vector3.Dot(ahead, toZone):F3})");
             }
             Check(world.Find("PlayerSpawn") != null && world.Find("DummySpawn") != null, "offline and dummy markers");
+            Shapes();
 
             WorldQueries q = world.Queries;
             Check(q.Raycast(new Vector3(0f, 10f, 0f), new Vector3(0f, -1f, 0f), 20f, WorldQueries.WorldMask, out var top)

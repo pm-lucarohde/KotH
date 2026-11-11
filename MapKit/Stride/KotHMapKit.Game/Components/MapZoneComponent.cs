@@ -4,6 +4,8 @@ using Stride.Engine.Design;
 
 namespace KotH.MapKit
 {
+    public enum MapZoneShape { Box, Cylinder, Polygon }
+
     /// <summary>The hill's zone: the entity's position is its centre and its scale its size in
     /// metres (the kit's zone box shows it). Exactly one per map; never exported as geometry.</summary>
     [DataContract("KotH.MapKit.MapZone")]
@@ -11,6 +13,8 @@ namespace KotH.MapKit
     [ComponentCategory("KotH map")]
     public sealed class MapZoneComponent : EntityComponent
     {
+        /// <userdoc>Box: the scale's box. Cylinder: the ellipse in the scale's X and Z (equal for a circle). Polygon: draw it with child entities, one per corner in child order; the scale's Y is the height.</userdoc>
+        [DataMember(5)] public MapZoneShape Shape { get; set; } = MapZoneShape.Box;
         /// <userdoc>Seconds alone inside to take the zone.</userdoc>
         [DataMember(10)] public float CaptureSeconds { get; set; } = 3f;
         /// <userdoc>Points that win the round (one per second held).</userdoc>

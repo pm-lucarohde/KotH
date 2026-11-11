@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Stride.Core;
 using Stride.Core.Mathematics;
 using Stride.Engine;
@@ -5,6 +6,9 @@ using Stride.Engine.Design;
 
 namespace KotH.Shared.Match
 {
+    /// <summary>The zone's floor outline: a rectangle, an ellipse in the size, or drawn corners.</summary>
+    public enum ZoneShape { Box, Cylinder, Polygon }
+
     /// <summary>The hill: a box in the arena and the rules of the round played for it.
     /// Carries no collider, the box is asked with plain arithmetic, so the zone needs no
     /// physics layer and stays out of every motor query. Read once when a HillMatch
@@ -16,6 +20,12 @@ namespace KotH.Shared.Match
     {
         /// <userdoc>Width, height and depth of the zone in metres, around the entity's centre. What counts is where the body's centre stands.</userdoc>
         [Display("Size", "Zone")] public Vector3 Size = new Vector3(12f, 3.5f, 12f);
+
+        /// <userdoc>Box: the size's rectangle. Cylinder: the ellipse in the size's width and depth (equal for a circle). Polygon: the corners below, with the size's height.</userdoc>
+        [Display("Shape", "Zone")] public ZoneShape Shape = ZoneShape.Box;
+
+        /// <userdoc>Polygon only: the floor's corners in order, X and Z in metres from the entity's centre (at least 3).</userdoc>
+        [Display("Corners", "Zone")] public List<Vector2> Corners = new List<Vector2>();
 
         /// <userdoc>How long one must stand alone in the zone to capture it, in seconds. Then it scores a point per second while one stays inside, even when others join.</userdoc>
         [Display("Capture time", "Rules")] public float WarmupSeconds = 3f;

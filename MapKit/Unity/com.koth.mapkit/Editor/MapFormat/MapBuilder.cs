@@ -47,6 +47,8 @@ namespace KotH.MapFormat
             MapZone z = manifest.Zone;
             if (z.SizeX <= 0 || z.SizeY <= 0 || z.SizeZ <= 0)
                 r.Errors.Add("The zone needs a size above 0 on every axis.");
+            if (z.Shape == "polygon" && z.Corners.Length < 6)
+                r.Errors.Add("A polygon zone needs at least 3 corners.");
 
             // The solid: every mesh but the decoration, in one soup.
             var positions = new List<float>();

@@ -17,7 +17,7 @@ Add the **KotH map** components:
 | Component | On | What it does |
 |---|---|---|
 | Map info | any object, once | folder name, title, author, description, workshop visibility, change note |
-| Map zone | the zone, once | position = centre, scale = size in metres; capture rules, respawn height |
+| Map zone | the zone, once | position = centre, scale = size in metres; shape box, cylinder or polygon (corners = child objects in order); rules |
 | Map spawn | a figure | a player's feet; face the zone or the object's forward; up to 12 |
 | Map object | an object or a group | shadow Baked / Live / Off, collision Mesh / None / InvisibleWall, template |
 | Map bots | any object, optional | bot tuning by name (see the component's description) |

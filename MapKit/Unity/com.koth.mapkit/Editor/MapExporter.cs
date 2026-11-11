@@ -99,6 +99,24 @@ namespace KotH.MapKit.Editor
             z.SizeX = Math.Abs(scale.x);
             z.SizeY = Math.Abs(scale.y);
             z.SizeZ = Math.Abs(scale.z);
+            z.Shape = c.shape.ToString().ToLowerInvariant();
+            if (c.shape == MapZoneShape.Polygon)
+            {
+                // Corners from the children's places, relative to the centre; the box spans them.
+                var corners = new List<float>();
+                foreach (Transform child in c.transform)
+                {
+                    Vector3 p = Game(child.position);
+                    corners.Add(p.x - at.x);
+                    corners.Add(p.z - at.z);
+                }
+                z.Corners = corners.ToArray();
+                for (int i = 0; i + 1 < z.Corners.Length; i += 2)
+                {
+                    z.SizeX = Math.Max(z.SizeX, 2f * Math.Abs(z.Corners[i]));
+                    z.SizeZ = Math.Max(z.SizeZ, 2f * Math.Abs(z.Corners[i + 1]));
+                }
+            }
             z.CaptureSeconds = c.captureSeconds;
             z.WinPoints = c.winPoints;
             z.TimeLimitMinutes = c.timeLimitMinutes;
