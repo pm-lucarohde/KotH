@@ -20,6 +20,7 @@ using Pts = System.Collections.Generic.List<(double X, double Y)>;
 const int Bold = 5;         // Accuratist has one thin weight: a stroke in pixels fattens the title
 const int S = 2;            // pixels per design pixel
 const int Pad = 24;         // design pixels round every picture for its shadow
+const int Fade = 10;        // the frames' shadow fades out over this many of them
 const int Seed = 7;
 // Lip heights in design pixels; MainMenuView.axaml and MenuTheme.axaml shift the text up by
 // half of them (and down again on a press).
@@ -120,7 +121,9 @@ static PilImage Flat((int W, int H) size, int[] colour, int alpha = 255) =>
     new("RGBA", size.W, size.H, (byte)colour[0], (byte)colour[1], (byte)colour[2], (byte)alpha);
 
 // A wide soft shadow plus a tight contact shadow under the picture.
-static PilImage Shadow(PilImage img, PilImage mask, int dy = 6, double radius = 6, double strength = 95)
+// fade: the shadow runs out to nothing over the picture's outer Fade pixels (the bamboo frame
+// reaches past Pad, so its shadow would end in a hard line over a busy background).
+static PilImage Shadow(PilImage img, PilImage mask, int dy = 6, double radius = 6, double strength = 95, bool fade = false)
 {
     var output = new PilImage("RGBA", mask.Width, mask.Height, 0, 0, 0, 0);
     foreach (var (off, blur, k) in new[] { (dy, radius, strength), (Py.FloorDiv(dy, 3), radius / 4, strength * 0.6) })
@@ -132,6 +135,15 @@ static PilImage Shadow(PilImage img, PilImage mask, int dy = 6, double radius = 
         lay.PutAlpha(sh);
         output.AlphaComposite(lay);
     }
+    if (fade)
+        for (int y = 0; y < output.Height; y++)
+            for (int x = 0; x < output.Width; x++)
+            {
+                double edge = Math.Min(Math.Min(x, output.Width - 1 - x), Math.Min(y, output.Height - 1 - y)) / (double)(Fade * S);
+                double t = Math.Clamp(edge, 0, 1);
+                ref byte a = ref output.Data[(y * output.Width + x) * 4 + 3];
+                a = (byte)Math.Round(a * t * t * (3 - 2 * t));
+            }
     output.AlphaComposite(img);
     return output;
 }
@@ -284,7 +296,7 @@ PilImage Framed(int w, int h, PyRandom random)
     foreach (var (cx, cy) in new[] { (p, p), (p + w * S, p), (p, p + h * S), (p + w * S, p + h * S) })
         Twine(poles, cx, cy);
     pic.AlphaComposite(poles);
-    return Shadow(pic, PilImage.Lighter(mask, poles.GetChannel(3)), 7, 6, 110);
+    return Shadow(pic, PilImage.Lighter(mask, poles.GetChannel(3)), 7, 6, 110, fade: true);
 }
 
 // Light and dark masks of a rounded bevel width pixels wide on the mask's edge, lit from the
