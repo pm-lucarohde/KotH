@@ -78,8 +78,9 @@ shader FigureShadowMask : ImageEffectShader, SunShadowCommon
         return float4(shadow, 0.0, 0.0, 1.0);
     }
 
-    // 1 where the tile's shadow can fall on the point: within the screen it reaches, behind its sun
-    // side by no more than a throw, and no farther from its rectangle than the widest penumbra there.
+    // 1 where the tile's shadow can fall on the point: within the screen it reaches, behind its sun side
+    // by no more than a throw, and no farther from its rectangle than the pyramid's blur of the widest
+    // penumbra there reaches (2.1 radii: blocks of the radius and the next level's, read a block apart).
     float Reaches(float3 position, int tile, float2 screen)
     {
         float4 view = TileScreens[tile];
@@ -90,7 +91,7 @@ shader FigureShadowMask : ImageEffectShader, SunShadowCommon
         float metres = TileScales[tile].y, texel = TileScales[tile].z;
         float gap = q.z * metres;
         float2 outside = max(rect.xy - q.xy, q.xy - rect.zw) * ShadowMapSize;
-        float reach = min(gap, Throw + metres) * SunTangent / texel + 3.0;
+        float reach = 2.2 * min(gap, Throw + metres) * SunTangent / texel + 3.0;
         return q.z > 0.0 && gap < Throw + metres && max(outside.x, outside.y) < reach ? 1.0 : 0.0;
     }
 

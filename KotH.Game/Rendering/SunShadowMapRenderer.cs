@@ -317,7 +317,7 @@ namespace KotH.Client.Rendering
             for (int c = 0; c < clusters; c++)
             {
                 Bounds(clusterMin[c], clusterMax[c], right, up, along, out Vector3 low, out Vector3 high);
-                float far = high.Z + Throw, wider = (far - low.Z) * tangent + 0.1f;
+                float far = high.Z + Throw, wider = 2.2f * (far - low.Z) * tangent + 0.1f;
                 bool behind = false;
                 int left = 0, rightOf = 0, below = 0, above = 0, before = 0;
                 var screen = new Vector4(1f, 1f, 0f, 0f);
