@@ -40,7 +40,8 @@ namespace KotH.Shared.Bots
 
         const int MaxFloors = 4;
         const float WalkDown = 0.6f;       // lower than this is a drop, not a step
-        const float JumpReach = 2.5f;      // metres a jump up carries across
+        const float JumpReach = 2.5f;      // metres a jump up carries across with no hole before it
+        const float GapDown = 6f;          // the deepest landing across a hole
         const float MinRun = 0.75f;        // a jump from closer to the step than this pays for the lack of run-up
         const float Run = 6f;              // m/s for costs, about what the motor makes uphill
         const float NoiseScale = 15f;      // metres per wave of a variant's cost noise
@@ -65,7 +66,7 @@ namespace KotH.Shared.Bots
 
         readonly float x0, z0, cell;
         readonly int nx, nz;
-        readonly float stepUp, jumpUp, doubleUp, gapMax, standHeight, radius;
+        readonly float stepUp, jumpUp, doubleUp, gapMax, standHeight, radius, walk, jumpSpeed, gravity;
 
         // Surfaces per column, top down; facing 1 floor-flat up, 0 steep up, -1 down.
         int[] surfStart;
@@ -116,6 +117,15 @@ namespace KotH.Shared.Bots
             to = FeetOn(linkTo[i]);
             return linkKind[i];
         }
+        /// <summary>The moves leaving a floor as link indices from first to before end, and one's cost; for probes.</summary>
+        public void LinksOf(int floor, out int first, out int end)
+        {
+            first = floor < 0 ? 0 : linkStart[floor];
+            end = floor < 0 ? 0 : linkStart[floor + 1];
+        }
+        public float LinkCost(int i) => linkCost[i];
+        public Vector3 FloorFeet(int floor) => FeetOn(floor);
+
         /// <summary>The highest surface under a height at a point, MinValue for none; for probes.</summary>
         public float SurfaceAt(float x, float z, float under)
         {
@@ -142,6 +152,18 @@ namespace KotH.Shared.Bots
             jumpUp = s.JumpUp;
             doubleUp = s.DoubleJumpUp;
             gapMax = s.GapMax;
+            walk = motor.WalkSpeed;
+            gravity = motor.Gravity;
+            jumpSpeed = UMath.Sqrt(motor.JumpHeight * -2f * gravity);
+        }
+
+        // Whether one jump at walking speed carries this far (from a floor's middle) and
+        // comes down this high, with a margin; else it takes the double jump.
+        bool SingleReaches(float across, float rise)
+        {
+            float under = jumpSpeed * jumpSpeed + 2f * gravity * rise;
+            return rise <= jumpUp && under >= 0f &&
+                   across <= 0.25f + 0.85f * walk * (jumpSpeed + UMath.Sqrt(under)) / -gravity;
         }
 
         /// <summary>
@@ -363,10 +385,9 @@ namespace KotH.Shared.Bots
             return above;
         }
 
-        // Whether a column holds anything solid between two heights: a top
-        // inside, or only tops above (rays start inside a solid and see
-        // nothing, so a pillar shows its top alone). A top above with
-        // ground below the band is an overhang over open air.
+        // Whether a column holds anything solid between two heights: a top inside, or only
+        // surfaces above whose lowest looks up (a shell without a bottom: a pillar shows its top
+        // alone). An underside lowest (a floating island) or ground below is open air.
         bool Solid(int col, float low, float high)
         {
             bool above = false;
@@ -374,7 +395,7 @@ namespace KotH.Shared.Bots
             {
                 if (surfY[i] > high)
                 {
-                    above = true;
+                    above = surfFacing[i] >= 0;
                     continue;
                 }
                 return surfY[i] > low;
@@ -420,10 +441,11 @@ namespace KotH.Shared.Bots
                 }
         }
 
-        /// <summary>Looks out from every floor in 16 directions, a quarter metre at a
-        /// time. Where the own level ends: the first lower column is a drop, a floor
-        /// higher within reach a jump or double jump, a floor at the own level after a
-        /// hole a gap jump. Anything in the flight is a wall.</summary>
+        /// <summary>Looks out from every floor in 16 directions, a quarter metre at a time. Where the own
+        /// level ends: the first lower column is a drop, a floor higher within reach a jump or double
+        /// jump. After a hole, within the gap's reach, a floor higher, level or lower (a ledge over the
+        /// hole's bottom) is a gap jump. Anything in the flight is a wall.</summary>
+
         void FindLinks()
         {
             var from = new List<int>();
@@ -441,7 +463,7 @@ namespace KotH.Shared.Bots
                 {
                     int last = floorCol[f];
                     bool dropped = false;
-                    float obstacle = float.MinValue;
+                    float obstacle = float.MinValue, hole = float.MaxValue;
                     for (int k = 1; k <= steps; k++)
                     {
                         float out_ = k * 0.25f;
@@ -468,7 +490,7 @@ namespace KotH.Shared.Bots
                         }
 
                         int up = Lowest(col, y + stepUp, y + doubleUp);
-                        if (up >= 0 && out_ <= JumpReach && obstacle <= floorY[up] + 0.1f)
+                        if (up >= 0 && out_ <= (dropped ? gapMax : JumpReach) && obstacle <= floorY[up] + 0.1f)
                         {
                             // Land half a metre past the lip where the top goes on.
                             int beyond = ColumnAt(fx + UX[d] * (out_ + 0.5f), fz + UZ[d] * (out_ + 0.5f));
@@ -479,7 +501,7 @@ namespace KotH.Shared.Bots
                             float rise = floorY[up] - y;
                             if (headroom[f] >= rise + 1.9f && Corridor(fx, fz, d, out_ + 0.25f, floorY[up] + 0.1f))
                             {
-                                bool single = rise <= jumpUp;
+                                bool single = SingleReaches(out_, rise);
                                 float cost = (single ? 0.65f : 1f) + UMath.Max(0f, out_ - 1f) / Run + (out_ < MinRun ? 0.4f : 0f);
                                 Add(f, up, single ? LinkKind.Jump : LinkKind.DoubleJump, cost, single ? LinkJump : LinkDouble);
                             }
@@ -488,6 +510,15 @@ namespace KotH.Shared.Bots
 
                         if (top > y + stepUp)
                             break;  // a wall too high to get onto
+                        // Across a hole a ledge lower down, a metre above the hole's bottom: jumped to, not fallen.
+                        int below = HighestFloor(col, y - WalkDown);
+                        if (dropped && below >= 0 && floorY[below] > hole + 1f && y - floorY[below] <= GapDown &&
+                            out_ >= 1f && out_ <= gapMax && obstacle <= y + 0.3f && Corridor(fx, fz, d, out_, y + stepUp))
+                        {
+                            Add(f, below, LinkKind.Jump, 0.4f + out_ / Run + UMath.Sqrt(2f * (y - floorY[below]) / 20f), LinkGap);
+                            break;
+                        }
+                        hole = UMath.Min(hole, below >= 0 ? floorY[below] : float.MinValue);
                         if (!dropped)
                         {
                             dropped = true;

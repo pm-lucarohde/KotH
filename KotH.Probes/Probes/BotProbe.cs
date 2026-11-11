@@ -38,6 +38,8 @@ namespace KotH.Probes.Probes
 
         public override int Run(HeadlessWorld world, int maxTicks)
         {
+            if (Reach != null)
+                return Reaches(Reach);
             if (Climb > 0)
                 return Climbs(Climb);
             if (Lab > 0)
