@@ -69,3 +69,4 @@ are byte-identical on every probe. All peers need the same binary.
 | 18 | 20.10. | Real UDP (LiteNetLib), datagrams ≤ 1200 B, input clamping | `netplay`, UDP smoke test |
 | 19 | 21.10. | Alone only while capturing; the holder keeps scoring with others inside | `capture` |
 | 20 | 03.11. | Dash down (crouch in the air from 1.5 m); state +17 bytes, chain `67AB05EEE3468AFD` (fields only) | `dash`, runs identical |
+| 21 | 11.11. | Standing on a block edge slips off once the axis is 0.2 m past (walkable contact > 30°, no ground under the axis within 0.3 m), jump kept; no state field, chain unchanged; StepProbe: 3 edge cases end a few cm apart, verdicts same. Crouched ledge guard 0.5 → 0.3 m (= snap) | `edgeslip` |

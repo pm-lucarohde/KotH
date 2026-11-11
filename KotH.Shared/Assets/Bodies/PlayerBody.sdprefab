@@ -72,7 +72,7 @@ Hierarchy:
                         PoseChangeSpeed: 6.0
                         StandStepOffset: 0.45
                         CrouchStepOffset: 0.25
-                        LedgeGuardDrop: 0.5
+                        LedgeGuardDrop: 0.3
                         HeadroomMask: Everything
                         SlopeLimit: 50.0
                         GroundMask: Everything

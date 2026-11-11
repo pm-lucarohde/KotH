@@ -76,9 +76,10 @@ namespace KotH.Shared.Player
         [Display("Step crouched", "Body (m)")] public float CrouchStepOffset = 0.25f;
 
         // Crouching guards against falling: a step that would leave nothing
-        // walkable this far below the feet is refused. Deliberately larger
-        // than GroundSnapDistance, so a drop is either caught or refused.
-        [Display("Ledge guard", "Body (m)")] public float LedgeGuardDrop = 0.5f;
+        // walkable this far below the feet is refused. As far as the ground snap
+        // reaches, so a drop is caught or refused; 0.5 let a bump in a rock face
+        // carry a crouched body far over the edge (Luca, 11.11.2026).
+        [Display("Ledge guard", "Body (m)")] public float LedgeGuardDrop = 0.3f;
         [Display("Headroom mask", "Body (m)")] public CollisionMask HeadroomMask = CollisionMask.Everything;
 
         /// <userdoc>Steepest surface that is still walkable</userdoc>
@@ -101,6 +102,12 @@ namespace KotH.Shared.Player
         // only starts once the reading holds, so an edge cannot shove the
         // player back down the step.
         [Display("Slide confirm time", "Slope")] public float SlideConfirmTime = 0.075f;
+
+        // Standing on a block's edge, the capsule's sphere rests on the corner and the contact tilts
+        // out by asin(axis past the edge / radius): 30 degrees is the axis 0.2 m past. Further out,
+        // with nothing under the axis, the body slips off (Luca, 11.11.2026).
+        [Display("Edge slip angle (°)", "Slope")] public float EdgeSlipAngle = 30f;
+        [Display("Edge slip speed", "Slope")] public float EdgeSlipSpeed = 2f;
 
         // How far past the blocking wall the ledge is measured.
         [Display("Step probe ahead", "Slope")] public float StepProbeAhead = 0.05f;
@@ -731,7 +738,10 @@ namespace KotH.Shared.Player
                 stepSettleTicks--;
 
             TryStepUp(dt, settling);
-            CapsuleSweep.Result moved = MoveBody(UMath.Mul(velocity, dt), grounded);
+            Vector3 delta = UMath.Mul(velocity, dt);
+            if (touching && knownGround && !jumped && !slam && !isCrouching && !sliding && !settling)
+                delta = UMath.Add(delta, EdgeSlip(dt));
+            CapsuleSweep.Result moved = MoveBody(delta, grounded);
             touchingGround = moved.hasGround;
             if (slam && touchingGround)
             {
@@ -1238,16 +1248,16 @@ namespace KotH.Shared.Player
         void GuardLedge(float dt)
         {
             Vector3 step = UMath.Mul(new Vector3(velocity.X, 0f, velocity.Z), dt);
-            if (UMath.SqrMagnitude(step) < 0.0000001f || HasFooting(step))
+            if (UMath.SqrMagnitude(step) < 0.0000001f || HasFooting(step, LedgeGuardDrop))
                 return;
 
-            if (step.X != 0f && HasFooting(new Vector3(step.X, 0f, 0f)))
+            if (step.X != 0f && HasFooting(new Vector3(step.X, 0f, 0f), LedgeGuardDrop))
             {
                 velocity.Z = 0f;
                 return;
             }
 
-            if (step.Z != 0f && HasFooting(new Vector3(0f, 0f, step.Z)))
+            if (step.Z != 0f && HasFooting(new Vector3(0f, 0f, step.Z), LedgeGuardDrop))
             {
                 velocity.X = 0f;
                 return;
@@ -1257,17 +1267,30 @@ namespace KotH.Shared.Player
             velocity.Z = 0f;
         }
 
-        /// <summary>Is there walkable ground under the player after this horizontal step?
-        /// Thin probe down the body axis, so the player may stand with half the capsule
-        /// over the edge - that is what it should feel like.</summary>
-        bool HasFooting(Vector3 step)
+        /// <summary>The push off a block's edge this tick: out along a walkable contact tilted past
+        /// EdgeSlipAngle while no ground lies under the axis within the snap's reach (a real slope or
+        /// a stair tread has it); steeper, the slide takes over. Grounded stays: a jump still goes.</summary>
+        Vector3 EdgeSlip(float dt)
+        {
+            if (groundAngle <= EdgeSlipAngle || groundAngle > SlopeLimit
+                || HasFooting(Vector3.Zero, GroundSnapDistance))
+                return Vector3.Zero;
+            Vector3 outward = new Vector3(groundNormal.X, 0f, groundNormal.Z);
+            float size = UMath.Magnitude(outward);
+            return size > 0f ? UMath.Mul(outward, EdgeSlipSpeed * dt / size) : Vector3.Zero;
+        }
+
+        /// <summary>Is there walkable ground under the player after this horizontal step, within
+        /// drop below the feet? Thin probe down the body axis, so the player may stand with half
+        /// the capsule over the edge - that is what it should feel like.</summary>
+        bool HasFooting(Vector3 step, float drop)
         {
             float probeRadius = BodyRadius * 0.25f;
             float toFeet = currentHeight * 0.5f - probeRadius;
             Vector3 origin = UMath.Add(UMath.Add(position, UMath.Mul(UMath.Up, CenterY)), step);
 
             int count = world.SphereCastAll(
-                origin, probeRadius, UMath.Down, toFeet + LedgeGuardDrop,
+                origin, probeRadius, UMath.Down, toFeet + drop,
                 WorldMask, groundHits);
 
             float walkable = UMath.Cos(SlopeLimit * UMath.Deg2Rad);

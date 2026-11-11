@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using KotH.Shared.Combat;
 using KotH.Shared.Mathematics;
 using KotH.Shared.Net;
+using KotH.Shared.Physics;
 using KotH.Shared.Player;
 using KotH.Shared.Simulation;
 using Stride.Animations;
@@ -496,6 +497,22 @@ namespace KotH.Client.Player
             }
         }
 
+        /// <summary>How far the feet go below the capsule: always its skin (the capsule floats by it), on
+        /// a slope also the gap the sphere's flank leaves under the axis, radius * (1/cos a - 1), when a ray
+        /// down the axis finds the ground there; an edge or step (nothing that near) keeps the skin.</summary>
+        static float Sink(PlayerMotor motor, Vector3 center)
+        {
+            float skin = motor.SkinWidth;
+            float angle = motor.GroundAngle;
+            if (!motor.IsGrounded || angle < 1f)
+                return skin;
+            float flank = motor.Radius * (1f / MathF.Cos(MathUtil.DegreesToRadians(angle)) - 1f);
+            float bottom = 0.5f * motor.Height;
+            if (!motor.World.Raycast(center, -Vector3.UnitY, bottom + skin + flank + 0.01f, WorldQueries.WorldMask, out QueryHit hit))
+                return skin;
+            return MathF.Max(skin, hit.Distance - bottom);
+        }
+
         void Animate(Figure f, PlayerMotor motor, TransformComponent t, float dt, float alpha)
         {
             Turn(f, motor, t, dt);
@@ -509,11 +526,12 @@ namespace KotH.Client.Player
             float crouched = motor.IsSlamming ? 1f : Crouched(motor);
             float scale = 1f - (1f - CrouchSquash) * crouched;
             float width = 1f - (1f - CrouchWidth) * crouched;
+            float sink = Sink(motor, t.Position);
             if (f.Kicked)
-                Spores(f, t.Position - new Vector3(0f, 0.5f * motor.Height, 0f));
+                Spores(f, t.Position - new Vector3(0f, 0.5f * motor.Height + sink, 0f));
             Slam(f);
             t.Scale = new Vector3(width, scale, width);
-            t.Position.Y += 0.5f * (motor.StandHeight * scale - motor.Height);
+            t.Position.Y += 0.5f * (motor.StandHeight * scale - motor.Height) - sink;
             Blink(f, dt);
             Breathe(f, dt);
             if (f.Gun != null && f.Body != null)
