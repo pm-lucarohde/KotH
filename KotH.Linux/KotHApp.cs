@@ -37,9 +37,12 @@ CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
 if (Environment.GetEnvironmentVariable("STRIDE_MAX_PARALLELISM") == null)
     Dispatcher.MaxDegreeOfParallelism = 6;
 
-// Measuring aid: KOTH_GCLATENCY=Interactive|LowLatency|SustainedLowLatency sets the GC's latency mode.
+// Satori GC (Linux build) in LowLatency: pauses under 1 ms for ~5 % FPS (A/B 11.11.2026, Luca's choice).
+// Builds without Satori keep the default. Measuring aid: KOTH_GCLATENCY=Interactive|LowLatency|… wins.
 if (Enum.TryParse(Environment.GetEnvironmentVariable("KOTH_GCLATENCY"), out System.Runtime.GCLatencyMode latency))
     System.Runtime.GCSettings.LatencyMode = latency;
+else if (GC.GetConfigurationVariables().ContainsKey("SatoriGC"))
+    System.Runtime.GCSettings.LatencyMode = System.Runtime.GCLatencyMode.LowLatency;
 
 // Before the options are read: the player's name comes from Steam.
 long steamAt = StartLog.Now;
