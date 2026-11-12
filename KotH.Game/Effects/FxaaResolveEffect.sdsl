@@ -1,0 +1,7 @@
+// FxaaResolve with the permutation Stride's FXAAEffect uses here: luma from alpha, preset 23 (Low dither, quality 3).
+effect FxaaResolveEffect
+{
+    mixin macro FXAA_GREEN_AS_LUMA = 0;
+    mixin macro FXAA_QUALITY__PRESET = 23;
+    mixin FxaaResolve;
+};

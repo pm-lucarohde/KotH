@@ -1,0 +1,20 @@
+/// <summary>Stride's FXAA path in one pass (AtmosphereEffects): FXAA on the range-compressed scene, then the
+/// range decompress and the colour group's luma-to-alpha that Stride runs as two more full-screen passes. Each
+/// step's half-float target is rounded to as before, so the image stays the same.</summary>
+shader FxaaResolve : FXAAShader
+{
+    stage override float4 Shading()
+    {
+        float4 aliased = base.Shading();
+        float3 color = f16tof32(f32tof16(aliased.rgb));
+
+        // RangeDecompressorShader: the reverse Karis tone map.
+        float maxComponent = max(max(color.r, color.g), color.b);
+        float denominator = 1 - maxComponent / 1.0;
+        float3 reverse = denominator > 0 ? color / denominator : color;
+        reverse = f16tof32(f32tof16(reverse));
+
+        // ColorTransformGroup with only LuminanceToChannel (A) enabled.
+        return float4(reverse, LuminanceUtils.Luma(reverse));
+    }
+};

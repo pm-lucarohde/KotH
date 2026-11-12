@@ -132,6 +132,10 @@ EffectName: FigureShadowPyramid
 UsedParameters: {}
 ---
 !EffectCompileRequest
+EffectName: FxaaResolveEffect
+UsedParameters: {}
+---
+!EffectCompileRequest
 EffectName: HeatShimmer
 UsedParameters: {}
 ---

@@ -85,10 +85,14 @@ namespace KotH.Client.Rendering
         ImageEffectShader shaftBlur;
         ImageEffectShader shaftAdd;
         ImageEffectShader shimmer;
+        ImageEffectShader compress;
+        ImageEffectShader resolve;
 
         protected override void InitializeCore()
         {
             base.InitializeCore();
+            compress = ToLoadAndUnload(new ImageEffectShader("RangeCompressorShader"));
+            resolve = ToLoadAndUnload(new ImageEffectShader("FxaaResolveEffect"));
             march = ToLoadAndUnload(new ImageEffectShader("AtmosphereMarch"));
             composite = ToLoadAndUnload(new ImageEffectShader("AtmosphereComposite"));
             // scene * a + rgb
@@ -117,7 +121,49 @@ namespace KotH.Client.Rendering
             var atmosphere = drawContext.RenderContext.Tags.Get(Atmosphere.Key);
             if (colour >= 0 && inputDepthStencil != null && atmosphere is { CloudMap: not null })
                 DrawAtmosphere(drawContext, atmosphere, inputs[colour], inputDepthStencil);
-            Inner?.Draw(drawContext, outputValidator, inputs, inputDepthStencil, outputTarget);
+            if (colour >= 0 && FxaaOnly(inputs[colour], outputTarget))
+                DrawFxaa(drawContext, inputs[colour], outputTarget);
+            else
+                Inner?.Draw(drawContext, outputValidator, inputs, inputDepthStencil, outputTarget);
+        }
+
+        // Whether Stride's post effects would only run its FXAA path: range compress, FXAA, decompress and
+        // the colour group writing luma to alpha (four full-screen passes, DrawFxaa does the same in two).
+        bool FxaaOnly(Texture colour, Texture output)
+        {
+            if (Inner is not PostProcessingEffects post || !post.Enabled || output == null || colour == output
+                || colour.Format != PixelFormat.R16G16B16A16_Float || colour.Width != output.Width || colour.Height != output.Height
+                || post.Antialiasing is not FXAAEffect { Enabled: true, InputLuminanceInAlpha: true, Dither: FXAAEffect.DitherType.Low, Quality: 3 }
+                || post.Bloom is not { Enabled: false, StableConvolution: true } || post.Outline.Enabled || post.AmbientOcclusion.Enabled
+                || post.LocalReflections.Enabled || post.DepthOfField.Enabled || post.Fog.Enabled || post.LightStreak.Enabled
+                || post.LensFlare.Enabled || !post.ColorTransforms.Enabled)
+                return false;
+            foreach (ColorTransform t in post.ColorTransforms.PreTransforms)
+                if (t.Enabled)
+                    return false;
+            foreach (ColorTransform t in post.ColorTransforms.Transforms)
+                if (t.Enabled)
+                    return false;
+            foreach (ColorTransform t in post.ColorTransforms.PostTransforms)
+                if (t.Enabled && t is not LuminanceToChannelTransform { ColorChannel: Stride.Rendering.Materials.ColorChannel.A })
+                    return false;
+            return true;
+        }
+
+        void DrawFxaa(RenderDrawContext context, Texture colour, Texture output)
+        {
+            var compressed = Context.Allocator.GetTemporaryTexture2D(colour.Width, colour.Height, colour.Format,
+                TextureFlags.RenderTarget | TextureFlags.ShaderResource);
+            using (context.PushRenderTargetsAndRestore())
+            {
+                compress.SetInput(0, colour);
+                compress.SetOutput(compressed);
+                compress.Draw(context);
+                resolve.SetInput(0, compressed);
+                resolve.SetOutput(output);
+                resolve.Draw(context);
+            }
+            Context.Allocator.ReleaseReference(compressed);
         }
 
         /// <summary>Clip x, y and 1 to a pixel's view ray with a view depth of 1, from the camera's axes and the
