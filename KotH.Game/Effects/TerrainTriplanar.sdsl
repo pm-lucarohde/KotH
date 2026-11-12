@@ -72,6 +72,15 @@ shader TerrainTriplanar<LinkType GrassKey, LinkType DirtKey, LinkType SandKey, L
         return lerp(lerp(a, b, t.x), lerp(d, e, t.x), t.y);
     }
 
+    // Above 0 somewhere in this pixel's 2 x 2 quad: the same answer in all four pixels (fine gradients:
+    // a pixel's row neighbour, then that sum's column neighbour), so a branch on it keeps the quad together.
+    float Quad(float v)
+    {
+        float a = max(v, 0.0);
+        float row = a + abs(ddx(a));
+        return row + abs(ddy(row));
+    }
+
     // The relief maps' tilt (their x and y, level at 128); gradients taken before any branch.
     float2 SandSlope(float2 uv, float2 dx, float2 dy)
     {
@@ -167,17 +176,41 @@ shader TerrainTriplanar<LinkType GrassKey, LinkType DirtKey, LinkType SandKey, L
         float2 uy = p.xz;
         float2 uz = float2(p.x, -p.y);
 
-        float4 dirt = b.x * Dirt.SampleBias(AnisotropicRepeatSampler, ux, BaseBias + TextureBias) + b.y * Dirt.SampleBias(AnisotropicRepeatSampler, uy, BaseBias + TextureBias) + b.z * Dirt.SampleBias(AnisotropicRepeatSampler, uz, BaseBias + TextureBias);
-        float4 sand = b.x * Sand.SampleBias(AnisotropicRepeatSampler, ux, BaseBias + TextureBias) + b.y * Sand.SampleBias(AnisotropicRepeatSampler, uy, BaseBias + TextureBias) + b.z * Sand.SampleBias(AnisotropicRepeatSampler, uz, BaseBias + TextureBias);
-        float4 snow = b.x * Snow.SampleBias(AnisotropicRepeatSampler, ux, BaseBias + TextureBias) + b.y * Snow.SampleBias(AnisotropicRepeatSampler, uy, BaseBias + TextureBias) + b.z * Snow.SampleBias(AnisotropicRepeatSampler, uz, BaseBias + TextureBias);
+        // Only the projections and surfaces that count are read (a projection below 1/4096 adds less than
+        // a tenth of an LSB). Each test holds for the whole 2 x 2 quad, so the implicit gradients stay valid.
+        float3 seen = float3(Quad(b.x - 1.0 / 4096.0), Quad(b.y - 1.0 / 4096.0), Quad(b.z - 1.0 / 4096.0));
+        float4 uses = float4(Quad(w.x), Quad(w.y), Quad(w.z + w.w), Quad(rock + w.w));
+        float4 dirt = 0, sand = 0, snow = 0, stone = 0;
+        if (seen.x > 0.0)
+        {
+            if (uses.x > 0.0) dirt += b.x * Dirt.SampleBias(AnisotropicRepeatSampler, ux, BaseBias + TextureBias);
+            if (uses.y > 0.0) sand += b.x * Sand.SampleBias(AnisotropicRepeatSampler, ux, BaseBias + TextureBias);
+            if (uses.z > 0.0) snow += b.x * Snow.SampleBias(AnisotropicRepeatSampler, ux, BaseBias + TextureBias);
+            if (uses.w > 0.0) stone += b.x * Rock.SampleBias(AnisotropicRepeatSampler, ux, BaseBias + TextureBias);
+        }
+        if (seen.y > 0.0)
+        {
+            if (uses.x > 0.0) dirt += b.y * Dirt.SampleBias(AnisotropicRepeatSampler, uy, BaseBias + TextureBias);
+            if (uses.y > 0.0) sand += b.y * Sand.SampleBias(AnisotropicRepeatSampler, uy, BaseBias + TextureBias);
+            if (uses.z > 0.0) snow += b.y * Snow.SampleBias(AnisotropicRepeatSampler, uy, BaseBias + TextureBias);
+            if (uses.w > 0.0) stone += b.y * Rock.SampleBias(AnisotropicRepeatSampler, uy, BaseBias + TextureBias);
+        }
+        if (seen.z > 0.0)
+        {
+            if (uses.x > 0.0) dirt += b.z * Dirt.SampleBias(AnisotropicRepeatSampler, uz, BaseBias + TextureBias);
+            if (uses.y > 0.0) sand += b.z * Sand.SampleBias(AnisotropicRepeatSampler, uz, BaseBias + TextureBias);
+            if (uses.z > 0.0) snow += b.z * Snow.SampleBias(AnisotropicRepeatSampler, uz, BaseBias + TextureBias);
+            if (uses.w > 0.0) stone += b.z * Rock.SampleBias(AnisotropicRepeatSampler, uz, BaseBias + TextureBias);
+        }
         snow.rgb *= SnowAlbedo;
-        float4 stone = b.x * Rock.SampleBias(AnisotropicRepeatSampler, ux, BaseBias + TextureBias) + b.y * Rock.SampleBias(AnisotropicRepeatSampler, uy, BaseBias + TextureBias) + b.z * Rock.SampleBias(AnisotropicRepeatSampler, uz, BaseBias + TextureBias);
         if (rock + w.w > 0.0)
         {
             float4 lichen = Lichen(q, n, blur);
             stone.rgb = stone.rgb * (1.0 - lichen.a) + lichen.rgb;
         }
-        float4 grass = Grass.SampleBias(AnisotropicRepeatSampler, uy, BaseBias + TextureBias);
+        float4 grass = 0;
+        if (uses.x > 0.0)
+            grass = Grass.SampleBias(AnisotropicRepeatSampler, uy, BaseBias + TextureBias);
 
         float4 side = w.x * dirt + w.y * sand + w.z * snow + (w.w + rock) * stone;
         float4 top = w.x * grass + w.y * sand + (w.z + w.w) * snow + rock * stone;
