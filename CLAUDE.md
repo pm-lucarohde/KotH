@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-KotH: king-of-the-hill game on **Stride 4.4**, **.NET 11 RC2** (`global.json`), **Vulkan**, **NativeAOT** (Satori GC, LowLatency), Linux;
+KotH: king-of-the-hill game on **Stride 4.4**, **.NET 11** (`global.json`), **Vulkan**, **NativeAOT** (Satori GC, LowLatency), Linux;
 from Unity (Git up to `577ed3f`, reference in `Reference/unity/`). Peer-to-peer (one peer hosts). Derivations and history: the memory.
 
 ## Conventions

@@ -23,7 +23,7 @@ the mountain; percent and points stay. Multiplayer waits for 4 players (bots cou
 
 ## Build and run
 
-Needs the .NET SDK 11.0.100-rc.2 (`global.json`), a Vulkan driver and, for NativeAOT, a distrobox `aot` with `clang`,
+Needs the .NET SDK 11.0.100 (`global.json`), a Vulkan driver and, for NativeAOT, a distrobox `aot` with `clang`,
 `lld`, `zlib-devel` and `libva`. Scenes and prefabs are edited in Stride Game Studio 4.4.
 
 ```bash
