@@ -141,8 +141,8 @@ namespace KotH.Probes.Probes
                 host.Update(net.Now);
                 founder.Update(net.Now);
                 while (end != null && end.Poll(out TransportEvent e))
-                    if (e.Kind == TransportEventKind.Data && e.Data.Length > 0)
-                        seen?.Invoke(e.Data);
+                    if (e.Kind == TransportEventKind.Data && e.Length > 0)
+                        seen?.Invoke(e.Bytes.ToArray());
             }
         }
 

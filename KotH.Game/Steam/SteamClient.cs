@@ -75,7 +75,7 @@ namespace KotH.Client.Steam
                 NetUtils = SteamAPI_SteamNetworkingUtils_SteamAPI_v004();
                 SteamAPI_ISteamNetworkingUtils_InitRelayNetworkAccess(NetUtils);
                 Ready = true;
-                Console.WriteLine($"[steam] ready as {PersonaName}, app {AppId}");
+                Console.WriteLine($"[steam] ready, app {AppId}");
             }
             catch (Exception e) when (e is DllNotFoundException or EntryPointNotFoundException)
             {

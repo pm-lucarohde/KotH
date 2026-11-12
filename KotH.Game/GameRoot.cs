@@ -545,7 +545,7 @@ namespace KotH.Client
                 WorkAhead(director);
                 Log.Info($"Network: {options.Bots} bots, seed {options.BotSeed}");
             }
-            Log.Info($"Network: {(options.Host ? "host" : "guest")} as {options.Name}{(lobby != null ? " over Steam" : "")}, build {NetProtocol.BuildText}");
+            Log.Info($"Network: {(options.Host ? "host" : "guest")}{(lobby != null ? " over Steam" : "")}, build {NetProtocol.BuildText}");
         }
 
         /// <summary>The map's collision, its round and what is drawn of it; one at a time,

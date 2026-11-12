@@ -83,7 +83,18 @@ namespace KotH.Shared.Net
             public readonly List<(int NetId, MoveInput Input)> Inputs = new List<(int, MoveInput)>();
             public readonly List<NetEvent> Events = new List<NetEvent>();
             public double At;   // when it became final
-            public byte[] Encoded;
+            byte[] encoded = Array.Empty<byte>();
+            int length;
+
+            public ReadOnlySpan<byte> Encoded => encoded.AsSpan(0, length);
+
+            public void Encode(ReadOnlySpan<byte> bytes)
+            {
+                if (encoded.Length < bytes.Length)
+                    encoded = new byte[Math.Max(bytes.Length, 64)];
+                bytes.CopyTo(encoded);
+                length = bytes.Length;
+            }
         }
 
         readonly INetTransport transport;
@@ -91,6 +102,8 @@ namespace KotH.Shared.Net
 
         readonly Dictionary<int, Client> clients = new Dictionary<int, Client>();
         readonly Dictionary<int, Record> records = new Dictionary<int, Record>();
+        readonly Stack<Record> spareRecords = new Stack<Record>();   // dropped records, used again
+        readonly List<Client> present = new List<Client>();
         readonly List<NetEvent> pending = new List<NetEvent>();
         readonly Dictionary<int, ulong> hostHashes = new Dictionary<int, ulong>();
         readonly Dictionary<(int Peer, int Tick), ulong> peerHashes = new Dictionary<(int, int), ulong>();
@@ -240,6 +253,8 @@ namespace KotH.Shared.Net
             }
             foreach (int peer in gone)
                 clients.Remove(peer);
+            foreach (Record old in records.Values)
+                spareRecords.Push(old);
             records.Clear();
             pending.Clear();
             hostHashes.Clear();
@@ -456,13 +471,13 @@ namespace KotH.Shared.Net
                         Leave(gone);
                     break;
                 case TransportEventKind.Data:
-                    if (e.Data.Length > 0)
-                        Receive(e.Peer, e.Data);
+                    if (e.Length > 0)
+                        Receive(e.Peer, e.Bytes);
                     break;
             }
         }
 
-        void Receive(int peer, byte[] data)
+        void Receive(int peer, ReadOnlySpan<byte> data)
         {
             var r = new Reader(data);
             var type = (MsgType)r.Byte();
@@ -733,7 +748,9 @@ namespace KotH.Shared.Net
 
         void Finalise(int t)
         {
-            var rec = new Record();
+            Record rec = spareRecords.Count > 0 ? spareRecords.Pop() : new Record();
+            rec.Events.Clear();
+            rec.Inputs.Clear();
 
             // Joins and leaves decided since the last tick take effect here.
             foreach (NetEvent e in pending)
@@ -750,7 +767,7 @@ namespace KotH.Shared.Net
             }
             pending.Clear();
 
-            var present = new List<Client>();
+            present.Clear();
             foreach (Client c in clients.Values)
                 if (Present(c, t))
                     present.Add(c);
@@ -780,9 +797,10 @@ namespace KotH.Shared.Net
             oneRecord.Clear();
             var rw = new Writer(oneRecord);
             WriteRecord(ref rw, rec);
-            rec.Encoded = oneRecord.WrittenSpan.ToArray();
+            rec.Encode(oneRecord.WrittenSpan);
             records[t] = rec;
-            records.Remove(t - KeepRecords);
+            if (records.Remove(t - KeepRecords, out Record dropped))
+                spareRecords.Push(dropped);
             nextConfirm = t + 1;
 
             // Inputs for ticks now final arrived too late; forget them.
@@ -1022,6 +1040,7 @@ namespace KotH.Shared.Net
             {
                 readonly Queue<TransportEvent> inbox = new Queue<TransportEvent>();
                 readonly int seenAs;
+                byte[] lent;
                 public Side Other;
 
                 public Side(int seenAs)
@@ -1030,15 +1049,12 @@ namespace KotH.Shared.Net
                 }
 
                 public void Send(int peer, ReadOnlySpan<byte> data, bool reliable)
-                    => Other.inbox.Enqueue(new TransportEvent
-                    {
-                        Kind = TransportEventKind.Data, Peer = Other == null ? 0 : OtherName, Data = data.ToArray(),
-                    });
+                    => Other.inbox.Enqueue(PacketBuffer.Data(Other == null ? 0 : OtherName, data));
 
                 // How the other side names this one.
                 int OtherName => seenAs == LocalPeer ? 0 : LocalPeer;
 
-                public bool Poll(out TransportEvent e) => inbox.TryDequeue(out e);
+                public bool Poll(out TransportEvent e) => PacketBuffer.Lend(ref lent, inbox.TryDequeue(out e), e);
 
                 public void Disconnect(int peer) { }
             }

@@ -25,6 +25,7 @@ namespace KotH.Client.Steam
         readonly Dictionary<int, ulong> steamOf = new Dictionary<int, ulong>();
         readonly HashSet<ulong> waiting = new HashSet<ulong>();
         readonly Queue<TransportEvent> events = new Queue<TransportEvent>();
+        byte[] lent;
         readonly byte[] identity = new byte[IdentitySize];
         readonly nint[] inbox = new nint[64];
         int next = 1;
@@ -185,7 +186,7 @@ namespace KotH.Client.Steam
         {
             if (events.Count == 0)
                 Receive();
-            return events.TryDequeue(out e);
+            return PacketBuffer.Lend(ref lent, events.TryDequeue(out e), e);
         }
 
         // SteamNetworkingMessage_t: data, size, connection, then the sender's identity at 16.
@@ -201,7 +202,7 @@ namespace KotH.Client.Steam
                     if (peerOf.TryGetValue(from, out int peer))
                     {
                         var data = new ReadOnlySpan<byte>(*(byte**)m, *(int*)(m + 8));
-                        events.Enqueue(new TransportEvent { Kind = TransportEventKind.Data, Peer = peer, Data = data.ToArray() });
+                        events.Enqueue(PacketBuffer.Data(peer, data));
                     }
                     SteamAPI_SteamNetworkingMessage_t_Release(m);
                 }

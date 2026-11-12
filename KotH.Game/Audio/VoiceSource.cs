@@ -15,7 +15,7 @@ namespace KotH.Client.Audio
         readonly short[] ring = new short[Ring];
         readonly short[] chunk = new short[Frame];
         int read, count;
-        bool flowing;
+        bool flowing, faulted;
 
         VoiceSource() : base(null, Buffers, Frame * sizeof(short)) { }
 
@@ -95,9 +95,12 @@ namespace KotH.Client.Audio
                 }
                 FillBuffer(chunk, Frame * sizeof(short), AudioLayer.BufferType.None);
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                // The worker is every streamed sound's: a voice must never stop the music.
+                // The worker is every streamed sound's: a voice must never stop the music. Said once.
+                if (!faulted)
+                    StartLog.Warn($"voice playback fault, silence while it lasts: {e.GetType().Name}: {e.Message}");
+                faulted = true;
             }
         }
     }

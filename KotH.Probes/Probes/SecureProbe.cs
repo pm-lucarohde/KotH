@@ -36,21 +36,21 @@ namespace KotH.Probes.Probes
             byte[] packet = Sealed(peer, text);
             Check(packet.AsSpan().IndexOf("Luca"u8) < 0 && packet.Length == text.Length + SecureLink.Overhead,
                   $"sealed packet hides its text, {SecureLink.Overhead} bytes more");
-            Check(host.Open(packet) is { } opened && opened.AsSpan().SequenceEqual(text), "the host opens it");
-            Check(host.Open(packet) == null, "the same packet again (replay) is dropped");
+            Check(Opened(host, packet) is { } opened && opened.AsSpan().SequenceEqual(text), "the host opens it");
+            Check(Opened(host, packet) == null, "the same packet again (replay) is dropped");
             byte[] back = Sealed(host, text);
-            Check(peer.Open(back) is { } b && b.AsSpan().SequenceEqual(text), "the other way too");
-            Check(host.Open(back) == null, "a packet sealed by the host is not one for the host");
+            Check(Opened(peer, back) is { } b && b.AsSpan().SequenceEqual(text), "the other way too");
+            Check(Opened(host, back) == null, "a packet sealed by the host is not one for the host");
 
             byte[] flipped = Sealed(peer, text);
             flipped[20] ^= 1;
-            Check(host.Open(flipped) == null, "a flipped bit is dropped");
+            Check(Opened(host, flipped) == null, "a flipped bit is dropped");
             byte[] late = Sealed(peer, text), early = Sealed(peer, text);
-            Check(host.Open(early) != null && host.Open(late) != null, "out of order within the window passes");
+            Check(Opened(host, early) != null && Opened(host, late) != null, "out of order within the window passes");
             byte[] old = Sealed(peer, text);
             for (int i = 0; i < 70; i++)
-                host.Open(Sealed(peer, text));
-            Check(host.Open(old) == null, "older than the window (64) is dropped");
+                Opened(host, Sealed(peer, text));
+            Check(Opened(host, old) == null, "older than the window (64) is dropped");
             peer.Dispose();
             host.Dispose();
 
@@ -81,6 +81,14 @@ namespace KotH.Probes.Probes
             byte[] into = new byte[text.Length + SecureLink.Overhead];
             link.Seal(text, into);
             return into;
+        }
+
+        // The message opened from a sealed packet, null when the link drops it.
+        static byte[] Opened(SecureLink link, byte[] packet)
+        {
+            byte[] into = new byte[Math.Max(0, packet.Length - SecureLink.Overhead)];
+            int length = link.Open(packet, into);
+            return length < 0 ? null : into[..length];
         }
 
         // Host, founder and two guests over real sockets, for at most a few seconds.

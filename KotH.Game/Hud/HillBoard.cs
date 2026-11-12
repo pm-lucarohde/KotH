@@ -64,6 +64,12 @@ namespace KotH.Client.Hud
         string statusText = "", bannerText = "";
         float warmup, popped = -1f;
 
+        // Texts made again only when their numbers or names change, so a tick allocates nothing.
+        NumberText countText, clockText, winText;
+        JoinedText statusJoin, bannerJoin;
+        readonly NumberText[] rankText = new NumberText[HudView.Rows], scoreText = new NumberText[HudView.Rows];
+        Comparison<SimulationBody> scoreOrder;
+
         // The own blaster's shots and progress as last shown.
         Blaster blaster;
         int shownShots = -1, shownNext = -1;
@@ -208,8 +214,7 @@ namespace KotH.Client.Hud
             int own = Self != null ? HillMatch.Points(Self.ScoreTicks) : 0;
             int win = Match.WinTicks / HillMatch.TicksPerPoint;
             int left = (Math.Max(0, Match.LimitTicks - m.RoundTicks) + HillMatch.TicksPerPoint - 1) / HillMatch.TicksPerPoint;
-            string caption = "Points", count = string.Format(HudRenderer.Numbers, "{0} / {1}", own, win);
-            string time = Clock(left);
+            string caption = "Points", count = null, time = null;
 
             ZoneLook look = Look(m, Self, Match.WarmupTicks);
             // In teams the team is meant: "you" for the own, all names for another team.
@@ -219,8 +224,8 @@ namespace KotH.Client.Hud
                 ZoneLook.Own => Self.AloneTicks > Match.WarmupTicks ? team ? "Your team holds the zone" : "You hold the zone"
                                                                     : team ? "Your team is capturing" : "You are capturing",
                 ZoneLook.Contested => "Contested",
-                ZoneLook.Enemy => TeamName(m.Holder) + (Mate(m.Holder) != null ? " hold the zone" : " holds the zone"),
-                ZoneLook.EnemyTaking => TeamName(m.Holder) + (Mate(m.Holder) != null ? " are capturing" : " is capturing"),
+                ZoneLook.Enemy => statusJoin.Of(TeamName(m.Holder), Mate(m.Holder) != null ? " hold the zone" : " holds the zone"),
+                ZoneLook.EnemyTaking => statusJoin.Of(TeamName(m.Holder), Mate(m.Holder) != null ? " are capturing" : " is capturing"),
                 _ => "Zone free",
             };
 
@@ -234,7 +239,7 @@ namespace KotH.Client.Hud
                     MatchMode.Duo => "Duo: waiting for players", MatchMode.Trio => "Trio: waiting for players",
                     MatchMode.Squad => "Squad: waiting for players", _ => "Waiting for players",
                 };
-                count = string.Format(HudRenderer.Numbers, "{0} / {1}", HillMatch.CountPlayers(Simulation.Bodies), m.MinPlayers);
+                count = countText.Of(CountFormat, HillMatch.CountPlayers(Simulation.Bodies), m.MinPlayers);
                 time = statusText = "";
             }
             else if (m.Phase == MatchPhase.Countdown)
@@ -248,6 +253,8 @@ namespace KotH.Client.Hud
                 time = Clock((m.PhaseTicks + HillMatch.TicksPerPoint - 1) / HillMatch.TicksPerPoint);
                 statusText = "";
             }
+            count ??= countText.Of(CountFormat, own, win);
+            time ??= Clock(left);
             view.Bar(caption, count, time);
             view.Zone(statusText, ToAvalonia(ColorOf(look)));
 
@@ -259,10 +266,10 @@ namespace KotH.Client.Hud
                 bannerText = PretendBanner ? "You win!"
                            : final.Winner == null ? "Draw"
                            : ownWin ? "You win!"
-                           : TeamName(final.Winner) + (Mate(final.Winner) != null ? " win" : " wins");
+                           : bannerJoin.Of(TeamName(final.Winner), Mate(final.Winner) != null ? " win" : " wins");
                 int seconds = PretendBanner ? 10 : (final.PhaseTicks + HillMatch.TicksPerPoint - 1) / HillMatch.TicksPerPoint;
                 view.Win(bannerText, PretendBanner || ownWin,
-                         string.Format(HudRenderer.Numbers, Match.Stage == MatchStage.Round ? "Lobby in {0}" : "New round in {0}", seconds));
+                         winText.Of(Match.Stage == MatchStage.Round ? "Lobby in {0}" : "New round in {0}", seconds));
             }
             else
                 bannerText = "";
@@ -272,18 +279,20 @@ namespace KotH.Client.Hud
             foreach (SimulationBody body in Simulation.Bodies)
                 if (HillMatch.LeadOf(body, Simulation.Bodies) == body)
                     ranking.Add(body);
-            // Ties keep the body list's order, so the list does not flicker.
-            ranking.Sort((a, b) =>
-            {
-                int byScore = b.ScoreTicks.CompareTo(a.ScoreTicks);
-                return byScore != 0 ? byScore : IndexOf(a).CompareTo(IndexOf(b));
-            });
+            ranking.Sort(scoreOrder ??= ByScore);
 
             int ranked = Math.Min(Math.Min(Leaders, HudView.Rows), ranking.Count);
             view.Ranked(ranked);
             for (int i = 0; i < ranked; i++)
-                view.Rank(i, (i + 1).ToString(HudRenderer.Numbers), TeamName(ranking[i]),
-                          HillMatch.Points(ranking[i].ScoreTicks).ToString(HudRenderer.Numbers), HillMatch.SameTeam(ranking[i], Self));
+                view.Rank(i, rankText[i].Of("{0}", i + 1), TeamName(ranking[i]),
+                          scoreText[i].Of("{0}", HillMatch.Points(ranking[i].ScoreTicks)), HillMatch.SameTeam(ranking[i], Self));
+        }
+
+        // Ties keep the body list's order, so the list does not flicker.
+        int ByScore(SimulationBody a, SimulationBody b)
+        {
+            int points = b.ScoreTicks.CompareTo(a.ScoreTicks);
+            return points != 0 ? points : IndexOf(a).CompareTo(IndexOf(b));
         }
 
         /// <summary>The own damage percent to the view when it changed; false while there is none.</summary>
@@ -353,7 +362,36 @@ namespace KotH.Client.Hud
             return true;
         }
 
-        static string Clock(int seconds) => string.Format(HudRenderer.Numbers, "{0}:{1:D2}", seconds / 60, seconds % 60);
+        const string CountFormat = "{0} / {1}";
+
+        string Clock(int seconds) => clockText.Of("{0}:{1:D2}", seconds / 60, seconds % 60);
+
+        // A text from a format and up to two numbers, formatted again only when one of them changes.
+        struct NumberText
+        {
+            string format, text;
+            int a, b;
+
+            public string Of(string format, int a, int b = 0)
+            {
+                if (text == null || a != this.a || b != this.b || format != this.format)
+                    (this.format, this.a, this.b, text) = (format, a, b, string.Format(HudRenderer.Numbers, format, a, b));
+                return text;
+            }
+        }
+
+        // A text of two parts ("Bot 3" + " holds the zone"), joined again only when one changes.
+        struct JoinedText
+        {
+            string first, second, text;
+
+            public string Of(string first, string second)
+            {
+                if (text == null || first != this.first || second != this.second)
+                    (this.first, this.second, text) = (first, second, first + second);
+                return text;
+            }
+        }
 
         static global::Avalonia.Media.Color ToAvalonia(Color c) => global::Avalonia.Media.Color.FromArgb(c.A, c.R, c.G, c.B);
 

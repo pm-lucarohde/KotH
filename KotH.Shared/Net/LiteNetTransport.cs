@@ -16,6 +16,7 @@ namespace KotH.Shared.Net
         readonly EventBasedLiteNetListener listener = new EventBasedLiteNetListener();
         readonly LiteNetManager manager;
         readonly Queue<TransportEvent> events = new Queue<TransportEvent>();
+        byte[] lent;
         readonly Dictionary<int, LiteNetPeer> peers = new Dictionary<int, LiteNetPeer>();
         readonly Dictionary<int, SecureLink> links = new Dictionary<int, SecureLink>();
         readonly bool hosting;
@@ -61,7 +62,7 @@ namespace KotH.Shared.Net
                     events.Enqueue(new TransportEvent { Kind = TransportEventKind.Disconnected, Peer = id });
                 closed = true;
             };
-            listener.NetworkReceiveEvent += (peer, reader, method) => Received(IdOf(peer), peer, reader.GetRemainingBytes());
+            listener.NetworkReceiveEvent += (peer, reader, method) => Received(IdOf(peer), peer, reader.GetRemainingBytesSpan());
         }
 
         /// <summary>Listens for peers on the port, all interfaces, IPv4 and IPv6; key signs every handshake.</summary>
@@ -113,18 +114,22 @@ namespace KotH.Shared.Net
             peer.Send(hello, DeliveryMethod.ReliableOrdered);
         }
 
-        void Received(int id, LiteNetPeer peer, byte[] data)
+        void Received(int id, LiteNetPeer peer, ReadOnlySpan<byte> data)
         {
             if (data.Length == 0)
                 return;
             links.TryGetValue(id, out SecureLink link);
             if (link is { Ready: true })
             {
-                byte[] plain = link.Open(data);
-                if (plain == null)
+                byte[] plain = PacketBuffer.Rent(data.Length);
+                int length = link.Open(data, plain);
+                if (length < 0)
+                {
+                    PacketBuffer.Return(plain);
                     Dropped++;
+                }
                 else
-                    events.Enqueue(new TransportEvent { Kind = TransportEventKind.Data, Peer = id, Data = plain });
+                    events.Enqueue(new TransportEvent { Kind = TransportEventKind.Data, Peer = id, Data = plain, Length = length });
                 return;
             }
             if (hosting)
@@ -187,7 +192,7 @@ namespace KotH.Shared.Net
                 manager.TriggerUpdate();
                 manager.PollEvents();
             }
-            return events.TryDequeue(out e);
+            return PacketBuffer.Lend(ref lent, events.TryDequeue(out e), e);
         }
 
         public void Disconnect(int peer)

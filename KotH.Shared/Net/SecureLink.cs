@@ -182,23 +182,24 @@ namespace KotH.Shared.Net
             return plain.Length + Overhead;
         }
 
-        /// <summary>The message in a sealed packet; null when it is forged, damaged or seen before.</summary>
-        public byte[] Open(ReadOnlySpan<byte> packet)
+        /// <summary>Opens a sealed packet into into (packet.Length - Overhead bytes at least): the message's
+        /// length, or -1 when it is forged, damaged or seen before.</summary>
+        public int Open(ReadOnlySpan<byte> packet, Span<byte> into)
         {
             if (!Ready || packet.Length < Overhead || packet[0] != SealedKind)
-                return null;
+                return -1;
             ulong counter = BinaryPrimitives.ReadUInt64LittleEndian(packet[1..]);
             if (counter == 0 || counter <= newest && (newest - counter >= Window || (seen >> (int)(newest - counter) & 1) != 0))
-                return null;
-            byte[] plain = new byte[packet.Length - Overhead];
+                return -1;
+            int length = packet.Length - Overhead;
             Nonce(!hosting, counter);
             try
             {
-                opener.Decrypt(nonce, packet.Slice(9, plain.Length), packet.Slice(9 + plain.Length, TagSize), plain, packet[..9]);
+                opener.Decrypt(nonce, packet.Slice(9, length), packet.Slice(9 + length, TagSize), into[..length], packet[..9]);
             }
             catch (AuthenticationTagMismatchException)
             {
-                return null;
+                return -1;
             }
             if (counter > newest)
             {
@@ -208,7 +209,7 @@ namespace KotH.Shared.Net
             }
             else
                 seen |= 1UL << (int)(newest - counter);
-            return plain;
+            return length;
         }
 
         public void Dispose()

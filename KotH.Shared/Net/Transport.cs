@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 
 namespace KotH.Shared.Net
@@ -10,7 +11,35 @@ namespace KotH.Shared.Net
     {
         public TransportEventKind Kind;
         public int Peer;
-        public byte[] Data;
+        public byte[] Data;   // lent (PacketBuffer), longer than Length: valid until the next Poll
+        public int Length;
+
+        public readonly ReadOnlySpan<byte> Bytes => new ReadOnlySpan<byte>(Data, 0, Length);
+    }
+
+    /// <summary>Arrived packets' bytes, pooled: a transport rents them as a packet arrives and takes the
+    /// last one back at its next Poll, so a running round allocates nothing per packet.</summary>
+    public static class PacketBuffer
+    {
+        public static byte[] Rent(int length) => ArrayPool<byte>.Shared.Rent(length);
+
+        public static void Return(byte[] data) => ArrayPool<byte>.Shared.Return(data);
+
+        public static TransportEvent Data(int peer, ReadOnlySpan<byte> bytes)
+        {
+            byte[] data = Rent(bytes.Length);
+            bytes.CopyTo(data);
+            return new TransportEvent { Kind = TransportEventKind.Data, Peer = peer, Data = data, Length = bytes.Length };
+        }
+
+        /// <summary>A transport's Poll: gives the bytes handed out last back, then lends e's.</summary>
+        public static bool Lend(ref byte[] lent, bool got, in TransportEvent e)
+        {
+            if (lent != null)
+                Return(lent);
+            lent = got ? e.Data : null;
+            return got;
+        }
     }
 
     /// <summary>What the sessions need from a network: send to a peer, reliably in order
@@ -51,6 +80,7 @@ namespace KotH.Shared.Net
             readonly MemoryNetwork net;
             internal readonly Dictionary<int, Link> links = new Dictionary<int, Link>();
             readonly List<Packet> inbox = new List<Packet>();
+            byte[] lent;
 
             internal Endpoint(MemoryNetwork net)
             {
@@ -79,10 +109,7 @@ namespace KotH.Shared.Net
 
                 net.Sent++;
                 net.Bytes += data.Length;
-                link.To.Deliver(at, new TransportEvent
-                {
-                    Kind = TransportEventKind.Data, Peer = link.PeerOnOtherSide, Data = data.ToArray(),
-                });
+                link.To.Deliver(at, PacketBuffer.Data(link.PeerOnOtherSide, data));
             }
 
             internal void Deliver(double at, TransportEvent e)
@@ -103,12 +130,12 @@ namespace KotH.Shared.Net
                 if (best < 0)
                 {
                     e = default;
-                    return false;
+                    return PacketBuffer.Lend(ref lent, false, e);
                 }
 
                 e = inbox[best].Event;
                 inbox.RemoveAt(best);
-                return true;
+                return PacketBuffer.Lend(ref lent, true, e);
             }
 
             public void Disconnect(int peer)

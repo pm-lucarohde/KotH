@@ -73,11 +73,11 @@ namespace KotH.Client.Rendering.Dlss
         {
             if (handle == null)
                 return false;
-            list.ResourceBarrierTransition(color, GraphicsResourceState.PixelShaderResource | GraphicsResourceState.NonPixelShaderResource);
-            list.ResourceBarrierTransition(depth, GraphicsResourceState.PixelShaderResource | GraphicsResourceState.NonPixelShaderResource);
-            list.ResourceBarrierTransition(motion, GraphicsResourceState.PixelShaderResource | GraphicsResourceState.NonPixelShaderResource);
-            list.ResourceBarrierTransition(exposure, GraphicsResourceState.PixelShaderResource | GraphicsResourceState.NonPixelShaderResource);
-            list.ResourceBarrierTransition(output, GraphicsResourceState.UnorderedAccess);
+            list.ResourceBarrierTransition(color, BarrierLayout.ShaderResource);
+            list.ResourceBarrierTransition(depth, BarrierLayout.ShaderResource);
+            list.ResourceBarrierTransition(motion, BarrierLayout.ShaderResource);
+            list.ResourceBarrierTransition(exposure, BarrierLayout.ShaderResource);
+            list.ResourceBarrierTransition(output, BarrierLayout.UnorderedAccess);
             StrideVulkan.BeforeForeign(list);
             VkCommandBuffer buffer = StrideVulkan.CommandBuffer(list);
             FullBarrier(buffer);

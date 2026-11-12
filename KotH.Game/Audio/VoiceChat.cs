@@ -225,11 +225,15 @@ namespace KotH.Client.Audio
                 if (n > 0)
                     s.Source.Write(pcm.AsSpan(0, n));
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                // A broken packet is silence, never a stop.
+                // A broken packet is silence, never a stop; counted, the first one said.
+                if (brokenFrames++ == 0)
+                    StartLog.Warn($"voice frame not decoded: {e.GetType().Name}: {e.Message}");
             }
         }
+
+        int brokenFrames;   // since the start
 
         Speaker SpeakerOf(ulong from)
         {

@@ -167,7 +167,7 @@ namespace KotH.Client.Steam
                 lobby.Build = lobby.Get("build");
                 lobby.Private = lobby.Get("access") == "private";
                 lobby.IsParty = lobby.Get("kind") == "party";
-                Console.WriteLine($"[steam] in lobby {id}, host {lobby.Owner}");
+                Console.WriteLine($"[steam] in lobby {id}");
                 done(lobby, null);
             });
         }

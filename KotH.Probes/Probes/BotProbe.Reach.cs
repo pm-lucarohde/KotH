@@ -63,7 +63,7 @@ namespace KotH.Probes.Probes
                     for (int i = first; i < end; i++)
                     {
                         LinkKind kind = g.LinkAt(i, out _, out Vector3 to);
-                        string key = FormattableString.Invariant($"{kind} to y {to.Y:F1} (time {Time(g.TimeOf(g.FloorAt(to)))})");
+                        string key = FormattableString.Invariant($"{kind} to y {to.Y:F1} (time {TimeText(g.TimeOf(g.FloorAt(to)))})");
                         seen[key] = seen.TryGetValue(key, out int n) ? n + 1 : 1;
                     }
                 }
@@ -71,6 +71,6 @@ namespace KotH.Probes.Probes
                 Log($"[reach]     {kv.Value,4}× {kv.Key}");
         }
 
-        static string Time(float t) => t == float.MaxValue ? "none" : t.ToString("F0", System.Globalization.CultureInfo.InvariantCulture);
+        static string TimeText(float t) => t == float.MaxValue ? "none" : t.ToString("F0", System.Globalization.CultureInfo.InvariantCulture);
     }
 }

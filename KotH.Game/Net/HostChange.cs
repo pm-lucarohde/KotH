@@ -20,7 +20,7 @@ namespace KotH.Client.Net
         Takeover resumeFrom;              // the newest final state while reconnecting
         double resumedAt, badSince = double.NaN, changedAt = double.NegativeInfinity, nextHeir, nextHand, splitSince = double.NaN;
         string hostAtStart;               // the lobby's "host" when this side began hosting
-        bool wasOwner, gaveUp;
+        bool gaveUp;
 
         SteamTransport Steam => transport as SteamTransport;
 
@@ -70,7 +70,6 @@ namespace KotH.Client.Net
             }
             if (owner != me)
                 return;
-            wasOwner = true;
             lobby.SetData("host", Text(me));
             if (now >= nextHeir)
             {
@@ -245,7 +244,6 @@ namespace KotH.Client.Net
             }
             Host.AttachFounder(Session);
             changedAt = now;
-            wasOwner = false;
             var bots = new List<int>();
             foreach (NetEvent e in from.Roster)
                 if (e.Bot)

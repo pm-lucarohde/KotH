@@ -289,7 +289,7 @@ namespace KotH.Probes.Probes
         {
             bool refused = false;
             while (end != null && end.Poll(out TransportEvent e))
-                refused |= e.Kind == TransportEventKind.Data && e.Data[0] == (byte)MsgType.Reject && e.Data[1] == (byte)why;
+                refused |= e.Kind == TransportEventKind.Data && e.Length > 1 && e.Data[0] == (byte)MsgType.Reject && e.Data[1] == (byte)why;
             return refused;
         }
 

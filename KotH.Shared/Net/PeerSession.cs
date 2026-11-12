@@ -332,8 +332,8 @@ namespace KotH.Shared.Net
             Settle();
             while (transport.Poll(out TransportEvent e))
             {
-                if (e.Kind == TransportEventKind.Data && e.Data.Length > 0)
-                    Receive(e.Data, now);
+                if (e.Kind == TransportEventKind.Data && e.Length > 0)
+                    Receive(e.Bytes, now);
                 else if (e.Kind == TransportEventKind.Disconnected)
                     HostLost = true;
             }
@@ -436,7 +436,7 @@ namespace KotH.Shared.Net
             return false;
         }
 
-        void Receive(byte[] data, double now)
+        void Receive(ReadOnlySpan<byte> data, double now)
         {
             var r = new Reader(data);
             LastHeard = now;
