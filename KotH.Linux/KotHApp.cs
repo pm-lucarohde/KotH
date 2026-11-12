@@ -431,6 +431,10 @@ sealed class KotHGame : Game
         StartLog.Mark("scene loaded");
         base.BeginRun();
         KotH.Client.Rendering.Dlss.Dlss.Offer(GraphicsDevice);
+        // Stride records a stage of 6+ meshes on worker threads, each part its own command buffer and render pass:
+        // the prepass and every shadow tile split, which cost more GPU and CPU time than it saved. One command
+        // list draws the same meshes in the same order (A/B 12.11.2026: FPS +3 %, 1 % low +7 %).
+        SetDeferred(GraphicsDevice, false);
     }
 
     /// <summary>The audio engine's state and device, for the start log.</summary>
@@ -745,6 +749,9 @@ sealed class KotHGame : Game
         if (!exclusive && sdl != null)
             SdlGrab.SDL_SetWindowFullscreen(sdl.SdlHandle, SdlGrab.FullscreenDesktop);
     }
+
+    [System.Runtime.CompilerServices.UnsafeAccessor(System.Runtime.CompilerServices.UnsafeAccessorKind.Method, Name = "set_IsDeferred")]
+    static extern void SetDeferred(GraphicsDevice device, bool value);
 
     [System.Runtime.CompilerServices.UnsafeAccessor(System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "ClientSizeChanged")]
     static extern ref EventHandler<EventArgs> SizeEvents(GameWindow window);
