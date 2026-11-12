@@ -64,7 +64,7 @@ sealed class KotHGame : Game
     readonly string shotPath = Environment.GetEnvironmentVariable("KOTH_SHOT");
     readonly double shotSeconds = Number("KOTH_SHOT_SECONDS") ?? 3.0;
     readonly double? shotYaw = Number("KOTH_SHOT_YAW"); // view held there, with _PITCH and _FOV
-    readonly double shotSpin = Number("KOTH_SHOT_SPIN") ?? 0.0; // turns the view steadily, deg/s
+    readonly double shotSpin = Number("KOTH_SHOT_SPIN") ?? 0.0; // turns the view steadily, deg/s (pilot: view only, pitch sways)
     readonly double shotPitch = Number("KOTH_SHOT_PITCH") ?? 0.0;
     readonly double? shotFov = Number("KOTH_SHOT_FOV");
     readonly double shotThirdDistance = Number("KOTH_SHOT_THIRD") ?? 0.0; // third person (1), above 1 the camera's distance in metres
@@ -550,6 +550,11 @@ sealed class KotHGame : Game
             Still();
         if (shotPilot && Cached(ref loggedReader) is { Pilot: null } flown)
             flown.Pilot = PilotInput;
+        if (shotPilot && shotSpin != 0.0 && Cached(ref spunCamera) is { } spun)
+        {
+            double t = gameTime.Total.TotalSeconds;
+            spun.ViewTurn = new Vector2((float)(shotSpin * t % 360.0), (float)(25.0 * Math.Sin(0.9 * t)));
+        }
         if (frameLog != null)
             NoteWorld();
 
@@ -1001,8 +1006,8 @@ sealed class KotHGame : Game
         notedShown = Services.GetService<LoadScreen>() is { Covers: true } ? Shown.Covered
             : stage == KotH.Shared.Match.MatchStage.Lobby ? Shown.Lobby
             : sim?.Match?.State.Phase == KotH.Shared.Match.MatchPhase.Running ? Shown.Round : Shown.Other;
-        notedYaw = Cached(ref loggedReader)?.Yaw ?? 0f;
-        notedPitch = loggedReader?.Pitch ?? 0f;
+        notedYaw = (Cached(ref loggedReader)?.Yaw ?? 0f) + (spunCamera?.ViewTurn.X ?? 0f);
+        notedPitch = (loggedReader?.Pitch ?? 0f) + (spunCamera?.ViewTurn.Y ?? 0f);
     }
 
     // A gen0 collection (a few ms) where no one sees the hitch: the view jumped (respawn, teleport, a new
@@ -1134,6 +1139,7 @@ sealed class KotHGame : Game
     // (a search over the root entities each frame cost a tenth of the main thread).
     CameraComponent loggedCamera;
     PlayerInputReader loggedReader;
+    PlayerCamera spunCamera;
     T Cached<T>(ref T slot) where T : EntityComponent
         => slot?.Entity?.Scene != null ? slot : slot = Find<T>();
 

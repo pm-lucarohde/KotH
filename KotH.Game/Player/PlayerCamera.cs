@@ -70,6 +70,10 @@ namespace KotH.Client.Player
         Vector3 shakePhase;
         readonly System.Random shakeRandom = new System.Random();
 
+        /// <summary>Test aid: turns only the view (yaw, pitch in degrees), never the input or the motor
+        /// (KOTH_SHOT_SPIN with the pilot, measuring frames while turning).</summary>
+        [DataMemberIgnore] public Vector2 ViewTurn { get; set; }
+
         public PlayerCamera()
         {
             // After the driver and every body: the camera sees the final frame.
@@ -90,7 +94,10 @@ namespace KotH.Client.Player
             var backBuffer = GraphicsDevice.Presenter.BackBuffer;
             float aspect = (float)backBuffer.Width / backBuffer.Height;
             Vector3 eye = ViewMath.Eye(Motor, TickInterpolation.Alpha);
-            Quaternion rotation = UMath.Euler(Reader.Pitch, Reader.Yaw);
+            float yaw = Reader.Yaw, pitch = Reader.Pitch;
+            if (ViewTurn != Vector2.Zero)
+                (yaw, pitch) = (yaw + ViewTurn.X, UMath.Clamp(pitch + ViewTurn.Y, -85f, 85f));
+            Quaternion rotation = UMath.Euler(pitch, yaw);
             // Stride's a * b turns by a first: the shake about the view's own axes.
             Entity.Transform.Rotation = Shake((float)Game.UpdateTime.Elapsed.TotalSeconds) * rotation;
 
@@ -105,7 +112,7 @@ namespace KotH.Client.Player
                 return;
             }
 
-            ThirdPersonPath path = ViewMath.ThirdPerson(World, eye, Reader.Yaw, Reader.Pitch, Lift, Distance, Radius);
+            ThirdPersonPath path = ViewMath.ThirdPerson(World, eye, yaw, pitch, Lift, Distance, Radius);
             float dt = (float)Game.UpdateTime.Elapsed.TotalSeconds;
             shown = UMath.Min(UMath.MoveTowards(shown, Distance, ReturnSpeed * dt), path.Free);
 
