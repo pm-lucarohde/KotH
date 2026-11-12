@@ -4,6 +4,10 @@ EffectName: AtmosphereComposite
 UsedParameters: {}
 ---
 !EffectCompileRequest
+EffectName: AtmosphereCompress
+UsedParameters: {}
+---
+!EffectCompileRequest
 EffectName: AtmosphereMarch
 UsedParameters: {}
 ---

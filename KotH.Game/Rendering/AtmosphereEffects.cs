@@ -80,7 +80,7 @@ namespace KotH.Client.Rendering
         const float RayFacing = 0.3f, RayReach = 0.9f, RayRadius = 0.6f, RayDecay = 0.955f;
 
         ImageEffectShader march;
-        ImageEffectShader composite;
+        ImageEffectShader composite, compositeCompress;
         ImageEffectShader shaftMask;
         ImageEffectShader shaftBlur;
         ImageEffectShader shaftAdd;
@@ -95,6 +95,7 @@ namespace KotH.Client.Rendering
             resolve = ToLoadAndUnload(new ImageEffectShader("FxaaResolveEffect"));
             march = ToLoadAndUnload(new ImageEffectShader("AtmosphereMarch"));
             composite = ToLoadAndUnload(new ImageEffectShader("AtmosphereComposite"));
+            compositeCompress = ToLoadAndUnload(new ImageEffectShader("AtmosphereCompress"));
             // scene * a + rgb
             var blend = new BlendStateDescription(Blend.One, Blend.SourceAlpha);
             blend.RenderTargets[0].AlphaSourceBlend = Blend.Zero;
@@ -119,10 +120,12 @@ namespace KotH.Client.Rendering
                 Initialize(drawContext.RenderContext);
             int colour = outputValidator.Find<ColorTargetSemantic>();
             var atmosphere = drawContext.RenderContext.Tags.Get(Atmosphere.Key);
+            bool fxaa = colour >= 0 && FxaaOnly(inputs[colour], outputTarget);
+            Texture compressed = null;
             if (colour >= 0 && inputDepthStencil != null && atmosphere is { CloudMap: not null })
-                DrawAtmosphere(drawContext, atmosphere, inputs[colour], inputDepthStencil);
-            if (colour >= 0 && FxaaOnly(inputs[colour], outputTarget))
-                DrawFxaa(drawContext, inputs[colour], outputTarget);
+                compressed = DrawAtmosphere(drawContext, atmosphere, inputs[colour], inputDepthStencil, fxaa);
+            if (fxaa)
+                DrawFxaa(drawContext, inputs[colour], outputTarget, compressed);
             else
                 Inner?.Draw(drawContext, outputValidator, inputs, inputDepthStencil, outputTarget);
         }
@@ -150,21 +153,28 @@ namespace KotH.Client.Rendering
             return true;
         }
 
-        void DrawFxaa(RenderDrawContext context, Texture colour, Texture output)
+        // The FXAA path from the colour, or from its compressed copy when the atmosphere already wrote one.
+        void DrawFxaa(RenderDrawContext context, Texture colour, Texture output, Texture compressed)
         {
-            var compressed = Context.Allocator.GetTemporaryTexture2D(colour.Width, colour.Height, colour.Format,
-                TextureFlags.RenderTarget | TextureFlags.ShaderResource);
+            bool ready = compressed != null;
+            compressed ??= Compressed(colour);
             using (context.PushRenderTargetsAndRestore())
             {
-                compress.SetInput(0, colour);
-                compress.SetOutput(compressed);
-                compress.Draw(context);
+                if (!ready)
+                {
+                    compress.SetInput(0, colour);
+                    compress.SetOutput(compressed);
+                    compress.Draw(context);
+                }
                 resolve.SetInput(0, compressed);
                 resolve.SetOutput(output);
                 resolve.Draw(context);
             }
             Context.Allocator.ReleaseReference(compressed);
         }
+
+        Texture Compressed(Texture colour)
+            => Context.Allocator.GetTemporaryTexture2D(colour.Width, colour.Height, colour.Format, TextureFlags.RenderTarget | TextureFlags.ShaderResource);
 
         /// <summary>Clip x, y and 1 to a pixel's view ray with a view depth of 1, from the camera's axes and the
         /// projection's scale. Inverting the whole view-projection (far 20 km) in float tilted all rays by up
@@ -179,8 +189,11 @@ namespace KotH.Client.Rendering
                               ahead.X, ahead.Y, ahead.Z, 0f, 0f, 0f, 0f, 1f);
         }
 
-        void DrawAtmosphere(RenderDrawContext drawContext, Atmosphere atmosphere, Texture colour, Texture depth)
+        /// <summary>Fog and clouds over the colour; with <paramref name="fxaa"/> and nothing drawn after the
+        /// composite, it writes FXAA's compressed input instead (returned, else null).</summary>
+        Texture DrawAtmosphere(RenderDrawContext drawContext, Atmosphere atmosphere, Texture colour, Texture depth, bool fxaa)
         {
+            Texture compressed = null;
             RenderView view = drawContext.RenderContext.RenderView;
             // Half the screen's size at High; the Volumetric setting's divisor.
             int divisor = QualityLevels.MarchDivisor;
@@ -243,17 +256,26 @@ namespace KotH.Client.Rendering
                 march.SetOutput(half);
                 march.Draw(drawContext);
 
-                composite.Parameters.Set(NearFar, new Vector2(view.NearClipPlane, view.FarClipPlane));
-                composite.Parameters.Set(CompositeDivisor, (float)divisor);
-                composite.SetInput(0, half);
-                composite.SetInput(1, depth);
-                composite.SetOutput(colour);
-                composite.Draw(drawContext);
-
                 // Rays towards the sun, only while it is roughly ahead.
                 var forward = -new Vector3(v.M13, v.M23, v.M33);
                 float fade = MathUtil.Clamp((Vector3.Dot(Vector3.Normalize(forward), toSun) - RayFacing) / (1f - RayFacing), 0f, 1f);
-                if (atmosphere.SunRays > 0f && fade > 0f && toSun.Y > 0f)
+                bool rays = atmosphere.SunRays > 0f && fade > 0f && toSun.Y > 0f;
+                bool shimmers = atmosphere.HazeRadius > 0f && ShimmerInView(atmosphere, view);
+
+                ImageEffectShader over = composite;
+                if (fxaa && !rays && !shimmers)
+                {
+                    (over, compressed) = (compositeCompress, Compressed(colour));
+                    over.SetInput(2, colour);
+                }
+                over.Parameters.Set(NearFar, new Vector2(view.NearClipPlane, view.FarClipPlane));
+                over.Parameters.Set(CompositeDivisor, (float)divisor);
+                over.SetInput(0, half);
+                over.SetInput(1, depth);
+                over.SetOutput(compressed ?? colour);
+                over.Draw(drawContext);
+
+                if (rays)
                 {
                     var clip = Vector4.Transform(new Vector4(toSun, 0f), view.ViewProjection);
                     var sun = new Vector2(0.5f + 0.5f * clip.X / clip.W, 0.5f - 0.5f * clip.Y / clip.W);
@@ -278,10 +300,19 @@ namespace KotH.Client.Rendering
                     shaftAdd.Draw(drawContext);
                     Context.Allocator.ReleaseReference(quarter);
                 }
-                if (atmosphere.HazeRadius > 0f)
+                if (shimmers)
                     DrawShimmer(drawContext, atmosphere, view, colour, depth, clipToRay, viewToWorld.TranslationVector);
             }
             Context.Allocator.ReleaseReference(half);
+            return compressed;
+        }
+
+        static bool ShimmerInView(Atmosphere atmosphere, RenderView view)
+        {
+            Vector3 bottom = atmosphere.HazeBottom, reach = new Vector3(atmosphere.HazeRadius, atmosphere.HazeHeight, atmosphere.HazeRadius);
+            var box = new BoundingBoxExt(new BoundingBox(bottom - new Vector3(reach.X, 0f, reach.Z), bottom + reach));
+            Matrix viewProjection = view.ViewProjection;
+            return new BoundingFrustum(ref viewProjection).Contains(ref box);
         }
 
         /// <summary>The hot air (HeatShimmer) over a copy of the scene, only while its cylinder is in view:
@@ -289,18 +320,13 @@ namespace KotH.Client.Rendering
         void DrawShimmer(RenderDrawContext drawContext, Atmosphere atmosphere, RenderView view, Texture colour, Texture depth,
                          Matrix clipToRay, Vector3 eye)
         {
-            Vector3 bottom = atmosphere.HazeBottom, reach = new Vector3(atmosphere.HazeRadius, atmosphere.HazeHeight, atmosphere.HazeRadius);
-            var box = new BoundingBoxExt(new BoundingBox(bottom - new Vector3(reach.X, 0f, reach.Z), bottom + reach));
-            Matrix viewProjection = view.ViewProjection;
-            if (!new BoundingFrustum(ref viewProjection).Contains(ref box))
-                return;
             var copy = Context.Allocator.GetTemporaryTexture2D(colour.Width, colour.Height, colour.Format, TextureFlags.ShaderResource);
             drawContext.CommandList.Copy(colour, copy);
             var p = shimmer.Parameters;
             p.Set(HazeClipToRay, clipToRay);
             p.Set(HazeNearFar, new Vector2(view.NearClipPlane, view.FarClipPlane));
             p.Set(HazeEye, eye);
-            p.Set(Haze, new Vector4(bottom, atmosphere.HazeRadius));
+            p.Set(Haze, new Vector4(atmosphere.HazeBottom, atmosphere.HazeRadius));
             p.Set(HazeShape, new Vector4(atmosphere.HazeHeight, atmosphere.HazeStrength,
                 (float)(drawContext.RenderContext.Time.Total.TotalSeconds % 3600.0), 0f));
             shimmer.SetInput(0, copy);
