@@ -19,6 +19,14 @@ shader PaintedTriplanar<LinkType PaintKey>
         [Link("PaintKey")] stage Texture2D Paint;
     }
 
+    // Above 0 somewhere in the pixel's 2 x 2 quad, the same answer in all four (TerrainTriplanar.Quad).
+    float Quad(float v)
+    {
+        float a = max(v, 0.0);
+        float row = a + abs(ddx(a));
+        return row + abs(ddy(row));
+    }
+
     override float4 Compute()
     {
         float shade = streams.TexCoord.x;
@@ -26,9 +34,15 @@ shader PaintedTriplanar<LinkType PaintKey>
         float3 p = streams.PositionWS.xyz / TileSize;
         float3 b = pow(abs(n), 8.0);
         b /= b.x + b.y + b.z;
-        float4 c = b.x * Paint.SampleBias(AnisotropicRepeatSampler, float2(p.z, -p.y), BaseBias + TextureBias)
-                 + b.y * Paint.SampleBias(AnisotropicRepeatSampler, p.xz, BaseBias + TextureBias)
-                 + b.z * Paint.SampleBias(AnisotropicRepeatSampler, float2(p.x, -p.y), BaseBias + TextureBias);
+        // Only the projections that count in the pixel's 2 x 2 quad are read (as in TerrainTriplanar).
+        float3 seen = float3(Quad(b.x - 1.0 / 4096.0), Quad(b.y - 1.0 / 4096.0), Quad(b.z - 1.0 / 4096.0));
+        float4 c = 0;
+        if (seen.x > 0.0)
+            c += b.x * Paint.SampleBias(AnisotropicRepeatSampler, float2(p.z, -p.y), BaseBias + TextureBias);
+        if (seen.y > 0.0)
+            c += b.y * Paint.SampleBias(AnisotropicRepeatSampler, p.xz, BaseBias + TextureBias);
+        if (seen.z > 0.0)
+            c += b.z * Paint.SampleBias(AnisotropicRepeatSampler, float2(p.x, -p.y), BaseBias + TextureBias);
         return float4(c.rgb * shade, c.a);
     }
 };
