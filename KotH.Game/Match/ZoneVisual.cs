@@ -50,6 +50,8 @@ namespace KotH.Client.Match
         readonly List<Entity> pieces = new List<Entity>();
         // The outline's stretches the motes rise from: middle on the floor, turn from +X, length.
         readonly List<(Vector3 At, float Turn, float Length)> stretches = new();
+        // Each rail's scale, turn and place on the zone's frame; drawn as instances of the one cube.
+        readonly List<Matrix> rails = new();
         CaptureZone builtFor;
         ZoneLook shown = (ZoneLook)(-1);
 
@@ -91,6 +93,7 @@ namespace KotH.Client.Match
             pieces.Clear();
             motes.Clear();
             stretches.Clear();
+            rails.Clear();
         }
 
         void Build()
@@ -111,6 +114,7 @@ namespace KotH.Client.Match
                     hole.Reverse();
                     Outline(hole, bottom, y);
                 }
+                AddRails();
                 AddMotes();
                 return;
             }
@@ -125,6 +129,7 @@ namespace KotH.Client.Match
             stretches.Add((new Vector3(0f, bottom, inZ), 0f, s.X));
             stretches.Add((new Vector3(-inX, bottom, 0f), MathUtil.PiOverTwo, s.Z));
             stretches.Add((new Vector3(inX, bottom, 0f), MathUtil.PiOverTwo, s.Z));
+            AddRails();
             AddMotes();
         }
 
@@ -224,12 +229,32 @@ namespace KotH.Client.Match
 
         void Part(Vector3 at, Vector3 scale, Quaternion turn)
         {
-            // Light, not a solid: nothing of the zone throws a shadow.
-            var model = new ModelComponent(Cube) { IsShadowCaster = false, RenderGroup = RailGroup };
-            var part = new Entity("ZonePart") { model };
-            part.Transform.Position = at;
-            part.Transform.Rotation = turn;
-            part.Transform.Scale = scale;
+            Matrix.Transformation(ref scale, ref turn, ref at, out Matrix local);
+            rails.Add(local);
+        }
+
+        // All rails as instances of the cube, each placed as a child entity of this one would be (one object
+        // for Stride instead of one per half metre of a round zone). Light, not a solid: nothing of the zone
+        // throws a shadow.
+        void AddRails()
+        {
+            if (rails.Count == 0)
+                return;
+            Entity.Transform.UpdateWorldMatrix();
+            Matrix world = Entity.Transform.WorldMatrix;
+            var placed = new Matrix[rails.Count];
+            for (int i = 0; i < placed.Length; i++)
+            {
+                Matrix local = rails[i];
+                Matrix.Multiply(ref local, ref world, out placed[i]);
+            }
+            var instances = new InstancingUserArray();
+            instances.UpdateWorldMatrices(placed);
+            var part = new Entity("ZoneRails")
+            {
+                new ModelComponent(Cube) { IsShadowCaster = false, RenderGroup = RailGroup },
+                new InstancingComponent { Type = instances },
+            };
             pieces.Add(part);
             Entity.AddChild(part);
         }
