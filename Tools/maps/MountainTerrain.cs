@@ -133,7 +133,7 @@ public static class M
     public static readonly (double Min, double Max) SprigDepth = (0.75, 0.95);
 
     // What a block is; -1 is air.
-    public const int Air = -1, Ground = 0, Trunk = 2, Leaf = 3, Clump = 4;
+    public const int Air = -1, Ground = 0, Trunk = 2, Leaf = 3, Clump = 4, Nut = 5;
 
     // The ground's surfaces in the order of TerrainTriplanar's weights; rock is the rest.
     public static readonly (Rgb Top, Rgb Side)[] Paints = [(Grass, Dirt), (Sand, Sand), (Snow, Snow), (Snow, Stone), (Stone, Stone)];
@@ -1115,7 +1115,93 @@ public static class Trees
             fronds.Add((top, p1, p2, rng.Random()));
         }
         long seed = rng.RandRange(1L << 30);
-        return () => Fronds(mesh, new PyRandom(seed), fronds);
+        return () =>
+        {
+            Fronds(mesh, new PyRandom(seed), fronds);
+            // Coconuts (Luca): a bunch round the trunk under the crown, set along its leaning axis
+            // and sunk a little into the bark, so they hang on it; only seen, after the simplifier as
+            // the leaves; their own draws, so trunks, fronds and collision stay.
+            var nuts = new PyRandom(seed + 77);
+            int n = nuts.RandInt(4, 6);
+            double around = nuts.Uniform(0.0, 2 * Math.PI);
+            V3 axis = Unit(Sub(top, mid));
+            for (int i = 0; i < n; i++)
+            {
+                double a = around + 2 * Math.PI * i / n + nuts.Uniform(-0.25, 0.25), r = nuts.Uniform(0.13, 0.16);
+                V3 at = Sub(top, Scale(axis, nuts.Uniform(0.12, 0.3) + r));
+                V3 side = new(Libm.cos(a), 0, Libm.sin(a));
+                side = Unit(Sub(side, Scale(axis, Dot(side, axis))));
+                V3 c = Add(at, Scale(side, 0.19 + 0.55 * r));
+                Nut(mesh, c, r, nuts.Uniform(0.5, 0.66));
+                Stalk(mesh, Add(c, Scale(axis, r * 0.9)), Add(Sub(top, Scale(axis, 0.04)), Scale(side, 0.14)), 0.025, 0.55);
+            }
+        };
+    }
+
+    /// <summary>A coconut's stalk up to the crown: a thin open tube in the bark's paint, only seen.</summary>
+    static void Stalk(Mesh mesh, V3 from, V3 to, double r, double shade)
+    {
+        const int sides = 6;
+        V3 d = Unit(Sub(to, from));
+        V3 u = Unit(V3.Cross(d, Math.Abs(d.Y) < 0.9 ? new V3(0, 1, 0) : new V3(1, 0, 0))), w = V3.Cross(d, u);
+        int first = mesh.Pos.Count;
+        foreach (V3 end in new[] { from, to })
+            for (int j = 0; j < sides; j++)
+            {
+                double a = 2 * Math.PI * j / sides;
+                V3 n = Add(Scale(u, Libm.cos(a)), Scale(w, Libm.sin(a)));
+                mesh.AddVertex(Add(end, Scale(n, r)), n, (0.0, 0.0, 0.0, 0.0), (shade, 0.0), M.Nut);
+            }
+        for (int j = 0; j < sides; j++)
+        {
+            int a = first + j, b = first + (j + 1) % sides;
+            foreach (var (p0, p1, p2) in new[] { (a, b, b + sides), (a, b + sides, a + sides) })
+            {
+                // Counter-clockwise from outside, as Limb's.
+                V3 f = V3.Cross(V3.Sub(mesh.Pos[p1], mesh.Pos[p0]), V3.Sub(mesh.Pos[p2], mesh.Pos[p0]));
+                bool flip = Dot(f, Add(Add(mesh.Nrm[p0], mesh.Nrm[p1]), mesh.Nrm[p2])) < 0;
+                mesh.Unsolid.Add(mesh.Idx.Count / 3);
+                mesh.Idx.AddRange(flip ? [p0, p2, p1] : [p0, p1, p2]);
+            }
+        }
+    }
+
+    /// <summary>A coconut: a ball a little taller than wide, in the bark's paint (Bark part),
+    /// darkened by shade (TEXCOORD_0.x); only seen, like the fronds.</summary>
+    static void Nut(Mesh mesh, V3 c, double r, double shade)
+    {
+        const int sides = 10, rings = 6;
+        int first = mesh.Pos.Count;
+        void Corner(V3 n) => mesh.AddVertex(Add(c, new V3(n.X * r, n.Y * r * 1.15, n.Z * r)), n, (0.0, 0.0, 0.0, 0.0), (shade, 0.0), M.Nut);
+        Corner(new V3(0, 1, 0));
+        for (int k = 1; k < rings; k++)
+            for (int j = 0; j < sides; j++)
+            {
+                double lat = Math.PI * k / rings, lon = 2 * Math.PI * j / sides;
+                Corner(new V3(Libm.sin(lat) * Libm.cos(lon), Libm.cos(lat), Libm.sin(lat) * Libm.sin(lon)));
+            }
+        Corner(new V3(0, -1, 0));
+        int bottom = mesh.Pos.Count - 1;
+        void Tri(int a, int b, int d)
+        {
+            // Counter-clockwise from outside, as Limb's.
+            V3 f = V3.Cross(V3.Sub(mesh.Pos[b], mesh.Pos[a]), V3.Sub(mesh.Pos[d], mesh.Pos[a]));
+            if (Dot(f, Add(Add(mesh.Nrm[a], mesh.Nrm[b]), mesh.Nrm[d])) < 0)
+                (b, d) = (d, b);
+            mesh.Unsolid.Add(mesh.Idx.Count / 3);
+            mesh.Idx.AddRange([a, b, d]);
+        }
+        int Ring(int k, int j) => first + 1 + (k - 1) * sides + j % sides;
+        for (int j = 0; j < sides; j++)
+        {
+            Tri(first, Ring(1, j), Ring(1, j + 1));
+            Tri(bottom, Ring(rings - 1, j), Ring(rings - 1, j + 1));
+            for (int k = 1; k < rings - 1; k++)
+            {
+                Tri(Ring(k, j), Ring(k + 1, j), Ring(k + 1, j + 1));
+                Tri(Ring(k, j), Ring(k + 1, j + 1), Ring(k, j + 1));
+            }
+        }
     }
 
     /// <summary>A frond's leaflets: slim single leaves from the atlas on both sides of its curve,
@@ -1533,7 +1619,7 @@ public static class Output
     public static List<Part> Parts(Mesh mesh)
     {
         var output = new List<Part>();
-        foreach (var (kinds, name) in new[] { (new[] { M.Ground }, "Terrain"), (new[] { M.Leaf }, "Leaves"), (new[] { M.Trunk }, "Bark"), (new[] { M.Clump }, "LeafCards") })
+        foreach (var (kinds, name) in new[] { (new[] { M.Ground }, "Terrain"), (new[] { M.Leaf }, "Leaves"), (new[] { M.Trunk, M.Nut }, "Bark"), (new[] { M.Clump }, "LeafCards") })
         {
             var faces = new List<int[]>();
             for (int i = 0; i < mesh.Idx.Count; i += 3)
@@ -1642,8 +1728,8 @@ public static class Output
                 chunks[key] = list = new List<(int, int, int)>();
             list.Add(tri);
         }
-        // The leaves come last (Build) and are not solid.
-        static bool Leafy(int kind) => kind == M.Leaf || kind == M.Clump;
+        // The leaves and coconuts come last (Build) and are not solid.
+        static bool Leafy(int kind) => kind == M.Leaf || kind == M.Clump || kind == M.Nut;
         int solid = mesh.Keys.Count(k => !Leafy(k.Kind));
         if (mesh.Keys.Skip(solid).Any(k => !Leafy(k.Kind)))
             throw new Exception("leaves not at the end");
