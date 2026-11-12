@@ -9,6 +9,7 @@ using KotH.Shared.Player;
 using KotH.Shared.Simulation;
 using Stride.Core;
 using Stride.Core.Mathematics;
+using Stride.Core.Threading;
 using Stride.Engine;
 using Stride.Rendering;
 
@@ -41,10 +42,24 @@ namespace KotH.Client.Player
             public ModelComponent Model;
             public readonly Vector3[] Now = new Vector3[Links + 1], Before = new Vector3[Links + 1], Safe = new Vector3[Links + 1];
             public readonly Matrix[] Matrices = new Matrix[Links];
+            public Vector3 From, To;                 // the belts this frame
             public bool Fresh = true, Seen;
         }
 
-        readonly List<Rope> ropes = new List<Rope>();
+        // Ropes share nothing but the map's grid, which they only read: they move on the workers.
+        struct MoveJob : Dispatcher.IBatchJob
+        {
+            public ChainView View;
+
+            public void Process(int start, int endExclusive)
+            {
+                for (int i = start; i < endExclusive; i++)
+                    View.Move(View.moving[i]);
+            }
+        }
+
+        readonly List<Rope> ropes = new List<Rope>(), moving = new List<Rope>();
+        float dt, segment;
         Vector3? hips;
         PlayerCamera camera;
 
@@ -57,11 +72,13 @@ namespace KotH.Client.Player
         {
             foreach (Rope r in ropes)
                 r.Seen = false;
+            moving.Clear();
             IReadOnlyList<SimulationBody> bodies = Simulation?.Bodies;
             if (Simulation?.Match is { Teamed: true } && bodies != null && Link != null)
             {
                 Watch();
-                float dt = Math.Clamp((float)Game.UpdateTime.Elapsed.TotalSeconds, 1e-4f, 1f / 30f);
+                dt = Math.Clamp((float)Game.UpdateTime.Elapsed.TotalSeconds, 1e-4f, 1f / 30f);
+                segment = Simulation.ChainLength / Links;
                 for (int i = 0; i < bodies.Count; i++)
                 {
                     SimulationBody b = bodies[i];
@@ -72,9 +89,18 @@ namespace KotH.Client.Player
                         continue;
                     Rope r = RopeOf(a, b);
                     r.Seen = true;
-                    Move(r, Belt(va), Belt(vb), dt);
-                    Draw(r);
+                    r.From = Belt(va);
+                    r.To = Belt(vb);
+                    moving.Add(r);
                 }
+                // Bepu's rays (before the grid is done) stay on this thread.
+                if (grid != null)
+                    Dispatcher.ForBatched(moving.Count, new MoveJob { View = this });
+                else
+                    foreach (Rope r in moving)
+                        Move(r);
+                foreach (Rope r in moving)
+                    Draw(r);
             }
             for (int i = ropes.Count - 1; i >= 0; i--)
                 if (!ropes[i].Seen)
@@ -123,9 +149,9 @@ namespace KotH.Client.Player
         // Verlet with the ends held at the belts; the links keep their length, then every node is
         // stopped at the map on its way from where it last was clear (Collide). Taut round an edge the
         // rope gets longer than the chain instead of cutting through.
-        void Move(Rope r, Vector3 from, Vector3 to, float dt)
+        void Move(Rope r)
         {
-            float segment = Simulation.ChainLength / Links;
+            Vector3 from = r.From, to = r.To;
             Vector3[] p = r.Now, q = r.Before;
             if (r.Fresh || Vector3.DistanceSquared(p[0], from) > 4f || Vector3.DistanceSquared(p[Links], to) > 4f)
             {

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using KotH.MapFormat;
 using Stride.Core.Mathematics;
 
@@ -13,17 +14,28 @@ namespace KotH.Client.Player
         const float Cell = 1f;
         const int Bias = 1 << 20;
         const float Edge = 1e-4f;
+        const float Margin = 0.01f, Slack = 1e-3f;   // box growth: 1 cm plus 10 times the edges' slack
 
         // Bepu's winding: seen from outside the corners run clockwise, so det < 0 and the face's
         // normal (outwards) is -(e1 x e2). Checked hit for hit against Bepu on Atrium and MountDestiny.
         const float Outside = -1f;
 
+        // A face's corner and edges as the test takes them, and its box grown by more than the test's
+        // slack over the edges: a ray whose segment misses the box cannot hit the face.
+        struct Face
+        {
+            public Vector3 A, E1, E2, Low, High;
+        }
+
         readonly float[] v;
         readonly int[] corners;                      // vertex triples, one per triangle
+        readonly Face[] faces;
         readonly Dictionary<long, (int Start, int Count)> cells = new Dictionary<long, (int, int)>();
         readonly int[] members;                      // triangle numbers, cell after cell
-        readonly int[] seen;                         // the query that last tested a triangle
-        int query;
+
+        // Per thread (ropes move in parallel): the query that last tested a triangle.
+        [ThreadStatic] static int[] seen;
+        [ThreadStatic] static int query;
 
         public MapCollision Source { get; }
 
@@ -36,7 +48,15 @@ namespace KotH.Client.Player
                 all.AddRange(chunk.Triangles);
             corners = all.ToArray();
             int triangles = corners.Length / 3;
-            seen = new int[triangles];
+            faces = new Face[triangles];
+            for (int t = 0; t < triangles; t++)
+            {
+                Vector3 a = Corner(t, 0), b = Corner(t, 1), c = Corner(t, 2);
+                Vector3 low = Vector3.Min(a, Vector3.Min(b, c)), high = Vector3.Max(a, Vector3.Max(b, c));
+                Vector3 size = high - low;
+                var grow = new Vector3(Margin + Slack * Math.Max(size.X, Math.Max(size.Y, size.Z)));
+                faces[t] = new Face { A = a, E1 = b - a, E2 = c - a, Low = low - grow, High = high + grow };
+            }
 
             // Twice over the triangles: count per cell, then file each into every cell its box touches.
             var counts = new Dictionary<long, int>();
@@ -88,7 +108,11 @@ namespace KotH.Client.Player
         {
             distance = float.MaxValue;
             point = normal = default;
-            query++;
+            if (seen == null || seen.Length != faces.Length)
+                seen = new int[faces.Length];
+            int[] marks = seen;
+            int mark = ++query;
+            Vector3 end = from + dir * length, low = Vector3.Min(from, end), high = Vector3.Max(from, end);
             int x = Index(from.X), y = Index(from.Y), z = Index(from.Z);
             int sx = Math.Sign(dir.X), sy = Math.Sign(dir.Y), sz = Math.Sign(dir.Z);
             float nx = Next(from.X, dir.X, x), ny = Next(from.Y, dir.Y, y), nz = Next(from.Z, dir.Z, z);
@@ -97,7 +121,17 @@ namespace KotH.Client.Player
             {
                 if (cells.TryGetValue(Key(x, y, z), out (int Start, int Count) cell))
                     for (int i = 0; i < cell.Count; i++)
-                        Test(members[cell.Start + i], from, dir, length, ref distance, ref normal);
+                    {
+                        int t = members[cell.Start + i];
+                        if (marks[t] == mark)
+                            continue;
+                        marks[t] = mark;
+                        ref readonly Face f = ref faces[t];
+                        if (f.High.X < low.X || f.Low.X > high.X || f.High.Y < low.Y || f.Low.Y > high.Y
+                            || f.High.Z < low.Z || f.Low.Z > high.Z)
+                            continue;
+                        Test(in f, from, dir, length, ref distance, ref normal);
+                    }
                 float leave = Math.Min(nx, Math.Min(ny, nz));
                 if (distance <= leave || leave > length)
                     break;
@@ -118,30 +152,35 @@ namespace KotH.Client.Player
 
         // Möller-Trumbore from outside, a hair over the edges so no ray slips through between two
         // faces; each triangle once per query though it sits in several cells.
-        void Test(int t, Vector3 from, Vector3 dir, float length, ref float distance, ref Vector3 normal)
+        static void Test(in Face f, Vector3 from, Vector3 dir, float length, ref float distance, ref Vector3 normal)
         {
-            if (seen[t] == query)
-                return;
-            seen[t] = query;
-            Vector3 a = Corner(t, 0), e1 = Corner(t, 1) - a, e2 = Corner(t, 2) - a;
-            Vector3 p = Vector3.Cross(dir, e2);
-            float det = Vector3.Dot(e1, p);
+            Vector3 e1 = f.E1, e2 = f.E2;
+            Vector3 p = Cross(dir, e2);
+            float det = Dot(e1, p);
             if (det * Outside <= 1e-12f)
                 return;
             float inv = 1f / det;
-            Vector3 s = from - a;
-            float u = Vector3.Dot(s, p) * inv;
+            Vector3 s = from - f.A;
+            float u = Dot(s, p) * inv;
             if (u < -Edge || u > 1f + Edge)
                 return;
-            Vector3 q = Vector3.Cross(s, e1);
-            float w = Vector3.Dot(dir, q) * inv;
+            Vector3 q = Cross(s, e1);
+            float w = Dot(dir, q) * inv;
             if (w < -Edge || u + w > 1f + Edge)
                 return;
-            float d = Vector3.Dot(e2, q) * inv;
+            float d = Dot(e2, q) * inv;
             if (d <= 1e-6f || d > length || d >= distance)
                 return;
             distance = d;
             normal = Vector3.Normalize(Vector3.Cross(e1, e2)) * Outside;
         }
+
+        // Stride's Cross and Dot term for term, inlined.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static Vector3 Cross(Vector3 l, Vector3 r)
+            => new Vector3(l.Y * r.Z - l.Z * r.Y, l.Z * r.X - l.X * r.Z, l.X * r.Y - l.Y * r.X);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static float Dot(Vector3 l, Vector3 r) => l.X * r.X + l.Y * r.Y + l.Z * r.Z;
     }
 }
