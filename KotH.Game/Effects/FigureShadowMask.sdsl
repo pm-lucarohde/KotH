@@ -49,18 +49,22 @@ shader FigureShadowMask : ImageEffectShader, SunShadowCommon
 
     stage override float4 Shading()
     {
+        // Most pixels lie in no tile's screen, and most others in no tile's shadow: both are done early.
+        int count = int(TileCount);
+        uint seen = 0;
+        for (int i = 0; i < count; i++)
+            seen |= OnScreen(i, streams.TexCoord) ? 1u << i : 0u;
+        if (seen == 0)
+            return 1.0;
         int2 pixel = int2(streams.ShadingPosition.xy);
         if (Texture0.Load(int3(pixel, 0)).r >= 1.0)
             return 1.0;
         float depth, left, right, up, down;
         float3 p = PositionAt(pixel, depth);
-
-        // Most pixels lie in no tile's shadow: they are done before the facet is built.
-        int count = int(TileCount);
-        float reached = 0.0;
-        for (int i = 0; i < count; i++)
-            reached += Reaches(p, i, streams.TexCoord);
-        if (reached == 0.0)
+        uint reached = 0;
+        for (int j = 0; j < count; j++)
+            reached |= ((seen >> j) & 1u) != 0 && Reaches(p, j) ? 1u << j : 0u;
+        if (reached == 0)
             return 1.0;
 
         float3 pl = PositionAt(pixel - int2(1, 0), left), pr = PositionAt(pixel + int2(1, 0), right);
@@ -72,27 +76,31 @@ shader FigureShadowMask : ImageEffectShader, SunShadowCommon
         float shadow = 1.0;
         for (int t = 0; t < count; t++)
         {
-            if (Reaches(p, t, streams.TexCoord) > 0.0)
+            if (((reached >> t) & 1u) != 0 && shadow > 0.0)
                 shadow = min(shadow, FromTile(p, n, t, streams.ShadingPosition.xy));
         }
         return float4(shadow, 0.0, 0.0, 1.0);
     }
 
-    // 1 where the tile's shadow can fall on the point: within the screen it reaches, behind its sun side
-    // by no more than a throw, and no farther from its rectangle than the pyramid's blur of the widest
-    // penumbra there reaches (2.1 radii: blocks of the radius and the next level's, read a block apart).
-    float Reaches(float3 position, int tile, float2 screen)
+    // Whether the pixel lies within the screen the tile's shadow can reach.
+    bool OnScreen(int tile, float2 screen)
     {
         float4 view = TileScreens[tile];
-        if (screen.x < view.x || screen.y < view.y || screen.x > view.z || screen.y > view.w)
-            return 0.0;
+        return !(screen.x < view.x || screen.y < view.y || screen.x > view.z || screen.y > view.w);
+    }
+
+    // Whether the tile's shadow can fall on the point: behind its sun side by no more than a throw, and no
+    // farther from its rectangle than the pyramid's blur of the widest penumbra there reaches (2.1 radii:
+    // blocks of the radius and the next level's, read a block apart).
+    bool Reaches(float3 position, int tile)
+    {
         float4 q = mul(float4(position, 1.0), WorldToTile[tile]);
         float4 rect = TileRects[tile];
         float metres = TileScales[tile].y, texel = TileScales[tile].z;
         float gap = q.z * metres;
         float2 outside = max(rect.xy - q.xy, q.xy - rect.zw) * ShadowMapSize;
         float reach = 2.2 * min(gap, Throw + metres) * SunTangent / texel + 3.0;
-        return q.z > 0.0 && gap < Throw + metres && max(outside.x, outside.y) < reach ? 1.0 : 0.0;
+        return q.z > 0.0 && gap < Throw + metres && max(outside.x, outside.y) < reach;
     }
 
     float FromTile(float3 position, float3 n, int tile, float2 pixel)

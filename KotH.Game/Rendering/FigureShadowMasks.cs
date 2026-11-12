@@ -93,6 +93,9 @@ namespace KotH.Client.Rendering
         {
             base.InitializeCore();
             shader = new ImageEffectShader("FigureShadowMask");
+            RasterizerStateDescription clipped = RasterizerStates.Default;
+            clipped.ScissorTestEnable = true;
+            shader.RasterizerState = clipped;
             shader.Initialize(Context);
             builder = new ImageEffectShader("FigureShadowPyramid");
             builder.Initialize(Context);
@@ -174,6 +177,16 @@ namespace KotH.Client.Rendering
                 return;
             }
 
+            // Only pixels within a tile's screen are shaded; the rest is lit (as the shader returns there).
+            Rectangle reached = Reached(tiles, depth.Width, depth.Height);
+            if (reached.Width <= 0 || reached.Height <= 0)
+            {
+                context.CommandList.Clear(mask.Texture, Color4.White);
+                return;
+            }
+            if (reached.Width < depth.Width || reached.Height < depth.Height)
+                context.CommandList.Clear(mask.Texture, Color4.White);
+
             var p = shader.Parameters;
             p.Set(ClipToRay, AtmosphereEffects.ClipToRayOf(renderView));
             p.Set(NearFar, new Vector2(renderView.NearClipPlane, renderView.FarClipPlane));
@@ -199,8 +212,25 @@ namespace KotH.Client.Rendering
                 p.Set(PyramidOdd, odd);
                 shader.SetInput(0, depth);
                 shader.SetOutput(mask.Texture);
+                shader.SetScissorRectangle(reached);
                 shader.Draw(context);
             }
+        }
+
+        /// <summary>The pixels whose centre lies within some tile's screen (uv), a pixel more on each side.</summary>
+        static Rectangle Reached(SunShadowTiles tiles, int width, int height)
+        {
+            Vector4 union = new Vector4(float.MaxValue, float.MaxValue, float.MinValue, float.MinValue);
+            for (int t = 0; t < tiles.Count; t++)
+            {
+                Vector4 s = tiles.Screens[t];
+                union = new Vector4(MathF.Min(union.X, s.X), MathF.Min(union.Y, s.Y), MathF.Max(union.Z, s.Z), MathF.Max(union.W, s.W));
+            }
+            int left = Math.Clamp((int)MathF.Floor(union.X * width) - 1, 0, width);
+            int top = Math.Clamp((int)MathF.Floor(union.Y * height) - 1, 0, height);
+            int right = Math.Clamp((int)MathF.Ceiling(union.Z * width) + 1, 0, width);
+            int bottom = Math.Clamp((int)MathF.Ceiling(union.W * height) + 1, 0, height);
+            return new Rectangle(left, top, right - left, bottom - top);
         }
 
         /// <summary>The pyramid over the sheet's used part, anew for each view (another may share the atlas):
