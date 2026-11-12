@@ -48,6 +48,8 @@ namespace KotH.Client.Match
 
         readonly List<ParticleSystemComponent> motes = new List<ParticleSystemComponent>();
         readonly List<Entity> pieces = new List<Entity>();
+        // The outline's stretches the motes rise from: middle on the floor, turn from +X, length.
+        readonly List<(Vector3 At, float Turn, float Length)> stretches = new();
         CaptureZone builtFor;
         ZoneLook shown = (ZoneLook)(-1);
 
@@ -88,6 +90,7 @@ namespace KotH.Client.Match
                 Entity.RemoveChild(piece);
             pieces.Clear();
             motes.Clear();
+            stretches.Clear();
         }
 
         void Build()
@@ -108,6 +111,7 @@ namespace KotH.Client.Match
                     hole.Reverse();
                     Outline(hole, bottom, y);
                 }
+                AddMotes();
                 return;
             }
             float inX = (s.X - Thickness) * 0.5f, inZ = (s.Z - Thickness) * 0.5f;
@@ -117,10 +121,11 @@ namespace KotH.Client.Match
             Part(new Vector3(-inX, y, 0f), new Vector3(Thickness, RailHeight, s.Z - 2f * Thickness));
             Part(new Vector3(inX, y, 0f), new Vector3(Thickness, RailHeight, s.Z - 2f * Thickness));
 
-            AddMotes(new Vector3(0f, bottom, -inZ), 0f, s.X);
-            AddMotes(new Vector3(0f, bottom, inZ), 0f, s.X);
-            AddMotes(new Vector3(-inX, bottom, 0f), MathUtil.PiOverTwo, s.Z);
-            AddMotes(new Vector3(inX, bottom, 0f), MathUtil.PiOverTwo, s.Z);
+            stretches.Add((new Vector3(0f, bottom, -inZ), 0f, s.X));
+            stretches.Add((new Vector3(0f, bottom, inZ), 0f, s.X));
+            stretches.Add((new Vector3(-inX, bottom, 0f), MathUtil.PiOverTwo, s.Z));
+            stretches.Add((new Vector3(inX, bottom, 0f), MathUtil.PiOverTwo, s.Z));
+            AddMotes();
         }
 
         /// <summary>The floor outline: the drawn corners, or the ellipse in segments of about half a metre.</summary>
@@ -167,29 +172,32 @@ namespace KotH.Client.Match
                 if (run >= 2f || i == c.Count - 1)
                 {
                     Vector2 p = c[from], q = b, e = q - p, at = (p + q) * 0.5f + n;
-                    AddMotes(new Vector3(at.X, bottom, at.Y), MathF.Atan2(-e.Y, e.X), e.Length());
+                    stretches.Add((new Vector3(at.X, bottom, at.Y), MathF.Atan2(-e.Y, e.X), e.Length()));
                     from = i + 1;
                     run = 0f;
                 }
             }
         }
 
-        // One side's motes: the prefab's metre of rail stretched to its length,
-        // as many per second for every metre. Before it joins the scene, so
-        // the emitters size their pools for it.
-        void AddMotes(Vector3 at, float turn, float length)
+        // One set of motes for the whole outline: the prefab's metre of rail, its seeds spread over every
+        // stretch and as many per second for every metre. Before it joins the scene, so the emitters size
+        // their pools for it.
+        void AddMotes()
         {
-            if (Motes == null)
+            if (Motes == null || stretches.Count == 0)
                 return;
+            var centres = new Vector3[stretches.Count];
+            var turns = new float[stretches.Count];
+            var lengths = new float[stretches.Count];
+            for (int i = 0; i < stretches.Count; i++)
+                (centres[i], turns[i], lengths[i]) = stretches[i];
             foreach (Entity side in Motes.Instantiate())
             {
-                side.Transform.Position = at;
-                side.Transform.Rotation = Quaternion.RotationY(turn);
                 if (side.Get<ParticleSystemComponent>() is { } particles)
                 {
                     particles.RenderGroup = RailGroup;
                     foreach (ParticleEmitter emitter in particles.ParticleSystem.Emitters)
-                        Stretch(emitter, length);
+                        Spread(emitter, centres, turns, lengths);
                     motes.Add(particles);
                 }
                 pieces.Add(side);
@@ -197,17 +205,19 @@ namespace KotH.Client.Match
             }
         }
 
-        static void Stretch(ParticleEmitter emitter, float length)
+        static void Spread(ParticleEmitter emitter, Vector3[] centres, float[] turns, float[] lengths)
         {
+            float length = 0f;
+            for (int i = 0; i < emitter.Initializers.Count; i++)
+                if (emitter.Initializers[i] is InitialPositionSeed seed)
+                {
+                    var outline = new OutlineSeed(seed, centres, turns, lengths);
+                    length = outline.Length;
+                    emitter.Initializers[i] = outline;
+                }
             foreach (ParticleSpawner spawner in emitter.Spawners)
                 if (spawner is SpawnerPerSecond rate)
                     rate.SpawnCount *= length;
-            foreach (ParticleInitializer initializer in emitter.Initializers)
-                if (initializer is InitialPositionSeed seed)
-                {
-                    seed.PositionMin = new Vector3(seed.PositionMin.X * length, seed.PositionMin.Y, seed.PositionMin.Z);
-                    seed.PositionMax = new Vector3(seed.PositionMax.X * length, seed.PositionMax.Y, seed.PositionMax.Z);
-                }
         }
 
         void Part(Vector3 at, Vector3 scale) => Part(at, scale, Quaternion.Identity);
