@@ -9,8 +9,8 @@ namespace KotH.Client.Rendering
 {
     /// <summary>A map's height fog (from <see cref="FogStart"/> to <see cref="FogPeak"/>, gone by
     /// <see cref="FogTop"/>, round <see cref="FogCentre"/>), cloudlet sheet from
-    /// <see cref="CloudMap"/> and coastal fog, drifting with the wind; drawn by AtmosphereEffects.</summary>
-    /// <userdoc>Height fog, coastal fog and cloud layer of the map (visuals only).</userdoc>
+    /// <see cref="CloudMap"/>, coastal fog and volcanic smoke, drifting with the wind; drawn by AtmosphereEffects.</summary>
+    /// <userdoc>Height fog, coastal fog, cloud layer and volcanic smoke of the map (visuals only).</userdoc>
     [DataContract("Atmosphere")]
     [Display("Atmosphere")]
     public sealed class Atmosphere : SyncScript
@@ -96,6 +96,39 @@ namespace KotH.Client.Rendering
         /// <userdoc>How far the shimmer shifts the picture: screen share per metre of hot air looked through.</userdoc>
         [DataMember(63)] public float HazeStrength { get; set; } = 0.0006f;
 
+        /// <userdoc>Volcanic smoke: density per metre in the thick of it (0 = no smoke).</userdoc>
+        [DataMember(70)] public float SmokeDensity { get; set; }
+
+        /// <userdoc>Where the smoke plume rises from (Volcano: the magma's surface).</userdoc>
+        [DataMember(71)] public Vector3 SmokeSource { get; set; }
+
+        /// <userdoc>Height in metres below which the smoke is almost clear (x) and from which it is full (y): keeps the zone's view.</userdoc>
+        [DataMember(72)] public Vector2 SmokeClear { get; set; } = new(148f, 180f);
+
+        /// <userdoc>The smoke ring round the summit: inner and outer radius, lower and upper edge, in metres.</userdoc>
+        [DataMember(73)] public Vector4 SmokeRing { get; set; } = new(40f, 140f, 165f, 240f);
+
+        /// <userdoc>Colour of the smoke's sunny upper parts (linear).</userdoc>
+        [DataMember(74)] public Color3 SmokeLit { get; set; } = new(0.30f, 0.30f, 0.30f);
+
+        /// <userdoc>Colour of the smoke's shaded lower parts (linear).</userdoc>
+        [DataMember(75)] public Color3 SmokeShade { get; set; } = new(0.08f, 0.08f, 0.08f);
+
+        /// <userdoc>Glow the magma lends the plume's root (linear, added).</userdoc>
+        [DataMember(76)] public Color3 SmokeGlow { get; set; } = new(0.35f, 0.10f, 0.02f);
+
+        /// <userdoc>Speed in m/s the smoke's puffs rise with.</userdoc>
+        [DataMember(77)] public float SmokeRise { get; set; } = 2f;
+
+        /// <userdoc>Metres after which the smoke's puffs repeat (the cloud map's red, read in the smoke).</userdoc>
+        [DataMember(78)] public float SmokeTile { get; set; } = 700f;
+
+        /// <userdoc>Metres the plume drifts downwind per metre it rises above the clear height.</userdoc>
+        [DataMember(79)] public float SmokeBend { get; set; } = 0.45f;
+
+        /// <summary>Where wind and rise have carried the smoke's puffs, in their texture's repeats: along the wind x, up y.</summary>
+        [DataMemberIgnore] public Vector2 SmokeOffset { get; private set; }
+
         /// <summary>The wind's direction in x, z: texture x of the cloud map runs along it.</summary>
         [DataMemberIgnore] public Vector2 WindAxis { get; private set; } = Vector2.UnitX;
 
@@ -105,7 +138,7 @@ namespace KotH.Client.Rendering
         /// <summary>Where the wind has carried the coastal fog's wisps, in their texture's repeats along it.</summary>
         [DataMemberIgnore] public float CoastOffset { get; private set; }
 
-        double cloudlets, streaks, wisps;
+        double cloudlets, streaks, wisps, smokeAlong, smokeUp;
 
         public override void Update()
         {
@@ -119,6 +152,10 @@ namespace KotH.Client.Rendering
             wisps = Wrap(wisps + 0.6 * travel / Math.Max(CoastTile, 1f));
             CloudOffset = new Vector4((float)cloudlets, 0f, (float)streaks, 0f);
             CoastOffset = (float)wisps;
+            double tile = Math.Max(SmokeTile, 1f);
+            smokeAlong = Wrap(smokeAlong + travel / tile);
+            smokeUp = Wrap(smokeUp + SmokeRise * Game.UpdateTime.Elapsed.TotalSeconds / tile);
+            SmokeOffset = new Vector2((float)smokeAlong, (float)smokeUp);
             RenderContext.GetShared(Services).Tags.Set(Key, this);
         }
 

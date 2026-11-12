@@ -27,8 +27,16 @@ shader AtmosphereMarch : ImageEffectShader, CloudLayer
     float4 CoastShape;      // density, haze share, 1 / repeat of the wisps, texels per metre
     float CoastOffset;
     float3 CoastColor;
+    float4 Smoke;           // source x, y, z, density (0: none)
+    float4 SmokeShape;      // clear below, full from (heights), drift per metre risen, lod per metre
+    float4 SmokeRing;       // inner, outer radius, lower, upper edge
+    float4 SmokeMotion;     // 1 / repeat, drifted along the wind, risen (repeats), 0
+    float3 SmokeLitColor;
+    float3 SmokeShadeColor;
+    float3 SmokeGlowColor;
 
     static const int FogSteps = 8;
+    static const int MaxSmokeSteps = 12;
     static const int CoastSteps = 10;
     static const int MaxCloudSteps = 16;
 
@@ -77,6 +85,34 @@ shader AtmosphereMarch : ImageEffectShader, CloudLayer
         return float2(max(min(a, b), t0), min(max(a, b), t1));
     }
 
+    // Smoke per metre at p: a plume from the source, widening and bent downwind above the clear
+    // height, spreading into a broken ring round the summit; puffs from the cloud map's red, read
+    // flat with the wind and upright with the rise. Barely any below the clear height (Luca: the
+    // zone keeps its view). plume: its share from the plume, for the magma's glow.
+    float SmokeAt(float3 p, float lod, out float plume)
+    {
+        float h = p.y - Smoke.y;
+        float2 off = p.xz - Smoke.xz - Wind * (SmokeShape.z * max(p.y - SmokeShape.x, 0.0));
+        float r = 5.0 + 0.3 * max(h, 0.0);
+        plume = exp(-dot(off, off) / (r * r)) * saturate(h / 3.0) * (1.0 - smoothstep(SmokeRing.w - 30.0, SmokeRing.w + 20.0, p.y));
+        float rho = length(p.xz - Smoke.xz);
+        float ring = smoothstep(SmokeRing.x, SmokeRing.x + 50.0, rho) * (1.0 - smoothstep(SmokeRing.y - 40.0, SmokeRing.y, rho))
+                   * smoothstep(SmokeRing.z, SmokeRing.z + 20.0, p.y) * (1.0 - smoothstep(SmokeRing.w - 35.0, SmokeRing.w, p.y));
+        if (plume + ring < 0.01)
+            return 0.0;
+        float2 w = float2(dot(p.xz, Wind), dot(p.xz, float2(-Wind.y, Wind.x)));
+        // The map's red is high almost everywhere: only its domes' tops count, so puffs part.
+        float n = smoothstep(0.55, 0.95, Texture1.SampleLevel(LinearRepeatSampler, w * SmokeMotion.x - float2(SmokeMotion.y, 0.0), lod).r);
+        if (n > 0.0)
+        {
+            float upright = Texture1.SampleLevel(LinearRepeatSampler, float2(w.y + 0.5 * w.x, p.y) * (1.25 * SmokeMotion.x) - float2(0.0, SmokeMotion.z), lod).r;
+            float fine = Texture1.SampleLevel(LinearRepeatSampler, float2(w.x - 0.4 * w.y, p.y) * (3.7 * SmokeMotion.x) - float2(1.7 * SmokeMotion.y, 2.5 * SmokeMotion.z), lod).r;
+            n = saturate(1.6 * n * smoothstep(0.45, 0.95, upright) - 0.35 * (1.0 - fine));
+        }
+        float gate = lerp(0.06, 1.0, smoothstep(SmokeShape.x, SmokeShape.y, p.y));
+        return Smoke.w * gate * (plume * (0.25 + n) + ring * smoothstep(0.3, 0.65, n));
+    }
+
     stage override float4 Shading()
     {
         int2 pixel = int2(streams.ShadingPosition.xy);
@@ -98,7 +134,7 @@ shader AtmosphereMarch : ImageEffectShader, CloudLayer
         float cloudDepth = 0, weight = 0;
         float lowest = Cloud.x, thickness = Cloud.y;
         float2 layer = Slab(o, d, lowest - 0.25 * thickness, lowest + thickness, 0.0, min(scene, CloudReach.x));
-        if (layer.x < layer.y)
+        if (Cloud.w > 0.0 && layer.x < layer.y)
         {
             float run = layer.y - layer.x;
             int steps = (int)clamp(ceil(run / 0.75), 3.0, (float)MaxCloudSteps);
@@ -128,6 +164,46 @@ shader AtmosphereMarch : ImageEffectShader, CloudLayer
                 // Lit by the sun through what lies above in the cloudlet; two tones.
                 float sun = exp(-lighting * max(top - y, 0.0) * thickness);
                 float3 colour = lerp(CloudBottomColor, CloudTopColor, sun) + 0.35 * silver * sun * CloudTopColor;
+                cloud += through * alpha * colour;
+                cloudDepth += through * alpha * t;
+                weight += through * alpha;
+                through *= 1.0 - alpha;
+            }
+        }
+        // Smoke after the clouds (no map has both), through its cylinder only, faded close to the
+        // eye: no wall in the face of whoever jumps into it.
+        float smokeEnd = min(scene, FogHeights.w);
+        float2 os = o.xz - Smoke.xz;
+        float As = dot(d.xz, d.xz), Bs = dot(os, d.xz), Cs = dot(os, os) - SmokeRing.y * SmokeRing.y;
+        float2 span = float2(0.0, smokeEnd);
+        if (As > 1e-8)
+        {
+            float rootS = Bs * Bs - As * Cs;
+            span = rootS > 0.0 ? float2(max((-Bs - sqrt(rootS)) / As, 0.0), min((-Bs + sqrt(rootS)) / As, smokeEnd)) : float2(1.0, 0.0);
+        }
+        else if (Cs > 0.0)
+            span = float2(1.0, 0.0);
+        span = Slab(o, d, Smoke.y, SmokeRing.w, span.x, span.y);
+        if (Smoke.w > 0.0 && span.x < span.y)
+        {
+            float run = span.y - span.x;
+            int steps = (int)clamp(ceil(run / 10.0), 4.0, (float)MaxSmokeSteps);
+            float ds = run / steps;
+            float silver = 0.25 * pow(saturate(dot(d, ToSun)), 8.0);
+            for (int i = 0; i < steps && through > 0.02; i++)
+            {
+                float t = span.x + (i + jitter) * ds;
+                float3 p = o + d * t;
+                float lod = log2(max(1.0, t * SmokeShape.w));
+                float plume;
+                float sigma = SmokeAt(p, lod, plume) * smoothstep(6.0, 25.0, t);
+                if (sigma <= 0.0)
+                    continue;
+                float alpha = 1.0 - exp(-sigma * ds);
+                // Lighter up in the sun, darker low down; the root lit red by the magma.
+                float up = saturate(0.3 + 0.7 * (p.y - SmokeShape.x) / (SmokeRing.w - SmokeShape.x));
+                float3 colour = lerp(SmokeShadeColor, SmokeLitColor, up) * (1.0 + silver)
+                              + SmokeGlowColor * plume * exp(-(p.y - Smoke.y) / 18.0);
                 cloud += through * alpha * colour;
                 cloudDepth += through * alpha * t;
                 weight += through * alpha;

@@ -11,7 +11,7 @@ using Stride.Rendering.Lights;
 
 namespace KotH.Client.Rendering
 {
-    /// <summary>The map's fog and clouds (<see cref="Atmosphere"/>) before Stride's post effects
+    /// <summary>The map's fog, clouds and smoke (<see cref="Atmosphere"/>) before Stride's post effects
     /// (<see cref="Inner"/>, FXAA): AtmosphereMarch at half resolution, AtmosphereComposite in
     /// place at full; without an Atmosphere it passes straight on.</summary>
     /// <userdoc>The map's fog and clouds before the other post effects.</userdoc>
@@ -41,6 +41,13 @@ namespace KotH.Client.Rendering
         static readonly ValueParameterKey<Vector4> CoastShape = ParameterKeys.NewValue<Vector4>(default, "AtmosphereMarch.CoastShape");
         static readonly ValueParameterKey<float> CoastOffset = ParameterKeys.NewValue<float>(default, "AtmosphereMarch.CoastOffset");
         static readonly ValueParameterKey<Vector3> CoastColor = ParameterKeys.NewValue<Vector3>(default, "AtmosphereMarch.CoastColor");
+        static readonly ValueParameterKey<Vector4> Smoke = ParameterKeys.NewValue<Vector4>(default, "AtmosphereMarch.Smoke");
+        static readonly ValueParameterKey<Vector4> SmokeShape = ParameterKeys.NewValue<Vector4>(default, "AtmosphereMarch.SmokeShape");
+        static readonly ValueParameterKey<Vector4> SmokeRing = ParameterKeys.NewValue<Vector4>(default, "AtmosphereMarch.SmokeRing");
+        static readonly ValueParameterKey<Vector4> SmokeMotion = ParameterKeys.NewValue<Vector4>(default, "AtmosphereMarch.SmokeMotion");
+        static readonly ValueParameterKey<Vector3> SmokeLitColor = ParameterKeys.NewValue<Vector3>(default, "AtmosphereMarch.SmokeLitColor");
+        static readonly ValueParameterKey<Vector3> SmokeShadeColor = ParameterKeys.NewValue<Vector3>(default, "AtmosphereMarch.SmokeShadeColor");
+        static readonly ValueParameterKey<Vector3> SmokeGlowColor = ParameterKeys.NewValue<Vector3>(default, "AtmosphereMarch.SmokeGlowColor");
         static readonly ValueParameterKey<Vector2> NearFar = ParameterKeys.NewValue<Vector2>(default, "AtmosphereComposite.NearFar");
         static readonly ValueParameterKey<float> MarchDivisor = ParameterKeys.NewValue<float>(2f, "AtmosphereMarch.Divisor");
         static readonly ValueParameterKey<float> CompositeDivisor = ParameterKeys.NewValue<float>(2f, "AtmosphereComposite.Divisor");
@@ -174,6 +181,14 @@ namespace KotH.Client.Rendering
             p.Set(CoastShape, new Vector4(atmosphere.CoastDensity, atmosphere.CoastHaze, 1f / atmosphere.CoastTile, atmosphere.CloudMap.Width / atmosphere.CoastTile));
             p.Set(CoastOffset, atmosphere.CoastOffset);
             p.Set(CoastColor, (Vector3)atmosphere.CoastColor);
+            p.Set(Smoke, new Vector4(atmosphere.SmokeSource, atmosphere.SmokeDensity));
+            p.Set(SmokeShape, new Vector4(atmosphere.SmokeClear.X, atmosphere.SmokeClear.Y, atmosphere.SmokeBend,
+                pixel * atmosphere.CloudMap.Width / Math.Max(atmosphere.SmokeTile, 1f)));
+            p.Set(SmokeRing, atmosphere.SmokeRing);
+            p.Set(SmokeMotion, new Vector4(1f / Math.Max(atmosphere.SmokeTile, 1f), atmosphere.SmokeOffset.X, atmosphere.SmokeOffset.Y, 0f));
+            p.Set(SmokeLitColor, (Vector3)atmosphere.SmokeLit);
+            p.Set(SmokeShadeColor, (Vector3)atmosphere.SmokeShade);
+            p.Set(SmokeGlowColor, (Vector3)atmosphere.SmokeGlow);
 
             using (drawContext.PushRenderTargetsAndRestore())
             {
