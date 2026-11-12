@@ -183,16 +183,17 @@ namespace KotH.Client.Player
         /// <summary>Clip names in every visual's AnimationComponent: idle, rest, walking
         /// and running forward, back, left and right, then crouched still, crouched
         /// walking, the slide, falling, the landing's give, rising after a jump and the
-        /// kick of the double jump.</summary>
+        /// kick of the double jump, the dash's wind-up and its blow.</summary>
         public static readonly string[] Clips =
             { "Idle", "Rest", "WalkF", "WalkB", "WalkL", "WalkR", "RunF", "RunB", "RunL", "RunR",
-              "Crouch", "CrouchWalk", "Slide", "Fall", "Land", "Jump", "SkyWalk" };
+              "Crouch", "CrouchWalk", "Slide", "Fall", "Land", "Jump", "SkyWalk", "SlamRaise", "SlamSmash" };
         const int IdleIndex = 0, RestIndex = 1, WalkIndex = 2, RunIndex = 6;
         const int CrouchIndex = 10, CrouchWalkIndex = 11, SlideIndex = 12, FallIndex = 13, LandIndex = 14;
-        const int JumpIndex = 15, KickIndex = 16;
+        const int JumpIndex = 15, KickIndex = 16, RaiseIndex = 17, SmashIndex = 18;
 
-        /// <summary>Clip names of the first-person arms: still, walking, running.</summary>
-        public static readonly string[] ArmClips = { "Idle", "Walk", "Run" };
+        /// <summary>Clip names of the first-person arms: still, walking, running, the dash's wind-up and blow.</summary>
+        public static readonly string[] ArmClips = { "Idle", "Walk", "Run", "SlamRaise", "SlamSmash" };
+        const int ArmGaits = 3;
 
         // A landing only counts after this long in the air: stepping down a
         // stair or snapping to the ground does not give at the knees.
@@ -237,7 +238,7 @@ namespace KotH.Client.Player
         readonly ArmSwing armsSwing = new ArmSwing();
         PlayingAnimation[] armPlays;
         readonly float[] armWeights = new float[ArmClips.Length];
-        float armPhase, lastStepPhase, armSwayClock;
+        float armPhase, lastStepPhase, armSwayClock, armsGive;
         TransformComponent armsTransform;
         Vector3 armsRest;
         readonly Random random = new Random();
@@ -288,6 +289,7 @@ namespace KotH.Client.Player
             public float SeenJump; // the motor's SinceGroundJump last frame
             public Entity[] Shards;
             public readonly ArmSwing Swing = new ArmSwing();
+            public readonly SlamPose Slam = new SlamPose();
         }
 
         /// <summary>The leaf on a held object; its bend is a rotation vector.</summary>
@@ -487,7 +489,7 @@ namespace KotH.Client.Player
                 // The own swing in front of the eye, with less of the torso; the arms
                 // hang from the camera, so the view is straight ahead.
                 if (armsGun != null)
-                    HoldGun(armsGun, armsSwing, HoldPath.Arms, -Vector3.UnitZ, dt);
+                    HoldGun(armsGun, armsSwing, HoldPath.Arms, -Vector3.UnitZ, armsGive, dt);
                 armsSwing.Update(armsSkeleton, armsMelee, armsNetId, Swing(), SwingPath.Arms, dt);
                 if (armsGun != null)
                     ShowGun(armsGun, armsSwing, dt);
@@ -542,7 +544,7 @@ namespace KotH.Client.Player
                     f.HeadYaw - f.TorsoYaw, MathUtil.DegreesToRadians(pitch), 0f));
                 bool watching = f.Gun.Watching;
                 int kicks = f.Gun.SeenKick;
-                HoldGun(f.Gun, f.Swing, HoldPath.Figure, aim, dt);
+                HoldGun(f.Gun, f.Swing, HoldPath.Figure, aim, f.Slam.Raise + f.Slam.Smash, dt);
                 if (watching && f.Gun.SeenKick != kicks)
                     Sound(f, FigureSound.Shot, 1f);
             }
@@ -1049,6 +1051,7 @@ namespace KotH.Client.Player
             f.WasSliding = motor.IsSliding;
             if (motor.IsSlamming && !f.WasSlamming)
                 Sound(f, FigureSound.Dash, 1f);
+            Slam(f.Slam, f.Dash, motor, f.WasSlamming, dt);
             f.WasSlamming = motor.IsSlamming;
             f.KickAge += dt;
             if (airborne)
@@ -1107,6 +1110,8 @@ namespace KotH.Client.Player
             float follow = 1f - MathF.Exp(-3f * dt / MathF.Max(1e-3f, BlendSeconds));
             if (motor == armsMotor)
                 Arms(f, moving, run, follow, dt);
+            // The dash's poses lie over everything as the landing does; together never past full.
+            float raise = f.Slam.Raise, smash = f.Slam.Smash;
             // The landing is a short pulse over everything else, not followed:
             // quickly in, eased out. Crouched or sliding it gives nothing.
             float land = f.LandAge < LandAttack ? f.LandAge / LandAttack
@@ -1115,6 +1120,9 @@ namespace KotH.Client.Player
             float kick = f.KickAge < KickAttack ? f.KickAge / KickAttack
                        : 1f - Smooth(KickAttack, MathF.Max(KickAttack + 1e-3f, KickSeconds), f.KickAge);
             kick *= stand;
+            float over = land + kick + raise + smash;
+            if (over > 1f)
+                (land, kick, raise, smash) = (land / over, kick / over, raise / over, smash / over);
             // The weights follow critically damped (Unity's SmoothDamp): a change starts as
             // softly as it ends, as Unreal's inertial blends do. Same pace as BlendSeconds.
             float omega = 3f * 2f / MathF.Max(1e-3f, BlendSeconds);
@@ -1128,8 +1136,8 @@ namespace KotH.Client.Player
                 f.Weights[i] = target[i] + (change + push) * decay;
                 if (f.Plays[i] is not { } play)
                     continue;
-                float weight = i == LandIndex ? land : i == KickIndex ? kick
-                             : f.Weights[i] * MathF.Max(0f, 1f - land - kick);
+                float weight = i == LandIndex ? land : i == KickIndex ? kick : i == RaiseIndex ? raise : i == SmashIndex ? smash
+                             : f.Weights[i] * MathF.Max(0f, 1f - land - kick - raise - smash);
                 play.Weight = weight < 1e-3f ? 0f : weight;
                 if (i >= WalkIndex && i < RunIndex + 4 || i == CrouchWalkIndex)
                 {
@@ -1171,12 +1179,19 @@ namespace KotH.Client.Player
             lastStepPhase = f.Phase;
             armPhase = (armPhase + ArmsPace * (step < 0f ? step + 1f : step)) % 1f;
             Span<float> target = stackalloc float[] { 1f - moving, moving * (1f - run), moving * run };
+            // The dash's poses straight from the figure's, over the gaits.
+            float raise = f.Slam.Raise, smash = f.Slam.Smash, gaits = MathF.Max(0f, 1f - raise - smash);
+            armsGive = raise + smash;
             for (int i = 0; i < ArmClips.Length; i++)
             {
-                armWeights[i] += (target[i] - armWeights[i]) * follow;
+                if (i < ArmGaits)
+                    armWeights[i] += (target[i] - armWeights[i]) * follow;
                 if (armPlays[i] is not { } play)
                     continue;
-                play.Weight = armWeights[i] < 1e-3f ? 0f : armWeights[i];
+                float weight = i < ArmGaits ? armWeights[i] * gaits : i == ArmGaits ? raise : smash;
+                play.Weight = weight < 1e-3f ? 0f : weight;
+                if (i >= ArmGaits)
+                    continue;
                 if (i > 0)
                 {
                     play.TimeFactor = 0f;

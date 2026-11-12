@@ -78,6 +78,12 @@ namespace KotH.Client
         /// <userdoc>Kick into the air on the double jump (Sanji's Sky Walk); the game blends it in briefly.</userdoc>
         [Display("Double jump", "Animation")] public AnimationClip SkyWalkAnimation;
 
+        /// <userdoc>The dash's wind-up: fists thrown up before the cap; the game blends it in as the fall starts.</userdoc>
+        [Display("Dash raise", "Animation")] public AnimationClip SlamRaiseAnimation;
+
+        /// <userdoc>The dash's blow: fists driven down, trunk hunched; reached on landing, then let go.</userdoc>
+        [Display("Dash smash", "Animation")] public AnimationClip SlamSmashAnimation;
+
         /// <userdoc>Only the mushroom figure's arms; in first person they hang in front of the camera.</userdoc>
         [Display("First person arms", "Visuals")] public Model ArmsModel;
 
@@ -89,6 +95,12 @@ namespace KotH.Client
 
         /// <userdoc>First person arms running, in step.</userdoc>
         [Display("Arms run", "First person arms")] public AnimationClip ArmsRun;
+
+        /// <userdoc>First person arms in the dash: fists thrown up into the view.</userdoc>
+        [Display("Arms dash raise", "First person arms")] public AnimationClip ArmsSlamRaise;
+
+        /// <userdoc>First person arms in the dash: fists driven down out of the view.</userdoc>
+        [Display("Arms dash smash", "First person arms")] public AnimationClip ArmsSlamSmash;
 
         /// <userdoc>What each figure holds in its right hand (the bamboo cane), also on the first person arms. Modelled in the figure's rest pose; a bone "Leaf" sways like the figure's leaves.</userdoc>
         [Display("Held object", "Visuals")] public Model HeldModel;
@@ -728,7 +740,7 @@ namespace KotH.Client
             ArmsInFront.Install(SceneSystem, ArmsGroup);
             var model = new ModelComponent(ArmsModel) { RenderGroup = ArmsGroup, IsShadowCaster = false };
             var animation = new AnimationComponent();
-            AnimationClip[] clips = { ArmsIdle, ArmsWalk, ArmsRun };
+            AnimationClip[] clips = { ArmsIdle, ArmsWalk, ArmsRun, ArmsSlamRaise, ArmsSlamSmash };
             for (int i = 0; i < clips.Length; i++)
                 if (clips[i] != null)
                     animation.Animations[PlayerVisualSystem.ArmClips[i]] = clips[i];
@@ -883,7 +895,7 @@ namespace KotH.Client
             AnimationClip[] clips = { IdleAnimation, RestAnimation, WalkForward, WalkBack, WalkLeft, WalkRight,
                                       RunForward, RunBack, RunLeft, RunRight,
                                       CrouchAnimation, CrouchWalk, SlideAnimation, FallAnimation, LandAnimation,
-                                      JumpAnimation, SkyWalkAnimation };
+                                      JumpAnimation, SkyWalkAnimation, SlamRaiseAnimation, SlamSmashAnimation };
             if (RestAnimation != null)
             {
                 var animation = new AnimationComponent();

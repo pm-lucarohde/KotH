@@ -100,8 +100,8 @@ namespace KotH.Client.Player
         }
 
         /// <summary>Before the arm's IK: follows the switch and the shots, and hands the pose to
-        /// swing. aim is the view in the chest's frame.</summary>
-        void HoldGun(Gun g, ArmSwing swing, in HoldPath path, Vector3 aim, float dt)
+        /// swing. aim is the view in the chest's frame; give (0..1) lets the clip's arm through (the dash).</summary>
+        void HoldGun(Gun g, ArmSwing swing, in HoldPath path, Vector3 aim, float give, float dt)
         {
             BlasterState state = g.Blaster.State;
             float target = state.Selected ? 1f : 0f;
@@ -136,7 +136,7 @@ namespace KotH.Client.Player
             bool shown = g.Draw > 0.5f;
             if (shown && g.Barrel == Vector3.Zero)
                 Axes(g);
-            swing.Hold(hand, Smooth(g.Draw), shown && g.Barrel != Vector3.Zero ? aim : Vector3.Zero,
+            swing.Hold(hand, Smooth(g.Draw) * (1f - Math.Clamp(give, 0f, 1f)), shown && g.Barrel != Vector3.Zero ? aim : Vector3.Zero,
                        Vector3.UnitY, g.Barrel, g.Top, GunBob);
         }
 
