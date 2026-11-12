@@ -442,10 +442,17 @@ sealed class KotHGame : Game
         => Audio?.AudioEngine is { } engine ? $"{engine.State}, device {Audio.RequestedAudioDevice?.Name ?? "default"}" : "none";
 
     bool presented;
+    int frames;
+    static readonly CompiledCommandList[] NoCommandLists = [];
 
     protected override void EndDraw(bool present)
     {
         base.EndDraw(present);
+        // Stride 4.4.1 frees disposed Vulkan objects only in ExecuteCommandLists, which one list per frame never
+        // calls: every disposed texture kept its memory, the third map change ran out of VRAM (device lost). An empty
+        // submit now and then frees what the GPU is done with.
+        if (++frames % 30 == 0)
+            GraphicsDevice.ExecuteCommandLists(0, NoCommandLists);
         if (presented || !present)
             return;
         presented = true;
