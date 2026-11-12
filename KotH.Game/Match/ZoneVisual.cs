@@ -47,7 +47,8 @@ namespace KotH.Client.Match
         const RenderGroup RailGroup = RenderGroup.Group4;
 
         readonly List<ParticleSystemComponent> motes = new List<ParticleSystemComponent>();
-        bool built;
+        readonly List<Entity> pieces = new List<Entity>();
+        CaptureZone builtFor;
         ZoneLook shown = (ZoneLook)(-1);
 
         public override void Update()
@@ -55,10 +56,14 @@ namespace KotH.Client.Match
             if (Zone == null || Match == null || Cube == null)
                 return;
 
-            if (!built)
+            // A map change in-process wires another zone: the old rails go (Luca: the lobby's
+            // square stayed in Volcano's crater).
+            if (Zone != builtFor)
             {
+                Clear();
                 Build();
-                built = true;
+                builtFor = Zone;
+                shown = (ZoneLook)(-1);
             }
 
             ZoneLook look = HillBoard.Look(Match.State, Self, Match.WarmupTicks);
@@ -75,6 +80,14 @@ namespace KotH.Client.Match
             light.A = 1f;
             foreach (ParticleSystemComponent particles in motes)
                 particles.Color = light;
+        }
+
+        void Clear()
+        {
+            foreach (Entity piece in pieces)
+                Entity.RemoveChild(piece);
+            pieces.Clear();
+            motes.Clear();
         }
 
         void Build()
@@ -179,6 +192,7 @@ namespace KotH.Client.Match
                         Stretch(emitter, length);
                     motes.Add(particles);
                 }
+                pieces.Add(side);
                 Entity.AddChild(side);
             }
         }
@@ -206,6 +220,7 @@ namespace KotH.Client.Match
             part.Transform.Position = at;
             part.Transform.Rotation = turn;
             part.Transform.Scale = scale;
+            pieces.Add(part);
             Entity.AddChild(part);
         }
 
