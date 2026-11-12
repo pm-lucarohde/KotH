@@ -1,6 +1,6 @@
-// Adds TEXCOORD_1 to Mountain.glb and Sea.glb (terrain, bark, the inner sea as one square) or with
-// --map Atrium to Atrium.glb (every opaque part, no sea), one lightmap atlas; writes the map's Grass.bin,
-// Contact.png and Surface.bin too (--grass: only those). Run on the generator's fresh output.
+// Adds TEXCOORD_1 to Mountain.glb and Sea.glb (terrain, bark, the inner sea as one square; Volcano: its own
+// pair) or to Atrium.glb (every opaque part, no sea), one lightmap atlas; writes the map's Grass.bin, Contact.png
+// and Surface.bin too (--grass: only those). Run on the generator's fresh output.
 //   dotnet run --project Tools/maps/MapUV -c Release [-- --map NAME --size 4096 --pad 3]
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -12,16 +12,16 @@ int size = Option("--size", 4096);
 int pad = Option("--pad", 3);
 int mapAt = Array.IndexOf(args, "--map");
 string map = mapAt >= 0 ? args[mapAt + 1] : "MountDestiny";
-bool destiny = map == "MountDestiny";
+bool destiny = map == "MountDestiny", island = destiny || map == "Volcano";
 // The sea's square is unwrapped this much smaller: its light is soft, the mountain keeps the texels.
 const double SeaShrink = 4.0;
 
 var mountain = new Glb(Path.Combine(root, "KotH.Game/Resources/Models", (destiny ? "Mountain" : map) + ".glb"));
-Glb? sea = destiny ? new Glb(Path.Combine(root, "KotH.Game/Resources/Models/Sea.glb")) : null;
+Glb? sea = island ? new Glb(Path.Combine(root, "KotH.Game/Resources/Models", (destiny ? "" : map) + "Sea.glb")) : null;
 // Atrium: everything but what is see-through, glows or is leaves (Atrium.cs's part names).
-string[] lit = destiny ? ["Terrain", "Bark"]
+string[] lit = island ? ["Terrain", "Bark"]
     : [.. mountain.Primitives.Select(p => p.Material).Where(m => m is not ("Water" or "Glass" or "Glow" or "Leaves" or "LeafCards"))];
-if (!destiny)
+if (!island)
     (GrassMap.MaxHeight, GrassMap.TrunkFootY, GrassMap.TrunkFootLow, GrassMap.Borders) = (8f, 7f, 6f, true);
 string grassPath = Path.Combine(root, $"KotH.Game/Resources/Maps/{map}Grass.bin");
 string contactPath = Path.Combine(root, $"KotH.Game/Resources/Textures/Terrain/{map}Contact.png");

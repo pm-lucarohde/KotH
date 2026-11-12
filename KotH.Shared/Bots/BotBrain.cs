@@ -523,7 +523,10 @@ namespace KotH.Shared.Bots
             if (match == null)
                 return;
             float angle = BotRandom.Unit(ref rng) * MathF.PI * 2f;
-            float radius = 0.5f + BotRandom.Unit(ref rng) * UMath.Min(match.HalfSize.X, match.HalfSize.Z) * 0.45f;
+            float reach = UMath.Min(match.HalfSize.X, match.HalfSize.Z), hole = match.Hole;
+            // A ring (Volcano's crater rim): in it, a metre off both edges, never in the hole.
+            float radius = hole > 0f ? hole + 1f + BotRandom.Unit(ref rng) * UMath.Max(0f, reach - hole - 2f)
+                : 0.5f + BotRandom.Unit(ref rng) * reach * 0.45f;
             var p = new Vector3(match.Center.X + radius * UMath.Cos(angle), match.Center.Y - match.HalfSize.Y,
                                 match.Center.Z + radius * UMath.Sin(angle));
             spot = nav.Nearest(p, out Vector3 onMesh) ? onMesh : p;

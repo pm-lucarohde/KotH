@@ -1,7 +1,7 @@
 #!/usr/bin/env -S dotnet run
 // Painted, tileable textures of Mount Destiny in the figures' style (Luca: "a touch softer and
 // more like a comic"): grass, dirt, sand, snow, rock, bark, leaves, clumps, twig, relief maps, and
-// Atrium's blocks, to KotH.Game/Resources/Textures/Terrain. Seeded, Pillow's algorithms (Common/Pil.cs).
+// Atrium's blocks and Volcano's basalt, to KotH.Game/Resources/Textures/Terrain. Seeded, Pillow's algorithms (Common/Pil.cs).
 //   dotnet run Tools/maps/Textures.cs [-- --preview]
 #:include ../Common/Libm.cs
 #:include ../Common/Py.cs
@@ -34,6 +34,8 @@ var painters = new (string Name, Func<PyRandom, (PilImage Image, double[] Relief
     // Atrium's blocks (Atrium.cs), last so the ones above keep their seeds.
     ("StoneBricks", Flat(StoneBricks)), ("NetherBricks", Flat(NetherBricks)), ("SmoothStone", Flat(SmoothStone)),
     ("Quartz", Flat(Quartz)), ("Planks", Flat(Planks)), ("Cobble", Flat(Cobble)), ("Sandstone", Flat(Sandstone)),
+    // Volcano's rock (Luca: grey-black like a real volcano), after them for the same reason.
+    ("Basalt", Flat(Basalt)),
 };
 Directory.CreateDirectory(outDir);
 var painted = new List<PilImage>();
@@ -480,6 +482,20 @@ static PilImage Snow(PyRandom rng)
     Brush(img, rng, 45, [[216, 230, 248, 90], [255, 255, 255, 110]], (120, 260), (16, 34), 0.0, 0.2, 0.05);
     Specks(img, rng, 150, [[255, 255, 255, 255], [198, 216, 244, 200]], (1.4, 2.6));
     return img.Convert("RGB");
+}
+
+// The rock painted again, grey and dark with a cool touch: its lightness at 42 %.
+static PilImage Basalt(PyRandom rng)
+{
+    PilImage img = Rock(rng);
+    for (int p = 0; p < img.Data.Length; p += 4)
+    {
+        double l = 0.299 * img.Data[p] + 0.587 * img.Data[p + 1] + 0.114 * img.Data[p + 2];
+        img.Data[p] = (byte)Math.Clamp(Py.Round(l * 0.42 - 2), 0, 255);
+        img.Data[p + 1] = (byte)Math.Clamp(Py.Round(l * 0.42 - 1), 0, 255);
+        img.Data[p + 2] = (byte)Math.Clamp(Py.Round(l * 0.42 + 3), 0, 255);
+    }
+    return img;
 }
 
 static PilImage Rock(PyRandom rng)

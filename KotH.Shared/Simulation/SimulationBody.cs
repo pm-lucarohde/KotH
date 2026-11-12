@@ -30,6 +30,9 @@ namespace KotH.Shared.Simulation
         Dash dash;
         DamagePercent damage;
 
+        /// <summary>The body's damage percent, null without one (HillMatch's magma).</summary>
+        internal DamagePercent Damage => damage;
+
         // Where the body joined, for the next round of a HillMatch.
         BodyState spawn;
 

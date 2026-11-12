@@ -1,0 +1,7 @@
+!Texture
+Id: 24A1DD64-58DF-4EA2-94B6-0383953841B1
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../../Resources/Textures/Terrain/VolcanoContact.png
+IsCompressed: true
+Type: !GrayscaleTextureType {}

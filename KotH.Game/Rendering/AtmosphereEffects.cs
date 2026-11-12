@@ -49,6 +49,11 @@ namespace KotH.Client.Rendering
         static readonly ValueParameterKey<Vector2> BlurSunUV = ParameterKeys.NewValue<Vector2>(default, "SunShaftBlur.SunUV");
         static readonly ValueParameterKey<Vector2> BlurShape = ParameterKeys.NewValue<Vector2>(default, "SunShaftBlur.BlurShape");
         static readonly ValueParameterKey<Vector3> Tint = ParameterKeys.NewValue<Vector3>(default, "SunShaftAdd.Tint");
+        static readonly ValueParameterKey<Matrix> HazeClipToRay = ParameterKeys.NewValue<Matrix>(default, "HeatShimmer.ClipToRay");
+        static readonly ValueParameterKey<Vector2> HazeNearFar = ParameterKeys.NewValue<Vector2>(default, "HeatShimmer.NearFar");
+        static readonly ValueParameterKey<Vector3> HazeEye = ParameterKeys.NewValue<Vector3>(default, "HeatShimmer.Eye");
+        static readonly ValueParameterKey<Vector4> Haze = ParameterKeys.NewValue<Vector4>(default, "HeatShimmer.Haze");
+        static readonly ValueParameterKey<Vector4> HazeShape = ParameterKeys.NewValue<Vector4>(default, "HeatShimmer.Shape");
 
         [DataMember(-100), Display(Browsable = false)]
         public Guid Id { get; set; } = Guid.NewGuid();
@@ -72,6 +77,7 @@ namespace KotH.Client.Rendering
         ImageEffectShader shaftMask;
         ImageEffectShader shaftBlur;
         ImageEffectShader shaftAdd;
+        ImageEffectShader shimmer;
 
         protected override void InitializeCore()
         {
@@ -86,6 +92,7 @@ namespace KotH.Client.Rendering
             shaftMask = ToLoadAndUnload(new ImageEffectShader("SunShaftMask"));
             shaftBlur = ToLoadAndUnload(new ImageEffectShader("SunShaftBlur"));
             shaftAdd = ToLoadAndUnload(new ImageEffectShader("SunShaftAdd"));
+            shimmer = ToLoadAndUnload(new ImageEffectShader("HeatShimmer"));
             // scene + rgb
             var add = new BlendStateDescription(Blend.One, Blend.One);
             add.RenderTargets[0].AlphaSourceBlend = Blend.Zero;
@@ -210,8 +217,36 @@ namespace KotH.Client.Rendering
                     shaftAdd.Draw(drawContext);
                     Context.Allocator.ReleaseReference(quarter);
                 }
+                if (atmosphere.HazeRadius > 0f)
+                    DrawShimmer(drawContext, atmosphere, view, colour, depth, clipToRay, viewToWorld.TranslationVector);
             }
             Context.Allocator.ReleaseReference(half);
+        }
+
+        /// <summary>The hot air (HeatShimmer) over a copy of the scene, only while its cylinder is in view:
+        /// elsewhere it costs nothing.</summary>
+        void DrawShimmer(RenderDrawContext drawContext, Atmosphere atmosphere, RenderView view, Texture colour, Texture depth,
+                         Matrix clipToRay, Vector3 eye)
+        {
+            Vector3 bottom = atmosphere.HazeBottom, reach = new Vector3(atmosphere.HazeRadius, atmosphere.HazeHeight, atmosphere.HazeRadius);
+            var box = new BoundingBoxExt(new BoundingBox(bottom - new Vector3(reach.X, 0f, reach.Z), bottom + reach));
+            Matrix viewProjection = view.ViewProjection;
+            if (!new BoundingFrustum(ref viewProjection).Contains(ref box))
+                return;
+            var copy = Context.Allocator.GetTemporaryTexture2D(colour.Width, colour.Height, colour.Format, TextureFlags.ShaderResource);
+            drawContext.CommandList.Copy(colour, copy);
+            var p = shimmer.Parameters;
+            p.Set(HazeClipToRay, clipToRay);
+            p.Set(HazeNearFar, new Vector2(view.NearClipPlane, view.FarClipPlane));
+            p.Set(HazeEye, eye);
+            p.Set(Haze, new Vector4(bottom, atmosphere.HazeRadius));
+            p.Set(HazeShape, new Vector4(atmosphere.HazeHeight, atmosphere.HazeStrength,
+                (float)(drawContext.RenderContext.Time.Total.TotalSeconds % 3600.0), 0f));
+            shimmer.SetInput(0, copy);
+            shimmer.SetInput(1, depth);
+            shimmer.SetOutput(colour);
+            shimmer.Draw(drawContext);
+            Context.Allocator.ReleaseReference(copy);
         }
 
         protected override void DrawCore(RenderDrawContext context)

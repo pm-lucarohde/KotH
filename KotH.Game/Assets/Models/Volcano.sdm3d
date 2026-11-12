@@ -1,0 +1,28 @@
+!Model
+Id: 8F334265-0352-4CB3-9F66-7F2A1DBBE52E
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Models/Volcano.glb
+PivotPosition: {X: 0.0, Y: 0.0, Z: 0.0}
+Materials:
+    950a1dd48cc9490dbeb1b1372da19868:
+        Name: Terrain
+        MaterialInstance:
+            Material: 901982EB-3AB1-4883-8DE2-B56E6F3F06D7:Materials/Volcano/VolcanoTerrain
+            IsShadowCaster: true
+    e1a4cd31537243feaa37d1655aefee84:
+        Name: Leaves
+        MaterialInstance:
+            Material: B1025513-FAA8-447E-9F14-4A811DE2B837:Materials/Leaves
+            IsShadowCaster: true
+    e11bc9f86049475eb71de22934b3a3c6:
+        Name: Bark
+        MaterialInstance:
+            Material: 96A66F9A-15A0-4DFC-86F7-A47229FD80D2:Materials/Bark
+            IsShadowCaster: true
+    953dbdbd63694308ae074c8125073b08:
+        Name: LeafCards
+        MaterialInstance:
+            Material: 1ECD50E8-3995-45B7-A554-D7338DC794E0:Materials/LeafCards
+            IsShadowCaster: true
+Modifiers: {}

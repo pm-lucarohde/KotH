@@ -14,8 +14,11 @@ namespace KotH.Shared.Hosting
         /// <summary>Shotbow's Smash map from Minecraft (Tools/maps/Atrium.cs).</summary>
         public const string Atrium = "Atrium";
 
+        /// <summary>Mount Destiny's rounder first version of 22.10.2026 (Tools/maps/Mountain.cs --map Volcano).</summary>
+        public const string Volcano = "Volcano";
+
         /// <summary>Every map a host may choose, in the menu's order; a new map is added here.</summary>
-        public static readonly string[] All = { Default, Atrium, Test };
+        public static readonly string[] All = { Default, Volcano, Atrium, Test };
 
         public static string CollisionUrl(string map) => $"/KotH.Shared/Maps/{map}/{map}Collision";
 

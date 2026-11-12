@@ -79,6 +79,9 @@ namespace KotH.Shared.Match
         readonly Quaternion inverse;
         readonly ZoneShape shape;
         readonly Vector2[] corners;
+        readonly float hole;
+        readonly float magmaRadius, magmaSurface, magmaWave, magmaRespawn;
+        readonly int magmaEvery;
 
         MatchState state;
 
@@ -88,6 +91,10 @@ namespace KotH.Shared.Match
             half = UMath.Mul(zone.Size, 0.5f);
             shape = zone.Shape == ZoneShape.Polygon && (zone.Corners?.Count ?? 0) < 3 ? ZoneShape.Box : zone.Shape;
             corners = shape == ZoneShape.Polygon ? zone.Corners.ToArray() : Array.Empty<Vector2>();
+            hole = shape == ZoneShape.Cylinder ? UMath.Max(0f, zone.Hole) : 0f;
+            if (zone.Entity.Get<MagmaPool>() is { } magma)
+                (magmaRadius, magmaSurface, magmaWave, magmaEvery, magmaRespawn) =
+                    (magma.Radius, magma.Surface, magma.DamagePerWave, Math.Max(1, Ticks(magma.WaveSeconds)), magma.RespawnAbove);
 
             // A polygon's half size is the reach of its corners, for the bots' sense of the zone.
             foreach (Vector2 c in corners)
@@ -182,6 +189,9 @@ namespace KotH.Shared.Match
         public Vector3 Center => center;
         public Vector3 HalfSize => half;
 
+        /// <summary>A ring's inner radius, 0 for a zone without a hole.</summary>
+        public float Hole => hole;
+
         /// <summary>Players needed to start; setting it starts the round over.</summary>
         public int MinPlayers
         {
@@ -223,9 +233,29 @@ namespace KotH.Shared.Match
             if (shape == ZoneShape.Cylinder)
             {
                 float x = local.X / half.X, z = local.Z / half.Z;
-                return x * x + z * z <= 1f;
+                return x * x + z * z <= 1f && local.X * local.X + local.Z * local.Z >= hole * hole;
             }
             return Inside(corners, local.X, local.Z);
+        }
+
+        /// <summary>Magma, in waves (Luca): on every wave tick of the round's clock a body with its feet
+        /// under the surface takes a hit's percent, camera shake and recoil; true when it already had
+        /// more than the limit (then it respawns).</summary>
+        bool Burns(SimulationBody body)
+        {
+            int tick = body.Simulation?.CurrentTick ?? 0;
+            if (magmaRadius <= 0f || body.Damage == null || tick % magmaEvery != 0)
+                return false;
+            Vector3 p = body.Motor.Position;
+            float dx = p.X - center.X, dz = p.Z - center.Z;
+            if (p.Y - body.Motor.StandHeight * 0.5f >= magmaSurface || dx * dx + dz * dz > magmaRadius * magmaRadius)
+                return false;
+            bool over = body.Damage.Percent > magmaRespawn;
+            body.Damage.LastHitTick = tick;
+            body.Damage.LastHitAway = default;
+            body.Damage.LastHitAt = default;
+            body.Damage.Add(magmaWave);
+            return over;
         }
 
         /// <summary>Even-odd test of a floor point against the drawn corners (Y holds Z).</summary>
@@ -285,7 +315,7 @@ namespace KotH.Shared.Match
             bool ring = HasSpawnRing && (state.Phase == MatchPhase.Running || state.Phase == MatchPhase.Over);
             moving.Clear();
             for (int i = 0; i < count; i++)
-                if (bodies[i].HasSpawn && bodies[i].Motor.Position.Y < RespawnBelow)
+                if (bodies[i].HasSpawn && (bodies[i].Motor.Position.Y < RespawnBelow || Burns(bodies[i])))
                 {
                     if (!moving.Contains(bodies[i]))
                         moving.Add(bodies[i]);

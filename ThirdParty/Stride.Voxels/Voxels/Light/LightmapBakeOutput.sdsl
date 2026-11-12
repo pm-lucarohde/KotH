@@ -11,6 +11,10 @@ shader LightmapBakeOutput : ShadingBase, LightmapBakeStream
         // UV charts may be mirrored: never flip the normal as for a back face.
         streams.IsFrontFace = true;
         base.PSMain();
+        // A point whose cones read NaN (a pinched corner whose normal faces against its
+        // triangle, Volcano's black patch) is left to the dilation, like an uncovered texel.
+        if (any(isnan(streams.bakedLight)) || any(isinf(streams.bakedLight)))
+            streams.bakedLight = float4(0, 0, 0, -1);
         streams.ColorTarget = streams.bakedLight;
         streams.ColorTarget1 = float4(streams.bakedSun, 1, 0, 0);
     }

@@ -34,6 +34,8 @@ Attributes:
                 324dbffe6f72405aa242f0c6ddb60e95~ContactKey: !ComputeColorParameterTexture
                     Texture:
                         Texture: C03625BA-C088-464B-BC04-DE438E449A44:Textures/Terrain/MountDestinyContact
+                c04f0c6266424dbd91b6877c019b6312~LichenTone: !ComputeColorParameterFloat2
+                    Value: {X: 1.0, Y: 1.0}
             CompositionNodes: {}
     DiffuseModel: !MaterialDiffuseLambertModelFeature {}
     Specular: !MaterialMetalnessMapFeature

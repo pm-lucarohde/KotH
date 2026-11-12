@@ -27,6 +27,9 @@ namespace KotH.Shared.Match
         /// <userdoc>Polygon only: the floor's corners in order, X and Z in metres from the entity's centre (at least 3).</userdoc>
         [Display("Corners", "Zone")] public List<Vector2> Corners = new List<Vector2>();
 
+        /// <userdoc>Cylinder only: a round hole in the middle, its radius in metres, so the zone is a ring (Volcano's crater rim). 0: none.</userdoc>
+        [Display("Hole radius (m)", "Zone")] public float Hole = 0f;
+
         /// <userdoc>How long one must stand alone in the zone to capture it, in seconds. Then it scores a point per second while one stays inside, even when others join.</userdoc>
         [Display("Capture time", "Rules")] public float WarmupSeconds = 3f;
 

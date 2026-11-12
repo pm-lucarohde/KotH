@@ -1,0 +1,12 @@
+/// <summary>The magma's whole look (emissive only): open lava hot, a floe's rim glowing, its middle dark crust.</summary>
+shader MagmaGlow : ComputeColor, MagmaFlow
+{
+    override float4 Compute()
+    {
+        float crust, rim;
+        Floes(crust, rim);
+        float3 lava = float3(1.7, 0.48, 0.06) * Heat();
+        float3 floe = float3(1.0, 0.2, 0.025) * rim + float3(0.03, 0.022, 0.02);
+        return float4(lerp(lava, floe, crust), 1.0);
+    }
+};

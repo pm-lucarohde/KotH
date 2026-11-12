@@ -1,7 +1,7 @@
 #!/bin/bash
 # Records the effect permutations the game uses (KOTH_EFFECTLOG) on a headless, silent tour of
 # the AOT client (menus, Customize, rounds with bots, duo chains, blaster, dash, Esc menu, banner, Test
-# map, Atrium, the sample custom map), then merges them into KotH.Game/Assets/EffectCompileLog.sdeffectlog (EffectLog.cs).
+# map, Atrium, Volcano's crater, the sample custom map), then merges them into KotH.Game/Assets/EffectCompileLog.sdeffectlog (EffectLog.cs).
 #   Tools/effects/record.sh [BIN]   (default Bin/Linux/aot; then publish again)
 set -e
 cd "$(dirname "$0")/../.."
@@ -30,6 +30,8 @@ run "KOTH_SHOT_SECONDS=10 KOTH_SHOT_STRIKE=2,4 KOTH_SHOT_HIT=0" --offline --bots
 run "KOTH_SHOT_SECONDS=8 KOTH_SHOT_THIRD=1" --offline --bots 3 --map Test
 run "KOTH_SHOT_SECONDS=8 KOTH_SHOT_THIRD=1" --offline --bots 3 --mode duo
 run "KOTH_SHOT_SECONDS=10 KOTH_SHOT_THIRD=1 KOTH_SHOT_STRIKE=2,4 KOTH_SHOT_AT=0,0.95,27.5 KOTH_SHOT_FACE=0 KOTH_SHOT_PITCH=-20" --offline --bots 3 --map Atrium
+# Volcano: the crater from its rim (magma, the wall's heat).
+run "KOTH_SHOT_SECONDS=8 KOTH_SHOT_AT=0,137.2,10.4 KOTH_SHOT_FACE=0 KOTH_SHOT_YAW=0 KOTH_SHOT_PITCH=-60" --offline --bots 3 --map Volcano
 # Custom maps: the sample package (Surface, Terrain, Leaves, Water templates; baked, live and no shadow).
 sample=$root/KotH.Probes/Resources/MapPackages/Sample
 run "KOTH_SHOT_SECONDS=8 KOTH_SHOT_THIRD=1" --offline --bots 3 --map-file $sample
@@ -40,6 +42,7 @@ run "KOTH_SHOT_MENU=1 KOTH_SHOT_SECONDS=4 KOTH_DLSS=quality"
 run "KOTH_SHOT_SECONDS=10 KOTH_SHOT_THIRD=1 KOTH_SHOT_STRIKE=2,4 KOTH_SHOT_BLASTER=5 KOTH_SHOT_FIRE=6,7 KOTH_SHOT_DASH=8.6,9" --offline --bots 3 --dlss quality
 run "KOTH_SHOT_SECONDS=8 KOTH_SHOT_STRIKE=2,4" --offline --bots 3 --dlss quality
 run "KOTH_SHOT_SECONDS=8 KOTH_SHOT_THIRD=1 KOTH_SHOT_AT=0,0.95,27.5 KOTH_SHOT_FACE=0 KOTH_SHOT_PITCH=-20" --offline --bots 3 --map Atrium --dlss quality
+run "KOTH_SHOT_SECONDS=8 KOTH_SHOT_AT=0,137.2,10.4 KOTH_SHOT_FACE=0 KOTH_SHOT_YAW=0 KOTH_SHOT_PITCH=-60" --offline --bots 3 --map Volcano --dlss quality
 run "KOTH_SHOT_SECONDS=8 KOTH_SHOT_THIRD=1" --offline --bots 3 --map Test --mode duo --dlss quality
 run "KOTH_SHOT_SECONDS=6 KOTH_SHOT_DASH=2.6,3" --offline --bots 3 --map Test
 # The graphics levels (Settings page): Low (no FXAA), Medium and Ultra change shaders (GI steps).
@@ -49,5 +52,6 @@ for q in low medium ultra; do
   run "KOTH_SETTINGS=$root/Tools/effects/$q.toml KOTH_SHOT_SECONDS=6" --offline --bots 3 --map Test --mode duo
   run "KOTH_SETTINGS=$root/Tools/effects/$q.toml KOTH_SHOT_SECONDS=6" --offline --bots 3 --map-file $sample
   run "KOTH_SETTINGS=$root/Tools/effects/$q.toml KOTH_SHOT_SECONDS=8 KOTH_SHOT_AT=0,0.95,27.5 KOTH_SHOT_FACE=0 KOTH_SHOT_PITCH=-20" --offline --bots 3 --map Atrium
+  run "KOTH_SETTINGS=$root/Tools/effects/$q.toml KOTH_SHOT_SECONDS=8 KOTH_SHOT_AT=0,137.2,10.4 KOTH_SHOT_FACE=0 KOTH_SHOT_YAW=0 KOTH_SHOT_PITCH=-60" --offline --bots 3 --map Volcano
 done
 dotnet run Tools/effects/EffectLog.cs -- $log KotH.Game/Assets/EffectCompileLog.sdeffectlog

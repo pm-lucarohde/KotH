@@ -1,0 +1,55 @@
+/// <summary>Volcano's magma (Luca: bright lava with dark crust floes drifting on it): cells over
+/// world position that wander with Global.Time; a cell is a floe or open lava, its border a crack.
+/// MagmaGlow, the material's only feature (emissive, so no lighting), reads it once per pixel.</summary>
+shader MagmaFlow : PositionStream4
+{
+    // Three values in [0, 1) for a cell (Hoskins' hash without sine): cheaper than CellHash's
+    // integer PCG, and a colour needs no bit-exact draw.
+    float3 Hash(float2 c)
+    {
+        float3 p = frac(c.xyx * float3(0.1031, 0.1030, 0.0973));
+        p += dot(p, p.yxz + 33.33);
+        return frac((p.xxy + p.yzz) * p.zyx);
+    }
+
+    // Crust (1 on a floe, 0 on open lava) and the hot rim inside a floe's edge.
+    void Floes(out float crust, out float rim)
+    {
+        float t = Global.Time;
+        float2 p = streams.PositionWS.xz;
+        // A slow wobble bends the floes' paths; the whole pool drifts.
+        float2 q = p + 0.35 * float2(sin(p.y * 0.7 + t * 0.21), sin(p.x * 0.6 - t * 0.17));
+        q = q / 1.4 + float2(t * 0.05, t * 0.03);
+        float2 cell = floor(q);
+        float f1 = 9.0, f2 = 9.0;
+        float open = 0.0;
+        for (int j = -1; j <= 1; j++)
+            for (int i = -1; i <= 1; i++)
+            {
+                float2 c = cell + float2(i, j);
+                float3 r = Hash(c);
+                float2 at = c + 0.15 + 0.7 * r.xy + 0.12 * float2(sin(t * 0.4 + r.z * 6.28), cos(t * 0.33 + r.z * 6.28));
+                float d = length(q - at);
+                if (d < f1)
+                {
+                    f2 = f1;
+                    f1 = d;
+                    open = r.z;
+                }
+                else if (d < f2)
+                    f2 = d;
+            }
+        float border = f2 - f1;
+        float floe = open < 0.7 ? 1.0 : 0.0;
+        crust = floe * smoothstep(0.05, 0.14, border);
+        rim = crust * (1.0 - smoothstep(0.14, 0.32, border));
+    }
+
+    // Brightness of the open lava: slow streaks along the drift, never quite still.
+    float Heat()
+    {
+        float t = Global.Time;
+        float2 p = streams.PositionWS.xz;
+        return 0.8 + 0.12 * sin(p.x * 1.3 + p.y * 0.4 + t * 0.9) + 0.08 * sin(p.y * 2.1 - p.x * 0.7 - t * 1.4);
+    }
+};

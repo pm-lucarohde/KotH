@@ -1,0 +1,9 @@
+/// <summary>Volcano's crater wall in the magma's light (emissive of VolcanoTerrain): warm by
+/// TEXCOORD_0.y, which Tools/maps/Mountain.cs writes from the height over the magma.</summary>
+shader TerrainHeat : ComputeColor, Texturing
+{
+    override float4 Compute()
+    {
+        return float4(float3(1.0, 0.36, 0.08) * streams.TexCoord.y, 1.0);
+    }
+};

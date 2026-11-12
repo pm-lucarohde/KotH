@@ -261,11 +261,10 @@ public sealed class Arena
     public static (double U, double V)[] Chamfered(double w, double h, double c)
         => [(-w / 2 + c, 0), (w / 2 - c, 0), (w / 2, c), (w / 2, h - c), (w / 2 - c, h), (-w / 2 + c, h), (-w / 2, h - c), (-w / 2, c)];
 
-    /// <summary>Rock: a whole lathe of the profile (spaced about chord apart along it and round
-    /// it), each point pushed along its normal by two octaves of noise of amp metres and
-    /// features of scale metres; the first and last fix points of the profile stay where they
-    /// are (they meet built parts) and the push grows in over the next two. Smooth all over.
-    /// colour gives the terrain weights and shade per point.</summary>
+    /// <summary>Rock: a lathe of the profile (points about chord apart), each pushed along its normal
+    /// by two octaves of noise (amp metres, features of scale metres); the first and last fix points
+    /// stay (they meet built parts), the push grows in over the next two. colour gives the terrain
+    /// weights and shade per point.</summary>
     public void Rock((double R, double Y)[] profile, int seed, double amp, double scale, bool solid, double cx = 0, double cz = 0,
                      double chord = 1.0, int fix = 1, Func<V3, V3, ((double, double, double, double) Col, double Shade)> colour = null)
     {

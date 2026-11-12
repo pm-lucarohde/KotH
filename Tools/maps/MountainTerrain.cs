@@ -49,6 +49,16 @@ public static class M
     public static double TopBlend = 2.0;        // the slope eases into the plateau over this many metres down
     public static double TopRun = 4.0;          // and this many metres across (Luca: 2 m and 4 m)
     public static double TopFade = 12.0;        // ridges and columns grow in over this many metres below the plateau
+    public static double Crater = 0.0;          // > 0 (Volcano): a crater this wide in radius instead of the plateau,
+    public static double Rim = 13.0;            // a round rim at SummitY out to this radius (the zone's ring, Luca: 3 m),
+    public static int CraterDepth = 22;         // the floor this far down, flat out to MagmaRadius under the magma;
+    public static double MagmaRadius = 5.5;
+    public static double CraterWall = 1.3;      // the wall's height over the floor: depth * share of the way ^ this
+    public static double LedgeStart = 4.4;      // a ledge winds up the wall from this angle (north-west) over LedgeTurn
+    public static double LedgeTurn = 3.3;       // radians, in two-block steps (double jumps), standing LedgeWidth out
+    public static double LedgeWidth = 1.6;
+    public static double MagmaAbove = 0.6;      // the magma's surface over the floor
+    public static int Palms = 0;                // > 0 (Volcano): this many palms on the beach instead of the trees
     public static double Profile = 1.1;         // height = (1 - r / foot) ^ Profile
     public static double Ridges = 9.0;          // depth of the ridges running down the slope
     public static double RidgeSpacing = 3.0;    // metres between ridges around the mountain
@@ -91,6 +101,7 @@ public static class M
     public static readonly Rgb Sand = new(0.86, 0.81, 0.60);
     public static readonly Rgb Wood = new(0.42, 0.31, 0.18);
     public static readonly Rgb Leaves = new(0.24, 0.42, 0.16);
+    public static readonly Rgb Scorched = new(0.17, 0.15, 0.14);   // the crater's stone near the magma
     public static double AoStep = 0.16;         // darker per solid block over half of a corner's eight (Minecraft's steps)
     public static double Smooth = 0.7;          // Surface Nets strength: 0 cubes, 1 as round as NoCubes
     public static double SlopeLimit = 50.0;     // the player motor's, to report how much ground one stands on
@@ -190,6 +201,7 @@ public sealed class Terrain
     public readonly HashSet<(int X, int Y, int Z)> Trees = new();            // leaf blocks
     public readonly List<(int X, int Z, int Top, List<(int X, int Y, int Z)> Blocks, int N)> Crowns = new();
     public readonly HashSet<(int X, int Y, int Z)> Wood = new();
+    public readonly List<(int X, int Z, double Lean)> PalmSpots = new();      // Volcano: on the beach, leaning to the sea
     public int Dropped;                                                      // trees the new coast left too close to the sand
     public int Raised;
 
@@ -267,7 +279,9 @@ public sealed class Terrain
                     Height[(x, z)] = M.SandY;
                 else if (r >= foot)
                     Height[(x, z)] = M.GrassY;
-                else if (Py.Max(Math.Abs(x + 0.5), Math.Abs(z + 0.5)) <= M.Plateau + 0.5)
+                else if (M.Crater > 0 && r <= M.Rim)
+                    Height[(x, z)] = Math.Min(M.SummitY, CraterHeight(r, a));
+                else if (M.Crater == 0 && Py.Max(Math.Abs(x + 0.5), Math.Abs(z + 0.5)) <= M.Plateau + 0.5)
                     Height[(x, z)] = M.SummitY;
                 else
                 {
@@ -280,10 +294,11 @@ public sealed class Terrain
                         (w, d) = (M.ColumnDown, M.Column);
                     int gx = Py.FloorDiv(x, w) * w, gz = Py.FloorDiv(z, d) * d;
                     (r, a) = Polar(gx + (w - 1) / 2.0, gz + (d - 1) / 2.0);
-                    // Measured from the square plateau's edge, so the slope meets it all round.
-                    int edge = M.Plateau + 1;
+                    // Measured from the square plateau's edge (or the round rim), so the slope meets it all round.
+                    double edge = M.Crater > 0 ? M.Rim : M.Plateau + 1;
                     double cx = gx + w / 2.0, cz = gz + d / 2.0;
-                    double dist = Py.Hypot(Py.Max(0.0, Math.Abs(cx) - edge), Py.Max(0.0, Math.Abs(cz) - edge));
+                    double dist = M.Crater > 0 ? Py.Max(0.0, Py.Hypot(cx, cz) - edge)
+                        : Py.Hypot(Py.Max(0.0, Math.Abs(cx) - edge), Py.Max(0.0, Math.Abs(cz) - edge));
                     // The first TopRun metres drop TopBlend metres on a cubic that starts
                     // flat and meets the main profile with its slope; ridges fade in below.
                     double rest = M.SummitY - M.GrassY - M.TopBlend, run = foot - edge - M.TopRun;
@@ -321,6 +336,23 @@ public sealed class Terrain
         DrainTraps();
         Paint();
         Plant();
+    }
+
+    /// <summary>The crater's column at radius r, angle a (above SummitY outside it): the wall
+    /// rises steeply from the flat floor; the ledge stands out of it as a shelf, each step just
+    /// inside where the wall reaches its height (no notch in the rim; inwards it drops).</summary>
+    public static int CraterHeight(double r, double a)
+    {
+        double floor = M.SummitY - M.CraterDepth;
+        double u = Py.Max(0.0, (r - M.MagmaRadius) / (M.Crater - M.MagmaRadius));
+        int h = Py.Round(floor + M.CraterDepth * Py.Pow(u, M.CraterWall));
+        double along = Py.Mod(a - M.LedgeStart, 2 * Math.PI);
+        if (along > M.LedgeTurn)
+            return h;
+        int steps = M.CraterDepth / 2;
+        int ledge = (int)floor + 2 * Math.Min(steps, (int)Math.Ceiling(steps * along / M.LedgeTurn));
+        double inner = M.MagmaRadius + (M.Crater - M.MagmaRadius) * Py.Pow((ledge - floor) / M.CraterDepth, 1 / M.CraterWall);
+        return r >= inner - M.LedgeWidth && r <= inner ? Math.Max(h, ledge) : h;
     }
 
     // Slots one or two blocks wide between walls two blocks higher are raised to the
@@ -425,6 +457,16 @@ public sealed class Terrain
                 Material[(x, z)] = (M.Grass, M.Dirt);
                 Tint[(x, z)] = 1.0;
             }
+            else if (M.Crater > 0 && r < M.Crater + 2.0)
+            {
+                // Inside the crater and on its lip bare stone (a snowy rim column would paint
+                // the wall below it white), scorched darker towards the magma.
+                double k = Py.Min(1.0, (M.SummitY - h) / (0.8 * M.CraterDepth));
+                Rgb c = new(M.Stone.R + (M.Scorched.R - M.Stone.R) * k, M.Stone.G + (M.Scorched.G - M.Stone.G) * k,
+                            M.Stone.B + (M.Scorched.B - M.Stone.B) * k);
+                Material[(x, z)] = (c, c);
+                Tint[(x, z)] = (1.0 - 0.65 * Py.Pow(k, 0.8)) * (0.93 + 0.07 * M.Lattice(s + 7, x, z) + 0.04 * M.Noise(s + 8, x / 5.0, z / 5.0));
+            }
             else
             {
                 double line = snowline + M.SnowNoise * M.Noise(s + 5, x / 9.0, z / 9.0);
@@ -442,6 +484,11 @@ public sealed class Terrain
     // Trees on the meadow, never by the spawns.
     void Plant()
     {
+        if (M.Palms > 0)
+        {
+            PlantPalms();
+            return;
+        }
         var rng = new PyRandom(Seed + 9);
         var spots = new List<(int X, int Z)>();
         // Chosen from the old round island's meadow, so the trees stand where they did.
@@ -498,6 +545,25 @@ public sealed class Terrain
         }
     }
 
+    // Volcano (Luca): palms on the sand instead of the trees, a metre off the meadow and two off
+    // the water, TreeGap apart; each leans out towards the sea.
+    void PlantPalms()
+    {
+        var rng = new PyRandom(Seed + 9);
+        var sand = Height.Where(e => e.Value == M.SandY).Select(e => e.Key).Where(c =>
+        {
+            var (r, a) = Polar(c.X, c.Z);
+            return r >= Coast(a) - Beach(a) + 1.0 && r <= Coast(a) - 2.0;
+        }).Order().ToList();
+        for (int tries = 0; PalmSpots.Count < M.Palms && tries < 20000; tries++)
+        {
+            var (x, z) = rng.Choice(sand);
+            if (PalmSpots.Any(p => Py.Hypot(x - p.X, z - p.Z) < M.TreeGap))
+                continue;
+            PalmSpots.Add((x, z, Polar(x, z).A + rng.Uniform(-0.5, 0.5)));
+        }
+    }
+
     public int Block(int x, int y, int z)
     {
         if (Height.TryGetValue((x, z), out int h) && y < h)
@@ -505,6 +571,58 @@ public sealed class Terrain
         if (Wood.Contains((x, y, z)))
             return M.Trunk;
         return M.Air;
+    }
+}
+
+/// <summary>Volcano's crater in numbers: the floor, columns changed after shaping (pits
+/// filled), whether one gets out with double jumps but not single ones, where the rounded rim's
+/// flat top starts (for the zone's hole), and a map of the depths ('#' the rim).</summary>
+public static class Crater
+{
+    public static void Report(Terrain t, Mesh mesh)
+    {
+        int floor = M.SummitY - M.CraterDepth, rim = (int)Math.Ceiling(M.Rim);
+        var inside = t.Height.Keys.Where(c => t.Polar(c.X, c.Z).R < M.Crater + M.LedgeWidth).ToList();
+        int changed = inside.Count(c => { var (r, a) = t.Polar(c.X, c.Z); return t.Height[c] != Math.Min(M.SummitY, Terrain.CraterHeight(r, a)); });
+        var bottom = inside.Where(c => t.Height[c] == floor).ToList();
+        bool Out(int limit) => bottom.Count > 0 && Climb.Climbable(t, [bottom[0]], limit).Any(c => t.Height[c] == M.SummitY);
+        Console.WriteLine($"Crater: rim y = {M.SummitY} out to {Py.F(M.Rim, 0)} m, opening {Py.F(2 * M.Crater, 0)} m, floor y = {floor} " +
+                          $"({bottom.Count} columns), magma y = {Py.F(floor + M.MagmaAbove, 1)}, {changed} columns changed after shaping; " +
+                          $"out with double jumps: {(Out(2) ? "yes" : "NO")}, with single jumps: {(Out(1) ? "yes" : "no")}");
+        // Along 64 bearings inwards from the rim's outer edge: the last radius whose drawn ground
+        // still lies within 0.1 m of SummitY.
+        var tops = mesh.Tris.Select(f => (A: mesh.Pos[f.Item1], B: mesh.Pos[f.Item2], C: mesh.Pos[f.Item3]))
+            .Where(f => Py.Min(f.A.Y, Py.Min(f.B.Y, f.C.Y)) > M.SummitY - 3 && Py.Hypot(f.A.X, f.A.Z) < M.Rim + 1).ToList();
+        double Ground(double x, double z)
+        {
+            double best = double.NegativeInfinity;
+            foreach (var (a, b, c) in tops)
+            {
+                double d = (b.Z - c.Z) * (a.X - c.X) + (c.X - b.X) * (a.Z - c.Z);
+                if (Math.Abs(d) < 1e-12)
+                    continue;
+                double u = ((b.Z - c.Z) * (x - c.X) + (c.X - b.X) * (z - c.Z)) / d;
+                double v = ((c.Z - a.Z) * (x - c.X) + (a.X - c.X) * (z - c.Z)) / d;
+                if (u >= 0 && v >= 0 && u + v <= 1)
+                    best = Py.Max(best, u * a.Y + v * b.Y + (1 - u - v) * c.Y);
+            }
+            return best;
+        }
+        var edges = new List<double>();
+        for (int k = 0; k < 64; k++)
+        {
+            double a = 2 * Math.PI * k / 64, r = M.Rim - 0.5;
+            while (r > M.Crater - 3 && Ground(r * Libm.cos(a), r * Libm.sin(a)) >= M.SummitY - 0.1)
+                r -= 0.05;
+            edges.Add(r + 0.05);
+        }
+        edges.Sort();
+        Console.WriteLine($"Rim's flat top starts at r = {Py.F(edges[32], 2)} m (median), {Py.F(edges[57], 2)} (90 %), " +
+                          $"{Py.F(edges[63], 2)} (max); out to {Py.F(M.Rim, 0)} m; {t.PalmSpots.Count} palms");
+        const string Digits = "0123456789abcdefghijklmnopqrstuvwxyz";
+        for (int z = -rim; z < rim; z++)
+            Console.WriteLine("  " + string.Concat(Enumerable.Range(-rim, 2 * rim).Select(x =>
+                !t.Height.TryGetValue((x, z), out int h) || h > M.SummitY ? ' ' : h == M.SummitY ? '#' : Digits[Math.Min(35, M.SummitY - h)])));
     }
 }
 
@@ -723,8 +841,18 @@ public sealed class Mesh
             Nrm[i] = Unit(Nrm[i]);
             var (weights, shade) = Paint(Keys[i].Corner.Value, Keys[i].Kind);
             Col.Add(weights);
-            Uv.Add((shade, 0.0));
+            Uv.Add((shade, Heat(Pos[i])));
         }
+    }
+
+    // Volcano: the magma's warm light on the crater's wall (TEXCOORD_0.y, VolcanoTerrain's
+    // TerrainHeat emissive), full at the surface, gone 14 m up; 0 elsewhere.
+    static double Heat(V3 p)
+    {
+        if (M.Crater <= 0 || Py.Hypot(p.X, p.Z) > M.Crater + 2.0)
+            return 0.0;
+        double up = Py.Max(0.0, 1.0 - (p.Y - (M.SummitY - M.CraterDepth + M.MagmaAbove)) / 14.0);
+        return Py.Min(1.0, up * up);
     }
 
     // The ground's weights for TerrainTriplanar (COLOR_0: grass, sand, snow, snow cap;
@@ -748,7 +876,9 @@ public sealed class Mesh
             var column = tops.Count > 0 ? tops[0] : columns.Aggregate((m, e) => e.CompareTo(m) > 0 ? e : m).C;
             int surface = Array.IndexOf(M.Paints, T.Material[column]);
             weights = (surface == 0 ? 1.0 : 0.0, surface == 1 ? 1.0 : 0.0, surface == 2 ? 1.0 : 0.0, surface == 3 ? 1.0 : 0.0);
-            if (T.Material[column].Top == M.Stone || T.Material[column].Top == M.Snow)
+            if (surface < 0 && T.Material[column].Top != M.Stone)
+                tint = T.Tint[column];      // Volcano's scorched crater, its shade from Paint
+            else if (T.Material[column].Top == M.Stone || T.Material[column].Top == M.Snow)
                 tint = 0.95 + 0.05 * M.Lattice(T.Seed + 12, cx, cy, cz) + 0.03 * M.Noise(T.Seed + 8, cx / 5.0, cz / 5.0);
         }
         // Soft AO as with smooth lighting: darker the more of the cell is solid.
@@ -786,6 +916,11 @@ public sealed class Mesh
         }
         mesh.Finish();
         var crowns = new List<Action>();
+        for (int n = 0; n < t.PalmSpots.Count; n++)
+        {
+            var (x, z, lean) = t.PalmSpots[n];
+            crowns.Add(Trees.Palm(mesh, new PyRandom((long)t.Seed * 1000 + 500 + n), x, z, t.Height[(x, z)], lean));
+        }
         foreach (var (x, z, top, _, n) in t.Crowns)
             crowns.Add(Trees.Grow(mesh, new PyRandom((long)t.Seed * 1000 + n), x, z, t.Height[(x, z)], top));
         Simplifier.Run(mesh);
@@ -953,6 +1088,76 @@ public static class Trees
         clumps = [.. clumps.Select(c => (new V3(c.C.X, Math.Max(c.C.Y, bottom + M.CrownClear + 0.8 * c.R), c.C.Z), c.R))];
         long seed = rng.RandRange(1L << 30);
         return () => Leaves(mesh, new PyRandom(seed), clumps);
+    }
+
+    /// <summary>A palm at column (x, z) (Volcano): a trunk curving up out of the sand, leaning
+    /// towards angle lean, and Fronds arching out and down from its top, a thin stalk each.
+    /// Builds the wood now; returns what adds the leaflets, after the simplifier.</summary>
+    public static Action Palm(Mesh mesh, PyRandom rng, int x, int z, int bottom, double lean)
+    {
+        double height = rng.Uniform(5.0, 7.0), reach = rng.Uniform(0.8, 1.6);
+        var foot = new V3(x + 0.5, bottom - 0.4, z + 0.5);
+        V3 outward = new(Libm.cos(lean), 0, Libm.sin(lean));
+        V3 mid = Add(foot, Add(Scale(outward, reach * 0.2), new V3(0, height * 0.55, 0)));
+        V3 top = Add(foot, Add(Scale(outward, reach), new V3(0, height, 0)));
+        Limb(mesh, foot, mid, top, 0.3, 0.19, true);
+        var fronds = new List<(V3 P0, V3 P1, V3 P2, double Phase)>();
+        int count = rng.RandInt(7, 9);
+        double turn = rng.Uniform(0.0, 2 * Math.PI);
+        for (int i = 0; i < count; i++)
+        {
+            double a = turn + 2 * Math.PI * i / count + rng.Uniform(-0.25, 0.25);
+            V3 dir = new(Libm.cos(a), 0, Libm.sin(a));
+            double length = rng.Uniform(2.6, 3.3), lift = rng.Uniform(0.6, 1.1);
+            V3 p1 = Add(top, Add(Scale(dir, length * 0.45), new V3(0, lift, 0)));
+            V3 p2 = Add(top, Add(Scale(dir, length), new V3(0, lift - rng.Uniform(1.3, 1.9), 0)));
+            Limb(mesh, top, p1, p2, 0.06, 0.02, false);
+            fronds.Add((top, p1, p2, rng.Random()));
+        }
+        long seed = rng.RandRange(1L << 30);
+        return () => Fronds(mesh, new PyRandom(seed), fronds);
+    }
+
+    /// <summary>A frond's leaflets: slim single leaves from the atlas on both sides of its curve,
+    /// longest in the middle, pointing forwards and drooping; the whole frond sways more
+    /// towards its tip, in one phase.</summary>
+    static void Fronds(Mesh mesh, PyRandom rng, List<(V3 P0, V3 P1, V3 P2, double Phase)> fronds)
+    {
+        const int Pairs = 18;
+        foreach (var (p0, p1, p2, phase) in fronds)
+            for (int k = 0; k < Pairs; k++)
+            {
+                double t = 0.12 + 0.86 * k / (Pairs - 1);
+                V3 c = Add(Add(Scale(p0, (1 - t) * (1 - t)), Scale(p1, 2 * t * (1 - t))), Scale(p2, t * t));
+                V3 d = Unit(Add(Scale(Sub(p1, p0), 2 * (1 - t)), Scale(Sub(p2, p1), 2 * t)));
+                V3 side = Unit(V3.Cross(d, new V3(0, 1, 0)));
+                foreach (int s in new[] { -1, 1 })
+                {
+                    V3 along = Unit(Add(Add(Scale(side, s * 0.85), Scale(d, 0.5)), new V3(0, -0.3, 0)));
+                    V3 face = Unit(V3.Cross(along, d));
+                    if (face.Y < 0)
+                        face = Scale(face, -1);
+                    V3 across = Unit(V3.Cross(face, along));
+                    double length = 0.3 + 0.55 * Libm.sin(Math.PI * t) + rng.Uniform(-0.05, 0.05), width = 0.11;
+                    int quarter = (int)rng.RandRange(4);
+                    double ox = (quarter % 2) * 512 + (512 - LeafPx) / 2, oy = (quarter / 2) * 512 + 256;
+                    double u0 = (ox - LeafMarginPx) / AtlasSize, u1 = (ox + LeafPx + LeafMarginPx) / AtlasSize;
+                    double va = (oy - LeafHalfPx) / AtlasSize, vb = (oy + LeafHalfPx) / AtlasSize;
+                    (double, double)[] uvs = [(u0, va), (u1, va), (u1, vb), (u0, vb)];
+                    V3 start = Sub(c, Scale(along, 0.03));
+                    V3[] quad =
+                    [
+                        Add(start, Scale(across, -width / 2)), Add(Add(start, Scale(along, length)), Scale(across, -width / 2)),
+                        Add(Add(start, Scale(along, length)), Scale(across, width / 2)), Add(start, Scale(across, width / 2)),
+                    ];
+                    double shade = 0.75 + 0.25 * rng.Random(), tint = rng.Random();
+                    int at = mesh.Pos.Count;
+                    for (int q = 0; q < 4; q++)
+                        mesh.AddVertex(quad[q], face, (shade, tint, Math.Min(1.0, 0.7 * t + (q == 1 || q == 2 ? 0.3 : 0.0)), phase), uvs[q], M.Leaf);
+                    foreach (var (a, b, e) in new[] { (at, at + 1, at + 2), (at, at + 2, at + 3), (at, at + 2, at + 1), (at, at + 3, at + 2) })
+                        mesh.Idx.AddRange([a, b, e]);
+                }
+            }
     }
 
     // Leaves.png: four leaves in a 2 x 2 atlas of 1024 px, along x, LeafFill of their quarter
@@ -1334,6 +1539,8 @@ public static class Output
             for (int i = 0; i < mesh.Idx.Count; i += 3)
                 if (kinds.Contains(mesh.Keys[mesh.Idx[i]].Kind))
                     faces.Add([mesh.Idx[i], mesh.Idx[i + 1], mesh.Idx[i + 2]]);
+            if (faces.Count == 0)
+                continue;       // Volcano's palms have no clump cards (the last part, so the slots stay)
             var used = faces.SelectMany(f => f).Distinct().Order().ToList();
             var renumber = new Dictionary<int, int>();
             for (int i = 0; i < used.Count; i++)
@@ -1398,6 +1605,24 @@ public static class Output
                     Rect(x0, z0, x1, z1);
             }
         return new Part("Water", pos, [.. pos.Select(_ => new V3(0.0, 1.0, 0.0))], idx, null, null);
+    }
+
+    /// <summary>The crater's magma: a flat disk at the entity's height (VolcanoVisual puts it
+    /// MagmaAbove over the floor), a metre wider than the floor so its rim dips into the wall.
+    /// Only to be seen; HillMatch burns whoever stands in it (MagmaPool).</summary>
+    public static Part Magma()
+    {
+        const int Sides = 96;
+        double radius = M.MagmaRadius + 1.0;
+        var pos = new List<V3> { new(0.0, 0.0, 0.0) };
+        var idx = new List<int>();
+        for (int i = 0; i < Sides; i++)
+        {
+            double a = 2 * Math.PI * i / Sides;
+            pos.Add(new V3(radius * Libm.cos(a), 0.0, radius * Libm.sin(a)));
+            idx.AddRange([0, 1 + (i + 1) % Sides, 1 + i]);
+        }
+        return new Part("Magma", pos, [.. pos.Select(_ => new V3(0.0, 1.0, 0.0))], idx, null, [.. pos.Select(p => (p.X, p.Z))]);
     }
 
     /// <summary>The drawn triangles for the physics, compressed: the vertices, then per

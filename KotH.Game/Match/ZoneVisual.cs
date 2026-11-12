@@ -88,6 +88,13 @@ namespace KotH.Client.Match
             if (Zone.Shape == ZoneShape.Cylinder || Zone.Shape == ZoneShape.Polygon && Zone.Corners.Count >= 3)
             {
                 Outline(Corners(s), bottom, y);
+                // A ring's hole: its rail too, wound the other way so it lies in the ring.
+                if (Zone.Shape == ZoneShape.Cylinder && Zone.Hole > 0f)
+                {
+                    List<Vector2> hole = Ellipse(Zone.Hole, Zone.Hole);
+                    hole.Reverse();
+                    Outline(hole, bottom, y);
+                }
                 return;
             }
             float inX = (s.X - Thickness) * 0.5f, inZ = (s.Z - Thickness) * 0.5f;
@@ -108,7 +115,11 @@ namespace KotH.Client.Match
         {
             if (Zone.Shape == ZoneShape.Polygon)
                 return new List<Vector2>(Zone.Corners);
-            float rx = s.X * 0.5f, rz = s.Z * 0.5f;
+            return Ellipse(s.X * 0.5f, s.Z * 0.5f);
+        }
+
+        static List<Vector2> Ellipse(float rx, float rz)
+        {
             int n = Math.Max(24, (int)MathF.Ceiling(MathUtil.TwoPi * Math.Max(rx, rz) / 0.5f));
             var ring = new List<Vector2>(n);
             for (int i = 0; i < n; i++)

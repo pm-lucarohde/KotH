@@ -84,6 +84,18 @@ namespace KotH.Client.Rendering
         /// <userdoc>Colour of the coastal fog (linear), lighter than the height fog.</userdoc>
         [DataMember(57)] public Color3 CoastColor { get; set; } = new(0.82f, 0.86f, 0.90f);
 
+        /// <userdoc>Hot air: bottom centre of the shimmering cylinder (Volcano: the magma's surface).</userdoc>
+        [DataMember(60)] public Vector3 HazeBottom { get; set; }
+
+        /// <userdoc>Radius of the shimmering cylinder in metres; 0 turns the hot air off.</userdoc>
+        [DataMember(61)] public float HazeRadius { get; set; }
+
+        /// <userdoc>How high the shimmer reaches over its bottom, fading upwards, in metres.</userdoc>
+        [DataMember(62)] public float HazeHeight { get; set; } = 14f;
+
+        /// <userdoc>How far the shimmer shifts the picture: screen share per metre of hot air looked through.</userdoc>
+        [DataMember(63)] public float HazeStrength { get; set; } = 0.0006f;
+
         /// <summary>The wind's direction in x, z: texture x of the cloud map runs along it.</summary>
         [DataMemberIgnore] public Vector2 WindAxis { get; private set; } = Vector2.UnitX;
 

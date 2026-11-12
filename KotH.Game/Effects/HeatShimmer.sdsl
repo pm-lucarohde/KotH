@@ -1,0 +1,53 @@
+/// <summary>Hot air over Volcano's magma (Luca): where a pixel's view ray crosses the upright
+/// cylinder Haze (bottom xyz, radius; Shape.x high) before the scene's depth, the scene (Texture0,
+/// a copy) is read a little aside, by rising waves at the crossing's middle, fading upwards.</summary>
+shader HeatShimmer : ImageEffectShader
+{
+    float4x4 ClipToRay;     // clip x, y, 1 to the view ray with a view depth of 1
+    float2 NearFar;
+    float3 Eye;
+    float4 Haze;            // bottom x, y, z and radius
+    float4 Shape;           // height, strength (uv per metre of hot air, at most 6 m), seconds, unused
+
+    float Depth(float z)
+    {
+        return z >= 1.0 ? 1e9 : NearFar.x * NearFar.y / (NearFar.y - z * (NearFar.y - NearFar.x));
+    }
+
+    stage override float4 Shading()
+    {
+        float2 uv = streams.TexCoord;
+        int2 pixel = int2(streams.ShadingPosition.xy);
+        float4 scene = Texture0.Load(int3(pixel, 0));
+        float3 ray = mul(float4(uv.x * 2.0 - 1.0, 1.0 - uv.y * 2.0, 1.0, 0.0), ClipToRay).xyz;
+        float rayLength = length(ray);
+        float3 d = ray / rayLength;
+        float far = Depth(Texture1.Load(int3(pixel, 0)).r) * rayLength;
+
+        // The ray against the circle in x, z and the slab in y.
+        float2 o = Eye.xz - Haze.xz;
+        float a = max(dot(d.xz, d.xz), 1e-8), b = dot(o, d.xz), c = dot(o, o) - Haze.w * Haze.w;
+        float disc = b * b - a * c;
+        if (disc <= 0.0)
+            return scene;
+        float root = sqrt(disc);
+        float dy = abs(d.y) < 1e-5 ? 1e-5 : d.y;
+        float ya = (Haze.y - Eye.y) / dy, yb = (Haze.y + Shape.x - Eye.y) / dy;
+        float enter = max(max((-b - root) / a, min(ya, yb)), 0.0);
+        float leave = min(min((-b + root) / a, max(ya, yb)), far);
+        if (leave <= enter)
+            return scene;
+
+        float3 mid = Eye + d * (0.5 * (enter + leave));
+        float fade = 1.0 - saturate((mid.y - Haze.y) / Shape.x);
+        float t = Shape.z;
+        float2 wave = float2(sin(mid.y * 5.0 - t * 6.0 + mid.x * 2.3) + 0.6 * sin(mid.y * 8.3 - t * 9.5 + mid.z * 3.1),
+                             sin(mid.y * 6.1 - t * 7.2 + mid.z * 2.7) + 0.6 * sin(mid.y * 9.7 - t * 8.4 - mid.x * 3.4));
+        float2 shift = wave * (Shape.y * min(leave - enter, 6.0) * fade * fade / (1.0 + 0.04 * enter));
+        // Nothing in front of the hot air is pulled in: then the scene stays.
+        float2 at = uv + shift;
+        if (Depth(Texture1.SampleLevel(PointSampler, at, 0).r) * rayLength < enter)
+            return scene;
+        return Texture0.SampleLevel(LinearSampler, at, 0);
+    }
+};

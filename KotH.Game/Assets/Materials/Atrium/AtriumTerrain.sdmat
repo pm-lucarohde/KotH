@@ -34,6 +34,8 @@ Attributes:
                 324dbffe6f72405aa242f0c6ddb60e95~ContactKey: !ComputeColorParameterTexture
                     Texture:
                         Texture: 92AA38D9-ADF7-41E9-B9EE-2A753C26C128:Textures/Terrain/AtriumContact
+                51db6fe2bf414de2a74cb39e9ebf0534~LichenTone: !ComputeColorParameterFloat2
+                    Value: {X: 1.0, Y: 1.0}
             CompositionNodes: {}
     DiffuseModel: !MaterialDiffuseLambertModelFeature {}
     Specular: !MaterialMetalnessMapFeature

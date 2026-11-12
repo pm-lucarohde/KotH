@@ -50,6 +50,43 @@ namespace KotH.Probes.Probes
             Check(box.Contains(corner) && !round.Contains(corner) && round.Contains(edge) && !box.Contains(high), "box and cylinder");
             Check(drawn.Contains(new Vector3(0f, 0f, -1.9f)) && !drawn.Contains(corner) && drawn.Contains(new Vector3(0f, 0f, 1.9f)) &&
                   !drawn.Contains(new Vector3(1.2f, 0f, 1f)) && !drawn.Contains(high), "polygon");
+            var ringZone = new CaptureZone { Size = new Vector3(8f, 2f, 8f), Shape = ZoneShape.Cylinder, Hole = 2f };
+            _ = new Entity { ringZone };
+            var ring = new HillMatch(ringZone);
+            Check(!ring.Contains(new Vector3(1f, 0f, 1f)) && ring.Contains(new Vector3(0f, 0f, 3f)) && !ring.Contains(new Vector3(3f, 0f, 3f)) &&
+                  ring.Hole == 2f, "ring (cylinder with a hole)");
+        }
+
+        /// <summary>Magma over the whole ground (MagmaPool on the zone): a hit of 10 % each second
+        /// (shake and recoil by LastHitTick), and the first wave over 100 % respawns, percent kept.</summary>
+        void Magma(HeadlessWorld world)
+        {
+            var pool = new MagmaPool { Radius = 60f, Surface = 0.5f };
+            world.Zone.Entity.Add(pool);
+            world.StartMatch();
+            var body = new ScriptedBody { NetId = NetWorld.FirstPlayerId + 5 };
+            var damage = new DamagePercent();
+            Entity marker = NetWorld.SlotMarker(world.Builder, 6);
+            world.SpawnBody(HeadlessWorld.PlayerBodyUrl, marker.Transform.Position, marker.Transform.Rotation, body, damage);
+            world.Simulation.Tick();
+            int moved = body.MovedTick;
+            for (int t = 1; t < 40; t++)
+                world.Simulation.Tick();
+            Check(damage.Percent == 10f && damage.LastHitTick >= 0 && damage.LastHitTick % 40 == 0,
+                  $"magma: one wave of 10 % in a second, as a hit ({damage.Percent:F2}, tick {damage.LastHitTick})");
+            float at = -1f;
+            for (int t = 0; t < 40 * 14 && at < 0f; t++)
+            {
+                float before = damage.Percent;
+                world.Simulation.Tick();
+                if (body.MovedTick != moved)
+                    at = before;
+            }
+            Check(at == 110f && damage.Percent == 120f, $"magma: respawn at the first wave over 100 %, percent kept ({at:F2})");
+            world.Zone.Entity.Remove(pool);
+            world.Simulation.Unregister(body);
+            world.Scene.Entities.Remove(body.Entity);
+            world.Simulation.ResetTickCounter();
         }
 
         public override int Run(HeadlessWorld world, int maxTicks)
@@ -101,6 +138,7 @@ namespace KotH.Probes.Probes
             world.LoadArena(id);
             Check(Climb(world, id, 1, out _) == first, "unloaded and loaded again: bit-identical");
             Check(Rollback(world, id), "a rollback through 200 ticks is bit-identical");
+            Magma(world);
 
             Log(failures == 0 ? "[custommap] passed" : $"[custommap] {failures} failed");
             return failures == 0 ? 0 : 1;

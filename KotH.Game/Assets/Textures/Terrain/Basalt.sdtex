@@ -1,0 +1,8 @@
+!Texture
+Id: 4783FD60-4E4D-4879-9D10-F1F3C96A311D
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../../Resources/Textures/Terrain/Basalt.png
+IsCompressed: true
+Type: !ColorTextureType
+    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}

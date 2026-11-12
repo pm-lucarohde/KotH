@@ -1,8 +1,8 @@
 #!/usr/bin/env -S dotnet run
-// The block mountain of Mount Destiny (Luca, after a Minecraft map): writes Mountain.glb,
-// Sea.glb, KotH.Shared/Resources/Maps/MountDestinyTerrain.bin and .work/maps/mountain.png,
-// never what Game Studio edits. 1 m blocks: one up is a jump, two a double jump, three a wall.
-//   dotnet run Tools/maps/Mountain.cs [-- --seed N]   then Tools/maps/MapUV
+// The block mountain of Mount Destiny (Luca, after a Minecraft map): writes Mountain.glb, Sea.glb,
+// KotH.Shared/Resources/Maps/MountDestinyTerrain.bin and .work/maps/mountain.png; --map Volcano the
+// rounder first version of 22.10.2026 as Volcano*. 1 m blocks: one up is a jump, two a double jump.
+//   dotnet run Tools/maps/Mountain.cs [-- --map Volcano --seed N]   then Tools/maps/MapUV [--map Volcano]
 #:include MountainTerrain.cs
 #:include ../Common/Py.cs
 #:include ../Common/Libm.cs
@@ -17,6 +17,21 @@ using KotH.Tools;
 using KotH.Tools.Maps;
 
 string root = Path.GetFullPath(Path.Combine(Here(), "../.."));
+int mapAt = Array.IndexOf(args, "--map");
+string map = mapAt >= 0 ? args[mapAt + 1] : "MountDestiny";
+bool volcano = map == "Volcano";
+if (volcano)
+{
+    // Luca's pick of the versions: 136 m, rounded 0.8, columns one block wide; with the crater
+    // (Luca, 12.11.2026) on a 100 m foot instead of 90, the slope as long as before from the rim.
+    (M.SummitY, M.Mountain, M.Smooth, M.Column, M.ColumnDown) = (136, 100.0, 0.8, 1, 1);
+    (M.Crater, M.Palms) = (10.0, 56);
+}
+else if (map != "MountDestiny")
+{
+    Console.Error.WriteLine($"Unknown map {map}: MountDestiny or Volcano");
+    return 1;
+}
 int seed = M.Seed;
 int at = Array.IndexOf(args, "--seed");
 if (at >= 0)
@@ -37,23 +52,29 @@ if (sectors < M.MinSectors)
 }
 
 var mesh = Mesh.Build(t);
-string glb = Path.Combine(root, "KotH.Game/Resources/Models/Mountain.glb");
+string model = volcano ? "Volcano" : "Mountain";
+string glb = Path.Combine(root, $"KotH.Game/Resources/Models/{model}.glb");
 Output.WriteGlb(glb, Output.Parts(mesh));
-Output.WriteGlb(Path.Combine(root, "KotH.Game/Resources/Models/Sea.glb"), [Output.Sea(t)]);
-Console.WriteLine($"Mountain.glb: {mesh.Idx.Count / 3} triangles, {mesh.Pos.Count} vertices, {Py.F(new FileInfo(glb).Length / 1e6, 1)} MB");
+Output.WriteGlb(Path.Combine(root, $"KotH.Game/Resources/Models/{(volcano ? "Volcano" : "")}Sea.glb"), [Output.Sea(t)]);
+if (volcano)
+    Output.WriteGlb(Path.Combine(root, "KotH.Game/Resources/Models/VolcanoMagma.glb"), [Output.Magma()]);
+Console.WriteLine($"{model}.glb: {mesh.Idx.Count / 3} triangles, {mesh.Pos.Count} vertices, {Py.F(new FileInfo(glb).Length / 1e6, 1)} MB");
 
 Console.WriteLine($"Walkable (flatter than {Py.F(M.SlopeLimit, 0)} degrees): {Py.F(Output.Slopes(mesh) * 100, 0)} % of the groand area");
 
-string data = Path.Combine(root, "KotH.Shared/Resources/Maps/MountDestinyTerrain.bin");
+string data = Path.Combine(root, $"KotH.Shared/Resources/Maps/{map}Terrain.bin");
 Directory.CreateDirectory(Path.GetDirectoryName(data));
 var chunks = Output.WriteCollision(mesh, data);
 var counts = chunks.Values.Select(c => c.Count).ToList();
-Console.WriteLine($"MountDestinyTerrain.bin: {chunks.Count} Chunks, {counts.Sum()} triangles, at most {counts.Max()} per chunk, {Py.F(new FileInfo(data).Length / 1e6, 1)} MB");
+Console.WriteLine($"{map}Terrain.bin: {chunks.Count} Chunks, {counts.Sum()} triangles, at most {counts.Max()} per chunk, {Py.F(new FileInfo(data).Length / 1e6, 1)} MB");
 
 Directory.CreateDirectory(Path.Combine(root, ".work/maps"));
-Output.WritePng(t, Path.Combine(root, ".work/maps/mountain.png"));
+Output.WritePng(t, Path.Combine(root, $".work/maps/{model.ToLowerInvariant()}.png"));
 
-Console.WriteLine($"Summit plateau: {2 * M.Plateau + 2} x {2 * M.Plateau + 2} blocks, top y = {M.SummitY}, centre (0, 0)");
+if (volcano)
+    Crater.Report(t, mesh);
+else
+    Console.WriteLine($"Summit plateau: {2 * M.Plateau + 2} x {2 * M.Plateau + 2} blocks, top y = {M.SummitY}, centre (0, 0)");
 Console.WriteLine($"Meadow in the south: height y = {M.GrassY}, mountain foot there at z = {Py.F(t.Foot(M.South), 1)}, " +
                   $"beach from z = {Py.F(t.Coast(M.South) - t.Beach(M.South), 1)}, spawn rows at z = {Py.F(t.Foot(M.South) + M.SpawnGap, 1)} " +
                   $"and {Py.F(t.Foot(M.South) + M.SpawnGap + 2.5, 1)}");

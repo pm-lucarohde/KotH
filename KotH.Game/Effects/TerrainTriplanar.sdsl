@@ -2,7 +2,7 @@
 /// COLOR0 weighs the surfaces (grass, sand, snow, snow cap; rest rock), TEXCOORD0.x is the AO.
 /// Lichen is laid spot by spot; sand and meadow tilt the normal for the sun (relief maps);
 /// the contact map darkens trunk feet, ShellField's spot map the sand under shells.</summary>
-shader TerrainTriplanar<LinkType GrassKey, LinkType DirtKey, LinkType SandKey, LinkType SnowKey, LinkType RockKey, LinkType GrassReliefKey, LinkType SandReliefKey, LinkType ContactKey>
+shader TerrainTriplanar<LinkType GrassKey, LinkType DirtKey, LinkType SandKey, LinkType SnowKey, LinkType RockKey, LinkType GrassReliefKey, LinkType SandReliefKey, LinkType ContactKey, float2 LichenTone>
     : ComputeColor, PositionStream4, NormalStream, Texturing, CellHash
 {
     // Metres per repeat of the textures.
@@ -127,6 +127,8 @@ shader TerrainTriplanar<LinkType GrassKey, LinkType DirtKey, LinkType SandKey, L
                 continue;
             float3 g = Hash3(id, 1u);
             float3 lit = g.y < 0.5 ? float3(0.552, 0.491, 0.107) : float3(0.305, 0.4125, 0.0887);
+            // The map's lichen tone (saturation, brightness): Volcano's spots sit duller on its basalt.
+            lit = lerp(dot(lit, float3(0.2126, 0.7152, 0.0722)), lit, LichenTone.x) * LichenTone.y;
             int count = 5 + int(g.x * 6.0);
             for (int s = 0; s < LichenSpots; s++)
             {
