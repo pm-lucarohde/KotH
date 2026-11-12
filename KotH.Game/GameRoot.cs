@@ -171,7 +171,7 @@ namespace KotH.Client
             Entity.Scene.Entities.Add(new Entity("Voice") { new VoiceChat { Driver = pause.Driver } });
             Entity.Scene.Entities.Add(new Entity("Chains")
             {
-                new ChainView { Simulation = system, Link = ChainModel, VisualOf = b => shown.TryGetValue(b, out var v) ? v.Visual : null },
+                new ChainView { Simulation = system, Builder = builder, Link = ChainModel, VisualOf = b => shown.TryGetValue(b, out var v) ? v.Visual : null },
             });
             if (options.MapFile != null)
             {

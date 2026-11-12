@@ -13,7 +13,8 @@ namespace KotH.Probes.Probes
 {
     /// <summary>The team chain (5 m, Luca) on the Test arena: partners running apart stay within it,
     /// one walking away drags the other, a partner over the plateau's edge hangs and is pulled up, a
-    /// knock drags the partner along, a rollback through it is bit-identical, solo has no chain.</summary>
+    /// hanging one spore-jumps again after a cooldown, a knock drags the partner along, a rollback
+    /// through it is bit-identical, solo has no chain.</summary>
     public sealed class ChainProbe : Probe
     {
         protected override string Tag => "chain";
@@ -74,6 +75,8 @@ namespace KotH.Probes.Probes
             world.Simulation.Resimulate(snap, inputs, SimulationSystem.TickSeconds);
             Check(Same(a.CaptureState(), endA) && Same(b.CaptureState(), endB), "rollback through hanging and pulling bit-identical");
 
+            HangJumps(length);
+
             // A knocked away from B drags B along.
             a.Motor.Teleport(new Vector3(0f, 0.9f, -2f));
             b.Motor.Teleport(new Vector3(length - 1f, 0.9f, -2f));
@@ -93,11 +96,49 @@ namespace KotH.Probes.Probes
             Stop();
             float apart = Vector3.Distance(a.Motor.BodyCenter, b.Motor.BodyCenter);
             Check(apart > length + 2f, $"solo: no chain ({apart:F2} m apart)");
+            a.Motor.Teleport(new Vector3(0f, 4f, -2f));
+            Ticks(4);
+            DoubleTap(a, null);
+            Check(a.Motor.Velocity.Y < 0f, $"solo: no jump falling without a ground jump (v.Y {a.Motor.Velocity.Y:F2})");
+            Ticks(40);
 
             Row(length);
 
             Log(failures == 0 ? "[chain] PASSED" : $"[chain] {failures} errors");
             return failures == 0 ? 0 : 1;
+        }
+
+        /// <summary>A hangs free off the plateau's sheer side (chain 3 m, clear of the floor): the double tap
+        /// spore-jumps, again at once nothing, after the cooldown again (Luca); a rollback replays it.</summary>
+        void HangJumps(float length)
+        {
+            world.Simulation.ChainLength = 3f;
+            b.Motor.Teleport(new Vector3(5f, 5.95f, -20f));
+            a.Motor.Teleport(new Vector3(6.8f, 5.95f, -20f));
+            var snap = new WorldSnapshot();
+            world.Simulation.Capture(snap);
+            var inputs = new List<MoveInput[]>();
+            Record(inputs, 80);
+            Check(!a.Motor.IsGrounded && a.Motor.Position.Y > 2f && a.Motor.Position.Y < 4.5f && b.Motor.Position.Y > 5.5f,
+                  $"free hang: A at y {a.Motor.Position.Y:F2} in the air, B on top at y {b.Motor.Position.Y:F2}");
+            float before = a.Motor.Velocity.Y;
+            DoubleTap(a, inputs);
+            float first = a.Motor.Velocity.Y;
+            Record(inputs, 4);
+            float rising = a.Motor.Velocity.Y;
+            DoubleTap(a, inputs);
+            float denied = a.Motor.Velocity.Y;
+            Record(inputs, 50);
+            float fallen = a.Motor.Velocity.Y;
+            DoubleTap(a, inputs);
+            float again = a.Motor.Velocity.Y;
+            Check(before < 0f && first > 5f && denied < rising && fallen < 0f && again > 5f,
+                  $"hang jumps: v.Y {before:F2} -> {first:F2}, at once {rising:F2} -> {denied:F2}, after 1.4 s {fallen:F2} -> {again:F2}");
+            Record(inputs, 40);
+            BodyState endA = a.CaptureState(), endB = b.CaptureState();
+            world.Simulation.Resimulate(snap, inputs, SimulationSystem.TickSeconds);
+            Check(Same(a.CaptureState(), endA) && Same(b.CaptureState(), endB), "rollback through the hang jumps bit-identical");
+            world.Simulation.ChainLength = length;
         }
 
         /// <summary>Squad: four in a row A-B-C-D, the ends run apart (and one is knocked): every link holds,
@@ -195,6 +236,20 @@ namespace KotH.Probes.Probes
                 into.Add(tick);
                 Ticks(1);
             }
+        }
+
+        // Two taps two ticks apart, the second in the last tick run.
+        void DoubleTap(ScriptedBody body, List<MoveInput[]> into)
+        {
+            for (int t = 0; t < 3; t++)
+            {
+                body.Input.JumpPresses = (byte)(t == 1 ? 0 : 1);
+                if (into != null)
+                    Record(into, 1);
+                else
+                    Ticks(1);
+            }
+            body.Input.JumpPresses = 0;
         }
 
         void Check(bool ok, string what)

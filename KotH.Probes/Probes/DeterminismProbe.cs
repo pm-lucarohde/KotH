@@ -664,9 +664,11 @@ namespace KotH.Probes.Probes
 
             // Duo's fields count only when set: solo hashes as before them (chain 67AB05EEE3468AFD).
             foreach (FieldInfo f in Fields(value.GetType()))
-                if (f.GetValue(value) is var v && !(f.Name is "Team" or "Wish" or "Bot" && Convert.ToInt32(v) == 0))
+                if (f.GetValue(value) is var v && !(f.Name is "Team" or "Wish" or "Bot" or "ChainHoldLeft" or "HangJumpWait" && Unset(v)))
                     HashObject(ref h, v);
         }
+
+        static bool Unset(object v) => v is 0 or (byte)0 or false || v is float f && BitConverter.SingleToInt32Bits(f) == 0;
 
         // Every struct the hash and the diff walk through, kept by name for
         // the trimmer: NativeAOT has no fields left to reflect on otherwise.

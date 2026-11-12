@@ -54,6 +54,9 @@ namespace KotH.Shared.Player
         // Maximum gap between the two taps of the double tap.
         [Display("Double tap window", "Jump and gravity")] public float DoubleTapWindow = 0.25f;
 
+        /// <userdoc>Hanging in the air on the team chain, the double tap jumps again after this many seconds</userdoc>
+        [Display("Chain hang jump cooldown", "Jump and gravity")] public float HangJumpCooldown = 1f;
+
         // Deliberately about twice real gravity; at -9.81 a jump feels floaty.
         [Display("Gravity", "Jump and gravity")] public float Gravity = -20f;
 
@@ -174,6 +177,8 @@ namespace KotH.Shared.Player
         float knockbackTime;      // ground control stays soft this long
         Vector3 knock;            // horizontal knockback still to shed, part of velocity
         bool doubleJumpUsed;      // once per flight
+        float chainHoldLeft;      // the team chain held the body up lately (HeldUp), seconds left
+        float hangJumpWait;       // a jump hanging on the chain, seconds until the next
         bool jumpWindowOpen;      // window since the ground jump
         float timeSinceGroundJump;
         bool hasPendingAirPress;  // first air tap waiting for its partner
@@ -448,6 +453,8 @@ namespace KotH.Shared.Player
                 KnockbackTime = knockbackTime,
                 Knock = knock,
                 DoubleJumpUsed = doubleJumpUsed,
+                ChainHoldLeft = chainHoldLeft,
+                HangJumpWait = hangJumpWait,
                 JumpWindowOpen = jumpWindowOpen,
                 TimeSinceGroundJump = timeSinceGroundJump,
                 HasPendingAirPress = hasPendingAirPress,
@@ -494,6 +501,8 @@ namespace KotH.Shared.Player
             knockbackTime = s.KnockbackTime;
             knock = s.Knock;
             doubleJumpUsed = s.DoubleJumpUsed;
+            chainHoldLeft = s.ChainHoldLeft;
+            hangJumpWait = s.HangJumpWait;
             jumpWindowOpen = s.JumpWindowOpen;
             timeSinceGroundJump = s.TimeSinceGroundJump;
             hasPendingAirPress = s.HasPendingAirPress;
@@ -556,6 +565,13 @@ namespace KotH.Shared.Player
             knock = UMath.Add(knock, taken);
             return taken;
         }
+
+        // A few ticks of grace: a hanging chain goes slack for a tick now and then.
+        const float ChainHoldGrace = 0.1f;
+
+        /// <summary>The team chain pulls the body upwards this tick (SimulationSystem.Tie, after Simulate):
+        /// hanging in the air, the double tap jumps again and again, HangJumpCooldown apart (Luca).</summary>
+        public void HeldUp() => chainHoldLeft = ChainHoldGrace;
 
         /// <summary>Counts part of the velocity, horizontal, as knock from now on: the chain hands a
         /// knocked neighbour's flight on, which then sheds like a knock instead of under ground control.</summary>
@@ -702,10 +718,17 @@ namespace KotH.Shared.Player
             if (!slam)
                 UpdateHorizontal(input, dt);
 
+            // Read before the countdown: the chain held it at the end of the last tick.
+            bool hanging = chainHoldLeft > 0f && !grounded;
+            if (chainHoldLeft > 0f)
+                chainHoldLeft = UMath.Max(0f, chainHoldLeft - dt);
+            if (hangJumpWait > 0f)
+                hangJumpWait = UMath.Max(0f, hangJumpWait - dt);
+
             // A jump this tick wins over the slide: otherwise the redirect
             // would project the fresh upward speed straight back into the
             // slope and the double jump would be dead on arrival.
-            bool jumped = !slam && ProcessJumpPresses(input.JumpPresses);
+            bool jumped = !slam && ProcessJumpPresses(input.JumpPresses, hanging);
             if (!slam)
                 UpdateJumpCut(input.JumpHeld, dt);
 
@@ -960,12 +983,14 @@ namespace KotH.Shared.Player
         /// <summary>Ground jump and double jump. The counter can exceed 1 when the key
         /// was pressed more than once inside a single 25 ms tick. Returns whether a jump
         /// actually fired this tick.</summary>
-        bool ProcessJumpPresses(int presses)
+        bool ProcessJumpPresses(int presses, bool hanging)
         {
             bool jumped = false;
 
             for (int i = 0; i < presses; i++)
             {
+                bool hangReady = hanging && hangJumpWait <= 0f;
+
                 // The first press out of a slide only cancels it, and is
                 // used up doing so. A following press jumps as usual, even
                 // within this same tick. The clamp keeps a slope's lent
@@ -1002,8 +1027,8 @@ namespace KotH.Shared.Player
                     continue;
                 }
 
-                // Window closed: taps expire without effect.
-                if (!jumpWindowOpen)
+                // Window closed: taps expire without effect, unless the chain holds it in the air.
+                if (!jumpWindowOpen && !hangReady)
                     continue;
 
                 if (!hasPendingAirPress)
@@ -1017,12 +1042,14 @@ namespace KotH.Shared.Player
                 // Press 3 of 3: the only place the double jump fires. Both
                 // timers are tracked in Simulate, so an expired one never
                 // gets here. Crouch is checked at trigger time, not take-off.
-                if (!doubleJumpUsed && !isCrouching)
+                if ((hangReady || !doubleJumpUsed) && !isCrouching)
                 {
                     velocity.Y = UMath.Sqrt(DoubleJumpHeight * -2f * Gravity);
                     doubleJumpUsed = true;
                     jumpWindowOpen = false;
                     jumped = true;
+                    if (hanging)
+                        hangJumpWait = HangJumpCooldown;
                 }
 
                 hasPendingAirPress = false;

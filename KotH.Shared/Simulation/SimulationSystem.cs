@@ -364,6 +364,12 @@ namespace KotH.Shared.Simulation
             float leftB = wantB + UMath.Dot(b.Motor.Tug(UMath.Mul(n, -wantB)), n);
             if (leftB > 1e-4f)
                 a.Motor.Tug(UMath.Mul(n, leftB));
+            // Pulled up more than 30°: hanging on the chain, if not on the ground (the motor judges).
+            // Not for bots yet (Luca): they keep letting a hanging neighbour down instead.
+            if (n.Y > HangSine && !a.Bot)
+                a.Motor.HeldUp();
+            else if (n.Y < -HangSine && !b.Bot)
+                b.Motor.HeldUp();
 
             float apart = UMath.Dot(UMath.Sub(b.Motor.Velocity, a.Motor.Velocity), n);
             if (apart <= 0f)
@@ -375,6 +381,7 @@ namespace KotH.Shared.Simulation
             b.Motor.CarryKnock(UMath.Mul(takenA, -1f));
         }
 
+        const float HangSine = 0.5f;
         readonly List<SimulationBody> linked = new List<SimulationBody>();
 
         /// <summary>Pushes touching bodies apart. Impulses are collected first and

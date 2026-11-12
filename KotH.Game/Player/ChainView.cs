@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using KotH.MapFormat;
+using KotH.Shared.Hosting;
 using KotH.Shared.Match;
 using KotH.Shared.Physics;
 using KotH.Shared.Player;
@@ -13,15 +16,18 @@ namespace KotH.Client.Player
 {
     /// <summary>The team chain (Luca: metal, 5 m per link of the row, at the belt, sagging, lying on the ground):
     /// per pair of neighbours a rope of 44 links from hip to hip, moved by Verlet each frame, drawn as one instanced model.
-    /// It lies on the map's ground (rays down). Presentation only: the simulation's chain is SimulationSystem's.</summary>
+    /// Every node stops at the map and slides along it (Luca: never through floors). Presentation only.</summary>
     [DataContract("KotH.ChainView")]
     public sealed class ChainView : SyncScript
     {
-        const int Links = 44, Steps = 16, Probe = 4;
-        const float Damping = 0.985f, Gravity = 9.81f, Thick = 0.012f, NearEye = 0.45f;
-        const string HipsBone = "Hips", FeetBone = "Root";
+        const int Links = 44, Steps = 16, CollideEvery = 8;
+        const float Damping = 0.985f, Gravity = 9.81f, Thick = 0.012f, NearEye = 0.45f, MaxStretch = 1.5f;
+        const string HipsBone = "Hips";
 
         [DataMemberIgnore] public SimulationSystem Simulation { get; set; }
+
+        /// <summary>Its map's ground triangles, for the rays (ChainGround).</summary>
+        [DataMemberIgnore] public WorldBuilder Builder { get; set; }
         [DataMemberIgnore] public Model Link { get; set; }
 
         /// <summary>The figure drawn for a body, null for none.</summary>
@@ -33,14 +39,13 @@ namespace KotH.Client.Player
             public Entity Entity;
             public InstancingUserArray Instances;
             public ModelComponent Model;
-            public readonly Vector3[] Now = new Vector3[Links + 1], Before = new Vector3[Links + 1];
-            public readonly float[] Floor = new float[Links + 1];
+            public readonly Vector3[] Now = new Vector3[Links + 1], Before = new Vector3[Links + 1], Safe = new Vector3[Links + 1];
             public readonly Matrix[] Matrices = new Matrix[Links];
             public bool Fresh = true, Seen;
         }
 
         readonly List<Rope> ropes = new List<Rope>();
-        Vector3? hips, feet;
+        Vector3? hips;
         PlayerCamera camera;
 
         public ChainView()
@@ -55,6 +60,7 @@ namespace KotH.Client.Player
             IReadOnlyList<SimulationBody> bodies = Simulation?.Bodies;
             if (Simulation?.Match is { Teamed: true } && bodies != null && Link != null)
             {
+                Watch();
                 float dt = Math.Clamp((float)Game.UpdateTime.Elapsed.TotalSeconds, 1e-4f, 1f / 30f);
                 for (int i = 0; i < bodies.Count; i++)
                 {
@@ -66,7 +72,7 @@ namespace KotH.Client.Player
                         continue;
                     Rope r = RopeOf(a, b);
                     r.Seen = true;
-                    Move(r, Belt(va), Belt(vb), Feet(va), Feet(vb), dt);
+                    Move(r, Belt(va), Belt(vb), dt);
                     Draw(r);
                 }
             }
@@ -99,13 +105,6 @@ namespace KotH.Client.Player
             return Vector3.TransformCoordinate(hips.Value, visual.Transform.WorldMatrix);
         }
 
-        /// <summary>The height of the soles: the Root bone (the entity sits at the body's centre, 0.9 m up).</summary>
-        float Feet(Entity visual)
-        {
-            feet ??= Rest(visual.Get<ModelComponent>()?.Model?.Skeleton, FeetBone);
-            return Vector3.TransformCoordinate(feet.Value, visual.Transform.WorldMatrix).Y;
-        }
-
         static Vector3 Rest(Skeleton skeleton, string bone)
         {
             int i = skeleton == null ? -1 : Array.FindIndex(skeleton.Nodes, n => n.Name == bone);
@@ -121,16 +120,16 @@ namespace KotH.Client.Player
             return m.TranslationVector;
         }
 
-        // Verlet with the ends held at the belts; the links keep their length, no node below the ground.
-        void Move(Rope r, Vector3 from, Vector3 to, float footA, float footB, float dt)
+        // Verlet with the ends held at the belts; the links keep their length, then every node is
+        // stopped at the map on its way from where it last was clear (Collide). Taut round an edge the
+        // rope gets longer than the chain instead of cutting through.
+        void Move(Rope r, Vector3 from, Vector3 to, float dt)
         {
-            Ground(r, from, to, footA, footB);
             float segment = Simulation.ChainLength / Links;
             Vector3[] p = r.Now, q = r.Before;
             if (r.Fresh || Vector3.DistanceSquared(p[0], from) > 4f || Vector3.DistanceSquared(p[Links], to) > 4f)
             {
-                for (int k = 0; k <= Links; k++)
-                    p[k] = q[k] = Vector3.Lerp(from, to, k / (float)Links);
+                Lay(r, from, to);
                 r.Fresh = false;
             }
             var fall = new Vector3(0f, -Gravity * dt * dt, 0f);
@@ -140,8 +139,8 @@ namespace KotH.Client.Player
                 p[k] += (now - q[k]) * Damping + fall;
                 q[k] = now;
             }
-            p[0] = q[0] = from;
-            p[Links] = q[Links] = to;
+            p[0] = q[0] = r.Safe[0] = from;
+            p[Links] = q[Links] = r.Safe[Links] = to;
             for (int s = 0; s < Steps; s++)
             {
                 for (int k = 0; k < Links; k++)
@@ -156,32 +155,105 @@ namespace KotH.Client.Player
                     p[k] += fix * wa;
                     p[k + 1] -= fix * (1f - wa);
                 }
-                for (int k = 1; k < Links; k++)
-                    if (p[k].Y < r.Floor[k])
-                        p[k].Y = r.Floor[k];
+                // Within the steps, so the nodes slide round an edge as they relax and a taut
+                // rope spreads its stretch instead of piling it up at the edge.
+                if ((s + 1) % CollideEvery == 0)
+                    for (int k = 1; k < Links; k++)
+                        Collide(r, k);
+            }
+            for (int k = 0; k < Links; k++)
+                Unhook(r, k);
+        }
+
+        // A link whose straight piece runs into the map (round an edge or a wall's end): its free nodes
+        // are lifted off the face it enters, as far as the far node lies behind it.
+        void Unhook(Rope r, int k)
+        {
+            Vector3 a = r.Now[k], d = r.Now[k + 1] - a;
+            float length = d.Length();
+            if (length < 1e-5f || !Hit(a, d / length, length, out QueryHit h))
+                return;
+            float behind = Vector3.Dot(h.Point - r.Now[k + 1], h.Normal) + Thick;
+            if (behind <= 0f)
+                return;
+            Vector3 lift = h.Normal * behind;
+            if (k > 0)
+                r.Now[k] = r.Safe[k] = Clear(a, lift);
+            if (k + 1 < Links)
+                r.Now[k + 1] = r.Safe[k + 1] = Clear(r.Now[k + 1], lift);
+        }
+
+        // A new rope from belt to belt, node after node from the previous one, each stopped at the map.
+        void Lay(Rope r, Vector3 from, Vector3 to)
+        {
+            r.Now[0] = r.Before[0] = r.Safe[0] = from;
+            for (int k = 1; k <= Links; k++)
+            {
+                Vector3 at = r.Now[k - 1], want = Vector3.Lerp(from, to, k / (float)Links);
+                r.Now[k] = r.Before[k] = r.Safe[k] = k == Links ? to : Clear(at, want - at);
             }
         }
 
-        // The map's ground under every Probe-th node by a ray down from above both belts, linear in between;
-        // where a ray finds none, the line between the feet. Update runs apart from the ticks (SimulationJob).
-        void Ground(Rope r, Vector3 from, Vector3 to, float footA, float footB)
+        // The node's move this frame, from its last clear place: stopped short of the map and the rest
+        // slid along the surface; touching, it loses its speed (friction). Rays hit the map only.
+        void Collide(Rope r, int k)
         {
-            Vector3[] p = r.Now;
-            float top = Math.Max(from.Y, to.Y) + 0.5f, reach = top - Math.Min(footA, footB) + 2f;
-            for (int k = 0; k <= Links; k += Probe)
+            Vector3 from = r.Safe[k], move = r.Now[k] - from;
+            if (!Blocked(from, move, out QueryHit h, out Vector3 at))
             {
-                float line = MathUtil.Lerp(footA, footB, k / (float)Links);
-                var start = new Vector3(p[k].X, Math.Max(top, p[k].Y + 0.5f), p[k].Z);
-                bool hit = Simulation.World.Raycast(start, new Vector3(0f, -1f, 0f), reach, WorldQueries.WorldMask, out QueryHit h);
-                r.Floor[k] = (hit ? start.Y - h.Distance : line) + Thick;
+                r.Safe[k] = r.Now[k];
+                return;
             }
-            for (int k = 0; k < Links; k++)
-                if (k % Probe != 0)
-                {
-                    int a = k - k % Probe;
-                    r.Floor[k] = MathUtil.Lerp(r.Floor[a], r.Floor[a + Probe], (k - a) / (float)Probe);
-                }
+            Vector3 rest = r.Now[k] - at;
+            rest -= h.Normal * Vector3.Dot(rest, h.Normal);
+            at = Clear(at, rest);
+            r.Now[k] = r.Before[k] = r.Safe[k] = at;
         }
+
+        // How far a node gets along move: to Thick off the first surface, on its front (rays see one side).
+        Vector3 Clear(Vector3 from, Vector3 move) => Blocked(from, move, out _, out Vector3 at) ? at : from + move;
+
+        bool Blocked(Vector3 from, Vector3 move, out QueryHit h, out Vector3 at)
+        {
+            float length = move.Length();
+            at = from + move;
+            h = default;
+            if (length < 1e-6f)
+                return false;
+            Vector3 dir = move / length;
+            if (!Hit(from, dir, length + Thick, out h))
+                return false;
+            at = h.Point + h.Normal * Thick;
+            return true;
+        }
+
+        // The map's own triangles once built for it (in the background, once per map); the physics until then.
+        bool Hit(Vector3 from, Vector3 dir, float length, out QueryHit h)
+        {
+            h = default;
+            if (grid == null)
+                return Simulation.World.Raycast(from, dir, length, WorldQueries.WorldMask, out h);
+            return grid.Raycast(from, dir, length, out h.Distance, out h.Point, out h.Normal);
+        }
+
+        // A new map's triangles start a grid; it is taken once done, if the map is still the same.
+        void Watch()
+        {
+            MapCollision now = Builder?.Collision;
+            if (grid != null && grid.Source != now)
+                grid = null;
+            if (building != null && building.IsCompleted)
+            {
+                if (building.Status == TaskStatus.RanToCompletion && building.Result.Source == now)
+                    grid = building.Result;
+                building = null;
+            }
+            if (now != null && grid == null && building == null)
+                building = Task.Run(() => new ChainGround(now));
+        }
+
+        ChainGround grid;
+        Task<ChainGround> building;
 
         // Each link between two nodes, every other turned a quarter round its length; the ones right at the
         // eye (the own belt in first person) are left out.
@@ -199,6 +271,8 @@ namespace KotH.Client.Player
                 Vector3 z = b - a;
                 float length = z.Length();
                 z = length > 1e-6f ? z / length : Vector3.UnitZ;
+                // Taut round an edge the links are longer: stretched to close the gaps, up to a limit.
+                float stretch = Math.Clamp(length * Links / Simulation.ChainLength, 1f, MaxStretch);
                 Vector3 side = Vector3.Cross(Vector3.UnitY, z);
                 side = side.LengthSquared() > 1e-6f ? Vector3.Normalize(side) : Vector3.UnitX;
                 Vector3 x = (k & 1) == 0 ? side : Vector3.Cross(z, side);
@@ -206,7 +280,7 @@ namespace KotH.Client.Player
                 Matrix m = Matrix.Identity;
                 m.Right = x;
                 m.Up = y;
-                m.Backward = z;
+                m.Backward = z * stretch;
                 m.TranslationVector = mid;
                 r.Matrices[count++] = m;
             }

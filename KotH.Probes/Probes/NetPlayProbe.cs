@@ -113,7 +113,9 @@ namespace KotH.Probes.Probes
                     var bytes = new System.Buffers.ArrayBufferWriter<byte>();
                     damaged.Session.TryEncodeFinal(0, bytes, out damagedTick);
                     byte[] state = bytes.WrittenSpan.ToArray();
-                    const int firstBody = StateCodec.HeadBytes + StateCodec.MatchBytes, percent = 5 + 186 + 4;
+                    const int firstBody = StateCodec.HeadBytes + StateCodec.MatchBytes;
+                    // The record's NetId and flag, the motor, AttackCooldown, then DamagePercent.
+                    int percent = 5 + System.Runtime.CompilerServices.Unsafe.SizeOf<MotorState>() + 4;
                     System.Buffers.Binary.BinaryPrimitives.WriteSingleLittleEndian(state.AsSpan(firstBody + percent), 777f);
                     bool loaded = System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(state.AsSpan(firstBody)) == 1 &&
                                   damaged.Session.LoadState(state);

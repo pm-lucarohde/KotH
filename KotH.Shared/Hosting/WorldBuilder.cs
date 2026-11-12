@@ -43,6 +43,10 @@ namespace KotH.Shared.Hosting
         /// <summary>The loaded custom map's package, null for a built-in map or none.</summary>
         public MapPackage Package { get; private set; }
 
+        /// <summary>The loaded map's ground triangles (terrain or collision.bin), null without; read only.
+        /// The client's chain view casts its rays against them (ChainGround).</summary>
+        public MapCollision Collision { get; private set; }
+
         public Scene Scene { get; }
 
         /// <summary>The loaded map's name, null until one is loaded.</summary>
@@ -101,6 +105,7 @@ namespace KotH.Shared.Hosting
             if (Package == null)
                 content.Unload(Maps.CollisionUrl(Map));
             Package = null;
+            Collision = null;
             queries.Clear();
             Map = null;
             Zone = null;
@@ -120,6 +125,7 @@ namespace KotH.Shared.Hosting
         /// <summary>Per chunk, in file order, one static compound of its triangles.</summary>
         void AddCollision(MapCollision collision)
         {
+            Collision = collision;
             float[] v = collision.Vertices;
             foreach (MapCollision.Chunk chunk in collision.Chunks)
             {

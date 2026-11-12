@@ -36,6 +36,8 @@ namespace KotH.Shared.Player
         public float KnockbackTime;
         public Vector3 Knock;
         public bool DoubleJumpUsed;
+        public float ChainHoldLeft;
+        public float HangJumpWait;
         public bool JumpWindowOpen;
         public float TimeSinceGroundJump;
         public bool HasPendingAirPress;
