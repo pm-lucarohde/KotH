@@ -22,9 +22,10 @@ namespace KotH.Client.Rendering
                 meshes.RenderFeatures.Add(new LeafRenderFeature());
         }
 
-        /// <summary>A mesh of the map's model (lightmapped) that has no lightmap UV itself.</summary>
+        /// <summary>A mesh of the map's model (lightmapped) that has no lightmap UV itself, but for the
+        /// far trees (TreeBillboardFeature turns those).</summary>
         internal static bool IsLeaves(RenderMesh mesh) =>
-            !LightmapRenderFeature.HasSecondUV(mesh) && SunShadowStageSelector.IsStatic(mesh);
+            !LightmapRenderFeature.HasSecondUV(mesh) && SunShadowStageSelector.IsStatic(mesh) && !TreeBillboardFeature.IsBillboard(mesh);
 
         public override void PrepareEffectPermutations(RenderDrawContext context)
         {

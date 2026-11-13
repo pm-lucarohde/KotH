@@ -1,11 +1,12 @@
 #!/usr/bin/env -S dotnet run
 // Map "Pyramid" after the KotH map koth_map_minecraftinfinity (used with its author's permission): a step pyramid
 // in a walled garden, measured from the schematic (PyramidSource.txt, 1 m across, 0.8 m high). Writes Pyramid.glb
-// and KotH.Shared/Resources/Maps/PyramidTerrain.bin.
+// and KotH.Shared/Resources/Maps/PyramidTerrain.bin, and the far trees' TreeImpostors.png.
 //   dotnet run Tools/maps/Pyramid.cs   then Tools/maps/MapUV --map Pyramid
 #:project ../../KotH.MapFormat/KotH.MapFormat.csproj
 #:include ArenaShapes.cs
 #:include MountainTerrain.cs
+#:include Impostors.cs
 #:include ../Common/Py.cs
 #:include ../Common/Libm.cs
 #:include ../Common/Glb.cs
@@ -402,6 +403,84 @@ foreach (var (f, i) in standing.Select((f, i) => (f, i)))
     arena.Take(tubs, new V3(0, 0, 0));
 }
 
+// ---- outside the wall: wooded hills to 200 m (the contact map repeats beyond 208 m), seen only. They rise
+// from the wall to a ridge of 14 to 30 m and fall behind it, so the edge stays out of sight; their own slot
+// (Hills, the terrain's material) lets MapUV give them fewer lightmap texels ----
+const double HillsFrom = 48.6, HillsTo = 200.0;
+var hillRng = new PyRandom(4100);
+var ridgeWaves = Enumerable.Range(2, 5).Select(k => (K: k, Phase: hillRng.Uniform(0, 2 * Math.PI), Amp: 9.0 / k)).ToArray();
+var bumpPhases = Enumerable.Range(0, 6).Select(_ => hillRng.Uniform(0, 2 * Math.PI)).ToArray();
+double Ease(double a, double b, double x)
+{
+    double t = Math.Clamp((x - a) / (b - a), 0, 1);
+    return t * t * (3 - 2 * t);
+}
+double Hill(double x, double z)
+{
+    double r = Math.Sqrt(x * x + z * z), a = Libm.atan2(z, x);
+    double ridge = 22 + ridgeWaves.Sum(w => w.Amp * Libm.cos(w.K * a + w.Phase));
+    double bumps = 2.5 * Libm.sin(0.045 * x + bumpPhases[0]) * Libm.sin(0.05 * z + bumpPhases[1])
+                 + 1.2 * Libm.sin(0.11 * x + 0.07 * z + bumpPhases[2]) + 0.6 * Libm.sin(0.23 * z - 0.17 * x + bumpPhases[3]);
+    return (ridge * Ease(54, 150, r) + bumps * Ease(52, 70, r)) * (1 - 0.35 * Ease(165, HillsTo, r));
+}
+{
+    Piece hills = arena.PieceOf("Hills");
+    // Rings closer near the wall, 400 steps round; the first ring a little under the garden's edge.
+    var radii = new List<double> { HillsFrom };
+    while (radii[^1] < HillsTo)
+        radii.Add(Math.Min(HillsTo, radii[^1] + 0.8 + 0.035 * (radii[^1] - 48)));
+    const int Round = 400;
+    var grid = new int[radii.Count, Round];
+    for (int j = 0; j < radii.Count; j++)
+        for (int i = 0; i < Round; i++)
+        {
+            double a = 2 * Math.PI * i / Round, x = radii[j] * Libm.cos(a), z = radii[j] * Libm.sin(a);
+            double y = j == 0 ? -0.03 : Hill(x, z);
+            const double E = 0.25;
+            V3 n = Mesh.Unit(new V3(Hill(x - E, z) - Hill(x + E, z), 2 * E, Hill(x, z - E) - Hill(x, z + E)));
+            // Grass, the steeper the more bare rock.
+            double grass = Ease(0.78, 0.92, n.Y);
+            grid[j, i] = hills.Add(new V3(x, y, z), n, (grass, 0, 0, 0), (1.0, 0.0));
+        }
+    for (int j = 0; j + 1 < radii.Count; j++)
+        for (int i = 0; i < Round; i++)
+        {
+            int a = grid[j, i], b = grid[j, (i + 1) % Round], c = grid[j + 1, (i + 1) % Round], d = grid[j + 1, i];
+            arena.Triangle(hills, a, b, c, false);
+            arena.Triangle(hills, a, c, d, false);
+        }
+}
+// The forest on them: a tree on a jittered 4.6 m grid (Luca: twice the trees of 6.5 m) where a slow noise allows (glades), fewer further out,
+// each a flat stand-in from TreeImpostors.png that TreeBillboard turns to the camera about its upright.
+// COLOR_0 as LeafCluster reads it: shade, tint, then the half width / 10 (the shader's), unused.
+string impostors = Path.Combine(root, "KotH.Game/Resources/Textures/Terrain/TreeImpostors.png");
+Console.WriteLine($"TreeImpostors.png: trees up to {Py.F(Impostors.Render(Path.Combine(root, "KotH.Game/Resources/Textures/Terrain"), impostors), 1)} m");
+{
+    Piece far = arena.PieceOf("FarTrees");
+    var rng = new PyRandom(4200);
+    int count = 0;
+    const double Step = 4.6, Pixel = 1.0 / Impostors.AtlasPx;
+    for (double gz = -HillsTo; gz <= HillsTo; gz += Step)
+        for (double gx = -HillsTo; gx <= HillsTo; gx += Step)
+        {
+            double x = gx + rng.Uniform(-1.8, 1.8), z = gz + rng.Uniform(-1.8, 1.8), r = Math.Sqrt(x * x + z * z);
+            int tile = rng.RandInt(0, Impostors.Tiles - 1);
+            double scale = rng.Uniform(0.8, 1.2), tint = rng.Random(), keep = rng.Random();
+            double glade = Libm.sin(0.06 * x + 1.3) * Libm.cos(0.05 * z - 0.4) + 0.5 * Libm.sin(0.13 * (x + z));
+            if (r < 56 || r > 192 || glade < -0.6 || keep > 0.9 - 0.3 * Ease(60, 190, r))
+                continue;
+            double w = Impostors.Size * scale / 2, bottom = Hill(x, z) - Impostors.Ground * scale, top = bottom + 2 * w;
+            double u0 = (tile % 2) * 0.5 + Pixel, u1 = (tile % 2) * 0.5 + 0.5 - Pixel, v0 = (tile / 2) * 0.5 + Pixel, v1 = (tile / 2) * 0.5 + 0.5 - Pixel;
+            var col = (1.0, tint, w / 10, 0.0);
+            var up = new V3(0, 1, 0);
+            int a = far.Add(new V3(x - w, bottom, z), up, col, (u0, v1)), b = far.Add(new V3(x + w, bottom, z), up, col, (u1, v1));
+            int c = far.Add(new V3(x + w, top, z), up, col, (u1, v0)), d = far.Add(new V3(x - w, top, z), up, col, (u0, v0));
+            far.Idx.AddRange([a, b, c, a, c, d]);
+            count++;
+        }
+    Console.WriteLine($"{count} far trees");
+}
+
 // ---- checks: faces lying on each other the same way round flicker (z-fighting) ----
 {
     var planes = new Dictionary<(long, long, long, long), List<(string Name, V3 A, V3 B, V3 C)>>();
@@ -411,7 +490,8 @@ foreach (var (f, i) in standing.Select((f, i) => (f, i)))
             V3 a = piece.Pos[piece.Idx[t]], b = piece.Pos[piece.Idx[t + 1]], c = piece.Pos[piece.Idx[t + 2]];
             V3 n = V3.Cross(V3.Sub(b, a), V3.Sub(c, a));
             double l = Math.Sqrt(n.X * n.X + n.Y * n.Y + n.Z * n.Z);
-            if (l < 1e-8 || piece.Name is "Leaves" or "LeafCards")
+            // Leaves cross anyway; the far trees turn each about its own foot when drawn.
+            if (l < 1e-8 || piece.Name is "Leaves" or "LeafCards" or "FarTrees")
                 continue;
             n = new V3(n.X / l, n.Y / l, n.Z / l);
             var key = ((long)Math.Round(n.X * 500), (long)Math.Round(n.Y * 500), (long)Math.Round(n.Z * 500),

@@ -15,13 +15,15 @@ string map = mapAt >= 0 ? args[mapAt + 1] : "MountDestiny";
 bool destiny = map == "MountDestiny", island = destiny || map == "Volcano";
 // The sea's square is unwrapped this much smaller: its light is soft, the mountain keeps the texels.
 const double SeaShrink = 4.0;
+// So are Pyramid's hills outside the wall (seen only from afar), far off as the sea.
+const double HillShrink = 5.0;
 
 var mountain = new Glb(Path.Combine(root, "KotH.Game/Resources/Models", (destiny ? "Mountain" : map) + ".glb"));
 Glb? sea = island ? new Glb(Path.Combine(root, "KotH.Game/Resources/Models", (destiny ? "" : map) + "Sea.glb")) : null;
 // Atrium, TheLadder: everything but what is see-through, glows or is leaves (their generators' part names);
-// Pyramid's pond is lit too, as the sea (its waves shader).
+// Pyramid's pond is lit too, as the sea (its waves shader), its far trees (billboards) not.
 string[] lit = island ? ["Terrain", "Bark"]
-    : [.. mountain.Primitives.Select(p => p.Material).Where(m => m is not ("Water" or "Glass" or "Glow" or "Leaves" or "LeafCards") ||
+    : [.. mountain.Primitives.Select(p => p.Material).Where(m => m is not ("Water" or "Glass" or "Glow" or "Leaves" or "LeafCards" or "FarTrees") ||
                                                                  m == "Water" && map == "Pyramid")];
 if (!island)
     (GrassMap.MaxHeight, GrassMap.TrunkFootY, GrassMap.TrunkFootLow, GrassMap.Borders) = (8f, 7f, 6f, true);
@@ -48,17 +50,20 @@ if (mountain.HadSecondUV || sea is { HadSecondUV: true })
 var primitives = mountain.Primitives;
 Primitive? water = sea?.Primitives[0];
 
-// All lit faces in one unwrap, so they share the atlas.
+// All lit faces in one unwrap, so they share the atlas; shrunk ones count apart in the texel size.
 var positions = new List<Double3>();
 var normals = new List<Double3>();
 var triangles = new List<int>();
+var shrunk = new List<bool>();
 foreach (Primitive prim in primitives.Where(p => lit.Contains(p.Material)))
 {
     int base0 = positions.Count;
     float[] pos = prim.Attributes["POSITION"], nrm = prim.Attributes["NORMAL"];
+    double scale = prim.Material == "Hills" ? 1 / HillShrink : 1;
+    shrunk.AddRange(Enumerable.Repeat(scale != 1, prim.Indices.Length / 3));
     for (int v = 0; v < pos.Length / 3; v++)
     {
-        positions.Add(new Double3(pos[3 * v], pos[3 * v + 1], pos[3 * v + 2]));
+        positions.Add(new Double3(pos[3 * v] * scale, pos[3 * v + 1] * scale - (scale != 1 ? 2000 : 0), pos[3 * v + 2] * scale));
         normals.Add(new Double3(nrm[3 * v], nrm[3 * v + 1], nrm[3 * v + 2]));
     }
     triangles.AddRange(prim.Indices.Select(i => i + base0));
@@ -97,6 +102,8 @@ Console.WriteLine($"of them {MapDegenerates()} laid onto a neighbour's plane");
 double world = 0, atlas = 0;
 for (int t = 0; t < litTriangles; t += 3)
 {
+    if (shrunk[t / 3])
+        continue;
     Double3 a = positions[triangles[t]], b = positions[triangles[t + 1]], c = positions[triangles[t + 2]];
     world += Length(Cross(b - a, c - a)) / 2;
     Double2 u = result.PerCornerUVs[t], v = result.PerCornerUVs[t + 1], w = result.PerCornerUVs[t + 2];

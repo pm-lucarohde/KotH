@@ -25,6 +25,11 @@ Materials:
         MaterialInstance:
             Material: CDA7EDEF-9F3C-485B-87BB-FEB8DA22DD7A:Materials/Atrium/Dark
             IsShadowCaster: true
+    fea1caf9008b4c4b952dda1b7772a59a:
+        Name: FarTrees
+        MaterialInstance:
+            Material: 23C2EDBF-DA6F-4AFA-B7C1-DB5303F2EADE:Materials/Pyramid/FarTrees
+            IsShadowCaster: false
     063ae190a599402cb7289f0ae3473687:
         Name: Glass
         MaterialInstance:
@@ -35,6 +40,11 @@ Materials:
         MaterialInstance:
             Material: 6B0C613C-28CA-4781-B146-DF561A8ECA1E:Materials/Atrium/Glow
             IsShadowCaster: false
+    5762e946bfc241889db91dd033c718f3:
+        Name: Hills
+        MaterialInstance:
+            Material: CE28FFA1-4F52-44AB-BADC-67C299661DAE:Materials/Pyramid/PyramidTerrain
+            IsShadowCaster: true
     3d4ec586b8d946888faa5263ac00776a:
         Name: LeafCards
         MaterialInstance:

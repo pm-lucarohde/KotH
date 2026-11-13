@@ -1,7 +1,7 @@
 #!/bin/bash
 # Records the effect permutations the game uses (KOTH_EFFECTLOG) on a headless, silent tour of
 # the AOT client (menus, Customize, rounds with bots, duo chains, blaster, dash, Esc menu, banner, Test
-# map, Atrium, The Ladder, Pyramid's pond (wading rings), Volcano's crater, the sample custom map), then merges them into KotH.Game/Assets/EffectCompileLog.sdeffectlog (EffectLog.cs).
+# map, Atrium, The Ladder, Pyramid's pond (wading rings) and far forest, Volcano's crater, the sample custom map), then merges them into KotH.Game/Assets/EffectCompileLog.sdeffectlog (EffectLog.cs).
 #   Tools/effects/record.sh [BIN]   (default Bin/Linux/aot; then publish again)
 set -e
 cd "$(dirname "$0")/../.."
@@ -33,6 +33,7 @@ run "KOTH_SHOT_SECONDS=10 KOTH_SHOT_THIRD=1 KOTH_SHOT_STRIKE=2,4 KOTH_SHOT_AT=0,
 # The Ladder: its tower from the spawn ring (tinted marble, slime, glass).
 run "KOTH_SHOT_SECONDS=8 KOTH_SHOT_THIRD=1 KOTH_SHOT_AT=0,0.95,13 KOTH_SHOT_FACE=0 KOTH_SHOT_PITCH=30" --offline --bots 3 --map TheLadder
 run "KOTH_SHOT_SECONDS=3 KOTH_SHOT_AT=-33,0.95,-31 KOTH_SHOT_FACE=0 KOTH_SHOT_YAW=-135 KOTH_SHOT_THIRD=4 KOTH_SHOT_PITCH=-35 KOTH_SHOT_MOVE=0,1" --offline --bots 3 --map Pyramid
+run "KOTH_SHOT_SECONDS=6 KOTH_SHOT_AT=0,11.5,3 KOTH_SHOT_FACE=0 KOTH_SHOT_YAW=200 KOTH_SHOT_PITCH=-8" --offline --map Pyramid
 # Volcano: the crater from its rim (magma, the wall's heat).
 run "KOTH_SHOT_SECONDS=8 KOTH_SHOT_AT=0,137.2,10.4 KOTH_SHOT_FACE=0 KOTH_SHOT_YAW=0 KOTH_SHOT_PITCH=-60" --offline --bots 3 --map Volcano
 # Custom maps: the sample package (Surface, Terrain, Leaves, Water templates; baked, live and no shadow).

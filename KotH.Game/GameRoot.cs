@@ -579,6 +579,7 @@ namespace KotH.Client
                     mapVisuals.Add(e);
                 }
                 LeafRenderFeature.Install(SceneSystem);
+                TreeBillboardFeature.Install(SceneSystem, Content, mapVisuals);
                 MapCulling.InstallFeature(SceneSystem);
                 QualityLevels.ApplyTextures(mapVisuals);
             }
@@ -631,6 +632,7 @@ namespace KotH.Client
                 Entity.Scene.Entities.Remove(e);
             mapVisuals.Clear();
             MapCulling.Clear();
+            TreeBillboardFeature.Clear();
             if (Content.IsLoaded(VisualUrl(map)))
                 Content.Unload(VisualUrl(map));
             builder.UnloadArena();

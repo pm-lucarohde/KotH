@@ -1,0 +1,9 @@
+!Texture
+Id: 75B667D7-8797-40EA-9978-725DFA0B50AF
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../../Resources/Textures/Terrain/TreeImpostors.png
+IsCompressed: true
+Type: !ColorTextureType
+    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}
+    PremultiplyAlpha: false
