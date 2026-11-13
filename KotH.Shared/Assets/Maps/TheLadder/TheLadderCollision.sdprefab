@@ -291,6 +291,7 @@ Hierarchy:
                         JumpUp: 1.2
                         DoubleJumpUp: 2.2
                         GapMax: 3.0
+                        FloorsPerColumn: 12
         -   Entity:
                 Id: 4D2B3191-FEF0-4DF0-EB7F-5200A5006B58
                 Name: Ladder_0

@@ -67,6 +67,9 @@ namespace KotH.Shared.Bots
         /// <userdoc>A bot jumps no wider gap than this, in metres.</userdoc>
         [Display("Gap up to (m)", "Climb grid")] public float GapMax = 3f;
 
+        /// <userdoc>Floors a column keeps, from the top down: more for a map with many levels stacked over each other.</userdoc>
+        [Display("Floors per column", "Climb grid")] public int FloorsPerColumn = 4;
+
         /// <summary>A field by its name (a custom map's [bots] table); false for an unknown name.
         /// Only for settings that are safe for a map to change, not for the reaction time.</summary>
         public bool Set(string name, double value)
@@ -88,6 +91,7 @@ namespace KotH.Shared.Bots
                 case nameof(JumpUp): JumpUp = (float)value; return true;
                 case nameof(DoubleJumpUp): DoubleJumpUp = (float)value; return true;
                 case nameof(GapMax): GapMax = (float)value; return true;
+                case nameof(FloorsPerColumn): FloorsPerColumn = Math.Clamp((int)value, 1, 16); return true;
                 default: return false;
             }
         }

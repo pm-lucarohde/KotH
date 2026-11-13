@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using KotH.Probes.Harness;
 using KotH.Shared.Hosting;
 using KotH.Shared.Physics;
@@ -28,8 +29,13 @@ namespace KotH.Probes.Probes
         /// <summary>Climbs every ladder of The Ladder instead (ladder map).</summary>
         public bool OnMap { get; init; }
 
+        /// <summary>Tries the change round a corner between neighbouring ladders instead (ladder corners).</summary>
+        public bool Corners { get; init; }
+
         public override int Run(HeadlessWorld world, int maxTicks)
         {
+            if (Corners)
+                return CornerMap(world);
             if (OnMap)
                 return ClimbMap(world);
             PlayerMotor motor = Prototype.Open(world).Motor;
@@ -163,6 +169,73 @@ namespace KotH.Probes.Probes
             }
             Log($"[ladder] {world.Queries.Ladders.Count} ladders, {hanging} hang under a wall, {failures} deviations");
             return failures;
+        }
+
+        /// <summary>Experiment: every pair of ladders meeting at a corner of a pillar, a climber on the first
+        /// at their shared height strafes out past the corner, then pushes in round it towards the second's
+        /// wall; which key mixes catch the second, and how much height it costs.</summary>
+        int CornerMap(HeadlessWorld world)
+        {
+            world.LoadArena(Maps.TheLadder);
+            Entity body = world.SpawnBody(HeadlessWorld.PlayerBodyUrl, new Vector3(0f, 5f, 13f), Quaternion.Identity);
+            PlayerMotor motor = SimulationBody.Wire(body, world.Queries);
+            var ladders = world.Queries.Ladders;
+            int pairs = 0, caught = 0;
+            for (int a = 0; a < ladders.Count; a++)
+                for (int b = 0; b < ladders.Count; b++)
+                {
+                    LadderStrip A = ladders[a], B = ladders[b];
+                    if (a == b || MathF.Abs(Vector3.Dot(A.Out, B.Out)) > 0.1f)
+                        continue;
+                    float low = MathF.Max(A.Foot.Y, B.Foot.Y), high = MathF.Min(A.Top, B.Top);
+                    if (high - low < 0.5f)
+                        continue;
+                    float s = 0f;
+                    foreach (float side in new[] { -1f, 1f })
+                        foreach (float other in new[] { -1f, 1f })
+                        {
+                            Vector3 ea = A.Foot + A.Along * (A.HalfWidth * side), eb = B.Foot + B.Along * (B.HalfWidth * other);
+                            if (MathF.Abs(ea.X - eb.X) < 0.1f && MathF.Abs(ea.Z - eb.Z) < 0.1f)
+                                s = side;
+                        }
+                    if (s == 0f)
+                        continue;
+                    pairs++;
+                    float at = MathF.Max(low + 0.5f, high - 1.5f);
+                    var results = new List<string>();
+                    foreach (int outTicks in new[] { 12, 14, 16, 18, 20 })
+                        foreach (float push in new[] { 0.7f })
+                        {
+                            Vector3 start = A.Foot + A.Out * (motor.BodyRadius + 0.05f);
+                            motor.Teleport(new Vector3(start.X, at + 0.9f, start.Z));
+                            float faceA = MathF.Atan2(A.Out.X, A.Out.Z) * 180f / MathF.PI;
+                            Ticks(motor, new MoveInput { Move = new Vector2(0f, 1f), Yaw = faceA }, 40, m => m.IsClimbing);
+                            Ticks(motor, new MoveInput { Crouch = true, Yaw = faceA }, 10, m => false);
+                            float from = Feet(motor);
+                            // Out past the corner along A, then in round it: towards B's wall and A's plane.
+                            Vector3 outward = A.Along * s;
+                            Ticks(motor, Keys(outward, faceA), outTicks, m => false);
+                            Vector3 wish = Vector3.Normalize(-B.Out * push + -A.Out * MathF.Sqrt(1f - push * push));
+                            float faceB = MathF.Atan2(B.Out.X, B.Out.Z) * 180f / MathF.PI;
+                            int t = Ticks(motor, Keys(wish, faceB), 40, m => m.IsClimbing && m.LadderOut == B.Out);
+                            bool ok = t >= 0;
+                            results.Add(ok ? $"{outTicks}/{push:F2}: {from - Feet(motor):F2} m in {t} t" : $"{outTicks}/{push:F2}: -");
+                        }
+                    bool any = results.Exists(r => !r.EndsWith("-"));
+                    caught += any ? 1 : 0;
+                    Log($"[corner] {a,2} -> {b,2} at {at:F1}: {string.Join(", ", results)}");
+                }
+            Log($"[corner] {pairs} pairs, {caught} changed in some way");
+            return pairs == caught ? 0 : 1;
+        }
+
+        // Keys that move along a world direction with the view at yaw (forward -Z turned by yaw).
+        static MoveInput Keys(Vector3 wish, float yaw)
+        {
+            float r = yaw * MathF.PI / 180f;
+            var forward = new Vector3(-MathF.Sin(r), 0f, -MathF.Cos(r));
+            var right = new Vector3(MathF.Cos(r), 0f, -MathF.Sin(r));
+            return new MoveInput { Move = new Vector2(Vector3.Dot(wish, right), Vector3.Dot(wish, forward)), Yaw = yaw };
         }
 
         void Check(bool ok, string what)

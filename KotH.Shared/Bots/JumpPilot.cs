@@ -309,6 +309,17 @@ namespace KotH.Shared.Bots
             b.Settled &= b.Grounded;
         }
 
+        /// <summary>The model's step on level ground, no walls: for a run-up the grid's columns see blocked
+        /// where the body is not (a floater over the next column's floor).</summary>
+        public void Coast(ref Body b, in MoveInput input)
+        {
+            Accelerate(ref b, input.Yaw, input.Move, false, out float vx, out float vz);
+            b.VX = vx;
+            b.VZ = vz;
+            b.X += vx * Dt;
+            b.Z += vz * Dt;
+        }
+
         // ---------- flying ----------
 
         // When the second press of a double jump is due: once it lifts the

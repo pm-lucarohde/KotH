@@ -29,7 +29,9 @@ namespace KotH.Probes.Probes
             world.StartMatch();
             BotDirector director = BotDirector.Create(world.Builder, world.Simulation, new LocalFinalStates(world.Simulation), 1);
             ClimbGrid g = director.Navigation.Grid;
-            Log($"[reach] {map}: {g.FloorCount} floors, {g.Drops} drop, {g.Jumps} jump, {g.DoubleJumps} double, {g.Gaps} gap");
+            Log($"[reach] {map}: {g.FloorCount} floors, {g.Drops} drop, {g.Jumps} jump, {g.DoubleJumps} double, {g.Gaps} gap, {g.LadderLinks} ladder");
+            if (map == Maps.TheLadder)
+                return LadderReach(world, director);
             int lost = 0;
             foreach (var (name, r, deg, top) in AtriumStages)
                 foreach (float sign in new[] { 1f, -1f })
@@ -69,6 +71,59 @@ namespace KotH.Probes.Probes
                 }
             foreach (var kv in seen)
                 Log($"[reach]     {kv.Value,4}× {kv.Key}");
+        }
+
+        // The Ladder: every spawn's seconds to the zone, and each ladder's foot and top.
+        int LadderReach(HeadlessWorld world, BotDirector director)
+        {
+            ClimbGrid g = director.Navigation.Grid;
+            int lost = 0;
+            for (int slot = 0; slot < KotH.Shared.Net.NetWorld.BotSlots.Length; slot++)
+            {
+                Vector3 p = KotH.Shared.Net.NetWorld.SlotMarker(world.Builder, slot).Transform.Position;
+                float t = g.TimeOf(g.FloorAt(p));
+                lost += t == float.MaxValue ? 1 : 0;
+                Log(FormattableString.Invariant($"[reach] spawn {slot} ({p.X:F1}, {p.Y:F1}, {p.Z:F1}) time {TimeText(t)}"));
+            }
+            // Per metre of height: floors, and those with a way to the zone.
+            var all = new int[90];
+            var up = new int[90];
+            for (int f = 0; f < g.FloorCount; f++)
+            {
+                int band = Math.Clamp((int)MathF.Floor(g.FloorFeet(f).Y), 0, 89);
+                all[band]++;
+                up[band] += g.TimeOf(f) < float.MaxValue ? 1 : 0;
+            }
+            for (int band = 0; band < 90; band++)
+                if (all[band] > 0)
+                    Log($"[reach] height {band,2}: {up[band],4} of {all[band],4} floors reach the zone");
+            // KOTH_REACH_BAND=y: every floor of that metre with its moves.
+            if (int.TryParse(Environment.GetEnvironmentVariable("KOTH_REACH_BAND"), out int show))
+                for (int f = 0; f < g.FloorCount; f++)
+                {
+                    Vector3 p = g.FloorFeet(f);
+                    if ((int)MathF.Floor(p.Y) != show)
+                        continue;
+                    Log(FormattableString.Invariant($"[reach]   floor {f} ({p.X:F2}, {p.Y:F2}, {p.Z:F2}) time {TimeText(g.TimeOf(f))}"));
+                    g.LinksOf(f, out int first, out int end);
+                    for (int i = first; i < end; i++)
+                    {
+                        LinkKind kind = g.LinkAt(i, out _, out Vector3 to);
+                        Log(FormattableString.Invariant($"[reach]     {kind} to ({to.X:F2}, {to.Y:F2}, {to.Z:F2}) cost {g.LinkCost(i):F1} time {TimeText(g.TimeOf(g.FloorAt(to)))}"));
+                    }
+                }
+            var ladders = director.Navigation.Ladders;
+            for (int i = 0; i < ladders.Count; i++)
+            {
+                var s = ladders[i];
+                Vector3 front = s.Foot + s.Out * 0.6f, behind = new Vector3(s.Foot.X - s.Out.X * 0.5f, s.Top, s.Foot.Z - s.Out.Z * 0.5f);
+                int foot = g.FloorAt(front), top = g.FloorAt(behind);
+                Log(FormattableString.Invariant(
+                    $"[reach] ladder {i,2} ({s.Foot.X:F1}, {s.Foot.Z:F1}) {s.Foot.Y:F1}-{s.Top:F1}: foot {(foot < 0 ? "-" : g.FloorFeet(foot).ToString())} time {TimeText(g.TimeOf(foot))}, top {(top < 0 ? "-" : g.FloorFeet(top).ToString())} surface {g.SurfaceAt(behind.X, behind.Z, s.Top + 0.5f):F2} time {TimeText(g.TimeOf(top))}"));
+                Moves(g, g.FloorFeet(foot < 0 ? 0 : foot), 0.6f);
+            }
+            Log(lost == 0 ? "[reach] every spawn reaches the zone" : $"[reach] {lost} spawns without a way");
+            return lost == 0 ? 0 : 1;
         }
 
         static string TimeText(float t) => t == float.MaxValue ? "none" : t.ToString("F0", System.Globalization.CultureInfo.InvariantCulture);

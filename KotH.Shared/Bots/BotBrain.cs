@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using KotH.Shared.Combat;
 using KotH.Shared.Match;
 using KotH.Shared.Mathematics;
+using KotH.Shared.Physics;
 using KotH.Shared.Player;
 using KotH.Shared.Simulation;
 using Stride.Core.Mathematics;
@@ -96,6 +97,16 @@ namespace KotH.Shared.Bots
         ClimbGrid.Memory memory;     // own, or in a team the lead's (its lowest NetId)
         float bestTime = float.MaxValue;
         int bestTick;
+        readonly List<int> ladderRoute = new List<int>();   // the ladders of the way being climbed, empty for none
+        readonly List<int> rerouted = new List<int>();
+        int ladderStage;             // the one of them climbed now
+        LinkKind ladderKind;         // walked into or jumped at
+        Vector3 ladderTakeoff, ladderExit;   // where the link starts and the floor it leads to
+        int ladderFrom, ladderTo, ladderStart, ladderTicks;
+        int ladderJumpAt = -1, ladderDoubleAt = -1, cornerStart = -1, cornerOut;
+        bool ladderHeld;             // seen on the route since
+        bool ladderUp;               // told to climb up last tick
+        bool lined;                  // on the take-off floor, running at the ladder
 
         public BotBrain(int netId, uint seed, int route, BotNavigation nav, BotSettings settings, HillMatch match,
                         PlayerMotor body, MeleeAttack fists, Blaster gun,
@@ -166,6 +177,7 @@ namespace KotH.Shared.Bots
                 hopping = false;
                 verifyAt = -1;
                 bestTime = float.MaxValue;
+                ladderRoute.Clear();
             }
             lastSeen = me.Motor.Position;
             shotsLeft = ShotsLeft(u, me);
@@ -245,7 +257,8 @@ namespace KotH.Shared.Bots
                 running = Maneuver.Sprint;
                 return Remember(u, LetDown(u, me, Feet(hangUp > HangTicks ? mateAt : mateAt2)));
             }
-            if (climbing)
+            // On a ladder the climb goes on whatever the bot wants: anything else would slide it off.
+            if (climbing || ladderRoute.Count > 0)
             {
                 running = Maneuver.Sprint;
                 return Remember(u, Passing(u, view, self, me, phase, Climb(u, me)));
@@ -573,6 +586,12 @@ namespace KotH.Shared.Bots
         /// while.</summary>
         void Progress(int u, Vector3 feet)
         {
+            // A long ladder takes longer than the patience and gets nowhere nearer on the floors.
+            if (ladderRoute.Count > 0)
+            {
+                bestTick = u;
+                return;
+            }
             float left = nav.Grid.TimeToZone(feet, variant);
             if (left < bestTime - 0.5f)
             {
@@ -618,12 +637,24 @@ namespace KotH.Shared.Bots
             return b;
         }
 
+        // Where the own body is now on the floor it stands on, as Predict without the grid's walls.
+        JumpPilot.Body Coast(int u, in MotorState m)
+        {
+            JumpPilot.Body b = pilot.From(m, body.StandHeight);
+            for (int k = u - Reaction; k < u; k++)
+                if (k >= 0 && pastTick[k % past.Length] == k)
+                    pilot.Coast(ref b, past[k % past.Length]);
+            return b;
+        }
+
         /// <summary>Climbing: the way and nothing else. Walks from corner to corner; a
         /// jump on the way is the pilot's (JumpPilot): it takes off when its model lands
         /// the jump on the top and steers the flight there. A jump that does not end up
         /// there costs this bot more next time.</summary>
         MoveInput Climb(int u, in BodyState me)
         {
+            if (Ladder(u, me, out MoveInput climbed))
+                return climbed;
             // Jammed off the ground (a body can wedge between steep faces and
             // cannot jump there): wiggle, a quarter turn every half second.
             bool jammed = !me.Motor.Grounded && Flat(me.Motor.Position, jamAt) < 0.05f && UMath.Abs(me.Motor.Position.Y - jamAt.Y) < 0.05f;
@@ -669,6 +700,8 @@ namespace KotH.Shared.Bots
             for (int c = 1; c + 1 < corners.Count; c++)
             {
                 Corner k = corners[c];
+                if (k.Link == LinkKind.Ladder)
+                    break;
                 if (k.Link != LinkKind.Jump && k.Link != LinkKind.DoubleJump)
                     continue;
                 if (Flat(feet, k.Position) > RunUp)
@@ -742,7 +775,7 @@ namespace KotH.Shared.Bots
         /// tick, its way and its view stay as they are.</summary>
         MoveInput Passing(int u, WorldSnapshot view, int self, in BodyState me, MatchPhase phase, MoveInput input)
         {
-            if (!farBelow || phase != MatchPhase.Running || input.JumpPresses > 0 || u < lastStrike + fists.CooldownTicks ||
+            if (!farBelow || ladderRoute.Count > 0 || phase != MatchPhase.Running || input.JumpPresses > 0 || u < lastStrike + fists.CooldownTicks ||
                 !CaneReady(u))
                 return input;
             Vector3 eye = Ahead(me.Motor.EyePosition, me.Motor.Velocity, Reaction * Dt);
@@ -863,8 +896,300 @@ namespace KotH.Shared.Bots
             return corners.Count > 1 ? at : goal;
         }
 
-        // A link the pilot jumps; a drop is walked off.
-        static bool Takeoff(LinkKind link) => link == LinkKind.Jump || link == LinkKind.DoubleJump;
+        // A link the pilot jumps or the bot climbs; a drop is walked off.
+        static bool Takeoff(LinkKind link)
+            => link == LinkKind.Jump || link == LinkKind.DoubleJump || link == LinkKind.Ladder || link == LinkKind.LadderJump;
+
+        // Nearer a ladder's way in than this a bot takes it; nearer the line-up point it faces the wall.
+        const float LadderNear = 2.5f, LadderLineUp = 0.6f;
+        // Seconds a climb may take beyond its height at climbing speed before it is given up.
+        const float LadderSpare = 10f;
+        // A change round a corner: at most so many ticks in round it after going out past the edge.
+        const int CornerIn = 30;
+        // On a ladder: steering back to the middle per metre aside, and the least push that still climbs (0.3).
+        const float SideGain = 1.2f, ClimbPush = 0.45f;
+
+        /// <summary>A ladder on the way: walked into (facing the wall, forward) or jumped at from a floor
+        /// further off, then climbed, round the pillar's corners to the next ladder where one ends under
+        /// a wall, and off the top onto the floor the way goes on from. The view is Reaction ticks old,
+        /// so the climb runs ahead of it on the motor's speeds. False when no ladder is at hand.</summary>
+        bool Ladder(int u, in BodyState me, out MoveInput input)
+        {
+            input = default;
+            Vector3 seen = Feet(me.Motor.Position);
+            if (ladderRoute.Count == 0 && !(me.Motor.Climbing ? Adopt(u, me.Motor.Ladder, seen) : TakeLadder(u, seen, -1)))
+                return false;
+
+            int seenOn = me.Motor.Climbing ? ladderRoute.IndexOf(me.Motor.Ladder) : -1;
+            // Caught another ladder on the way to this one: from there, to the same floor if it leads there.
+            bool toppingOut = me.Motor.Climbing && seen.Y >= nav.Ladders[me.Motor.Ladder].Top - 0.3f;
+            if (me.Motor.Climbing && seenOn < 0 && !toppingOut &&
+                (nav.Grid.LadderRoute(me.Motor.Ladder, ladderTo, rerouted) ||
+                 nav.Grid.LadderRoute(me.Motor.Ladder, nav.Grid.BestExit(me.Motor.Ladder, variant), rerouted)))
+            {
+                ladderRoute.Clear();
+                ladderRoute.AddRange(rerouted);
+                ladderTo = ExitOf(rerouted[^1]);
+                ladderExit = nav.Grid.FloorFeet(ladderTo);
+                HopLog?.Invoke(FormattableString.Invariant($"{u} Bot {netId}: ladder rerouted from {me.Motor.Ladder} by {string.Join(",", ladderRoute)}"));
+                ladderStage = 0;
+                cornerStart = -1;
+                seenOn = 0;
+            }
+            if (seenOn > ladderStage)
+            {
+                ladderStage = seenOn;
+                cornerStart = -1;
+                HopLog?.Invoke(FormattableString.Invariant($"{u} Bot {netId}: ladder round the corner onto {me.Motor.Ladder} at {seen.Y:F1}"));
+            }
+            if (seenOn >= 0 && !ladderHeld)
+                HopLog?.Invoke(FormattableString.Invariant($"{u} Bot {netId}: ladder caught {me.Motor.Ladder} at {seen.Y:F1}"));
+            ladderHeld |= seenOn >= 0;
+            LadderStrip s = nav.Ladders[ladderRoute[ladderStage]];
+            bool up = !me.Motor.Climbing && seen.Y > ladderExit.Y - 0.3f && Flat(seen, ladderExit) < 1.5f;
+            bool turning = cornerStart >= 0 && u - cornerStart <= cornerOut + CornerIn + Reaction;
+            bool fell = ladderHeld && seenOn < 0 && !turning && !up;
+            bool missed = ladderJumpAt >= 0 && !ladderHeld && u - ladderJumpAt > Reaction + 30 && me.Motor.Grounded;
+            bool late = u - ladderStart > ladderTicks;
+            bool far = !ladderHeld && ladderJumpAt < 0 && Flat(seen, ladderTakeoff) > LadderNear + 1f;
+            // Still seen topping out of the last ladder: not a wrong one, the view is behind.
+            if (up || fell || missed || late || far || me.Motor.Climbing && seenOn < 0 && !toppingOut)
+            {
+                // A way that never got there costs this bot more next time; a knock off does not.
+                if (missed || late || fell && cornerStart >= 0)
+                    nav.Grid.Punish(ladderFrom, ladderTo, FailedJump * 3f, memory);
+                if (HopLog != null)
+                {
+                    Vector3 rel = new Vector3(me.Motor.Position.X - s.Foot.X, 0f, me.Motor.Position.Z - s.Foot.Z);
+                    string why = up ? "UP" : fell ? "FELL" : missed ? "MISSED" : late ? "LATE" : far ? "FAR" : "WRONG";
+                    HopLog(FormattableString.Invariant(
+                        $"{u} Bot {netId}: ladder {why} at {seen.X:F1} {seen.Y:F1} {seen.Z:F1}, stage {ladderStage}/{ladderRoute.Count}, corner {cornerStart >= 0}, exit {ladderExit.Y:F1}, off {UMath.Dot(rel, s.Out):F2} side {UMath.Dot(rel, s.Along):F2} v {me.Motor.Velocity.X:F1} {me.Motor.Velocity.Y:F1} {me.Motor.Velocity.Z:F1} knock {UMath.Magnitude(me.Motor.Knock):F1} grounded {me.Motor.Grounded} yaw {UMath.YawOf(me.Motor.Rotation):F0} wall {WallYaw(s):F0}"));
+                }
+                ladderRoute.Clear();
+                nextThink = u;
+                return false;
+            }
+
+            float wall = WallYaw(s);
+            if ((seenOn >= 0 || turning) && ladderStage + 1 < ladderRoute.Count)
+                Round(u, s, seen, me.Motor.Position, ref input);
+            else if (seenOn >= 0 || ladderHeld)
+            {
+                // The last ladder: over the top by now, on towards the exit at walking speed, then let go.
+                float toTop = (s.Top - seen.Y) / (body.ClimbSpeed * Dt);
+                float walked = UMath.Max(0f, Reaction - toTop) * Dt * body.WalkSpeed;
+                var off = new Vector3(me.Motor.Position.X - s.Foot.X, 0f, me.Motor.Position.Z - s.Foot.Z);
+                float need = UMath.Dot(off, s.Out) + UMath.Dot(new Vector3(s.Foot.X - ladderExit.X, 0f, s.Foot.Z - ladderExit.Z), s.Out);
+                Look(u, wall, walked > 0f ? -10f : 25f, settings.TurnRate);
+                input.Move = walked < need - 0.1f ? KeysFor(ToWall(s, me.Motor.Position, SideGain, ClimbPush), yaw) : Vector2.Zero;
+            }
+            else
+                Approach(u, me, s, ref input);
+            input.Yaw = yaw;
+            input.Pitch = pitch;
+            return true;
+        }
+
+        // The floor a ladder's top steps onto, as the grid knows it.
+        int ExitOf(int ladder) => nav.Grid.ExitOf(ladder);
+
+        // Seen on a ladder with no climb under way (knocked onto it, or the way changed): up it to the best top it reaches.
+        bool Adopt(int u, int ladder, Vector3 seen)
+        {
+            if (seen.Y >= nav.Ladders[ladder].Top - 0.3f)
+                return false;
+            int exit = nav.Grid.BestExit(ladder, variant);
+            if (exit < 0 || !nav.Grid.LadderRoute(ladder, exit, ladderRoute))
+                return false;
+            ladderKind = LinkKind.Ladder;
+            ladderTakeoff = seen;
+            ladderExit = nav.Grid.FloorFeet(exit);
+            ladderFrom = -1;
+            ladderTo = exit;
+            ladderStart = u;
+            ladderStage = 0;
+            ladderHeld = true;
+            ladderJumpAt = ladderDoubleAt = cornerStart = -1;
+            lined = ladderUp = false;
+            float metres = UMath.Abs(ladderExit.Y - seen.Y) + (ladderRoute.Count - 1) * ClimbGrid.CornerLoss;
+            ladderTicks = (int)((metres / body.ClimbSpeed + LadderSpare) / Dt);
+            HopLog?.Invoke(FormattableString.Invariant($"{u} Bot {netId}: ladder adopted {ladder} by {string.Join(",", ladderRoute)} to {ladderExit.Y:F1}"));
+            return true;
+        }
+
+        // Takes the first link of the way when it is a ladder close by: its ladders and where it ends.
+        bool TakeLadder(int u, Vector3 seen, int climbingNow)
+        {
+            for (int c = 1; c + 1 < corners.Count; c++)
+            {
+                Corner k = corners[c];
+                if (k.Link != LinkKind.Ladder && k.Link != LinkKind.LadderJump)
+                {
+                    if (Takeoff(k.Link))
+                        break;
+                    continue;
+                }
+                if (k.Ladder < 0 || Flat(seen, k.Position) > LadderNear || UMath.Abs(seen.Y - k.Position.Y) > 1f ||
+                    !nav.Grid.LadderRoute(k.Ladder, corners[c + 1].Floor, ladderRoute))
+                    break;
+                // Already on a ladder: on from that one where it leads there too.
+                if (climbingNow >= 0 && climbingNow != k.Ladder && nav.Grid.LadderRoute(climbingNow, corners[c + 1].Floor, rerouted))
+                {
+                    ladderRoute.Clear();
+                    ladderRoute.AddRange(rerouted);
+                }
+                ladderKind = k.Link;
+                ladderTakeoff = k.Position;
+                ladderExit = corners[c + 1].Position;
+                ladderFrom = k.Floor;
+                ladderTo = corners[c + 1].Floor;
+                ladderStart = u;
+                ladderStage = 0;
+                ladderHeld = false;
+                ladderJumpAt = -1;
+                ladderDoubleAt = -1;
+                cornerStart = -1;
+                lined = false;
+                ladderUp = false;
+                float metres = UMath.Abs(ladderExit.Y - k.Position.Y) + (ladderRoute.Count - 1) * ClimbGrid.CornerLoss;
+                ladderTicks = (int)((metres / body.ClimbSpeed + LadderSpare) / Dt);
+                HopLog?.Invoke(FormattableString.Invariant(
+                    $"{u} Bot {netId}: ladder {(k.Link == LinkKind.LadderJump ? "jump" : "walk")} from {k.Position.X:F1} {k.Position.Y:F1} {k.Position.Z:F1} by {string.Join(",", ladderRoute)} to {ladderExit.X:F1} {ladderExit.Y:F1} {ladderExit.Z:F1}"));
+                return true;
+            }
+            return false;
+        }
+
+        // Towards a ladder's wall, steering back to its middle (gain per metre aside). Near an edge the push
+        // into the wall slides the body round the pillar's corner: it pushes less (down to least) and steers more.
+        static Vector3 ToWall(in LadderStrip s, Vector3 at, float gain, float least)
+        {
+            float side = UMath.Dot(new Vector3(at.X - s.Foot.X, 0f, at.Z - s.Foot.Z), s.Along);
+            float steer = UMath.Clamp(-side * gain, -0.9f, 0.9f);
+            return UMath.Add(UMath.Mul(s.Out, -UMath.Max(least, 1f - UMath.Abs(steer) * 0.6f)), UMath.Mul(s.Along, steer));
+        }
+
+        // The yaw that faces a ladder's wall.
+        static float WallYaw(in LadderStrip s) => UMath.Atan2(s.Out.X, s.Out.Z) * (180f / MathF.PI);
+
+        /// <summary>To the ladder: walked into at its foot, or a run and a jump at it from the take-off floor,
+        /// a double jump when one does not reach its foot, pushing towards the wall till it catches.</summary>
+        void Approach(int u, in BodyState me, in LadderStrip s, ref MoveInput input)
+        {
+            Vector3 seen = Feet(me.Motor.Position);
+            float side = UMath.Clamp(UMath.Dot(new Vector3(seen.X - s.Foot.X, 0f, seen.Z - s.Foot.Z), s.Along),
+                                     -UMath.Max(0f, s.HalfWidth - 0.2f), UMath.Max(0f, s.HalfWidth - 0.2f));
+            Vector3 at = UMath.Add(s.Foot, UMath.Add(UMath.Mul(s.Out, body.BodyRadius + 0.15f), UMath.Mul(s.Along, side)));
+            bool jumping = ladderKind == LinkKind.LadderJump;
+            JumpPilot.Body b = jumping && ladderJumpAt < 0 && me.Motor.Grounded ? Coast(u, me.Motor) : Predict(u, me.Motor);
+            // A jump: first onto the take-off floor, then straight at the ladder.
+            Vector3 aim = jumping && ladderJumpAt < 0 && Flat(new Vector3(b.X, b.Y, b.Z), ladderTakeoff) > 0.8f &&
+                          UMath.Abs(b.Y - ladderTakeoff.Y) < 0.5f && !lined ? ladderTakeoff : at;
+            lined |= aim.X == at.X && aim.Z == at.Z;
+            var way = new Vector3(aim.X - b.X, 0f, aim.Z - b.Z);
+            float distance = UMath.Magnitude(way);
+            float moveYaw = distance > 1e-3f ? UMath.Atan2(-way.X, -way.Z) * (180f / MathF.PI) : WallYaw(s);
+            // Flown over a short ladder onto its exit: stop there, the view shows the landing late.
+            if (ladderJumpAt >= 0 && b.Y > s.Top - 0.3f && Flat(new Vector3(b.X, b.Y, b.Z), ladderExit) < 1.5f)
+            {
+                var back = new Vector3(ladderExit.X - b.X, 0f, ladderExit.Z - b.Z);
+                float left = UMath.Magnitude(back);
+                input.Move = left > 0.25f ? KeysFor(UMath.Mul(back, 1f / left), yaw) : Vector2.Zero;
+                return;
+            }
+            // A jump from a floor only just reached (off the last ladder): wait till the view shows it standing.
+            if (jumping && ladderJumpAt < 0 && !me.Motor.Grounded && Flat(new Vector3(b.X, b.Y, b.Z), ladderTakeoff) < 1.5f)
+            {
+                Look(u, WallYaw(s), 0f, settings.TurnRate);
+                input.Move = Vector2.Zero;
+                return;
+            }
+            // Near the ladder only towards its wall, a little to its middle: a key aside slides a climber off,
+            // and the view shows the catch only Reaction ticks late.
+            var rel = new Vector3(b.X - s.Foot.X, 0f, b.Z - s.Foot.Z);
+            bool before = UMath.Dot(rel, s.Out) < 1.2f && UMath.Abs(UMath.Dot(rel, s.Along)) < s.HalfWidth + 0.4f;
+            if ((!jumping || ladderJumpAt >= 0) && (distance <= LadderLineUp || before))
+            {
+                Look(u, WallYaw(s), 25f, settings.TurnRate);
+                input.Move = KeysFor(ToWall(s, new Vector3(b.X, b.Y, b.Z), 1f, 0.6f), yaw);
+            }
+            else
+            {
+                LookAt(u, b, new Vector3(aim.X, b.Y + eyeAbove - 0.3f, aim.Z), moveYaw);
+                walkKeys = JumpPilot.Keys(moveYaw - yaw, true, walkKeys);
+                input.Move = walkKeys;
+            }
+            if (!jumping)
+                return;
+            if (ladderJumpAt < 0 && aim.X == at.X && aim.Z == at.Z && me.Motor.Grounded && b.Grounded)
+            {
+                // Off at the edge of the own floor (looking as far ahead as two ticks run, small floors give
+                // little run-up), or close under the ladder.
+                float reach = 0.15f + UMath.Sqrt(b.VX * b.VX + b.VZ * b.VZ) * Dt * 2f;
+                float ahead = nav.GroundBelow(new Vector3(b.X + way.X / UMath.Max(distance, 1e-3f) * reach, b.Y + 0.3f,
+                                                          b.Z + way.Z / UMath.Max(distance, 1e-3f) * reach));
+                if (ahead < b.Y - 0.5f || distance <= 0.9f)
+                {
+                    ladderJumpAt = u;
+                    lastJump = u;
+                    jumpHeldUntil = u + 10;
+                    input.JumpPresses = 1;
+                    // The foot over a single jump's reach: the double jump on the way up.
+                    if (s.Foot.Y - 0.9f + 0.2f - ladderTakeoff.Y > settings.JumpUp - 0.05f)
+                        ladderDoubleAt = u + 9;
+                }
+            }
+            if (u == ladderDoubleAt)
+            {
+                input.JumpPresses = 1;
+                jumpHeldUntil = u + 10;
+            }
+            input.JumpHeld = u < jumpHeldUntil;
+        }
+
+        /// <summary>Round a corner to the next ladder of the route: climb to the height to change at,
+        /// then out along this ladder past its edge, then in round the corner pushing at the next wall
+        /// (LadderProbe "corners": 12-16 ticks out from the middle, then 0.7 towards the wall catches within 10 ticks).</summary>
+        void Round(int u, in LadderStrip a, Vector3 seen, Vector3 seenAt, ref MoveInput input)
+        {
+            int ai = ladderRoute[ladderStage], bi = ladderRoute[ladderStage + 1];
+            nav.Grid.CornerOf(ai, bi, out float side, out float height);
+            LadderStrip next = nav.Ladders[bi];
+            if (cornerStart < 0)
+            {
+                // Where the body is now, having climbed on since the view if it was told to.
+                float now = seen.Y + (ladderUp ? body.ClimbSpeed * Reaction * Dt : 0f);
+                ladderUp = now < height - 0.3f;
+                Look(u, WallYaw(a), 25f, settings.TurnRate);
+                input.Move = ladderUp ? KeysFor(ToWall(a, seenAt, SideGain, ClimbPush), yaw) : now > height + 0.6f ? KeysFor(a.Out, yaw) : Vector2.Zero;
+                if (!ladderUp && now <= height + 0.6f)
+                {
+                    // Out till the body's middle is 0.72 m aside, past the strip's edge (0.6): from the middle 14 ticks.
+                    float aside = UMath.Dot(new Vector3(seenAt.X - a.Foot.X, 0f, seenAt.Z - a.Foot.Z), a.Along) * side;
+                    cornerStart = u;
+                    cornerOut = Math.Clamp((int)MathF.Ceiling((0.72f - aside) / (body.ClimbSideSpeed * Dt)), 10, 16);
+                }
+                return;
+            }
+            int k = u - cornerStart;
+            if (k < cornerOut)
+            {
+                Look(u, WallYaw(a), 15f, settings.TurnRate * 2f);
+                input.Move = KeysFor(UMath.Mul(a.Along, side), yaw);
+                return;
+            }
+            Vector3 wish = UMath.Add(UMath.Mul(next.Out, -0.7f), UMath.Mul(a.Out, -0.714f));
+            Look(u, WallYaw(next), 15f, settings.TurnRate * 2f);
+            input.Move = KeysFor(wish, yaw);
+        }
+
+        // Keys that move along a direction on the ground with the view at a yaw.
+        static Vector2 KeysFor(Vector3 wish, float yawDegrees)
+        {
+            float r = yawDegrees * (MathF.PI / 180f);
+            float sin = UMath.Sin(r), cos = UMath.Cos(r);
+            return new Vector2(wish.X * cos - wish.Z * sin, -wish.X * sin - wish.Z * cos);
+        }
 
         /// <summary>The maneuver of this tick as keys: where to go, where to look, what to press.</summary>
         MoveInput Steer(int u, WorldSnapshot view, in BodyState me, Vector3 at, Vector3 feet, Maneuver m,

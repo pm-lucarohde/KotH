@@ -32,7 +32,7 @@ Probe probe = name switch
     "stairrun" => new StairRunProbe(),
     "rampfoot" => new RampFootProbe(),
     "crouchedge" => new CrouchEdgeProbe(),
-    "ladder" => new LadderProbe { OnMap = args.Length > 1 && args[1] == "map" },
+    "ladder" => new LadderProbe { OnMap = args.Length > 1 && args[1] == "map", Corners = args.Length > 1 && args[1] == "corners" },
     "edgeslip" => new EdgeSlipProbe { Measure = Array.IndexOf(args, "measure") > 0 },
     "knockback" => new KnockbackProbe(),
     "thirdperson" => new ThirdPersonProbe(),

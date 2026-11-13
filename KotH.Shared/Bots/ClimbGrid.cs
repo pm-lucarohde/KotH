@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using KotH.Shared.Match;
 using KotH.Shared.Mathematics;
+using KotH.Shared.Physics;
 using KotH.Shared.Player;
 using Stride.Core.Mathematics;
 
@@ -38,7 +39,6 @@ namespace KotH.Shared.Bots
             public Vector3 A, B, C;
         }
 
-        const int MaxFloors = 4;
         const float WalkDown = 0.6f;       // lower than this is a drop, not a step
         const float JumpReach = 2.5f;      // metres a jump up carries across with no hole before it
         const float GapDown = 6f;          // the deepest landing across a hole
@@ -66,7 +66,8 @@ namespace KotH.Shared.Bots
 
         readonly float x0, z0, cell;
         readonly int nx, nz;
-        readonly float stepUp, jumpUp, doubleUp, gapMax, standHeight, radius, walk, jumpSpeed, gravity;
+        readonly float stepUp, jumpUp, doubleUp, gapMax, standHeight, radius, walk, jumpSpeed, gravity, climbSpeed;
+        readonly int maxFloors;
 
         // Surfaces per column, top down; facing 1 floor-flat up, 0 steep up, -1 down.
         int[] surfStart;
@@ -86,7 +87,7 @@ namespace KotH.Shared.Bots
         float[] walkCost;
 
         // Moves other than walking, by floor, and the same reversed.
-        int[] linkStart, linkFrom, linkTo, revStart, revLink;
+        int[] linkStart, linkFrom, linkTo, revStart, revLink, linkLadder;
         LinkKind[] linkKind;
         float[] linkCost;
 
@@ -106,6 +107,7 @@ namespace KotH.Shared.Bots
         readonly Heap heap = new Heap();
         readonly List<int> chain = new List<int>();
         readonly List<LinkKind> chainKind = new List<LinkKind>();
+        readonly List<int> chainLadder = new List<int>();
 
         public int FloorCount => floorY.Length;
         public int LinkCount => linkTo.Length;
@@ -138,6 +140,7 @@ namespace KotH.Shared.Bots
         public int Jumps { get; private set; }
         public int DoubleJumps { get; private set; }
         public int Gaps { get; private set; }
+        public int LadderLinks { get; private set; }
 
         ClimbGrid(float x0, float z0, float cell, int nx, int nz, PlayerMotor motor, BotSettings s)
         {
@@ -152,9 +155,11 @@ namespace KotH.Shared.Bots
             jumpUp = s.JumpUp;
             doubleUp = s.DoubleJumpUp;
             gapMax = s.GapMax;
+            maxFloors = Math.Clamp(s.FloorsPerColumn, 1, 16);
             walk = motor.WalkSpeed;
             gravity = motor.Gravity;
             jumpSpeed = UMath.Sqrt(motor.JumpHeight * -2f * gravity);
+            climbSpeed = UMath.Max(0.5f, motor.ClimbSpeed);
         }
 
         // Whether one jump at walking speed carries this far (from a floor's middle) and
@@ -170,8 +175,8 @@ namespace KotH.Shared.Bots
         /// Cuts the grid from the arena's triangles and, with a zone, lays the
         /// plain field and the route variants, their noise seeded from seed.
         /// </summary>
-        public static ClimbGrid Build(List<Triangle> tris, PlayerMotor motor, BotSettings s, HillMatch zone, int seed,
-                                      Vector3 start)
+        public static ClimbGrid Build(List<Triangle> tris, IReadOnlyList<LadderStrip> ladders, PlayerMotor motor, BotSettings s,
+                                      HillMatch zone, int seed, Vector3 start)
         {
             float cell = UMath.Max(0.25f, s.CellSize);
             float minX = float.MaxValue, minZ = float.MaxValue, maxX = float.MinValue, maxZ = float.MinValue;
@@ -191,7 +196,7 @@ namespace KotH.Shared.Bots
             grid.Rasterize(tris, DetMath.CosF(motor.SlopeLimit * (MathF.PI / 180f)));
             grid.FindFloors();
             grid.FindWalks();
-            grid.FindLinks();
+            grid.FindLinks(ladders);
             grid.Fields(zone, Math.Max(0, s.RouteVariants), seed, start);
             return grid;
         }
@@ -286,7 +291,7 @@ namespace KotH.Shared.Bots
             {
                 floorStart[c] = ys.Count;
                 int found = 0;
-                for (int i = surfStart[c]; i < surfStart[c + 1] && found < MaxFloors; i++)
+                for (int i = surfStart[c]; i < surfStart[c + 1] && found < maxFloors; i++)
                 {
                     if (surfFacing[i] != 1)
                         continue;
@@ -446,18 +451,24 @@ namespace KotH.Shared.Bots
         /// jump. After a hole, within the gap's reach, a floor higher, level or lower (a ledge over the
         /// hole's bottom) is a gap jump. Anything in the flight is a wall.</summary>
 
-        void FindLinks()
+        void FindLinks(IReadOnlyList<LadderStrip> ladders)
         {
             var from = new List<int>();
             var to = new List<int>();
             var kinds = new List<LinkKind>();
             var costs = new List<float>();
+            var rungs = new List<int>();
+            FindLadders(ladders);
+            var climbs = LadderClimbs();
             linkStart = new int[floorY.Length + 1];
             float reach = UMath.Max(JumpReach, gapMax);
             int steps = (int)(reach / 0.25f);
             for (int f = 0; f < floorY.Length; f++)
             {
                 linkStart[f] = to.Count;
+                if (climbs.TryGetValue(f, out var climbsOf))
+                    foreach (var (top, l, kind, cost) in climbsOf)
+                        Add(f, top, kind, cost, LinkLadder, l);
                 float y = floorY[f], fx = CentreX(floorCol[f]), fz = CentreZ(floorCol[f]);
                 for (int d = 0; d < 16; d++)
                 {
@@ -535,6 +546,7 @@ namespace KotH.Shared.Bots
             linkTo = to.ToArray();
             linkKind = kinds.ToArray();
             linkCost = costs.ToArray();
+            linkLadder = rungs.ToArray();
 
             // Reversed, for the fields: by target floor, in order of the forward list.
             revStart = new int[floorY.Length + 1];
@@ -562,7 +574,7 @@ namespace KotH.Shared.Bots
                 return true;
             }
 
-            void Add(int a, int b, LinkKind kind, float cost, int counter)
+            void Add(int a, int b, LinkKind kind, float cost, int counter, int ladder = -1)
             {
                 // Two directions often find the same floor: the cheaper stays.
                 for (int i = linkStart[a]; i < to.Count; i++)
@@ -572,6 +584,7 @@ namespace KotH.Shared.Bots
                         {
                             costs[i] = cost;
                             kinds[i] = kind;
+                            rungs[i] = ladder;
                         }
                         return;
                     }
@@ -579,14 +592,246 @@ namespace KotH.Shared.Bots
                 to.Add(b);
                 kinds.Add(kind);
                 costs.Add(cost);
+                rungs.Add(ladder);
                 if (counter == LinkDrop) Drops++;
                 else if (counter == LinkJump) Jumps++;
                 else if (counter == LinkDouble) DoubleJumps++;
+                else if (counter == LinkLadder) LadderLinks++;
                 else Gaps++;
             }
         }
 
-        const int LinkDrop = 0, LinkJump = 1, LinkDouble = 2, LinkGap = 3;
+        const int LinkDrop = 0, LinkJump = 1, LinkDouble = 2, LinkGap = 3, LinkLadder = 4;
+
+        // ---------- the ladders ----------
+
+        LadderStrip[] strips = Array.Empty<LadderStrip>();
+        int[] stripExit;                    // the floor a ladder's top steps onto, -1 for none
+        int[][] stripNext;                  // the ladders it meets at a corner of its pillar, with room to change
+
+        /// <summary>Metres a change round a pillar's corner from one ladder to the next costs (the
+        /// climber falls while it goes round; LadderProbe "corners" measures 1.05-1.2).</summary>
+        public const float CornerLoss = 1.3f;
+
+        /// <summary>Each ladder's top floor and its neighbours round the pillar's corners: two ladders
+        /// at right angles sharing an edge, over a stretch of height long enough to change.</summary>
+        void FindLadders(IReadOnlyList<LadderStrip> ladders)
+        {
+            strips = new LadderStrip[ladders.Count];
+            stripExit = new int[ladders.Count];
+            stripNext = new int[ladders.Count][];
+            var next = new List<int>();
+            for (int l = 0; l < strips.Length; l++)
+            {
+                LadderStrip s = strips[l] = ladders[l];
+                stripExit[l] = -1;
+                for (float inside = 0.25f; inside <= 1.01f && stripExit[l] < 0; inside += 0.25f)
+                    for (int k = 0; k < 3 && stripExit[l] < 0; k++)
+                    {
+                        float side = k == 0 ? 0f : k == 1 ? -0.25f : 0.25f;
+                        int col = ColumnAt(s.Foot.X - s.Out.X * inside + s.Along.X * side, s.Foot.Z - s.Out.Z * inside + s.Along.Z * side);
+                        stripExit[l] = col >= 0 ? Lowest(col, s.Top - 0.3f, s.Top + 0.5f) : -1;
+                    }
+            }
+            for (int a = 0; a < strips.Length; a++)
+            {
+                next.Clear();
+                for (int b = 0; b < strips.Length; b++)
+                    if (b != a && CornerOf(a, b, out _, out _))
+                        next.Add(b);
+                stripNext[a] = next.ToArray();
+            }
+        }
+
+        /// <summary>The floor a ladder's top steps onto, -1 for none.</summary>
+        public int ExitOf(int ladder) => ladder >= 0 && ladder < strips.Length ? stripExit[ladder] : -1;
+
+        /// <summary>Whether a climber on ladder a can change round a corner to ladder b: which way along
+        /// a it leaves (+1 or -1) and the feet's height to leave at, high in their shared stretch.</summary>
+        public bool CornerOf(int a, int b, out float side, out float height)
+        {
+            LadderStrip A = strips[a], B = strips[b];
+            side = 0f;
+            height = 0f;
+            if (UMath.Abs(UMath.Dot(A.Out, B.Out)) > 0.1f)
+                return false;
+            float low = UMath.Max(A.Foot.Y, B.Foot.Y) + CornerLoss, high = UMath.Min(A.Top, B.Top) - 0.8f;
+            if (high < low)
+                return false;
+            for (int i = 0; i < 4; i++)
+            {
+                float sa = (i & 1) == 0 ? -1f : 1f, sb = (i & 2) == 0 ? -1f : 1f;
+                float ex = A.Foot.X + A.Along.X * A.HalfWidth * sa - B.Foot.X - B.Along.X * B.HalfWidth * sb;
+                float ez = A.Foot.Z + A.Along.Z * A.HalfWidth * sa - B.Foot.Z - B.Along.Z * B.HalfWidth * sb;
+                if (UMath.Abs(ex) < 0.1f && UMath.Abs(ez) < 0.1f)
+                {
+                    side = sa;
+                    height = high;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>The ladders from one round the corners to the one whose top steps onto the exit
+        /// floor, fewest changes first, the start included; false when none leads there.</summary>
+        public bool LadderRoute(int from, int exit, List<int> route)
+        {
+            route.Clear();
+            if (from < 0 || from >= strips.Length)
+                return false;
+            var back = new int[strips.Length];
+            Array.Fill(back, -2);
+            back[from] = -1;
+            var queue = new Queue<int>();
+            queue.Enqueue(from);
+            while (queue.Count > 0)
+            {
+                int l = queue.Dequeue();
+                if (stripExit[l] == exit)
+                {
+                    for (int k = l; k >= 0; k = back[k])
+                        route.Add(k);
+                    route.Reverse();
+                    return true;
+                }
+                foreach (int n in stripNext[l])
+                    if (back[n] == -2)
+                    {
+                        back[n] = l;
+                        queue.Enqueue(n);
+                    }
+            }
+            return false;
+        }
+
+        /// <summary>The top floor nearest the zone along a variant that a climber on a ladder reaches
+        /// round the corners, -1 for none.</summary>
+        public int BestExit(int from, int variant)
+        {
+            if (from < 0 || from >= strips.Length)
+                return -1;
+            float[] t = time[Math.Clamp(variant, 0, Variants)];
+            var seen = new bool[strips.Length];
+            var queue = new Queue<int>();
+            seen[from] = true;
+            queue.Enqueue(from);
+            int best = -1;
+            while (queue.Count > 0)
+            {
+                int l = queue.Dequeue();
+                int e = stripExit[l];
+                if (e >= 0 && t[e] < float.MaxValue && (best < 0 || t[e] < t[best]))
+                    best = e;
+                foreach (int n in stripNext[l])
+                    if (!seen[n])
+                    {
+                        seen[n] = true;
+                        queue.Enqueue(n);
+                    }
+            }
+            return best;
+        }
+
+        /// <summary>The ladder climbs by the floor they start from: in front of a ladder with the body's
+        /// middle over its foot (walked into), or a jump away with the wall ahead (caught in the air);
+        /// each to every top floor its ladders reach round the corners, at their height in climbing time.</summary>
+        Dictionary<int, List<(int Top, int Ladder, LinkKind Kind, float Cost)>> LadderClimbs()
+        {
+            var climbs = new Dictionary<int, List<(int Top, int Ladder, LinkKind Kind, float Cost)>>();
+            var changes = new int[strips.Length];
+            var queue = new Queue<int>();
+            var entries = new List<(int Floor, LinkKind Kind, float Cost)>();
+            for (int l = 0; l < strips.Length; l++)
+            {
+                LadderStrip s = strips[l];
+                entries.Clear();
+                // In front: the feet at most a little under the foot, so the body's middle is over it.
+                float reach = UMath.Max(0.25f, s.HalfWidth - 0.25f);
+                for (float before = 0.3f; before <= 0.91f; before += 0.3f)
+                    for (float side = -reach; side <= reach + 1e-3f; side += 0.25f)
+                    {
+                        int col = ColumnAt(s.Foot.X + s.Out.X * before + s.Along.X * side, s.Foot.Z + s.Out.Z * before + s.Along.Z * side);
+                        int f = col >= 0 ? HighestFloor(col, s.Foot.Y + 0.35f) : -1;
+                        if (f >= 0 && floorY[f] >= s.Foot.Y - 0.85f && !entries.Exists(e => e.Floor == f))
+                            entries.Add((f, LinkKind.Ladder, 0.5f));
+                    }
+                CatchFloors(s, entries);
+
+                // Round the corners: the fewest changes to every ladder of the pillar.
+                Array.Fill(changes, -1);
+                changes[l] = 0;
+                queue.Enqueue(l);
+                while (queue.Count > 0)
+                {
+                    int a = queue.Dequeue();
+                    foreach (int n in stripNext[a])
+                        if (changes[n] < 0)
+                        {
+                            changes[n] = changes[a] + 1;
+                            queue.Enqueue(n);
+                        }
+                }
+                foreach (var (f, kind, entry) in entries)
+                {
+                    float start = UMath.Clamp(floorY[f] + 0.5f, s.Foot.Y, s.Top);
+                    for (int e = 0; e < strips.Length; e++)
+                    {
+                        int top = changes[e] >= 0 ? stripExit[e] : -1;
+                        // Short ladders lead from one block onto the next: any rise is a way, from the foot a step's more.
+                        if (top < 0 || floorY[top] - floorY[f] < (kind == LinkKind.LadderJump ? 0.2f : 0.5f))
+                            continue;
+                        float metres = UMath.Abs(floorY[top] - start) + changes[e] * CornerLoss;
+                        float cost = entry + metres / climbSpeed + changes[e] * 0.6f;
+                        if (!climbs.TryGetValue(f, out var list))
+                            climbs[f] = list = new List<(int Top, int Ladder, LinkKind Kind, float Cost)>();
+                        int at = list.FindIndex(c => c.Top == top);
+                        if (at < 0)
+                            list.Add((top, l, kind, cost));
+                        else if (cost < list[at].Cost)
+                            list[at] = (top, l, kind, cost);
+                    }
+                }
+            }
+            return climbs;
+        }
+
+        /// <summary>Floors a jump away from a ladder's face (0.75 to 3.5 m, the wall at most 53° off
+        /// straight ahead, nothing solid on the way) whose jump or double jump meets the ladder.</summary>
+        void CatchFloors(in LadderStrip s, List<(int Floor, LinkKind Kind, float Cost)> entries)
+        {
+            float qx = s.Foot.X + s.Out.X * (radius + 0.05f), qz = s.Foot.Z + s.Out.Z * (radius + 0.05f);
+            int r = (int)MathF.Ceiling(3.5f / cell);
+            int cx = (int)MathF.Floor((qx - x0) / cell), cz = (int)MathF.Floor((qz - z0) / cell);
+            for (int iz = cz - r; iz <= cz + r; iz++)
+                for (int ix = cx - r; ix <= cx + r; ix++)
+                {
+                    if (ix < 0 || iz < 0 || ix >= nx || iz >= nz)
+                        continue;
+                    int c = iz * nx + ix;
+                    float dx = qx - CentreX(c), dz = qz - CentreZ(c);
+                    float d = UMath.Sqrt(dx * dx + dz * dz);
+                    if (d < 0.75f || d > 3.5f || -(dx * s.Out.X + dz * s.Out.Z) / d < 0.6f)
+                        continue;
+                    for (int f = floorStart[c]; f < floorStart[c + 1]; f++)
+                    {
+                        float y = floorY[f];
+                        // The feet must come up to where the body's middle is over the foot, and not
+                        // sail over the top; jumping down onto it is fine.
+                        float need = s.Foot.Y - 0.9f + 0.2f - y;
+                        if (need > doubleUp - 0.2f || y > s.Top + 0.7f || entries.Exists(e => e.Floor == f))
+                            continue;
+                        bool clear = true;
+                        for (float t = 0.25f; t < d - 0.4f && clear; t += 0.25f)
+                        {
+                            int col = ColumnAt(CentreX(c) + dx / d * t, CentreZ(c) + dz / d * t);
+                            clear = col < 0 || !Solid(col, y + 0.2f, y + standHeight + UMath.Max(0f, need));
+                        }
+                        if (clear)
+                            entries.Add((f, LinkKind.LadderJump, 0.6f + d / Run + (need > jumpUp - 0.3f ? 0.4f : 0f)));
+                    }
+                }
+        }
 
         // The lowest floor of a column between two heights; -1 for none.
         int Lowest(int col, float above, float upTo)
@@ -867,6 +1112,9 @@ namespace KotH.Shared.Bots
             return linkTo[l];
         }
 
+        // The ladder of a floor's move, -1 for a walk or any other link.
+        int LadderOf(int f, int i) => i < 8 ? -1 : linkLadder[linkStart[f] + i - 8];
+
         static float ExtraOf(Memory m, int f) => m != null ? m.Extra[f] : 0f;
 
         static float PenaltyOf(Memory m, int f, int g)
@@ -1056,10 +1304,7 @@ namespace KotH.Shared.Bots
             for (int f = best; f >= 0; f = parent[f])
                 chain.Add(f);
             chain.Reverse();
-            chainKind.Clear();
-            for (int i = 0; i + 1 < chain.Count; i++)
-                chainKind.Add(KindBetween(chain[i], chain[i + 1]));
-            chainKind.Add(LinkKind.None);
+            KindsOfChain();
             ToCorners(feet, null, corners);
             return true;
         }
@@ -1135,23 +1380,35 @@ namespace KotH.Shared.Bots
             for (int f = last; f >= 0; f = parent[f])
                 chain.Add(f);
             chain.Reverse();
-            chainKind.Clear();
-            for (int i = 0; i + 1 < chain.Count; i++)
-                chainKind.Add(KindBetween(chain[i], chain[i + 1]));
-            chainKind.Add(LinkKind.None);
+            KindsOfChain();
             ToCorners(feet, last == end ? goal : null, corners);
             return true;
         }
 
-        LinkKind KindBetween(int f, int g)
+        void KindsOfChain()
+        {
+            chainKind.Clear();
+            chainLadder.Clear();
+            for (int i = 0; i + 1 < chain.Count; i++)
+            {
+                chainKind.Add(KindBetween(chain[i], chain[i + 1], out int ladder));
+                chainLadder.Add(ladder);
+            }
+            chainKind.Add(LinkKind.None);
+            chainLadder.Add(-1);
+        }
+
+        LinkKind KindBetween(int f, int g, out int ladder)
         {
             LinkKind best = LinkKind.None;
             float bestCost = float.MaxValue;
+            ladder = -1;
             for (int i = 0, n = MoveCount(f); i < n; i++)
                 if (Move(f, i, out float cost, out LinkKind k) == g && cost < bestCost)
                 {
                     bestCost = cost;
                     best = k;
+                    ladder = LadderOf(f, i);
                 }
             return best;
         }
@@ -1175,7 +1432,7 @@ namespace KotH.Shared.Bots
                 if (through && corners.Count > 1)
                     corners[^1] = new Corner { Position = p, Floor = f };
                 else
-                    corners.Add(new Corner { Position = p, Link = chainKind[i], Floor = f });
+                    corners.Add(new Corner { Position = p, Link = chainKind[i], Floor = f, Ladder = chainLadder[i] });
             }
         }
 

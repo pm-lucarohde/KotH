@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using KotH.Shared.Match;
 using KotH.Shared.Mathematics;
+using KotH.Shared.Physics;
 using KotH.Shared.Player;
 using Stride.BepuPhysics;
 using Stride.BepuPhysics.Definitions.Colliders;
@@ -11,7 +12,7 @@ using Stride.Engine;
 namespace KotH.Shared.Bots
 {
     /// <summary>How a stretch of a bot's path is crossed.</summary>
-    public enum LinkKind : byte { None, Drop, Jump, DoubleJump }
+    public enum LinkKind : byte { None, Drop, Jump, DoubleJump, Ladder, LadderJump }
 
     /// <summary>A turn of a path at the feet; Link says how the stretch after it is crossed.</summary>
     public struct Corner
@@ -19,6 +20,7 @@ namespace KotH.Shared.Bots
         public Vector3 Position;
         public LinkKind Link;
         public int Floor;            // the grid floor, -1 for the feet the path starts at
+        public int Ladder;           // the ladder climbed after it, for a Ladder link
     }
 
     /// <summary>Where the bots can go: the climbing grid of the arena's static colliders
@@ -32,7 +34,11 @@ namespace KotH.Shared.Bots
 
         readonly ClimbGrid grid;
 
-        BotNavigation(ClimbGrid grid) => this.grid = grid;
+        BotNavigation(ClimbGrid grid, IReadOnlyList<LadderStrip> ladders)
+        {
+            this.grid = grid;
+            Ladders = ladders;
+        }
 
         public ClimbGrid Grid => grid;
 
@@ -43,12 +49,21 @@ namespace KotH.Shared.Bots
                                           Vector3 start)
         {
             var tris = new List<ClimbGrid.Triangle>();
+            var ladders = new List<LadderStrip>();
             foreach (Entity e in arena)
+            {
                 if (e.Get<StaticComponent>()?.Collider is CompoundCollider compound)
                     foreach (ColliderBase c in compound.Colliders)
                         AddShape(e.Transform.Position, e.Transform.Rotation, c, tris);
-            return new BotNavigation(ClimbGrid.Build(tris, motor, s, zone, seed, start));
+                // In the arena's order, as WorldBuilder hands them to the motors: the indices agree.
+                if (e.Get<Ladder>() is { } ladder)
+                    ladders.Add(ladder.Strip());
+            }
+            return new BotNavigation(ClimbGrid.Build(tris, ladders, motor, s, zone, seed, start), ladders);
         }
+
+        /// <summary>The arena's ladders, indexed as the motors and the grid's Ladder links know them.</summary>
+        public IReadOnlyList<LadderStrip> Ladders { get; }
 
         // A box as 12 triangles, a triangle as itself, wound so the face
         // normal points out of the solid (the grid tells floors from ceilings).
