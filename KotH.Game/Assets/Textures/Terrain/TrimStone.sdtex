@@ -1,0 +1,8 @@
+!Texture
+Id: EF003F41-90D6-53B4-9A34-F3D8E44FA83A
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../../Resources/Textures/Terrain/TrimStone.png
+IsCompressed: true
+Type: !ColorTextureType
+    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}

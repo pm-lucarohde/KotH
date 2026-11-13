@@ -1,0 +1,8 @@
+!Texture
+Id: 4F66C027-20F7-529C-B187-F65489A21C1B
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../../Resources/Textures/Terrain/Paving.png
+IsCompressed: true
+Type: !ColorTextureType
+    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}

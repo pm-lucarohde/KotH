@@ -3,7 +3,9 @@ using KotH.Probes.Harness;
 using KotH.Shared.Hosting;
 using KotH.Shared.Physics;
 using KotH.Shared.Player;
+using KotH.Shared.Simulation;
 using Stride.Core.Mathematics;
+using Stride.Engine;
 
 namespace KotH.Probes.Probes
 {
@@ -23,8 +25,13 @@ namespace KotH.Probes.Probes
 
         int failures;
 
+        /// <summary>Climbs every ladder of The Ladder instead (ladder map).</summary>
+        public bool OnMap { get; init; }
+
         public override int Run(HeadlessWorld world, int maxTicks)
         {
+            if (OnMap)
+                return ClimbMap(world);
             PlayerMotor motor = Prototype.Open(world).Motor;
             world.Queries.Ladders.Add(Strip(Top));
             Arena.AddBox(world, "LadderPad", Ref.ToUnity(new Vector3(PadTop.X, 0.25f, PadTop.Z)), new Vector3(1f, 0.5f, 1f));
@@ -75,6 +82,11 @@ namespace KotH.Probes.Probes
             Ticks(motor, new MoveInput { Crouch = true }, 20, m => false);
             Check(motor.IsClimbing && MathF.Abs(Feet(motor) - feet0) < 0.001f, $"crouching holds ({Feet(motor) - feet0:F4} m)");
 
+            // A ledge 0.4 m over the top, as a half slab over the last block: stepped onto.
+            world.Queries.Ladders[0] = Strip(Top - 0.4f);
+            Stand(motor, Foot.X, Wall + 1.5f);
+            over = Ticks(motor, up, 200, m => !m.IsClimbing && m.IsGrounded && Feet(m) > Top - 0.01f);
+            Check(over >= 0, $"a ledge 0.4 m over the top is stepped onto (tick {over}, feet {Feet(motor):F3})");
             world.Queries.Ladders[0] = Strip(Top);
 
             // Jump off: away from the wall, as high as a ground jump, and no catch at once.
@@ -107,6 +119,51 @@ namespace KotH.Probes.Probes
 
         static LadderStrip Strip(float top)
             => new LadderStrip(Foot, new Vector3(0f, 0f, 1f), new Vector3(-1f, 0f, 0f), 0.5f, top);
+
+        /// <summary>From each strip's foot, held towards its wall for 15 s: it ends standing on top, or
+        /// hanging at the top under a wall (a gap of the source); anything else is a deviation.</summary>
+        int ClimbMap(HeadlessWorld world)
+        {
+            world.LoadArena(Maps.TheLadder);
+            Entity body = world.SpawnBody(HeadlessWorld.PlayerBodyUrl, new Vector3(0f, 5f, 13f), Quaternion.Identity);
+            PlayerMotor motor = SimulationBody.Wire(body, world.Queries);
+            int hanging = 0;
+            for (int i = 0; i < world.Queries.Ladders.Count; i++)
+            {
+                LadderStrip s = world.Queries.Ladders[i];
+                Vector3 at = s.Foot + s.Out * (motor.BodyRadius + 0.05f);
+                motor.Teleport(new Vector3(at.X, s.Foot.Y + 0.95f, at.Z));
+                var input = new MoveInput { Move = new Vector2(0f, 1f), Yaw = MathF.Atan2(s.Out.X, s.Out.Z) * 180f / MathF.PI };
+                float peak = float.MinValue;
+                bool caught = false;
+                int held = 0;
+                // Until it lets go (then it stands still a moment) or hangs at the top for half a second.
+                for (int t = 0; t < 600 && held < 20; t++)
+                {
+                    motor.Tick(input, FixedDeltaTime);
+                    caught |= motor.IsClimbing;
+                    peak = MathF.Max(peak, Feet(motor));
+                    held = motor.IsClimbing && Feet(motor) >= s.Top ? held + 1 : 0;
+                    if (caught && !motor.IsClimbing)
+                    {
+                        for (int k = 0; k < 10; k++)
+                            motor.Tick(default, FixedDeltaTime);
+                        break;
+                    }
+                }
+                float feet = Feet(motor);
+                bool onTop = !motor.IsClimbing && motor.IsGrounded && feet >= s.Top - 0.05f;
+                bool hangs = held >= 20;
+                hanging += hangs ? 1 : 0;
+                string what = onTop ? "on top" : hangs ? "hangs at the top" : $"stopped (climbing {motor.IsClimbing}, peak {peak - s.Foot.Y:F2} m)";
+                bool ok = caught && (onTop || hangs);
+                failures += ok ? 0 : 1;
+                Log($"[ladder] {i,2} at ({s.Foot.X:F1}, {s.Foot.Z:F1}) out ({s.Out.X:F0}, {s.Out.Z:F0}), {s.Foot.Y:F1}-{s.Top:F1} m: " +
+                    $"{what}, feet {feet:F2}" + (ok ? "" : " -> DEVIATION"));
+            }
+            Log($"[ladder] {world.Queries.Ladders.Count} ladders, {hanging} hang under a wall, {failures} deviations");
+            return failures;
+        }
 
         void Check(bool ok, string what)
         {

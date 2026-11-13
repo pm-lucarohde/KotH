@@ -1,0 +1,28 @@
+!MaterialAsset
+Id: DE15AD11-70A5-5902-9819-A3C32140AF33
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Attributes:
+    MicroSurface: !MaterialGlossinessMapFeature
+        GlossinessMap: !ComputeFloat
+            Value: 0.15
+    Diffuse: !MaterialDiffuseMapFeature
+        DiffuseMap: !ComputeShaderClassColor
+            MixinReference: PaintedTriplanar
+            Generics:
+                f5ad2e7fa3805a219ff2eb10b040fcd9~PaintKey: !ComputeColorParameterTexture
+                    Texture:
+                        Texture: EF003F41-90D6-53B4-9A34-F3D8E44FA83A:Textures/Terrain/TrimStone
+            CompositionNodes: {}
+    DiffuseModel: !MaterialDiffuseLambertModelFeature {}
+    Specular: !MaterialMetalnessMapFeature
+        MetalnessMap: !ComputeFloat
+            Value: 0.0
+    SpecularModel: !MaterialSpecularMicrofacetModelFeature
+        Fresnel: !MaterialSpecularMicrofacetFresnelSchlick {}
+        Visibility: !MaterialSpecularMicrofacetVisibilitySmithSchlickGGX {}
+        NormalDistribution: !MaterialSpecularMicrofacetNormalDistributionGGX {}
+        Environment: !MaterialSpecularMicrofacetEnvironmentGGXLUT {}
+    Overrides:
+        UVScale: {X: 1.0, Y: 1.0}
+Layers: {}

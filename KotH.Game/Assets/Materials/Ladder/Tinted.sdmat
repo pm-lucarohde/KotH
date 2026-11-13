@@ -12,7 +12,7 @@ Attributes:
             Generics:
                 82629cb006724b55ae5144fa80386aa1~PaintKey: !ComputeColorParameterTexture
                     Texture:
-                        Texture: DF5803C0-795E-4044-B994-244712EE32BA:Textures/Terrain/Quartz
+                        Texture: 98BB72A8-C1D6-5F8F-B5EF-E2D932672B40:Textures/Terrain/Marble
             CompositionNodes: {}
     DiffuseModel: !MaterialDiffuseLambertModelFeature {}
     Specular: !MaterialMetalnessMapFeature

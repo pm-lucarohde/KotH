@@ -1,0 +1,28 @@
+!MaterialAsset
+Id: 0621B7AD-DD21-5139-B493-E553F01BF3CE
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Attributes:
+    MicroSurface: !MaterialGlossinessMapFeature
+        GlossinessMap: !ComputeFloat
+            Value: 0.3
+    Diffuse: !MaterialDiffuseMapFeature
+        DiffuseMap: !ComputeShaderClassColor
+            MixinReference: PaintedTriplanar
+            Generics:
+                833aed84564055029b05d6ce703290e4~PaintKey: !ComputeColorParameterTexture
+                    Texture:
+                        Texture: 98BB72A8-C1D6-5F8F-B5EF-E2D932672B40:Textures/Terrain/Marble
+            CompositionNodes: {}
+    DiffuseModel: !MaterialDiffuseLambertModelFeature {}
+    Specular: !MaterialMetalnessMapFeature
+        MetalnessMap: !ComputeFloat
+            Value: 0.0
+    SpecularModel: !MaterialSpecularMicrofacetModelFeature
+        Fresnel: !MaterialSpecularMicrofacetFresnelSchlick {}
+        Visibility: !MaterialSpecularMicrofacetVisibilitySmithSchlickGGX {}
+        NormalDistribution: !MaterialSpecularMicrofacetNormalDistributionGGX {}
+        Environment: !MaterialSpecularMicrofacetEnvironmentGGXLUT {}
+    Overrides:
+        UVScale: {X: 1.0, Y: 1.0}
+Layers: {}

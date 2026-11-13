@@ -36,6 +36,8 @@ var painters = new (string Name, Func<PyRandom, (PilImage Image, double[] Relief
     ("Quartz", Flat(Quartz)), ("Planks", Flat(Planks)), ("Cobble", Flat(Cobble)), ("Sandstone", Flat(Sandstone)),
     // Volcano's rock (Luca: grey-black like a real volcano), after them for the same reason.
     ("Basalt", Flat(Basalt)),
+    // The Ladder's painted marble (Luca: "fewer squares, drawn by hand like Atrium"), last again.
+    ("Marble", Flat(Marble)), ("Paving", Flat(Paving)), ("TrimStone", Flat(TrimStone)),
 };
 Directory.CreateDirectory(outDir);
 var painted = new List<PilImage>();
@@ -853,6 +855,112 @@ static PilImage Cobble(PyRandom rng)
         }
     Stones(img, rng, specs, 0.7, 150);
     Brush(img, rng, 90, [[152, 150, 144, 70], [96, 96, 92, 70]], (30, 70), (8, 14), 0.0, 1.5);
+    return img.Convert("RGB");
+}
+
+// Cut stone in courses of mixed heights, each stone its own length, worn round at the corners:
+// painted like Masonry (dark rim, lit top-left edge) but off any block grid. 2 m per repeat.
+static PilImage Ashlar(PyRandom rng, int[] mortar, int[][] tones, double[] heights, (double, double) length, double joint, double bevel)
+{
+    int size = Small;
+    PilImage img = Tinted(mortar, Shade(mortar, 1.08), Shade(mortar, 0.9), Clouds(rng, size, 4, 80, 180));
+    var (lay, d) = Layer(size);
+    var rows = new List<double>();
+    while (rows.Sum() < size - heights.Min() * size)
+        rows.Add(rng.Choice(heights) * size);
+    double scaleY = size / rows.Sum(), y0 = 0;
+    foreach (double rh in rows.Select(h => h * scaleY))
+    {
+        var widths = new List<double>();
+        while (widths.Sum() < size)
+            widths.Add(rng.Uniform(length.Item1, length.Item2) * size);
+        double scaleX = size / widths.Sum(), x0 = rng.Uniform(0, size);
+        foreach (double w in widths.Select(v => v * scaleX))
+        {
+            int[] c = Shade(rng.Choice(tones), rng.Uniform(0.95, 1.05));
+            double j = joint / 2, r = Math.Min(w, rh) * rng.Uniform(0.08, 0.16);
+            Pts Box(double inLeft, double inTop, double inRight, double inBottom) => Rounded(j + inLeft, j + inTop, w - j - inRight, rh - j - inBottom, r, rng);
+            var shapes = new List<(Pts, byte[])> { (Box(0, 0, 0, 0), Ink(Shade(c, 0.8))), (Box(0, 0, bevel, bevel), Ink(Shade(c, 1.1))),
+                                                   (Box(bevel, bevel, bevel, bevel), Ink(c)) };
+            Polys(d, size, x0, y0, Math.Max(w, rh), shapes);
+            x0 += w;
+        }
+        y0 += rh;
+    }
+    img.AlphaComposite(Blur(lay, Edge));
+    return img;
+}
+
+// A rectangle from (x0, y0) to (x1, y1) with its corners cut round by about r, each a little off.
+static Pts Rounded(double x0, double y0, double x1, double y1, double r, PyRandom rng)
+{
+    var pts = new Pts();
+    foreach (var (sx, sy, a) in new[] { (-1, 1, -90.0), (-1, -1, 0.0), (1, -1, 90.0), (1, 1, 180.0) })
+    {
+        double k = r * rng.Uniform(0.7, 1.3);
+        double cx = (sx < 0 ? x1 : x0) + sx * k, cy = (sy > 0 ? y0 : y1) + sy * k;
+        for (int i = 0; i <= 3; i++)
+        {
+            double t = (a + 30 * i) * Math.PI / 180;
+            pts.Add((cx + k * Libm.cos(t), cy + k * Libm.sin(t)));
+        }
+    }
+    return pts;
+}
+
+// Veins: long, thin, bent strokes in a soft grey, as in marble.
+static void Veins(PilImage img, PyRandom rng, int count, int[] colour)
+    => Brush(img, rng, count, [colour, Shade(colour, 1.1)], (120, 300), (2, 4), rng.Uniform(0, Math.PI), Math.PI, 0.25);
+
+static PilImage Marble(PyRandom rng)
+{
+    PilImage img = Ashlar(rng, [184, 176, 164], [[236, 231, 220], [228, 222, 210], [240, 236, 226], [222, 215, 203]],
+                          [0.2, 0.28, 0.4], (0.3, 0.8), 7, 10);
+    Brush(img, rng, 90, [[246, 243, 236, 70], [212, 204, 192, 60]], (40, 110), (10, 20), 0.0, 0.3);
+    Veins(img, rng, 10, [168, 160, 150, 130]);
+    Cracks(img, rng, 3, [150, 142, 132, 200], [248, 244, 236, 160]);
+    return img.Convert("RGB");
+}
+
+static PilImage TrimStone(PyRandom rng)
+{
+    PilImage img = Ashlar(rng, [118, 112, 104], [[178, 172, 162], [168, 162, 152], [186, 180, 170]], [0.24, 0.32], (0.3, 0.7), 8, 10);
+    Brush(img, rng, 120, [[192, 186, 176, 70], [146, 140, 132, 70]], (40, 110), (10, 20), 0.0, 0.3);
+    Cracks(img, rng, 4, [104, 98, 92, 210], [204, 198, 188, 150]);
+    return img.Convert("RGB");
+}
+
+// Flagstones: a jittered grid over the tile, cells now and then joined to long slabs, each stone
+// an uneven four-sided slab with worn corners; pale marble over a warm grey joint.
+static PilImage Paving(PyRandom rng)
+{
+    int size = Small, n = 5;
+    PilImage img = Tinted([150, 142, 130], [162, 154, 142], [136, 128, 118], Clouds(rng, size, 4, 80, 180));
+    var (lay, d) = Layer(size);
+    double cell = (double)size / n;
+    var jit = new (double X, double Y)[n, n];
+    for (int i = 0; i < n; i++)
+        for (int j = 0; j < n; j++)
+            jit[i, j] = (rng.Uniform(-0.18, 0.18) * cell, rng.Uniform(-0.18, 0.18) * cell);
+    (double, double) Corner(int i, int j) => (i * cell + jit[(i % n + n) % n, (j % n + n) % n].X, j * cell + jit[(i % n + n) % n, (j % n + n) % n].Y);
+    int[][] tones = [[226, 219, 206], [218, 210, 196], [232, 226, 214], [210, 202, 189]];
+    for (int j = 0; j < n; j++)
+        for (int i = 0; i < n; )
+        {
+            int span = i < n - 1 && rng.Random() < 0.3 ? 2 : 1;
+            var (ax, ay) = Corner(i, j); var (bx, by) = Corner(i + span, j); var (cx, cy) = Corner(i + span, j + 1); var (ex, ey) = Corner(i, j + 1);
+            double mx = (ax + bx + cx + ex) / 4, my = (ay + by + cy + ey) / 4;
+            Pts Quad(double k, double dx, double dy) => [.. new[] { (ax, ay), (bx, by), (cx, cy), (ex, ey) }
+                .Select(p => (mx + (p.Item1 - mx) * k + dx - mx, my + (p.Item2 - my) * k + dy - my))];
+            int[] c = Shade(rng.Choice(tones), rng.Uniform(0.95, 1.05));
+            Polys(d, size, mx, my, cell * 2.5, [(Quad(0.94, 0, 0), Ink(Shade(c, 0.8))), (Quad(0.9, -3 * K, -3 * K), Ink(Shade(c, 1.08))),
+                                                (Quad(0.88, 0, 0), Ink(c))]);
+            i += span;
+        }
+    img.AlphaComposite(Blur(lay, Edge));
+    Brush(img, rng, 100, [[240, 236, 226, 70], [196, 188, 176, 60]], (40, 110), (10, 20), 0.0, 0.3);
+    Veins(img, rng, 5, [168, 160, 148, 120]);
+    Cracks(img, rng, 4, [140, 132, 122, 200], [244, 238, 228, 150]);
     return img.Convert("RGB");
 }
 

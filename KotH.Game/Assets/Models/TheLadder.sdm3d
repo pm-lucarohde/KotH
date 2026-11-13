@@ -10,29 +10,34 @@ Materials:
         MaterialInstance:
             Material: C51614D4-40C4-46E3-812D-C1F0A3BAB531:Materials/Atrium/Glass
             IsShadowCaster: false
+    bb401ca531b156ec92dcf0f662f925dc:
+        Name: Marble
+        MaterialInstance:
+            Material: 0621B7AD-DD21-5139-B493-E553F01BF3CE:Materials/Ladder/Marble
+            IsShadowCaster: true
+    4eca0ba187a757d48a597560968e93b2:
+        Name: Mat
+        MaterialInstance:
+            Material: DC1F1D0F-9034-5099-9DCB-C78996FB953A:Materials/Ladder/Mat
+            IsShadowCaster: true
+    67db3c5582bc592a828bb41f7e3ab053:
+        Name: Paving
+        MaterialInstance:
+            Material: 1EF5F471-C895-5D6A-B29D-BB8F0CD4DD03:Materials/Ladder/Paving
+            IsShadowCaster: true
     2b5e078c22f64bfd85706ed79f22cf55:
         Name: Planks
         MaterialInstance:
             Material: 758240C0-D685-4A7A-B529-797CC0282586:Materials/Atrium/Planks
             IsShadowCaster: true
-    f2a81c3af85c48059cabd26cd9573973:
-        Name: Quartz
-        MaterialInstance:
-            Material: D1EF286B-1D49-4447-BAB3-76678100DED5:Materials/Atrium/Quartz
-            IsShadowCaster: true
-    529fa76c3c8f43f9b4d33b94ec5a3348:
-        Name: Slime
-        MaterialInstance:
-            Material: 22312902-E0E3-4CE1-A2DA-6BE76A4E9D8E:Materials/Ladder/Slime
-            IsShadowCaster: false
-    1f36c54b3aad49ac9f399aba87b1690f:
-        Name: Smooth
-        MaterialInstance:
-            Material: 053D9A91-49A8-45AC-BA46-B1B72826A58C:Materials/Atrium/Smooth
-            IsShadowCaster: true
     d46095df76b8445c954c15e6ea0811e1:
         Name: Tinted
         MaterialInstance:
             Material: EA7A3C23-BC90-4F1E-8C90-7394A3F582B5:Materials/Ladder/Tinted
+            IsShadowCaster: true
+    9f8af42cbcd95594aa2931c6385d5696:
+        Name: Trim
+        MaterialInstance:
+            Material: DE15AD11-70A5-5902-9819-A3C32140AF33:Materials/Ladder/TrimStone
             IsShadowCaster: true
 Modifiers: {}

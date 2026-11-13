@@ -1,14 +1,19 @@
 !MaterialAsset
-Id: 22312902-E0E3-4CE1-A2DA-6BE76A4E9D8E
+Id: 1EF5F471-C895-5D6A-B29D-BB8F0CD4DD03
 SerializedVersion: {Stride: 2.0.0.0}
 Tags: []
 Attributes:
     MicroSurface: !MaterialGlossinessMapFeature
         GlossinessMap: !ComputeFloat
-            Value: 0.7
+            Value: 0.2
     Diffuse: !MaterialDiffuseMapFeature
-        DiffuseMap: !ComputeColor
-            Value: {R: 0.42, G: 0.82, B: 0.3, A: 1.0}
+        DiffuseMap: !ComputeShaderClassColor
+            MixinReference: PaintedTriplanar
+            Generics:
+                3cd780e1fcd85e578c70c905c8a1e942~PaintKey: !ComputeColorParameterTexture
+                    Texture:
+                        Texture: 4F66C027-20F7-529C-B187-F65489A21C1B:Textures/Terrain/Paving
+            CompositionNodes: {}
     DiffuseModel: !MaterialDiffuseLambertModelFeature {}
     Specular: !MaterialMetalnessMapFeature
         MetalnessMap: !ComputeFloat
@@ -18,11 +23,6 @@ Attributes:
         Visibility: !MaterialSpecularMicrofacetVisibilitySmithSchlickGGX {}
         NormalDistribution: !MaterialSpecularMicrofacetNormalDistributionGGX {}
         Environment: !MaterialSpecularMicrofacetEnvironmentGGXLUT {}
-    Transparency: !MaterialTransparencyBlendFeature
-        Alpha: !ComputeFloat
-            Value: 0.6
-        Tint: !ComputeColor
-            Value: {R: 1.0, G: 1.0, B: 1.0, A: 1.0}
     Overrides:
         UVScale: {X: 1.0, Y: 1.0}
 Layers: {}

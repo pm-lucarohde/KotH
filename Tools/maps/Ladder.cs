@@ -1,6 +1,6 @@
 #!/usr/bin/env -S dotnet run
 // Map "The Ladder" after "The Ultimate King of the Ladder" by KRMisha and Invensations (with permission): its
-// tower measured from .work/ladder/blocks.pkl (1 m across, 0.8 m high), rebuilt as marble in the eight colours.
+// tower measured from .work/ladder/blocks.pkl (1 m across, 0.8 m high), rebuilt as painted marble in its colours.
 // Writes TheLadder.glb, TheLadderTerrain.bin and the collision prefab's Ladder/Pad entities.
 // Usage: dotnet run Tools/maps/Ladder.cs, then Tools/maps/MapUV --map TheLadder.
 #:project ../../KotH.MapFormat/KotH.MapFormat.csproj
@@ -44,7 +44,6 @@ static (double, double, double, double) Tone(double r, double g, double b) => (r
 (double, double, double, double) Side(double degrees) => sides[(((int)Math.Round(degrees / 45)) % 8 + 8) % 8];
 (double, double, double, double) SideOf(double x, double z) => Side(Math.Atan2(z, x) * 180 / Math.PI);
 var gem = Tone(0.6, 0.92, 0.9);
-var slime = Tone(0.38, 0.7, 0.26);
 
 // A square shaft at (x, z) from bottom to top (metres), w x d with corners cut by c, its sides along facing.
 void Shaft(string material, double x, double z, double bottom, double top, double w, double c, (double, double, double, double)? colour = null,
@@ -60,42 +59,50 @@ void Four(double x, double z, Action<double, double> act)
     foreach (var (a, b) in new[] { (x, z), (-z, x), (-x, -z), (z, -x) })
         act(a, b);
 }
-// A slab hung in the air (bottom to top): a chamfered marble plate on a smaller, darker stone under it.
-void Plate(double x, double z, double bottom, double top)
+// A cone hanging under (x, z) from y down by depth, r wide at the top: what carries every stone in the air.
+void Pendant(double x, double z, double y, double r, double depth, double shade = 0.85)
+    => arena.Lathe("Trim", [(0, y - depth), (r * 0.25, y - depth * 0.8), (r * 0.6, y - depth * 0.4), (r, y - depth * 0.08), (r, y), (0, y)],
+                   true, x, z, chord: 0.12, least: 12, shade: shade);
+// A slab hung in the air (bottom to top): a round marble disc with a rounded lip on a cone.
+void Plate(double x, double z, double bottom, double top, double r = 0.6)
 {
-    Shaft("Quartz", x, z, top - 0.22, top, 1.0, 0.06);
-    Shaft("Smooth", x, z, bottom, top - 0.22, 0.8, 0.05, shade: 0.85);
+    arena.Lathe("Marble", [(0, bottom + 0.1), (r - 0.08, bottom + 0.1), (r, bottom + 0.2), (r, top - 0.06), (r - 0.05, top), (0, top)], true, x, z,
+                chord: 0.12, least: 16);
+    Pendant(x, z, bottom + 0.1, r * 0.7, 0.45);
 }
-// A block hung in the air: the block with cut corners, two smaller steps under it as a pendant.
+// A block hung in the air: an octagonal stone, its corners cut wide, on a cone.
 void Floater(string material, double x, double z, double bottom, double top, (double, double, double, double)? colour = null)
 {
-    Shaft(material, x, z, bottom, top, 1.0, 0.08, colour);
-    Shaft("Smooth", x, z, bottom - 0.12, bottom, 0.7, 0.05, shade: 0.8);
-    Shaft("Smooth", x, z, bottom - 0.22, bottom - 0.12, 0.4, 0.04, shade: 0.75);
+    Shaft(material, x, z, bottom, top, 1.0, 0.2, colour);
+    Pendant(x, z, bottom, 0.42, 0.55, 0.8);
 }
-// A slime pad: a gel block with round corners and a softer top round a darker core.
-(double U, double V)[] Rounded(double w, double r)
+// A trampoline (the source's slime blocks): a round mat in a coloured stone rim on wooden legs, on an
+// octagonal stone (a cone under it unless it stands on a plate). Its collision is the block as it was.
+void Pad(double x, double z, double bottom, double top, (double, double, double, double) colour, bool hangs)
 {
-    var pts = new List<(double U, double V)>();
-    foreach (var (cu, cv, a0) in new[] { (w / 2 - r, r, -90.0), (w / 2 - r, w - r, 0.0), (-w / 2 + r, w - r, 90.0), (-w / 2 + r, r, 180.0) })
-        for (int k = 0; k <= 4; k++)
-            pts.Add((cu + r * Math.Cos(Rad(a0 + 22.5 * k)), cv + r * Math.Sin(Rad(a0 + 22.5 * k))));
-    return [.. pts.Select(p => (p.U, p.V - w / 2))];
-}
-void Pad(double x, double z, double bottom, double top)
-{
-    arena.Bar("Slime", new V3(x, bottom, z), new V3(x, top - 0.07, z), Rounded(0.98, 0.16), true, up: new V3(1, 0, 0));
-    arena.Bar("Slime", new V3(x, top - 0.07, z), new V3(x, top, z), Rounded(0.86, 0.1), true, up: new V3(1, 0, 0));
-    Shaft("Tinted", x, z, bottom + 0.16, top - 0.22, 0.5, 0.08, slime, solid: false);
+    Shaft("Trim", x, z, bottom, bottom + 0.3, 1.0, 0.2, solid: false);
+    if (hangs)
+        Pendant(x, z, bottom, 0.42, 0.5, 0.8);
+    double rim = top - 0.12;
+    arena.Lathe("Tinted", [(0.36, rim), (0.48, rim), (0.5, rim + 0.04), (0.5, top - 0.03), (0.47, top), (0.36, top), (0.34, top - 0.04), (0.36, rim)],
+                false, x, z, chord: 0.1, least: 20, colour: colour);
+    arena.Lathe("Mat", [(0, top - 0.07), (0.36, top - 0.07), (0.36, top - 0.04), (0, top - 0.04)], false, x, z, chord: 0.1, least: 20);
+    for (int k = 0; k < 6; k++)
+    {
+        V3 f = Polar(0.4, 30 + 60 * k, 0);
+        arena.Bar("Planks", new V3(x + f.X, bottom + 0.3, z + f.Z), new V3(x + f.X, rim, z + f.Z),
+                  [.. chunky(0.07, 0.07, 0.02).Select(p => (p.U, p.V - 0.035))], false);
+    }
+    arena.Bar("_solid", new V3(x, bottom, z), new V3(x, top, z), [.. chunky(1.0, 1.0, 0).Select(p => (p.U, p.V - 0.5))], true, up: new V3(1, 0, 0));
 }
 // A round column at (x, z): marble plinth and capital, the shaft coloured.
 void Column(double x, double z, double bottom, double top, double r, (double, double, double, double) colour)
 {
     double w = r + 0.12;
-    arena.Lathe("Quartz", [(w, bottom), (w, bottom + 0.2), (r + 0.06, bottom + 0.3), (r, bottom + 0.38), (0, bottom + 0.38)], true, x, z,
+    arena.Lathe("Marble", [(w, bottom), (w, bottom + 0.2), (r + 0.06, bottom + 0.3), (r, bottom + 0.38), (0, bottom + 0.38)], true, x, z,
                 chord: 0.15, least: 16);
     arena.Lathe("Tinted", [(r, bottom + 0.38), (r, top - 0.38)], true, x, z, chord: 0.15, least: 16, colour: colour);
-    arena.Lathe("Quartz", [(0, top - 0.38), (r, top - 0.38), (r + 0.06, top - 0.3), (w, top - 0.2), (w, top), (0, top)], true, x, z,
+    arena.Lathe("Marble", [(0, top - 0.38), (r, top - 0.38), (r + 0.06, top - 0.3), (w, top - 0.2), (w, top), (0, top)], true, x, z,
                 chord: 0.15, least: 16);
 }
 // A closed ring profile (inner, outer radius, bottom, top), whole or in the eight coloured sectors.
@@ -115,9 +122,9 @@ foreach (var (rIn, rOut, coloured) in floor)
     if (coloured)
         Sectors(Box2(rIn, rOut, -Layer, 0));
     else
-        arena.Lathe("Quartz", Box2(rIn, rOut, -Layer, 0), true);
-arena.Lathe("Quartz", [(14.6, -1.2), (15.6, -1.05), (16.4, -0.95), (16.8, -0.75), (16.8, -0.5), (Disc, -Layer), (14.6, -Layer), (14.6, -1.2)], true);
-arena.Lathe("Smooth", [(0, -10.5), (0.5, -10.0), (0.9, -8.8), (2.2, -7.6), (2.2, -7.2), (5.5, -5.2), (5.5, -4.8), (10, -2.6), (10, -2.2),
+        arena.Lathe("Paving", Box2(rIn, rOut, -Layer, 0), true);
+arena.Lathe("Marble", [(14.6, -1.2), (15.6, -1.05), (16.4, -0.95), (16.8, -0.75), (16.8, -0.5), (Disc, -Layer), (14.6, -Layer), (14.6, -1.2)], true);
+arena.Lathe("Trim", [(0, -10.5), (0.5, -10.0), (0.9, -8.8), (2.2, -7.6), (2.2, -7.2), (5.5, -5.2), (5.5, -4.8), (10, -2.6), (10, -2.2),
                        (14.6, -1.2), (14.6, -Layer), (0, -Layer)], true, shade: 0.85);
 
 // ---- the glass ring r 10: four gates 7 m wide on the axes between square piers, glass on a sill between
@@ -128,64 +135,62 @@ foreach (double m in arms)
     foreach (int s in new[] { -1, 1 })
     {
         V3 p = Polar(Ring, m + s * pier, 0);
-        Shaft("Smooth", p.X, p.Z, 0, 0.4, 1.25, 0.06, facing: m + s * pier);
-        Shaft("Quartz", p.X, p.Z, 0.4, 2.85, 1.0, 0.06, facing: m + s * pier);
-        Shaft("Smooth", p.X, p.Z, 2.85, Top + 0.05, 1.2, 0.06, facing: m + s * pier);
+        Shaft("Trim", p.X, p.Z, 0, 0.4, 1.25, 0.06, facing: m + s * pier);
+        Shaft("Marble", p.X, p.Z, 0.4, 2.85, 1.0, 0.06, facing: m + s * pier);
+        Shaft("Trim", p.X, p.Z, 2.85, Top + 0.05, 1.2, 0.06, facing: m + s * pier);
         // Glass from the pier to the diagonal's column, a slender column halfway.
         double a0 = Math.Min(m + s * pier, m + s * 45), a1 = Math.Max(m + s * pier, m + s * 45);
-        arena.Lathe("Quartz", Box2(9.75, 10.25, 0.01, 0.3), true, a0: Rad(a0), a1: Rad(a1), least: 2);
+        arena.Lathe("Marble", Box2(9.75, 10.25, 0.01, 0.3), true, a0: Rad(a0), a1: Rad(a1), least: 2);
         arena.Lathe("Glass", Box2(9.97, 10.03, 0.25, 2.98), true, a0: Rad(a0 + 0.5), a1: Rad(a1 - 0.5), least: 2);
-        arena.Lathe("Quartz", Box2(9.8, 10.2, 2.95, Top), true, a0: Rad(a0), a1: Rad(a1), least: 2);
+        arena.Lathe("Marble", Box2(9.8, 10.2, 2.95, Top), true, a0: Rad(a0), a1: Rad(a1), least: 2);
         V3 c = Polar(Ring, m + s * slender, 0);
-        arena.Lathe("Quartz", [(0.22, 0.3), (0.16, 0.42), (0.16, 2.8), (0.22, 2.95), (0, 2.95)], true, c.X, c.Z, chord: 0.1, least: 12);
+        arena.Lathe("Marble", [(0.22, 0.3), (0.16, 0.42), (0.16, 2.8), (0.22, 2.95), (0, 2.95)], true, c.X, c.Z, chord: 0.1, least: 12);
     }
 for (int k = 0; k < 4; k++)
 {
     V3 c = Polar(9.9, 45 + 90 * k, 0);
     Column(c.X, c.Z, 0, Top + 0.05, 0.38, Side(45 + 90 * k));
 }
-arena.Lathe("Smooth", Box2(9.5, 10.5, Top, 3.36), true);
+arena.Lathe("Trim", Box2(9.5, 10.5, Top, 3.36), true);
 Sectors(Box2(9.55, 10.45, 3.34, 3.7));
-arena.Lathe("Quartz", [(9.5, 3.6), (10.5, 3.6), (11.0, 3.66), (11.35, 3.76), (11.5, 3.84), (11.5, 4.0), (8.5, 4.0), (8.5, 3.84), (8.65, 3.76),
+arena.Lathe("Marble", [(9.5, 3.6), (10.5, 3.6), (11.0, 3.66), (11.35, 3.76), (11.5, 3.84), (11.5, 4.0), (8.5, 4.0), (8.5, 3.84), (8.65, 3.76),
                        (9.0, 3.66), (9.5, 3.6)], true);
 
 // ---- the outer wall r 16: a moulded plinth, glass between marble piers every 30 degrees and coloured posts
 // on the axes, a cornice; beams on corbels from it to the ring's cornice, two by each gate ----
-arena.Lathe("Quartz", [(15.6, 0), (Disc, 0), (Disc, 0.7), (16.5, 0.8), (15.7, 0.8), (15.6, 0.7), (15.6, 0)], true);
+arena.Lathe("Marble", [(15.6, 0), (Disc, 0), (Disc, 0.7), (16.5, 0.8), (15.7, 0.8), (15.6, 0.7), (15.6, 0)], true);
 arena.Lathe("Glass", Box2(16.05, 16.15, 0.75, Top + 0.02), true);
 for (int k = 0; k < 12; k++)
 {
     V3 p = Polar(Wall, 15 + 30 * k, 0);
-    Shaft("Quartz", p.X, p.Z, 0.05, Top + 0.05, 0.8, 0.06, facing: 15 + 30 * k);
+    Shaft("Marble", p.X, p.Z, 0.05, Top + 0.05, 0.8, 0.06, facing: 15 + 30 * k);
 }
 foreach (double m in arms)
 {
     V3 p = Polar(Wall, m, 0);
     Shaft("Tinted", p.X, p.Z, 0.05, Top + 0.05, 1.0, 0.08, Side(m), facing: m);
 }
-arena.Lathe("Quartz", [(15.7, Top), (16.5, Top), (16.7, 3.35), (16.8, 3.5), (16.8, 4.0), (15.4, 4.0), (15.4, 3.5), (15.5, 3.35), (15.7, Top)], true);
+arena.Lathe("Marble", [(15.7, Top), (16.5, Top), (16.7, 3.35), (16.8, 3.5), (16.8, 4.0), (15.4, 4.0), (15.4, 3.5), (15.5, 3.35), (15.7, Top)], true);
 foreach (double m in arms)
     foreach (int s in new[] { -1, 1 })
     {
-        arena.Bar("Smooth", Arm(m, 10.3, s * 4, 3.3), Arm(m, 16.3, s * 4, 3.3), chunky(0.7, 0.6, 0.08), true);
-        arena.Bar("Smooth", Arm(m, 15.0, s * 4, 2.9), Arm(m, 16.05, s * 4, 2.9), chunky(0.5, 0.42, 0.05), true, shade: 0.85);
+        arena.Bar("Trim", Arm(m, 10.3, s * 4, 3.3), Arm(m, 16.3, s * 4, 3.3), chunky(0.7, 0.6, 0.08), true);
+        arena.Bar("Trim", Arm(m, 15.0, s * 4, 2.9), Arm(m, 16.05, s * 4, 2.9), chunky(0.5, 0.42, 0.05), true, shade: 0.85);
     }
 
 // ---- the centre pillar: a moulded foot, marble to block 24, the collar at 12; again from the cap at 42
 // to 76 and from 80 to the diamond at 96, a hole between (the way goes out round it) ----
-Shaft("Smooth", 0, 0, 0, 0.18, 1.7, 0.06);
-Shaft("Smooth", 0, 0, 0.18, 0.32, 1.4, 0.06);
-Shaft("Quartz", 0, 0, 0.32, H(24), 1.0, 0.1);
-Shaft("Smooth", 0, 0, H(24), H(25), 1.0, 0.1);
-Shaft("Smooth", 0, 0, H(42), H(43), 1.0, 0.1);
-Shaft("Smooth", 0, 0, H(42) - 0.2, H(42), 0.75, 0.06, shade: 0.8);
-Shaft("Smooth", 0, 0, H(42) - 0.4, H(42) - 0.2, 0.45, 0.05, shade: 0.75);
-Shaft("Quartz", 0, 0, H(43), H(76), 1.0, 0.1);
-Shaft("Smooth", 0, 0, H(76), H(77), 1.0, 0.1);
-Shaft("Smooth", 0, 0, H(80), H(81), 1.0, 0.1);
-Shaft("Smooth", 0, 0, H(80) - 0.2, H(80), 0.75, 0.06, shade: 0.8);
-Shaft("Quartz", 0, 0, H(81), H(96), 1.0, 0.1);
-Shaft("Tinted", 0, 0, H(96), H(97), 1.0, 0.2, gem);
+arena.Lathe("Trim", [(0, 0.005), (1.0, 0.005), (1.0, 0.14), (0.9, 0.22), (0.78, 0.26), (0.72, 0.34), (0, 0.34)], true, chord: 0.12, least: 24);
+Shaft("Marble", 0, 0, 0.34, H(24), 1.0, 0.2);
+Shaft("Trim", 0, 0, H(24), H(25), 1.0, 0.2);
+Shaft("Trim", 0, 0, H(42), H(43), 1.0, 0.2);
+Pendant(0, 0, H(42), 0.45, 0.6, 0.8);
+Shaft("Marble", 0, 0, H(43), H(76), 1.0, 0.2);
+Shaft("Trim", 0, 0, H(76), H(77), 1.0, 0.2);
+Shaft("Trim", 0, 0, H(80), H(81), 1.0, 0.2);
+Pendant(0, 0, H(80), 0.45, 0.5, 0.8);
+Shaft("Marble", 0, 0, H(81), H(96), 1.0, 0.2);
+Shaft("Tinted", 0, 0, H(96), H(97), 1.0, 0.3, gem);
 
 // The collar at block 12: a plate round the pillar with slots for its four ladders, its lower step in the
 // sides' colours, arms out to the inner satellites. The slot's corners: 18.4 and 45 degrees from an axis.
@@ -194,7 +199,7 @@ Func<double, double> slots = a => { double f = Fold(a); return (f <= Math.Atan(1
 double[] Corners(double a0, double a1) => [.. Enumerable.Range(-1, 6).SelectMany(q => new[] { q * 90 - 18.435, q * 90 + 18.435, q * 90 + 45.0 })
                                            .Select(Rad).Where(a => a > a0 + 1e-9 && a < a1 - 1e-9)];
 double[] collar = Union(Arena.Angles(0, 2 * Math.PI, 2.5, 2.83), Corners(0, 2 * Math.PI));
-arena.Band("Quartz", slots, Arena.Octagon(2.5, 2.83), H(12) + 0.4, H(13), collar, true);
+arena.Band("Marble", slots, Arena.Octagon(2.5, 2.83), H(12) + 0.4, H(13), collar, true);
 for (int k = 0; k < 8; k++)
 {
     double a0 = Rad(-22.5 + 45 * k), a1 = Rad(22.5 + 45 * k);
@@ -202,64 +207,63 @@ for (int k = 0; k < 8; k++)
                Union(Arena.Angles(a0, a1, 2.2, 2.53), Corners(a0, a1)), true, sides[k]);
 }
 foreach (double m in arms)
-    arena.Bar("Quartz", Arm(m, 2.3, 0, H(12)), Arm(m, 4.5, 0, H(12)), chunky(1.0, 0.4, 0.05), true);
+    arena.Bar("Marble", Arm(m, 2.3, 0, H(12)), Arm(m, 4.5, 0, H(12)), chunky(1.0, 0.4, 0.05), true);
 
 // ---- the inner satellites on the axes at 4 (blocks 1-11): banded marble, carved and coloured stones in
 // the source's order, on a stepped plinth ----
 Four(4, 0, (x, z) =>
 {
-    Shaft("Smooth", x, z, 0, 0.22, 2.2, 0.08);
-    Shaft("Smooth", x, z, 0.22, 0.4, 1.8, 0.06);
+    arena.Lathe("Trim", [(0, 0.005), (1.1, 0.005), (1.1, 0.16), (0.95, 0.26), (0.8, 0.32), (0.75, 0.4), (0, 0.4)], true, x, z, chord: 0.12, least: 24);
     for (int y = 1; y <= 11; y++)
         switch (y % 4)
         {
-            case 1: Shaft("Smooth", x, z, Math.Max(H(y), 0.4), H(y + 1), 1.0, 0.08); break;
-            case 3: Shaft("Tinted", x, z, H(y), H(y + 1), 1.0, 0.08, SideOf(x, z)); break;
-            default: Shaft("Quartz", x, z, H(y), H(y + 1), 1.0, 0.08); break;
+            case 1: Shaft("Trim", x, z, Math.Max(H(y), 0.4), H(y + 1), 1.0, 0.2); break;
+            case 3: Shaft("Tinted", x, z, H(y), H(y + 1), 1.0, 0.2, SideOf(x, z)); break;
+            default: Shaft("Marble", x, z, H(y), H(y + 1), 1.0, 0.2); break;
         }
 });
 
 // ---- the columns over them (blocks 17-40): coloured, marble at both ends, a pendant under the foot ----
 Four(4, 0, (x, z) =>
 {
-    Shaft("Smooth", x, z, H(17) - 0.2, H(17), 0.75, 0.06, shade: 0.8);
-    Shaft("Smooth", x, z, H(17) - 0.35, H(17) - 0.2, 0.45, 0.05, shade: 0.75);
-    Shaft("Quartz", x, z, H(17), H(18), 1.0, 0.08);
-    Shaft("Tinted", x, z, H(18), H(40), 1.0, 0.08, SideOf(x, z));
-    Shaft("Quartz", x, z, H(40), H(41), 1.0, 0.08);
+    Pendant(x, z, H(17), 0.45, 0.6, 0.8);
+    Shaft("Trim", x, z, H(17), H(18), 1.0, 0.2);
+    Shaft("Tinted", x, z, H(18), H(40), 1.0, 0.2, SideOf(x, z));
+    Shaft("Trim", x, z, H(40), H(41), 1.0, 0.2);
 });
 
 // ---- what hangs round the gap and above: plates (top slabs), carved blocks, the platforms at 56 and 59 ----
 foreach (var (x, z) in new[] { (2, 1), (2, -1) })
     Four(x, z, (a, b) => Plate(a, b, H(24) + 0.4, H(25)));
 Four(5, 5, (a, b) => Plate(a, b, H(26) + 0.4, H(27)));
-Four(2, 0, (a, b) => Floater("Quartz", a, b, H(37), H(38)));
+Four(2, 0, (a, b) => Floater("Marble", a, b, H(37), H(38)));
 foreach (var (x, z) in new[] { (4, 3), (3, 4) })
     Four(x, z, (a, b) => Floater("Tinted", a, b, H(41), H(42), SideOf(a, b)));
 Four(2, 2, (a, b) => Floater("Tinted", a, b, H(42), H(43), SideOf(a, b)));
-Four(1, 0, (a, b) => Plate(a, b, H(42) + 0.4, H(43)));
+Four(1, 0, (a, b) => Plate(a, b, H(42) + 0.4, H(43), 0.5));
 Four(3, 0, (a, b) => Plate(a, b, H(49) + 0.4, H(50)));
 foreach (var (x, z) in new[] { (4, 4), (4, 3), (3, 4) })
     Four(x, z, (a, b) => Floater("Tinted", a, b, H(50), H(51), SideOf(a, b)));
 // At 56: a 3 x 3 marble plate on a cross of glass round a coloured stone; at 59 a round one with a pad.
 Four(5, 0, (x, z) =>
 {
-    Shaft("Quartz", x, z, H(56) + 0.4, H(57), 3.0, 0.1);
-    Shaft("Tinted", x, z, H(56), H(56) + 0.4, 1.0, 0.06, SideOf(x, z));
-    Shaft("Smooth", x, z, H(56) - 0.2, H(56), 0.6, 0.05, shade: 0.8);
-    arena.Lathe("Quartz", [(1.35, H(59) + 0.4), (1.5, H(59) + 0.55), (1.5, H(60)), (0, H(60)), (0, H(59) + 0.4)], true, x, z, chord: 0.15, least: 24);
+    arena.Lathe("Marble", [(0, H(56) + 0.4), (1.45, H(56) + 0.4), (1.6, H(56) + 0.5), (1.6, H(57) - 0.06), (1.55, H(57)), (0, H(57))], true, x, z,
+                chord: 0.12, least: 24);
+    Shaft("Tinted", x, z, H(56), H(56) + 0.4, 1.0, 0.2, SideOf(x, z));
+    Pendant(x, z, H(56), 0.42, 0.7, 0.8);
+    arena.Lathe("Marble", [(1.35, H(59) + 0.4), (1.5, H(59) + 0.55), (1.5, H(60)), (0, H(60)), (0, H(59) + 0.4)], true, x, z, chord: 0.15, least: 24);
 });
 foreach (var (x, z) in new[] { (4, 0), (6, 0), (5, 1), (5, -1) })
-    Four(x, z, (a, b) => Shaft("Glass", a, b, H(56), H(56) + 0.4, 1.0, 0.05));
+    Four(x, z, (a, b) => Shaft("Glass", a, b, H(56) + 0.01, H(56) + 0.39, 0.9, 0.2));
 Four(4, 4, (a, b) => Plate(a, b, H(61) + 0.4, H(62)));
-Four(4, 0, (a, b) => Floater("Quartz", a, b, H(77), H(78)));
-Four(4, 4, (a, b) => Floater("Quartz", a, b, H(78), H(79)));
-Four(2, 2, (a, b) => Floater("Quartz", a, b, H(79), H(80)));
+Four(4, 0, (a, b) => Floater("Marble", a, b, H(77), H(78)));
+Four(4, 4, (a, b) => Floater("Marble", a, b, H(78), H(79)));
+Four(2, 2, (a, b) => Floater("Marble", a, b, H(79), H(80)));
 
-// ---- slime pads (bounce): (x, z, block y), each in the four quarters ----
+// ---- trampolines (the source's slime blocks, bounce): (x, z, block y), each in the four quarters ----
 (int X, int Z, int Y)[] pads = [(4, 4, 13), (5, 5, 27), (3, 0, 50), (5, 0, 60), (4, 4, 62), (2, 2, 63)];
 foreach (var (x, z, y) in pads)
-    Four(x, z, (a, b) => Pad(a, b, H(y), H(y + 1)));
+    Four(x, z, (a, b) => Pad(a, b, H(y), H(y + 1), SideOf(a, b), y is 13 or 63));
 
 // ---- ladders: (block x, z it hangs on, outward face (dx, dz), first and last block y), in the four quarters
 // unless marked one; drawn as two rails with rungs 0.3 m apart, 5 cm off the face, not solid ----
@@ -290,9 +294,9 @@ foreach (var (x, z, dx, dz, y0, y1) in strips)
     V3 Face(double across, double y) => new(x + dx * 0.55 - dz * across, y, z + dz * 0.55 + dx * across);
     var up = new V3(dx, 0, dz);
     foreach (int s in new[] { -1, 1 })
-        arena.Bar("Planks", Face(s * 0.37, H(y0) + 0.01), Face(s * 0.37, H(y1 + 1)), [.. chunky(0.06, 0.06, 0.015).Select(p => (p.U, p.V - 0.03))], false, up);
+        arena.Bar("Planks", Face(s * 0.3, H(y0) + 0.01), Face(s * 0.3, H(y1 + 1)), [.. chunky(0.06, 0.06, 0.015).Select(p => (p.U, p.V - 0.03))], false, up);
     for (double y = H(y0) + 0.15; y < H(y1 + 1) - 0.05; y += 0.3)
-        arena.Bar("Planks", Face(-0.35, y), Face(0.35, y), [.. chunky(0.045, 0.045, 0.013).Select(p => (p.U, p.V - 0.0225))], false);
+        arena.Bar("Planks", Face(-0.28, y), Face(0.28, y), [.. chunky(0.045, 0.045, 0.013).Select(p => (p.U, p.V - 0.0225))], false);
 }
 
 // ---- the collision prefab's ladders and pads: one entity each (Ladder_k at its foot on the face, looking
@@ -346,6 +350,9 @@ foreach (var (x, z, dx, dz, y0, y1) in strips)
     File.WriteAllText(prefab, head + "    Parts:\n" + string.Concat(blocks) + string.Concat(made.Select(m => m.Text + "\n")));
     Console.WriteLine($"TheLadderCollision.sdprefab: {strips.Count} ladders, {n} pads");
 }
+
+// The trampolines' blocks are collision only.
+arena.Pieces.Remove("_solid");
 
 // ---- checks: faces lying on each other the same way round flicker (z-fighting) ----
 var faces = new Dictionary<(long, long, long, long), List<(string Name, V3 A, V3 B, V3 C)>>();
@@ -424,7 +431,8 @@ Console.WriteLine($"TheLadder.glb: {arena.Pieces.Values.Sum(p => p.Idx.Count / 3
 Console.WriteLine($"{strips.Count} ladder strips, {strips.Sum(s => s.Y1 - s.Y0 + 1)} blocks; {pads.Length * 4} pads");
 
 string data = Path.Combine(root, "KotH.Shared/Resources/Maps/TheLadderTerrain.bin");
-MapCollision collision = MapCollision.FromTriangles(arena.SolidPos, arena.SolidIdx);
+// 77 m tall: in 4 m cubes, else every query near the tower tests the whole column's triangles.
+MapCollision collision = MapCollision.FromTriangles(arena.SolidPos, arena.SolidIdx, MapCollision.ChunkSize);
 using (var file = File.Create(data))
     collision.Write(file);
 Console.WriteLine($"TheLadderTerrain.bin: {collision.Chunks.Count} chunks, {collision.TriangleCount} triangles, " +

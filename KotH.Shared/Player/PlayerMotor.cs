@@ -908,6 +908,10 @@ namespace KotH.Shared.Player
                    && feet <= s.Top + 2f * TopMargin && feet + currentHeight * 0.5f >= s.Foot.Y;
         }
 
+        /// <summary>A climber whose feet reached its ladder's top: it may step onto a ledge there, as a
+        /// half slab over the ladder's last block, like walking onto a step.</summary>
+        bool AtLadderTop() => climbing && position.Y + FootOffset >= world.Ladders[ladder].Top;
+
         /// <summary>The input's direction on the ground plane, as UpdateHorizontal reads it.</summary>
         Vector3 Wish(in MoveInput input)
         {
@@ -1369,7 +1373,7 @@ namespace KotH.Shared.Player
         {
             if (maxStepHeight <= 0f)
                 return;
-            if (!grounded && !(settling && velocity.Y <= 0f))
+            if (!grounded && !(settling && velocity.Y <= 0f) && !AtLadderTop())
                 return;
 
             Vector3 step = UMath.Mul(new Vector3(velocity.X, 0f, velocity.Z), dt);

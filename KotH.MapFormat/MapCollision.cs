@@ -6,7 +6,7 @@ using System.IO.Compression;
 namespace KotH.MapFormat
 {
     /// <summary>collision.bin, the KTRN v1 stream MountDestiny's ground uses too (zlib): the vertices,
-    /// then per 4 m chunk (by centroid, sorted by x then z) its triangles as vertex triples wound
+    /// then per 4 m chunk (by centroid, sorted by x, z, then height) its triangles as vertex triples wound
     /// into the solid, as Bepu's triangles take them. The game puts each chunk into one compound.</summary>
     public sealed class MapCollision
     {
@@ -34,8 +34,10 @@ namespace KotH.MapFormat
         }
 
         /// <summary>From triangles as glTF draws them (counter-clockwise seen from outside): welds
-        /// equal positions, drops triangles without area, turns each into Bepu's winding.</summary>
-        public static MapCollision FromTriangles(IReadOnlyList<float> positions, IReadOnlyList<int> triangles)
+        /// equal positions, drops triangles without area, turns each into Bepu's winding. A tall map
+        /// splits its columns every chunkHeight metres too: a compound tests each of its triangles.</summary>
+        public static MapCollision FromTriangles(IReadOnlyList<float> positions, IReadOnlyList<int> triangles,
+                                                 float chunkHeight = 0f)
         {
             var weld = new Dictionary<(float, float, float), int>();
             var vertices = new List<float>();
@@ -52,15 +54,17 @@ namespace KotH.MapFormat
                 }
                 remap[i] = at;
             }
-            var chunks = new SortedDictionary<(int, int), List<int>>();
+            var chunks = new SortedDictionary<(int, int, int), List<int>>();
             for (int t = 0; t + 2 < triangles.Count; t += 3)
             {
                 int a = remap[triangles[t]], b = remap[triangles[t + 1]], c = remap[triangles[t + 2]];
                 if (a == b || b == c || a == c || Area2(vertices, a, b, c) <= 1e-12)
                     continue;
                 double cx = ((double)vertices[3 * a] + vertices[3 * b] + vertices[3 * c]) / 3;
+                double cy = ((double)vertices[3 * a + 1] + vertices[3 * b + 1] + vertices[3 * c + 1]) / 3;
                 double cz = ((double)vertices[3 * a + 2] + vertices[3 * b + 2] + vertices[3 * c + 2]) / 3;
-                var key = ((int)Math.Floor(cx / ChunkSize), (int)Math.Floor(cz / ChunkSize));
+                var key = ((int)Math.Floor(cx / ChunkSize), (int)Math.Floor(cz / ChunkSize),
+                           chunkHeight > 0f ? (int)Math.Floor(cy / chunkHeight) : 0);
                 if (!chunks.TryGetValue(key, out List<int> list))
                     chunks[key] = list = new List<int>();
                 list.Add(a);
@@ -68,7 +72,7 @@ namespace KotH.MapFormat
                 list.Add(b);
             }
             var m = new MapCollision { Vertices = vertices.ToArray() };
-            foreach (KeyValuePair<(int, int), List<int>> kv in chunks)
+            foreach (KeyValuePair<(int, int, int), List<int>> kv in chunks)
                 m.Chunks.Add(new Chunk { X = kv.Key.Item1, Z = kv.Key.Item2, Triangles = kv.Value.ToArray() });
             return m;
         }

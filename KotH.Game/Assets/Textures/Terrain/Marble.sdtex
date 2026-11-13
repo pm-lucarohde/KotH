@@ -1,0 +1,8 @@
+!Texture
+Id: 98BB72A8-C1D6-5F8F-B5EF-E2D932672B40
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../../Resources/Textures/Terrain/Marble.png
+IsCompressed: true
+Type: !ColorTextureType
+    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}
