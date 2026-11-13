@@ -70,8 +70,8 @@ Hierarchy:
                         Id: 968A55B0-6546-48A7-82D9-C891B4FE317B
                         Radius: 6.5
                         Surface: 114.6
-                        DamagePerWave: 10.0
-                        WaveSeconds: 1.0
+                        DamagePerWave: 5.0
+                        WaveSeconds: 0.5
                         RespawnAbove: 100.0
         -   Entity:
                 Id: E4437F07-A237-467B-9607-017367D49E86
