@@ -32,6 +32,7 @@ Hierarchy:
                         CloudMap: 8BA09DCC-912C-49F1-8FBE-495F36149FAB:Textures/CloudMap
                         CloudDensity: 0.0
                         CloudShadow: 0.0
+                        CoastDensity: 0.0
                         SmokeDensity: 0.6
                         SmokeSource: {X: 0.0, Y: 114.6, Z: 0.0}
         -   Entity:
