@@ -1,27 +1,39 @@
 /// <summary>Pyramid's far trees (TreeBillboardFeature mixes it in after the vertex stage, in every
-/// pass): each quad, built facing +Z round its tree's foot, turns about its upright against the view
-/// direction, all alike (Luca: turned to the eye each, neighbours cut through each other and blinked),
-/// its normal the way it faces (TreeImpostor lights by it). Side from the atlas tile's u.</summary>
+/// pass): each quad, built facing +Z round its tree's foot, turns about its upright to the eye, its
+/// normal the way it faces (TreeImpostor lights by it). Its depth (perspective views only) is that of
+/// a cylinder round the eye through its foot, so trees sort by distance, whichever way one looks.</summary>
 shader TreeBillboard : TransformationBase, PositionStream4, NormalStream, Transformation, Texturing
 {
     stage stream float4 LeafData : COLOR0;
+    stage stream float3 TreeFoot;
 
     stage override void PreTransformPosition()
     {
         base.PreTransformPosition();
         float3 p = streams.PositionWS.xyz;
-        // 2 x 2 tiles, left half -1; the reach from the upright is COLOR0.z x 10 (TreeImpostor's LeafData).
+        // 2 x 2 tiles, left half -1 (the middle column reaches 0); the reach is COLOR0.z x 10.
         float side = frac(streams.TexCoord.x * 2.0) < 0.5 ? -1.0 : 1.0;
         float reach = side * streams.LeafData.z * 10.0;
         float3 foot = p - float3(reach, 0.0, 0.0);
-        // Back along the view, level: the camera's back axis tilted by the pitch its up axis shows
-        // (rows of ViewInverse; also straight down, where the back axis stands upright).
-        float3 back = ViewInverse[2].xyz, up = ViewInverse[1].xyz;
-        float2 toEye = back.xz * up.y - up.xz * back.y;
+        float2 toEye = Eye.xz - foot.xz;
         float far = length(toEye);
-        float2 facing = far > 1e-4 ? toEye / far : float2(0.0, 1.0);
+        float2 facing = far > 1e-3 ? toEye / far : float2(0.0, 1.0);
         // Right of a face looking along facing (x, z): (z, -x), as +X is right of +Z.
         streams.PositionWS = float4(foot.x + facing.y * reach, p.y, foot.z - facing.x * reach, 1.0);
         streams.meshNormal = float3(facing.x, 0.0, facing.y);
+        streams.TreeFoot = foot;
+    }
+
+    // Luca: flat cards of neighbours cut through each other or swapped in front as the view turned.
+    // Each corner keeps its place on screen, only its depth moves along its ray to the foot's level distance.
+    stage override void PostTransformPosition()
+    {
+        base.PostTransformPosition();
+        if (Projection[3][3] > 0.5)
+            return;
+        float3 ray = streams.PositionWS.xyz - Eye.xyz;
+        float level = max(length(ray.xz), 1e-3);
+        float4 at = mul(float4(Eye.xyz + ray * (length(streams.TreeFoot.xz - Eye.xz) / level), 1.0), ViewProjection);
+        streams.ShadingPosition.z = at.z / at.w * streams.ShadingPosition.w;
     }
 };

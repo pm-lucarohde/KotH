@@ -483,10 +483,13 @@ Console.WriteLine($"TreeImpostors.png, TreeImpostorsNormal.png: trees up to {Py.
     var up = new V3(0, 1, 0);
     foreach (var (r, x, z, w, bottom, top, u0, u1, v0, v1, tint) in stands.OrderBy(s => s.R))
     {
+        // A middle column (reach 0) so the depth TreeBillboard gives follows its cylinder closely.
         var col = (1.0, tint, w / 10, 0.0);
+        var mid = (1.0, tint, 0.0, 0.0);
         int a = far.Add(new V3(x - w, bottom, z), up, col, (u0, v1)), b = far.Add(new V3(x + w, bottom, z), up, col, (u1, v1));
         int c = far.Add(new V3(x + w, top, z), up, col, (u1, v0)), d = far.Add(new V3(x - w, top, z), up, col, (u0, v0));
-        far.Idx.AddRange([a, b, c, a, c, d]);
+        int m0 = far.Add(new V3(x, bottom, z), up, mid, ((u0 + u1) / 2, v1)), m1 = far.Add(new V3(x, top, z), up, mid, ((u0 + u1) / 2, v0));
+        far.Idx.AddRange([a, m0, m1, a, m1, d, m0, b, c, m0, c, m1]);
     }
     Console.WriteLine($"{stands.Count} far trees");
 }
