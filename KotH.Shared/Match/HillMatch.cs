@@ -301,6 +301,8 @@ namespace KotH.Shared.Match
                 FormTeams(bodies);
             if (moving.Count > 0 && state.Phase == MatchPhase.Running && HasSpawnRing)
                 Place(bodies);
+            else if (moving.Count > 0 && state.Phase == MatchPhase.Running && Teamed)
+                LineUp(bodies);
         }
 
         /// <summary>One tick of the round on the poses this tick published. Only the
@@ -677,12 +679,28 @@ namespace KotH.Shared.Match
 
         void PlaceEveryone(IReadOnlyList<SimulationBody> bodies)
         {
-            if (!HasSpawnRing)
+            if (!HasSpawnRing && !Teamed)
                 return;
             moving.Clear();
             for (int i = 0; i < bodies.Count; i++)
                 moving.Add(bodies[i]);
-            Place(bodies);
+            if (HasSpawnRing)
+                Place(bodies);
+            else
+                LineUp(bodies);
+        }
+
+        /// <summary>Without a ring each starts on its marker; one out of the chain's reach of the next up
+        /// the chain (or down, if that one stays) goes beside it, as Place does: from markers far apart
+        /// the chain dragged them across the map, on Pyramid into the hall under the pyramid.</summary>
+        void LineUp(IReadOnlyList<SimulationBody> bodies)
+        {
+            SortByNetId(moving);
+            foreach (SimulationBody body in moving)
+                if ((AheadOf(body, bodies) ?? BehindOf(body, bodies)) is { } mate && (!moving.Contains(mate) || mate.NetId < body.NetId)
+                    && Apart(body, mate) > Reach(body))
+                    PlaceNear(body, mate);
+            moving.Clear();
         }
 
         /// <summary>Puts the bodies in moving at random places in the ring, facing the
@@ -764,6 +782,15 @@ namespace KotH.Shared.Match
                     body.Respawn();
             }
             moving.Clear();
+        }
+
+        static float Reach(SimulationBody body) => body.Simulation?.ChainLength ?? 0f;
+
+        static float Apart(SimulationBody a, SimulationBody b)
+        {
+            Vector3 p = a.Motor.Position, q = b.Motor.Position;
+            float dx = p.X - q.X, dy = p.Y - q.Y, dz = p.Z - q.Z;
+            return UMath.Sqrt(dx * dx + dy * dy + dz * dz);
         }
 
         // Neighbours in a team start this far apart: well inside the chain's reach.
