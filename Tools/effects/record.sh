@@ -48,6 +48,7 @@ run "KOTH_SHOT_SECONDS=8 KOTH_SHOT_STRIKE=2,4" --offline --bots 3 --dlss quality
 run "KOTH_SHOT_SECONDS=8 KOTH_SHOT_THIRD=1 KOTH_SHOT_AT=0,0.95,27.5 KOTH_SHOT_FACE=0 KOTH_SHOT_PITCH=-20" --offline --bots 3 --map Atrium --dlss quality
 run "KOTH_SHOT_SECONDS=8 KOTH_SHOT_THIRD=1 KOTH_SHOT_AT=0,0.95,13 KOTH_SHOT_FACE=0 KOTH_SHOT_PITCH=30" --offline --bots 3 --map TheLadder --dlss quality
 run "KOTH_SHOT_SECONDS=8 KOTH_SHOT_AT=0,137.2,10.4 KOTH_SHOT_FACE=0 KOTH_SHOT_YAW=0 KOTH_SHOT_PITCH=-60" --offline --bots 3 --map Volcano --dlss quality
+run "KOTH_SHOT_SECONDS=6 KOTH_SHOT_AT=-33,0.95,-31 KOTH_SHOT_FACE=0 KOTH_SHOT_YAW=-135 KOTH_SHOT_THIRD=4 KOTH_SHOT_PITCH=-35 KOTH_SHOT_MOVE=0,1" --offline --bots 3 --map Pyramid --dlss quality
 run "KOTH_SHOT_SECONDS=8 KOTH_SHOT_THIRD=1" --offline --bots 3 --map Test --mode duo --dlss quality
 run "KOTH_SHOT_SECONDS=6 KOTH_SHOT_DASH=2.6,3" --offline --bots 3 --map Test
 # The graphics levels (Settings page): Low (no FXAA), Medium and Ultra change shaders (GI steps).
@@ -59,5 +60,6 @@ for q in low medium ultra; do
   run "KOTH_SETTINGS=$root/Tools/effects/$q.toml KOTH_SHOT_SECONDS=8 KOTH_SHOT_AT=0,0.95,27.5 KOTH_SHOT_FACE=0 KOTH_SHOT_PITCH=-20" --offline --bots 3 --map Atrium
   run "KOTH_SETTINGS=$root/Tools/effects/$q.toml KOTH_SHOT_SECONDS=8 KOTH_SHOT_AT=0,0.95,13 KOTH_SHOT_FACE=0 KOTH_SHOT_PITCH=30" --offline --bots 3 --map TheLadder
   run "KOTH_SETTINGS=$root/Tools/effects/$q.toml KOTH_SHOT_SECONDS=8 KOTH_SHOT_AT=0,137.2,10.4 KOTH_SHOT_FACE=0 KOTH_SHOT_YAW=0 KOTH_SHOT_PITCH=-60" --offline --bots 3 --map Volcano
+  run "KOTH_SETTINGS=$root/Tools/effects/$q.toml KOTH_SHOT_SECONDS=6 KOTH_SHOT_AT=-33,0.95,-31 KOTH_SHOT_FACE=0 KOTH_SHOT_YAW=-135 KOTH_SHOT_THIRD=4 KOTH_SHOT_PITCH=-35 KOTH_SHOT_MOVE=0,1" --offline --bots 3 --map Pyramid
 done
 dotnet run Tools/effects/EffectLog.cs -- $log KotH.Game/Assets/EffectCompileLog.sdeffectlog
