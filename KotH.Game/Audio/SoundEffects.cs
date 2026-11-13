@@ -73,6 +73,14 @@ namespace KotH.Client.Audio
         [Display("Hits", "Figures")] public List<Sound> Hits = new List<Sound>();
         [Display("Hit volume", "Figures")] public float HitVolume = 0.71f;
 
+        /// <userdoc>One of these at random for a step in water (Pyramid's pond).</userdoc>
+        [Display("Wading steps", "Figures")] public List<Sound> Wades = new List<Sound>();
+        [Display("Wading volume", "Figures")] public float WadeVolume = 0.15f;
+
+        /// <userdoc>Landing in water.</userdoc>
+        [Display("Splash", "Figures")] public Sound Splash;
+        [Display("Splash volume", "Figures")] public float SplashVolume = 0.16f;
+
         /// <userdoc>When one is hit oneself.</userdoc>
         [Display("Hurt", "Figures")] public Sound Hurt;
         [Display("Hurt volume", "Figures")] public float HurtVolume = 0.71f;
@@ -207,6 +215,15 @@ namespace KotH.Client.Audio
                 case FigureSound.Bounce:
                     if (Bounces.Count > 0)
                         Play(Bounces[random.Next(Bounces.Count)], BounceVolume, at, true, what);
+                    break;
+                case FigureSound.Wade:
+                    if (Wades.Count > 0)
+                        Play(Wades[random.Next(Wades.Count)], WadeVolume * amount, at, true, what);
+                    else
+                        Play(Step, StepVolume * amount, at, true, what);
+                    break;
+                case FigureSound.Splash:
+                    Play(Splash ?? Step, Splash != null ? SplashVolume : StepVolume, at, true, what);
                     break;
                 case FigureSound.Hit:
                     if (motor != null && motor == camera?.Motor)

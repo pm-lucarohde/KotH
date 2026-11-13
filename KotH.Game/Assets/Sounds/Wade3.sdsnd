@@ -1,0 +1,7 @@
+!Sound
+Id: 36D0B9D5-072D-4C9A-A22F-7D1FA477E61A
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Sounds/wade3.wav
+StreamFromDisk: false
+Spatialized: true

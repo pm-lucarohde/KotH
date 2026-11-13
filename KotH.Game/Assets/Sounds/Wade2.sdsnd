@@ -1,0 +1,7 @@
+!Sound
+Id: 8820DF10-4421-471E-A44E-2186F9DEB008
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Sounds/wade2.wav
+StreamFromDisk: false
+Spatialized: true

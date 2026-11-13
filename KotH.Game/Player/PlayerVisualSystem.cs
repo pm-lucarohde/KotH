@@ -295,6 +295,8 @@ namespace KotH.Client.Player
             public float SeenJump; // the motor's SinceGroundJump last frame
             public bool SeenDoubled; // the motor's DoubleJumped last frame
             public Entity[] Shards;
+            public Entity Ripples;
+            public bool Wet;       // wading in water, as of the last frame (Wade)
             public readonly ArmSwing Swing = new ArmSwing();
             public readonly SlamPose Slam = new SlamPose();
         }
@@ -451,6 +453,7 @@ namespace KotH.Client.Player
                 sparkles.Scene?.Entities.Remove(sparkles);
             DropGun(figures[i].Gun);
             DropShards(figures[i].Shards);
+            DropRipples(figures[i].Ripples);
             figures.RemoveAt(i);
         }
 
@@ -540,6 +543,7 @@ namespace KotH.Client.Player
             if (f.Kicked)
                 Spores(f, t.Position - new Vector3(0f, 0.5f * motor.Height + sink, 0f));
             Slam(f);
+            Wade(f, motor, t.Position);
             t.Scale = new Vector3(width, scale, width);
             t.Position.Y += 0.5f * (motor.StandHeight * scale - motor.Height) - sink;
             Blink(f, dt);
@@ -1146,7 +1150,7 @@ namespace KotH.Client.Player
             f.Phase = (f.Phase + speed / cycleMetres * dt) % 1f;
             // Phase 0 puts the left foot down, half the right (.work/rig/rig.py).
             if (footing && speed > 0.5f && (f.Phase < before || before < 0.5f && f.Phase >= 0.5f))
-                Sound(f, FigureSound.Step, crouched > 0.5f ? 0.5f : 0.75f + 0.25f * run);
+                Sound(f, f.Wet ? FigureSound.Wade : FigureSound.Step, crouched > 0.5f ? 0.5f : 0.75f + 0.25f * run);
 
             float follow = 1f - MathF.Exp(-3f * dt / MathF.Max(1e-3f, BlendSeconds));
             if (motor == armsMotor)
@@ -1196,8 +1200,10 @@ namespace KotH.Client.Player
                 return;
             f.LandAge = 0f;
             // A dash landing sounds its impact in Slam instead, before or after this.
+            // Into water it splashes, whatever the height (the feet were above it a frame ago).
+            bool wet = Surface != null && Surface.InWater(motor.BodyCenter - new Vector3(0f, 0.5f * motor.Height, 0f), out _);
             if (!silent && !f.Slammed && (f.Dash == null || f.Dash.LastSlamTick == f.SeenSlam))
-                Sound(f, FigureSound.Land, f.Peak - motor.Position.Y);
+                Sound(f, wet ? FigureSound.Splash : FigureSound.Land, f.Peak - motor.Position.Y);
             f.Slammed = false;
         }
 

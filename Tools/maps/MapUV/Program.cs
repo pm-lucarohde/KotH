@@ -25,9 +25,10 @@ string[] lit = island ? ["Terrain", "Bark"]
                                                                  m == "Water" && map == "Pyramid")];
 if (!island)
     (GrassMap.MaxHeight, GrassMap.TrunkFootY, GrassMap.TrunkFootLow, GrassMap.Borders) = (8f, 7f, 6f, true);
-// Pyramid's trees stand on the garden at 0 m; no grass through its lamps, gold plates or pond.
+// Pyramid's trees stand on the garden at 0 m; no grass through its lamps, gold plates or pond, which
+// the surface map marks as water (ripples and splashes on the client).
 if (map == "Pyramid")
-    (GrassMap.TrunkFootY, GrassMap.TrunkFootLow, GrassMap.Covers) = (1f, -1f, ["Glow", "Sandstone", "Water"]);
+    (GrassMap.TrunkFootY, GrassMap.TrunkFootLow, GrassMap.Covers, GrassMap.Water) = (1f, -1f, ["Glow", "Sandstone", "Water"], "Water");
 string grassPath = Path.Combine(root, $"KotH.Game/Resources/Maps/{map}Grass.bin");
 string contactPath = Path.Combine(root, $"KotH.Game/Resources/Textures/Terrain/{map}Contact.png");
 string surfacePath = Path.Combine(root, $"KotH.Game/Resources/Maps/{map}Surface.bin");

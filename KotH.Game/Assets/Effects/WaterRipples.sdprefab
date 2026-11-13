@@ -1,0 +1,134 @@
+!PrefabAsset
+Id: 2ca33842-a467-4ffd-bc17-a626cf0e8aa7
+SerializedVersion: {Stride: 3.1.0.1}
+Tags: []
+Hierarchy:
+    RootParts:
+        - ref!! 49dfab28-38c4-4112-915f-f23718bb0c27
+    Parts:
+        -   Entity:
+                Id: 49dfab28-38c4-4112-915f-f23718bb0c27
+                Name: WaterRipples
+                Components:
+                    36f85dc3c13a4cd09619202647f0edd2: !TransformComponent
+                        Id: 2352aad8-8fd0-4358-9953-0ad7c1b25456
+                        Position: {X: 0.0, Y: 0.0, Z: 0.0}
+                        Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    403ed4ee53b24a799ac9589d8de37c07: !ParticleSystemComponent
+                        Id: 69d69bc2-11c1-497c-ad1c-68936c09eff1
+                        Control:
+                            ResetSeconds: 0.0
+                            Control: Play
+                        Color: {R: 1.0, G: 1.0, B: 1.0, A: 1.0}
+                        Speed: 1.0
+                        ParticleSystem:
+                            Settings: {}
+                            BoundingShape: null
+                            Emitters:
+                                937c622e17a64428b4b15f8f6a9b44b3:
+                                    EmitterName: rings
+                                    MaxParticlesOverride: 24
+                                    ParticleLifetime: {X: 1.3, Y: 1.7}
+                                    ShapeBuilder: !ShapeBuilderQuad
+                                        SamplerPosition: null
+                                        SamplerSize: null
+                                        SamplerRotation: null
+                                    Material: !ParticleMaterialComputeColor
+                                        AlphaAdditive: 0.0
+                                        ComputeColor: !ComputeBinaryColor
+                                            Operator: Multiply
+                                            LeftChild: !ComputeTextureColor
+                                                Texture: 74C0C18D-7346-4DF9-B52E-26E5692692BA:Textures/Ripple
+                                                FallbackValue:
+                                                    Value: {R: 1.0, G: 1.0, B: 1.0, A: 1.0}
+                                                Scale: {X: 1.0, Y: 1.0}
+                                                Offset: {X: 0.0, Y: 0.0}
+                                                Swizzle: null
+                                            RightChild: !ComputeVertexStreamColor
+                                                Stream: !ColorVertexStreamDefinition {}
+                                        UVBuilder: null
+                                        ForceTexCoords: false
+                                    Spawners:
+                                        c2e17855c8034f3b9f581a6eca6adcbf: !SpawnerPerSecond
+                                            LoopCondition: Looping
+                                            Delay: {X: 0.0, Y: 0.0}
+                                            Duration: {X: 1.0, Y: 1.0}
+                                            SpawnCount: 2.0
+                                    Initializers:
+                                        4ee209e2ac4540d982f499ddcdd40afe: !InitialPositionSeed
+                                            InheritPosition: true
+                                            Position: {X: 0.0, Y: 0.0, Z: 0.0}
+                                            InheritRotation: true
+                                            Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                            InheritScale: true
+                                            Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                                            ScaleUniform: 1.0
+                                            SeedOffset: 0
+                                            DisplayParticlePosition: false
+                                            DisplayParticleRotation: false
+                                            DisplayParticleScale: false
+                                            DisplayParticleScaleUniform: false
+                                            PositionMin: {X: -0.12, Y: 0.0, Z: -0.12}
+                                            PositionMax: {X: 0.12, Y: 0.004, Z: 0.12}
+                                            Interpolate: false
+                                    Updaters:
+                                        396d3745b9b249ea9c048ee429398c2d: !UpdaterSizeOverTime
+                                            InheritPosition: true
+                                            Position: {X: 0.0, Y: 0.0, Z: 0.0}
+                                            InheritRotation: true
+                                            Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                            InheritScale: true
+                                            Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                                            ScaleUniform: 1.0
+                                            DisplayParticlePosition: false
+                                            DisplayParticleRotation: false
+                                            DisplayParticleScale: false
+                                            DisplayParticleScaleUniform: false
+                                            SamplerMain: !ComputeCurveSamplerFloat
+                                                Curve: !ComputeAnimationCurveFloat
+                                                    KeyFrames:
+                                                        40bdc03753fe4a9a91d437b673456cf5:
+                                                            Key: 0.0
+                                                            Value: 0.4
+                                                            TangentType: Linear
+                                                        254f4a00366547e9b0433f07f3b967ba:
+                                                            Key: 0.3
+                                                            Value: 1.2
+                                                            TangentType: Linear
+                                                        c88fc365b6d541b7993f72917ad528d3:
+                                                            Key: 1.0
+                                                            Value: 2.0
+                                                            TangentType: Linear
+                                            SamplerOptional: null
+                                            SeedOffset: 0
+                                        4aa8e9c3460a4ac58c170444d8e488e5: !UpdaterColorOverTime
+                                            InheritPosition: true
+                                            Position: {X: 0.0, Y: 0.0, Z: 0.0}
+                                            InheritRotation: true
+                                            Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                                            InheritScale: true
+                                            Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                                            ScaleUniform: 1.0
+                                            DisplayParticlePosition: false
+                                            DisplayParticleRotation: false
+                                            DisplayParticleScale: false
+                                            DisplayParticleScaleUniform: false
+                                            SamplerMain: !ComputeCurveSamplerColor4
+                                                Curve: !ComputeAnimationCurveColor4
+                                                    KeyFrames:
+                                                        47cdba9ceeac4332b66a74656f75a24a:
+                                                            Key: 0.0
+                                                            Value: {R: 0.9, G: 0.96, B: 1.0, A: 0.0}
+                                                            TangentType: Linear
+                                                        7be0b03558a24f11ba29f12ea069f064:
+                                                            Key: 0.08
+                                                            Value: {R: 0.9, G: 0.96, B: 1.0, A: 0.6}
+                                                            TangentType: Linear
+                                                        a7c79e72d7804349a0dc58852991c0a6:
+                                                            Key: 1.0
+                                                            Value: {R: 0.85, G: 0.93, B: 1.0, A: 0.0}
+                                                            TangentType: Linear
+                                            SamplerOptional: null
+                                            SeedOffset: 0

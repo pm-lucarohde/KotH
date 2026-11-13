@@ -62,6 +62,11 @@ Hierarchy:
                             e82ade9f79215928a505dfe3f276fbb4: 9543A6AB-590B-588C-B1E9-0D7439189A6A:Sounds/Trampoline2
                             6dcc198a953f5556ab9a1eca67e973af: 96053B99-830E-5E3B-B6B2-F3F8FEDBD5FC:Sounds/Trampoline3
                             1acb0ec8271d569d98c76bca97154e76: 7BFA8484-808D-54EF-827D-8508BC3DE73C:Sounds/Trampoline4
+                        Wades:
+                            492e12b487164c709d6874318d13a4f2: 86715B93-6A50-424B-8FBA-ADC87B2C63EC:Sounds/Wade1
+                            f9ce5dd710c748c7a10770f92b10aaad: 8820DF10-4421-471E-A44E-2186F9DEB008:Sounds/Wade2
+                            a19912a5bcc746309e5bd79a7b2082b8: 36D0B9D5-072D-4C9A-A22F-7D1FA477E61A:Sounds/Wade3
+                        Splash: D7CB0459-014F-4192-A20C-5131757820E4:Sounds/Splash
         -   Entity:
                 Id: 87F189D0-5C83-4C57-8C2E-071CB60E54D2
                 Name: ZoneVisual
@@ -135,6 +140,7 @@ Hierarchy:
                         SandChip: F1CA36DF-3164-4C41-B0DD-F1274C1EABB8:Textures/Shards/SandChip
                         SnowChip: 7F2E1119-182D-4EAE-8BE6-762010A33FDA:Textures/Shards/SnowChip
                         RockChip: B79CCE3A-6D0A-43EF-BCAD-B0F0E123F01C:Textures/Shards/RockChip
+                        WaterRipples: 2ca33842-a467-4ffd-bc17-a626cf0e8aa7:Effects/WaterRipples
         -   Entity:
                 Id: A90F450C-B2E7-58FD-B4C5-AE3403470C24
                 Name: Camera

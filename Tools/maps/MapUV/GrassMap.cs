@@ -243,9 +243,11 @@ static class GrassMap
 
     // The surface map: a coarser top view over the same square, per cell the topmost terrain face
     // that faces up at all, the surface its COLOR_0 weighs most (grass, sand, snow, snow cap,
-    // the rest rock) and its height; the client picks the dash's shards by it.
+    // the rest rock) and its height; the client picks the dash's shards by it. Faces of the
+    // material Water names (Pyramid's pond; null on the other maps) are water, kind 5.
     const int SurfaceSize = 512;
     const float FacesUp = 0.3f;
+    public static string? Water;
 
     public static void WriteSurface(string path, List<Primitive> primitives)
     {
@@ -254,9 +256,10 @@ static class GrassMap
         Array.Fill(top, float.NegativeInfinity);
         var kind = new byte[SurfaceSize * SurfaceSize];
 
-        foreach (Primitive prim in primitives.Where(p => p.Material == "Terrain"))
+        foreach (Primitive prim in primitives.Where(p => p.Material == "Terrain" || Water != null && p.Material == Water))
         {
-            float[] pos = prim.Attributes["POSITION"], nrm = prim.Attributes["NORMAL"], col = prim.Attributes["COLOR_0"];
+            bool wet = prim.Material != "Terrain";
+            float[] pos = prim.Attributes["POSITION"], nrm = prim.Attributes["NORMAL"], col = wet ? null : prim.Attributes["COLOR_0"];
             for (int t = 0; t < prim.Indices.Length; t += 3)
             {
                 int a = prim.Indices[t], b = prim.Indices[t + 1], c = prim.Indices[t + 2];
@@ -284,6 +287,11 @@ static class GrassMap
                         if (y <= top[i])
                             continue;
                         top[i] = y;
+                        if (wet)
+                        {
+                            kind[i] = 5;
+                            continue;
+                        }
                         // Grass, sand, snow and the snow cap; rock is what they leave.
                         var w = new float[5];
                         for (int k = 0; k < 4; k++)
@@ -314,10 +322,11 @@ static class GrassMap
                 output.Write((short)(ground ? Math.Clamp(Math.Round(top[i] * 100), short.MinValue, short.MaxValue) : short.MinValue));
             }
         }
-        var counts = new int[5];
+        var counts = new int[6];
         foreach (byte k in kind)
             counts[k]++;
-        Console.WriteLine($"{path}: {new FileInfo(path).Length / 1e3:F0} kB, cells grass {counts[1]}, sand {counts[2]}, snow {counts[3]}, rock {counts[4]}");
+        Console.WriteLine($"{path}: {new FileInfo(path).Length / 1e3:F0} kB, cells grass {counts[1]}, sand {counts[2]}, snow {counts[3]}, rock {counts[4]}" +
+                          (Water != null ? $", water {counts[5]}" : ""));
     }
 
     static ushort Unorm16(float v) => (ushort)Math.Round(Math.Clamp(v, 0, 1) * 65535);

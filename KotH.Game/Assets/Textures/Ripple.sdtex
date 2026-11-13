@@ -1,0 +1,8 @@
+!Texture
+Id: 74C0C18D-7346-4DF9-B52E-26E5692692BA
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Effects/Ripple.png
+IsCompressed: false
+Type: !ColorTextureType
+    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}

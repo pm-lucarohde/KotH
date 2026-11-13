@@ -1,0 +1,7 @@
+!Sound
+Id: D7CB0459-014F-4192-A20C-5131757820E4
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Sounds/splash.wav
+StreamFromDisk: false
+Spatialized: true

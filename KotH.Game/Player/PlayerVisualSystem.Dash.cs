@@ -118,7 +118,7 @@ namespace KotH.Client.Player
                 return;
 
             GroundSurface.Kind kind = Surface?.At(dash.LastSlamPoint) ?? GroundSurface.Kind.Ground;
-            f.Shards ??= new Entity[5];
+            f.Shards ??= new Entity[6];
             ref Entity shards = ref f.Shards[(int)kind];
             bool fresh = shards == null;
             if (fresh)

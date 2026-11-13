@@ -10,7 +10,7 @@ namespace KotH.Client.Rendering
     /// without one is the Test map's plain ground everywhere.</summary>
     public sealed class GroundSurface
     {
-        public enum Kind : byte { Ground, Grass, Sand, Snow, Rock }
+        public enum Kind : byte { Ground, Grass, Sand, Snow, Rock, Water }
 
         // Further above the map's top than this, the landing was on something else: rock.
         const float OnTop = 0.6f;
@@ -60,6 +60,17 @@ namespace KotH.Client.Rendering
             if (kinds[i] == 0 || p.Y > heights[i] * 0.01f + OnTop)
                 return Kind.Rock;
             return (Kind)kinds[i];
+        }
+
+        /// <summary>Whether a figure's feet stand in water (Pyramid's pond) and where its surface is.</summary>
+        public bool InWater(Vector3 feet, out float level)
+        {
+            level = 0f;
+            int x = (int)MathF.Floor((feet.X + half) / cell), z = (int)MathF.Floor((feet.Z + half) / cell);
+            if (x < 0 || z < 0 || x >= size || z >= size || kinds[z * size + x] != (byte)Kind.Water)
+                return false;
+            level = heights[z * size + x] * 0.01f;
+            return feet.Y < level;
         }
     }
 }

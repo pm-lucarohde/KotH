@@ -27,5 +27,9 @@ namespace KotH.Client.Player
         Climb,
         /// <summary>Thrown back up by a trampoline.</summary>
         Bounce,
+        /// <summary>A foot touched down in water; the amount as for Step.</summary>
+        Wade,
+        /// <summary>Landed in water; the amount is the drop as for Land.</summary>
+        Splash,
     }
 }
