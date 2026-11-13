@@ -81,7 +81,7 @@ dotnet run Tools/Regress.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # nu
 - Per map `Maps/NAME`: `NAMECollision` (Shared: collision, markers, zone, bots; no models) and `NAMEVisual` (Game), root
   assets; `Hosting/Maps.cs` (`All` = host's choice). Map change in-process (`GameRoot.UnloadMap`); menu always MountDestiny.
 - Probes load `Test`, except `bots climb`/`jumplab`. **MountDestiny** (123 m): `Tools/maps/Mountain.cs` → `MapUV`;
-  textures `Textures.cs`, sky `Sky.cs`, clouds `Clouds.cs`; grass `GrassField`, shells `ShellField`. View ≤ 20 km. **Atrium** (Shotbow's Minecraft map, with permission): `Atrium.cs` (round arena from `ArenaShapes.cs`) → `MapUV --map Atrium`; `.sdm3d` slots in glb order. **Volcano**: `Mountain.cs --map Volcano` (crater, ring zone `Hole`, `MagmaPool` waves, palms).
+  textures `Textures.cs`, sky `Sky.cs`, clouds `Clouds.cs`; grass `GrassField`, shells `ShellField`. View ≤ 20 km. **Atrium** (Shotbow's Minecraft map, with permission): `Atrium.cs` (round arena from `ArenaShapes.cs`) → `MapUV --map Atrium`; `.sdm3d` slots in glb order. **Volcano**: `Mountain.cs --map Volcano` (crater, ring zone `Hole`, `MagmaPool` waves, palms). **TheLadder** (KRMisha/Invensations' Minecraft tower, with permission): `Ladder.cs` (painted marble, collision in 4 m cubes), `Ladder`/`BouncePad` entities → `PlayerMotor` climbing and trampolines, probe `ladder map`.
 - Custom maps: `KotH.MapFormat` (map.toml, map.glb, KTRN collision.bin), id `local:|ws:NAME@HASH`, `MapLibrary`; kit `MapKit/` (Stride: `export.sh`, textures not streamable; Unity 2022.3/6 package `com.koth.mapkit`, box `unity`, `sync.sh` after MapFormat changes); workshop `SteamUgc` (makers upload with SteamCMD, guests download on join).
 
 ### Client
@@ -96,5 +96,5 @@ dotnet run Tools/Regress.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # nu
   no bot state in the snapshot; in the client on its own thread. Read only snapshot states (teams: the lead's memory via `Peer`), no `System.Random`.
 - `ClimbGrid` (0.5 m columns, floors, moves in seconds), RTAA* to the zone, `JumpPilot` flies every jump in the motor
   model first (no jitter, Luca), `BotBrain` utility AI with `ManeuverWfc`. Status: 312/312 on top, mean 90 s; duo 72/72 (≤ 470 s).
-- Figure (visuals only): `Mushroom.glb` (17 clips, `.work/rig/build.sh`), FP arms in render group 2. The game moves
+- Figure (visuals only): `Mushroom.glb` (20 clips incl. `Climb`, `.work/rig/build.sh`), FP arms in render group 2. The game moves
   `Mouth`, `Leaf.*`, lids, `Look`, `Recoil`, `*ArmSwing.R`: **clips must have no channels for them.** Cane/`Blaster` (1/2) on `Grip.R`.

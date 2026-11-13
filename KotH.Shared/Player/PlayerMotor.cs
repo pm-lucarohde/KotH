@@ -257,6 +257,9 @@ namespace KotH.Shared.Player
         /// <summary>On a ladder (The Ladder): no gravity, the input climbs.</summary>
         public bool IsClimbing => climbing;
 
+        /// <summary>Out of the wall of the ladder climbed (horizontal, unit), zero when not climbing.</summary>
+        public Vector3 LadderOut => climbing ? world.Ladders[ladder].Out : Vector3.Zero;
+
         /// <summary>A dash from the next tick on: straight down at speed, no steering or jumping,
         /// until the ground. Dash decides when; a knock ends it.</summary>
         public void StartSlam(float speed) => slamSpeed = UMath.Max(0f, speed);

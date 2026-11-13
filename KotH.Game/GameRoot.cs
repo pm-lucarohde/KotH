@@ -84,6 +84,9 @@ namespace KotH.Client
         /// <userdoc>The dash's blow: fists driven down, trunk hunched; reached on landing, then let go.</userdoc>
         [Display("Dash smash", "Animation")] public AnimationClip SlamSmashAnimation;
 
+        /// <userdoc>Climbing a ladder: hands reach up in turn, knees come up; the game runs it by the height climbed.</userdoc>
+        [Display("Climb", "Animation")] public AnimationClip ClimbAnimation;
+
         /// <userdoc>Only the mushroom figure's arms; in first person they hang in front of the camera.</userdoc>
         [Display("First person arms", "Visuals")] public Model ArmsModel;
 
@@ -101,6 +104,9 @@ namespace KotH.Client
 
         /// <userdoc>First person arms in the dash: fists driven down out of the view.</userdoc>
         [Display("Arms dash smash", "First person arms")] public AnimationClip ArmsSlamSmash;
+
+        /// <userdoc>First person arms on a ladder: the gloves reach up into the view in turn.</userdoc>
+        [Display("Arms climb", "First person arms")] public AnimationClip ArmsClimb;
 
         /// <userdoc>What each figure holds in its right hand (the bamboo cane), also on the first person arms. Modelled in the figure's rest pose; a bone "Leaf" sways like the figure's leaves.</userdoc>
         [Display("Held object", "Visuals")] public Model HeldModel;
@@ -740,7 +746,7 @@ namespace KotH.Client
             ArmsInFront.Install(SceneSystem, ArmsGroup);
             var model = new ModelComponent(ArmsModel) { RenderGroup = ArmsGroup, IsShadowCaster = false };
             var animation = new AnimationComponent();
-            AnimationClip[] clips = { ArmsIdle, ArmsWalk, ArmsRun, ArmsSlamRaise, ArmsSlamSmash };
+            AnimationClip[] clips = { ArmsIdle, ArmsWalk, ArmsRun, ArmsSlamRaise, ArmsSlamSmash, ArmsClimb };
             for (int i = 0; i < clips.Length; i++)
                 if (clips[i] != null)
                     animation.Animations[PlayerVisualSystem.ArmClips[i]] = clips[i];
@@ -895,7 +901,7 @@ namespace KotH.Client
             AnimationClip[] clips = { IdleAnimation, RestAnimation, WalkForward, WalkBack, WalkLeft, WalkRight,
                                       RunForward, RunBack, RunLeft, RunRight,
                                       CrouchAnimation, CrouchWalk, SlideAnimation, FallAnimation, LandAnimation,
-                                      JumpAnimation, SkyWalkAnimation, SlamRaiseAnimation, SlamSmashAnimation };
+                                      JumpAnimation, SkyWalkAnimation, SlamRaiseAnimation, SlamSmashAnimation, ClimbAnimation };
             if (RestAnimation != null)
             {
                 var animation = new AnimationComponent();

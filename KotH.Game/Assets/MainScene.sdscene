@@ -100,12 +100,14 @@ Hierarchy:
                         SkyWalkAnimation: 4987590E-D0E1-4F00-AC87-95879BAC0B9C:Models/MushroomSkyWalk
                         SlamRaiseAnimation: 894833ED-A8EA-4EB4-B310-55EC1025EA48:Models/MushroomSlamRaise
                         SlamSmashAnimation: 9578CC75-C950-4FA4-8B5D-05EABF2B3886:Models/MushroomSlamSmash
+                        ClimbAnimation: 50709072-CC90-5DD5-89BB-045F6505D019:Models/MushroomClimb
                         ArmsModel: 36F24701-E59F-4D58-901E-BD04F04A5A82:Models/MushroomArms
                         ArmsIdle: 86456098-721D-45B1-99E4-E51050BA448F:Models/MushroomArmsIdle
                         ArmsWalk: 09F4520B-D4A4-499B-9ACF-4ABF11DF74CD:Models/MushroomArmsWalk
                         ArmsRun: B50C2A81-5CF5-4FF4-8159-02B0E1BBDD4D:Models/MushroomArmsRun
                         ArmsSlamRaise: 7C9288F9-91D8-48D6-BE56-5297D60C69FE:Models/MushroomArmsSlamRaise
                         ArmsSlamSmash: DB908BD5-3324-40A8-892D-9B2CFA2C07A4:Models/MushroomArmsSlamSmash
+                        ArmsClimb: 8905C7AD-7939-5D74-8ED4-206A86AE2386:Models/MushroomArmsClimb
                         HeldModel: 917DB35D-46E7-4412-8740-2930F052E2BF:Models/Bamboo
                         HeldBone: Grip.R
                         BlasterModel: 5942B4E1-B131-45B5-B5EA-B7483D477679:Models/Blaster

@@ -183,17 +183,23 @@ namespace KotH.Client.Player
         /// <summary>Clip names in every visual's AnimationComponent: idle, rest, walking
         /// and running forward, back, left and right, then crouched still, crouched
         /// walking, the slide, falling, the landing's give, rising after a jump and the
-        /// kick of the double jump, the dash's wind-up and its blow.</summary>
+        /// kick of the double jump, the dash's wind-up and its blow, climbing a ladder.</summary>
         public static readonly string[] Clips =
             { "Idle", "Rest", "WalkF", "WalkB", "WalkL", "WalkR", "RunF", "RunB", "RunL", "RunR",
-              "Crouch", "CrouchWalk", "Slide", "Fall", "Land", "Jump", "SkyWalk", "SlamRaise", "SlamSmash" };
+              "Crouch", "CrouchWalk", "Slide", "Fall", "Land", "Jump", "SkyWalk", "SlamRaise", "SlamSmash", "Climb" };
         const int IdleIndex = 0, RestIndex = 1, WalkIndex = 2, RunIndex = 6;
         const int CrouchIndex = 10, CrouchWalkIndex = 11, SlideIndex = 12, FallIndex = 13, LandIndex = 14;
-        const int JumpIndex = 15, KickIndex = 16, RaiseIndex = 17, SmashIndex = 18;
+        const int JumpIndex = 15, KickIndex = 16, RaiseIndex = 17, SmashIndex = 18, ClimbIndex = 19;
 
-        /// <summary>Clip names of the first-person arms: still, walking, running, the dash's wind-up and blow.</summary>
-        public static readonly string[] ArmClips = { "Idle", "Walk", "Run", "SlamRaise", "SlamSmash" };
-        const int ArmGaits = 3;
+        /// <summary>Clip names of the first-person arms: still, walking, running, the dash's wind-up and
+        /// blow, climbing a ladder.</summary>
+        public static readonly string[] ArmClips = { "Idle", "Walk", "Run", "SlamRaise", "SlamSmash", "Climb" };
+        const int ArmGaits = 3, ArmClimbIndex = 5;
+        // Metres climbed per cycle of the Climb clips: each hand takes two rungs (0.3 m apart).
+        const float ClimbCycleMetres = 1.2f;
+
+        // How fast the body turns to a ladder's wall when it catches it.
+        const float ClimbTurnSeconds = 0.08f;
 
         // A landing only counts after this long in the air: stepping down a
         // stair or snapping to the ground does not give at the knees.
@@ -253,7 +259,7 @@ namespace KotH.Client.Player
             public SimulationBody Body;
             public PlayerMotor Motor;
             public TransformComponent Transform;
-            public float Phase, BlinkClock, BlinkWait;
+            public float Phase, BlinkClock, BlinkWait, ClimbPhase;
             public float AirTime, LandAge = float.MaxValue, KickAge = float.MaxValue, LastClimb, Peak;
             public int SwingsHeard, SeenPlaced = -1;
             public int[] Lids;
@@ -798,6 +804,15 @@ namespace KotH.Client.Player
                 off *= MathF.Exp(-dt * (1f - twist) / MathF.Max(1e-3f, BodyFollowSeconds));
             float most = MathUtil.DegreesToRadians(MathUtil.Lerp(HeadTurnDegrees, SwingTurnDegrees, twist));
             off = Math.Clamp(off, -most, most);
+            // On a ladder the body faces its wall, turning there quickly; the head keeps the view.
+            Vector3 wall = motor.LadderOut;
+            if (wall != Vector3.Zero)
+            {
+                float yaw = MathF.Atan2(wall.X, wall.Z);
+                float body = f.BodyYaw;
+                body += Wrap(yaw - body) * (1f - MathF.Exp(-dt / ClimbTurnSeconds));
+                off = Math.Clamp(Wrap(f.View - body), -most, most);
+            }
             f.BodyYaw = f.View - off;
             f.HeadYaw = off;
             // The blaster up, the chest turns with the view like in a swing.
@@ -1015,8 +1030,12 @@ namespace KotH.Client.Player
             float crouched = Crouched(motor);
             float stand = 1f - crouched;
             float slide = motor.IsSliding ? 1f : 0f;
+            // On a ladder only the climb shows, run by the height climbed; no flight, no landing.
+            bool climbing = motor.IsClimbing;
+            if (climbing)
+                f.ClimbPhase = ((f.ClimbPhase + v.Y * dt / ClimbCycleMetres) % 1f + 1f) % 1f;
             // Rising shows the jump, falling the fall; at the top the rest pose.
-            bool airborne = !motor.IsGrounded;
+            bool airborne = !motor.IsGrounded && !climbing;
             float falling = airborne ? Smooth(0f, 3f, -v.Y) : 0f;
             float rising = airborne ? Smooth(0f, 3f, v.Y) : 0f;
             // Put down anew (respawn, new round): no kick, jump or fall from the jolt.
@@ -1068,7 +1087,9 @@ namespace KotH.Client.Player
             }
             else
             {
-                Landed(f, motor);
+                // Catching a ladder in a fall is no landing.
+                if (!climbing)
+                    Landed(f, motor);
                 f.AirTime = 0f;
             }
             f.LandAge += dt;
@@ -1096,6 +1117,11 @@ namespace KotH.Client.Player
             target[CrouchIndex] = crouched * (1f - slide) * (1f - moving);
             target[CrouchWalkIndex] = crouched * (1f - slide) * moving;
             target[SlideIndex] = crouched * slide;
+            if (climbing)
+            {
+                target.Clear();
+                target[ClimbIndex] = 1f;
+            }
 
             // One phase for all gaits and headings: their feet touch down together.
             float stepsPerSecond = WalkSteps + (RunSteps - WalkSteps) * run;
@@ -1139,10 +1165,11 @@ namespace KotH.Client.Player
                 float weight = i == LandIndex ? land : i == KickIndex ? kick : i == RaiseIndex ? raise : i == SmashIndex ? smash
                              : f.Weights[i] * MathF.Max(0f, 1f - land - kick - raise - smash);
                 play.Weight = weight < 1e-3f ? 0f : weight;
-                if (i >= WalkIndex && i < RunIndex + 4 || i == CrouchWalkIndex)
+                if (i >= WalkIndex && i < RunIndex + 4 || i == CrouchWalkIndex || i == ClimbIndex)
                 {
                     play.TimeFactor = 0f;
-                    play.CurrentTime = TimeSpan.FromTicks((long)(f.Phase * play.Clip.Duration.Ticks));
+                    float phase = i == ClimbIndex ? f.ClimbPhase : f.Phase;
+                    play.CurrentTime = TimeSpan.FromTicks((long)(phase * play.Clip.Duration.Ticks));
                 }
             }
         }
@@ -1179,8 +1206,9 @@ namespace KotH.Client.Player
             lastStepPhase = f.Phase;
             armPhase = (armPhase + ArmsPace * (step < 0f ? step + 1f : step)) % 1f;
             Span<float> target = stackalloc float[] { 1f - moving, moving * (1f - run), moving * run };
-            // The dash's poses straight from the figure's, over the gaits.
-            float raise = f.Slam.Raise, smash = f.Slam.Smash, gaits = MathF.Max(0f, 1f - raise - smash);
+            // The dash's poses and the climb straight from the figure's, over the gaits.
+            float raise = f.Slam.Raise, smash = f.Slam.Smash, climb = f.Weights[ClimbIndex];
+            float gaits = MathF.Max(0f, 1f - raise - smash - climb);
             armsGive = raise + smash;
             for (int i = 0; i < ArmClips.Length; i++)
             {
@@ -1188,8 +1216,13 @@ namespace KotH.Client.Player
                     armWeights[i] += (target[i] - armWeights[i]) * follow;
                 if (armPlays[i] is not { } play)
                     continue;
-                float weight = i < ArmGaits ? armWeights[i] * gaits : i == ArmGaits ? raise : smash;
+                float weight = i < ArmGaits ? armWeights[i] * gaits : i == ArmGaits ? raise : i == ArmClimbIndex ? climb : smash;
                 play.Weight = weight < 1e-3f ? 0f : weight;
+                if (i == ArmClimbIndex)
+                {
+                    play.TimeFactor = 0f;
+                    play.CurrentTime = TimeSpan.FromTicks((long)(f.ClimbPhase * play.Clip.Duration.Ticks));
+                }
                 if (i >= ArmGaits)
                     continue;
                 if (i > 0)
