@@ -61,6 +61,10 @@ namespace KotH.Client.Audio
         [Display("Blaster shot", "Figures")] public Sound Shot;
         [Display("Blaster shot volume", "Figures")] public float ShotVolume = 0.132f;
 
+        /// <userdoc>One of these at random whenever a hand grabs a ladder's next rung.</userdoc>
+        [Display("Climb grabs", "Figures")] public List<Sound> Climbs = new List<Sound>();
+        [Display("Climb volume", "Figures")] public float ClimbVolume = 0.1f;
+
         /// <userdoc>One of these at random when another figure is hit.</userdoc>
         [Display("Hits", "Figures")] public List<Sound> Hits = new List<Sound>();
         [Display("Hit volume", "Figures")] public float HitVolume = 0.71f;
@@ -191,6 +195,10 @@ namespace KotH.Client.Audio
                     break;
                 case FigureSound.Shot:
                     Play(Shot, ShotVolume, at, true, what);
+                    break;
+                case FigureSound.Climb:
+                    if (Climbs.Count > 0)
+                        Play(Climbs[random.Next(Climbs.Count)], ClimbVolume, at, true, what);
                     break;
                 case FigureSound.Hit:
                     if (motor != null && motor == camera?.Motor)

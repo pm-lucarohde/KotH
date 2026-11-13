@@ -1033,7 +1033,13 @@ namespace KotH.Client.Player
             // On a ladder only the climb shows, run by the height climbed; no flight, no landing.
             bool climbing = motor.IsClimbing;
             if (climbing)
+            {
+                // A hand grabs a rung at every half cycle, up or down.
+                int hand = (int)(f.ClimbPhase * 2f);
                 f.ClimbPhase = ((f.ClimbPhase + v.Y * dt / ClimbCycleMetres) % 1f + 1f) % 1f;
+                if ((int)(f.ClimbPhase * 2f) != hand)
+                    Sound(f, FigureSound.Climb, 1f);
+            }
             // Rising shows the jump, falling the fall; at the top the rest pose.
             bool airborne = !motor.IsGrounded && !climbing;
             float falling = airborne ? Smooth(0f, 3f, -v.Y) : 0f;

@@ -1,0 +1,7 @@
+!Sound
+Id: 29B13F6F-2426-59CE-8CC3-68A25B6879B2
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Sounds/climb2.wav
+StreamFromDisk: false
+Spatialized: true

@@ -53,6 +53,10 @@ Hierarchy:
                             4128e20c94de4a419351c4b92b331d0e: 56344623-DBF6-458E-8D30-882D71160A39:Sounds/Hit1
                             8bac52c48d5e47699955bd7b3b8f187c: 8D1176FC-3ECF-4C14-95A3-88B60B7D4CD7:Sounds/Hit3
                         Hurt: 6F67770C-3D0C-460A-90F3-90C614F2994B:Sounds/Hit2
+                        Climbs:
+                            90f295e1227b5a13a0d6f5766433628a: 60F2A150-980D-521B-A932-62690A3EDEB3:Sounds/Climb1
+                            680cdd1833de5be78abfa017079d5ddf: 29B13F6F-2426-59CE-8CC3-68A25B6879B2:Sounds/Climb2
+                            160838c0542a52a29bd7f8b81acbb17d: EA692233-A11B-5D48-8548-BDF700C5D75D:Sounds/Climb3
         -   Entity:
                 Id: 87F189D0-5C83-4C57-8C2E-071CB60E54D2
                 Name: ZoneVisual

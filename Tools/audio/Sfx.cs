@@ -23,8 +23,10 @@ const double Peak = -1.0;            // dBFS
 const double Silence = -60.0;        // dBFS: quieter than this at either end is cut
 const double Fade = 0.03;            // seconds faded out at the end
 const double LoopFade = 1.0;         // seconds of the ambient's end laid over its start
-string[] sounds = ["blaster", "dash", "dash_impact", "fall", "hit1", "hit2", "hit3", "jump", "slide", "sporejump", "steps", "wind"];
+string[] sounds = ["blaster", "climb1", "climb2", "climb3", "dash", "dash_impact", "fall", "hit1", "hit2", "hit3", "jump", "slide", "sporejump", "steps", "wind"];
 var filters = new Dictionary<string, string> { ["steps"] = "lowpass=f=1000" };   // ffmpeg filters on decoding (Luca: steps too harsh)
+var from = new Dictionary<string, string> { ["climb1"] = "climbing", ["climb2"] = "climbing", ["climb3"] = "climbing" };   // one grab each out of the climb
+filters["climb1"] = "atrim=1.40:1.90"; filters["climb2"] = "atrim=2.74:3.24"; filters["climb3"] = "atrim=5.90:6.40";
 var dryAt = new Dictionary<string, (double, double)> { ["steps"] = (0.04, 0.12) };  // the room's reverb faded out here (Luca: sounded like a hall)
 
 string root = Path.GetFullPath(Path.Combine(Here(), "../.."));
@@ -38,7 +40,7 @@ if (!Directory.Exists(source))
 Directory.CreateDirectory(target);
 foreach (string name in sounds)
 {
-    float[] samples = Trim(Decode(Path.Combine(source, name + ".mp3"), 1, filters.GetValueOrDefault(name)), 1);
+    float[] samples = Trim(Decode(Path.Combine(source, from.GetValueOrDefault(name, name) + ".mp3"), 1, filters.GetValueOrDefault(name)), 1);
     if (dryAt.TryGetValue(name, out var span))
         samples = Dry(samples, span.Item1, span.Item2);
     double before = Loudness(samples, 1, false);

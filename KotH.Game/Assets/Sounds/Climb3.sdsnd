@@ -1,0 +1,7 @@
+!Sound
+Id: EA692233-A11B-5D48-8548-BDF700C5D75D
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Sounds/climb3.wav
+StreamFromDisk: false
+Spatialized: true

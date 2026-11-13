@@ -23,5 +23,7 @@ namespace KotH.Client.Player
         Slam,
         /// <summary>A spore left the blaster.</summary>
         Shot,
+        /// <summary>A hand grabbed the next rung of a ladder.</summary>
+        Climb,
     }
 }

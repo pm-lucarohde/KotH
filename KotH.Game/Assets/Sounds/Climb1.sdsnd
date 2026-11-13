@@ -1,0 +1,7 @@
+!Sound
+Id: 60F2A150-980D-521B-A932-62690A3EDEB3
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Sounds/climb1.wav
+StreamFromDisk: false
+Spatialized: true
