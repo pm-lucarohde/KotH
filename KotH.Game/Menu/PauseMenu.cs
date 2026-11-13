@@ -278,7 +278,7 @@ namespace KotH.Client.Menu
             string chosen = client.NextMap ?? Maps.Default, chosenTitle = chosen;
             var maps = new List<(string Id, string Title, string Kind)>();
             foreach (string map in Maps.All)
-                maps.Add((map, map, ""));
+                maps.Add((map, Maps.Title(map), ""));
             // Custom maps: guests without one download it from the workshop (a local one only they lack).
             if (Library != null)
                 foreach (KotH.MapFormat.MapPackage p in Library.All())

@@ -1,0 +1,38 @@
+!Model
+Id: 45F42B6F-3327-4F10-959D-BA2942D2F03E
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Models/TheLadder.glb
+PivotPosition: {X: 0.0, Y: 0.0, Z: 0.0}
+Materials:
+    56de68fcb3a74bdc82c1996f9c4e221c:
+        Name: Bricks
+        MaterialInstance:
+            Material: A2EDDF15-F2F9-4606-85AA-585372E758FD:Materials/Atrium/Bricks
+            IsShadowCaster: true
+    5082a637591b425b9afee906806130b5:
+        Name: Glass
+        MaterialInstance:
+            Material: C51614D4-40C4-46E3-812D-C1F0A3BAB531:Materials/Atrium/Glass
+            IsShadowCaster: false
+    9b2a4c7c60114ee1b31fcc1edf3de1ea:
+        Name: Glow
+        MaterialInstance:
+            Material: 6B0C613C-28CA-4781-B146-DF561A8ECA1E:Materials/Atrium/Glow
+            IsShadowCaster: false
+    deea200ee6ae42fbb137f09cb01227b2:
+        Name: Planks
+        MaterialInstance:
+            Material: 758240C0-D685-4A7A-B529-797CC0282586:Materials/Atrium/Planks
+            IsShadowCaster: true
+    2053c82876eb4ac79cf9722588a61321:
+        Name: Quartz
+        MaterialInstance:
+            Material: D1EF286B-1D49-4447-BAB3-76678100DED5:Materials/Atrium/Quartz
+            IsShadowCaster: true
+    a93bd09360c544fe8399a18a35cafbee:
+        Name: Smooth
+        MaterialInstance:
+            Material: 053D9A91-49A8-45AC-BA46-B1B72826A58C:Materials/Atrium/Smooth
+            IsShadowCaster: true
+Modifiers: {}

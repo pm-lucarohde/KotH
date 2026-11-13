@@ -1,0 +1,85 @@
+!PrefabAsset
+Id: AE976608-C398-4E6A-92D2-B6CC59C31A05
+SerializedVersion: {Stride: 3.1.0.1}
+Tags: []
+Hierarchy:
+    RootParts:
+        - ref!! 7C4345C5-19CC-4361-8182-74ADE630D502
+    Parts:
+        -   Entity:
+                Id: 7C4345C5-19CC-4361-8182-74ADE630D502
+                Name: TheLadderVisual
+                Components:
+                    cb6984d784bd4d3faddd123dc58f01fb: !TransformComponent
+                        Id: 136E15C7-3940-41D7-BF73-82EC29AD4721
+                        Position: {X: 0.0, Y: 0.0, Z: 0.0}
+                        Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children:
+                            65a924a33344475fb9e91ebb63d0d203: ref!! 59BBC434-72E5-4813-B8A6-B857BEAFAA16
+                            bd15411562b34f98bbddbcd488c91b4b: ref!! 40E18122-D0D0-4786-86AF-1C051E9F3F44
+                    b16d9c2a9d1e4eaaae7fff38444e2b69: !KotH.Client.Rendering.Atmosphere,KotH.Game
+                        Id: DDE0B501-34F6-4147-8E04-7847722DEB2F
+                        FogStart: 0.0
+                        CloudMap: 8BA09DCC-912C-49F1-8FBE-495F36149FAB:Textures/CloudMap
+        -   Entity:
+                Id: FEC496D2-BCC5-4220-BDE5-CCCB2155F60C
+                Name: TheLadder
+                Components:
+                    335c8dca10a44b4ebd55c2a28722a08f: !TransformComponent
+                        Id: 59BBC434-72E5-4813-B8A6-B857BEAFAA16
+                        Position: {X: 0.0, Y: 0.0, Z: 0.0}
+                        Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    ff4cb031cc8444ac8d93849038cc39c5: !ModelComponent
+                        Id: 96F8D9A3-D1A9-45F3-AF52-83AA9B8B645E
+                        Model: 45F42B6F-3327-4F10-959D-BA2942D2F03E:Models/TheLadder
+                        Materials: {}
+                        RenderGroup: Group3
+        -   Entity:
+                Id: AEFA6189-0AD0-4767-8088-E39D20AFCC37
+                Name: GI
+                Components:
+                    939eef671d704da5b548d985fc7c69ce: !TransformComponent
+                        Id: 40E18122-D0D0-4786-86AF-1C051E9F3F44
+                        Position: {X: 0.0, Y: 38.0, Z: 0.0}
+                        Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    8359eea552fd4668a1886f206f786fcf: !Stride.Rendering.Voxels.VoxelVolumeComponent,Stride.Voxels
+                        Id: B5EB0967-3D7A-4782-9C9F-6AD0166165BB
+                        Voxelize: false
+                        VoxelizationMethod: !Stride.Rendering.Voxels.VoxelizationMethodDominantAxis,Stride.Voxels {}
+                        Storage: !Stride.Rendering.Voxels.VoxelStorageSparse,Stride.Voxels {}
+                        Attributes:
+                            5e0a81a61a884fcf986c26d1cd2df221: !Stride.Rendering.Voxels.VoxelAttributeEmissionOpacity,Stride.Voxels
+                                VoxelLayout: !Stride.Rendering.Voxels.VoxelLayoutIsotropic,Stride.Voxels
+                                    StorageFormat: RGBA8
+                                    maxBrightness: 2.0
+                                Modifiers: {}
+                        VoxelVolumeSize: 128.0
+                        AproximateVoxelSize: 0.125
+                        VoxelGridSnapping: true
+                        StaticGroups: Group3
+                        VisualizeVoxels: false
+                        VisualizeIndex: 0
+                    77cdc2e6791742e5ad50b88c90be253f: !LightComponent
+                        Id: 0058BFE9-ADFE-492B-BF51-9A9F9570552E
+                        Type: !Stride.Rendering.Voxels.VoxelGI.LightVoxel,Stride.Voxels
+                            Volume: ref!! B5EB0967-3D7A-4782-9C9F-6AD0166165BB
+                            AttributeIndex: 0
+                            DiffuseMarcher: !Stride.Rendering.Voxels.VoxelMarchSetHemisphere6,Stride.Voxels
+                                Marcher: !Stride.Rendering.Voxels.VoxelMarchConePerMipmap,Stride.Voxels
+                                    Steps: 7
+                            BounceIntensityScale: 0.0
+                            SpecularIntensityScale: 0.0
+                            Sky: F9A75D1E-7197-4A46-90CF-5A7F970DCDCA:Skybox
+                            SkyIntensity: 0.195
+                            LightmapSize: 4096
+                        Intensity: 0.27
+                    2426940d600049a49d6029ae1a82a37a: !KotH.Client.Rendering.BakeVoxels,KotH.Game
+                        Id: 9F557D04-C74A-42C0-8075-833E4CB94CB9
+                        Frames: 2
+                    a54ebe14e56b45b7b0be5ae90159ab3a: !KotH.Client.Rendering.FigureOccluders,KotH.Game
+                        Id: 555B9BCC-3B4B-4564-BFF6-4A7077E0D6BB

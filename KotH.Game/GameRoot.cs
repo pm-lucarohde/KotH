@@ -1034,9 +1034,9 @@ namespace KotH.Client
             return state == SteamUgc.Fetched.Downloading || state == SteamUgc.Fetched.Installed && builder.HasMap(map);
         }
 
-        /// <summary>A map's name for people: a package's title, else the name itself.</summary>
+        /// <summary>A map's name for people: a package's title, else the built-in title (Maps.Title).</summary>
         string MapTitle(string map)
-            => builder.Library.Find(map)?.Manifest.Title ?? (MapPackage.IsId(map) ? map.Substring(0, map.IndexOf('@')) : map);
+            => builder.Library.Find(map)?.Manifest.Title ?? (MapPackage.IsId(map) ? map.Substring(0, map.IndexOf('@')) : Maps.Title(map));
         PlayerInputReader localReader;
         Entity arms;
         readonly Dictionary<SimulationBody, (Entity Visual, Entity Label)> shown =
