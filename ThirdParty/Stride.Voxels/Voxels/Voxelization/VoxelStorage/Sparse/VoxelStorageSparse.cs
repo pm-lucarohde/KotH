@@ -48,6 +48,7 @@ namespace Stride.Rendering.Voxels
         int slab;
         int slabBricks;
         int brickCount;
+        int markedBricks;
 
         Int3 resolution;
         Int3 cellCount;
@@ -271,10 +272,13 @@ namespace Stride.Rendering.Voxels
                     break;
 
                 case Phase.Fill:
-                    bool written = counts.Stable(commandList, (int)phase * 4096 + slab, out uint voxels);
+                    // KotH patch: a slab wholly past the marked bricks (only the room after them) may stay empty;
+                    // waiting for voxels there hung the bake (Pyramid: 256525 marked, slab 3 from 262144).
+                    bool spare = slab * slabBricks >= markedBricks;
+                    bool written = counts.Stable(commandList, (int)phase * 4096 + slab, out uint voxels, spare);
                     Clear(drawContext, counter);
                     RunBufferToBricks(drawContext, data);
-                    if (written && voxels > 0)
+                    if (written && (voxels > 0 || spare))
                     {
                         Console.WriteLine($"[voxel] slab {slab + 1}/{SlabCount}: {voxels} voxels");
                         Step($"slab {slab + 1}/{SlabCount} {voxels} voxels");
@@ -361,6 +365,7 @@ namespace Stride.Rendering.Voxels
             // Room for cells marked after the count was read: slots past it would
             // point outside the atlas.
             brickCount = Math.Min(count + count / 16 + 64, MaxBricks - DynamicBricks);
+            markedBricks = count; // KotH patch
             slabBricks = Math.Min(brickCount, MaxFragments / (512 * Math.Max(1, storageUints)));
             slab = 0;
             Console.WriteLine($"[voxel] {count} bricks (room for {brickCount}) of 8^3 ({voxelSize:F3} m), {SlabCount} slab(s), {storageUints} uint per voxel");
@@ -619,7 +624,7 @@ namespace Stride.Rendering.Voxels
                 pending++;
             }
 
-            public unsafe bool Stable(CommandList commandList, int tag, out uint value)
+            public unsafe bool Stable(CommandList commandList, int tag, out uint value, bool zeroHolds = false)
             {
                 value = 0;
                 while (pending > 0)
@@ -635,7 +640,7 @@ namespace Stride.Rendering.Voxels
                     Readings++;
                     if (readTag != tag)
                         continue;
-                    agreeing = readTag == lastTag && read > 0 && Math.Abs((long)read - last) * 1000 <= last ? agreeing + 1 : 0;
+                    agreeing = readTag == lastTag && (read > 0 || zeroHolds) && Math.Abs((long)read - last) * 1000 <= last ? agreeing + 1 : 0;
                     lastTag = readTag;
                     last = read;
                 }
