@@ -26,7 +26,7 @@ const double LoopFade = 1.0;         // seconds of the ambient's end laid over i
 string[] sounds = ["blaster", "climb1", "climb2", "climb3", "dash", "dash_impact", "fall", "hit1", "hit2", "hit3", "jump", "slide", "sporejump", "steps", "wind"];
 var filters = new Dictionary<string, string> { ["steps"] = "lowpass=f=1000" };   // ffmpeg filters on decoding (Luca: steps too harsh)
 var from = new Dictionary<string, string> { ["climb1"] = "climbing", ["climb2"] = "climbing", ["climb3"] = "climbing" };   // one grab each out of the climb
-filters["climb1"] = "atrim=1.40:1.90"; filters["climb2"] = "atrim=2.74:3.24"; filters["climb3"] = "atrim=5.90:6.40";
+filters["climb1"] = "atrim=4.01:4.51"; filters["climb2"] = "atrim=2.74:3.24"; filters["climb3"] = "atrim=5.90:6.40";
 var dryAt = new Dictionary<string, (double, double)> { ["steps"] = (0.04, 0.12) };  // the room's reverb faded out here (Luca: sounded like a hall)
 
 string root = Path.GetFullPath(Path.Combine(Here(), "../.."));
