@@ -21,6 +21,7 @@ Hierarchy:
                     b16d9c2a9d1e4eaaae7fff38444e2b69: !KotH.Client.Rendering.Atmosphere,KotH.Game
                         Id: DDE0B501-34F6-4147-8E04-7847722DEB2F
                         FogStart: 0.0
+                        CoastDensity: 0.0
                         CloudMap: 8BA09DCC-912C-49F1-8FBE-495F36149FAB:Textures/CloudMap
         -   Entity:
                 Id: FEC496D2-BCC5-4220-BDE5-CCCB2155F60C

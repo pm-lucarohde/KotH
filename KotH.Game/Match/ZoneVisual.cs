@@ -53,6 +53,8 @@ namespace KotH.Client.Match
         // Each rail's scale, turn and place on the zone's frame; drawn as instances of the one cube.
         readonly List<Matrix> rails = new();
         CaptureZone builtFor;
+        // The rails' width and height as built: the settings, or less round a small zone.
+        float width, height;
         ZoneLook shown = (ZoneLook)(-1);
 
         public override void Update()
@@ -102,8 +104,14 @@ namespace KotH.Client.Match
             Entity.Transform.Rotation = Zone.Entity.Transform.Rotation;
 
             Vector3 s = Zone.Size;
-            float bottom = -s.Y * 0.5f + Lift;
-            float y = bottom + RailHeight * 0.5f;
+            if (Zone.Shape == ZoneShape.Cylinder && Zone.DrawnRadius > 0f)
+                s.X = s.Z = 2f * Zone.DrawnRadius;
+            // Round a zone of a metre or two the rails thin out, else they read as a thick band.
+            float small = 0.08f * MathF.Min(s.X, s.Z) * 0.5f;
+            width = MathF.Min(Thickness, small);
+            height = MathF.Min(RailHeight, small);
+            float bottom = -Zone.Size.Y * 0.5f + Lift;
+            float y = bottom + height * 0.5f;
             if (Zone.Shape == ZoneShape.Cylinder || Zone.Shape == ZoneShape.Polygon && Zone.Corners.Count >= 3)
             {
                 Outline(Corners(s), bottom, y);
@@ -118,12 +126,12 @@ namespace KotH.Client.Match
                 AddMotes();
                 return;
             }
-            float inX = (s.X - Thickness) * 0.5f, inZ = (s.Z - Thickness) * 0.5f;
+            float inX = (s.X - width) * 0.5f, inZ = (s.Z - width) * 0.5f;
 
-            Part(new Vector3(0f, y, -inZ), new Vector3(s.X, RailHeight, Thickness));
-            Part(new Vector3(0f, y, inZ), new Vector3(s.X, RailHeight, Thickness));
-            Part(new Vector3(-inX, y, 0f), new Vector3(Thickness, RailHeight, s.Z - 2f * Thickness));
-            Part(new Vector3(inX, y, 0f), new Vector3(Thickness, RailHeight, s.Z - 2f * Thickness));
+            Part(new Vector3(0f, y, -inZ), new Vector3(s.X, height, width));
+            Part(new Vector3(0f, y, inZ), new Vector3(s.X, height, width));
+            Part(new Vector3(-inX, y, 0f), new Vector3(width, height, s.Z - 2f * width));
+            Part(new Vector3(inX, y, 0f), new Vector3(width, height, s.Z - 2f * width));
 
             stretches.Add((new Vector3(0f, bottom, -inZ), 0f, s.X));
             stretches.Add((new Vector3(0f, bottom, inZ), 0f, s.X));
@@ -161,6 +169,11 @@ namespace KotH.Client.Match
             for (int i = 0, j = c.Count - 1; i < c.Count; j = i++)
                 area += c[j].X * c[i].Y - c[i].X * c[j].Y;
             float inward = area > 0f ? 1f : -1f;
+            // A stretch is drawn straight: round a small ring at most an eighth of it, else it cuts across.
+            float perimeter = 0f;
+            for (int i = 0; i < c.Count; i++)
+                perimeter += (c[(i + 1) % c.Count] - c[i]).Length();
+            float piece = MathF.Min(2f, perimeter / 8f);
             int from = 0;
             float run = 0f;
             for (int i = 0; i < c.Count; i++)
@@ -169,12 +182,12 @@ namespace KotH.Client.Match
                 float length = d.Length();
                 if (length < 1e-4f)
                     continue;
-                Vector2 n = new Vector2(-d.Y, d.X) / length * (inward * Thickness * 0.5f);
+                Vector2 n = new Vector2(-d.Y, d.X) / length * (inward * width * 0.5f);
                 Vector2 mid = (a + b) * 0.5f + n;
                 Quaternion turn = Quaternion.RotationY(MathF.Atan2(-d.Y, d.X));
-                Part(new Vector3(mid.X, y, mid.Y), new Vector3(length + Thickness, RailHeight, Thickness), turn);
+                Part(new Vector3(mid.X, y, mid.Y), new Vector3(length + width, height, width), turn);
                 run += length;
-                if (run >= 2f || i == c.Count - 1)
+                if (run >= piece || i == c.Count - 1)
                 {
                     Vector2 p = c[from], q = b, e = q - p, at = (p + q) * 0.5f + n;
                     stretches.Add((new Vector3(at.X, bottom, at.Y), MathF.Atan2(-e.Y, e.X), e.Length()));

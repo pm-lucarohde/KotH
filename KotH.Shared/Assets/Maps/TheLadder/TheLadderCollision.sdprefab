@@ -136,6 +136,7 @@ Hierarchy:
                         Id: D28673DB-FD98-48E8-BC3A-77BF46E3D4CE
                         Size: {X: 1.4, Y: 2.5, Z: 1.4}
                         Shape: Cylinder
+                        DrawnRadius: 0.45
                         WarmupSeconds: 3.0
                         WinPoints: 100
                         TimeLimitMinutes: 20.0

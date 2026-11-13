@@ -30,6 +30,9 @@ namespace KotH.Shared.Match
         /// <userdoc>Cylinder only: a round hole in the middle, its radius in metres, so the zone is a ring (Volcano's crater rim). 0: none.</userdoc>
         [Display("Hole radius (m)", "Zone")] public float Hole = 0f;
 
+        /// <userdoc>Cylinder only, looks only: the radius its rails are drawn at, in metres, where the floor is narrower than the zone (The Ladder's top). 0: the zone's own outline.</userdoc>
+        [Display("Drawn radius (m)", "Zone")] public float DrawnRadius = 0f;
+
         /// <userdoc>How long one must stand alone in the zone to capture it, in seconds. Then it scores a point per second while one stays inside, even when others join.</userdoc>
         [Display("Capture time", "Rules")] public float WarmupSeconds = 3f;
 
