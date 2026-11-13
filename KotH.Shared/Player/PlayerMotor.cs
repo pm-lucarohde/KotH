@@ -232,6 +232,12 @@ namespace KotH.Shared.Player
         public float MaxStepHeight => maxStepHeight;
         public bool IsGrounded => grounded;
 
+        /// <summary>Standing, or hovering a skin over a step just climbed (the looks: a run up a flight).</summary>
+        public bool IsOnFeet => grounded || OnStep;
+
+        // Settling after a step-up, not rising: a flight run fast meets every riser in these ticks.
+        bool OnStep => stepSettleTicks > 0 && velocity.Y <= 0f && !climbing;
+
         /// <summary>Speed of the knock still to shed, m/s. Zero once a hit is spent.</summary>
         public float KnockLeft => UMath.Magnitude(knock);
 
@@ -1150,9 +1156,11 @@ namespace KotH.Shared.Player
 
             // No input in the air means rate 0, so momentum stays (anything else is a hidden air brake).
             // Right after a push air control holds on the ground too, else it is gone in a tick or two.
+            // The ticks a step-up settles in steer as on the ground (Luca: a sprint met every riser in them
+            // and flew up a whole flight in air control, keys let go or not).
             float rate = knockbackTime > 0f
                 ? AirAcceleration
-                : grounded
+                : grounded || OnStep
                     ? (hasInput ? GroundAcceleration : GroundDeceleration)
                     : (hasInput ? AirAcceleration : 0f);
 

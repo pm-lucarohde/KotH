@@ -629,7 +629,7 @@ namespace KotH.Client.Player
             // Air against the figure, in its own frame: X right, Z back.
             Vector3 local = Vector3.Transform(motor.Velocity, Quaternion.Invert(t.Rotation));
             var flat = new Vector2(local.X, local.Z);
-            float lift = motor.IsGrounded ? 0f : Math.Clamp(-local.Y / 12f, 0f, 1f);
+            float lift = motor.IsOnFeet ? 0f : Math.Clamp(-local.Y / 12f, 0f, 1f);
             dt = MathF.Min(dt, 1f / 30f);
             f.LeafClock += dt;
 
@@ -804,7 +804,7 @@ namespace KotH.Client.Player
             }
             float off = Wrap(f.View - f.BodyYaw);
             Vector3 v = motor.Velocity;
-            bool still = motor.IsGrounded && v.X * v.X + v.Z * v.Z < 0.3f * 0.3f;
+            bool still = motor.IsOnFeet && v.X * v.X + v.Z * v.Z < 0.3f * 0.3f;
             // Swinging, the legs keep their way; head and torso turn further.
             if (!still)
                 off *= MathF.Exp(-dt * (1f - twist) / MathF.Max(1e-3f, BodyFollowSeconds));
@@ -838,7 +838,7 @@ namespace KotH.Client.Player
             f.LastVelocity = v;
             if (dt <= 0f)
                 return;
-            bool footing = motor.IsGrounded && motor.KnockLeft <= 0f;
+            bool footing = motor.IsOnFeet && motor.KnockLeft <= 0f;
             // The step in the shown body's frame: X right, Z back.
             Vector3 a = footing ? Vector3.Transform(dv, Quaternion.Invert(Quaternion.RotationY(f.BodyYaw))) / dt : Vector3.Zero;
             var flat = new Vector2(a.X, a.Z);
@@ -1029,7 +1029,7 @@ namespace KotH.Client.Player
 
             Vector3 v = motor.Velocity;
             float speed = MathF.Sqrt(v.X * v.X + v.Z * v.Z);
-            bool footing = motor.IsGrounded && !motor.IsSliding && motor.KnockLeft <= 0f;
+            bool footing = motor.IsOnFeet && !motor.IsSliding && motor.KnockLeft <= 0f;
             float moving = footing ? Smooth(0.15f, 1.2f, speed) : 0f;
             bool still = footing && speed < 0.1f;
             float run = Math.Clamp((speed - motor.WalkSpeed) / (motor.SprintSpeed - motor.WalkSpeed), 0f, 1f);
@@ -1047,7 +1047,7 @@ namespace KotH.Client.Player
                     Sound(f, FigureSound.Climb, 1f);
             }
             // Rising shows the jump, falling the fall; at the top the rest pose.
-            bool airborne = !motor.IsGrounded && !climbing;
+            bool airborne = !motor.IsOnFeet && !climbing;
             float falling = airborne ? Smooth(0f, 3f, -v.Y) : 0f;
             float rising = airborne ? Smooth(0f, 3f, v.Y) : 0f;
             // Put down anew (respawn, new round): no kick, jump or fall from the jolt.

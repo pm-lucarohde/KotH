@@ -78,8 +78,11 @@ sealed class KotHGame : Game
     bool shotBlink = Environment.GetEnvironmentVariable("KOTH_SHOT_BLINK") == "1"; // every figure shows shut lids
     double? shotHit = Number("KOTH_SHOT_HIT", 0); // deg[,s]: hits every figure from deg (0 front, 90 right)
     readonly double shotHitLead = Number("KOTH_SHOT_HIT", 1) ?? 0.1; // s before the shot
-    readonly string shotMove = Environment.GetEnvironmentVariable("KOTH_SHOT_MOVE"); // x,y[,sprint] held (D and W +1)
+    readonly string shotMove = Environment.GetEnvironmentVariable("KOTH_SHOT_MOVE"); // x,y[,sprint[,s]] held (D and W +1) until s
     PlayerInputReader shotMoved;
+    bool shotMoveReleased;
+    readonly double shotMoveUntil = Environment.GetEnvironmentVariable("KOTH_SHOT_MOVE")?.Split(',') is { Length: > 3 } held
+        ? double.Parse(held[3], CultureInfo.InvariantCulture) : double.PositiveInfinity;
     // KOTH_SHOT_APPLY=s:file.toml[;s:file.toml]: Apply on the Settings page with that file's settings at s.
     readonly Queue<(double At, string File)> shotApplies = new Queue<(double, string)>(
         (Environment.GetEnvironmentVariable("KOTH_SHOT_APPLY") ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries)
@@ -610,6 +613,11 @@ sealed class KotHGame : Game
                                         float.Parse(parts[1], CultureInfo.InvariantCulture)),
                             parts.Length > 2 && parts[2] == "sprint");
                 shotMoved = player;
+            }
+            if (!shotMoveReleased && shotMoved == player && TestSeconds(gameTime) >= shotMoveUntil)
+            {
+                player.Hold(Vector2.Zero, false);
+                shotMoveReleased = true;
             }
             // Also after the round has put everyone at its start (MountDestiny: at random).
             if (shotAt.HasValue && player.PlacedTick != shotPlaced && player.Simulation is { CurrentTick: > 0 } &&
