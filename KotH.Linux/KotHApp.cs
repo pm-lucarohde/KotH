@@ -225,15 +225,19 @@ sealed class KotHGame : Game
             Audio.RequestedAudioDevice = new Stride.Audio.AudioDevice { Name = device };
     }
 
+    KotH.Client.Rendering.StartSplash splash;
+
     protected override void PrepareContext()
     {
         base.PrepareContext();
 
-        // No splash screen, even if the settings name one again. With a splash
-        // Stride loads the scene on worker threads, and their uploads race the
-        // first swapchain resize: vkDeviceWaitIdle runs without the queue lock
-        // and about one AOT start in six ended in VK_ERROR_DEVICE_LOST.
+        // Stride's splash, drawn by StartSplash: with SceneSystem's own the scene loads on worker threads, whose
+        // uploads race the first swapchain resize (vkDeviceWaitIdle without the queue lock: about one AOT start in
+        // six ended in VK_ERROR_DEVICE_LOST). Tests and headless runs start without it.
+        string splashUrl = SceneSystem.SplashScreenUrl;
         SceneSystem.SplashScreenUrl = null;
+        if (!headless && shotPath == null)
+            splash = KotH.Client.Rendering.StartSplash.Take(SceneSystem, splashUrl);
 
         // After the settings are applied, so the override wins over them.
         string[] size = Environment.GetEnvironmentVariable("KOTH_SIZE")?.Split('x');
@@ -428,7 +432,7 @@ sealed class KotHGame : Game
     // Stride makes the device after Initialize: NGX may start on it from here.
     protected override void BeginRun()
     {
-        StartLog.Mark("scene loaded");
+        StartLog.Mark(splash == null ? "scene loaded" : "splash starts");
         base.BeginRun();
         KotH.Client.Rendering.Dlss.Dlss.Offer(GraphicsDevice);
         // Stride records a stage of 6+ meshes on worker threads, each part its own command buffer and render pass:
@@ -512,6 +516,12 @@ sealed class KotHGame : Game
             updateCpu = ThreadCpuNanos();
         // The last frame's ticks, before anything reads the world.
         SimulationJob.Join();
+        if (splash != null)
+        {
+            splash.Update(SceneSystem, StartLog.Mark);
+            if (splash.Done)
+                splash = null;
+        }
         // Steam's callbacks before the scripts, which read lobbies and sessions.
         SteamClient.RunFrame();
         settings.Update();
@@ -875,6 +885,7 @@ sealed class KotHGame : Game
         if (frameLog != null)
             drawCpu = ThreadCpuNanos();
         base.Draw(gameTime);
+        splash?.Draw(this, gameTime);
         CollectUnseen();
         if (frameLog != null)
             LogFrame(drawStart);
