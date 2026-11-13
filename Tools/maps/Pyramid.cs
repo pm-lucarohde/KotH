@@ -325,17 +325,19 @@ Ring("Dark", 3.5, 4.5, H(12), H(13));
 Square("Quartz", 3.5, H(12), H(13));
 for (int y = 8; y <= 12; y++)
     Cornice(19.5 - y, H(y + 1), FlightCut);
-// The flights: steps 0.2 m high and 0.25 m deep, four to each tier, between sloping cheek walls; through the
-// colonnade storey on a bed of stone. One walks a ramp over the steps' noses (collision only, "_solid"), so the
-// body neither lifts at every step nor sinks into one.
+// The flights: 30 plain steps (0.35 m high, 0.43 m deep) from the ground to the zone between sloping cheek
+// walls; through the colonnade storey on a bed of stone.
 foreach (var f in faces)
 {
-    // Step k from its nose back to the tier it stands in front of (whose face is at 19.5 - k / 4).
-    for (int k = 0; k < 52; k++)
-        FaceBox(f, "Bricks", 19.5 - k / 4, 20.5 - 0.25 * k, -1.5, 1.5, 0.2 * k, 0.2 * (k + 1), solid: false);
-    arena.Bar("_solid", At(f, 0, -1.5, 0), At(f, 0, 1.5, 0), [(18.5, -0.1), (20.5, -0.1), (20.5, 0.2), (7.75, H(13)), (7.5, H(13)), (7.5, 11 * Rise)], true);
+    // Step k from its nose back into the tier (or bed) its top lies in, whose face is at 19.5 - that tier.
+    const int Steps = 30;
+    for (int k = 0; k < Steps; k++)
+    {
+        double bottom = H(13) * k / Steps, top = H(13) * (k + 1) / Steps;
+        FaceBox(f, "Bricks", 19.5 - Math.Floor(top / Rise - 1e-9), 20.5 - 13.0 * k / Steps, -1.5, 1.5, bottom, top);
+    }
     for (int y = 5; y <= 7; y++)
-        FaceBox(f, "Cobble", 10.5, 19.5 - y, -1.5, 1.5, H(y), H(y + 1));
+        FaceBox(f, "Cobble", 10.5, 19.5 - y, -1.6, 1.6, H(y), H(y + 1));   // into the cheek walls, clear of the steps' sides
     foreach (var (a0, a1) in new[] { (-2.5, -1.5), (1.5, 2.5) })
         arena.Bar("Smooth", At(f, 0, a0, 0), At(f, 0, a1, 0), [(18.5, -0.1), (20.5, -0.1), (20.5, Rise), (8.5, H(13)), (7.5, H(13)), (7.5, 11 * Rise)], true);
 }
@@ -399,9 +401,6 @@ foreach (var (f, i) in standing.Select((f, i) => (f, i)))
     }
     arena.Take(tubs, new V3(0, 0, 0));
 }
-
-// The flights' ramps are collision only.
-arena.Pieces.Remove("_solid");
 
 // ---- checks: faces lying on each other the same way round flicker (z-fighting) ----
 {
