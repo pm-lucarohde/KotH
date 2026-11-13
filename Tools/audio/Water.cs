@@ -13,17 +13,17 @@ string target = Path.GetFullPath(Path.Combine(Here(), "../../KotH.Game/Resources
 string source = Path.Combine(Here(), "water");
 double reference = Loudest(Read(Path.Combine(target, "steps.wav")));
 
-string[] wades = ["splash_06", "splash_08", "splash_15"];
+string[] wades = ["sfx100v2_footstep_wet_01.ogg", "sfx100v2_footstep_wet_02.ogg", "sfx100v2_footstep_wet_03.ogg"];
 for (int k = 0; k < wades.Length; k++)
     Save($"wade{k + 1}", Recording(wades[k]), 1.0);
-Save("splash", Recording("splash_04"), 1.4);
+Save("splash", Recording("splash2.wav"), 1.4);
 return 0;
 
 // A recording as mono samples at Rate, from 5 ms before it first rises over -40 dB of its peak.
 double[] Recording(string name)
 {
-    string raw = Path.Combine(Path.GetTempPath(), name + ".raw");
-    using (var ff = Process.Start("ffmpeg", ["-v", "error", "-y", "-i", Path.Combine(source, name + ".ogg"),
+    string raw = Path.Combine(Path.GetTempPath(), Path.GetFileNameWithoutExtension(name) + ".raw");
+    using (var ff = Process.Start("ffmpeg", ["-v", "error", "-y", "-i", Path.Combine(source, name),
                                               "-ac", "1", "-ar", Rate.ToString(), "-f", "s16le", raw])!)
         ff.WaitForExit();
     byte[] b = File.ReadAllBytes(raw);
