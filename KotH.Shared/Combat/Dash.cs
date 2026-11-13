@@ -81,7 +81,7 @@ namespace KotH.Shared.Combat
             if (motor.SlamLanded)
                 Strike(bodies, tick, dt);
 
-            if (!input.CrouchPressed || motor.IsGrounded || motor.IsTouchingGround || motor.IsSlamming ||
+            if (!input.CrouchPressed || motor.IsGrounded || motor.IsTouchingGround || motor.IsSlamming || motor.IsClimbing ||
                 state.Charges <= 0 || !HighEnough())
                 return;
 

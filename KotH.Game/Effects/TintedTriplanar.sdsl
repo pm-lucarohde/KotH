@@ -1,0 +1,14 @@
+/// <summary>
+/// PaintedTriplanar tinted by COLOR0.rgb (TEXCOORD0.x stays the shade): one painted stone in
+/// many colours, as The Ladder's coloured marble.
+/// </summary>
+shader TintedTriplanar<LinkType PaintKey> : PaintedTriplanar<PaintKey>
+{
+    stage stream float4 Tint : COLOR0;
+
+    override float4 Compute()
+    {
+        float4 c = base.Compute();
+        return float4(c.rgb * streams.Tint.rgb, c.a);
+    }
+};

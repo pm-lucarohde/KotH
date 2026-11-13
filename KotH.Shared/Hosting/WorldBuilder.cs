@@ -88,6 +88,10 @@ namespace KotH.Shared.Hosting
                 arena.Add(e);
                 Zone ??= e.Get<CaptureZone>();
                 Bots ??= e.Get<BotSettings>();
+                if (e.Get<Ladder>() is { } ladder)
+                    queries.Ladders.Add(ladder.Strip());
+                if (e.Get<BouncePad>() is { } pad)
+                    queries.Pads.Add(pad.Area());
             }
             AddTerrain(map);
         }

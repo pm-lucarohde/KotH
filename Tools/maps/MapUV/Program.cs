@@ -18,9 +18,9 @@ const double SeaShrink = 4.0;
 
 var mountain = new Glb(Path.Combine(root, "KotH.Game/Resources/Models", (destiny ? "Mountain" : map) + ".glb"));
 Glb? sea = island ? new Glb(Path.Combine(root, "KotH.Game/Resources/Models", (destiny ? "" : map) + "Sea.glb")) : null;
-// Atrium: everything but what is see-through, glows or is leaves (Atrium.cs's part names).
+// Atrium, TheLadder: everything but what is see-through, glows or is leaves (their generators' part names).
 string[] lit = island ? ["Terrain", "Bark"]
-    : [.. mountain.Primitives.Select(p => p.Material).Where(m => m is not ("Water" or "Glass" or "Glow" or "Leaves" or "LeafCards"))];
+    : [.. mountain.Primitives.Select(p => p.Material).Where(m => m is not ("Water" or "Glass" or "Slime" or "Glow" or "Leaves" or "LeafCards"))];
 if (!island)
     (GrassMap.MaxHeight, GrassMap.TrunkFootY, GrassMap.TrunkFootLow, GrassMap.Borders) = (8f, 7f, 6f, true);
 string grassPath = Path.Combine(root, $"KotH.Game/Resources/Maps/{map}Grass.bin");

@@ -47,6 +47,11 @@ namespace KotH.Shared.Physics
         // in no defined order, and float sums depend on the order they run in.
         readonly Dictionary<CollidableComponent, int> ids = new Dictionary<CollidableComponent, int>();
 
+        /// <summary>The map's ladders and bounce pads in prefab order: static map data the motors
+        /// read like the colliders (WorldBuilder fills them, Clear empties them).</summary>
+        public readonly List<LadderStrip> Ladders = new List<LadderStrip>();
+        public readonly List<PadArea> Pads = new List<PadArea>();
+
         public WorldQueries(BepuSimulation simulation)
         {
             this.simulation = simulation;
@@ -66,7 +71,12 @@ namespace KotH.Shared.Physics
 
         /// <summary>Forgets every place, as in a fresh world: before a map is loaded anew,
         /// with no body left, so the new map's colliders count from 0 as on every peer.</summary>
-        public void Clear() => ids.Clear();
+        public void Clear()
+        {
+            ids.Clear();
+            Ladders.Clear();
+            Pads.Clear();
+        }
 
         public int IdOf(CollidableComponent collider)
             => ids.TryGetValue(collider, out int id) ? id : int.MaxValue;

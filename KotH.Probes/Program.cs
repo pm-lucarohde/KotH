@@ -32,6 +32,7 @@ Probe probe = name switch
     "stairrun" => new StairRunProbe(),
     "rampfoot" => new RampFootProbe(),
     "crouchedge" => new CrouchEdgeProbe(),
+    "ladder" => new LadderProbe(),
     "edgeslip" => new EdgeSlipProbe { Measure = Array.IndexOf(args, "measure") > 0 },
     "knockback" => new KnockbackProbe(),
     "thirdperson" => new ThirdPersonProbe(),
@@ -57,7 +58,7 @@ Probe probe = name switch
 
 if (probe == null)
 {
-    Console.Error.WriteLine("Usage: KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|blaster|dash|step|determinism|clock|stairrun|rampfoot|crouchedge|edgeslip|knockback|thirdperson|wallknock|capture|chain|netstate|netplay|password|migrate|secure|custommap|progress|bots>");
+    Console.Error.WriteLine("Usage: KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|blaster|dash|step|determinism|clock|stairrun|rampfoot|crouchedge|edgeslip|ladder|knockback|thirdperson|wallknock|capture|chain|netstate|netplay|password|migrate|secure|custommap|progress|bots>");
     return 64;
 }
 

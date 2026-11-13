@@ -127,6 +127,22 @@ namespace KotH.Shared.Player
         /// <userdoc>How much knockback into a wall bounces back; one's own running never bounces</userdoc>
         [Display("Wall bounce", "Knockback")] public float KnockWallBounce = 0.4f;
 
+        /// <userdoc>Climbing a ladder up (pushing towards its wall) and down (pulling away), in m/s</userdoc>
+        [Display("Climb speed", "Ladder")] public float ClimbSpeed = 3f;
+        [Display("Side speed", "Ladder")] public float ClimbSideSpeed = 2f;
+
+        /// <userdoc>Sliding down a ladder without a key, in m/s; crouching holds still</userdoc>
+        [Display("Slide down speed", "Ladder")] public float ClimbSlideSpeed = 1f;
+
+        /// <userdoc>Speed away from the wall when jumping off a ladder, in m/s</userdoc>
+        [Display("Jump off speed", "Ladder")] public float ClimbJumpOff = 3f;
+
+        /// <userdoc>A knock at least this far (m) throws a climber off its ladder</userdoc>
+        [Display("Knock off distance", "Ladder")] public float KnockOffDistance = 0.5f;
+
+        /// <userdoc>Landing on a bounce pad at least this fast (m/s) bounces</userdoc>
+        [Display("Pad min speed", "Ladder")] public float PadMinSpeed = 3f;
+
         // --- wiring, set by Initialize ---
         WorldQueries world;
         StaticComponent hull;      // what a shot may hit, full height
@@ -188,6 +204,9 @@ namespace KotH.Shared.Player
         float jumpStartY;         // take-off height, the cut measures from it
         float slamSpeed;          // falling straight down in a dash, 0 when not
         bool slamLanded;          // a dash struck the ground in this tick
+        bool climbing;            // on world.Ladders[ladder]
+        int ladder;               // 0 when not climbing
+        float climbWait;          // after jumping or being knocked off, no ladder catches yet
 
         // Unity kept this on a camera mount child. Derived from the height
         // like maxStepHeight, so it is not part of the snapshot.
@@ -234,6 +253,9 @@ namespace KotH.Shared.Player
         /// <summary>In a dash: straight down until the ground. SlamLanded is the tick it struck.</summary>
         public bool IsSlamming => slamSpeed > 0f;
         public bool SlamLanded => slamLanded;
+
+        /// <summary>On a ladder (The Ladder): no gravity, the input climbs.</summary>
+        public bool IsClimbing => climbing;
 
         /// <summary>A dash from the next tick on: straight down at speed, no steering or jumping,
         /// until the ground. Dash decides when; a knock ends it.</summary>
@@ -332,6 +354,14 @@ namespace KotH.Shared.Player
         {
             if (distance <= 0f && height <= 0f)
                 return;
+
+            // Knocking climbers off is The Ladder's point; a graze leaves them on.
+            if (climbing && distance >= KnockOffDistance)
+            {
+                climbing = false;
+                ladder = 0;
+                climbWait = KnockOffWait;
+            }
 
             // A hop alone, as at 0 %, leaves the horizontal untouched,
             // an older knock included.
@@ -464,6 +494,9 @@ namespace KotH.Shared.Player
                 JumpStartY = jumpStartY,
                 SlamSpeed = slamSpeed,
                 SlamLanded = slamLanded,
+                Climbing = climbing,
+                Ladder = ladder,
+                ClimbWait = climbWait,
                 EyePosition = eyePosition,
                 PreviousEyePosition = previousEyePosition,
                 BodyCenter = bodyCenter,
@@ -512,6 +545,9 @@ namespace KotH.Shared.Player
             jumpStartY = s.JumpStartY;
             slamSpeed = s.SlamSpeed;
             slamLanded = s.SlamLanded;
+            climbing = s.Climbing;
+            ladder = s.Ladder;
+            climbWait = s.ClimbWait;
             eyePosition = s.EyePosition;
             previousEyePosition = s.PreviousEyePosition;
             bodyCenter = s.BodyCenter;
@@ -670,6 +706,16 @@ namespace KotH.Shared.Player
             grounded = touching && !steepReading;
             onSteepGround = steepReading && steepTime >= SlideConfirmTime;
 
+            // Ladders before anything reads grounded: a climber is not on the ground. Maps without
+            // ladders never get here, so their ticks stay as they were.
+            if (world.Ladders.Count > 0 || climbing)
+                UpdateClimb(input, dt);
+            if (climbing)
+            {
+                grounded = false;
+                onSteepGround = false;
+            }
+
             if (grounded)
             {
                 if (velocity.Y < 0f)
@@ -715,7 +761,7 @@ namespace KotH.Shared.Player
             // A dash falls straight down: no steering, jumping or gravity.
             bool slam = slamSpeed > 0f;
             slamLanded = false;
-            if (!slam)
+            if (!slam && !climbing)
                 UpdateHorizontal(input, dt);
 
             // Read before the countdown: the chain held it at the end of the last tick.
@@ -728,12 +774,14 @@ namespace KotH.Shared.Player
             // A jump this tick wins over the slide: otherwise the redirect
             // would project the fresh upward speed straight back into the
             // slope and the double jump would be dead on arrival.
-            bool jumped = !slam && ProcessJumpPresses(input.JumpPresses, hanging);
+            bool jumped = !slam && (climbing ? JumpOffLadder(input.JumpPresses) : ProcessJumpPresses(input.JumpPresses, hanging));
             if (!slam)
                 UpdateJumpCut(input.JumpHeld, dt);
 
             if (slam)
                 velocity = new Vector3(0f, -slamSpeed, 0f);
+            else if (climbing)
+                Climb(input, dt);
             else if (onSteepGround && !jumped)
                 SlideDownSteep(dt);
             else
@@ -762,7 +810,7 @@ namespace KotH.Shared.Player
 
             TryStepUp(dt, settling);
             Vector3 delta = UMath.Mul(velocity, dt);
-            if (touching && knownGround && !jumped && !slam && !isCrouching && !sliding && !settling)
+            if (touching && knownGround && !jumped && !slam && !isCrouching && !sliding && !settling && !climbing)
                 delta = UMath.Add(delta, EdgeSlip(dt));
             CapsuleSweep.Result moved = MoveBody(delta, grounded);
             touchingGround = moved.hasGround;
@@ -783,6 +831,8 @@ namespace KotH.Shared.Player
             Vector3 asked = velocity;
             velocity = moved.velocity;
             ClipKnock(asked);
+            if (world.Pads.Count > 0 && touchingGround && !climbing && !isCrouching && asked.Y < -PadMinSpeed)
+                BounceOffPad(asked.Y);
 
             // Only ground that was walkable at the start of the tick is worth
             // keeping. A jump clears grounded itself, so it is never undone,
@@ -806,6 +856,128 @@ namespace KotH.Shared.Player
             // in full rather than by whatever is left of dt.
             if (knockbackTime > 0f)
                 knockbackTime = UMath.Max(0f, knockbackTime - dt);
+        }
+
+        // How far past the radius from a ladder's wall the body still holds on; how far its feet
+        // rise over the top; how long no ladder catches after a jump or a knock off one.
+        const float ClimbReach = 0.3f, TopMargin = 0.05f, RegrabWait = 0.3f, KnockOffWait = 0.5f;
+        // Pressing towards the wall at least this much (of a full key) catches; a climber keeps
+        // pressed to the wall at least this fast, so the sweep holds it there.
+        const float ClimbCatch = 0.5f, ClimbStick = 0.5f;
+
+        /// <summary>Catches a ladder the body pushes towards, or lets go of the one it is on: when it
+        /// is out of the strip, dashing, or standing on the ground without pushing towards it.</summary>
+        void UpdateClimb(in MoveInput input, float dt)
+        {
+            if (climbWait > 0f)
+                climbWait = UMath.Max(0f, climbWait - dt);
+            Vector3 wish = Wish(input);
+            if (climbing)
+            {
+                LadderStrip s = world.Ladders[ladder];
+                if (slamSpeed > 0f || !OnStrip(s) || grounded && -UMath.Dot(wish, s.Out) < ClimbCatch)
+                {
+                    climbing = false;
+                    ladder = 0;
+                }
+                return;
+            }
+            if (climbWait > 0f || slamSpeed > 0f)
+                return;
+            for (int i = 0; i < world.Ladders.Count; i++)
+            {
+                LadderStrip s = world.Ladders[i];
+                if (-UMath.Dot(wish, s.Out) >= ClimbCatch && OnStrip(s))
+                {
+                    climbing = true;
+                    ladder = i;
+                    sliding = false;
+                    return;
+                }
+            }
+        }
+
+        /// <summary>The body's axis in front of the strip's wall, close enough, its middle over the
+        /// foot and its feet not over the top.</summary>
+        bool OnStrip(in LadderStrip s)
+        {
+            var rel = new Vector3(position.X - s.Foot.X, 0f, position.Z - s.Foot.Z);
+            float off = UMath.Dot(rel, s.Out), side = UMath.Dot(rel, s.Along);
+            float feet = position.Y + FootOffset;
+            return off >= 0f && off <= BodyRadius + ClimbReach && UMath.Abs(side) <= s.HalfWidth + 0.1f
+                   && feet <= s.Top + 2f * TopMargin && feet + currentHeight * 0.5f >= s.Foot.Y;
+        }
+
+        /// <summary>The input's direction on the ground plane, as UpdateHorizontal reads it.</summary>
+        Vector3 Wish(in MoveInput input)
+        {
+            Vector2 move = UMath.ClampMagnitude(input.Move, 1f);
+            return UMath.Add(UMath.Mul(UMath.Rotate(rotation, UMath.Right), move.X),
+                             UMath.Mul(UMath.Rotate(rotation, UMath.Forward), move.Y));
+        }
+
+        /// <summary>On a ladder, instead of gravity: towards the wall climbs, away climbs down, sideways
+        /// moves along it, no key slides down slowly, crouching holds. A knock still sheds on top.</summary>
+        void Climb(in MoveInput input, float dt)
+        {
+            LadderStrip s = world.Ladders[ladder];
+            Vector3 wish = Wish(input);
+            float push = -UMath.Dot(wish, s.Out), side = UMath.Dot(wish, s.Along);
+            float up = isCrouching ? 0f
+                     : UMath.Abs(push) > 0.3f ? ClimbSpeed * push
+                     : -ClimbSlideSpeed;
+            // The feet stop just over the top: walking on steps onto a ledge there, under a wall it holds.
+            float room = s.Top + TopMargin - (position.Y + FootOffset);
+            if (up * dt > room)
+                up = UMath.Max(0f, room / dt);
+            float into = UMath.Max(ClimbStick, push * ClimbSpeed);
+            if (UMath.SqrMagnitude(knock) > 0f)
+                knock = UMath.MoveTowards(knock, Vector3.Zero, AirAcceleration * dt);
+            velocity = new Vector3(-s.Out.X * into + s.Along.X * side * ClimbSideSpeed + knock.X, up,
+                                   -s.Out.Z * into + s.Along.Z * side * ClimbSideSpeed + knock.Z);
+        }
+
+        /// <summary>A jump press on a ladder leaps off it, away from the wall, as high as a ground jump
+        /// and with the double jump free. Returns whether it did.</summary>
+        bool JumpOffLadder(int presses)
+        {
+            if (presses == 0)
+                return false;
+            LadderStrip s = world.Ladders[ladder];
+            climbing = false;
+            ladder = 0;
+            climbWait = RegrabWait;
+            velocity = new Vector3(s.Out.X * ClimbJumpOff, UMath.Sqrt(JumpHeight * -2f * Gravity), s.Out.Z * ClimbJumpOff);
+            doubleJumpUsed = false;
+            jumpWindowOpen = true;
+            timeSinceGroundJump = 0f;
+            hasPendingAirPress = false;
+            jumpCutPending = true;
+            jumpHeldTime = 0f;
+            jumpStartY = position.Y;
+            return true;
+        }
+
+        /// <summary>Landing on a bounce pad gives the fall back upwards, by the pad's share; the
+        /// double jump is free again, as after a ground jump.</summary>
+        void BounceOffPad(float fall)
+        {
+            float feet = position.Y + FootOffset;
+            for (int i = 0; i < world.Pads.Count; i++)
+            {
+                PadArea p = world.Pads[i];
+                if (UMath.Abs(position.X - p.Top.X) > p.HalfX + 0.2f || UMath.Abs(position.Z - p.Top.Z) > p.HalfZ + 0.2f
+                    || UMath.Abs(feet - p.Top.Y) > 0.1f)
+                    continue;
+                velocity.Y = -fall * p.Bounce;
+                touchingGround = false;
+                doubleJumpUsed = false;
+                jumpWindowOpen = true;
+                timeSinceGroundJump = 0f;
+                hasPendingAirPress = false;
+                jumpCutPending = false;
+                return;
+            }
         }
 
         // The key starts the sprint, only speed ends it. Holding it rearms
