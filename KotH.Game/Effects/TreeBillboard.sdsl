@@ -1,8 +1,8 @@
 /// <summary>Pyramid's far trees (TreeBillboardFeature mixes it in after the vertex stage, in every
-/// pass): each quad, built facing +Z round its tree's foot, turns about its upright to the camera.
-/// Its side from the atlas tile's u (2 x 2 tiles, left half -1), its half width from COLOR0.z x 10
-/// (LeafData as LeafCluster reads it: shade, tint, half width / 10).</summary>
-shader TreeBillboard : TransformationBase, PositionStream4, Transformation, Texturing
+/// pass): each quad, built facing +Z round its tree's foot, turns about its upright to the camera,
+/// its normal the way it faces (TreeImpostor lights by it). Side from the atlas tile's u (2 x 2
+/// tiles, left half -1), its reach from the upright COLOR0.z x 10 (TreeImpostor's LeafData).</summary>
+shader TreeBillboard : TransformationBase, PositionStream4, NormalStream, Transformation, Texturing
 {
     stage stream float4 LeafData : COLOR0;
 
@@ -18,5 +18,6 @@ shader TreeBillboard : TransformationBase, PositionStream4, Transformation, Text
         float2 facing = far > 1e-3 ? toEye / far : float2(0.0, 1.0);
         // Right of a face looking along facing (x, z): (z, -x), as +X is right of +Z.
         streams.PositionWS = float4(foot.x + facing.y * reach, p.y, foot.z - facing.x * reach, 1.0);
+        streams.meshNormal = float3(facing.x, 0.0, facing.y);
     }
 };

@@ -8,11 +8,14 @@ Attributes:
             Value: 0.1
     Diffuse: !MaterialDiffuseMapFeature
         DiffuseMap: !ComputeShaderClassColor
-            MixinReference: LeafCluster
+            MixinReference: TreeImpostor
             Generics:
                 531b7bdcb45f4568bfbda86fe952a12a~PaintKey: !ComputeColorParameterTexture
                     Texture:
                         Texture: 75B667D7-8797-40EA-9978-725DFA0B50AF:Textures/Terrain/TreeImpostors
+                c47cc1a72127486fa266140e826f8bb6~NormalKey: !ComputeColorParameterTexture
+                    Texture:
+                        Texture: CBF4F616-2E34-4A1D-B087-4AF70DF2545B:Textures/Terrain/TreeImpostorsNormal
             CompositionNodes: {}
     DiffuseModel: !MaterialDiffuseLambertModelFeature {}
     Specular: !MaterialMetalnessMapFeature

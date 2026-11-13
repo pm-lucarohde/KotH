@@ -1,7 +1,7 @@
 #!/usr/bin/env -S dotnet run
 // Map "Pyramid" after the KotH map koth_map_minecraftinfinity (used with its author's permission): a step pyramid
 // in a walled garden, measured from the schematic (PyramidSource.txt, 1 m across, 0.8 m high). Writes Pyramid.glb
-// and KotH.Shared/Resources/Maps/PyramidTerrain.bin, and the far trees' TreeImpostors.png.
+// and KotH.Shared/Resources/Maps/PyramidTerrain.bin, and the far trees' TreeImpostors(Normal).png.
 //   dotnet run Tools/maps/Pyramid.cs   then Tools/maps/MapUV --map Pyramid
 #:project ../../KotH.MapFormat/KotH.MapFormat.csproj
 #:include ArenaShapes.cs
@@ -452,13 +452,14 @@ double Hill(double x, double z)
 }
 // The forest on them: a tree on a jittered 4.6 m grid (Luca: twice the trees of 6.5 m) where a slow noise allows (glades), fewer further out,
 // each a flat stand-in from TreeImpostors.png that TreeBillboard turns to the camera about its upright.
-// COLOR_0 as LeafCluster reads it: shade, tint, then the half width / 10 (the shader's), unused.
-string impostors = Path.Combine(root, "KotH.Game/Resources/Textures/Terrain/TreeImpostors.png");
-Console.WriteLine($"TreeImpostors.png: trees up to {Py.F(Impostors.Render(Path.Combine(root, "KotH.Game/Resources/Textures/Terrain"), impostors), 1)} m");
+// COLOR_0 as TreeImpostor reads it: shade, tint, then the half width / 10 (TreeBillboard's reach), unused.
+string terrainTextures = Path.Combine(root, "KotH.Game/Resources/Textures/Terrain");
+double tallest = Impostors.Render(terrainTextures, Path.Combine(terrainTextures, "TreeImpostors.png"), Path.Combine(terrainTextures, "TreeImpostorsNormal.png"));
+Console.WriteLine($"TreeImpostors.png, TreeImpostorsNormal.png: trees up to {Py.F(tallest, 1)} m");
 {
     Piece far = arena.PieceOf("FarTrees");
     var rng = new PyRandom(4200);
-    int count = 0;
+    var stands = new List<(double R, double X, double Z, double W, double Bottom, double Top, double U0, double U1, double V0, double V1, double Tint)>();
     const double Step = 4.6, Pixel = 1.0 / Impostors.AtlasPx;
     for (double gz = -HillsTo; gz <= HillsTo; gz += Step)
         for (double gx = -HillsTo; gx <= HillsTo; gx += Step)
@@ -471,14 +472,19 @@ Console.WriteLine($"TreeImpostors.png: trees up to {Py.F(Impostors.Render(Path.C
                 continue;
             double w = Impostors.Size * scale / 2, bottom = Hill(x, z) - Impostors.Ground * scale, top = bottom + 2 * w;
             double u0 = (tile % 2) * 0.5 + Pixel, u1 = (tile % 2) * 0.5 + 0.5 - Pixel, v0 = (tile / 2) * 0.5 + Pixel, v1 = (tile / 2) * 0.5 + 0.5 - Pixel;
-            var col = (1.0, tint, w / 10, 0.0);
-            var up = new V3(0, 1, 0);
-            int a = far.Add(new V3(x - w, bottom, z), up, col, (u0, v1)), b = far.Add(new V3(x + w, bottom, z), up, col, (u1, v1));
-            int c = far.Add(new V3(x + w, top, z), up, col, (u1, v0)), d = far.Add(new V3(x - w, top, z), up, col, (u0, v0));
-            far.Idx.AddRange([a, b, c, a, c, d]);
-            count++;
+            stands.Add((r, x, z, w, bottom, top, u0, u1, v0, v1, tint));
         }
-    Console.WriteLine($"{count} far trees");
+    // Nearest the wall first: the camera stays inside, so this is front to back and the depth prepass
+    // rejects the cut-out cards behind early instead of sampling and discarding every row.
+    var up = new V3(0, 1, 0);
+    foreach (var (r, x, z, w, bottom, top, u0, u1, v0, v1, tint) in stands.OrderBy(s => s.R))
+    {
+        var col = (1.0, tint, w / 10, 0.0);
+        int a = far.Add(new V3(x - w, bottom, z), up, col, (u0, v1)), b = far.Add(new V3(x + w, bottom, z), up, col, (u1, v1));
+        int c = far.Add(new V3(x + w, top, z), up, col, (u1, v0)), d = far.Add(new V3(x - w, top, z), up, col, (u0, v0));
+        far.Idx.AddRange([a, b, c, a, c, d]);
+    }
+    Console.WriteLine($"{stands.Count} far trees");
 }
 
 // ---- checks: faces lying on each other the same way round flicker (z-fighting) ----

@@ -6,9 +6,9 @@ using Stride.Rendering;
 namespace KotH.Client.Rendering
 {
     /// <summary>The colour pass tests the depth prepass' depth without writing it: the prepass holds every
-    /// opaque surface already, so the same fragments pass and the same depth stays. With depth writes on, a
-    /// shader that may discard (alpha-tested leaves) lost the early depth test and lit every hidden leaf. The
-    /// leaves test Equal: under LessEqual the cut-out parts of every card in front passed and were lit first.</summary>
+    /// opaque surface already, so the same fragments pass and the same depth stays (writing, alpha-tested leaves
+    /// lost the early depth test and lit every hidden leaf). Leaves and far trees test Equal: under LessEqual
+    /// the cut-out parts of every card in front passed and were lit first.</summary>
     public sealed class OpaqueDepthRead : PipelineProcessor
     {
         RenderStage opaque;
@@ -29,7 +29,7 @@ namespace KotH.Client.Rendering
             if (renderNode.RenderStage != opaque)
                 return;
             pipelineState.DepthStencilState.DepthBufferWriteEnable = false;
-            if (renderObject is RenderMesh mesh && LeafRenderFeature.IsLeaves(mesh))
+            if (renderObject is RenderMesh mesh && (LeafRenderFeature.IsLeaves(mesh) || TreeBillboardFeature.IsBillboard(mesh)))
                 pipelineState.DepthStencilState.DepthBufferFunction = CompareFunction.Equal;
         }
     }

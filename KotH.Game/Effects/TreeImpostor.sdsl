@@ -1,0 +1,31 @@
+/// <summary>Pyramid's far trees' colour (Tools/maps/Impostors.cs): the atlas' unlit paint, cut out by
+/// its alpha as LeafCluster does the leaves', and the normal of the tree drawn there, turned with the
+/// quad (TreeBillboard faces it to the camera: meshNormalWS), so the light falls as on the real trees.
+/// COLOR0: shade, tint (as LeafCluster), then TreeBillboard's half width.</summary>
+shader TreeImpostor<LinkType PaintKey, LinkType NormalKey>
+    : ComputeColor, Texturing, NormalStream
+{
+    // Texels along the atlas; the alpha is raised with the mip level as LeafCluster's.
+    static const float AtlasSize = 1024.0;
+    static const float MipKeep = 0.3;
+    rgroup PerMaterial
+    {
+        [Link("PaintKey")] stage Texture2D Paint;
+        [Link("NormalKey")] stage Texture2D Normals;
+    }
+    stage stream float4 LeafData : COLOR0;
+
+    override float4 Compute()
+    {
+        float2 uv = streams.TexCoord;
+        float2 t = uv * AtlasSize;
+        float lod = max(0.0, 0.5 * log2(max(dot(ddx(t), ddx(t)), dot(ddy(t), ddy(t)))));
+        float4 c = Paint.Sample(AnisotropicRepeatSampler, uv);
+        float tint = lerp(0.9, 1.1, streams.LeafData.y);
+        // The baked normal: x right, y up, z towards the viewer; the quad's right of its facing (x, z) is (z, -x).
+        float3 f = normalize(float3(streams.meshNormalWS.x, 0.0, streams.meshNormalWS.z));
+        float3 n = Normals.Sample(LinearRepeatSampler, uv).xyz * 2.0 - 1.0;
+        streams.normalWS = normalize(float3(f.z, 0.0, -f.x) * n.x + float3(0.0, 1.0, 0.0) * n.y + f * n.z);
+        return float4(c.rgb * streams.LeafData.x * tint, c.a * (1.0 + MipKeep * lod));
+    }
+};

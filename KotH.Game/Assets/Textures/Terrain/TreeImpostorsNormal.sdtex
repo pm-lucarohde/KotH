@@ -1,0 +1,10 @@
+!Texture
+Id: CBF4F616-2E34-4A1D-B087-4AF70DF2545B
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../../Resources/Textures/Terrain/TreeImpostorsNormal.png
+IsCompressed: true
+Type: !ColorTextureType
+    UseSRgbSampling: false
+    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}
+    PremultiplyAlpha: false
