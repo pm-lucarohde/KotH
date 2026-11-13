@@ -1057,9 +1057,13 @@ namespace KotH.Client.Player
             float sinceJump = motor.SinceGroundJump;
             bool hopped = sinceJump >= 0f && (f.SeenJump < 0f || sinceJump < f.SeenJump);
             f.SeenJump = sinceJump;
+            // Off a trampoline it is a bounce, not a landing and a jump.
+            bool bounced = hopped && f.AirTime > 0f && motor.OverPad;
+            if (bounced)
+                Sound(f, FigureSound.Bounce, 1f);
             if (hopped && f.AirTime > 0f)
             {
-                Landed(f, motor);
+                Landed(f, motor, bounced);
                 f.AirTime = 0f;
                 f.LastClimb = v.Y;
             }
@@ -1085,7 +1089,7 @@ namespace KotH.Client.Player
                 {
                     f.Peak = motor.Position.Y;
                     f.Slammed = false;
-                    if (v.Y > JumpSpeed && motor.KnockLeft <= 0f)
+                    if (v.Y > JumpSpeed && motor.KnockLeft <= 0f && !bounced)
                         Sound(f, FigureSound.Jump, 1f);
                 }
                 f.Peak = MathF.Max(f.Peak, motor.Position.Y);
@@ -1181,13 +1185,13 @@ namespace KotH.Client.Player
         }
 
         // Back on the ground after a flight long enough to be heard.
-        void Landed(Figure f, PlayerMotor motor)
+        void Landed(Figure f, PlayerMotor motor, bool silent = false)
         {
             if (f.AirTime <= LandMinAir)
                 return;
             f.LandAge = 0f;
             // A dash landing sounds its impact in Slam instead, before or after this.
-            if (!f.Slammed && (f.Dash == null || f.Dash.LastSlamTick == f.SeenSlam))
+            if (!silent && !f.Slammed && (f.Dash == null || f.Dash.LastSlamTick == f.SeenSlam))
                 Sound(f, FigureSound.Land, f.Peak - motor.Position.Y);
             f.Slammed = false;
         }

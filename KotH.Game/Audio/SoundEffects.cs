@@ -65,6 +65,10 @@ namespace KotH.Client.Audio
         [Display("Climb grabs", "Figures")] public List<Sound> Climbs = new List<Sound>();
         [Display("Climb volume", "Figures")] public float ClimbVolume = 0.1f;
 
+        /// <userdoc>One of these at random when a trampoline throws a figure back up.</userdoc>
+        [Display("Trampolines", "Figures")] public List<Sound> Bounces = new List<Sound>();
+        [Display("Trampoline volume", "Figures")] public float BounceVolume = 0.1f;
+
         /// <userdoc>One of these at random when another figure is hit.</userdoc>
         [Display("Hits", "Figures")] public List<Sound> Hits = new List<Sound>();
         [Display("Hit volume", "Figures")] public float HitVolume = 0.71f;
@@ -199,6 +203,10 @@ namespace KotH.Client.Audio
                 case FigureSound.Climb:
                     if (Climbs.Count > 0)
                         Play(Climbs[random.Next(Climbs.Count)], ClimbVolume, at, true, what);
+                    break;
+                case FigureSound.Bounce:
+                    if (Bounces.Count > 0)
+                        Play(Bounces[random.Next(Bounces.Count)], BounceVolume, at, true, what);
                     break;
                 case FigureSound.Hit:
                     if (motor != null && motor == camera?.Motor)

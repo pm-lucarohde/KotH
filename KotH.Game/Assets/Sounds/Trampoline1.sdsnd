@@ -1,0 +1,7 @@
+!Sound
+Id: EE259427-B796-5167-9431-3FA84219C0BE
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Sounds/trampoline1.wav
+StreamFromDisk: false
+Spatialized: true

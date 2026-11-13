@@ -1,0 +1,7 @@
+!Sound
+Id: 7BFA8484-808D-54EF-827D-8508BC3DE73C
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Sounds/trampoline4.wav
+StreamFromDisk: false
+Spatialized: true

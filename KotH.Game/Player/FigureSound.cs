@@ -25,5 +25,7 @@ namespace KotH.Client.Player
         Shot,
         /// <summary>A hand grabbed the next rung of a ladder.</summary>
         Climb,
+        /// <summary>Thrown back up by a trampoline.</summary>
+        Bounce,
     }
 }

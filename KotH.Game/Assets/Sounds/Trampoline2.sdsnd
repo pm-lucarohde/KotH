@@ -1,0 +1,7 @@
+!Sound
+Id: 9543A6AB-590B-588C-B1E9-0D7439189A6A
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Sounds/trampoline2.wav
+StreamFromDisk: false
+Spatialized: true

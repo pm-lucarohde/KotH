@@ -57,6 +57,11 @@ Hierarchy:
                             90f295e1227b5a13a0d6f5766433628a: 60F2A150-980D-521B-A932-62690A3EDEB3:Sounds/Climb1
                             680cdd1833de5be78abfa017079d5ddf: 29B13F6F-2426-59CE-8CC3-68A25B6879B2:Sounds/Climb2
                             160838c0542a52a29bd7f8b81acbb17d: EA692233-A11B-5D48-8548-BDF700C5D75D:Sounds/Climb3
+                        Bounces:
+                            4cb254196ac75091a09fabefa729cfe8: EE259427-B796-5167-9431-3FA84219C0BE:Sounds/Trampoline1
+                            e82ade9f79215928a505dfe3f276fbb4: 9543A6AB-590B-588C-B1E9-0D7439189A6A:Sounds/Trampoline2
+                            6dcc198a953f5556ab9a1eca67e973af: 96053B99-830E-5E3B-B6B2-F3F8FEDBD5FC:Sounds/Trampoline3
+                            1acb0ec8271d569d98c76bca97154e76: 7BFA8484-808D-54EF-827D-8508BC3DE73C:Sounds/Trampoline4
         -   Entity:
                 Id: 87F189D0-5C83-4C57-8C2E-071CB60E54D2
                 Name: ZoneVisual

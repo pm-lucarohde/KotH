@@ -260,6 +260,23 @@ namespace KotH.Shared.Player
         /// <summary>Out of the wall of the ladder climbed (horizontal, unit), zero when not climbing.</summary>
         public Vector3 LadderOut => climbing ? world.Ladders[ladder].Out : Vector3.Zero;
 
+        /// <summary>For the figure only: the feet are on or just above a bounce pad's top.</summary>
+        public bool OverPad
+        {
+            get
+            {
+                float feet = position.Y + FootOffset;
+                for (int i = 0; i < world.Pads.Count; i++)
+                {
+                    PadArea p = world.Pads[i];
+                    if (UMath.Abs(position.X - p.Top.X) <= p.HalfX + 0.2f && UMath.Abs(position.Z - p.Top.Z) <= p.HalfZ + 0.2f
+                        && feet - p.Top.Y > -0.1f && feet - p.Top.Y < 0.6f)
+                        return true;
+                }
+                return false;
+            }
+        }
+
         /// <summary>A dash from the next tick on: straight down at speed, no steering or jumping,
         /// until the ground. Dash decides when; a knock ends it.</summary>
         public void StartSlam(float speed) => slamSpeed = UMath.Max(0f, speed);
