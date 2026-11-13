@@ -1,73 +1,39 @@
 #!/usr/bin/env -S dotnet run
-// Pyramid's pond sounds, synthesised (Sounds/ has no water recording): three wading steps and a
-// splash, each a burst of filtered noise for the slosh and rising sine bubbles (Minnaert),
-// as loud as steps.wav over its loudest 400 ms, 48 kHz 16 bit mono, to KotH.Game/Resources/Sounds/.
-//   dotnet run Tools/audio/Water.cs        (after Tools/audio/Sfx.cs, which writes steps.wav)
+// Pyramid's pond sounds from CC0 recordings (Tools/audio/water, see its README): three wading steps and a
+// splash, decoded by ffmpeg, the silence before the sound cut, as loud as steps.wav over its loudest 400 ms
+// (the splash 1.4 times), 48 kHz 16 bit mono, to KotH.Game/Resources/Sounds/.
+//   dotnet run Tools/audio/Water.cs        (after Tools/audio/Sfx.cs, which writes steps.wav; needs ffmpeg)
 using System;
+using System.Diagnostics;
 using System.IO;
 
 const int Rate = 48000;
 const double Fade = 0.03;            // seconds faded out at the end
 string target = Path.GetFullPath(Path.Combine(Here(), "../../KotH.Game/Resources/Sounds"));
+string source = Path.Combine(Here(), "water");
 double reference = Loudest(Read(Path.Combine(target, "steps.wav")));
 
-for (int k = 1; k <= 3; k++)
-    Save($"wade{k}", Wade(new Random(100 + k)), 1.0);
-Save("splash", Splash(new Random(200)), 1.4);
+string[] wades = ["splash_06", "splash_08", "splash_15"];
+for (int k = 0; k < wades.Length; k++)
+    Save($"wade{k + 1}", Recording(wades[k]), 1.0);
+Save("splash", Recording("splash_04"), 1.4);
 return 0;
 
-// A foot into shallow water: a slosh, a smaller one as the water falls back, a few bubbles.
-static double[] Wade(Random r)
+// A recording as mono samples at Rate, from 5 ms before it first rises over -40 dB of its peak.
+double[] Recording(string name)
 {
-    var s = new double[(int)(0.42 * Rate)];
-    Slosh(s, r, 0.0, 1.0, 0.012, 0.085, 350, 2400);
-    Slosh(s, r, 0.11 + 0.04 * r.NextDouble(), 0.45, 0.02, 0.06, 500, 3200);
-    for (int i = 0, n = 6 + r.Next(5); i < n; i++)
-        Bubble(s, r, 0.25 * Math.Pow(r.NextDouble(), 1.5), 500, 1700, 0.2 + 0.35 * r.NextDouble());
-    return s;
-}
-
-// Landing in the pond: a deep thump, a long wide slosh with a hiss of spray, many bubbles.
-static double[] Splash(Random r)
-{
-    var s = new double[(int)(0.95 * Rate)];
-    for (int i = 0; i < (int)(0.2 * Rate); i++)
-        s[i] += 0.5 * Math.Sin(2 * Math.PI * 85 * i / Rate) * Math.Exp(-i / (0.045 * Rate));
-    Slosh(s, r, 0.0, 1.0, 0.008, 0.16, 250, 4200);
-    Slosh(s, r, 0.02, 0.35, 0.03, 0.3, 1800, 9000);
-    Slosh(s, r, 0.24, 0.5, 0.04, 0.12, 400, 2600);
-    for (int i = 0; i < 26; i++)
-        Bubble(s, r, 0.65 * Math.Pow(r.NextDouble(), 1.3), 400, 2000, 0.15 + 0.35 * r.NextDouble());
-    return s;
-}
-
-// Noise band-passed by one-pole filters, rising over attack and decaying exponentially.
-static void Slosh(double[] s, Random r, double at, double amp, double attack, double decay, double low, double high)
-{
-    double hp = Math.Exp(-2 * Math.PI * low / Rate), lp = 1 - Math.Exp(-2 * Math.PI * high / Rate);
-    double x0 = 0, y0 = 0, z = 0;
-    int from = (int)(at * Rate);
-    for (int i = from; i < s.Length; i++)
-    {
-        double t = (double)(i - from) / Rate, x = 2 * r.NextDouble() - 1;
-        y0 = hp * (y0 + x - x0);
-        x0 = x;
-        z += lp * (y0 - z);
-        s[i] += amp * Math.Min(1, t / attack) * Math.Exp(-t / decay) * z;
-    }
-}
-
-// An air bubble's ring: a sine whose pitch rises as it nears the surface, decaying in a few periods.
-static void Bubble(double[] s, Random r, double at, double low, double high, double amp)
-{
-    double f0 = low * Math.Pow(high / low, r.NextDouble()), tau = 0.01 + 0.025 * r.NextDouble(), phase = 0;
-    int from = (int)(at * Rate);
-    for (int i = from; i < Math.Min(s.Length, from + (int)(6 * tau * Rate)); i++)
-    {
-        double t = (double)(i - from) / Rate;
-        phase += 2 * Math.PI * f0 * (1 + 0.6 * t / tau) / Rate;
-        s[i] += amp * Math.Min(1, t / 0.001) * Math.Exp(-t / tau) * Math.Sin(phase);
-    }
+    string raw = Path.Combine(Path.GetTempPath(), name + ".raw");
+    using (var ff = Process.Start("ffmpeg", ["-v", "error", "-y", "-i", Path.Combine(source, name + ".ogg"),
+                                              "-ac", "1", "-ar", Rate.ToString(), "-f", "s16le", raw])!)
+        ff.WaitForExit();
+    byte[] b = File.ReadAllBytes(raw);
+    File.Delete(raw);
+    var s = new double[b.Length / 2];
+    double peak = 0;
+    for (int i = 0; i < s.Length; i++)
+        peak = Math.Max(peak, Math.Abs(s[i] = BitConverter.ToInt16(b, 2 * i) / 32768.0));
+    int first = Array.FindIndex(s, v => Math.Abs(v) > peak * 0.01);
+    return s[Math.Max(0, first - Rate / 200)..];
 }
 
 // Loudness as RMS over the loudest 400 ms.
