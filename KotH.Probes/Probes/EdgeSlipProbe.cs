@@ -8,7 +8,8 @@ namespace KotH.Probes.Probes
 {
     /// <summary>Stands the body still with its axis a set distance past a block's edge: up to
     /// EdgeReach it stays on top, further out it slips off (Luca, 11.11.2026: one stood with most of
-    /// the body over the void). Also walks along the edge, jumps off it and creeps crouched into it.</summary>
+    /// the body over the void). Also walks along the edge, jumps off it, creeps crouched into it, and
+    /// double jumps after walking or being knocked off it (Luca, 13.11.2026: not only after a jump).</summary>
     public sealed class EdgeSlipProbe : Probe
     {
         protected override string Tag => "edgeslip";
@@ -101,6 +102,27 @@ namespace KotH.Probes.Probes
                 Log($"[edgeslip] crouched into the edge: axis {at.X - Edge:F3} m past -> " + (held ? "ok" : "DEVIATION"));
             }
 
+            // Off the edge without a jump: a double tap within the second after leaving fires the double
+            // jump, once; a single tap, a late one, or one after an own jump's window does not.
+            foreach ((string name, bool knocked, bool jump, int[] taps, int want) in new[]
+            {
+                ("walked off, taps at 4 and 6", false, false, new[] { 4, 6 }, 1),
+                ("walked off, one tap at 4", false, false, new[] { 4 }, 0),
+                ("walked off, taps at 44 and 46", false, false, new[] { 44, 46 }, 0),
+                ("walked off, taps at 4, 6, 20, 22", false, false, new[] { 4, 6, 20, 22 }, 1),
+                ("knocked off, taps at 4 and 6", true, false, new[] { 4, 6 }, 1),
+                ("jumped off, taps at 4 and 6", false, true, new[] { 4, 6 }, 1),
+                ("jumped off, taps at 44 and 46", false, true, new[] { 44, 46 }, 0),
+            })
+            {
+                (int fired, float speed) = OffEdge(motor, knocked, jump, taps);
+                float wanted = MathF.Sqrt(motor.DoubleJumpHeight * -2f * motor.Gravity) + motor.Gravity * FixedDeltaTime;
+                bool ok = fired == want && (fired == 0 || MathF.Abs(speed - wanted) < 0.001f);
+                failures += ok ? 0 : 1;
+                Log($"[edgeslip] {name}: {fired} double jump(s)" + (fired > 0 ? $" at {speed:F3} m/s (want {wanted:F3})" : "") +
+                    " -> " + (ok ? "ok" : "DEVIATION"));
+            }
+
             Log(failures == 0 ? "[edgeslip] EDGES AS EXPECTED" : $"[edgeslip] {failures} DEVIATIONS");
             return failures == 0 ? 0 : 1;
         }
@@ -119,6 +141,30 @@ namespace KotH.Probes.Probes
             }
             Vector3 at = Ref.ToUnity(motor.Position);
             return (at.Y > Top, angle, at.X);
+        }
+
+        // From 0.5 m inside the edge: walks off (a jump first, or a 3 m knock instead), then taps jump at
+        // the given ticks after the ground was left. The double jumps that fired and the first one's speed.
+        (int fired, float speed) OffEdge(PlayerMotor motor, bool knocked, bool jump, int[] taps)
+        {
+            Settle(motor);
+            motor.Teleport(Ref.Pos(new Vector3(Edge - 0.5f, Top + 1f, 100f)));
+            Idle(motor, 20);
+            var walk = knocked ? new MoveInput() : new MoveInput { Move = new Vector2(0f, 1f), Yaw = Ref.Angle(90f) };
+            if (knocked)
+                motor.Knock(Ref.Pos(1f, 0f, 0f), 3f, 0.5f, 0f, 0f, FixedDeltaTime);
+            for (int t = 0; t < 80 && motor.IsGrounded; t++)
+                motor.Tick(jump && t == 0 ? walk with { JumpPresses = 1, JumpHeld = true } : walk, FixedDeltaTime);
+            int fired = 0;
+            float speed = 0f;
+            for (int t = 0; t < 60; t++)
+            {
+                bool before = motor.DoubleJumped;
+                motor.Tick(walk with { JumpPresses = (byte)(Array.IndexOf(taps, t) >= 0 ? 1 : 0) }, FixedDeltaTime);
+                if (motor.DoubleJumped && !before && fired++ == 0)
+                    speed = motor.Velocity.Y;
+            }
+            return (fired, speed);
         }
 
         // 60 idle ticks in the block's middle: no case inherits the last one's speed.

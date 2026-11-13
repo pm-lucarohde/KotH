@@ -662,10 +662,10 @@ namespace KotH.Probes.Probes
                 case byte by: Mix(ref h, by); return;
             }
 
-            // Duo's and the ladders' fields count only when set: solo hashes as before them (chain 67AB05EEE3468AFD).
+            // Duo's and the ladders' fields count only when set: solo hashes as before them (chain 70AFCFC7C1AB4C36).
             foreach (FieldInfo f in Fields(value.GetType()))
                 if (f.GetValue(value) is var v && !(f.Name is "Team" or "Wish" or "Bot" or "ChainHoldLeft" or "HangJumpWait"
-                                                    or "Climbing" or "Ladder" or "ClimbWait" && Unset(v)))
+                                                    or "Climbing" or "Ladder" or "ClimbWait" or "FellOff" && Unset(v)))
                     HashObject(ref h, v);
         }
 

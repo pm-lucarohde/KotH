@@ -41,6 +41,7 @@ namespace KotH.Shared.Player
         public bool JumpWindowOpen;
         public float TimeSinceGroundJump;
         public bool HasPendingAirPress;
+        public bool FellOff;
         public float TimeSinceAirPress;
         public bool JumpCutPending;
         public float JumpHeldTime;

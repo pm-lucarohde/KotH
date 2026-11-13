@@ -115,12 +115,31 @@ namespace KotH.Probes.Probes
             int stays = Ticks(motor, up, 12, m => m.IsClimbing);
             Check(stays < 0, $"a 3 m knock throws it off for good (caught again at tick {stays})");
 
+            // Knocked off or let go, the double jump stays: a double tap in the next second fires it.
+            ClimbTo(motor, Foot.X, 2f);
+            motor.Knock(new Vector3(0f, 0f, 1f), 3f, 1f, 0f, 0f, FixedDeltaTime);
+            Check(DoubleTap(motor), $"knocked off, a double tap double jumps (v {motor.Velocity.Y:F3} up)");
+            ClimbTo(motor, Foot.X, 2f);
+            Ticks(motor, new MoveInput { Move = new Vector2(1f, 0.6f) }, 40, m => !m.IsClimbing);
+            Check(DoubleTap(motor), $"let go at the side, a double tap double jumps (v {motor.Velocity.Y:F3} up)");
+
             // Pad: a 4 m fall comes back up by the pad's share; crouched it lands.
             float rise = Drop(motor, false);
             Check(rise > 0.75f * 4f && rise < 0.85f * 4f, $"a 4 m fall bounces {rise:F3} m back up (0.9² of it, less Euler)");
             rise = Drop(motor, true);
             Check(rise < 0.1f, $"crouched it lands (feet at most {rise:F3} m over the top, resting)");
             return failures;
+        }
+
+        // Four ticks in the air, then two taps: whether the second fired the double jump, at its speed.
+        static bool DoubleTap(PlayerMotor motor)
+        {
+            for (int t = 0; t < 4; t++)
+                motor.Tick(default, FixedDeltaTime);
+            motor.Tick(new MoveInput { JumpPresses = 1 }, FixedDeltaTime);
+            motor.Tick(new MoveInput { JumpPresses = 1 }, FixedDeltaTime);
+            float want = MathF.Sqrt(motor.DoubleJumpHeight * -2f * motor.Gravity) + motor.Gravity * FixedDeltaTime;
+            return motor.DoubleJumped && MathF.Abs(motor.Velocity.Y - want) < 0.001f;
         }
 
         static LadderStrip Strip(float top)

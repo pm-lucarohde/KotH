@@ -45,7 +45,7 @@ World queries against PhysX (`worldquery`, 6,500 per kind): identical hit sets, 
 All builds use **x86-64-v2** (`Directory.Build.props`); JIT matches only with `DOTNET_EnableAVX=0`, then AOT and JIT
 are byte-identical on every probe. All peers need the same binary.
 
-## Intended changes since the move (hash chain now `67AB05EEE3468AFD`)
+## Intended changes since the move (hash chain now `70AFCFC7C1AB4C36`)
 
 | # | Date | Change | Check |
 |---|---|---|---|
@@ -70,3 +70,4 @@ are byte-identical on every probe. All peers need the same binary.
 | 19 | 21.10. | Alone only while capturing; the holder keeps scoring with others inside | `capture` |
 | 20 | 03.11. | Dash down (crouch in the air from 1.5 m); state +17 bytes, chain `67AB05EEE3468AFD` (fields only) | `dash`, runs identical |
 | 21 | 11.11. | Standing on a block edge slips off once the axis is 0.2 m past (walkable contact > 30°, no ground under the axis within 0.3 m), jump kept; no state field, chain unchanged; StepProbe: 3 edge cases end a few cm apart, verdicts same. Crouched ledge guard 0.5 → 0.3 m (= snap) | `edgeslip` |
+| 22 | 13.11. | Double jump also after leaving ground or a ladder without a jump (walked or knocked off, let go): the same double tap within 1 s; state +1 byte (`FellOff`), `StateCodec` v9. Chain `70AFCFC7C1AB4C36` from the window fields only (without them identical, feature off = old chain); verdicts same. Bots keep a double tap back while seen `FellOff` (a missed take-off, else a low lone double jump); 104 seeds each 312/312, means as before (Atrium 18.6 s, TheLadder 46.3 s, MountDestiny 89.6 s) | `edgeslip`, `ladder`, `chain` |

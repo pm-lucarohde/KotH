@@ -68,6 +68,7 @@ namespace KotH.Shared.Bots
         int switchedAt = -1000, lastShot = -1000;
         int shotsLeft;               // as seen, less those fired since
         int lastDash = -1000;
+        bool seenFell;               // seen falling with no jump begun (walked or knocked off), the double tap kept back
         int stuckTicks;
         int slideTap = -1;
         bool landSlide;
@@ -180,6 +181,7 @@ namespace KotH.Shared.Bots
                 ladderRoute.Clear();
             }
             lastSeen = me.Motor.Position;
+            seenFell = me.Motor.FellOff;
             shotsLeft = ShotsLeft(u, me);
             if (!started)
             {
@@ -611,6 +613,10 @@ namespace KotH.Shared.Bots
 
         MoveInput Remember(int u, MoveInput input)
         {
+            // A double tap planned for a jump that never left the ground (the body was falling already) would
+            // fire the fall's double jump alone, too low for the jump's target: kept back.
+            if (seenFell && input.JumpPresses >= 2)
+                input.JumpPresses = 0;
             input.Blaster = holdBlaster;
             LastInput = input;
             past[u % past.Length] = input;

@@ -293,6 +293,7 @@ namespace KotH.Client.Player
             public int SeenSlam;
             public bool Slammed;   // a dash landed in this flight, its impact already sounded
             public float SeenJump; // the motor's SinceGroundJump last frame
+            public bool SeenDoubled; // the motor's DoubleJumped last frame
             public Entity[] Shards;
             public readonly ArmSwing Swing = new ArmSwing();
             public readonly SlamPose Slam = new SlamPose();
@@ -356,6 +357,7 @@ namespace KotH.Client.Player
                 Dash = motor.Entity.Get<Dash>(),
                 SeenSlam = motor.Entity.Get<Dash>()?.LastSlamTick ?? 0,
                 SeenJump = motor.SinceGroundJump,
+                SeenDoubled = motor.DoubleJumped,
             });
         }
 
@@ -1067,8 +1069,11 @@ namespace KotH.Client.Player
                 f.AirTime = 0f;
                 f.LastClimb = v.Y;
             }
-            // Rising, too: braking a fall on a rock face is no kick.
-            if (airborne && f.AirTime > 0.05f && motor.KnockLeft <= 0f && v.Y - f.LastClimb > KickBoost && v.Y > JumpSpeed)
+            // Rising, too: braking a fall on a rock face is no kick. A knock's rise is none either, but a
+            // double jump while still flying from one is (the motor says so).
+            bool doubled = motor.DoubleJumped && !f.SeenDoubled;
+            f.SeenDoubled = motor.DoubleJumped;
+            if (airborne && (doubled || f.AirTime > 0.05f && motor.KnockLeft <= 0f && v.Y - f.LastClimb > KickBoost && v.Y > JumpSpeed))
             {
                 f.KickAge = 0f;
                 f.Kicked = true;

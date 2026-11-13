@@ -198,6 +198,7 @@ namespace KotH.Shared.Player
         bool jumpWindowOpen;      // window since the ground jump
         float timeSinceGroundJump;
         bool hasPendingAirPress;  // first air tap waiting for its partner
+        bool fellOff;             // the window opened by leaving ground or ladder without a jump
         float timeSinceAirPress;
         bool jumpCutPending;      // ground jump running, not trimmed yet
         float jumpHeldTime;       // how long the key stayed down since take-off
@@ -248,7 +249,10 @@ namespace KotH.Shared.Player
 
         /// <summary>Seconds since the last ground jump while its double-jump window is open, else -1.
         /// A jump on the very tick of a landing is never seen grounded; the looks find it here.</summary>
-        public float SinceGroundJump => jumpWindowOpen ? timeSinceGroundJump : -1f;
+        public float SinceGroundJump => jumpWindowOpen && !fellOff ? timeSinceGroundJump : -1f;
+
+        /// <summary>The double jump of this flight is spent; its rise is the looks' kick.</summary>
+        public bool DoubleJumped => doubleJumpUsed;
 
         /// <summary>In a dash: straight down until the ground. SlamLanded is the tick it struck.</summary>
         public bool IsSlamming => slamSpeed > 0f;
@@ -381,6 +385,7 @@ namespace KotH.Shared.Player
                 climbing = false;
                 ladder = 0;
                 climbWait = KnockOffWait;
+                OpenFallWindow();
             }
 
             // A hop alone, as at 0 %, leaves the horizontal untouched,
@@ -508,6 +513,7 @@ namespace KotH.Shared.Player
                 JumpWindowOpen = jumpWindowOpen,
                 TimeSinceGroundJump = timeSinceGroundJump,
                 HasPendingAirPress = hasPendingAirPress,
+                FellOff = fellOff,
                 TimeSinceAirPress = timeSinceAirPress,
                 JumpCutPending = jumpCutPending,
                 JumpHeldTime = jumpHeldTime,
@@ -559,6 +565,7 @@ namespace KotH.Shared.Player
             jumpWindowOpen = s.JumpWindowOpen;
             timeSinceGroundJump = s.TimeSinceGroundJump;
             hasPendingAirPress = s.HasPendingAirPress;
+            fellOff = s.FellOff;
             timeSinceAirPress = s.TimeSinceAirPress;
             jumpCutPending = s.JumpCutPending;
             jumpHeldTime = s.JumpHeldTime;
@@ -728,6 +735,7 @@ namespace KotH.Shared.Player
 
             // Ladders before anything reads grounded: a climber is not on the ground. Maps without
             // ladders never get here, so their ticks stay as they were.
+            bool wasClimbing = climbing;
             if (world.Ladders.Count > 0 || climbing)
                 UpdateClimb(input, dt);
             if (climbing)
@@ -744,10 +752,16 @@ namespace KotH.Shared.Player
                 doubleJumpUsed = false;
                 jumpWindowOpen = false;
                 hasPendingAirPress = false;
+                fellOff = false;
                 jumpCutPending = false;
             }
             else
             {
+                // Off the ground or a ladder without a jump (walked off, knocked off, let go): the double
+                // jump's window opens as after one. Only into the air; steep ground counts as neither.
+                if ((wasGrounded || wasClimbing) && !climbing && !touching)
+                    OpenFallWindow();
+
                 if (jumpWindowOpen)
                 {
                     timeSinceGroundJump += dt;
@@ -912,6 +926,11 @@ namespace KotH.Shared.Player
                     climbing = true;
                     ladder = i;
                     sliding = false;
+                    // Holding on is footing, as a landing: leaving without a jump gets the double jump.
+                    doubleJumpUsed = false;
+                    jumpWindowOpen = false;
+                    hasPendingAirPress = false;
+                    fellOff = false;
                     return;
                 }
             }
@@ -976,10 +995,22 @@ namespace KotH.Shared.Player
             jumpWindowOpen = true;
             timeSinceGroundJump = 0f;
             hasPendingAirPress = false;
+            fellOff = false;
             jumpCutPending = true;
             jumpHeldTime = 0f;
             jumpStartY = position.Y;
             return true;
+        }
+
+        /// <summary>The double jump's window for a flight no jump began, if the double jump is still to use.</summary>
+        void OpenFallWindow()
+        {
+            if (jumpWindowOpen || doubleJumpUsed)
+                return;
+            jumpWindowOpen = true;
+            timeSinceGroundJump = 0f;
+            hasPendingAirPress = false;
+            fellOff = true;
         }
 
         /// <summary>Landing on a bounce pad gives the fall back upwards, by the pad's share; the
@@ -999,6 +1030,7 @@ namespace KotH.Shared.Player
                 jumpWindowOpen = true;
                 timeSinceGroundJump = 0f;
                 hasPendingAirPress = false;
+                fellOff = false;
                 jumpCutPending = false;
                 return;
             }
@@ -1210,6 +1242,7 @@ namespace KotH.Shared.Player
                     // Opens the window in which a double tap counts.
                     jumpWindowOpen = true;
                     timeSinceGroundJump = 0f;
+                    fellOff = false;
 
                     // The cut needs the take-off height, since it trims what
                     // is left to climb rather than the speed itself.

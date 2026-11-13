@@ -35,7 +35,7 @@ No unit tests; probes against the frozen Unity reference, exit 0 = passed (known
 ```bash
 Bin/Probes/aot/KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|blaster|dash|step|
   determinism|clock|stairrun|rampfoot|crouchedge|edgeslip|ladder|knockback|thirdperson|wallknock|capture|chain|netstate|netplay|custommap|progress|bots>
-Bin/Probes/aot/KotH.Probes determinism hashes   # hash chain 67AB05EEE3468AFD
+Bin/Probes/aot/KotH.Probes determinism hashes   # hash chain 70AFCFC7C1AB4C36
 Bin/Probes/aot/KotH.Probes bots climb 12        # MountDestiny, mean ≤ 140 s; also bots stats 12, bots jumplab
 .work/tools/climb_many.sh DIR 8 13 && dotnet run .work/tools/climb_many.cs -- DIR   # 104 seeds, each bot
 .work/tools/stride_runs.sh 3; R=Reference/unity/runs

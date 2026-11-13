@@ -97,9 +97,14 @@ namespace KotH.Probes.Probes
             float apart = Vector3.Distance(a.Motor.BodyCenter, b.Motor.BodyCenter);
             Check(apart > length + 2f, $"solo: no chain ({apart:F2} m apart)");
             a.Motor.Teleport(new Vector3(0f, 4f, -2f));
+            // Falling, the own double jump fires once (Luca, 13.11.2026: not only after a jump); no hang jump after it.
             Ticks(4);
             DoubleTap(a, null);
-            Check(a.Motor.Velocity.Y < 0f, $"solo: no jump falling without a ground jump (v.Y {a.Motor.Velocity.Y:F2})");
+            float first = a.Motor.Velocity.Y;
+            Ticks(14);
+            DoubleTap(a, null);
+            Check(first > 5f && a.Motor.Velocity.Y < 0f,
+                  $"solo: falling, one double jump and no hang jump (v.Y {first:F2}, then {a.Motor.Velocity.Y:F2})");
             Ticks(40);
 
             Row(length);
