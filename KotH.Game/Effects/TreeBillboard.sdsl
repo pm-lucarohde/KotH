@@ -1,7 +1,7 @@
 /// <summary>Pyramid's far trees (TreeBillboardFeature mixes it in after the vertex stage, in every
-/// pass): each quad, built facing +Z round its tree's foot, turns about its upright to the camera,
-/// its normal the way it faces (TreeImpostor lights by it). Side from the atlas tile's u (2 x 2
-/// tiles, left half -1), its reach from the upright COLOR0.z x 10 (TreeImpostor's LeafData).</summary>
+/// pass): each quad, built facing +Z round its tree's foot, turns about its upright against the view
+/// direction, all alike (Luca: turned to the eye each, neighbours cut through each other and blinked),
+/// its normal the way it faces (TreeImpostor lights by it). Side from the atlas tile's u.</summary>
 shader TreeBillboard : TransformationBase, PositionStream4, NormalStream, Transformation, Texturing
 {
     stage stream float4 LeafData : COLOR0;
@@ -10,12 +10,16 @@ shader TreeBillboard : TransformationBase, PositionStream4, NormalStream, Transf
     {
         base.PreTransformPosition();
         float3 p = streams.PositionWS.xyz;
+        // 2 x 2 tiles, left half -1; the reach from the upright is COLOR0.z x 10 (TreeImpostor's LeafData).
         float side = frac(streams.TexCoord.x * 2.0) < 0.5 ? -1.0 : 1.0;
         float reach = side * streams.LeafData.z * 10.0;
         float3 foot = p - float3(reach, 0.0, 0.0);
-        float2 toEye = Eye.xz - foot.xz;
+        // Back along the view, level: the camera's back axis tilted by the pitch its up axis shows
+        // (rows of ViewInverse; also straight down, where the back axis stands upright).
+        float3 back = ViewInverse[2].xyz, up = ViewInverse[1].xyz;
+        float2 toEye = back.xz * up.y - up.xz * back.y;
         float far = length(toEye);
-        float2 facing = far > 1e-3 ? toEye / far : float2(0.0, 1.0);
+        float2 facing = far > 1e-4 ? toEye / far : float2(0.0, 1.0);
         // Right of a face looking along facing (x, z): (z, -x), as +X is right of +Z.
         streams.PositionWS = float4(foot.x + facing.y * reach, p.y, foot.z - facing.x * reach, 1.0);
         streams.meshNormal = float3(facing.x, 0.0, facing.y);

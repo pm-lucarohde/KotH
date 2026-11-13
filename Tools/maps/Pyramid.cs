@@ -73,18 +73,22 @@ for (int z = -48; z <= 48; z++)
     for (int x = -48; x <= 50; x++)
         if (Cell(x, z) == 'w')
             pond.Add((x, z));
-// The hollow: the share of water columns within 1.6 m of a point, eased into a depth of one block.
+// The hollow: the share of water columns round a point, each weighted down to 0 at 2 m (Luca: counted
+// alike within 1.6 m the share jumped from cell to cell and the shore came out jagged), eased into a block's depth.
 double Depth(double x, double z)
 {
-    int all = 0, wet = 0;
-    for (int cz = (int)Math.Floor(z - 1.6); cz <= (int)Math.Ceiling(z + 1.6); cz++)
-        for (int cx = (int)Math.Floor(x - 1.6); cx <= (int)Math.Ceiling(x + 1.6); cx++)
-            if ((cx - x) * (cx - x) + (cz - z) * (cz - z) <= 1.6 * 1.6)
-            {
-                all++;
-                wet += Cell(cx, cz) == 'w' ? 1 : 0;
-            }
-    double t = Math.Clamp((wet / (double)all - 0.15) / 0.45, 0, 1);
+    const double Reach = 2.0;
+    double all = 0, wet = 0;
+    for (int cz = (int)Math.Floor(z - Reach); cz <= (int)Math.Ceiling(z + Reach); cz++)
+        for (int cx = (int)Math.Floor(x - Reach); cx <= (int)Math.Ceiling(x + Reach); cx++)
+        {
+            double f = 1 - ((cx - x) * (cx - x) + (cz - z) * (cz - z)) / (Reach * Reach);
+            if (f <= 0)
+                continue;
+            all += f * f;
+            wet += Cell(cx, cz) == 'w' ? f * f : 0;
+        }
+    double t = Math.Clamp((wet / all - 0.15) / 0.45, 0, 1);
     return -Rise * t * t * (3 - 2 * t);
 }
 const double WaterLevel = -0.13;
