@@ -1,7 +1,7 @@
 /// <summary>Pyramid's far trees (TreeBillboardFeature mixes it in after the vertex stage, in every
 /// pass): each quad, built facing +Z round its tree's foot, turns about its upright to the eye, its
-/// normal the way it faces (TreeImpostor lights by it). Its depth (perspective views only) is that of
-/// a cylinder round the eye through its foot, so trees sort by distance, whichever way one looks.</summary>
+/// normal the way it faces (TreeImpostor lights by it). Its depth (perspective views only): a cylinder
+/// round the eye through its foot, nearer by how far the tree stands out there (COLOR0.w x 10).</summary>
 shader TreeBillboard : TransformationBase, PositionStream4, NormalStream, Transformation, Texturing
 {
     stage stream float4 LeafData : COLOR0;
@@ -24,8 +24,8 @@ shader TreeBillboard : TransformationBase, PositionStream4, NormalStream, Transf
         streams.TreeFoot = foot;
     }
 
-    // Luca: flat cards of neighbours cut through each other or swapped in front as the view turned.
-    // Each corner keeps its place on screen, only its depth moves along its ray to the foot's level distance.
+    // Luca: flat cards cut through each other or swapped in front whole. Each grid point keeps its place on
+    // screen, only its depth moves along its ray: to the foot's level distance, less how far the crown stands out.
     stage override void PostTransformPosition()
     {
         base.PostTransformPosition();
@@ -33,7 +33,8 @@ shader TreeBillboard : TransformationBase, PositionStream4, NormalStream, Transf
             return;
         float3 ray = streams.PositionWS.xyz - Eye.xyz;
         float level = max(length(ray.xz), 1e-3);
-        float4 at = mul(float4(Eye.xyz + ray * (length(streams.TreeFoot.xz - Eye.xz) / level), 1.0), ViewProjection);
+        float to = max(length(streams.TreeFoot.xz - Eye.xz) - streams.LeafData.w * 10.0, 0.5);
+        float4 at = mul(float4(Eye.xyz + ray * (to / level), 1.0), ViewProjection);
         streams.ShadingPosition.z = at.z / at.w * streams.ShadingPosition.w;
     }
 };

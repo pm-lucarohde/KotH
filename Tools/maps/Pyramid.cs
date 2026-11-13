@@ -456,14 +456,14 @@ double Hill(double x, double z)
 }
 // The forest on them: a tree on a jittered 4.6 m grid (Luca: twice the trees of 6.5 m) where a slow noise allows (glades), fewer further out,
 // each a flat stand-in from TreeImpostors.png that TreeBillboard turns to the camera about its upright.
-// COLOR_0 as TreeImpostor reads it: shade, tint, then the half width / 10 (TreeBillboard's reach), unused.
+// COLOR_0 as TreeImpostor reads it: shade, tint, then for TreeBillboard the reach and how far the tree stands out, / 10.
 string terrainTextures = Path.Combine(root, "KotH.Game/Resources/Textures/Terrain");
-double tallest = Impostors.Render(terrainTextures, Path.Combine(terrainTextures, "TreeImpostors.png"), Path.Combine(terrainTextures, "TreeImpostorsNormal.png"));
+var (tallest, bulge) = Impostors.Render(terrainTextures, Path.Combine(terrainTextures, "TreeImpostors.png"), Path.Combine(terrainTextures, "TreeImpostorsNormal.png"));
 Console.WriteLine($"TreeImpostors.png, TreeImpostorsNormal.png: trees up to {Py.F(tallest, 1)} m");
 {
     Piece far = arena.PieceOf("FarTrees");
     var rng = new PyRandom(4200);
-    var stands = new List<(double R, double X, double Z, double W, double Bottom, double Top, double U0, double U1, double V0, double V1, double Tint)>();
+    var stands = new List<(double R, double X, double Z, double W, double Bottom, double Top, double U0, double U1, double V0, double V1, double Tint, int Tile)>();
     const double Step = 4.6, Pixel = 1.0 / Impostors.AtlasPx;
     for (double gz = -HillsTo; gz <= HillsTo; gz += Step)
         for (double gx = -HillsTo; gx <= HillsTo; gx += Step)
@@ -476,20 +476,29 @@ Console.WriteLine($"TreeImpostors.png, TreeImpostorsNormal.png: trees up to {Py.
                 continue;
             double w = Impostors.Size * scale / 2, bottom = Hill(x, z) - Impostors.Ground * scale, top = bottom + 2 * w;
             double u0 = (tile % 2) * 0.5 + Pixel, u1 = (tile % 2) * 0.5 + 0.5 - Pixel, v0 = (tile / 2) * 0.5 + Pixel, v1 = (tile / 2) * 0.5 + 0.5 - Pixel;
-            stands.Add((r, x, z, w, bottom, top, u0, u1, v0, v1, tint));
+            stands.Add((r, x, z, w, bottom, top, u0, u1, v0, v1, tint, tile));
         }
     // Nearest the wall first: the camera stays inside, so this is front to back and the depth prepass
     // rejects the cut-out cards behind early instead of sampling and discarding every row.
     var up = new V3(0, 1, 0);
-    foreach (var (r, x, z, w, bottom, top, u0, u1, v0, v1, tint) in stands.OrderBy(s => s.R))
+    foreach (var (r, x, z, w, bottom, top, u0, u1, v0, v1, tint, t) in stands.OrderBy(s => s.R))
     {
-        // A middle column (reach 0) so the depth TreeBillboard gives follows its cylinder closely.
-        var col = (1.0, tint, w / 10, 0.0);
-        var mid = (1.0, tint, 0.0, 0.0);
-        int a = far.Add(new V3(x - w, bottom, z), up, col, (u0, v1)), b = far.Add(new V3(x + w, bottom, z), up, col, (u1, v1));
-        int c = far.Add(new V3(x + w, top, z), up, col, (u1, v0)), d = far.Add(new V3(x - w, top, z), up, col, (u0, v0));
-        int m0 = far.Add(new V3(x, bottom, z), up, mid, ((u0 + u1) / 2, v1)), m1 = far.Add(new V3(x, top, z), up, mid, ((u0 + u1) / 2, v0));
-        far.Idx.AddRange([a, m0, m1, a, m1, d, m0, b, c, m0, c, m1]);
+        // A grid (Impostors' Cols x Rows), each point with its reach and how far the tree stands out there
+        // towards the eye: TreeBillboard's depth follows that (Luca: whole crowns swapped in front at once).
+        int first = far.Pos.Count;
+        for (int j = 0; j < Impostors.Rows; j++)
+            for (int i = 0; i < Impostors.Cols; i++)
+            {
+                double fx = (double)i / (Impostors.Cols - 1), fy = (double)j / (Impostors.Rows - 1), reach = (2 * fx - 1) * w;
+                var col = (1.0, tint, Math.Abs(reach) / 10, bulge[t, j, i] * w / (Impostors.Size / 2) / 10);
+                far.Add(new V3(x + reach, bottom + fy * 2 * w, z), up, col, (u0 + fx * (u1 - u0), v1 - fy * (v1 - v0)));
+            }
+        for (int j = 0; j + 1 < Impostors.Rows; j++)
+            for (int i = 0; i + 1 < Impostors.Cols; i++)
+            {
+                int a = first + j * Impostors.Cols + i, b = a + 1, c = a + Impostors.Cols + 1, d = a + Impostors.Cols;
+                far.Idx.AddRange([a, b, c, a, c, d]);
+            }
     }
     Console.WriteLine($"{stands.Count} far trees");
 }

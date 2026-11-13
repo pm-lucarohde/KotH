@@ -17,14 +17,19 @@ namespace KotH.Tools.Maps
         const double BarkTile = 2.0;                      // PaintedTriplanar's metres per repeat of Bark.png
         const int BarkShrink = 8;                         // Bark.png box-filtered by this: about a texel's size here
 
-        /// <summary>Draws the trees (trunks of 4 and 5 m in turn) to colour and normals; returns how high the tallest reached.</summary>
-        public static double Render(string textures, string colourPath, string normalPath)
+        public const int Cols = 5, Rows = 6;               // the cards' grid: columns across, rows up, evenly over a tile
+
+        /// <summary>Draws the trees (trunks of 4 and 5 m in turn) to colour and normals; returns how high the tallest
+        /// reached and per tile, on the cards' grid (bottom row first), how far the tree stands out towards the
+        /// viewer from its trunk, in metres: TreeBillboard's depth, so crowns pass through each other as real ones.</summary>
+        public static (double Tallest, double[,,] Bulge) Render(string textures, string colourPath, string normalPath)
         {
             Png leaves = Png.Read(Path.Combine(textures, "Leaves.png")), clumps = Png.Read(Path.Combine(textures, "LeafClump.png"));
             Png bark = Shrink(Png.Read(Path.Combine(textures, "Bark.png")), BarkShrink);
             var colour = new double[AtlasPx * AtlasPx * 4];
             var normal = new double[AtlasPx * AtlasPx * 3];
             double tallest = 0;
+            var bulge = new double[Tiles, Rows, Cols];
             for (int t = 0; t < Tiles; t++)
             {
                 var mesh = new Mesh(null!);
@@ -32,7 +37,7 @@ namespace KotH.Tools.Maps
                 tallest = Math.Max(tallest, mesh.Pos.Max(p => p.Y) + Ground);
                 if (mesh.Pos.Any(p => Math.Abs(p.X - 0.5) > Size / 2))
                     Console.WriteLine($"warning: impostor tree {t} is wider than {Size} m");
-                Draw(mesh, leaves, clumps, bark, colour, normal, (t % 2) * TilePx, (t / 2) * TilePx);
+                Draw(mesh, leaves, clumps, bark, colour, normal, (t % 2) * TilePx, (t / 2) * TilePx, bulge, t);
             }
             Bleed(colour, normal);
             var c = new Png(AtlasPx, AtlasPx, 4);
@@ -48,13 +53,14 @@ namespace KotH.Tools.Maps
             }
             c.Write(colourPath);
             n.Write(normalPath);
-            return tallest;
+            return (tallest, bulge);
         }
 
         static byte Byte(double v) => (byte)Math.Round(Math.Clamp(v, 0, 1) * 255);
 
         // One tree into its tile, seen from +Z (x right, y up), nearer samples (larger z) in front.
-        static void Draw(Mesh mesh, Png leaves, Png clumps, Png bark, double[] colour, double[] normal, int ox, int oy)
+        static void Draw(Mesh mesh, Png leaves, Png clumps, Png bark, double[] colour, double[] normal, int ox, int oy,
+                         double[,,] bulge, int tile)
         {
             // The wood's normals from its faces round each corner (the trunk's rings carry none).
             var nrm = mesh.Nrm.ToArray();
@@ -129,6 +135,19 @@ namespace KotH.Tools.Maps
                         shaded[i] = (c.R, c.G, c.B, normalHere);
                     }
             }
+            // Each grid point: the mean of how far the covered samples round it (half a cell each way) stand out
+            // in front of the trunk's axis (z 0.5, as x); none covered, the card's own plane.
+            for (int row = 0; row < Rows; row++)
+                for (int col = 0; col < Cols; col++)
+                {
+                    double gx = (double)col / (Cols - 1) * n, gy = (1 - (double)row / (Rows - 1)) * n, sum = 0;
+                    int hits = 0;
+                    for (int y = Math.Max(0, (int)(gy - n / (2.0 * (Rows - 1)))); y < Math.Min(n, (int)(gy + n / (2.0 * (Rows - 1)))); y++)
+                        for (int x = Math.Max(0, (int)(gx - n / (2.0 * (Cols - 1)))); x < Math.Min(n, (int)(gx + n / (2.0 * (Cols - 1)))); x++)
+                            if (!double.IsNegativeInfinity(depth[y * n + x]))
+                                (sum, hits) = (sum + Math.Max(0, depth[y * n + x] - 0.5), hits + 1);
+                    bulge[tile, row, col] = hits > 0 ? sum / hits : 0;
+                }
             // Each texel: the mean colour and normal of its covered samples, the share covered as alpha.
             for (int y = 0; y < TilePx; y++)
                 for (int x = 0; x < TilePx; x++)
