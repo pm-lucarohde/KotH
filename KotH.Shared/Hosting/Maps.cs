@@ -24,7 +24,13 @@ namespace KotH.Shared.Hosting
         public static readonly string[] All = { Default, Volcano, Atrium, TheLadder, Test };
 
         /// <summary>A built-in map's name for people (the id where it reads well).</summary>
-        public static string Title(string map) => map == TheLadder ? "The Ladder" : map;
+        public static string Title(string map) => map switch
+        {
+            Default => "Mount Destiny",
+            TheLadder => "The Ladder",
+            Test => "Test Map",
+            _ => map,
+        };
 
         public static string CollisionUrl(string map) => $"/KotH.Shared/Maps/{map}/{map}Collision";
 
