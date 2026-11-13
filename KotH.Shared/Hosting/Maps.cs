@@ -17,11 +17,14 @@ namespace KotH.Shared.Hosting
         /// <summary>The tower of "The Ultimate King of the Ladder" from Minecraft (Tools/maps/Ladder.cs).</summary>
         public const string TheLadder = "TheLadder";
 
+        /// <summary>A Minecraft king-of-the-hill step pyramid in a walled garden (Tools/maps/Pyramid.cs).</summary>
+        public const string Pyramid = "Pyramid";
+
         /// <summary>Mount Destiny's rounder first version of 22.10.2026 (Tools/maps/Mountain.cs --map Volcano).</summary>
         public const string Volcano = "Volcano";
 
         /// <summary>Every map a host may choose, in the menu's order; a new map is added here.</summary>
-        public static readonly string[] All = { Default, Volcano, Atrium, TheLadder, Test };
+        public static readonly string[] All = { Default, Volcano, Atrium, TheLadder, Pyramid, Test };
 
         /// <summary>A built-in map's name for people (the id where it reads well).</summary>
         public static string Title(string map) => map switch

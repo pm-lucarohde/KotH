@@ -23,6 +23,9 @@ string[] lit = island ? ["Terrain", "Bark"]
     : [.. mountain.Primitives.Select(p => p.Material).Where(m => m is not ("Water" or "Glass" or "Glow" or "Leaves" or "LeafCards"))];
 if (!island)
     (GrassMap.MaxHeight, GrassMap.TrunkFootY, GrassMap.TrunkFootLow, GrassMap.Borders) = (8f, 7f, 6f, true);
+// Pyramid's trees stand on the garden at 0 m.
+if (map == "Pyramid")
+    (GrassMap.TrunkFootY, GrassMap.TrunkFootLow) = (1f, -1f);
 string grassPath = Path.Combine(root, $"KotH.Game/Resources/Maps/{map}Grass.bin");
 string contactPath = Path.Combine(root, $"KotH.Game/Resources/Textures/Terrain/{map}Contact.png");
 string surfacePath = Path.Combine(root, $"KotH.Game/Resources/Maps/{map}Surface.bin");

@@ -1,0 +1,101 @@
+!PrefabAsset
+Id: 53BFDCB4-2A3E-4EB1-BCAF-86830B81F9AE
+SerializedVersion: {Stride: 3.1.0.1}
+Tags: []
+Hierarchy:
+    RootParts:
+        - ref!! 643E4839-874A-4B6A-8A44-AEE376075317
+    Parts:
+        -   Entity:
+                Id: 643E4839-874A-4B6A-8A44-AEE376075317
+                Name: PyramidVisual
+                Components:
+                    58558d962b96427b8e3f0865d356bb5e: !TransformComponent
+                        Id: 487C83A3-35A9-401A-AAA4-DD72D8D83A14
+                        Position: {X: 0.0, Y: 0.0, Z: 0.0}
+                        Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children:
+                            1222bd09f75b4959945b63037fdae6d4: ref!! 9D6E3569-EEA2-4CE9-93A5-138A77392587
+                            d38c7415edc041418cdf96eac2a8e5d0: ref!! 8E1AEC70-5BF6-4ABB-B828-CFDF8708AE2E
+                            5f976fa4483842689f59a3cea85b56dc: ref!! 23423935-E147-4921-9A86-3EA4EAC56BBD
+                    80c66500c2f942c491bfff10b8604307: !KotH.Client.Rendering.Atmosphere,KotH.Game
+                        Id: 730812F3-CFE6-4569-A5BC-4604E9DE06BA
+                        FogStart: 0.0
+                        CoastDensity: 0.0
+                        CloudMap: 8BA09DCC-912C-49F1-8FBE-495F36149FAB:Textures/CloudMap
+        -   Entity:
+                Id: A9B8BE4A-9BDC-46D5-B408-B42F4B6DE226
+                Name: Pyramid
+                Components:
+                    aa47c75fcd324191be973960458c9704: !TransformComponent
+                        Id: 9D6E3569-EEA2-4CE9-93A5-138A77392587
+                        Position: {X: 0.0, Y: 0.0, Z: 0.0}
+                        Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    e6195ed9b24f487dbfda724e6b276bdd: !ModelComponent
+                        Id: 32A3B1FC-481F-40A0-8078-E8B9F5A83BB8
+                        Model: 4B971C66-76FE-43AA-8EF1-0B8E63A85E57:Models/Pyramid
+                        Materials: {}
+                        RenderGroup: Group3
+        -   Entity:
+                Id: C7C7FA76-725C-4E30-A750-4B84536C086E
+                Name: GI
+                Components:
+                    24d4947bdab945d0834f300efc557932: !TransformComponent
+                        Id: 8E1AEC70-5BF6-4ABB-B828-CFDF8708AE2E
+                        Position: {X: 0.0, Y: 60.0, Z: 0.0}
+                        Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    4a32f8f2c03e4462a0b382bf62a71756: !Stride.Rendering.Voxels.VoxelVolumeComponent,Stride.Voxels
+                        Id: 480F2C8D-C4EF-435B-A233-068CFA10B07D
+                        Voxelize: false
+                        VoxelizationMethod: !Stride.Rendering.Voxels.VoxelizationMethodDominantAxis,Stride.Voxels {}
+                        Storage: !Stride.Rendering.Voxels.VoxelStorageSparse,Stride.Voxels {}
+                        Attributes:
+                            257e788bbcc2474aa8e5b1396c17debe: !Stride.Rendering.Voxels.VoxelAttributeEmissionOpacity,Stride.Voxels
+                                VoxelLayout: !Stride.Rendering.Voxels.VoxelLayoutIsotropic,Stride.Voxels
+                                    StorageFormat: RGBA8
+                                    maxBrightness: 2.0
+                                Modifiers: {}
+                        VoxelVolumeSize: 256.0
+                        AproximateVoxelSize: 0.125
+                        VoxelGridSnapping: true
+                        StaticGroups: Group3
+                        VisualizeVoxels: false
+                        VisualizeIndex: 0
+                    ef75cf635bbd4d94bfd1cc96535e079c: !LightComponent
+                        Id: 65CB87C1-399C-474A-A6F7-36D0F4898FEF
+                        Type: !Stride.Rendering.Voxels.VoxelGI.LightVoxel,Stride.Voxels
+                            Volume: ref!! 480F2C8D-C4EF-435B-A233-068CFA10B07D
+                            AttributeIndex: 0
+                            DiffuseMarcher: !Stride.Rendering.Voxels.VoxelMarchSetHemisphere6,Stride.Voxels
+                                Marcher: !Stride.Rendering.Voxels.VoxelMarchConePerMipmap,Stride.Voxels
+                                    Steps: 7
+                            BounceIntensityScale: 0.0
+                            SpecularIntensityScale: 0.0
+                            Sky: F9A75D1E-7197-4A46-90CF-5A7F970DCDCA:Skybox
+                            SkyIntensity: 0.195
+                            LightmapSize: 4096
+                        Intensity: 0.27
+                    ed7ccb206c5745faa34ac159d16cda96: !KotH.Client.Rendering.BakeVoxels,KotH.Game
+                        Id: EAD96ABB-E3F6-43A3-968D-6000CF8F6B06
+                        Frames: 2
+                    21a7fdafbc4f4b619a2700703ad29d5b: !KotH.Client.Rendering.FigureOccluders,KotH.Game
+                        Id: 3B6C399D-08AA-44F4-BB77-0E50BBB99778
+        -   Entity:
+                Id: A527E203-5E67-44AD-8F5D-D6A0B9D402F2
+                Name: Grass
+                Components:
+                    2e39bb70855045a6a6aea4f8e7e257ce: !TransformComponent
+                        Id: 23423935-E147-4921-9A86-3EA4EAC56BBD
+                        Position: {X: 0.0, Y: 0.0, Z: 0.0}
+                        Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    fc288860a8744d3ea64d408f56bf7c58: !KotH.Client.Rendering.GrassField,KotH.Game
+                        Id: 7A016C14-FBEC-41E0-BD53-A50CD37B88C9
+                        Material: AE7A280E-E2E7-4617-A2F4-0F7D275E4F48:Materials/Grass
+                        MapResource: Maps/PyramidGrass.bin

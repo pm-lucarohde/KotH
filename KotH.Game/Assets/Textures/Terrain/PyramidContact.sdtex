@@ -1,0 +1,7 @@
+!Texture
+Id: 13491BAC-A715-49DD-B169-9C3E605FD7A2
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../../Resources/Textures/Terrain/PyramidContact.png
+IsCompressed: true
+Type: !GrayscaleTextureType {}

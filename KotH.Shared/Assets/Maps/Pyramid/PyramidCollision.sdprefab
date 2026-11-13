@@ -1,0 +1,212 @@
+!PrefabAsset
+Id: 7F1B6372-AC95-4B83-AB03-7EDD08CC31BC
+SerializedVersion: {Stride: 3.1.0.1}
+Tags: []
+Hierarchy:
+    RootParts:
+        - ref!! 35FDCD81-8A50-4529-86B3-633E812280D4
+        - ref!! D109256A-520A-4CEC-A977-BC25C1C9FABE
+        - ref!! 3B5FB6AA-7A7F-4518-AA19-B4D66CA4535B
+        - ref!! B6BB1D4C-25FC-4843-9628-C31F718A6CAF
+        - ref!! 105DEAAD-C8C7-4260-82AE-CAB162C57FDF
+        - ref!! 4816F2E8-420E-4391-8A66-2F7F9E3EF627
+        - ref!! 648C5FD2-55E9-4822-8093-B4D510342AA2
+        - ref!! 7A22E979-9B84-408C-BC11-904F54E74B17
+        - ref!! 23CE18D6-FF02-473E-BA42-6CA7C50FD8E2
+        - ref!! C56A123E-EA37-4344-AD02-F75ED6C058FB
+        - ref!! 7AC48C6F-A353-4BE1-B0A5-AAC0AA38F766
+        - ref!! 5AEC575C-D151-46B5-A208-E86E79860727
+        - ref!! 871A113B-EDE6-4D3F-925D-07AFE9A51034
+        - ref!! 245F10C4-AAC3-4736-9448-248CD475A44E
+        - ref!! EA580EA1-8890-435B-91D0-FC96338FB368
+        - ref!! A7482D96-4B78-4469-9850-8F90940CDB79
+    Parts:
+        -   Entity:
+                Id: 35FDCD81-8A50-4529-86B3-633E812280D4
+                Name: PlayerSpawn
+                Components:
+                    0783e81116834e58965707036380ebee: !TransformComponent
+                        Id: 1FF7A328-AFC2-4C4C-BC4C-DB9B23457003
+                        Position: {X: 0.00, Y: 0.95, Z: 46.00}
+                        Rotation: {X: 0.0, Y: 0.000000000, Z: 0.0, W: 1.000000000}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+        -   Entity:
+                Id: D109256A-520A-4CEC-A977-BC25C1C9FABE
+                Name: DummySpawn
+                Components:
+                    1ec20dd88bd64ee4b07db86aaa12e8aa: !TransformComponent
+                        Id: A37191AA-B4D1-404D-9000-F20757DD4061
+                        Position: {X: 0.00, Y: 0.95, Z: 40.00}
+                        Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+        -   Entity:
+                Id: 3B5FB6AA-7A7F-4518-AA19-B4D66CA4535B
+                Name: CaptureZone
+                Components:
+                    bf1a6495905d414697f61aea299e7346: !TransformComponent
+                        Id: B94C5365-96D1-4943-A766-D5F300BE826F
+                        Position: {X: 0.0, Y: 12.0, Z: 0.0}
+                        Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    8cddbdf62c5d488097763999a34c3242: !KotH.CaptureZone
+                        Id: 21BDE5CA-824A-4FD2-AD69-868E59E452FF
+                        Size: {X: 9.0, Y: 3.2, Z: 9.0}
+                        Shape: Box
+                        WarmupSeconds: 3.0
+                        WinPoints: 100
+                        TimeLimitMinutes: 20.0
+                        WinPauseSeconds: 15.0
+                        CountdownSeconds: 60.0
+                        JoinSeconds: 60.0
+                        RespawnBelow: -10.0
+                        SpawnRingInner: 0.0
+                        SpawnRingOuter: 0.0
+                        SpawnSpacing: 6.0
+        -   Entity:
+                Id: B6BB1D4C-25FC-4843-9628-C31F718A6CAF
+                Name: PlayerSpawn0
+                Components:
+                    5d805149193946789d732ca31630bb8c: !TransformComponent
+                        Id: 4D63E2BE-C8E0-463C-9B73-DF47945E826F
+                        Position: {X: 0.00, Y: 0.95, Z: 46.00}
+                        Rotation: {X: 0.0, Y: 0.000000000, Z: 0.0, W: 1.000000000}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+        -   Entity:
+                Id: 105DEAAD-C8C7-4260-82AE-CAB162C57FDF
+                Name: PlayerSpawn1
+                Components:
+                    631931fe3cc44b87b11221273ee7160b: !TransformComponent
+                        Id: FEAE45D6-B6FA-491F-AE05-76B97EF227F2
+                        Position: {X: 0.00, Y: 0.95, Z: -46.00}
+                        Rotation: {X: 0.0, Y: 1.000000000, Z: 0.0, W: 0.000000000}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+        -   Entity:
+                Id: 4816F2E8-420E-4391-8A66-2F7F9E3EF627
+                Name: PlayerSpawn2
+                Components:
+                    7f64028b05bb46b7999b56d2feb8b2b1: !TransformComponent
+                        Id: 52937DA8-9803-4C29-8756-DA0570045B83
+                        Position: {X: 46.00, Y: 0.95, Z: 0.00}
+                        Rotation: {X: 0.0, Y: 0.707106781, Z: 0.0, W: 0.707106781}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+        -   Entity:
+                Id: 648C5FD2-55E9-4822-8093-B4D510342AA2
+                Name: PlayerSpawn3
+                Components:
+                    4a2ba568aa434e4a921218622ce32a5c: !TransformComponent
+                        Id: 12C2A0DC-7E61-4B88-9916-CE231C40E38A
+                        Position: {X: -46.00, Y: 0.95, Z: 0.00}
+                        Rotation: {X: 0.0, Y: -0.707106781, Z: 0.0, W: 0.707106781}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+        -   Entity:
+                Id: 7A22E979-9B84-408C-BC11-904F54E74B17
+                Name: PlayerSpawn4
+                Components:
+                    106c7b4c1ab5413284594bc99ba958b0: !TransformComponent
+                        Id: 50408E7C-444B-4170-87DC-C21740C09DA5
+                        Position: {X: -2.00, Y: 0.95, Z: 42.00}
+                        Rotation: {X: 0.0, Y: -0.023789307, Z: 0.0, W: 0.999716994}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+        -   Entity:
+                Id: 23CE18D6-FF02-473E-BA42-6CA7C50FD8E2
+                Name: PlayerSpawn5
+                Components:
+                    81f6a179708447f6afc8b3bb0dcaf715: !TransformComponent
+                        Id: 506C0715-3B77-4C72-BAF5-CEDC37F764EF
+                        Position: {X: 2.00, Y: 0.95, Z: 42.00}
+                        Rotation: {X: 0.0, Y: 0.023789307, Z: 0.0, W: 0.999716994}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+        -   Entity:
+                Id: C56A123E-EA37-4344-AD02-F75ED6C058FB
+                Name: PlayerSpawn6
+                Components:
+                    531e84a115b14a2c983817dcfcfe7c9c: !TransformComponent
+                        Id: D13D1977-162C-4C13-924A-B1335093E94B
+                        Position: {X: 2.00, Y: 0.95, Z: -42.00}
+                        Rotation: {X: 0.0, Y: 0.999716994, Z: 0.0, W: 0.023789307}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+        -   Entity:
+                Id: 7AC48C6F-A353-4BE1-B0A5-AAC0AA38F766
+                Name: PlayerSpawn7
+                Components:
+                    690e1596737949d1b5ba561ebc8245b8: !TransformComponent
+                        Id: 971BEB7D-3499-40E4-8BDE-8DE70025ADD9
+                        Position: {X: -2.00, Y: 0.95, Z: -42.00}
+                        Rotation: {X: 0.0, Y: -0.999716994, Z: 0.0, W: 0.023789307}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+        -   Entity:
+                Id: 5AEC575C-D151-46B5-A208-E86E79860727
+                Name: PlayerSpawn8
+                Components:
+                    574be03f44c44795b79c7ff676c82ec8: !TransformComponent
+                        Id: 76283065-4A70-4EBB-AEC5-EEB7B0509AAC
+                        Position: {X: 42.00, Y: 0.95, Z: -2.00}
+                        Rotation: {X: 0.0, Y: 0.723728246, Z: 0.0, W: 0.690085086}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+        -   Entity:
+                Id: 871A113B-EDE6-4D3F-925D-07AFE9A51034
+                Name: PlayerSpawn9
+                Components:
+                    4fa05255a03f42b48b4c7fb8886ba02a: !TransformComponent
+                        Id: F4F9BA42-157C-483B-90F0-48D6C26FA845
+                        Position: {X: 42.00, Y: 0.95, Z: 2.00}
+                        Rotation: {X: 0.0, Y: 0.690085086, Z: 0.0, W: 0.723728246}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+        -   Entity:
+                Id: 245F10C4-AAC3-4736-9448-248CD475A44E
+                Name: PlayerSpawn10
+                Components:
+                    641d851e1b4f4bc1a1e5d477c61e5b7a: !TransformComponent
+                        Id: DC6DB652-D4A8-4543-B0D5-6A24CA7C256A
+                        Position: {X: -42.00, Y: 0.95, Z: 2.00}
+                        Rotation: {X: 0.0, Y: -0.690085086, Z: 0.0, W: 0.723728246}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+        -   Entity:
+                Id: EA580EA1-8890-435B-91D0-FC96338FB368
+                Name: PlayerSpawn11
+                Components:
+                    469c3c0917064b5dacbb82c67281715c: !TransformComponent
+                        Id: F51883C7-22A3-400C-8955-89085F43D531
+                        Position: {X: -42.00, Y: 0.95, Z: -2.00}
+                        Rotation: {X: 0.0, Y: -0.723728246, Z: 0.0, W: 0.690085086}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+        -   Entity:
+                Id: A7482D96-4B78-4469-9850-8F90940CDB79
+                Name: Bots
+                Components:
+                    fab258788b8640ac866f97df4876482f: !TransformComponent
+                        Id: DF08AF88-C8ED-4561-825A-72F61422B4EA
+                        Position: {X: 0.0, Y: 0.0, Z: 0.0}
+                        Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    b9a418c423fd424bb083a6f37c4827e0: !KotH.BotSettings
+                        Id: 66F44DA4-D9BA-49EE-92A9-48177E5BABAD
+                        ReactionTicks: 8
+                        ThinkTicks: 6
+                        AimError: 4.0
+                        TurnRate: 24.0
+                        EngageRange: 9.0
+                        Randomness: 0.12
+                        Persistence: 0.3
+                        SlotTicks: 8
+                        SlotsPerPlan: 8
+                        CellSize: 0.5
+                        JumpUp: 1.2
+                        DoubleJumpUp: 2.2
+                        GapMax: 3.0

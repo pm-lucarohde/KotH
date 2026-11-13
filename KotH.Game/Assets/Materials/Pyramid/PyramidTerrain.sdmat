@@ -1,0 +1,51 @@
+!MaterialAsset
+Id: CE28FFA1-4F52-44AB-BADC-67C299661DAE
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Attributes:
+    MicroSurface: !MaterialGlossinessMapFeature
+        GlossinessMap: !ComputeFloat
+            Value: 0.1
+    Diffuse: !MaterialDiffuseMapFeature
+        DiffuseMap: !ComputeShaderClassColor
+            MixinReference: TerrainTriplanar
+            Generics:
+                897a48f488074e5b8ac748c4c79e4b8f~GrassKey: !ComputeColorParameterTexture
+                    Texture:
+                        Texture: 367D81A6-44FF-47D2-BE97-AC4F8CEC1D41:Textures/Terrain/Grass
+                bf9b4af7334e45b58142685f9b5dad36~DirtKey: !ComputeColorParameterTexture
+                    Texture:
+                        Texture: 9B82F2BA-7CAE-4B2D-973B-414ACC0465D2:Textures/Terrain/Dirt
+                f574075839ee4298a94e09483909fcc8~SandKey: !ComputeColorParameterTexture
+                    Texture:
+                        Texture: 2F65787A-909A-48AD-BD17-DC8735864220:Textures/Terrain/Sand
+                82877a9f8aac4c6891077a725319cf9b~SnowKey: !ComputeColorParameterTexture
+                    Texture:
+                        Texture: A60C374C-E49D-480D-B0BD-339B365D6655:Textures/Terrain/Snow
+                d6430e7b5722403e93179768db92feae~RockKey: !ComputeColorParameterTexture
+                    Texture:
+                        Texture: 4EC32F13-40E9-4C98-A918-19A038F98745:Textures/Terrain/Rock
+                d2587c4c1b494ded8d000dbad712fee5~GrassReliefKey: !ComputeColorParameterTexture
+                    Texture:
+                        Texture: 466DDFF9-89CF-4534-8171-8FA56048F370:Textures/Terrain/GrassNormal
+                ac2ed081f1b947f1a08d2be512f92ea5~SandReliefKey: !ComputeColorParameterTexture
+                    Texture:
+                        Texture: D6A82179-F0C5-474D-8627-18CA177CB7C0:Textures/Terrain/SandNormal
+                324dbffe6f72405aa242f0c6ddb60e95~ContactKey: !ComputeColorParameterTexture
+                    Texture:
+                        Texture: 13491BAC-A715-49DD-B169-9C3E605FD7A2:Textures/Terrain/PyramidContact
+                51db6fe2bf414de2a74cb39e9ebf0534~LichenTone: !ComputeColorParameterFloat2
+                    Value: {X: 1.0, Y: 1.0}
+            CompositionNodes: {}
+    DiffuseModel: !MaterialDiffuseLambertModelFeature {}
+    Specular: !MaterialMetalnessMapFeature
+        MetalnessMap: !ComputeFloat
+            Value: 0.0
+    SpecularModel: !MaterialSpecularMicrofacetModelFeature
+        Fresnel: !MaterialSpecularMicrofacetFresnelSchlick {}
+        Visibility: !MaterialSpecularMicrofacetVisibilitySmithSchlickGGX {}
+        NormalDistribution: !MaterialSpecularMicrofacetNormalDistributionGGX {}
+        Environment: !MaterialSpecularMicrofacetEnvironmentGGXLUT {}
+    Overrides:
+        UVScale: {X: 1.0, Y: 1.0}
+Layers: {}
