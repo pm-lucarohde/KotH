@@ -177,9 +177,11 @@ void Column(double x, double z, double bottom, double top, double r, string shaf
 }
 
 // ---- the hall round the garden: 24 logs inside, the facade outside, the shingled roof from the garden's rim ----
-// A square block at radius r and angle a (degrees) from bottom to top, its sides along and across the ring.
+// A square block at radius r and angle a (degrees) from bottom to top, its sides along and across the ring,
+// centred on r (chunky's depth runs from 0: the blocks under the logs stood 0.4 m outward of them).
 void Block(string material, double r, double a, double bottom, double top, double width, bool solid = true)
-    => arena.Bar(material, Polar(r, a, bottom), Polar(r, a, top), chunky(width, width, 0.05), solid, up: Polar(1, a, 0));
+    => arena.Bar(material, Polar(r, a, bottom), Polar(r, a, top), [.. chunky(width, width, 0.05).Select(p => (p.U, p.V - width / 2))],
+                 solid, up: Polar(1, a, 0));
 // A carved panel on a face at radius r looking outward (out = 1) or inward (-1): a light frame, a darker middle.
 void Panel(double r, double a, double y, double size, int out_)
 {
