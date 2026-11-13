@@ -236,10 +236,12 @@ namespace KotH.Client.Player
                 g.ShotAge[i] = shot.Age;
                 if (shot.Age == 0)
                 {
-                    if (e != null && e.Get<ModelComponent>() is { Enabled: true } ball)
+                    if (e != null)
                     {
-                        // The ball goes, its trail fades where it is.
-                        ball.Enabled = false;
+                        // The ball goes, its trail fades where it is; also after a hit in its first
+                        // tick, which never showed the ball (else the trail sprays on there for good).
+                        if (e.Get<ModelComponent>() is { } ball)
+                            ball.Enabled = false;
                         Emit(e, false);
                     }
                     continue;
