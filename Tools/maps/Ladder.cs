@@ -251,7 +251,9 @@ Four(5, 0, (x, z) =>
                 chord: 0.12, least: 24);
     Shaft("Tinted", x, z, H(56), H(56) + 0.4, 1.0, 0.2, SideOf(x, z));
     Pendant(x, z, H(56), 0.42, 0.7, 0.8);
-    arena.Lathe("Marble", [(1.35, H(59) + 0.4), (1.5, H(59) + 0.55), (1.5, H(60)), (0, H(60)), (0, H(59) + 0.4)], true, x, z, chord: 0.15, least: 24);
+    arena.Lathe("Marble", [(1.35, H(59) + 0.4), (1.5, H(59) + 0.55), (1.5, H(60)), (0, H(60)), (0, H(59) + 0.4), (1.35, H(59) + 0.4)], true, x, z,
+                chord: 0.15, least: 24);
+    Pendant(x, z, H(59) + 0.4, 0.9, 0.8);
 });
 foreach (var (x, z) in new[] { (4, 0), (6, 0), (5, 1), (5, -1) })
     Four(x, z, (a, b) => Shaft("Glass", a, b, H(56) + 0.01, H(56) + 0.39, 0.9, 0.2));

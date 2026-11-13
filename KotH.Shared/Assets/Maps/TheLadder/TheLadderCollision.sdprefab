@@ -128,13 +128,13 @@ Hierarchy:
                 Components:
                     20bda043b5714525930f366a5c126749: !TransformComponent
                         Id: B05040C1-9800-4593-9230-83CD7627FA3D
-                        Position: {X: 0.00, Y: 76.80, Z: 0.00}
+                        Position: {X: 0.00, Y: 78.05, Z: 0.00}
                         Rotation: {X: 0.0, Y: 0.0, Z: 0.0, W: 1.0}
                         Scale: {X: 1.0, Y: 1.0, Z: 1.0}
                         Children: {}
                     a434f08a74cb4485a9fd650abf2e3a4b: !KotH.CaptureZone
                         Id: D28673DB-FD98-48E8-BC3A-77BF46E3D4CE
-                        Size: {X: 6.0, Y: 6.0, Z: 6.0}
+                        Size: {X: 1.4, Y: 2.5, Z: 1.4}
                         Shape: Cylinder
                         WarmupSeconds: 3.0
                         WinPoints: 100
