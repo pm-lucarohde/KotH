@@ -26,6 +26,8 @@ if (volcano)
     // (Luca, 12.11.2026) on a 100 m foot instead of 90, the slope as long as before from the rim.
     (M.SummitY, M.Mountain, M.Smooth, M.Column, M.ColumnDown) = (136, 100.0, 0.8, 1, 1);
     (M.Crater, M.Palms) = (10.0, 56);
+    // Its own seed (Luca, 13.11.2026): no longer MountDestiny's ridges; 13 keeps the rim as wide as 7 did.
+    M.Seed = 13;
 }
 else if (map != "MountDestiny")
 {
