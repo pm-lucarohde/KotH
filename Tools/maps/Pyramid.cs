@@ -49,7 +49,7 @@ void Box(string material, double x0, double x1, double y0, double y1, double z0,
 }
 
 // ---- the garden's ground: a height field over the block columns, grass, podzol, paths and cobbles as the
-// terrain's weights (grass, sand, snow, cap; none is rock); the pond's columns a block deeper ----
+// terrain's weights (grass, sand, snow, cap; none is rock); round the pond a smooth hollow on a 25 cm grid ----
 string[] ground = Section("ground");
 const int GX = -48, GZ = -48;
 char Cell(int x, int z)
@@ -58,7 +58,6 @@ char Cell(int x, int z)
     return r >= 0 && r < ground.Length && c >= 0 && c < ground[r].Length ? ground[r][c] : ' ';
 }
 bool Inside(int x, int z) => Math.Sqrt(x * x + z * z) < 48.6;
-double Top(char k) => k == 'w' ? -Rise : 0;
 ((double, double, double, double) Col, double Shade) Surface(char k) => k switch
 {
     'g' or ' ' or 'S' or 'G' => (Arena.Grass, 1.0),
@@ -68,38 +67,69 @@ double Top(char k) => k == 'w' ? -Rise : 0;
     'w' => ((0, 1, 0, 0), 0.6),
     _ => (Arena.Plain, 0.9),
 };
+var pond = new List<(int X, int Z)>();
+for (int z = -48; z <= 48; z++)
+    for (int x = -48; x <= 50; x++)
+        if (Cell(x, z) == 'w')
+            pond.Add((x, z));
+// The hollow: the share of water columns within 1.6 m of a point, eased into a depth of one block.
+double Depth(double x, double z)
+{
+    int all = 0, wet = 0;
+    for (int cz = (int)Math.Floor(z - 1.6); cz <= (int)Math.Ceiling(z + 1.6); cz++)
+        for (int cx = (int)Math.Floor(x - 1.6); cx <= (int)Math.Ceiling(x + 1.6); cx++)
+            if ((cx - x) * (cx - x) + (cz - z) * (cz - z) <= 1.6 * 1.6)
+            {
+                all++;
+                wet += Cell(cx, cz) == 'w' ? 1 : 0;
+            }
+    double t = Math.Clamp((wet / (double)all - 0.15) / 0.45, 0, 1);
+    return -Rise * t * t * (3 - 2 * t);
+}
+const double WaterLevel = -0.13;
+// Round the pond (3 m clear of it, where the ground is flat again) each column in 4 x 4.
+int px0 = pond.Min(p => p.X) - 3, px1 = pond.Max(p => p.X) + 3, pz0 = pond.Min(p => p.Z) - 3, pz1 = pond.Max(p => p.Z) + 3;
+bool Fine(double x, double z) => x >= px0 - 0.5 && x <= px1 + 0.5 && z >= pz0 - 0.5 && z <= pz1 + 0.5;
+var heights = new Dictionary<(int, int), double>();
 {
     Piece terrain = arena.PieceOf("Terrain");
     var corner = new Dictionary<(int, int), int>();
-    int Corner(int i, int j)
+    // A corner on the quarter-metre grid: weights and shade bilinear between the columns' middles round it.
+    int Corner(int qx, int qz)
     {
-        if (corner.TryGetValue((i, j), out int v))
+        if (corner.TryGetValue((qx, qz), out int v))
             return v;
-        // The corner between columns (i - 1 .. i, j - 1 .. j): the mean of their tops and weights.
-        double y = 0, shade = 0;
-        double g = 0, s = 0, n = 0, cap = 0;
-        int count = 0;
-        foreach (var (x, z) in new[] { (i - 1, j - 1), (i, j - 1), (i - 1, j), (i, j) })
+        double x = qx / 4.0, z = qz / 4.0, shade = 0, g = 0, s = 0, n = 0, cap = 0, weight = 0;
+        int x0 = (int)Math.Floor(x), z0 = (int)Math.Floor(z);
+        foreach (var (cx, cz) in new[] { (x0, z0), (x0 + 1, z0), (x0, z0 + 1), (x0 + 1, z0 + 1) })
         {
-            if (!Inside(x, z))
+            double w = (1 - Math.Abs(x - cx)) * (1 - Math.Abs(z - cz));
+            if (!Inside(cx, cz) || w <= 0)
                 continue;
-            char k = Cell(x, z);
-            var (col, sh) = Surface(k);
-            y += Top(k);
-            shade += sh;
-            (g, s, n, cap) = (g + col.Item1, s + col.Item2, n + col.Item3, cap + col.Item4);
-            count++;
+            var (col, sh) = Surface(Cell(cx, cz));
+            shade += w * sh;
+            (g, s, n, cap) = (g + w * col.Item1, s + w * col.Item2, n + w * col.Item3, cap + w * col.Item4);
+            weight += w;
         }
-        var p = new V3(i - 0.5, y / count, j - 0.5);
-        return corner[(i, j)] = terrain.Add(p, new V3(0, 1, 0), (g / count, s / count, n / count, cap / count), (shade / count, 0.0));
+        double y = Fine(x, z) ? Depth(x, z) : 0;
+        heights[(qx, qz)] = y;
+        return corner[(qx, qz)] = terrain.Add(new V3(x, y, z), new V3(0, 1, 0), (g / weight, s / weight, n / weight, cap / weight),
+                                              (shade / weight, 0.0));
     }
     for (int z = -49; z <= 49; z++)
         for (int x = -49; x <= 49; x++)
             if (Inside(x, z))
             {
-                int a = Corner(x, z), b = Corner(x + 1, z), c = Corner(x + 1, z + 1), d = Corner(x, z + 1);
-                arena.Triangle(terrain, a, c, b, true);
-                arena.Triangle(terrain, a, d, c, true);
+                // Where the fine grid meets the coarse one the ground is flat, so no crack opens.
+                int k = Fine(x, z) ? 4 : 1, q = 4 / k;
+                for (int j = 0; j < k; j++)
+                    for (int i = 0; i < k; i++)
+                    {
+                        int qx = 4 * x - 2 + q * i, qz = 4 * z - 2 + q * j;
+                        int a = Corner(qx, qz), b = Corner(qx + q, qz), c = Corner(qx + q, qz + q), d = Corner(qx, qz + q);
+                        arena.Triangle(terrain, a, c, b, true);
+                        arena.Triangle(terrain, a, d, c, true);
+                    }
             }
     // Normals from the faces round each corner.
     var sum = new V3[terrain.Pos.Count];
@@ -116,24 +146,21 @@ double Top(char k) => k == 'w' ? -Rise : 0;
     for (int v = 0; v < sum.Length; v++)
         terrain.Nrm[v] = Mesh.Unit(sum[v]);
 }
-// The pond: one flat water face (waves from the sea's shader) over its columns and one more round them, where
-// the banks rise through it.
+// The pond: one flat water face (waves from the sea's shader) over every quarter cell the hollow dips under it;
+// its outer edges lie where the bank is above the water.
 {
-    var wet = new HashSet<(int, int)>();
-    for (int z = -48; z <= 48; z++)
-        for (int x = -48; x <= 50; x++)
-            if (Cell(x, z) == 'w')
-                for (int dz = -1; dz <= 1; dz++)
-                    for (int dx = -1; dx <= 1; dx++)
-                        wet.Add((x + dx, z + dz));
     Piece water = arena.PieceOf("Water");
     var up = new V3(0, 1, 0);
-    foreach (var (x, z) in wet.Order())
+    foreach (var (qx, qz) in heights.Keys.Order())
     {
-        int a = water.Add(new V3(x - 0.5, -0.13, z - 0.5), up, Arena.Plain, (1.0, 0.0));
-        water.Add(new V3(x + 0.5, -0.13, z - 0.5), up, Arena.Plain, (1.0, 0.0));
-        water.Add(new V3(x + 0.5, -0.13, z + 0.5), up, Arena.Plain, (1.0, 0.0));
-        water.Add(new V3(x - 0.5, -0.13, z + 0.5), up, Arena.Plain, (1.0, 0.0));
+        (int, int)[] round = [(qx, qz), (qx + 1, qz), (qx, qz + 1), (qx + 1, qz + 1)];
+        if (!round.All(heights.ContainsKey) || round.All(c => heights[c] >= WaterLevel))
+            continue;
+        double x = qx / 4.0, z = qz / 4.0;
+        int a = water.Add(new V3(x, WaterLevel, z), up, Arena.Plain, (1.0, 0.0));
+        water.Add(new V3(x + 0.25, WaterLevel, z), up, Arena.Plain, (1.0, 0.0));
+        water.Add(new V3(x + 0.25, WaterLevel, z + 0.25), up, Arena.Plain, (1.0, 0.0));
+        water.Add(new V3(x, WaterLevel, z + 0.25), up, Arena.Plain, (1.0, 0.0));
         arena.Triangle(water, a, a + 2, a + 1, false);
         arena.Triangle(water, a, a + 3, a + 2, false);
     }
@@ -298,16 +325,14 @@ Ring("Dark", 3.5, 4.5, H(12), H(13));
 Square("Quartz", 3.5, H(12), H(13));
 for (int y = 8; y <= 12; y++)
     Cornice(19.5 - y, H(y + 1), FlightCut);
-// The flights: steps 0.4 m high and 0.5 m deep, two to each tier, between sloping cheek walls; through the
-// colonnade storey on a bed of stone. One walks a ramp halfway up the steps (collision only, "_solid"): step by
-// step the body would lift every half metre.
+// The flights: steps 0.2 m high and 0.25 m deep, four to each tier, between sloping cheek walls; through the
+// colonnade storey on a bed of stone. One walks a ramp over the steps' noses (collision only, "_solid"), so the
+// body neither lifts at every step nor sinks into one.
 foreach (var f in faces)
 {
-    for (int y = 0; y <= 12; y++)
-    {
-        FaceBox(f, "Bricks", 19.5 - y, 20.5 - y, -1.5, 1.5, H(y), H(y) + 0.4, solid: false);
-        FaceBox(f, "Bricks", 19.5 - y, 20 - y, -1.5, 1.5, H(y) + 0.4, H(y + 1), solid: false);
-    }
+    // Step k from its nose back to the tier it stands in front of (whose face is at 19.5 - k / 4).
+    for (int k = 0; k < 52; k++)
+        FaceBox(f, "Bricks", 19.5 - k / 4, 20.5 - 0.25 * k, -1.5, 1.5, 0.2 * k, 0.2 * (k + 1), solid: false);
     arena.Bar("_solid", At(f, 0, -1.5, 0), At(f, 0, 1.5, 0), [(18.5, -0.1), (20.5, -0.1), (20.5, 0.2), (7.75, H(13)), (7.5, H(13)), (7.5, 11 * Rise)], true);
     for (int y = 5; y <= 7; y++)
         FaceBox(f, "Cobble", 10.5, 19.5 - y, -1.5, 1.5, H(y), H(y + 1));
@@ -347,9 +372,6 @@ foreach (var (e, y) in new[] { (5.5, 16), (6.5, 17), (5.5, 18), (4.5, 19), (3.5,
     }
     arena.Take(moss, new V3(0, 0, 0));
 }
-
-// ---- the beacon's beam over the temple ----
-arena.Lathe("Glow", [(0, H(24)), (0.22, H(24)), (0.22, 120), (0, 120)], false, chord: 0.1, least: 12);
 
 // ---- trees where the source's stood, a MountDestiny tree for each; the azaleas as bushes ----
 // Its crowns are 3–4 m wide: of trees closer than 4 m only the tallest stands.
