@@ -21,6 +21,8 @@ static class GrassMap
     // GrassBlade lerps the height between four cells: next to a cell without grass at another
     // height (Atrium's ledges) a blade would hang in the air, dark from that cell's lightmap uv.
     public static bool Borders;
+    // Parts lying on the ground that no blade grows through (Pyramid: its lamps, gold plates, pond), below 0.5 m.
+    public static string[] Covers = [];
 
     public static void Write(string path, List<Primitive> primitives)
     {
@@ -73,6 +75,7 @@ static class GrassMap
         }
 
         int trunks = ClearTrunks(primitives, amount, cell);
+        ClearCovers(primitives, amount, cell);
         if (Borders)
             Border(top, amount, shade, uv);
         int grassy = amount.Count(v => v > 0);
@@ -95,6 +98,26 @@ static class GrassMap
             }
         }
         Console.WriteLine($"{path}: {new FileInfo(path).Length / 1e6:F1} MB, grass on {grassy * cell * cell:F0} m², {trunks} trunks left out");
+    }
+
+    // Every cell under a cover's low triangles (their footprint and 10 cm round it) left bare.
+    static void ClearCovers(List<Primitive> primitives, float[] amount, float cell)
+    {
+        foreach (Primitive prim in primitives.Where(p => Covers.Contains(p.Material)))
+        {
+            float[] pos = prim.Attributes["POSITION"];
+            for (int t = 0; t < prim.Indices.Length; t += 3)
+            {
+                int[] v = [prim.Indices[t], prim.Indices[t + 1], prim.Indices[t + 2]];
+                if (v.Any(i => pos[3 * i + 1] > 0.5f))
+                    continue;
+                float minX = v.Min(i => pos[3 * i]) - 0.1f, maxX = v.Max(i => pos[3 * i]) + 0.1f;
+                float minZ = v.Min(i => pos[3 * i + 2]) - 0.1f, maxZ = v.Max(i => pos[3 * i + 2]) + 0.1f;
+                for (int z = Math.Max(0, (int)((minZ + Half) / cell)); z <= Math.Min(Size - 1, (int)((maxZ + Half) / cell)); z++)
+                    for (int x = Math.Max(0, (int)((minX + Half) / cell)); x <= Math.Min(Size - 1, (int)((maxX + Half) / cell)); x++)
+                        amount[z * Size + x] = 0;
+            }
+        }
     }
 
     /// <summary>

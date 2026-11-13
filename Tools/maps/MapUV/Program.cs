@@ -18,14 +18,16 @@ const double SeaShrink = 4.0;
 
 var mountain = new Glb(Path.Combine(root, "KotH.Game/Resources/Models", (destiny ? "Mountain" : map) + ".glb"));
 Glb? sea = island ? new Glb(Path.Combine(root, "KotH.Game/Resources/Models", (destiny ? "" : map) + "Sea.glb")) : null;
-// Atrium, TheLadder: everything but what is see-through, glows or is leaves (their generators' part names).
+// Atrium, TheLadder: everything but what is see-through, glows or is leaves (their generators' part names);
+// Pyramid's pond is lit too, as the sea (its waves shader).
 string[] lit = island ? ["Terrain", "Bark"]
-    : [.. mountain.Primitives.Select(p => p.Material).Where(m => m is not ("Water" or "Glass" or "Glow" or "Leaves" or "LeafCards"))];
+    : [.. mountain.Primitives.Select(p => p.Material).Where(m => m is not ("Water" or "Glass" or "Glow" or "Leaves" or "LeafCards") ||
+                                                                 m == "Water" && map == "Pyramid")];
 if (!island)
     (GrassMap.MaxHeight, GrassMap.TrunkFootY, GrassMap.TrunkFootLow, GrassMap.Borders) = (8f, 7f, 6f, true);
-// Pyramid's trees stand on the garden at 0 m.
+// Pyramid's trees stand on the garden at 0 m; no grass through its lamps, gold plates or pond.
 if (map == "Pyramid")
-    (GrassMap.TrunkFootY, GrassMap.TrunkFootLow) = (1f, -1f);
+    (GrassMap.TrunkFootY, GrassMap.TrunkFootLow, GrassMap.Covers) = (1f, -1f, ["Glow", "Sandstone", "Water"]);
 string grassPath = Path.Combine(root, $"KotH.Game/Resources/Maps/{map}Grass.bin");
 string contactPath = Path.Combine(root, $"KotH.Game/Resources/Textures/Terrain/{map}Contact.png");
 string surfacePath = Path.Combine(root, $"KotH.Game/Resources/Maps/{map}Surface.bin");

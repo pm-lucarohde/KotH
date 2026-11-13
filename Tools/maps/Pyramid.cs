@@ -116,7 +116,8 @@ double Top(char k) => k == 'w' ? -Rise : 0;
     for (int v = 0; v < sum.Length; v++)
         terrain.Nrm[v] = Mesh.Unit(sum[v]);
 }
-// The pond: a flat water face over its columns and one more round them, where the banks rise through it.
+// The pond: one flat water face (waves from the sea's shader) over its columns and one more round them, where
+// the banks rise through it.
 {
     var wet = new HashSet<(int, int)>();
     for (int z = -48; z <= 48; z++)
@@ -125,8 +126,17 @@ double Top(char k) => k == 'w' ? -Rise : 0;
                 for (int dz = -1; dz <= 1; dz++)
                     for (int dx = -1; dx <= 1; dx++)
                         wet.Add((x + dx, z + dz));
-    foreach (var (x, z) in wet)
-        Box("Water", x - 0.5, x + 0.5, -0.14, -0.12, z - 0.5, z + 0.5, solid: false);
+    Piece water = arena.PieceOf("Water");
+    var up = new V3(0, 1, 0);
+    foreach (var (x, z) in wet.Order())
+    {
+        int a = water.Add(new V3(x - 0.5, -0.13, z - 0.5), up, Arena.Plain, (1.0, 0.0));
+        water.Add(new V3(x + 0.5, -0.13, z - 0.5), up, Arena.Plain, (1.0, 0.0));
+        water.Add(new V3(x + 0.5, -0.13, z + 0.5), up, Arena.Plain, (1.0, 0.0));
+        water.Add(new V3(x - 0.5, -0.13, z + 0.5), up, Arena.Plain, (1.0, 0.0));
+        arena.Triangle(water, a, a + 2, a + 1, false);
+        arena.Triangle(water, a, a + 3, a + 2, false);
+    }
 }
 // Lamps let into the grass (the source's shroomlights) and the spawns' gold plates.
 for (int z = -48; z <= 48; z++)
@@ -193,9 +203,11 @@ const double WallIn = 47.2, WallOut = 48.6, WallTop = 9 * Rise, ShrineHalf = 5.5
     for (int q = 0; q < 4; q++)
     {
         double a0 = axes[q] + half, a1 = (q + 1 < 4 ? axes[q + 1] : 2 * Math.PI) - half;
-        arena.Lathe("Cobble", [(WallIn, -0.4), (WallOut, -0.4), (WallOut, WallTop - 0.12), (WallIn, WallTop - 0.12)], true, a0: a0, a1: a1, chord: 0.8);
-        arena.Lathe("Cobble", [(WallIn - 0.12, WallTop - 0.12), (WallOut + 0.12, WallTop - 0.12), (WallOut + 0.12, WallTop), (WallIn - 0.12, WallTop)],
-                    true, a0: a0, a1: a1, chord: 0.8);
+        // Closed profiles (the first point again at the end), else the inner face is missing.
+        arena.Lathe("Cobble", [(WallIn, -0.4), (WallOut, -0.4), (WallOut, WallTop - 0.12), (WallIn, WallTop - 0.12), (WallIn, -0.4)], true,
+                    a0: a0, a1: a1, chord: 0.8);
+        arena.Lathe("Cobble", [(WallIn - 0.12, WallTop - 0.12), (WallOut + 0.12, WallTop - 0.12), (WallOut + 0.12, WallTop), (WallIn - 0.12, WallTop),
+                               (WallIn - 0.12, WallTop - 0.12)], true, a0: a0, a1: a1, chord: 0.8);
     }
 }
 // Its timber posts, standing half out of its inner face.
@@ -287,14 +299,16 @@ Square("Quartz", 3.5, H(12), H(13));
 for (int y = 8; y <= 12; y++)
     Cornice(19.5 - y, H(y + 1), FlightCut);
 // The flights: steps 0.4 m high and 0.5 m deep, two to each tier, between sloping cheek walls; through the
-// colonnade storey on a bed of stone.
+// colonnade storey on a bed of stone. One walks a ramp halfway up the steps (collision only, "_solid"): step by
+// step the body would lift every half metre.
 foreach (var f in faces)
 {
     for (int y = 0; y <= 12; y++)
     {
-        FaceBox(f, "Bricks", 19.5 - y, 20.5 - y, -1.5, 1.5, H(y), H(y) + 0.4);
-        FaceBox(f, "Bricks", 19.5 - y, 20 - y, -1.5, 1.5, H(y) + 0.4, H(y + 1));
+        FaceBox(f, "Bricks", 19.5 - y, 20.5 - y, -1.5, 1.5, H(y), H(y) + 0.4, solid: false);
+        FaceBox(f, "Bricks", 19.5 - y, 20 - y, -1.5, 1.5, H(y) + 0.4, H(y + 1), solid: false);
     }
+    arena.Bar("_solid", At(f, 0, -1.5, 0), At(f, 0, 1.5, 0), [(18.5, -0.1), (20.5, -0.1), (20.5, 0.2), (7.75, H(13)), (7.5, H(13)), (7.5, 11 * Rise)], true);
     for (int y = 5; y <= 7; y++)
         FaceBox(f, "Cobble", 10.5, 19.5 - y, -1.5, 1.5, H(y), H(y + 1));
     foreach (var (a0, a1) in new[] { (-2.5, -1.5), (1.5, 2.5) })
@@ -321,13 +335,17 @@ Square("Glass", 0.5, H(23), H(24));
 foreach (var (e, y) in new[] { (5.5, 16), (6.5, 17), (5.5, 18), (4.5, 19), (3.5, 20), (2.5, 21), (1.5, 22) })
     Cornice(e, H(y + 1));
 
-// ---- moss mounds in the garden (the source's moss blocks) ----
-foreach (string[] f in Section("blocks").Select(l => l.Split(' ')).Where(f => f[4] == "O" && f[1] == "0"))
+// ---- low bushes in the garden where the source's moss blocks stood ----
 {
-    double x = double.Parse(f[0]), z = double.Parse(f[2]);
-    if (Math.Abs(x) > 20.5 || Math.Abs(z) > 20.5)
-        arena.Lathe("Terrain", [(0.62, -0.05), (0.56, 0.18), (0.38, 0.38), (0, 0.46)], true, x, z, chord: 0.2, least: 10,
-                    colour: Arena.Grass);
+    var moss = new Mesh(null!);
+    int seed = 2600;
+    foreach (string[] f in Section("blocks").Select(l => l.Split(' ')).Where(f => f[4] == "O" && f[1] == "0"))
+    {
+        double x = double.Parse(f[0]), z = double.Parse(f[2]);
+        if (Math.Abs(x) > 20.5 || Math.Abs(z) > 20.5)
+            KotH.Tools.Maps.Trees.Leaves(moss, new PyRandom(seed++), [(new V3(x, 0.3, z), 0.5)]);
+    }
+    arena.Take(moss, new V3(0, 0, 0));
 }
 
 // ---- the beacon's beam over the temple ----
@@ -359,6 +377,9 @@ foreach (var (f, i) in standing.Select((f, i) => (f, i)))
     }
     arena.Take(tubs, new V3(0, 0, 0));
 }
+
+// The flights' ramps are collision only.
+arena.Pieces.Remove("_solid");
 
 // ---- checks: faces lying on each other the same way round flicker (z-fighting) ----
 {

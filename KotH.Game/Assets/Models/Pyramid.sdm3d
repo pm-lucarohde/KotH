@@ -73,6 +73,6 @@ Materials:
     62ba698546f744988e5fe6bd16ac3665:
         Name: Water
         MaterialInstance:
-            Material: 3E6B2A71-5C4D-4F0B-9A1E-7D2C8B4F6A93:Materials/Atrium/Water
+            Material: 8612FBED-D65E-4F09-8B44-AD6CD65389B4:Materials/Water
             IsShadowCaster: false
 Modifiers: {}
