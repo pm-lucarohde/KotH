@@ -63,7 +63,7 @@ namespace KotH.Client.Audio
 
         /// <userdoc>One of these at random whenever a hand grabs a ladder's next rung.</userdoc>
         [Display("Climb grabs", "Figures")] public List<Sound> Climbs = new List<Sound>();
-        [Display("Climb volume", "Figures")] public float ClimbVolume = 0.1f;
+        [Display("Climb volume", "Figures")] public float ClimbVolume = 0.09f;
 
         /// <userdoc>One of these at random when a trampoline throws a figure back up.</userdoc>
         [Display("Trampolines", "Figures")] public List<Sound> Bounces = new List<Sound>();
