@@ -1,13 +1,13 @@
-/// <summary>
-/// Adds SunShaftBlur's quarter resolution rays to the colour, smoothly
-/// upscaled and tinted with the sun (blended one + one).
-/// </summary>
+/// <summary>Adds SunShaftBlur's quarter resolution rays to the colour, smoothly upscaled and
+/// tinted with the sun (blended one + one); only as much as the sky shows through the half
+/// resolution atmosphere (Texture1 alpha), so no ray lies on top of a cloud or the smoke.</summary>
 shader SunShaftAdd : ImageEffectShader
 {
     float3 Tint;
 
     stage override float4 Shading()
     {
-        return float4(Tint * Texture0.SampleLevel(LinearSampler, streams.TexCoord, 0).r, 0.0);
+        float2 uv = streams.TexCoord;
+        return float4(Tint * Texture0.SampleLevel(LinearSampler, uv, 0).r * Texture1.SampleLevel(LinearSampler, uv, 0).a, 0.0);
     }
 };

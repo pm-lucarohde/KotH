@@ -27,16 +27,28 @@ shader AtmosphereMarch : ImageEffectShader, CloudLayer
     float4 CoastShape;      // density, haze share, 1 / repeat of the wisps, texels per metre
     float CoastOffset;
     float3 CoastColor;
+    Texture3D<float2> SmokeNoise; // billows' shape, finer cells for the edges (SmokeNoise.cs)
+    // Stride's LinearRepeatSampler repeats u and v only: w clamped, the smoke was the same all along z.
+    SamplerState SmokeSampler
+    {
+        Filter = MIN_MAG_MIP_LINEAR;
+        AddressU = Wrap;
+        AddressV = Wrap;
+        AddressW = Wrap;
+    };
     float4 Smoke;           // source x, y, z, density (0: none)
-    float4 SmokeShape;      // clear below, full from (heights), drift per metre risen, lod per metre
-    float4 SmokeRing;       // inner, outer radius, lower, upper edge
-    float4 SmokeMotion;     // 1 / repeat, drifted along the wind, risen (repeats), 0
+    float4 SmokeShape;      // clear below, full from (heights), drift per metre risen, 1 / noise repeat
+    float4 SmokeColumn;     // radius at the source, widening per metre risen, umbrella's drift, bounding radius
+    float4 SmokeUmbrella;   // radius, middle height, half thickness below and above it
+    float4 SmokeMotion;     // noise carried along the wind, risen (repeats), detail's bite, 0
     float3 SmokeLitColor;
     float3 SmokeShadeColor;
     float3 SmokeGlowColor;
 
     static const int FogSteps = 8;
-    static const int MaxSmokeSteps = 12;
+    static const int MaxSmokeSteps = 64;    // samples inside the plume
+    static const float SmokeEdge = 0.1;     // cover below it counts as empty (only rare wisps lived there)
+    static const int MaxSmokeStrides = 160; // with the strides through the empty space round it
     static const int CoastSteps = 10;
     static const int MaxCloudSteps = 16;
 
@@ -85,32 +97,69 @@ shader AtmosphereMarch : ImageEffectShader, CloudLayer
         return float2(max(min(a, b), t0), min(max(a, b), t1));
     }
 
-    // Smoke per metre at p: a plume from the source, widening and bent downwind above the clear
-    // height, spreading into a broken ring round the summit; puffs from the cloud map's red, read
-    // flat with the wind and upright with the rise. Barely any below the clear height (Luca: the
-    // zone keeps its view). plume: its share from the plume, for the magma's glow.
-    float SmokeAt(float3 p, float lod, out float plume)
+    // The plume's axis at height y: bent downwind above the clear height.
+    float2 SmokeAxis(float y)
     {
-        float h = p.y - Smoke.y;
-        float2 off = p.xz - Smoke.xz - Wind * (SmokeShape.z * max(p.y - SmokeShape.x, 0.0));
-        float r = 5.0 + 0.3 * max(h, 0.0);
-        plume = exp(-dot(off, off) / (r * r)) * saturate(h / 3.0) * (1.0 - smoothstep(SmokeRing.w - 30.0, SmokeRing.w + 20.0, p.y));
-        float rho = length(p.xz - Smoke.xz);
-        float ring = smoothstep(SmokeRing.x, SmokeRing.x + 50.0, rho) * (1.0 - smoothstep(SmokeRing.y - 40.0, SmokeRing.y, rho))
-                   * smoothstep(SmokeRing.z, SmokeRing.z + 20.0, p.y) * (1.0 - smoothstep(SmokeRing.w - 35.0, SmokeRing.w, p.y));
-        if (plume + ring < 0.01)
-            return 0.0;
-        float2 w = float2(dot(p.xz, Wind), dot(p.xz, float2(-Wind.y, Wind.x)));
-        // The map's red is high almost everywhere: only its domes' tops count, so puffs part.
-        float n = smoothstep(0.55, 0.95, Texture1.SampleLevel(LinearRepeatSampler, w * SmokeMotion.x - float2(SmokeMotion.y, 0.0), lod).r);
-        if (n > 0.0)
+        return Smoke.xz + Wind * (SmokeShape.z * max(y - SmokeShape.x, 0.0));
+    }
+
+    // How deep inside the plume p lies: 1 on the axis, 0 at the edge, below outside; the column widens
+    // as it rises into the umbrella, which spreads further downwind. gap: metres at least to SmokeEdge.
+    float SmokeCover(float3 p, out float column, out float gap)
+    {
+        float r = SmokeColumn.x + SmokeColumn.y * max(p.y - SmokeShape.x, 0.0);
+        float radial = 1.0 - length(p.xz - SmokeAxis(p.y)) / r;
+        // Up into the umbrella's middle: it lies downwind, a neck ending below its floor left a gap.
+        column = min(radial, (SmokeUmbrella.y + 0.5 * SmokeUmbrella.w - p.y) / 25.0);
+        float2 centre = SmokeAxis(SmokeUmbrella.y) + Wind * SmokeColumn.z;
+        float dy = p.y - SmokeUmbrella.y, thick = dy < 0.0 ? SmokeUmbrella.z : SmokeUmbrella.w;
+        float umbrella = 1.0 - length(float2(length(p.xz - centre) / SmokeUmbrella.x, dy / thick));
+        // The umbrella's gap from its box too: from the flat ellipsoid alone it was its thickness, a crawl.
+        float box = max(length(p.xz - centre) - SmokeUmbrella.x, abs(dy) - thick);
+        gap = 0.8 * min(max((SmokeEdge - radial) * r, p.y - SmokeUmbrella.y - 0.5 * SmokeUmbrella.w + 25.0 * SmokeEdge),
+                        max((SmokeEdge - umbrella) * min(SmokeUmbrella.x, thick), box));
+        return max(column, umbrella);
+    }
+
+    // Smoke per metre at p: the cover swollen and eaten by the billows, which rise with the plume and
+    // drift with the wind; detail and near (0 to 1) bite finer and finest cells out of the edges.
+    // Barely any below the clear height (Luca: the zone keeps its view).
+    float SmokeAt(float3 p, float cover, float detail, float near)
+    {
+        float3 q = p * SmokeShape.w - float3(Wind.x * SmokeMotion.x, SmokeMotion.y, Wind.y * SmokeMotion.x);
+        // A steep rise at the billows' surface, so they keep a rim the sun can light and shade.
+        float billow = SmokeNoise.SampleLevel(SmokeSampler, q, 0).x;
+        float dense = saturate(6.0 * (1.5 * cover - (1.0 - billow)));
+        float bite = 0.0;
+        if (dense > 0.0 && detail > 0.0)
         {
-            float upright = Texture1.SampleLevel(LinearRepeatSampler, float2(w.y + 0.5 * w.x, p.y) * (1.25 * SmokeMotion.x) - float2(0.0, SmokeMotion.z), lod).r;
-            float fine = Texture1.SampleLevel(LinearRepeatSampler, float2(w.x - 0.4 * w.y, p.y) * (3.7 * SmokeMotion.x) - float2(1.7 * SmokeMotion.y, 2.5 * SmokeMotion.z), lod).r;
-            n = saturate(1.6 * n * smoothstep(0.45, 0.95, upright) - 0.35 * (1.0 - fine));
+            // Eroded as a remap, so thin edges vanish whole instead of leaving loose flecks.
+            bite = (1.0 - SmokeNoise.SampleLevel(SmokeSampler, q * 1.7 + 0.37, 0).y) * SmokeMotion.z * detail;
+            // Lumps of a few metres close by, where the coarser ones blurred into a smooth ceiling.
+            if (near > 0.0)
+                bite = min(bite + (1.0 - SmokeNoise.SampleLevel(SmokeSampler, q * 6.1 + 0.71, 0).y) * SmokeMotion.z * near, 0.9);
+            dense = saturate((dense - bite) / (1.0 - bite));
         }
-        float gate = lerp(0.06, 1.0, smoothstep(SmokeShape.x, SmokeShape.y, p.y));
-        return Smoke.w * gate * (plume * (0.25 + n) + ring * smoothstep(0.3, 0.65, n));
+        // The foot's underside lumpy and sharp, from below a billowed ceiling rather than a fade; never
+        // lower than the clear height.
+        float foot = lerp(SmokeShape.y, SmokeShape.x, saturate(billow - bite));
+        // Below it a fixed thin haze, whatever the plume's density.
+        return lerp(0.015, Smoke.w, smoothstep(foot, foot + 3.0, p.y)) * dense;
+    }
+
+    // Smoke per metre seen t metres away: finer billows close by, faded right at the eye (no wall in
+    // the face of whoever jumps in).
+    float SmokeSigma(float3 p, float cover, float t)
+    {
+        return SmokeAt(p, cover, 1.0 - smoothstep(150.0, 400.0, t), 1.0 - smoothstep(40.0, 120.0, t)) * smoothstep(3.0, 12.0, t);
+    }
+
+    // Smoke per metre towards the sun from p, cheaper: the base billows only.
+    float SmokeShadow(float3 p)
+    {
+        float column, gap;
+        float cover = SmokeCover(p, column, gap);
+        return cover > SmokeEdge ? SmokeAt(p, cover, 0.0, 0.0) : 0.0;
     }
 
     stage override float4 Shading()
@@ -171,10 +220,11 @@ shader AtmosphereMarch : ImageEffectShader, CloudLayer
             }
         }
         // Smoke after the clouds (no map has both), through its cylinder only, faded close to the
-        // eye: no wall in the face of whoever jumps into it.
+        // eye: no wall in the face of whoever jumps into it. Empty space is crossed in strides as
+        // long as the plume is away, inside in steps that grow with the distance.
         float smokeEnd = min(scene, FogHeights.w);
         float2 os = o.xz - Smoke.xz;
-        float As = dot(d.xz, d.xz), Bs = dot(os, d.xz), Cs = dot(os, os) - SmokeRing.y * SmokeRing.y;
+        float As = dot(d.xz, d.xz), Bs = dot(os, d.xz), Cs = dot(os, os) - SmokeColumn.w * SmokeColumn.w;
         float2 span = float2(0.0, smokeEnd);
         if (As > 1e-8)
         {
@@ -183,27 +233,76 @@ shader AtmosphereMarch : ImageEffectShader, CloudLayer
         }
         else if (Cs > 0.0)
             span = float2(1.0, 0.0);
-        span = Slab(o, d, Smoke.y, SmokeRing.w, span.x, span.y);
+        span = Slab(o, d, Smoke.y, SmokeUmbrella.y + SmokeUmbrella.w, span.x, span.y);
         if (Smoke.w > 0.0 && span.x < span.y)
         {
-            float run = span.y - span.x;
-            int steps = (int)clamp(ceil(run / 10.0), 4.0, (float)MaxSmokeSteps);
-            float ds = run / steps;
-            float silver = 0.25 * pow(saturate(dot(d, ToSun)), 8.0);
-            for (int i = 0; i < steps && through > 0.02; i++)
+            float silver = 0.4 * pow(saturate(dot(d, ToSun)), 6.0);
+            float t = span.x, stride = 1.0, outside = -1.0;
+            int samples = 0;
+            for (int i = 0; i < MaxSmokeStrides && samples < MaxSmokeSteps && t < span.y && through > 0.02; i++)
             {
-                float t = span.x + (i + jitter) * ds;
-                float3 p = o + d * t;
-                float lod = log2(max(1.0, t * SmokeShape.w));
-                float plume;
-                float sigma = SmokeAt(p, lod, plume) * smoothstep(6.0, 25.0, t);
-                if (sigma <= 0.0)
+                float column, gap;
+                float cover = SmokeCover(o + d * t, column, gap);
+                float ds = clamp(0.012 * t, 1.5, 8.0);
+                // Below the clear height only the even haze: long steps, the zone's view stays cheap.
+                if (o.y + d.y * t < SmokeShape.x - 2.0)
+                    ds = max(ds, 5.0);
+                // Rays grazing the column (beside it, or from the zone up its widening, mostly empty
+                // rim) crept on and ran out of steps: light wedges, a hole under the umbrella. Outside
+                // at least a share of the distance (back to the edge on the way in), through empty
+                // billows up to twice as long (longer, or jittered, broke thin wisps into a mesh).
+                if (cover <= SmokeEdge)
+                {
+                    outside = t;
+                    t += max(gap, max(ds, 0.05 * t));
                     continue;
+                }
+                if (outside >= 0.0)
+                {
+                    float a = outside, b = t;
+                    for (int k = 0; k < 3; k++)
+                    {
+                        float m = 0.5 * (a + b), mColumn, mGap;
+                        if (SmokeCover(o + d * m, mColumn, mGap) > SmokeEdge)
+                            b = m;
+                        else
+                            a = m;
+                    }
+                    t = b;
+                    outside = -1.0;
+                    cover = SmokeCover(o + d * t, column, gap);
+                }
+                float3 p = o + d * (t + jitter * ds);
+                float sigma = SmokeSigma(p, cover, t);
+                if (sigma <= 0.0)
+                {
+                    t += ds * min(stride, clamp(t / 60.0, 1.0, 2.0));
+                    stride = min(stride * 1.5, 2.0);
+                    continue;
+                }
+                stride = 1.0;
+                samples++;
+                t += ds;
                 float alpha = 1.0 - exp(-sigma * ds);
-                // Lighter up in the sun, darker low down; the root lit red by the magma.
-                float up = saturate(0.3 + 0.7 * (p.y - SmokeShape.x) / (SmokeRing.w - SmokeShape.x));
-                float3 colour = lerp(SmokeShadeColor, SmokeLitColor, up) * (1.0 + silver)
-                              + SmokeGlowColor * plume * exp(-(p.y - Smoke.y) / 18.0);
+                // Sunlit through what lies towards the sun (two near samples, the plume's bulk further
+                // on); the sky lights the edges more than the core; the root glows from the magma.
+                // The thin haze needs no shadow samples: half lit.
+                float depth = 2.0;
+                if (sigma > 0.02)
+                {
+                    float farColumn, farGap;
+                    float far = SmokeCover(p + ToSun * 40.0, farColumn, farGap);
+                    depth = 5.0 * SmokeShadow(p + ToSun * 4.0) + 12.0 * SmokeShadow(p + ToSun * 14.0) + 30.0 * Smoke.w * saturate(1.5 * far);
+                }
+                // Light scattered on through the ash, not only straight from the sun: a second, weaker
+                // fall-off keeps the sunny side bright a few metres in (as multiple scattering does).
+                float sun = 0.7 * exp(-0.35 * depth) + 0.3 * exp(-0.08 * depth);
+                // The billows' thin rims take more sky than their thick middles.
+                float rim = 1.25 - 0.6 * saturate(sigma / Smoke.w);
+                // Dark ash low in the column, light heads high up: the underside seen from the zone stays dark.
+                float tone = lerp(0.5, 1.0, saturate((p.y - SmokeShape.y) / (SmokeUmbrella.y - SmokeShape.y)));
+                float3 colour = tone * (SmokeLitColor * sun * (1.0 + silver) + SmokeShadeColor * rim * lerp(1.0, 0.45, saturate(cover)))
+                              + SmokeGlowColor * saturate(column) * exp(-(p.y - Smoke.y) / 18.0);
                 cloud += through * alpha * colour;
                 cloudDepth += through * alpha * t;
                 weight += through * alpha;

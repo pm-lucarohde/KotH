@@ -103,28 +103,37 @@ namespace KotH.Client.Rendering
         [DataMember(71)] public Vector3 SmokeSource { get; set; }
 
         /// <userdoc>Height in metres below which the smoke is almost clear (x) and from which it is full (y): keeps the zone's view.</userdoc>
-        [DataMember(72)] public Vector2 SmokeClear { get; set; } = new(148f, 180f);
+        [DataMember(72)] public Vector2 SmokeClear { get; set; } = new(140f, 152f);
 
-        /// <userdoc>The smoke ring round the summit: inner and outer radius, lower and upper edge, in metres.</userdoc>
-        [DataMember(73)] public Vector4 SmokeRing { get; set; } = new(40f, 140f, 165f, 240f);
+        /// <userdoc>The eruption column: radius up to the clear height and metres it widens per metre risen above it.</userdoc>
+        [DataMember(73)] public Vector2 SmokeColumn { get; set; } = new(12f, 0.45f);
 
-        /// <userdoc>Colour of the smoke's sunny upper parts (linear).</userdoc>
-        [DataMember(74)] public Color3 SmokeLit { get; set; } = new(0.30f, 0.30f, 0.30f);
+        /// <userdoc>The umbrella the column spreads into: radius, height of its middle, thickness below and above it, in metres.</userdoc>
+        [DataMember(80)] public Vector4 SmokeUmbrella { get; set; } = new(300f, 430f, 50f, 80f);
 
-        /// <userdoc>Colour of the smoke's shaded lower parts (linear).</userdoc>
-        [DataMember(75)] public Color3 SmokeShade { get; set; } = new(0.08f, 0.08f, 0.08f);
+        /// <userdoc>Metres the umbrella drifts downwind beyond the column's bend.</userdoc>
+        [DataMember(81)] public float SmokeDrift { get; set; } = 40f;
+
+        /// <userdoc>Colour of the smoke in full sun (linear).</userdoc>
+        [DataMember(74)] public Color3 SmokeLit { get; set; } = new(0.80f, 0.77f, 0.72f);
+
+        /// <userdoc>Colour the sky gives the smoke in its shade (linear).</userdoc>
+        [DataMember(75)] public Color3 SmokeShade { get; set; } = new(0.09f, 0.095f, 0.105f);
 
         /// <userdoc>Glow the magma lends the plume's root (linear, added).</userdoc>
         [DataMember(76)] public Color3 SmokeGlow { get; set; } = new(0.35f, 0.10f, 0.02f);
 
-        /// <userdoc>Speed in m/s the smoke's puffs rise with.</userdoc>
-        [DataMember(77)] public float SmokeRise { get; set; } = 2f;
+        /// <userdoc>Speed in m/s the smoke's billows rise with.</userdoc>
+        [DataMember(77)] public float SmokeRise { get; set; } = 5f;
 
-        /// <userdoc>Metres after which the smoke's puffs repeat (the cloud map's red, read in the smoke).</userdoc>
-        [DataMember(78)] public float SmokeTile { get; set; } = 700f;
+        /// <userdoc>Metres after which the smoke's billows repeat.</userdoc>
+        [DataMember(78)] public float SmokeTile { get; set; } = 140f;
 
         /// <userdoc>Metres the plume drifts downwind per metre it rises above the clear height.</userdoc>
-        [DataMember(79)] public float SmokeBend { get; set; } = 0.45f;
+        [DataMember(79)] public float SmokeBend { get; set; } = 0.05f;
+
+        /// <userdoc>How deep the finest billows bite into the smoke's edges, from 0 to 1.</userdoc>
+        [DataMember(82)] public float SmokeDetail { get; set; } = 0.35f;
 
         /// <summary>Where wind and rise have carried the smoke's puffs, in their texture's repeats: along the wind x, up y.</summary>
         [DataMemberIgnore] public Vector2 SmokeOffset { get; private set; }

@@ -43,7 +43,9 @@ namespace KotH.Client.Rendering
         static readonly ValueParameterKey<Vector3> CoastColor = ParameterKeys.NewValue<Vector3>(default, "AtmosphereMarch.CoastColor");
         static readonly ValueParameterKey<Vector4> Smoke = ParameterKeys.NewValue<Vector4>(default, "AtmosphereMarch.Smoke");
         static readonly ValueParameterKey<Vector4> SmokeShape = ParameterKeys.NewValue<Vector4>(default, "AtmosphereMarch.SmokeShape");
-        static readonly ValueParameterKey<Vector4> SmokeRing = ParameterKeys.NewValue<Vector4>(default, "AtmosphereMarch.SmokeRing");
+        static readonly ValueParameterKey<Vector4> SmokeColumn = ParameterKeys.NewValue<Vector4>(default, "AtmosphereMarch.SmokeColumn");
+        static readonly ValueParameterKey<Vector4> SmokeUmbrella = ParameterKeys.NewValue<Vector4>(default, "AtmosphereMarch.SmokeUmbrella");
+        static readonly ObjectParameterKey<Texture> SmokeNoiseKey = ParameterKeys.NewObject<Texture>(null, "AtmosphereMarch.SmokeNoise");
         static readonly ValueParameterKey<Vector4> SmokeMotion = ParameterKeys.NewValue<Vector4>(default, "AtmosphereMarch.SmokeMotion");
         static readonly ValueParameterKey<Vector3> SmokeLitColor = ParameterKeys.NewValue<Vector3>(default, "AtmosphereMarch.SmokeLitColor");
         static readonly ValueParameterKey<Vector3> SmokeShadeColor = ParameterKeys.NewValue<Vector3>(default, "AtmosphereMarch.SmokeShadeColor");
@@ -87,6 +89,7 @@ namespace KotH.Client.Rendering
         ImageEffectShader shimmer;
         ImageEffectShader compress;
         ImageEffectShader resolve;
+        Texture smokeNoise;
 
         protected override void InitializeCore()
         {
@@ -241,10 +244,20 @@ namespace KotH.Client.Rendering
             p.Set(CoastOffset, atmosphere.CoastOffset);
             p.Set(CoastColor, (Vector3)atmosphere.CoastColor);
             p.Set(Smoke, new Vector4(atmosphere.SmokeSource, atmosphere.SmokeDensity));
-            p.Set(SmokeShape, new Vector4(atmosphere.SmokeClear.X, atmosphere.SmokeClear.Y, atmosphere.SmokeBend,
-                pixel * atmosphere.CloudMap.Width / Math.Max(atmosphere.SmokeTile, 1f)));
-            p.Set(SmokeRing, atmosphere.SmokeRing);
-            p.Set(SmokeMotion, new Vector4(1f / Math.Max(atmosphere.SmokeTile, 1f), atmosphere.SmokeOffset.X, atmosphere.SmokeOffset.Y, 0f));
+            // The shader reads a 3D texture there on every map: made on the first frame, behind the load screen.
+            smokeNoise ??= SmokeNoise.Create(GraphicsDevice);
+            p.Set(SmokeNoiseKey, smokeNoise);
+            if (atmosphere.SmokeDensity > 0f)
+            {
+                Vector4 umbrella = atmosphere.SmokeUmbrella;
+                float tile = Math.Max(atmosphere.SmokeTile, 1f);
+                // The cylinder round all of it: the umbrella's centre lies downwind by the bend and the drift.
+                float reach = atmosphere.SmokeBend * Math.Max(umbrella.Y - atmosphere.SmokeClear.X, 0f) + atmosphere.SmokeDrift + umbrella.X;
+                p.Set(SmokeShape, new Vector4(atmosphere.SmokeClear.X, atmosphere.SmokeClear.Y, atmosphere.SmokeBend, 1f / tile));
+                p.Set(SmokeColumn, new Vector4(atmosphere.SmokeColumn.X, atmosphere.SmokeColumn.Y, atmosphere.SmokeDrift, reach));
+                p.Set(SmokeUmbrella, umbrella);
+                p.Set(SmokeMotion, new Vector4(atmosphere.SmokeOffset.X, atmosphere.SmokeOffset.Y, atmosphere.SmokeDetail, 0f));
+            }
             p.Set(SmokeLitColor, (Vector3)atmosphere.SmokeLit);
             p.Set(SmokeShadeColor, (Vector3)atmosphere.SmokeShade);
             p.Set(SmokeGlowColor, (Vector3)atmosphere.SmokeGlow);
@@ -296,6 +309,7 @@ namespace KotH.Client.Rendering
                     Context.Allocator.ReleaseReference(mask);
                     shaftAdd.Parameters.Set(Tint, sunColor * (atmosphere.SunRays * fade * fade));
                     shaftAdd.SetInput(0, quarter);
+                    shaftAdd.SetInput(1, half);
                     shaftAdd.SetOutput(colour);
                     shaftAdd.Draw(drawContext);
                     Context.Allocator.ReleaseReference(quarter);
@@ -343,6 +357,7 @@ namespace KotH.Client.Rendering
         protected override void Destroy()
         {
             (Inner as IDisposable)?.Dispose();
+            smokeNoise?.Dispose();
             base.Destroy();
         }
     }
