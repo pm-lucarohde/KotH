@@ -220,10 +220,13 @@ void Cornice(double e, double top, Func<(int X, int Z), (double, double)[]> cut 
 // A column on the floor at (x, z): plinth and capital of light stone, the shaft of material.
 void Column(double x, double z, double bottom, double top, double r, string shaft)
 {
+    // One count of sides for all three (Luca: the shaft got 14, base and capital 15 from their wider rims, and
+    // their rings missed each other by slits one saw the sky through).
     double w = r + 0.12;
-    arena.Lathe("Quartz", [(w, bottom), (w, bottom + 0.2), (r + 0.06, bottom + 0.3), (r, bottom + 0.38)], true, x, z, chord: 0.2, least: 14);
-    arena.Lathe(shaft, [(r, bottom + 0.38), (r, top - 0.38)], true, x, z, chord: 0.2, least: 14);
-    arena.Lathe("Quartz", [(r, top - 0.38), (r + 0.06, top - 0.3), (w, top - 0.2), (w, top), (0, top)], true, x, z, chord: 0.2, least: 14);
+    int sides = Math.Max(14, (int)Math.Ceiling(2 * Math.PI * w / 0.2));
+    arena.Lathe("Quartz", [(w, bottom), (w, bottom + 0.2), (r + 0.06, bottom + 0.3), (r, bottom + 0.38)], true, x, z, chord: 0.2, least: sides);
+    arena.Lathe(shaft, [(r, bottom + 0.38), (r, top - 0.38)], true, x, z, chord: 0.2, least: sides);
+    arena.Lathe("Quartz", [(r, top - 0.38), (r + 0.06, top - 0.3), (w, top - 0.2), (w, top), (0, top)], true, x, z, chord: 0.2, least: sides);
 }
 
 // ---- the ring wall: cobbles from the ground to 7.2 m, open where the four shrines' stone backs stand in it ----
