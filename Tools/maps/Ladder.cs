@@ -168,7 +168,10 @@ for (int k = 0; k < 12; k++)
 foreach (double m in arms)
 {
     V3 p = Polar(Wall, m, 0);
-    Shaft("Tinted", p.X, p.Z, 0.05, Top + 0.05, 1.0, 0.08, Side(m), facing: m);
+    // In the plinth a little narrower: at full width its faces lay on the plinth's (r 15.6 and 16.6) and
+    // showed through as a line where a facet's edge meets the axis.
+    Shaft("Tinted", p.X, p.Z, 0.05, 0.72, 0.98, 0.08, Side(m), facing: m);
+    Shaft("Tinted", p.X, p.Z, 0.72, Top + 0.05, 1.0, 0.08, Side(m), facing: m);
 }
 arena.Lathe("Marble", [(15.7, Top), (16.5, Top), (16.7, 3.35), (16.8, 3.5), (16.8, 4.0), (15.4, 4.0), (15.4, 3.5), (15.5, 3.35), (15.7, Top)], true);
 foreach (double m in arms)
