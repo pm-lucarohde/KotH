@@ -473,6 +473,7 @@ namespace KotH.Client
                     DamageLabel.Self = null;
                     board.Notice = null;
                     board.ConfirmedRound = null;
+                    board.Progress = null;
                 }
                 if (e.Get<ZoneVisual>() is { } zone)
                 {
@@ -779,6 +780,7 @@ namespace KotH.Client
                         NetClient client = net;
                         board.Notice = () => client.Notice;
                         board.ConfirmedRound = () => client.Session.TryConfirmedMatch(out MatchState m) ? m : null;
+                        board.Progress = Keeper();
                     }
                 }
             foreach (Entity e in Entity.Scene.Entities)

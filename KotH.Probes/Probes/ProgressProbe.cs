@@ -6,7 +6,7 @@ namespace KotH.Probes.Probes
 {
     /// <summary>Levels and XP (Luca, 11.11.2026): the curve's fixed points and its order, then XpCounter
     /// on made-up confirmed ticks: a running minute, the zone, a win, offline, a new round, the win pause,
-    /// and leaving: 200 XP only out of a running round that counts.</summary>
+    /// the round's card, and leaving: 200 XP only out of a running round that counts.</summary>
     public sealed class ProgressProbe : Probe
     {
         protected override string Tag => "progress";
@@ -66,6 +66,9 @@ namespace KotH.Probes.Probes
             for (int i = 0; i < 400; i++)
                 c.Step(m, score, true, true);
             Check(c.Take() == (100, 1), "a win: 100 XP and a win, once, the pause nothing");
+            RoundXp r = c.Round;
+            Check(r is { Played: 15, Zone: 30, Win: 100, Won: true, Counted: true } && r.PlayedTicks == Minute + 30 * 40
+                  && r.ZoneTicks == 30 * 40, $"the round's card: 15 played, 30 zone, 100 win ({r.Played}, {r.Zone}, {r.Win})");
 
             // A new round: the clocks start at 0 again.
             m = new MatchState { Phase = MatchPhase.Running };
@@ -73,6 +76,7 @@ namespace KotH.Probes.Probes
             Play(Minute / 2, false);
             Play(Minute / 2, false);
             Check(c.Take() == (10, 0), "a new round counts from its start");
+            Check(c.Round is { Played: 10, Zone: 0, Win: 0, Won: false, PlayedTicks: Minute }, "a new round's card starts empty");
 
             m.Phase = MatchPhase.Countdown;
             for (int i = 0; i < Minute; i++)
@@ -86,6 +90,7 @@ namespace KotH.Probes.Probes
 
             m = new MatchState { Phase = MatchPhase.Running };
             Play(Minute, false, online: false);
+            Check(c.Round is { Counted: false, Total: 0 }, "a round offline: its card says it gave nothing");
             c.Forfeit();
             Check(c.Take() == (0, 0), "leaving a round that does not count: nothing");
             Play(Minute, false);

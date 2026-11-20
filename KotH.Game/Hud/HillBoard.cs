@@ -41,11 +41,14 @@ namespace KotH.Client.Hud
         /// <summary>Networked: the round as the host confirmed it, for the winner banner.</summary>
         [DataMemberIgnore] public Func<MatchState?> ConfirmedRound { get; set; }
 
+        /// <summary>Networked: the own XP, for the round's card at its end (null offline: it gives none).</summary>
+        [DataMemberIgnore] public ProgressKeeper Progress { get; set; }
+
         /// <summary>Networked: what to say while there is no game, such as connecting.</summary>
         [DataMemberIgnore] public Func<string> Notice { get; set; }
 
         // Test aid for shots: KOTH_SHOT_HUD=banner shows the winner banner with a sample.
-        static readonly bool PretendBanner = Environment.GetEnvironmentVariable("KOTH_SHOT_HUD") == "banner";
+        static readonly bool PretendBanner = Environment.GetEnvironmentVariable("KOTH_SHOT_HUD") == "banner" || XpCard.Pretend;
 
         // The whole HUD this much smaller than laid out in HudView (Luca).
         const float Size = 0.9f;
@@ -57,6 +60,8 @@ namespace KotH.Client.Hud
         HudRenderer hud;
         MenuOverlay top, points, status, track, fill, board, ranks, hurt, ammo, dashChip, banner, countdown, notice;
         MenuOverlay[] overlays;
+        XpCard xpCard;
+        float scale;
         readonly List<SimulationBody> ranking = new List<SimulationBody>();
 
         // Rebuilt once per tick, not per frame: the values only change then.
@@ -109,7 +114,9 @@ namespace KotH.Client.Hud
             banner = new MenuOverlay(view.BannerPart, Corner.TopCenter, 0f, 358f, Size);
             countdown = new MenuOverlay(view.CountdownPart, Corner.TopCenter, 0f, 470f, Size);
             notice = new MenuOverlay(view.NoticePart, Corner.TopCenter, 0f, 358f, Size);
+            xpCard = new XpCard(Size);
             overlays = new[] { top, points, status, track, fill, board, ranks, hurt, ammo, dashChip, banner, countdown, notice };
+            overlays = [.. overlays, .. xpCard.Overlays];
             foreach (MenuOverlay overlay in overlays)
             {
                 overlay.Visible = false;
@@ -156,6 +163,7 @@ namespace KotH.Client.Hud
                 return;
             var backBuffer = GraphicsDevice.Presenter.BackBuffer;
             var screen = new Vector2(backBuffer.Width, backBuffer.Height);
+            scale = screen.Y / (float)MenuOverlay.DesignHeight * Size;
             foreach (MenuOverlay overlay in overlays)
                 overlay.Place(screen);
 
@@ -201,6 +209,7 @@ namespace KotH.Client.Hud
                 banner.Zoom = 0.85f + 0.15f * MainMenu.BackOut(Math.Min(1f, popped / PopSeconds));
                 banner.Alpha = countdown.Alpha = Math.Min(1f, popped / FadeSeconds);
             }
+            xpCard.Show(seconds, won, scale, Progress);
         }
 
         void Rebuild()

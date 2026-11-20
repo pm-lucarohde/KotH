@@ -1,0 +1,128 @@
+<!-- The card under the winner at a round's end: what the round gave, line by line, and the level
+     bar filling with it. Parts as in HudView, each an overlay XpCard animates without rendering
+     it again (slide, fade, zoom, reveal); only the counting numbers render anew. Units of 1080,
+     the card's glass 640 wide with 24 of shadow room round it. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="KotH.Client.Hud.XpView"
+             x:CompileBindings="True">
+    <UserControl.Styles>
+        <Style Selector="TextBlock.Gold">
+            <Setter Property="Foreground" Value="#F2C25C" />
+        </Style>
+    </UserControl.Styles>
+    <Panel Name="Parts">
+        <!-- The glass, the line under the title and the bar's empty track: drawn once -->
+        <Grid Name="CardPart" Width="688" Height="340">
+            <!-- Denser than the HUD's glass: more to read, often over bright grass -->
+            <Border Classes="Glass" Margin="24" CornerRadius="18">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                        <GradientStop Offset="0" Color="#EB1F252E" />
+                        <GradientStop Offset="1" Color="#E60D1015" />
+                    </LinearGradientBrush>
+                </Border.Background>
+            </Border>
+            <Border Height="1.5" Margin="48,85,48,0" VerticalAlignment="Top" Background="#26FFFFFF" />
+            <Border Width="436" Height="14" Margin="0,234,48,0" CornerRadius="7" Background="#33FFFFFF"
+                    HorizontalAlignment="Right" VerticalAlignment="Top" />
+        </Grid>
+
+        <!-- The title and the round's sum, counting up as the lines come in -->
+        <Grid Name="HeadPart" Width="640" Height="62">
+            <TextBlock Classes="Hud Soft" Text="Round XP" FontSize="25" Margin="24,0,0,4" />
+            <TextBlock Name="Total" Classes="Hud Gold" Text="+0 XP" FontSize="38" FontWeight="Bold"
+                       HorizontalAlignment="Right" Margin="0,0,24,6" />
+        </Grid>
+
+        <!-- One line per source: what, how long, how much -->
+        <Grid Name="Line0Part" Width="640" Height="38" ColumnDefinitions="*,Auto,110">
+            <TextBlock Name="Label0" Classes="Hud" Text="Time played" FontSize="24" Margin="24,0,0,3" />
+            <TextBlock Name="Detail0" Grid.Column="1" Classes="Hud Soft" Text="4:12" FontSize="22" Margin="0,0,0,3" />
+            <TextBlock Name="Value0" Grid.Column="2" Classes="Hud" Text="+25" FontSize="25"
+                       HorizontalAlignment="Right" Margin="0,0,24,3" />
+        </Grid>
+        <Grid Name="Line1Part" Width="640" Height="38" ColumnDefinitions="*,Auto,110">
+            <TextBlock Name="Label1" Classes="Hud" Text="Zone held" FontSize="24" Margin="24,0,0,3" />
+            <TextBlock Name="Detail1" Grid.Column="1" Classes="Hud Soft" Text="1:31" FontSize="22" Margin="0,0,0,3" />
+            <TextBlock Name="Value1" Grid.Column="2" Classes="Hud" Text="+91" FontSize="25"
+                       HorizontalAlignment="Right" Margin="0,0,24,3" />
+        </Grid>
+        <Grid Name="Line2Part" Width="640" Height="38" ColumnDefinitions="*,Auto,110">
+            <TextBlock Name="Label2" Classes="Hud Gold" Text="Victory" FontSize="24" Margin="24,0,0,3" />
+            <TextBlock Name="Detail2" Grid.Column="1" Classes="Hud Soft" Text="" FontSize="22" Margin="0,0,0,3" />
+            <TextBlock Name="Value2" Grid.Column="2" Classes="Hud Gold" Text="+100" FontSize="25"
+                       HorizontalAlignment="Right" Margin="0,0,24,3" />
+        </Grid>
+
+        <!-- Instead of the lines when the round gave nothing -->
+        <Grid Name="NotePart" Width="640" Height="114">
+            <StackPanel Spacing="6" VerticalAlignment="Center" Margin="24,0">
+                <TextBlock Classes="Hud" Text="No XP from this round" FontSize="25" />
+                <TextBlock Name="Note" Classes="Hud Soft" Text="Steam rounds with another person give XP"
+                           FontSize="21" TextWrapping="Wrap" />
+            </StackPanel>
+        </Grid>
+
+        <!-- The level on a gold pill: it pops when the bar runs over -->
+        <Grid Name="BadgePart" Width="150" Height="64">
+            <Border Width="132" Height="40" CornerRadius="20" Background="#F2C25C"
+                    BorderBrush="#FFF4D9" BorderThickness="1.5">
+                <TextBlock Name="Badge" Text="Level 1" FontSize="22" FontWeight="Bold" Foreground="#2A2112"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,2" />
+            </Border>
+        </Grid>
+
+        <!-- The bar: what was there before (muted), what the round adds (bright), revealed
+             from the left; the flash over it when a level fills, the spark at its tip -->
+        <Grid Name="OldPart" Width="436" Height="14">
+            <Border CornerRadius="7" Background="#B39A7740" />
+        </Grid>
+        <Grid Name="GainPart" Width="436" Height="14">
+            <Border CornerRadius="7">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                        <GradientStop Offset="0" Color="#FFF0B5" />
+                        <GradientStop Offset="1" Color="#F2B53C" />
+                    </LinearGradientBrush>
+                </Border.Background>
+            </Border>
+        </Grid>
+        <Grid Name="FlashPart" Width="484" Height="62">
+            <Border Width="436" Height="14" CornerRadius="7" Background="#FFFDF2"
+                    BoxShadow="0 0 18 4 #CCF2C25C" />
+        </Grid>
+        <Grid Name="SparkPart" Width="48" Height="48">
+            <Ellipse>
+                <Ellipse.Fill>
+                    <RadialGradientBrush>
+                        <GradientStop Offset="0" Color="#FFFFFFFF" />
+                        <GradientStop Offset="0.25" Color="#F0FFF0C0" />
+                        <GradientStop Offset="0.6" Color="#50F2C25C" />
+                        <GradientStop Offset="1" Color="#00F2C25C" />
+                    </RadialGradientBrush>
+                </Ellipse.Fill>
+            </Ellipse>
+        </Grid>
+        <Grid Name="NumbersPart" Width="436" Height="30">
+            <TextBlock Name="Numbers" Classes="Hud Soft" Text="0 / 200 XP" FontSize="19"
+                       HorizontalAlignment="Right" Margin="0,0,0,2" />
+        </Grid>
+
+        <!-- A stamp on the card's corner the first time a level fills -->
+        <Grid Name="LevelUpPart" Width="260" Height="92">
+            <Border Margin="24" CornerRadius="11" Background="#F2C25C" BorderBrush="#FFF4D9" BorderThickness="2"
+                    BoxShadow="0 4 16 0 #80000000" Padding="18,0">
+                <TextBlock Name="LevelUp" Text="Level up!" FontSize="27" FontWeight="Bold" Foreground="#2A2112"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,3" />
+            </Border>
+        </Grid>
+
+        <!-- Under the card once level 10 is reached: Customize opens -->
+        <Grid Name="UnlockPart" Width="640" Height="92">
+            <Border Classes="Glass" Margin="24" Height="44" CornerRadius="11" HorizontalAlignment="Center" Padding="20,0">
+                <TextBlock Classes="Hud Gold" Text="Customize unlocked: colour your mushroom" FontSize="23" Margin="0,0,0,3" />
+            </Border>
+        </Grid>
+    </Panel>
+</UserControl>

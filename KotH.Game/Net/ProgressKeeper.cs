@@ -1,4 +1,5 @@
 using System;
+using KotH.Client.Menu;
 using KotH.Client.Steam;
 using KotH.Shared.Match;
 using KotH.Shared.Net;
@@ -20,9 +21,9 @@ namespace KotH.Client.Net
         readonly XpCounter counter = new XpCounter { Solo = Environment.GetEnvironmentVariable("KOTH_XP_SOLO") == "1" };
         PeerSession session;
         SimulationBody self;
-        int fed = -1;
+        int fed = -1, roundTicks, before;
         float since;
-        bool over;
+        bool over, running;
 
         /// <summary>The game and the own body; again after a map change.</summary>
         public void Bind(PeerSession session, SimulationBody self)
@@ -35,6 +36,9 @@ namespace KotH.Client.Net
 
         /// <summary>Whether leaving now costs XP: a running round that counts, as of the newest confirmed tick.</summary>
         public bool AtStake => session != null && counter.AtStake;
+
+        /// <summary>The newest round's XP by source, and the player's XP when it began: the round's card.</summary>
+        public (RoundXp Round, int Before) LastRound => (counter.Round, before);
 
         /// <summary>The player chose to leave a running round: the penalty goes to Steam with the rest.</summary>
         public void Forfeit()
@@ -80,6 +84,11 @@ namespace KotH.Client.Net
                 fed++;
                 if (!session.TryFinalState(fed, out WorldSnapshot state))
                     continue;
+                // A round begins as XpCounter sees it: the XP before it is where its card's bar starts.
+                MatchState m = state.Match;
+                if (m.Phase == MatchPhase.Running && (!running || m.RoundTicks < roundTicks))
+                    before = PlayerProgress.Xp;
+                (running, roundTicks) = (m.Phase == MatchPhase.Running, m.RoundTicks);
                 counter.Step(state, self, connected);
                 ended |= state.Match.Over && !over;
                 over = state.Match.Over;

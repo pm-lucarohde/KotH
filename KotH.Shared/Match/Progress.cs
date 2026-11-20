@@ -52,6 +52,8 @@ namespace KotH.Shared.Match
 
         int roundTicks, scoreTicks, playLeft, zoneLeft;
         bool over, seen;
+        MatchPhase phase;
+        RoundXp round;
 
         /// <summary>Earned and not yet taken.</summary>
         public int Xp { get; private set; }
@@ -59,6 +61,9 @@ namespace KotH.Shared.Match
 
         /// <summary>Whether the last tick was of a running round that counts: leaving it now costs LeaveXp.</summary>
         public bool AtStake { get; private set; }
+
+        /// <summary>What the current round gave so far, or the last one after its end (the card shows it).</summary>
+        public RoundXp Round => round;
 
         /// <summary>One confirmed tick: the round, the own body's score ticks, whether the own team won it.</summary>
         public void Step(in MatchState m, int ownScoreTicks, bool ownTeamWon, bool online)
@@ -71,20 +76,31 @@ namespace KotH.Shared.Match
                 held = ownScoreTicks >= scoreTicks ? ownScoreTicks - scoreTicks : ownScoreTicks;
             }
             bool won = seen && m.Over && !over && ownTeamWon;
-            (roundTicks, scoreTicks, over, seen) = (m.RoundTicks, ownScoreTicks, m.Over, true);
+            // A round begins with its first running tick, or anew where its clock went back.
+            if (m.Phase == MatchPhase.Running && (!seen || phase != MatchPhase.Running || m.RoundTicks < roundTicks))
+                round = default;
+            (roundTicks, scoreTicks, over, seen, phase) = (m.RoundTicks, ownScoreTicks, m.Over, true, m.Phase);
             AtStake = online && m.Phase == MatchPhase.Running;
+            round.Won |= won;
             if (!online)
                 return;
 
+            round.Counted |= played > 0 || won;
+            round.PlayedTicks += played;
+            round.ZoneTicks += held;
             playLeft += played;
             zoneLeft += held;
-            Xp += playLeft / TicksPerPlayXp + zoneLeft / HillMatch.TicksPerPoint;
+            int forPlay = playLeft / TicksPerPlayXp, forZone = zoneLeft / HillMatch.TicksPerPoint;
+            Xp += forPlay + forZone;
+            round.Played += forPlay;
+            round.Zone += forZone;
             playLeft %= TicksPerPlayXp;
             zoneLeft %= HillMatch.TicksPerPoint;
             if (won)
             {
                 Xp += WinXp;
                 Wins++;
+                round.Win += WinXp;
             }
         }
 
@@ -123,5 +139,15 @@ namespace KotH.Shared.Match
             Xp = Wins = 0;
             return taken;
         }
+    }
+
+    /// <summary>One round's XP by source and the time behind it, for the card at its end. Counted:
+    /// some of it was online with another person (else it gave nothing).</summary>
+    public struct RoundXp
+    {
+        public int Played, Zone, Win, PlayedTicks, ZoneTicks;
+        public bool Won, Counted;
+
+        public readonly int Total => Played + Zone + Win;
     }
 }
