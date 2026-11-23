@@ -210,12 +210,16 @@ namespace KotH.Client.Hud
 
             if (level != shownLevel)
             {
-                // A new level after the first: flash, pop and stamp, and Customize's note at level 10.
+                // A new level after the first: flash, pop and stamp, and a note when it opens something.
                 if (shownLevel > 0 && level > shownLevel)
                 {
                     (flashAt, flashStrength, popAt, stampAt) = (t, 1f, t, t);
-                    if (shownLevel < Levels.CustomizeLevel && level >= Levels.CustomizeLevel)
-                        unlockAt = t + 0.3f;
+                    for (int l = shownLevel + 1; l <= level; l++)
+                        if (Levels.Unlocks(l) is { } what)
+                        {
+                            view.Unlocked(what);
+                            unlockAt = t + 0.3f;
+                        }
                 }
                 shownLevel = level;
                 view.Level("Level " + level);

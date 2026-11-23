@@ -34,6 +34,8 @@ namespace KotH.Client.Hud
 
         public void Progress(string numbers) => Set(Numbers, numbers);
 
+        public void Unlocked(string what) => Set(Unlock, what);
+
         static void Set(TextBlock block, string text)
         {
             if (block.Text != text)

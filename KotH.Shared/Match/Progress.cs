@@ -5,11 +5,24 @@ using KotH.Shared.Simulation;
 namespace KotH.Shared.Match
 {
     /// <summary>Player levels from XP (Luca, 11.11.2026): level 2 at 200, level 10 at 2500, at most 100;
-    /// each level costs about 19 XP more than the one before. Customize opens at level 10.</summary>
+    /// each level costs about 19 XP more than the one before. Customize opens at level 10, the
+    /// champignon at 50, glow, sparkle trail and the Test map at 100 (Luca, 24.11.2026).</summary>
     public static class Levels
     {
         public const int Max = 100;
         public const int CustomizeLevel = 10;
+        public const int ChampignonLevel = 50;
+        public const int GlowLevel = 100;
+        public const int TestMapLevel = 100;
+
+        /// <summary>What reaching a level opens, for the round's XP card; null if nothing.</summary>
+        public static string Unlocks(int level) => level switch
+        {
+            CustomizeLevel => "Customize unlocked: colour your mushroom",
+            ChampignonLevel => "Champignon unlocked: a second mushroom",
+            GlowLevel => "Glow, sparkle trail and the Test map unlocked",
+            _ => null,
+        };
 
         /// <summary>XP needed in all for a level: (L - 1)(6500 + 350 L) / 36, to the nearest ten.</summary>
         public static int Total(int level)

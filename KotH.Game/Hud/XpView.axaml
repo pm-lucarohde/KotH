@@ -128,10 +128,10 @@
             </Border>
         </Grid>
 
-        <!-- Under the card once level 10 is reached: Customize opens -->
+        <!-- Under the card once a level opens something (Levels.Unlocks) -->
         <Grid Name="UnlockPart" Width="640" Height="92">
             <Border Classes="Glass" Margin="24" Height="44" CornerRadius="11" HorizontalAlignment="Center" Padding="20,0">
-                <TextBlock Classes="Hud Gold" Text="Customize unlocked: colour your mushroom" FontSize="23" Margin="0,0,0,3" />
+                <TextBlock Name="Unlock" Classes="Hud Gold" Text="Customize unlocked: colour your mushroom" FontSize="23" Margin="0,0,0,3" />
             </Border>
         </Grid>
     </Panel>
