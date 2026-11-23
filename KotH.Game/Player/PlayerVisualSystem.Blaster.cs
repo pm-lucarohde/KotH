@@ -81,6 +81,10 @@ namespace KotH.Client.Player
             public readonly float[] AmmoScale = { 1f, 1f, 1f };
             public Entity[] Shots;
             public readonly int[] ShotAge = new int[BlasterState.Slots];
+            // A spore's last tick position and speed; after a hit it still flies the rest to Lands.
+            public readonly Vector3[] ShotNow = new Vector3[BlasterState.Slots], ShotSpeed = new Vector3[BlasterState.Slots];
+            public readonly Vector3[] Lands = new Vector3[BlasterState.Slots];
+            public readonly float[] LandAlpha = { -1f, -1f, -1f };
             public Entity Flash, Puff;
             public FigureLook Look;
 
@@ -220,11 +224,8 @@ namespace KotH.Client.Player
                 if (from != Vector3.Zero)
                     g.Flash = Puff(g.Flash, from, 0.5f, g.Look);
             }
-            if (g.Blaster.LastImpactTick > g.SeenImpact)
-            {
-                g.SeenImpact = g.Blaster.LastImpactTick;
-                g.Puff = Puff(g.Puff, g.Blaster.LastImpactPoint, 1f, g.Look);
-            }
+            bool impact = g.Blaster.LastImpactTick > g.SeenImpact;
+            g.SeenImpact = g.Blaster.LastImpactTick;
 
             BlasterState state = g.Blaster.State;
             g.Shots ??= new Entity[BlasterState.Slots];
@@ -232,10 +233,20 @@ namespace KotH.Client.Player
             {
                 BlasterShot shot = Blaster.Slot(ref state, i);
                 ref Entity e = ref g.Shots[i];
-                bool fresh = shot.Age > 0 && (g.ShotAge[i] == 0 || shot.Age < g.ShotAge[i]);
+                int was = g.ShotAge[i];
+                bool fresh = shot.Age > 0 && (was == 0 || shot.Age < was);
                 g.ShotAge[i] = shot.Age;
                 if (shot.Age == 0)
                 {
+                    // The ball is drawn up to a tick behind: after a hit it flies on into the hit point.
+                    if (impact && was > 1 && e != null)
+                    {
+                        g.Lands[i] = g.Blaster.LastImpactPoint;
+                        g.LandAlpha[i] = 0f;
+                        impact = false;
+                    }
+                    if (g.LandAlpha[i] >= 0f && Land(g, i, e, alpha))
+                        continue;
                     if (e != null)
                     {
                         // The ball goes, its trail fades where it is; also after a hit in its first
@@ -246,7 +257,11 @@ namespace KotH.Client.Player
                     }
                     continue;
                 }
+                if (g.LandAlpha[i] >= 0f)
+                    Landed(g, i);
                 Vector3 now = shot.Position;
+                g.ShotNow[i] = now;
+                g.ShotSpeed[i] = shot.Velocity;
                 Vector3 before = shot.Age == 1 && from != Vector3.Zero
                     ? from : now - shot.Velocity * SimulationSystem.TickSeconds;
                 Vector3 at = Vector3.Lerp(before, now, alpha);
@@ -271,6 +286,30 @@ namespace KotH.Client.Player
                     model.Enabled = shot.Age > 1;
                 Emit(e, true);
             }
+            if (impact)
+                g.Puff = Puff(g.Puff, g.Blaster.LastImpactPoint, 1f, g.Look);
+        }
+
+        // The hit's last stretch at the spore's speed; true while the ball is still on its way.
+        bool Land(Gun g, int i, Entity e, float alpha)
+        {
+            Vector3 way = g.Lands[i] - g.ShotNow[i];
+            float length = way.Length(), gone = g.ShotSpeed[i].Length() * SimulationSystem.TickSeconds * alpha;
+            bool ticked = alpha < g.LandAlpha[i];
+            g.LandAlpha[i] = alpha;
+            if (ticked || gone >= length || e == null)
+            {
+                Landed(g, i);
+                return false;
+            }
+            e.Transform.Position = g.ShotNow[i] + way * (gone / length);
+            return true;
+        }
+
+        void Landed(Gun g, int i)
+        {
+            g.LandAlpha[i] = -1f;
+            g.Puff = Puff(g.Puff, g.Lands[i], 1f, g.Look);
         }
 
         // One puff entity reused per purpose, restarted like the hit sparkles.
