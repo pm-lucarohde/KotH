@@ -21,7 +21,7 @@ namespace KotH.Client.Hud
         // Seconds: after the banner, the entrance, a line's slide and the next line's, the bar after the
         // last line, a whole level's fill, the stop on a full bar, a flash, the badge's and stamp's pop.
         const float Delay = 0.9f, EnterSeconds = 0.4f, LineSeconds = 0.3f, LineGap = 0.32f, BarGap = 0.35f;
-        const float LevelSeconds = 1.2f, HoldSeconds = 0.4f, FlashSeconds = 0.6f, PopSeconds = 0.45f;
+        const float LevelSeconds = 1.2f, HoldSeconds = 0.4f, FlashSeconds = 0.6f, PopSeconds = 0.45f, CloseSeconds = 0.2f;
 
         // Test aid for shots: KOTH_SHOT_HUD=xp shows the card with a sample round (from KOTH_XP's XP),
         // xp0 with one that gave nothing.
@@ -29,8 +29,16 @@ namespace KotH.Client.Hud
         public static readonly bool Pretend = Shot is "xp" or "xp0";
 
         readonly XpView view = new XpView();
-        readonly MenuOverlay card, head, note, badge, old, gain, flash, spark, numbers, levelUp, unlock;
+        readonly MenuOverlay card, head, note, badge, old, gain, flash, spark, numbers, hint, levelUp, unlock;
         readonly MenuOverlay[] lines = new MenuOverlay[XpView.Lines];
+
+        /// <summary>Whether a card is up and not closing: then Escape closes it, not opening the pause
+        /// menu (PauseMenu asks, and sets CloseAsked; Luca: it hides the view).</summary>
+        public static bool Showing { get; private set; }
+        public static bool CloseAsked { get; set; }
+
+        /// <summary>The HUD is gone (map change, menu): no card stays up to swallow an Escape.</summary>
+        public static void Forget() => Showing = CloseAsked = false;
 
         /// <summary>Every part, for HillBoard to place, show behind the load screen and upload.</summary>
         public readonly MenuOverlay[] Overlays;
@@ -49,7 +57,7 @@ namespace KotH.Client.Hud
         RoundXp round;
         int before, lineCount, startLevel, shownSum = -1, shownLevel = -1, shownInto = -1, shownSpan = -1;
         bool begun;
-        float since = -1f, barEnd, flashAt = -1f, flashStrength, popAt = -1f, stampAt = -1f, unlockAt = -1f;
+        float since = -1f, closedAt = -1f, barEnd, flashAt = -1f, flashStrength, popAt = -1f, stampAt = -1f, unlockAt = -1f;
         readonly float[] lineValue = new float[XpView.Lines];
 
         public XpCard(float size)
@@ -66,23 +74,31 @@ namespace KotH.Client.Hud
             old = At(view.OldPart, BarLeft, BarTop, size);
             flash = At(view.FlashPart, BarLeft - 24f, BarTop - 24f, size);
             spark = At(view.SparkPart, BarLeft - 24f, BarTop + BarHeight * 0.5f - 24f, size);
-            numbers = At(view.NumbersPart, BarLeft, BarTop + 18f, size);
+            numbers = At(view.NumbersPart, BarLeft, BarTop + 24f, size);
+            hint = At(view.HintPart, 48f, BarTop + 24f, size);
             // The stamp over the card's top edge, right, clear of the sum.
             levelUp = At(view.LevelUpPart, 490f, -54f, size);
             unlock = At(view.UnlockPart, 24f, 302f, size);
             levelUp.Angle = -0.1f;
             // Drawn in this order: the gain under the old share, the flash and spark over both.
-            Overlays = new[] { card, head, lines[0], lines[1], lines[2], note, badge, gain, old, flash, spark, numbers, levelUp, unlock };
+            Overlays = new[] { card, head, lines[0], lines[1], lines[2], note, badge, gain, old, flash, spark, numbers, hint, levelUp, unlock };
         }
 
         static MenuOverlay At(Control part, float left, float top, float size)
             => new MenuOverlay(part, Corner.TopCenter, left + (float)part.Width * 0.5f - CardWidth * 0.5f, Top + top, size);
 
         /// <summary>One frame: while the banner shows (active) the card comes after Delay; scale is pixels per
-        /// HUD unit; the keeper (null offline) tells what the round gave.</summary>
+        /// HUD unit; the keeper (null offline) tells what the round gave. Closed, it drops away until the
+        /// next round's end.</summary>
         public void Show(float seconds, bool active, float scale, ProgressKeeper keeper)
         {
             since = active ? since < 0f ? 0f : since + seconds : -1f;
+            if (since < 0f)
+                closedAt = -1f;
+            else if (CloseAsked && closedAt < 0f && begun)
+                closedAt = since;
+            CloseAsked = false;
+            Showing = begun && closedAt < 0f && since >= Delay;
             // Laid out half a second early, unseen, so the texts are rendered when it shows.
             if (since < Delay * 0.5f)
             {
@@ -95,6 +111,17 @@ namespace KotH.Client.Hud
             if (!begun)
                 Begin(keeper);
             Animate(since - Delay, scale);
+            if (closedAt >= 0f)
+            {
+                float gone = Math.Clamp((since - closedAt) / CloseSeconds, 0f, 1f);
+                var drop = new Vector2(0f, 20f * scale * gone);
+                foreach (MenuOverlay overlay in Overlays)
+                {
+                    overlay.Alpha *= 1f - gone;
+                    overlay.Shift += drop;
+                    overlay.Visible &= gone < 1f;
+                }
+            }
         }
 
         void Begin(ProgressKeeper keeper)

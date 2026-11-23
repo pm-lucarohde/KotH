@@ -126,6 +126,7 @@ namespace KotH.Client.Hud
 
         public override void Cancel()
         {
+            XpCard.Forget();
             if (overlays == null)
                 return;
             foreach (MenuOverlay overlay in overlays)

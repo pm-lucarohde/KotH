@@ -104,6 +104,16 @@
                 </Ellipse.Fill>
             </Ellipse>
         </Grid>
+        <!-- How to close it, under the badge: Escape on a key cap -->
+        <Grid Name="HintPart" Width="200" Height="30">
+            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <Border MinWidth="26" Height="24" CornerRadius="6" Padding="7,0" BorderBrush="#66FFFFFF"
+                        BorderThickness="1.5" Background="#1AFFFFFF">
+                    <TextBlock Classes="Hud" Text="Esc" FontSize="16" HorizontalAlignment="Center" Margin="0,0,0,2" />
+                </Border>
+                <TextBlock Classes="Hud Soft" Text="Close" FontSize="19" Margin="0,0,0,2" />
+            </StackPanel>
+        </Grid>
         <Grid Name="NumbersPart" Width="436" Height="30">
             <TextBlock Name="Numbers" Classes="Hud Soft" Text="0 / 200 XP" FontSize="19"
                        HorizontalAlignment="Right" Margin="0,0,0,2" />

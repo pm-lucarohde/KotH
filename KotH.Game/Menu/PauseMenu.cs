@@ -138,6 +138,8 @@ namespace KotH.Client.Menu
             {
                 if (confirming)
                     confirming = false;
+                else if (!Open && Hud.XpCard.Showing)
+                    Hud.XpCard.CloseAsked = true;
                 else if (!Open)
                     Show(true);
                 else if (view.PageOpen)
