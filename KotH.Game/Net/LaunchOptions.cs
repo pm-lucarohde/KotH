@@ -114,10 +114,17 @@ namespace KotH.Client.Net
             o.Look = PlayerProgress.Shown(o.SavedLook);
             if (Environment.GetEnvironmentVariable("KOTH_SHOT_LOOK") is { } shot)
             {
+                // Colours in order (cap ... trail), then words: champignon, glow, sparks|stars|spores.
                 string[] parts = shot.Split(',');
-                for (int i = 0; i < Math.Min(parts.Length, FigureLook.Parts); i++)
-                    if (LookFile.ParseHex(parts[i]) is { } rgb)
+                for (int i = 0; i < parts.Length; i++)
+                    if (i < FigureLook.Colors && LookFile.ParseHex(parts[i]) is { } rgb)
                         o.Look[i] = o.SavedLook[i] = rgb;
+                    else if (parts[i] == "champignon")
+                        o.Look.Kind = o.SavedLook.Kind = FigureLook.Champignon;
+                    else if (parts[i] == "glow")
+                        o.Look.Glows = o.SavedLook.Glows = true;
+                    else if (Array.IndexOf(new[] { "sparks", "stars", "spores" }, parts[i]) is >= 0 and var shape)
+                        o.Look.TrailShape = o.SavedLook.TrailShape = (byte)(shape + 1);
             }
             bool test = Environment.GetEnvironmentVariable("KOTH_SHOT") != null || Environment.GetEnvironmentVariable("KOTH_HEADLESS") == "1";
             o.ShowsMenu = !o.Networked && !o.Offline && (!test || Environment.GetEnvironmentVariable("KOTH_SHOT_MENU") == "1");

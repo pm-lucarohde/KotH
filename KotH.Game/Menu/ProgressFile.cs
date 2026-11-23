@@ -76,8 +76,23 @@ namespace KotH.Client.Menu
         public static int Level => Levels.LevelOf(Xp);
         public static bool CanCustomize => Level >= Levels.CustomizeLevel;
 
-        /// <summary>The colours the figure shows: the saved ones from level 10, else the painted ones.</summary>
-        public static FigureLook Shown(FigureLook saved) => CanCustomize ? saved : FigureLook.Default;
+        /// <summary>The look the figure shows: the saved colours from level 10, else the painted ones; the
+        /// champignon from level 50, glow and trail from 100. The saved look stays as it is.</summary>
+        public static FigureLook Shown(FigureLook saved)
+        {
+            int level = Level;
+            if (level < Levels.CustomizeLevel)
+                return FigureLook.Default;
+            FigureLook look = saved;
+            if (level < Levels.ChampignonLevel)
+                look.Kind = FigureLook.FlyAgaric;
+            if (level < Levels.GlowLevel)
+            {
+                look.Glows = false;
+                look.TrailShape = FigureLook.NoTrail;
+            }
+            return look;
+        }
 
         static (int Xp, int Wins) Cached => cached ??= ProgressFile.Load();
     }

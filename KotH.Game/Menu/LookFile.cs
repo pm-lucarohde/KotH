@@ -6,12 +6,14 @@ using KotH.Shared.Net;
 
 namespace KotH.Client.Menu
 {
-    /// <summary>The player's colours in ApplicationData/KotH/look.toml (on Linux ~/.config): a
-    /// [look] table of "#RRGGBB" strings. Read and written by hand, AOT without reflection;
-    /// unknown keys, comments and bad lines are skipped, a missing part keeps its default.</summary>
+    /// <summary>The player's look in ApplicationData/KotH/look.toml (on Linux ~/.config): a [look] table of
+    /// "#RRGGBB" strings, the figure, glow on or off and the trail's shape. Read and written by hand, AOT
+    /// without reflection; unknown keys, comments and bad lines are skipped, a missing key keeps its default.</summary>
     public static class LookFile
     {
-        static readonly string[] Keys = { "cap", "skin", "leaves", "gloves", "spores" };
+        static readonly string[] Keys = { "cap", "skin", "leaves", "gloves", "spores", "glow_color", "trail_color" };
+        static readonly string[] KindNames = { "fly_agaric", "champignon" };
+        static readonly string[] TrailNames = { "off", "sparks", "stars", "spores" };
 
         public static string Path => System.IO.Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "KotH", "look.toml");
@@ -33,9 +35,12 @@ namespace KotH.Client.Menu
 
         public static void Save(FigureLook look)
         {
-            var text = new StringBuilder("# KotH: your mushroom's colours\n[look]\n");
-            for (int i = 0; i < FigureLook.Parts; i++)
+            var text = new StringBuilder("# KotH: your mushroom's look\n[look]\n");
+            text.Append("figure = \"").Append(KindNames[look.Kind]).Append("\"\n");
+            for (int i = 0; i < FigureLook.Colors; i++)
                 text.Append(Keys[i]).Append(" = \"").Append(Hex(look[i])).Append("\"\n");
+            text.Append("glow = ").Append(look.Glows ? "true" : "false").Append('\n');
+            text.Append("trail = \"").Append(TrailNames[look.TrailShape]).Append("\"\n");
             try
             {
                 Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Path)!);
@@ -73,14 +78,20 @@ namespace KotH.Client.Menu
                 int eq = line.IndexOf('=');
                 if (table != "look" || eq < 0)
                     continue;
-                int part = Array.IndexOf(Keys, line[..eq].Trim());
-                string value = line[(eq + 1)..];
+                string key = line[..eq].Trim(), value = line[(eq + 1)..];
                 // Up to the closing quote: a comment may follow.
                 int close = value.IndexOf('"', value.IndexOf('"') + 1);
-                if (close > 0)
-                    value = value[..(close + 1)];
-                if (part >= 0 && ParseHex(value.Trim().Trim('"')) is { } rgb)
+                value = close > 0 ? value[..(close + 1)] : value.Split('#')[0];
+                value = value.Trim().Trim('"');
+                int part = Array.IndexOf(Keys, key);
+                if (part >= 0 && ParseHex(value) is { } rgb)
                     look[part] = rgb;
+                else if (key == "figure" && Array.IndexOf(KindNames, value) is >= 0 and var kind)
+                    look.Kind = (byte)kind;
+                else if (key == "glow" && value is "true" or "false")
+                    look.Glows = value == "true";
+                else if (key == "trail" && Array.IndexOf(TrailNames, value) is >= 0 and var shape)
+                    look.TrailShape = (byte)shape;
             }
             return look;
         }
