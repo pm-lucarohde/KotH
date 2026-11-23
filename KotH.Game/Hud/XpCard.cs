@@ -102,9 +102,9 @@ namespace KotH.Client.Hud
             // Laid out half a second early, unseen, so the texts are rendered when it shows.
             if (since < Delay * 0.5f)
             {
-                if (begun)
-                    foreach (MenuOverlay overlay in Overlays)
-                        overlay.Visible = false;
+                // Always: behind the load screen HillBoard shows every part once to render it.
+                foreach (MenuOverlay overlay in Overlays)
+                    overlay.Visible = false;
                 begun = false;
                 return;
             }
