@@ -48,8 +48,10 @@ namespace KotH.Client.Menu
         Vector2 placedFor;
         Texture texture;
 
-        // The rows changed and not yet uploaded.
-        readonly bool[][] pending = new bool[1][];
+        // The staging copies, one per frame in flight and one more, and the rows each one lacks.
+        const int Slots = 4;
+        readonly Texture[] staging = new Texture[Slots];
+        readonly bool[][] stale = new bool[Slots][];
 
         /// <summary>Whether it is drawn and takes the pointer.</summary>
         public bool Visible { get; set; } = true;
@@ -144,23 +146,43 @@ namespace KotH.Client.Menu
             }
         }
 
-        /// <summary>Uploads the runs of rows Avalonia changed since the last upload; a new texture takes them all.</summary>
-        public void Upload(CommandList commandList)
+        /// <summary>Uploads what Avalonia changed: the changed rows into this frame's staging copy, which the
+        /// GPU then copies whole into the texture. Stride keeps at most three frames in flight, so with
+        /// four copies used in turn the CPU never writes one the GPU still reads, and nothing is
+        /// allocated per frame (SetData took fresh upload memory for every 4 MB, then stalled freeing it).</summary>
+        public unsafe void Upload(CommandList commandList)
         {
             if (!Visible || !surface.Changed)
                 return;
-            int width = surface.Width, height = surface.Height, rowBytes = width * 4, row = 0;
+            int width = surface.Width, height = surface.Height;
             if (texture == null || texture.Width != width || texture.Height != height)
             {
                 texture?.Dispose();
                 texture = Texture.New2D(commandList.GraphicsDevice, width, height, Stride.Graphics.PixelFormat.B8G8R8A8_UNorm_SRgb, TextureFlags.ShaderResource);
-                pending[0] = new bool[height];
+                for (int i = 0; i < Slots; i++)
+                {
+                    staging[i]?.Dispose();
+                    staging[i] = Texture.New2D(commandList.GraphicsDevice, width, height, Stride.Graphics.PixelFormat.B8G8R8A8_UNorm_SRgb,
+                                               TextureFlags.None, 1, GraphicsResourceUsage.Staging);
+                    stale[i] = new bool[height];
+                }
                 surface.ChangeAll();
             }
-            surface.PassChanges(pending);
-            while (NextRun(pending[0], ref row, out int first, out int rows))
-                texture.SetData(commandList, new DataPointer(surface.Pixels + first * rowBytes, rows * rowBytes), 0, 0,
-                                new ResourceRegion(0, first, 0, width, first + rows, 1));
+            surface.PassChanges(stale);
+            int slot = (int)(tickedFrame % Slots), rowBytes = width * 4, row = 0;
+            MappedResource mapped = commandList.MapSubResource(staging[slot], 0, MapMode.Write);
+            try
+            {
+                int pitch = mapped.DataBox.RowPitch;
+                while (NextRun(stale[slot], ref row, out int first, out int rows))
+                    for (int y = first; y < first + rows; y++)
+                        System.Buffer.MemoryCopy((void*)(surface.Pixels + y * rowBytes), (void*)(mapped.DataBox.DataPointer + y * pitch), rowBytes, rowBytes);
+            }
+            finally
+            {
+                commandList.UnmapSubResource(mapped);
+            }
+            commandList.Copy(staging[slot], texture);
         }
 
         // The next run of marked rows from row on, unmarked; runs a few rows apart join.
@@ -234,6 +256,11 @@ namespace KotH.Client.Menu
             root.Dispose();
             texture?.Dispose();
             texture = null;
+            for (int i = 0; i < Slots; i++)
+            {
+                staging[i]?.Dispose();
+                staging[i] = null;
+            }
         }
 
         /// <summary>The top level's platform side: one pixel buffer that keeps its frame, so Avalonia
