@@ -729,9 +729,13 @@ namespace KotH.Shared.Net
 
             // Where the guess had the other players: the jump a correction shows.
             guessed.Clear();
-            foreach (SimulationBody body in sim.Bodies)
+            IReadOnlyList<SimulationBody> order = sim.Bodies;
+            for (int i = 0; i < order.Count; i++)
+            {
+                SimulationBody body = order[i];
                 if (body.NetId >= NetWorld.FirstPlayerId && body.NetId != LocalNetId)
                     guessed.Add((body, body.Motor.Position, UMath.YawOf(body.Motor.Rotation)));
+            }
 
             sim.Restore(snaps[slot]);
             for (int t = from; t < until; t++)
@@ -813,8 +817,10 @@ namespace KotH.Shared.Net
             usedTicks[slot] = tick;
             row.Clear();
 
-            foreach (SimulationBody body in sim.Bodies)
+            IReadOnlyList<SimulationBody> order = sim.Bodies; // by index: foreach over the interface boxes
+            for (int i = 0; i < order.Count; i++)
             {
+                SimulationBody body = order[i];
                 MoveInput input = InputOf(body, tick, rec);
                 row.Add(input);
                 if (body.NetId >= NetWorld.FirstPlayerId)

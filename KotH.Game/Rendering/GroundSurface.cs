@@ -22,6 +22,7 @@ namespace KotH.Client.Rendering
         readonly byte[] kinds;
         readonly short[] heights;
         readonly Kind elsewhere;
+        readonly int present;
 
         GroundSurface(int size, float half, byte[] kinds, short[] heights, Kind elsewhere = Kind.Rock)
         {
@@ -31,7 +32,14 @@ namespace KotH.Client.Rendering
             this.kinds = kinds;
             this.heights = heights;
             this.elsewhere = elsewhere;
+            present = 1 << (int)elsewhere;
+            foreach (byte k in kinds)
+                if (k != 0)
+                    present |= 1 << k;
         }
+
+        /// <summary>Whether At can answer kind anywhere on this map.</summary>
+        public bool Has(Kind kind) => (present & (1 << (int)kind)) != 0;
 
         // A custom map's water grid: cells of a quarter metre, coarser if the water spreads far.
         const float WaterCell = 0.25f;

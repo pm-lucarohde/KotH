@@ -286,9 +286,10 @@ namespace KotH.Client.Hud
 
             // One row per team: its lead, named for all.
             ranking.Clear();
-            foreach (SimulationBody body in Simulation.Bodies)
-                if (HillMatch.LeadOf(body, Simulation.Bodies) == body)
-                    ranking.Add(body);
+            IReadOnlyList<SimulationBody> bodies = Simulation.Bodies; // by index: foreach over the interface boxes
+            for (int i = 0; i < bodies.Count; i++)
+                if (HillMatch.LeadOf(bodies[i], bodies) == bodies[i])
+                    ranking.Add(bodies[i]);
             ranking.Sort(scoreOrder ??= ByScore);
 
             int ranked = Math.Min(Math.Min(Leaders, HudView.Rows), ranking.Count);

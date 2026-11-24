@@ -128,22 +128,30 @@ namespace KotH.Client.Rendering
                     nuint size = 0;
                     if (get(device, cache, &size, null) != VkResult.Success || size == 0)
                         return;
-                    byte[] data = new byte[(int)size];
-                    fixed (byte* p = data)
-                        if (get(device, cache, &size, p) is not (VkResult.Success or VkResult.Incomplete))
-                            return;
-                    byte[] build = Encoding.ASCII.GetBytes(NetProtocol.BuildText);
-                    string path = FilePath;
-                    Directory.CreateDirectory(Path.GetDirectoryName(path));
-                    string temporary = path + ".new";
-                    using (var file = new FileStream(temporary, FileMode.Create, FileAccess.Write))
+                    // Native, not a byte[]: the blob is ~120 MB, saved just after the load screen's collection,
+                    // and a managed array that size counted against the round's collection budget.
+                    byte* data = (byte*)NativeMemory.Alloc(size);
+                    try
                     {
-                        file.Write(Magic);
-                        file.Write(BitConverter.GetBytes(build.Length));
-                        file.Write(build);
-                        file.Write(data, 0, (int)size);
+                        if (get(device, cache, &size, data) is not (VkResult.Success or VkResult.Incomplete))
+                            return;
+                        byte[] build = Encoding.ASCII.GetBytes(NetProtocol.BuildText);
+                        string path = FilePath;
+                        Directory.CreateDirectory(Path.GetDirectoryName(path));
+                        string temporary = path + ".new";
+                        using (var file = new FileStream(temporary, FileMode.Create, FileAccess.Write))
+                        {
+                            file.Write(Magic);
+                            file.Write(BitConverter.GetBytes(build.Length));
+                            file.Write(build);
+                            file.Write(new ReadOnlySpan<byte>(data, checked((int)size)));
+                        }
+                        File.Move(temporary, path, overwrite: true);
                     }
-                    File.Move(temporary, path, overwrite: true);
+                    finally
+                    {
+                        NativeMemory.Free(data);
+                    }
                     saved = count;
                     StartLog.Took($"pipeline cache saved, {count} pipelines this run, {size / 1024} KiB", at);
                 }

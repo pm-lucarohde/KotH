@@ -122,19 +122,23 @@ namespace KotH.Client.Player
             ref Entity shards = ref f.Shards[(int)kind];
             bool fresh = shards == null;
             if (fresh)
-            {
-                // Swapped before the first draw, so the material is built with it.
-                shards = GroundShards.Instantiate()[0];
-                if (ChipOf(kind) is { } chip && shards.Get<ParticleSystemComponent>() is { } made)
-                    foreach (var emitter in made.ParticleSystem.Emitters)
-                        if (emitter.Material is ParticleMaterialComputeColor m && FindTexture(m.ComputeColor) is { } t)
-                            t.Texture = chip;
-            }
+                shards = MakeShards(kind);
             shards.Transform.Position = dash.LastSlamPoint;
             if (fresh)
                 Entity.Scene.Entities.Add(shards);
             else
-                shards.Get<ParticleSystemComponent>()?.ParticleSystem.ResetSimulation();
+                Wake(shards);
+        }
+
+        Entity MakeShards(GroundSurface.Kind kind)
+        {
+            // Swapped before the first draw, so the material is built with it.
+            Entity shards = GroundShards.Instantiate()[0];
+            if (ChipOf(kind) is { } chip && shards.Get<ParticleSystemComponent>() is { } made)
+                foreach (var emitter in made.ParticleSystem.Emitters)
+                    if (emitter.Material is ParticleMaterialComputeColor m && FindTexture(m.ComputeColor) is { } t)
+                        t.Texture = chip;
+            return shards;
         }
 
         Texture ChipOf(GroundSurface.Kind kind) => kind switch

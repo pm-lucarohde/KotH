@@ -159,7 +159,7 @@ namespace KotH.Client.Player
             SkeletonUpdater skeleton = g.Model.Model.Skeleton;
             if (skeleton == null)
                 return;
-            g.Ammo ??= Array.ConvertAll(AmmoBones, name => Array.FindIndex(skeleton.Nodes, n => n.Name == name));
+            g.Ammo ??= AmmoNodes(skeleton);
             int shots = g.Blaster.State.Shots;
             for (int i = 0; i < g.Ammo.Length; i++)
             {
@@ -171,6 +171,10 @@ namespace KotH.Client.Player
                 skeleton.NodeTransformations[g.Ammo[i]].Transform.Scale = new Vector3(MathF.Max(g.AmmoScale[i], Hidden));
             }
         }
+
+        // Apart from ShowGun: a lambda there captures the skeleton, a closure on every call.
+        static int[] AmmoNodes(SkeletonUpdater skeleton) =>
+            Array.ConvertAll(AmmoBones, name => Array.FindIndex(skeleton.Nodes, n => n.Name == name));
 
         /// <summary>Barrel and top of the gun in the grip bone's frame, from its bones at rest and
         /// the place GameRoot gave it on the bone.</summary>
@@ -267,10 +271,8 @@ namespace KotH.Client.Player
                 Vector3 at = Vector3.Lerp(before, now, alpha);
                 if (e == null)
                 {
-                    e = SporeShot.Instantiate()[0];
+                    e = Shot(g.Look);
                     e.Transform.Position = at;
-                    FigureColors.TintSpores(e, g.Look);
-                    FigureColors.TintGlow(e, g.Look);
                     Entity.Scene.Entities.Add(e);
                 }
                 else if (fresh)
@@ -318,16 +320,28 @@ namespace KotH.Client.Player
             if (SporePuff == null)
                 return puff;
             bool fresh = puff == null;
-            puff ??= SporePuff.Instantiate()[0];
+            puff ??= PuffOf(look);
             puff.Transform.Position = at;
             puff.Transform.Scale = new Vector3(scale);
             if (fresh)
-            {
-                FigureColors.TintSpores(puff, look);
                 Entity.Scene.Entities.Add(puff);
-            }
             else
-                puff.Get<ParticleSystemComponent>()?.ParticleSystem.ResetSimulation();
+                Wake(puff);
+            return puff;
+        }
+
+        Entity Shot(FigureLook look)
+        {
+            Entity e = SporeShot.Instantiate()[0];
+            FigureColors.TintSpores(e, look);
+            FigureColors.TintGlow(e, look);
+            return e;
+        }
+
+        Entity PuffOf(FigureLook look)
+        {
+            Entity puff = SporePuff.Instantiate()[0];
+            FigureColors.TintSpores(puff, look);
             return puff;
         }
 

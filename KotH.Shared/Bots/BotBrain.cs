@@ -127,6 +127,7 @@ namespace KotH.Shared.Bots
             allowed = new ushort[wfc.Slots];
             pilot = new JumpPilot(nav.Grid, body);
             memory = own;
+            nav.Grid.Prepare(own);
         }
 
         /// <summary>The director's brains by NetId: a team's follower learns into its lead's memory.</summary>

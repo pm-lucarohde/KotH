@@ -101,7 +101,7 @@ namespace KotH.Client.Hud
 
             int capacity = Math.Max(64, (int)MathF.Ceiling(WindowSeconds * MaxTrackedFps));
             maxCapacity = capacity * 4;
-            frameMs = new float[capacity];
+            frameMs = new float[maxCapacity]; // all of it now: growing later allocated in the round
             bucketCount = new int[BucketCount + 1];
             bucketSum = new double[BucketCount + 1];
 

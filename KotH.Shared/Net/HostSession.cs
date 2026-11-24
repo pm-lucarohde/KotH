@@ -90,8 +90,10 @@ namespace KotH.Shared.Net
 
             public void Encode(ReadOnlySpan<byte> bytes)
             {
+                // Room to spare: grown to the exact size, a recycled record met a few bytes more every
+                // few seconds (records vary with inputs and events) and allocated in the round.
                 if (encoded.Length < bytes.Length)
-                    encoded = new byte[Math.Max(bytes.Length, 64)];
+                    encoded = new byte[(int)System.Numerics.BitOperations.RoundUpToPowerOf2((uint)Math.Max(bytes.Length, 512))];
                 bytes.CopyTo(encoded);
                 length = bytes.Length;
             }
@@ -879,16 +881,17 @@ namespace KotH.Shared.Net
         /// <summary>A peer whose checksum differs from the founder's gets the founder's state.</summary>
         void CompareChecksums()
         {
-            List<(int, int)> done = null;
+            List<(int, int)> done = checked_;
+            done.Clear();
             foreach (KeyValuePair<(int Peer, int Tick), ulong> p in peerHashes)
             {
                 if (!hostHashes.TryGetValue(p.Key.Tick, out ulong mine))
                 {
                     if (p.Key.Tick < nextConfirm - 50 * PeerSession.ChecksumEvery)
-                        (done ??= new List<(int, int)>()).Add(p.Key);
+                        done.Add(p.Key);
                     continue;
                 }
-                (done ??= new List<(int, int)>()).Add(p.Key);
+                done.Add(p.Key);
                 if (mine == p.Value || !clients.TryGetValue(p.Key.Peer, out Client c) || c.Phase != Phase.Playing)
                     continue;
 
@@ -904,10 +907,11 @@ namespace KotH.Shared.Net
                 c.AckConfirmed = tick - 1;
             }
 
-            if (done != null)
-                foreach ((int, int) key in done)
-                    peerHashes.Remove(key);
+            foreach ((int, int) key in done)
+                peerHashes.Remove(key);
         }
+
+        readonly List<(int, int)> checked_ = new List<(int, int)>(); // CompareChecksums' reused list
 
         /// <summary>Final ticks and the clock feedback to every peer: whenever new ticks
         /// are final, when an acknowledgement is overdue, else every 50 ms as a

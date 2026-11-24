@@ -346,7 +346,7 @@ namespace KotH.Client.Player
             motors.Add(motor);
             fromRotations.Add(motor.Rotation);
             toRotations.Add(motor.Rotation);
-            figures.Add(new Figure
+            var figure = new Figure
             {
                 Animation = visual.Get<AnimationComponent>(),
                 Model = visual.Get<ModelComponent>(),
@@ -364,7 +364,9 @@ namespace KotH.Client.Player
                 SeenSlam = motor.Entity.Get<Dash>()?.LastSlamTick ?? 0,
                 SeenJump = motor.SinceGroundJump,
                 SeenDoubled = motor.DoubleJumped,
-            });
+            };
+            figures.Add(figure);
+            MakeAsleep(figure);
         }
 
         /// <summary>The first-person arms play in step with motor's figure.</summary>
@@ -608,7 +610,7 @@ namespace KotH.Client.Player
                 return;
             }
             f.Spores.Transform.Position = feet;
-            f.Spores.Get<ParticleSystemComponent>()?.ParticleSystem.ResetSimulation();
+            Wake(f.Spores);
         }
 
         /// <summary>Every leaf bone bends its tips with the wind of the motion: back
@@ -979,7 +981,11 @@ namespace KotH.Client.Player
             if (fresh)
                 Entity.Scene.Entities.Add(f.Sparkles);
             else
-                f.Sparkles.Get<ParticleSystemComponent>()?.ParticleSystem.ResetSimulation();
+            {
+                if (f.Sparkles.Get<ParticleSystemComponent>() is { } made && f.Model != null)
+                    made.RenderGroup = f.Model.RenderGroup;
+                Wake(f.Sparkles);
+            }
         }
 
         /// <summary>The axis the recoil turns about: the push in the shown body's frame,

@@ -240,7 +240,8 @@ namespace KotH.Client.Audio
                 return;
             if (Trace)
                 Console.WriteLine($"[sound] {what} at {at.X:F1} {at.Y:F1} {at.Z:F1}, from ear {FromEar(camera, at).X:F1} {FromEar(camera, at).Y:F1} {FromEar(camera, at).Z:F1}, volume {volume:F2}");
-            Guard(() =>
+            // Guarded like Guard, without its lambda: that captured the arguments, a closure per sound.
+            try
             {
                 SoundInstance voice = Voice(sound);
                 if (voice == null)
@@ -250,7 +251,11 @@ namespace KotH.Client.Audio
                 voice.Pitch = vary ? 1f + PitchSpread * (2f * (float)random.NextDouble() - 1f) : 1f;
                 voice.Apply3D(emitter);
                 voice.Play();
-            });
+            }
+            catch (Exception e)
+            {
+                Fail(e);
+            }
         }
 
         /// <summary>The point as heard from the own eye, also in third person (Luca), turned with the
@@ -291,11 +296,16 @@ namespace KotH.Client.Audio
             }
             catch (Exception e)
             {
-                failed = true;
-                retryAt = clock.Elapsed.TotalSeconds + 2.0;
-                Log.Warning($"Sounds fail: {e.Message}");
-                StartLog.Warn($"sounds fail: {e}");
+                Fail(e);
             }
+        }
+
+        void Fail(Exception e)
+        {
+            failed = true;
+            retryAt = clock.Elapsed.TotalSeconds + 2.0;
+            Log.Warning($"Sounds fail: {e.Message}");
+            StartLog.Warn($"sounds fail: {e}");
         }
     }
 }

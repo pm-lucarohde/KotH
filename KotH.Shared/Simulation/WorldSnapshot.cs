@@ -9,8 +9,11 @@ namespace KotH.Shared.Simulation
     /// lists have grown.</summary>
     public sealed class WorldSnapshot
     {
-        internal readonly List<SimulationBody> bodies = new List<SimulationBody>();
-        internal readonly List<BodyState> states = new List<BodyState>();
+        // Room for a full game made with the snapshot (at load): growing in the ring's first round of
+        // captures allocated after the load screen.
+        internal readonly List<SimulationBody> bodies = new List<SimulationBody>(Room);
+        internal readonly List<BodyState> states = new List<BodyState>(Room);
+        const int Room = 16;
 
         /// <summary>The tick this state is the end of.</summary>
         public int Tick { get; internal set; }

@@ -12,6 +12,15 @@ namespace KotH.Client.Menu
         MenuOverlay hovered, pressed;
         Vector2 last = new Vector2(-1f);
 
+        // A loop, not Array.Find: its lambda captured the point, a closure every frame.
+        static MenuOverlay Under(MenuOverlay[] targets, Vector2 at)
+        {
+            foreach (MenuOverlay o in targets)
+                if (o.Contains(at))
+                    return o;
+            return null;
+        }
+
         /// <param name="targets">The overlays that take the pointer; hidden ones are skipped.</param>
         public void Update(InputManager input, Vector2 screen, MenuOverlay[] targets)
         {
@@ -19,7 +28,7 @@ namespace KotH.Client.Menu
                 return;
             Vector2 at = input.MousePosition * screen;
             bool down = input.IsMouseButtonPressed(MouseButton.Left), up = input.IsMouseButtonReleased(MouseButton.Left);
-            MenuOverlay target = pressed ?? Array.Find(targets, o => o.Contains(at));
+            MenuOverlay target = pressed ?? Under(targets, at);
             if (target != hovered)
             {
                 hovered?.Leave();

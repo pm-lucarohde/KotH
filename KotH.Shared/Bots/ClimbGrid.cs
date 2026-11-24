@@ -21,9 +21,11 @@ namespace KotH.Shared.Bots
         {
             internal float[] Extra;          // by floor, 0 for none; sized on first use
             internal int Extras;
-            internal readonly Dictionary<long, float> Penalty = new Dictionary<long, float>();
+            // Sized up front: growing it mid-round allocates (lookups only, so order is no matter).
+            internal readonly Dictionary<long, float> Penalty = new Dictionary<long, float>(PenaltyRoom);
             internal bool[] Punished;        // floors with a penalty on a move out of them
             public int Lessons => Extras + Penalty.Count;
+            const int PenaltyRoom = 8192;
 
             internal void Learn(int f, float extra)
             {
@@ -198,6 +200,9 @@ namespace KotH.Shared.Bots
             grid.FindWalks();
             grid.FindLinks(ladders);
             grid.Fields(zone, Math.Max(0, s.RouteVariants), seed, start);
+            grid.EnsureSearch();
+            for (int v = 0; v < grid.nextFloor.Length; v++)
+                grid.EnsureNext(v);
             return grid;
         }
 
@@ -611,6 +616,9 @@ namespace KotH.Shared.Bots
         LadderStrip[] strips = Array.Empty<LadderStrip>();
         int[] stripExit;                    // the floor a ladder's top steps onto, -1 for none
         int[][] stripNext;                  // the ladders it meets at a corner of its pillar, with room to change
+        // The ladder searches' scratch, made once: only the director's worker searches, bot after bot.
+        int[] ladderBack = Array.Empty<int>();
+        readonly Queue<int> ladderQueue = new Queue<int>();
 
         /// <summary>Metres a change round a pillar's corner from one ladder to the next costs (the
         /// climber falls while it goes round; LadderProbe "corners" measures 1.05-1.2).</summary>
@@ -623,6 +631,8 @@ namespace KotH.Shared.Bots
             strips = new LadderStrip[ladders.Count];
             stripExit = new int[ladders.Count];
             stripNext = new int[ladders.Count][];
+            ladderBack = new int[ladders.Count];
+            ladderQueue.EnsureCapacity(ladders.Count);
             var next = new List<int>();
             for (int l = 0; l < strips.Length; l++)
             {
@@ -683,10 +693,11 @@ namespace KotH.Shared.Bots
             route.Clear();
             if (from < 0 || from >= strips.Length)
                 return false;
-            var back = new int[strips.Length];
+            int[] back = ladderBack;
             Array.Fill(back, -2);
             back[from] = -1;
-            var queue = new Queue<int>();
+            Queue<int> queue = ladderQueue;
+            queue.Clear();
             queue.Enqueue(from);
             while (queue.Count > 0)
             {
@@ -715,9 +726,11 @@ namespace KotH.Shared.Bots
             if (from < 0 || from >= strips.Length)
                 return -1;
             float[] t = time[Math.Clamp(variant, 0, Variants)];
-            var seen = new bool[strips.Length];
-            var queue = new Queue<int>();
-            seen[from] = true;
+            int[] seen = ladderBack;    // -2 unseen, as in LadderRoute
+            Array.Fill(seen, -2);
+            Queue<int> queue = ladderQueue;
+            queue.Clear();
+            seen[from] = -1;
             queue.Enqueue(from);
             int best = -1;
             while (queue.Count > 0)
@@ -727,9 +740,9 @@ namespace KotH.Shared.Bots
                 if (e >= 0 && t[e] < float.MaxValue && (best < 0 || t[e] < t[best]))
                     best = e;
                 foreach (int n in stripNext[l])
-                    if (!seen[n])
+                    if (seen[n] == -2)
                     {
-                        seen[n] = true;
+                        seen[n] = l;
                         queue.Enqueue(n);
                     }
             }
@@ -1123,6 +1136,19 @@ namespace KotH.Shared.Bots
         static float PenaltyOf(Memory m, int f, int g)
             => m != null && m.Punished[f] && m.Penalty.TryGetValue((long)f << 32 | (uint)g, out float p) ? p : 0f;
 
+        // A variant's next floors, none known yet (-2). Build makes them all, so a round never allocates.
+        void EnsureNext(int v)
+        {
+            if (nextFloor[v] != null)
+                return;
+            nextFloor[v] = new int[floorY.Length];
+            nextCost[v] = new float[floorY.Length];
+            Array.Fill(nextFloor[v], -2);
+        }
+
+        /// <summary>Gives a bot's memory its tables now, at load, instead of the first time it plans.</summary>
+        public void Prepare(Memory m) => Size(m);
+
         // A bot's memory gets its tables the first time this grid uses it.
         void Size(Memory m)
         {
@@ -1219,14 +1245,9 @@ namespace KotH.Shared.Bots
             best = time[0][f];
             int v = Math.Clamp(variant, 0, Variants);
             float sum = 0f;
+            EnsureNext(v);
             int[] next = nextFloor[v];
             float[] nextPlain = nextCost[v];
-            if (next == null)
-            {
-                next = nextFloor[v] = new int[floorY.Length];
-                nextPlain = nextCost[v] = new float[floorY.Length];
-                Array.Fill(next, -2);
-            }
             for (int k = 0; k < 100000 && time[v][f] > 0f; k++)
             {
                 if (next[f] == -2)
