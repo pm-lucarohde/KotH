@@ -25,6 +25,7 @@ Hierarchy:
                             1f6c370b58b84b6bafe1b995fa04112c: ref!! 3f278caf-71a6-4981-a969-8ff2eed5b4d5
                     49c9ee42fb8845feb0c361a74a3a559e: !KotH.Client.Rendering.Atmosphere,KotH.Game
                         Id: 294FBCB6-2917-4479-A305-BA98F2F7C722
+                        FogStart: 0.0
                         FogPeak: 136.0
                         FogTop: 178.0
                         HazeBottom: {X: 0.0, Y: 114.6, Z: 0.0}

@@ -19,6 +19,7 @@ Hierarchy:
                             0fcffb45403949808f6c0363de5eabfe: ref!! 2E7D623D-0999-4E05-8971-A8EA6B21E890
                     1d3eb51a4d6c44f2838edc817cfbf1f8: !KotH.Client.Rendering.Atmosphere,KotH.Game
                         Id: D48D0BE3-013C-4AE6-8336-BF4C0D47757A
+                        FogStart: 0.0
                         CloudMap: 8BA09DCC-912C-49F1-8FBE-495F36149FAB:Textures/CloudMap
                     e5d069aad0e247e1a8fc9dfe62f2efe8: !KotH.CustomMapVisual
                         Id: D0A902CC-28E8-4318-9567-2813B914CB79
