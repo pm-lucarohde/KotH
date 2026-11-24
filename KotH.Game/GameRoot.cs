@@ -275,7 +275,7 @@ namespace KotH.Client
             // enough. Shadow views keep their own mask, the shadow stays.
             shown[reader] = (AddVisual(player, LaunchOptions.Current.Look, OwnFigureGroup), null);
             foreach (Entity bot in bots)
-                shown[bot.Get<BotBody>()] = (AddVisual(bot, FigureLook.Default), AddLabel(bot, bot.Name));
+                shown[bot.Get<BotBody>()] = (AddVisual(bot, OthersLook(FigureLook.Default)), AddLabel(bot, bot.Name));
             BindLocal(player, reader);
         }
 
@@ -881,7 +881,7 @@ namespace KotH.Client
                                          marker.Transform.Rotation, body, new DamagePercent());
             e.Name = name;
 
-            Entity visual = own ? AddVisual(e, look, OwnFigureGroup) : AddVisual(e, look);
+            Entity visual = own ? AddVisual(e, look, OwnFigureGroup) : AddVisual(e, OthersLook(look));
             Entity label = null;
             if (own)
             {
@@ -948,6 +948,10 @@ namespace KotH.Client
             Entity.Scene.Entities.Add(entity);
             return entity;
         }
+
+        // Measuring aid: KOTH_SHOT_LOOK_ALL=1 dresses every figure in the own look (KOTH_SHOT_LOOK: glow, trail).
+        static FigureLook OthersLook(FigureLook look)
+            => Environment.GetEnvironmentVariable("KOTH_SHOT_LOOK_ALL") == "1" ? LaunchOptions.Current.Look : look;
 
         Entity AddVisual(Entity body, FigureLook look, RenderGroup group = RenderGroup.Group0)
         {
