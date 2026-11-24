@@ -24,9 +24,9 @@ using Color = Stride.Core.Mathematics.Color;
 namespace KotH.Client.Menu
 {
     /// <summary>One part of an Avalonia page over the screen: an offscreen top level as big as the
-    /// part, rendered by Skia only on change into one buffer, uploaded once per new frame and drawn
-    /// by the HUD (headless windows took a fresh 3.5 MB bitmap per frame, forcing full collections).
-    /// Placed in units of a screen 1080 high from a corner or the top middle.</summary>
+    /// part; Skia redraws only what changed into one kept buffer, the changed rows are uploaded once
+    /// per new frame and the HUD draws it (headless windows took a fresh bitmap per frame). Placed in
+    /// units of a screen 1080 high from a corner or the top middle.</summary>
     public sealed class MenuOverlay : IHudElement, IDisposable
     {
         /// <summary>The screen corner a part is placed from; the centres centre it, x moves it right.</summary>
@@ -47,6 +47,9 @@ namespace KotH.Client.Menu
         RectangleF rect;
         Vector2 placedFor;
         Texture texture;
+
+        // The rows changed and not yet uploaded.
+        readonly bool[][] pending = new bool[1][];
 
         /// <summary>Whether it is drawn and takes the pointer.</summary>
         public bool Visible { get; set; } = true;
@@ -97,6 +100,8 @@ namespace KotH.Client.Menu
             AppBuilder.Configure<TApp>()
                 .UseSkia()
                 .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
+                // Dirty rectangles kept apart: two buttons far apart redraw two spots, not all between.
+                .With(new Avalonia.Rendering.Composition.CompositionOptions { UseRegionDirtyRectClipping = true })
                 .SetupWithoutStarting();
         }
 
@@ -139,17 +144,44 @@ namespace KotH.Client.Menu
             }
         }
 
-        /// <summary>Uploads the part's frame if Avalonia rendered a new one.</summary>
+        /// <summary>Uploads the runs of rows Avalonia changed since the last upload; a new texture takes them all.</summary>
         public void Upload(CommandList commandList)
         {
-            if (!Visible || !surface.TakeFrame(out byte[] pixels, out int width, out int height))
+            if (!Visible || !surface.Changed)
                 return;
+            int width = surface.Width, height = surface.Height, rowBytes = width * 4, row = 0;
             if (texture == null || texture.Width != width || texture.Height != height)
             {
                 texture?.Dispose();
                 texture = Texture.New2D(commandList.GraphicsDevice, width, height, Stride.Graphics.PixelFormat.B8G8R8A8_UNorm_SRgb, TextureFlags.ShaderResource);
+                pending[0] = new bool[height];
+                surface.ChangeAll();
             }
-            texture.SetData<byte>(commandList, pixels);
+            surface.PassChanges(pending);
+            while (NextRun(pending[0], ref row, out int first, out int rows))
+                texture.SetData(commandList, new DataPointer(surface.Pixels + first * rowBytes, rows * rowBytes), 0, 0,
+                                new ResourceRegion(0, first, 0, width, first + rows, 1));
+        }
+
+        // The next run of marked rows from row on, unmarked; runs a few rows apart join.
+        static bool NextRun(bool[] marks, ref int row, out int first, out int rows)
+        {
+            const int Gap = 8;
+            while (row < marks.Length && !marks[row])
+                row++;
+            (first, rows) = (row, 0);
+            if (row >= marks.Length)
+                return false;
+            int end = row, quiet = 0;
+            for (; row < marks.Length && quiet <= Gap; row++)
+            {
+                if (marks[row])
+                    (end, quiet, marks[row]) = (row + 1, 0, false);
+                else
+                    quiet++;
+            }
+            rows = end - first;
+            return true;
         }
 
         public void Draw(SpriteBatch batch, Vector2 screen)
@@ -204,31 +236,39 @@ namespace KotH.Client.Menu
             texture = null;
         }
 
-        /// <summary>The top level's platform side: one pixel buffer, kept and cleared for
-        /// every frame (Skia draws onto what is there), and pointer input. Avalonia
-        /// renders on the thread that ticks it, so no locks.</summary>
+        /// <summary>The top level's platform side: one pixel buffer that keeps its frame, so Avalonia
+        /// draws only its dirty rectangles into it (no layer of its own, no full copy), and pointer
+        /// input. The rows a frame changed are found against a copy of the last one (Avalonia keeps its
+        /// dirty rectangles to itself). Avalonia renders on the thread that ticks it, so no locks.</summary>
         sealed class Surface : OffscreenTopLevelImplBase, IFramebufferPlatformSurface
         {
             readonly Stopwatch clock = Stopwatch.StartNew();
             readonly MouseDevice mouse = new MouseDevice(new Avalonia.Input.Pointer(Avalonia.Input.Pointer.GetNextFreeId(), PointerType.Mouse, true));
-            byte[] buffer;
-            IntPtr pixels;
-            int width, height;
-            bool rendered;
+            byte[] buffer, last;
+            bool[] changed;
+            bool kept;
 
             public override IEnumerable<object> Surfaces => [this];
 
             public override IMouseDevice MouseDevice => mouse;
 
-            public IFramebufferRenderTarget CreateFramebufferRenderTarget() => new FuncFramebufferRenderTarget(Lock);
+            /// <summary>The buffer's size in pixels and its pinned address.</summary>
+            public int Width { get; private set; }
+            public int Height { get; private set; }
+            public IntPtr Pixels { get; private set; }
+
+            public IFramebufferRenderTarget CreateFramebufferRenderTarget() => new KeptTarget(this);
 
             public void Resize(int width, int height)
             {
-                this.width = width;
-                this.height = height;
-                // Pinned for good: Skia keeps drawing into the same address.
+                Width = width;
+                Height = height;
+                // Pinned for good: Skia keeps drawing into the same address. A new buffer is drawn whole.
                 buffer = GC.AllocateArray<byte>(width * height * 4, pinned: true);
-                pixels = Marshal.UnsafeAddrOfPinnedArrayElement(buffer, 0);
+                last = new byte[buffer.Length];
+                changed = new bool[height];
+                Pixels = Marshal.UnsafeAddrOfPinnedArrayElement(buffer, 0);
+                kept = false;
                 ClientSize = new Size(width, height);
             }
 
@@ -245,29 +285,69 @@ namespace KotH.Client.Menu
                                                              new Avalonia.Vector(0, notches), RawInputModifiers.None));
             }
 
-            /// <summary>The buffer, once per frame Avalonia rendered into it.</summary>
-            public bool TakeFrame(out byte[] frame, out int frameWidth, out int frameHeight)
+            /// <summary>Whether rows changed since they were last taken.</summary>
+            public bool Changed { get; private set; }
+
+            public void ChangeAll()
             {
-                (frame, frameWidth, frameHeight) = (buffer, width, height);
-                bool taken = rendered;
-                rendered = false;
-                return taken;
+                Array.Fill(changed, true);
+                Changed = true;
             }
 
-            ILockedFramebuffer Lock()
+            /// <summary>Marks every row changed since the last call in each of marks.</summary>
+            public void PassChanges(bool[][] marks)
             {
-                Array.Clear(buffer);
+                for (int y = 0; y < Height; y++)
+                {
+                    if (!changed[y])
+                        continue;
+                    changed[y] = false;
+                    foreach (bool[] mark in marks)
+                        mark[y] = true;
+                }
+                Changed = false;
+            }
+
+            ILockedFramebuffer Lock(out FramebufferLockProperties properties)
+            {
+                properties = new FramebufferLockProperties(kept);
+                kept = true;
                 return new Locked(this);
+            }
+
+            // After a frame: every row that differs from the last frame is marked and remembered.
+            void Drawn()
+            {
+                int rowBytes = Width * 4;
+                Span<byte> now = buffer, before = last;
+                for (int y = 0; y < Height; y++)
+                {
+                    Span<byte> a = now.Slice(y * rowBytes, rowBytes), b = before.Slice(y * rowBytes, rowBytes);
+                    if (a.SequenceEqual(b))
+                        continue;
+                    a.CopyTo(b);
+                    changed[y] = true;
+                    Changed = true;
+                }
+            }
+
+            // Tells Avalonia the buffer keeps its frame between locks.
+            sealed class KeptTarget(Surface surface) : IFramebufferRenderTargetWithProperties
+            {
+                public bool RetainsFrameContents => true;
+                public ILockedFramebuffer Lock() => surface.Lock(out _);
+                public ILockedFramebuffer Lock(out FramebufferLockProperties properties) => surface.Lock(out properties);
+                public void Dispose() { }
             }
 
             sealed class Locked(Surface surface) : ILockedFramebuffer
             {
-                public IntPtr Address => surface.pixels;
-                public PixelSize Size => new PixelSize(surface.width, surface.height);
-                public int RowBytes => surface.width * 4;
+                public IntPtr Address => surface.Pixels;
+                public PixelSize Size => new PixelSize(surface.Width, surface.Height);
+                public int RowBytes => surface.Width * 4;
                 public Vector Dpi => new Vector(96, 96);
                 public AvaloniaPixelFormat Format => AvaloniaPixelFormat.Bgra8888;
-                public void Dispose() => surface.rendered = true;
+                public void Dispose() => surface.Drawn();
             }
         }
     }
