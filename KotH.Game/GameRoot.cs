@@ -614,11 +614,12 @@ namespace KotH.Client
             if (builder.Zone != null)
                 simulation.Match = new HillMatch(builder.Zone) { Seed = (uint)Random.Shared.Next(), Mode = LaunchOptions.Current.Mode };  // a guest takes the host's
             string url = VisualUrl(map);
+            GroundSurface water = null;
             if (Content.Exists(url))
             {
                 List<Entity> loaded = Content.Load<Prefab>(url).Instantiate();
                 if (builder.Package != null)
-                    BuildCustom(builder.Package, loaded[0]);
+                    water = BuildCustom(builder.Package, loaded[0]);
                 long cullAt = StartLog.Now;
                 StartLog.Took($"map meshes sorted into {MapCulling.Split(loaded, Services, GraphicsDevice)} clusters", cullAt);
                 foreach (Entity e in loaded)
@@ -634,7 +635,7 @@ namespace KotH.Client
             else
                 Log.Warning($"Map {map} has no visuals ({url})");
             if (visuals != null)
-                visuals.Surface = GroundSurface.Load(map);
+                visuals.Surface = GroundSurface.Load(map) ?? water;
             Log.Info($"Map {map} loaded");
             StartLog.Took($"map {map} loaded", loadAt);
         }
@@ -646,8 +647,8 @@ namespace KotH.Client
         const string CustomVisualUrl = "Maps/Custom/CustomVisual";
 
         /// <summary>The package's models under the shared prefab, the light's cube centred on them;
-        /// a broken map.glb leaves the map unseen but playable (logged).</summary>
-        void BuildCustom(MapPackage package, Entity root)
+        /// a broken map.glb leaves the map unseen but playable (logged). Returns its water for wading.</summary>
+        GroundSurface BuildCustom(MapPackage package, Entity root)
         {
             long at = StartLog.Now;
             CustomMapVisual look = root.Get<CustomMapVisual>();
@@ -659,13 +660,14 @@ namespace KotH.Client
                                       || e is KeyNotFoundException || e is InvalidOperationException || e is IndexOutOfRangeException)
             {
                 Log.Error($"Map {package.Id}: {MapPackage.ModelFile} unreadable: {e.Message}");
-                return;
+                return null;
             }
             foreach (TransformComponent child in root.Transform.Children)
                 if (child.Entity.Name == "GI" && look.Bounds.Minimum.X <= look.Bounds.Maximum.X)
                     child.Position = look.Bounds.Center;
             var (objects, models, triangles) = look.Counts;
             StartLog.Took($"custom map {package.Manifest.Title}: {objects} objects in {models} models, {triangles} triangles", at);
+            return look.Wading;
         }
 
         /// <summary>Takes the loaded map down for another, with no body left: what is drawn of it

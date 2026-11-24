@@ -28,6 +28,8 @@ namespace KotH.Client.CustomMaps
         [DataMember(11)] public Material Leaves { get; set; }
         /// <userdoc>Template of Water materials (the sea's waves).</userdoc>
         [DataMember(12)] public Material Water { get; set; }
+        /// <userdoc>Template of Lava materials: Volcano's magma, emissive only, never lightmapped or casting.</userdoc>
+        [DataMember(13)] public Material Lava { get; set; }
 
         static readonly ValueParameterKey<Vector4> TintKey = ParameterKeys.NewValue<Vector4>(Vector4.One, "MapSurface.Tint");
         static readonly ValueParameterKey<float> TriplanarKey = ParameterKeys.NewValue<float>(0f, "MapSurface.Triplanar");
@@ -36,6 +38,9 @@ namespace KotH.Client.CustomMaps
 
         /// <summary>The drawn objects' bounds, for the light's voxel cube.</summary>
         public BoundingBox Bounds { get; private set; }
+
+        /// <summary>The map's water for wading, null without (Build sets it).</summary>
+        public Rendering.GroundSurface Wading { get; private set; }
 
         /// <summary>How many objects, models and triangles were built.</summary>
         public (int Objects, int Models, int Triangles) Counts { get; private set; }
@@ -68,6 +73,7 @@ namespace KotH.Client.CustomMaps
         public void Build(MapPackage package, GraphicsDevice device)
         {
             MapModel model = MapGlbReader.Read(package.ModelPath);
+            Wading = Rendering.GroundSurface.FromWater(model);
             var textures = new Texture[model.Textures.Count];
             for (int i = 0; i < textures.Length; i++)
                 owned.Add(textures[i] = MapTextures.Create(device, model.Textures[i], srgb: true));
@@ -82,6 +88,8 @@ namespace KotH.Client.CustomMaps
                     continue;
                 // A baked mesh without lightmap UVs cannot be baked: it is drawn live.
                 MapShadows shadows = m.Shadows == MapShadows.Baked && m.Uv1 == null ? MapShadows.Live : m.Shadows;
+                if (IsLava(model, m))
+                    shadows = MapShadows.Off;
                 // A live caster on its own: its shadow tile then is as small as the object.
                 var key = (m.Material, shadows, shadows == MapShadows.Live ? i : -1);
                 if (!groups.TryGetValue(key, out List<MapMesh> list))
@@ -197,10 +205,13 @@ namespace KotH.Client.CustomMaps
             return n;
         }
 
+        bool IsLava(MapModel model, MapMesh m)
+            => Lava != null && m.Material >= 0 && m.Material < model.Materials.Count && model.Materials[m.Material].Template == "Lava";
+
         /// <summary>A copy of the material's template with its values: same shader, so no new permutation.</summary>
         Material Look(MapMaterial m, Texture[] textures, Texture white)
         {
-            Material template = m.Template switch { "Leaves" => Leaves, "Water" => Water, _ => Surface } ?? Surface;
+            Material template = m.Template switch { "Leaves" => Leaves, "Water" => Water, "Lava" => Lava, _ => Surface } ?? Surface;
             var look = new Material();
             foreach (MaterialPass pass in template.Passes)
             {

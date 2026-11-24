@@ -26,6 +26,7 @@ Hierarchy:
                         Surface: D7C7263F-D59B-4598-9399-9457B27ADCFE:Materials/MapKit/MapSurface
                         Leaves: D74A1FB1-1210-4706-95DC-665667FB4319:Materials/MapKit/MapLeaves
                         Water: 91EBDB63-CFF5-4D49-8B1D-A103DE3D4804:Materials/MapKit/MapWater
+                        Lava: A4A40195-2D21-45A9-BFA0-DBBD34835256:Materials/Volcano/Magma
         -   Entity:
                 Id: DE245A2C-BE31-4F9F-A50B-1A010D3E183F
                 Name: GI
