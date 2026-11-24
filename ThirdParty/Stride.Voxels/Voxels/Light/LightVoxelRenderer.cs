@@ -150,40 +150,46 @@ namespace Stride.Rendering.Voxels.VoxelGI
 
                 traceAttribute = GetTraceAttr();
 
-                intensityKey = LightVoxelShaderKeys.Intensity.ComposeWith(compositionName);
-                specularIntensityKey = LightVoxelShaderKeys.SpecularIntensity.ComposeWith(compositionName);
-                skyIntensityKey = LightVoxelShaderKeys.SkyIntensity.ComposeWith(compositionName);
-                skySpecularIntensityKey = LightVoxelShaderKeys.SkySpecularIntensity.ComposeWith(compositionName);
-                skyMipCountKey = LightVoxelShaderKeys.SkyMipCount.ComposeWith(compositionName);
-                skyColorsKey = LightVoxelShaderKeys.SkyColors.ComposeWith(compositionName);
-                skyCubeMapKey = LightVoxelShaderKeys.SkyCubeMap.ComposeWith(compositionName);
-                occludersKey = LightVoxelShaderKeys.Occluders.ComposeWith(compositionName);
-                occluderGroupsKey = LightVoxelShaderKeys.OccluderGroups.ComposeWith(compositionName);
-                occluderGlowsKey = LightVoxelShaderKeys.OccluderGlows.ComposeWith(compositionName);
-                occluderGroupCountKey = LightVoxelShaderKeys.OccluderGroupCount.ComposeWith(compositionName);
-                occluderGroupSizeKey = LightVoxelShaderKeys.OccluderGroupSize.ComposeWith(compositionName);
-                occluderFadeKey = LightVoxelShaderKeys.OccluderFade.ComposeWith(compositionName);
-                lightmapKey = LightVoxelShaderKeys.Lightmap.ComposeWith(compositionName);
+                intensityKey = VoxelNames.Compose(LightVoxelShaderKeys.Intensity, compositionName);
+                specularIntensityKey = VoxelNames.Compose(LightVoxelShaderKeys.SpecularIntensity, compositionName);
+                skyIntensityKey = VoxelNames.Compose(LightVoxelShaderKeys.SkyIntensity, compositionName);
+                skySpecularIntensityKey = VoxelNames.Compose(LightVoxelShaderKeys.SkySpecularIntensity, compositionName);
+                skyMipCountKey = VoxelNames.Compose(LightVoxelShaderKeys.SkyMipCount, compositionName);
+                skyColorsKey = VoxelNames.Compose(LightVoxelShaderKeys.SkyColors, compositionName);
+                skyCubeMapKey = VoxelNames.Compose(LightVoxelShaderKeys.SkyCubeMap, compositionName);
+                occludersKey = VoxelNames.Compose(LightVoxelShaderKeys.Occluders, compositionName);
+                occluderGroupsKey = VoxelNames.Compose(LightVoxelShaderKeys.OccluderGroups, compositionName);
+                occluderGlowsKey = VoxelNames.Compose(LightVoxelShaderKeys.OccluderGlows, compositionName);
+                occluderGroupCountKey = VoxelNames.Compose(LightVoxelShaderKeys.OccluderGroupCount, compositionName);
+                occluderGroupSizeKey = VoxelNames.Compose(LightVoxelShaderKeys.OccluderGroupSize, compositionName);
+                occluderFadeKey = VoxelNames.Compose(LightVoxelShaderKeys.OccluderFade, compositionName);
+                lightmapKey = VoxelNames.Compose(LightVoxelShaderKeys.Lightmap, compositionName);
 
-                diffuseMarcherKey = LightVoxelShaderKeys.diffuseMarcher.ComposeWith(compositionName);
-                specularMarcherKey = LightVoxelShaderKeys.specularMarcher.ComposeWith(compositionName);
+                diffuseMarcherKey = VoxelNames.Compose(LightVoxelShaderKeys.diffuseMarcher, compositionName);
+                specularMarcherKey = VoxelNames.Compose(LightVoxelShaderKeys.specularMarcher, compositionName);
 
                 if (traceAttribute != null)
                 {
                     if (((LightVoxel)Light.Type).DiffuseMarcher != null)
-                        ((LightVoxel)Light.Type).DiffuseMarcher.UpdateMarchingLayout("diffuseMarcher." + compositionName);
+                        ((LightVoxel)Light.Type).DiffuseMarcher.UpdateMarchingLayout(VoxelNames.Join("diffuseMarcher.", compositionName));
                     if (((LightVoxel)Light.Type).SpecularMarcher != null)
-                        ((LightVoxel)Light.Type).SpecularMarcher.UpdateMarchingLayout("specularMarcher." + compositionName);
+                        ((LightVoxel)Light.Type).SpecularMarcher.UpdateMarchingLayout(VoxelNames.Join("specularMarcher.", compositionName));
                 }
 
-                // KotH patch: built here (once a frame, before the objects' permutations run in parallel) and
-                // kept while equal, so each object's validator sees the same instance and skips the deep compare.
+                // KotH patch: built here (before the objects' permutations run in parallel), once per name,
+                // attribute and light, so each object's validator sees the same instance (no deep compare).
+                if (compositionName == builtFor && traceAttribute == builtWith && Light.Type == builtLight)
+                    return;
+                (builtFor, builtWith, builtLight) = (compositionName, traceAttribute, Light.Type);
                 ShaderSourceCollection collection = traceAttribute != null ? new ShaderSourceCollection { traceAttribute.GetSamplingShader() } : null;
                 diffuseShader = Keep(diffuseShader, collection != null ? ((LightVoxel)Light.Type).DiffuseMarcher?.GetMarchingShader(0, collection) : null);
                 specularShader = Keep(specularShader, collection != null ? ((LightVoxel)Light.Type).SpecularMarcher?.GetMarchingShader(0, collection) : null);
             }
 
             ShaderSource diffuseShader, specularShader;
+            string builtFor;
+            VoxelAttribute builtWith;
+            object builtLight;
 
             static ShaderSource Keep(ShaderSource kept, ShaderSource built) => kept != null && kept.Equals(built) ? kept : built;
 

@@ -216,9 +216,9 @@ namespace Stride.Rendering.Voxels
         private ValueParameterKey<Vector4> perMapOffsetScaleKey;
         public void UpdateSamplingLayout(string compositionName)
         {
-            ClipMapskey = VoxelStorageTextureClipmapShaderKeys.clipMaps.ComposeWith(compositionName);
-            MipMapskey = VoxelStorageTextureClipmapShaderKeys.mipMaps.ComposeWith(compositionName);
-            perMapOffsetScaleKey = VoxelStorageTextureClipmapShaderKeys.perMapOffsetScale.ComposeWith(compositionName);
+            ClipMapskey = VoxelNames.Compose(VoxelStorageTextureClipmapShaderKeys.clipMaps, compositionName);
+            MipMapskey = VoxelNames.Compose(VoxelStorageTextureClipmapShaderKeys.mipMaps, compositionName);
+            perMapOffsetScaleKey = VoxelNames.Compose(VoxelStorageTextureClipmapShaderKeys.perMapOffsetScale, compositionName);
         }
         public ShaderClassSource GetSamplingShader()
         {

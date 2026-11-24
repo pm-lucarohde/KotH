@@ -23,7 +23,7 @@ namespace Stride.Rendering.Voxels
         ValueParameterKey<float> AmountKey;
         public override void UpdateVoxelizationLayout(string compositionName)
         {
-            AmountKey = VoxelModifierApplierOpacifyIsotropicKeys.Amount.ComposeWith(compositionName);
+            AmountKey = VoxelNames.Compose(VoxelModifierApplierOpacifyIsotropicKeys.Amount, compositionName);
         }
 
         public override void ApplyVoxelizationParameters(ParameterCollection parameters)

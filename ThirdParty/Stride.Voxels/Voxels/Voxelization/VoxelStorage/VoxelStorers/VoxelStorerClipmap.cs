@@ -74,20 +74,20 @@ namespace Stride.Rendering.Voxels
         ValueParameterKey<Vector4> perClipMapOffsetScaleKey;
         public void UpdateVoxelizationLayout(string compositionName)
         {
-            fragmentsBufferKey = VoxelStorageClipmapShaderKeys.fragmentsBuffer.ComposeWith(compositionName);
-            clipMapResolutionKey = VoxelStorageClipmapShaderKeys.clipMapResolution.ComposeWith(compositionName);
-            storageUintsKey = VoxelStorageClipmapShaderKeys.storageUints.ComposeWith(compositionName);
+            fragmentsBufferKey = VoxelNames.Compose(VoxelStorageClipmapShaderKeys.fragmentsBuffer, compositionName);
+            clipMapResolutionKey = VoxelNames.Compose(VoxelStorageClipmapShaderKeys.clipMapResolution, compositionName);
+            storageUintsKey = VoxelNames.Compose(VoxelStorageClipmapShaderKeys.storageUints, compositionName);
 
             if (UpdatesOneClipPerFrame())
             {
-                clipScaleKey = VoxelStorageClipmapShaderKeys.clipScale.ComposeWith(compositionName);
-                clipOffsetKey = VoxelStorageClipmapShaderKeys.clipOffset.ComposeWith(compositionName);
-                clipPosKey = VoxelStorageClipmapShaderKeys.clipPos.ComposeWith(compositionName);
+                clipScaleKey = VoxelNames.Compose(VoxelStorageClipmapShaderKeys.clipScale, compositionName);
+                clipOffsetKey = VoxelNames.Compose(VoxelStorageClipmapShaderKeys.clipOffset, compositionName);
+                clipPosKey = VoxelNames.Compose(VoxelStorageClipmapShaderKeys.clipPos, compositionName);
             }
             else
             {
-                clipMapCountKey = VoxelStorageClipmapShaderKeys.clipMapCount.ComposeWith(compositionName);
-                perClipMapOffsetScaleKey = VoxelStorageClipmapShaderKeys.perClipMapOffsetScale.ComposeWith(compositionName);
+                clipMapCountKey = VoxelNames.Compose(VoxelStorageClipmapShaderKeys.clipMapCount, compositionName);
+                perClipMapOffsetScaleKey = VoxelNames.Compose(VoxelStorageClipmapShaderKeys.perClipMapOffsetScale, compositionName);
             }
         }
         public void ApplyVoxelizationParameters(ParameterCollection param)

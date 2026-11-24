@@ -1,5 +1,6 @@
 // KotH patch: the textures of VoxelStorageSparse, see there.
 using System;
+using System.Collections.Generic;
 using Stride.Core.Mathematics;
 using Stride.Graphics;
 using Stride.Rendering.ComputeEffect;
@@ -184,32 +185,42 @@ namespace Stride.Rendering.Voxels
             shader.Parameters.Set(SparseMipKeys.readSide, (uint)readSide);
         }
 
-        ObjectParameterKey<Texture> pagesKey;
-        ObjectParameterKey<Texture>[] atlasKeys;
-        ObjectParameterKey<Texture> denseKey;
-        ValueParameterKey<Vector3> volumeMinKey;
-        ValueParameterKey<Vector3> cellCountKey;
-        ValueParameterKey<Vector3> atlasBricksKey;
-        ValueParameterKey<Vector3>[] atlasSizeKeys;
+        // KotH patch: the keys per composition name, made once. The diffuse and specular marchers sample
+        // this storage under different names in turn, every view, so one remembered name kept rebuilding.
+        sealed class SamplingKeys
+        {
+            public ObjectParameterKey<Texture> Pages, Dense;
+            public ObjectParameterKey<Texture>[] Atlases;
+            public ValueParameterKey<Vector3> VolumeMin, CellCount, AtlasBricks;
+            public ValueParameterKey<Vector3>[] AtlasSizes;
+        }
+
+        readonly Dictionary<string, SamplingKeys> samplingKeys = new Dictionary<string, SamplingKeys>();
+        SamplingKeys keys;
 
         public void UpdateSamplingLayout(string compositionName)
         {
-            pagesKey = VoxelStorageTextureSparseShaderKeys.pages.ComposeWith(compositionName);
-            atlasKeys = new[]
+            if (samplingKeys.TryGetValue(compositionName, out keys))
+                return;
+            keys = samplingKeys[compositionName] = new SamplingKeys
             {
-                VoxelStorageTextureSparseShaderKeys.atlas0.ComposeWith(compositionName),
-                VoxelStorageTextureSparseShaderKeys.atlas1.ComposeWith(compositionName),
-                VoxelStorageTextureSparseShaderKeys.atlas2.ComposeWith(compositionName),
-            };
-            denseKey = VoxelStorageTextureSparseShaderKeys.dense.ComposeWith(compositionName);
-            volumeMinKey = VoxelStorageTextureSparseShaderKeys.volumeMin.ComposeWith(compositionName);
-            cellCountKey = VoxelStorageTextureSparseShaderKeys.cellCount.ComposeWith(compositionName);
-            atlasBricksKey = VoxelStorageTextureSparseShaderKeys.atlasBricks.ComposeWith(compositionName);
-            atlasSizeKeys = new[]
-            {
-                VoxelStorageTextureSparseShaderKeys.atlasSize0.ComposeWith(compositionName),
-                VoxelStorageTextureSparseShaderKeys.atlasSize1.ComposeWith(compositionName),
-                VoxelStorageTextureSparseShaderKeys.atlasSize2.ComposeWith(compositionName),
+                Pages = VoxelNames.Compose(VoxelStorageTextureSparseShaderKeys.pages, compositionName),
+                Atlases = new[]
+                {
+                    VoxelNames.Compose(VoxelStorageTextureSparseShaderKeys.atlas0, compositionName),
+                    VoxelNames.Compose(VoxelStorageTextureSparseShaderKeys.atlas1, compositionName),
+                    VoxelNames.Compose(VoxelStorageTextureSparseShaderKeys.atlas2, compositionName),
+                },
+                Dense = VoxelNames.Compose(VoxelStorageTextureSparseShaderKeys.dense, compositionName),
+                VolumeMin = VoxelNames.Compose(VoxelStorageTextureSparseShaderKeys.volumeMin, compositionName),
+                CellCount = VoxelNames.Compose(VoxelStorageTextureSparseShaderKeys.cellCount, compositionName),
+                AtlasBricks = VoxelNames.Compose(VoxelStorageTextureSparseShaderKeys.atlasBricks, compositionName),
+                AtlasSizes = new[]
+                {
+                    VoxelNames.Compose(VoxelStorageTextureSparseShaderKeys.atlasSize0, compositionName),
+                    VoxelNames.Compose(VoxelStorageTextureSparseShaderKeys.atlasSize1, compositionName),
+                    VoxelNames.Compose(VoxelStorageTextureSparseShaderKeys.atlasSize2, compositionName),
+                },
             };
         }
 
@@ -218,17 +229,17 @@ namespace Stride.Rendering.Voxels
         public void ApplySamplingParameters(VoxelViewContext viewContext, ParameterCollection parameters)
         {
             // Until the bake is done every brick reads as empty.
-            parameters.Set(pagesKey, Ready ? Pages : emptyPages);
+            parameters.Set(keys.Pages, Ready ? Pages : emptyPages);
             for (int level = 0; level < 3; level++)
             {
-                parameters.Set(atlasKeys[level], Ready ? Atlases[level] : emptyVoxels);
+                parameters.Set(keys.Atlases[level], Ready ? Atlases[level] : emptyVoxels);
                 int side = (8 >> level) + 1;
-                parameters.Set(atlasSizeKeys[level], new Vector3(AtlasBricks.X * side, AtlasBricks.Y * side, AtlasBricks.Z * side));
+                parameters.Set(keys.AtlasSizes[level], new Vector3(AtlasBricks.X * side, AtlasBricks.Y * side, AtlasBricks.Z * side));
             }
-            parameters.Set(denseKey, Ready ? Dense : emptyVoxels);
-            parameters.Set(volumeMinKey, VolumeMin);
-            parameters.Set(cellCountKey, new Vector3(CellCount.X, CellCount.Y, CellCount.Z));
-            parameters.Set(atlasBricksKey, new Vector3(AtlasBricks.X, AtlasBricks.Y, AtlasBricks.Z));
+            parameters.Set(keys.Dense, Ready ? Dense : emptyVoxels);
+            parameters.Set(keys.VolumeMin, VolumeMin);
+            parameters.Set(keys.CellCount, new Vector3(CellCount.X, CellCount.Y, CellCount.Z));
+            parameters.Set(keys.AtlasBricks, new Vector3(AtlasBricks.X, AtlasBricks.Y, AtlasBricks.Z));
         }
     }
 }

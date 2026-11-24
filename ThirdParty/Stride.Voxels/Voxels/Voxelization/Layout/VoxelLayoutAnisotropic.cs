@@ -22,13 +22,13 @@ namespace Stride.Rendering.Voxels
 
         public void UpdateVoxelizationLayout(string compositionName, List<VoxelModifierEmissionOpacity> modifier)
         {
-            DirectOutput = VoxelAnisotropicWriter_Float4Keys.DirectOutput.ComposeWith(compositionName);
-            BrightnessInvKey = VoxelAnisotropicWriter_Float4Keys.maxBrightnessInv.ComposeWith(compositionName);
+            DirectOutput = VoxelNames.Compose(VoxelAnisotropicWriter_Float4Keys.DirectOutput, compositionName);
+            BrightnessInvKey = VoxelNames.Compose(VoxelAnisotropicWriter_Float4Keys.maxBrightnessInv, compositionName);
         }
         public void UpdateSamplingLayout(string compositionName)
         {
-            BrightnessKey = VoxelAnisotropicSamplerKeys.maxBrightness.ComposeWith(compositionName);
-            storageTex.UpdateSamplingLayout("storage." + compositionName);
+            BrightnessKey = VoxelNames.Compose(VoxelAnisotropicSamplerKeys.maxBrightness, compositionName);
+            storageTex.UpdateSamplingLayout(VoxelNames.Join("storage.", compositionName));
         }
 
         ShaderClassSource mipmapXP = new ShaderClassSource("Voxel2x2x2Mipmapper_AnisoXP");

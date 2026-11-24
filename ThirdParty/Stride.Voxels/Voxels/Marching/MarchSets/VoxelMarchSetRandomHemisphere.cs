@@ -38,9 +38,9 @@ namespace Stride.Rendering.Voxels
         ValueParameterKey<float> TimeKey;
         public void UpdateMarchingLayout(string compositionName)
         {
-            Marcher.UpdateMarchingLayout("Marcher." + compositionName);
-            CountKey = VoxelMarchSetRandomHemisphereKeys.marchCount.ComposeWith(compositionName);
-            TimeKey = VoxelMarchSetRandomHemisphereKeys.time.ComposeWith(compositionName);
+            Marcher.UpdateMarchingLayout(VoxelNames.Join("Marcher.", compositionName));
+            CountKey = VoxelNames.Compose(VoxelMarchSetRandomHemisphereKeys.marchCount, compositionName);
+            TimeKey = VoxelNames.Compose(VoxelMarchSetRandomHemisphereKeys.time, compositionName);
         }
         public void ApplyMarchingParameters(ParameterCollection parameters)
         {

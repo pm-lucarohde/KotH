@@ -101,7 +101,7 @@ namespace Stride.Rendering.Voxels
                 modifier.UpdateVoxelizationLayout($"Modifiers[{i}].layout.{compositionName}");
                 i++;
             }
-            VoxelLayout.UpdateVoxelizationLayout("layout." + compositionName, Modifiers);
+            VoxelLayout.UpdateVoxelizationLayout(VoxelNames.Join("layout.", compositionName), Modifiers);
         }
         public override void ApplyVoxelizationParameters(ParameterCollection parameters)
         {

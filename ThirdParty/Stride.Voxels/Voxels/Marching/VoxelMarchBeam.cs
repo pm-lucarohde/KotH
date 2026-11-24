@@ -45,7 +45,7 @@ namespace Stride.Rendering.Voxels
         }
         public void ApplyAttributeSamplers(VoxelAttribute attribute, int attrID, VoxelViewContext viewContext, ParameterCollection parameters)
         {
-            attribute.UpdateSamplingLayout($"AttributeSamplers[{attrID}].{compositionName}");
+            attribute.UpdateSamplingLayout(VoxelNames.Sampler(attrID, compositionName));
             attribute.ApplySamplingParameters(viewContext, parameters);
         }
     }

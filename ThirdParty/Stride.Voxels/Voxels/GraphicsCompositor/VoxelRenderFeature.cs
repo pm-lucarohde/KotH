@@ -39,6 +39,19 @@ namespace Stride.Rendering.Voxels
             renderVoxelVolumeData = Context.VisibilityGroup.Tags.Get(CurrentProcessedVoxelVolumes);
             if (renderVoxelVolumeData == null) return;
 
+            // KotH patch: the voxelising part apart; its lambdas made a closure on every call, even
+            // in the frames (nearly all) without a volume to voxelise.
+            foreach (var processedVolumeKeyValue in renderVoxelVolumeData)
+                if (processedVolumeKeyValue.Value.Voxelize)
+                {
+                    PrepareVoxelization();
+                    return;
+                }
+        }
+
+        void PrepareVoxelization()
+        {
+
 
             var renderEffects = RootRenderFeature.RenderData.GetData(renderEffectKey);
             int effectSlotCount = ((RootEffectRenderFeature)RootRenderFeature).EffectPermutationSlotCount;

@@ -62,7 +62,7 @@ namespace Stride.Rendering.Voxels
         }
         public override void UpdateVoxelizationLayout(string compositionName)
         {
-            DirectOutput = VoxelAttributeDirectionalCoverageShaderKeys.DirectOutput.ComposeWith(compositionName);
+            DirectOutput = VoxelNames.Compose(VoxelAttributeDirectionalCoverageShaderKeys.DirectOutput, compositionName);
         }
         public override void ApplyVoxelizationParameters(ParameterCollection parameters)
         {
@@ -84,7 +84,7 @@ namespace Stride.Rendering.Voxels
         }
         public override void UpdateSamplingLayout(string compositionName)
         {
-            CoverageTex?.UpdateSamplingLayout("storage." + compositionName);
+            CoverageTex?.UpdateSamplingLayout(VoxelNames.Join("storage.", compositionName));
         }
         public override void ApplySamplingParameters(VoxelViewContext viewContext, ParameterCollection parameters)
         {

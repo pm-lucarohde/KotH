@@ -72,7 +72,7 @@ namespace Stride.Rendering.Voxels
         }
         public override void UpdateVoxelizationLayout(string compositionName)
         {
-            DirectOutput = VoxelAttributeSolidityShaderKeys.DirectOutput.ComposeWith(compositionName);
+            DirectOutput = VoxelNames.Compose(VoxelAttributeSolidityShaderKeys.DirectOutput, compositionName);
         }
         public override void ApplyVoxelizationParameters(ParameterCollection parameters)
         {
@@ -95,8 +95,8 @@ namespace Stride.Rendering.Voxels
         }
         public override void UpdateSamplingLayout(string compositionName)
         {
-            BrightnessKey = VoxelIsotropicSamplerKeys.maxBrightness.ComposeWith(compositionName);
-            SolidityTex?.UpdateSamplingLayout("storage." + compositionName);
+            BrightnessKey = VoxelNames.Compose(VoxelIsotropicSamplerKeys.maxBrightness, compositionName);
+            SolidityTex?.UpdateSamplingLayout(VoxelNames.Join("storage.", compositionName));
         }
         public override void ApplySamplingParameters(VoxelViewContext viewContext, ParameterCollection parameters)
         {

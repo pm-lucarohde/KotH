@@ -32,7 +32,7 @@ namespace Stride.Rendering.Voxels
         public override void UpdateMarchingLayout(string compositionName)
         {
             base.UpdateMarchingLayout(compositionName);
-            OffsetKey = VoxelMarchSetHemisphere6Keys.offset.ComposeWith(compositionName);
+            OffsetKey = VoxelNames.Compose(VoxelMarchSetHemisphere6Keys.offset, compositionName);
         }
     }
 }

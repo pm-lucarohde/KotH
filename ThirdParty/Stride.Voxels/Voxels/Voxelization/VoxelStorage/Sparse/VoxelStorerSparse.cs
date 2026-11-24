@@ -44,17 +44,17 @@ namespace Stride.Rendering.Voxels
 
         public void UpdateVoxelizationLayout(string compositionName)
         {
-            fragmentsBufferKey = VoxelStorageSparseShaderKeys.fragmentsBuffer.ComposeWith(compositionName);
-            marksKey = VoxelStorageSparseShaderKeys.marks.ComposeWith(compositionName);
-            pagesKey = VoxelStorageSparseShaderKeys.pages.ComposeWith(compositionName);
-            resolutionKey = VoxelStorageSparseShaderKeys.volumeResolution.ComposeWith(compositionName);
-            volumeScaleKey = VoxelStorageSparseShaderKeys.volumeScale.ComposeWith(compositionName);
-            volumeOffsetKey = VoxelStorageSparseShaderKeys.volumeOffset.ComposeWith(compositionName);
-            viewScaleKey = VoxelStorageSparseShaderKeys.viewScale.ComposeWith(compositionName);
-            viewOffsetKey = VoxelStorageSparseShaderKeys.viewOffset.ComposeWith(compositionName);
-            storageUintsKey = VoxelStorageSparseShaderKeys.storageUints.ComposeWith(compositionName);
-            slabStartKey = VoxelStorageSparseShaderKeys.slabStart.ComposeWith(compositionName);
-            slabCountKey = VoxelStorageSparseShaderKeys.slabCount.ComposeWith(compositionName);
+            fragmentsBufferKey = VoxelNames.Compose(VoxelStorageSparseShaderKeys.fragmentsBuffer, compositionName);
+            marksKey = VoxelNames.Compose(VoxelStorageSparseShaderKeys.marks, compositionName);
+            pagesKey = VoxelNames.Compose(VoxelStorageSparseShaderKeys.pages, compositionName);
+            resolutionKey = VoxelNames.Compose(VoxelStorageSparseShaderKeys.volumeResolution, compositionName);
+            volumeScaleKey = VoxelNames.Compose(VoxelStorageSparseShaderKeys.volumeScale, compositionName);
+            volumeOffsetKey = VoxelNames.Compose(VoxelStorageSparseShaderKeys.volumeOffset, compositionName);
+            viewScaleKey = VoxelNames.Compose(VoxelStorageSparseShaderKeys.viewScale, compositionName);
+            viewOffsetKey = VoxelNames.Compose(VoxelStorageSparseShaderKeys.viewOffset, compositionName);
+            storageUintsKey = VoxelNames.Compose(VoxelStorageSparseShaderKeys.storageUints, compositionName);
+            slabStartKey = VoxelNames.Compose(VoxelStorageSparseShaderKeys.slabStart, compositionName);
+            slabCountKey = VoxelNames.Compose(VoxelStorageSparseShaderKeys.slabCount, compositionName);
         }
 
         public void ApplyVoxelizationParameters(ParameterCollection param)

@@ -25,7 +25,7 @@ namespace Stride.Rendering.Voxels
         protected ValueParameterKey<float> OffsetKey;
         public virtual void UpdateMarchingLayout(string compositionName)
         {
-            Marcher.UpdateMarchingLayout("Marcher." + compositionName);
+            Marcher.UpdateMarchingLayout(VoxelNames.Join("Marcher.", compositionName));
         }
         public virtual void ApplyMarchingParameters(ParameterCollection parameters)
         {

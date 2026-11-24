@@ -66,11 +66,11 @@ namespace Stride.Rendering.Voxels
             this.compositionName = compositionName;
             if (EditMode)
             {
-                StepsKey = VoxelMarchConeEditModeKeys.steps.ComposeWith(compositionName);
-                StepScaleKey = VoxelMarchConeEditModeKeys.stepScale.ComposeWith(compositionName);
-                ConeRatioKey = VoxelMarchConeEditModeKeys.coneRatio.ComposeWith(compositionName);
-                FastKey = VoxelMarchConeEditModeKeys.fast.ComposeWith(compositionName);
-                OffsetKey = VoxelMarchConeEditModeKeys.offset.ComposeWith(compositionName);
+                StepsKey = VoxelNames.Compose(VoxelMarchConeEditModeKeys.steps, compositionName);
+                StepScaleKey = VoxelNames.Compose(VoxelMarchConeEditModeKeys.stepScale, compositionName);
+                ConeRatioKey = VoxelNames.Compose(VoxelMarchConeEditModeKeys.coneRatio, compositionName);
+                FastKey = VoxelNames.Compose(VoxelMarchConeEditModeKeys.fast, compositionName);
+                OffsetKey = VoxelNames.Compose(VoxelMarchConeEditModeKeys.offset, compositionName);
             }
         }
         public void ApplyMarchingParameters(ParameterCollection parameters)
@@ -86,7 +86,7 @@ namespace Stride.Rendering.Voxels
         }
         public void ApplyAttributeSamplers(VoxelAttribute attribute, int attrID, VoxelViewContext viewContext, ParameterCollection parameters)
         {
-            attribute.UpdateSamplingLayout($"AttributeSamplers[{attrID}].{compositionName}");
+            attribute.UpdateSamplingLayout(VoxelNames.Sampler(attrID, compositionName));
             attribute.ApplySamplingParameters(viewContext, parameters);
         }
     }
