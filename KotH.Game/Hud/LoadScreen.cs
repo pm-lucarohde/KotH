@@ -27,7 +27,7 @@ namespace KotH.Client.Hud
         readonly LoadView view;
         readonly MenuOverlay minute, hour;
         readonly MenuOverlay[] overlays;
-        bool begun, loaded;
+        bool begun, loaded, coveredBefore = true;
         double shown, turned, bakedAt = -1.0;
         // Real seconds since the map began: a frame of several seconds (a compile) counts in full.
         readonly System.Diagnostics.Stopwatch clock = new System.Diagnostics.Stopwatch();
@@ -59,10 +59,17 @@ namespace KotH.Client.Hud
         /// <summary>Raised when the map is loaded and its lighting baked, once per map.</summary>
         public event Action Loaded;
 
-        public bool Covers { get; private set; } = true;
+        /// <summary>Asked when drawn too, so whatever raises it in a frame covers that frame already.</summary>
+        public bool Covers => Raised || !loaded || Held || (Hold?.Invoke() ?? false);
 
-        /// <summary>Whether Loaded was raised already.</summary>
-        public bool IsLoaded => loaded;
+        /// <summary>Set while a map change waits until this is on screen: covers, and counts as not loaded.</summary>
+        public bool Raised { get; set; }
+
+        /// <summary>Frames in a row it covered in Update, clock drawn; 0 while it does not.</summary>
+        public int CoveredFrames { get; private set; }
+
+        /// <summary>Whether Loaded was raised already and no map change waits.</summary>
+        public bool IsLoaded => loaded && !Raised;
 
         /// <summary>A map is being built now: from here on it waits for its bake.</summary>
         public void Begin()
@@ -110,12 +117,16 @@ namespace KotH.Client.Hud
                     Loaded?.Invoke();
                 }
             }
-            bool covered = Covers;
-            Covers = !loaded || Held || (Hold?.Invoke() ?? false);
-            if (covered && !Covers)
+            bool covers = Covers;
+            if (coveredBefore && !covers)
                 StartLog.Mark($"load screen lifted, held {held.Elapsed.TotalSeconds:F1} s after loading (menu, host or join)");
-            if (!Covers)
+            coveredBefore = covers;
+            if (!covers)
+            {
+                CoveredFrames = 0;
                 return;
+            }
+            CoveredFrames++;
 
             turned += seconds;
             view.Say((begun && !loaded ? null : Text?.Invoke()) ?? "Loading …");

@@ -329,7 +329,7 @@ namespace KotH.Client
             options.Steam = true;
             options.Password = password;
             if (lobby.Map != builder.Map)
-                UnloadMap();
+                WhenCovered(UnloadMap);
             StartNetworked(options, lobby);
             NetClient guest = net;
             guest.JoinWhenReady(() => cover.IsLoaded);
@@ -374,22 +374,53 @@ namespace KotH.Client
                 ReturnToMenu();
                 return;
             }
-            if (builder.Map != map)
-            {
-                UnloadMap();
-                LoadMap(map);
-            }
-            if (builder.Zone != null)
-            {
-                // The host's own round; a guest takes the host's state when it joins.
-                simulation.Match = new HillMatch(builder.Zone) { Seed = (uint)Random.Shared.Next(), Stage = stage, Mode = LaunchOptions.Current.Mode };
-                if (stage == MatchStage.Lobby)
-                    simulation.Match.MinPlayers = LaunchOptions.Current.MinPlayers;
-            }
-            BindWorld(null);
             NetClient client = net;
-            cover.Hold = () => net == client && (client.Restarting || !client.Joined);
-            Log.Info($"Network: restart on {map} ({stage})");
+            if (builder.Map != map)
+                WhenCovered(() =>
+                {
+                    UnloadMap();
+                    LoadMap(map);
+                    Begin();
+                });
+            else
+                Begin();
+
+            void Begin()
+            {
+                if (builder.Zone != null)
+                {
+                    // The host's own round; a guest takes the host's state when it joins.
+                    simulation.Match = new HillMatch(builder.Zone) { Seed = (uint)Random.Shared.Next(), Stage = stage, Mode = LaunchOptions.Current.Mode };
+                    if (stage == MatchStage.Lobby)
+                        simulation.Match.MinPlayers = LaunchOptions.Current.MinPlayers;
+                }
+                BindWorld(null);
+                cover.Hold = () => net == client && (client.Restarting || !client.Joined);
+                Log.Info($"Network: restart on {map} ({stage})");
+            }
+        }
+
+        /// <summary>Runs work (a map going or coming) once the load screen has been on screen two frames,
+        /// so neither is ever seen; it covers from the call on. A later wait or leaving drops this one.</summary>
+        void WhenCovered(Action work)
+        {
+            cover.Raised = true;
+            int wait = ++coverWaits;
+            Script.AddTask(async () =>
+            {
+                while (cover.CoveredFrames < 2 && wait == coverWaits)
+                    await Script.NextFrame();
+                if (wait != coverWaits)
+                    return;
+                work();
+                cover.Raised = false;
+            });
+        }
+
+        void DropCoverWait()
+        {
+            coverWaits++;
+            cover.Raised = false;
         }
 
         bool LeaveMenu()
@@ -408,8 +439,9 @@ namespace KotH.Client
         /// again, which stays loaded or loads anew after a round on another map.</summary>
         void ReturnToMenu()
         {
-            if (menu != null)
+            if (menu != null || leaving)
                 return;
+            DropCoverWait();
             // A private round's door stayed shut: Find server says why.
             menuNote = leaveNote ?? (net?.Session.Rejected == RejectReason.Password ? "Wrong password" : net?.KeyRefused);
             leaveNote = null;
@@ -438,15 +470,27 @@ namespace KotH.Client
             if (builder.Map != Maps.Default)
             {
                 // The menu flies round Mount Destiny: another map goes, a guest without one loads it.
-                UnloadMap();
-                LoadMap(Maps.Default);
+                leaving = true;
+                WhenCovered(() =>
+                {
+                    leaving = false;
+                    UnloadMap();
+                    LoadMap(Maps.Default);
+                    Arrive();
+                });
+                return;
             }
-            else if (builder.Zone != null)
+            if (builder.Zone != null)
                 simulation.Match = new HillMatch(builder.Zone) { Seed = (uint)Random.Shared.Next() };
-            // The game's garbage goes now, not as a stutter in the menu.
-            GC.Collect();
-            ShowMenu();
-            Log.Info("Back in the main menu");
+            Arrive();
+
+            void Arrive()
+            {
+                // The game's garbage goes now, not as a stutter in the menu.
+                GC.Collect();
+                ShowMenu();
+                Log.Info("Back in the main menu");
+            }
         }
 
         /// <summary>Camera, arms and displays let go of the game, as before the first one.</summary>
@@ -651,7 +695,7 @@ namespace KotH.Client
             tags.Set(Stride.Rendering.Voxels.ForwardRendererVoxels.ForgetLightmapKey, true);
             cover.Restart();
             GC.Collect();
-            Log.Info($"Map {map} unloaded");
+            Log.Info($"Map {map} unloaded, load screen up {cover.CoveredFrames} frames");
         }
 
         // The Texture setting on the map's materials, again after every Apply.
@@ -665,7 +709,11 @@ namespace KotH.Client
         // the menu on another map than the host's (only before it has joined) changes maps.
         void INetWorld.LoadMap(string map)
         {
-            if (builder.Map != null && builder.Map != map)
+            if (builder.Map == map)
+                return;
+            // Joining from the menu, the cover is up already (Hold); a waiting unload is done here.
+            DropCoverWait();
+            if (builder.Map != null)
                 UnloadMap();
             LoadMap(map);
         }
@@ -1036,6 +1084,12 @@ namespace KotH.Client
         Entity menu;
         Entity menuFigure;
         int games;
+
+        // Bumped by each map change that waits for the load screen, and by what drops one (WhenCovered).
+        int coverWaits;
+
+        // Back to the menu, waiting for the load screen to change the map.
+        bool leaving;
         string menuNote;
 
         // Why the game ends on its own (a missing map), shown in the menu after it.
