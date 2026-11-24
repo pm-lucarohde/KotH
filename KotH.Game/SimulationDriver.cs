@@ -81,6 +81,21 @@ namespace KotH.Client
             SetCaptured(!LaunchOptions.Current.ShowsMenu);
         }
 
+        bool unculled;
+
+        // Culling off for every view while the load screen warms (LoadScreen.Warming), on again after.
+        void Unculled(bool on)
+        {
+            if (on == unculled || SceneSystem.SceneInstance is not { } scene)
+                return;
+            unculled = on;
+            for (int i = 0; i < scene.VisibilityGroups.Count; i++)
+                DisableCulling(scene.VisibilityGroups[i]) = on;
+        }
+
+        [System.Runtime.CompilerServices.UnsafeAccessor(System.Runtime.CompilerServices.UnsafeAccessorKind.Field, Name = "DisableCulling")]
+        static extern ref bool DisableCulling(Stride.Rendering.VisibilityGroup group);   // internal in Stride
+
         public override void Update()
         {
             SimulationSystem system = Services.GetService<SimulationSystem>();
@@ -97,6 +112,7 @@ namespace KotH.Client
             // the session starts then (GameRoot), and until then nothing ticks.
             LoadScreen cover = Services.GetService<LoadScreen>();
             cover?.Update(Game.UpdateTime.Elapsed.TotalSeconds, Game.UpdateTime.FrameCount, Game.GraphicsContext.CommandList);
+            Unculled(cover?.Warming ?? false);
 
             // The ticks run while this frame draws (SimulationJob), up to where the clock will be at the
             // next Update: one frame ahead by the smoothed frame time, at most a tick.

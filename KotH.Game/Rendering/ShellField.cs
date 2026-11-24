@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
+using KotH.Client.Hud;
 using KotH.Client.Settings;
 using Stride.Core;
 using Stride.Core.Mathematics;
@@ -75,6 +76,7 @@ namespace KotH.Client.Rendering
 
         readonly List<(ModelComponent Model, BoundingBox Box)> squares = new List<(ModelComponent, BoundingBox)>();
         CameraComponent camera;
+        LoadScreen cover;
 
         public override void Start()
         {
@@ -329,10 +331,12 @@ namespace KotH.Client.Rendering
                 return;
             Vector3 eye = camera.Entity.Transform.WorldMatrix.TranslationVector;
             float reach = Reach * QualityLevels.Reach;
+            // All while the load screen warms: a square's mesh and effects are made at its first showing.
+            bool all = (cover ??= Services.GetService<LoadScreen>())?.Warming == true;
             foreach (var (model, box) in squares)
             {
                 Vector3 nearest = Vector3.Clamp(eye, box.Minimum, box.Maximum);
-                model.Enabled = Vector3.DistanceSquared(nearest, eye) < reach * reach;
+                model.Enabled = all || Vector3.DistanceSquared(nearest, eye) < reach * reach;
             }
         }
 

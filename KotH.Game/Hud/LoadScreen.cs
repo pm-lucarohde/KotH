@@ -68,6 +68,10 @@ namespace KotH.Client.Hud
         /// <summary>Frames in a row it covered in Update, clock drawn; 0 while it does not.</summary>
         public int CoveredFrames { get; private set; }
 
+        /// <summary>The settle after the bake, still covered: everything is drawn unculled then (SimulationDriver,
+        /// ShellField), so each object gets its effects while loading, not when first seen in the round.</summary>
+        public bool Warming => begun && !loaded && bakedAt >= 0.0;
+
         /// <summary>Whether Loaded was raised already and no map change waits.</summary>
         public bool IsLoaded => loaded && !Raised;
 

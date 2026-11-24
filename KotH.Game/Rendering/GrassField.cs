@@ -82,10 +82,10 @@ namespace KotH.Client.Rendering
         {
             if (Material == null || !LoadMap())
                 return;
-            near = new Patches(this, Entity, GrassPatch.Blades);
+            near = new Patches(this, Entity, GrassPatch.Blades, patches.Count);
             var farEntity = new Entity("GrassFar");
             Entity.AddChild(farEntity);
-            far = new Patches(this, farEntity, (int)(GrassPatch.Blades * FarShare));
+            far = new Patches(this, farEntity, (int)(GrassPatch.Blades * FarShare), patches.Count);
             GrassRenderFeature.Install(SceneSystem, Group);
             Material.Passes[0].Parameters.Set(MapKey, map);
             Material.Passes[0].Parameters.Set(MapShapeKey, new Vector4(1f / cell, half, map.Width, maxHeight));
@@ -185,16 +185,23 @@ namespace KotH.Client.Rendering
             readonly InstancingUserBuffer instancing = new InstancingUserBuffer();
             readonly Buffer<Matrix>[] worlds = new Buffer<Matrix>[Ring], inverses = new Buffer<Matrix>[Ring];
             readonly GraphicsDevice device;
+            readonly ModelComponent component;
             Matrix[] shown = Array.Empty<Matrix>(), shownInverse = Array.Empty<Matrix>();
             int shownCount = -1, slot;
 
-            public Patches(GrassField field, Entity entity, int blades)
+            // Room for every patch from the start: lists and arrays growing as the view finds more
+            // patches than ever before allocated now and then within a round.
+            public Patches(GrassField field, Entity entity, int blades, int room)
             {
+                Wanted.Capacity = room;
+                shown = new Matrix[room];
+                shownInverse = new Matrix[room];
                 device = field.GraphicsDevice;
                 var model = new Model { GrassPatch.Build(device, blades) };
                 model.Materials.Add(new MaterialInstance(field.Material) { IsShadowCaster = false });
                 model.BoundingBox = model.Meshes[0].BoundingBox;
-                entity.Add(new ModelComponent(model) { RenderGroup = Group, IsShadowCaster = false });
+                component = new ModelComponent(model) { RenderGroup = Group, IsShadowCaster = false, Enabled = false };
+                entity.Add(component);
                 entity.Add(new InstancingComponent { Type = instancing });
             }
 
@@ -236,6 +243,9 @@ namespace KotH.Client.Rendering
                 instancing.InstanceWorldInverseBuffer = inverses[slot];
                 instancing.InstanceCount = count;
                 instancing.BoundingBox = box;
+                // Off without patches, as ChainView's ropes: drawn at count 0 it went through without instancing
+                // for a frame, and each switch made the effect look its permutation up anew (allocating).
+                component.Enabled = count > 0;
             }
 
             public void Dispose()
@@ -264,8 +274,10 @@ namespace KotH.Client.Rendering
             if (visuals == null)
                 return;
             int n = 0;
-            foreach (Entity figure in visuals.Figures)
+            IReadOnlyList<Entity> all = visuals.Figures; // by index: foreach over the interface boxes its enumerator
+            for (int i = 0; i < all.Count; i++)
             {
+                Entity figure = all[i];
                 if (n == MaxFigures)
                     break;
                 Vector3 at = figure.Transform.WorldMatrix.TranslationVector;
