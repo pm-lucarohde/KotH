@@ -6,12 +6,12 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Embedding;
 using Avalonia.Controls.Embedding.Offscreen;
-using Avalonia.Controls.Platform.Surfaces;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Input.Raw;
 using Avalonia.Media;
 using Avalonia.Platform;
+using Avalonia.Platform.Surfaces;
 using Avalonia.Threading;
 using KotH.Client.Hud;
 using Stride.Core.Mathematics;
@@ -90,7 +90,7 @@ namespace KotH.Client.Menu
                 TransparencyBackgroundFallback = Brushes.Transparent,
             };
             // Grey antialiasing: coloured subpixel fringes assume an opaque background.
-            RenderOptions.SetTextRenderingMode(root, TextRenderingMode.Antialias);
+            TextOptions.SetTextRenderingMode(root, TextRenderingMode.Antialias);
         }
 
         /// <summary>Starts Avalonia headless with Skia, once per process.</summary>
@@ -271,11 +271,14 @@ namespace KotH.Client.Menu
         {
             readonly Stopwatch clock = Stopwatch.StartNew();
             readonly MouseDevice mouse = new MouseDevice(new Avalonia.Input.Pointer(Avalonia.Input.Pointer.GetNextFreeId(), PointerType.Mouse, true));
+            readonly IPlatformRenderSurface[] surfaces;
             byte[] buffer, last;
             bool[] changed;
             bool kept;
 
-            public override IEnumerable<object> Surfaces => [this];
+            public Surface() => surfaces = [this];
+
+            public override IPlatformRenderSurface[] Surfaces => surfaces;
 
             public override IMouseDevice MouseDevice => mouse;
 
@@ -359,11 +362,11 @@ namespace KotH.Client.Menu
             }
 
             // Tells Avalonia the buffer keeps its frame between locks.
-            sealed class KeptTarget(Surface surface) : IFramebufferRenderTargetWithProperties
+            sealed class KeptTarget(Surface surface) : IFramebufferRenderTarget
             {
                 public bool RetainsFrameContents => true;
-                public ILockedFramebuffer Lock() => surface.Lock(out _);
-                public ILockedFramebuffer Lock(out FramebufferLockProperties properties) => surface.Lock(out properties);
+                public ILockedFramebuffer Lock(IRenderTarget.RenderTargetSceneInfo sceneInfo, out FramebufferLockProperties properties)
+                    => surface.Lock(out properties);
                 public void Dispose() { }
             }
 
@@ -374,6 +377,7 @@ namespace KotH.Client.Menu
                 public int RowBytes => surface.Width * 4;
                 public Vector Dpi => new Vector(96, 96);
                 public AvaloniaPixelFormat Format => AvaloniaPixelFormat.Bgra8888;
+                public AlphaFormat AlphaFormat => AlphaFormat.Premul;
                 public void Dispose() => surface.Drawn();
             }
         }

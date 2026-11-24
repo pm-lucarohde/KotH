@@ -19,10 +19,10 @@
     <!-- Stride's own Vulkan binding, for DLSS (Rendering/Dlss); the version Stride 4.4.1 uses. -->
     <PackageReference Include="Vortice.Vulkan" Version="3.0.3" />
     <!-- The main menu: Avalonia rendered headless by Skia (Menu/MenuOverlay.cs). -->
-    <PackageReference Include="Avalonia" Version="11.3.20" />
-    <PackageReference Include="Avalonia.Skia" Version="11.3.20" />
-    <PackageReference Include="Avalonia.Headless" Version="11.3.20" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.20" />
+    <PackageReference Include="Avalonia" Version="12.1.1" />
+    <PackageReference Include="Avalonia.Skia" Version="12.1.1" />
+    <PackageReference Include="Avalonia.Headless" Version="12.1.1" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.1" />
     <!-- Avalonia's build sends usage statistics home; not from this build. -->
     <PackageReference Include="Avalonia.BuildServices" Version="11.3.2" ExcludeAssets="all" PrivateAssets="all" />
   </ItemGroup>
