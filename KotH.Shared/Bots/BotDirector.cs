@@ -214,7 +214,11 @@ namespace KotH.Shared.Bots
             if (Feed() && worker != null)
                 wake.Set();
             if (worker == null)
+            {
+                long begun = AllocMeter.Begin();
                 Advance(Stopwatch.GetTimestamp() + (long)(budget * Stopwatch.Frequency / 1000.0));
+                AllocMeter.End(AllocMeter.Part.Bots, begun);
+            }
         }
 
         /// <summary>Works the bots out ahead on a thread of their own from now on.</summary>
@@ -228,7 +232,9 @@ namespace KotH.Shared.Bots
                 while (!stopping)
                 {
                     wake.WaitOne();
+                    long begun = AllocMeter.Begin();
                     Advance(long.MaxValue);
+                    AllocMeter.End(AllocMeter.Part.Bots, begun);
                 }
             })
             { Name = "KotH Bots", IsBackground = true };

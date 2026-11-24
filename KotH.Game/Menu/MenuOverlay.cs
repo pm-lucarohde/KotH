@@ -116,8 +116,10 @@ namespace KotH.Client.Menu
             if (frame == tickedFrame)
                 return;
             tickedFrame = frame;
+            long begun = KotH.Shared.Simulation.AllocMeter.Begin();
             Dispatcher.UIThread.RunJobs();
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            KotH.Shared.Simulation.AllocMeter.End(KotH.Shared.Simulation.AllocMeter.Part.Avalonia, begun);
         }
 
         /// <summary>Sizes and places it for the screen; it starts rendering the first time.</summary>

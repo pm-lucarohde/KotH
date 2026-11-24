@@ -153,19 +153,19 @@ sealed class KotHGame : Game
     Int2 sizeShown;
     int windowVersion;
 
-    // Real ms of the frame, its update (Update's start to Draw's), its draw and the rest (present, waiting);
-    // ticks, collections, KiB allocated, what showed (Shown), camera and view, the end on the monotonic clock
-    // (perf -k CLOCK_MONOTONIC), the game thread's CPU ms in update and draw, and with KOTH_VKTIMES=1 per
-    // Vulkan call (VulkanTimes) its ms and count on the game thread and its ms on the others.
+    // Real ms of the frame, its update (Update's start to Draw's), its draw and the rest; ticks, collections,
+    // KiB allocated, what showed (Shown), camera and view, the end (CLOCK_MONOTONIC), the game thread's CPU ms
+    // in update and draw, with KOTH_VKTIMES=1 per Vulkan call its ms and count (game thread, others); last the
+    // bytes the game thread allocated in update and draw and those of AllocMeter's parts (Avalonia in update).
     struct GcRow { public int Frame, Index, Generation, Count, Unseen; public float PauseMs, PausePercent; public long PromotedKiB, HeapKiB; }
-    struct FrameRow { public float Ms, Update, Draw, UpdateCpu, DrawCpu; public byte Ticks, Gc0, Gc1, Gc2, Shown; public int KiB; public Vector3 Eye; public float Yaw, Pitch; public long End; public VkRow Vk; }
+    struct FrameRow { public float Ms, Update, Draw, UpdateCpu, DrawCpu; public byte Ticks, Gc0, Gc1, Gc2, Shown; public int KiB; public Vector3 Eye; public float Yaw, Pitch; public long End; public VkRow Vk; public long UpdateBytes, DrawBytes, SimBytes, BotBytes, AvaloniaBytes; }
     [System.Runtime.CompilerServices.InlineArray((int)KotH.Client.Rendering.VulkanTimes.Call.Count)] struct VkMs { float first; }
     [System.Runtime.CompilerServices.InlineArray((int)KotH.Client.Rendering.VulkanTimes.Call.Count)] struct VkCount { int first; }
     struct VkRow { public VkMs Game, Other; public VkCount Count; }
     struct TimeSpec { public long Seconds, Nanos; }
     [System.Runtime.InteropServices.DllImport("libc", EntryPoint = "clock_gettime")] static extern int ClockGetTime(int clock, out TimeSpec time);
     static long ThreadCpuNanos() => ClockGetTime(3, out TimeSpec t) == 0 ? t.Seconds * 1_000_000_000 + t.Nanos : 0; // CLOCK_THREAD_CPUTIME_ID
-    long updateCpu, drawCpu;
+    long updateCpu, drawCpu, updateBytes, drawBytes;
     enum Shown : byte { Other, Lobby, Round, Covered }
 
     // Ten minutes at 2000 FPS, allocated once so logging never allocates.
@@ -184,7 +184,7 @@ sealed class KotHGame : Game
         ConsoleLogLevel = LogMessageType.Warning;
 
         if (frameLogPath != null)
-            (frameLog, gcLog) = (new FrameRow[600 * 2000], new GcRow[4096]);
+            (frameLog, gcLog, KotH.Shared.Simulation.AllocMeter.Enabled) = (new FrameRow[600 * 2000], new GcRow[4096], true);
         if (gpuLogPath != null)
         {
             gpuEvents = new();
@@ -506,7 +506,7 @@ sealed class KotHGame : Game
         if (frameLog == null)
             return;
         using var writer = new StreamWriter(frameLogPath);
-        writer.WriteLine("# ms update draw ticks gc0 gc1 gc2 kib shown(0 other, 1 lobby, 2 round, 3 covered) x y z yaw pitch end(s) updatecpu drawcpu, then per VulkanTimes.Call game ms, game count, other ms");
+        writer.WriteLine("# ms update draw ticks gc0 gc1 gc2 kib shown(0 other, 1 lobby, 2 round, 3 covered) x y z yaw pitch end(s) updatecpu drawcpu, then per VulkanTimes.Call game ms, game count, other ms, then bytes allocated in update, draw, simulation, bots, avalonia (in update)");
         for (int i = 0; i < frameCount; i++)
         {
             FrameRow r = frameLog[i];
@@ -518,7 +518,7 @@ sealed class KotHGame : Game
                 writer.Write(FormattableString.Invariant($" {r.Vk.Count[c]}"));
             for (int c = 0; c < (int)KotH.Client.Rendering.VulkanTimes.Call.Count; c++)
                 writer.Write(FormattableString.Invariant($" {r.Vk.Other[c]:F3}"));
-            writer.WriteLine();
+            writer.WriteLine(FormattableString.Invariant($" {r.UpdateBytes} {r.DrawBytes} {r.SimBytes} {r.BotBytes} {r.AvaloniaBytes}"));
         }
         Console.WriteLine($"[frames] {frameCount} frames to {frameLogPath}");
         using var gcWriter = new StreamWriter(frameLogPath + ".gc");
@@ -538,7 +538,7 @@ sealed class KotHGame : Game
     {
         updateStart = System.Diagnostics.Stopwatch.GetTimestamp();
         if (frameLog != null)
-            updateCpu = ThreadCpuNanos();
+            (updateCpu, updateBytes) = (ThreadCpuNanos(), GC.GetAllocatedBytesForCurrentThread());
         // The last frame's ticks, before anything reads the world.
         SimulationJob.Join();
         if (splash != null)
@@ -915,7 +915,7 @@ sealed class KotHGame : Game
     {
         long drawStart = System.Diagnostics.Stopwatch.GetTimestamp();
         if (frameLog != null)
-            drawCpu = ThreadCpuNanos();
+            (drawCpu, drawBytes) = (ThreadCpuNanos(), GC.GetAllocatedBytesForCurrentThread());
         base.Draw(gameTime);
         splash?.Draw(this, gameTime);
         CollectUnseen();
@@ -1100,12 +1100,14 @@ sealed class KotHGame : Game
         static float Ms(long from, long to) => (float)((to - from) * 1000.0 / System.Diagnostics.Stopwatch.Frequency);
         int tick = notedTick;
         int gc0 = GC.CollectionCount(0), gc1 = GC.CollectionCount(1), gc2 = GC.CollectionCount(2);
-        long allocated = GC.GetTotalAllocatedBytes();
+        // Precise: the rough sum counts a thread's whole fresh allocation block (~128 KiB) at once.
+        long allocated = GC.GetTotalAllocatedBytes(precise: true);
         Shown shown = notedShown;
         gpuRecording = shown == Shown.Round;
         VkRow vk = default;
         KotH.Client.Rendering.VulkanTimes.Take(vk.Game, vk.Count, vk.Other);
-        long cpu = ThreadCpuNanos();
+        long drawn = GC.GetAllocatedBytesForCurrentThread(), cpu = ThreadCpuNanos();
+        static long Taken(KotH.Shared.Simulation.AllocMeter.Part part) => KotH.Shared.Simulation.AllocMeter.Take(part);
         // The last collection of a frame that had any (GetGCMemoryInfo allocates, but only then).
         if (gc0 != lastGc0 && lastFrameEnd != 0 && gcCount < gcLog.Length)
         {
@@ -1128,6 +1130,10 @@ sealed class KotHGame : Game
                 Eye = Cached(ref loggedCamera)?.Entity.Transform.WorldMatrix.TranslationVector ?? default,
                 Yaw = notedYaw, Pitch = notedPitch, End = now, Vk = vk,
                 UpdateCpu = (drawCpu - updateCpu) / 1e6f, DrawCpu = (cpu - drawCpu) / 1e6f,
+                UpdateBytes = drawBytes - updateBytes, DrawBytes = drawn - drawBytes,
+                SimBytes = Taken(KotH.Shared.Simulation.AllocMeter.Part.Simulation),
+                BotBytes = Taken(KotH.Shared.Simulation.AllocMeter.Part.Bots),
+                AvaloniaBytes = Taken(KotH.Shared.Simulation.AllocMeter.Part.Avalonia),
             };
             if (shown == Shown.Round && (roundSeconds += frameLog[frameCount - 1].Ms / 1000.0) >= frameLogSeconds)
                 Exit();

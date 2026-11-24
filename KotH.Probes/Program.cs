@@ -46,6 +46,7 @@ Probe probe = name switch
     "secure" => new SecureProbe(),
     "custommap" => new CustomMapProbe(repo),
     "progress" => new ProgressProbe(),
+    "alloc" => new AllocProbe(),
     "bots" => new BotProbe
     {
         Stats = args.Length > 2 && args[1] == "stats" ? int.Parse(args[2]) : 0,
@@ -58,7 +59,7 @@ Probe probe = name switch
 
 if (probe == null)
 {
-    Console.Error.WriteLine("Usage: KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|blaster|dash|step|determinism|clock|stairrun|rampfoot|crouchedge|edgeslip|ladder|knockback|thirdperson|wallknock|capture|chain|netstate|netplay|password|migrate|secure|custommap|progress|bots>");
+    Console.Error.WriteLine("Usage: KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheight|slide|sprint|melee|blaster|dash|step|determinism|clock|stairrun|rampfoot|crouchedge|edgeslip|ladder|knockback|thirdperson|wallknock|capture|chain|netstate|netplay|password|migrate|secure|custommap|progress|alloc|bots>");
     return 64;
 }
 

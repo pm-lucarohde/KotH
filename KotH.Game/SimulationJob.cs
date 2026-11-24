@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.ExceptionServices;
 using System.Threading;
+using KotH.Shared.Simulation;
 
 namespace KotH.Client
 {
@@ -47,7 +48,9 @@ namespace KotH.Client
             if (scheduled is { } late)
             {
                 scheduled = null;
+                long begun = AllocMeter.Begin();
                 late();
+                AllocMeter.End(AllocMeter.Part.Simulation, begun);
             }
             if (failed is { } error)
             {
@@ -61,6 +64,7 @@ namespace KotH.Client
             while (true)
             {
                 go.Wait();
+                long begun = AllocMeter.Begin();
                 try
                 {
                     running();
@@ -70,6 +74,7 @@ namespace KotH.Client
                     failed = ExceptionDispatchInfo.Capture(e);
                 }
                 running = null;
+                AllocMeter.End(AllocMeter.Part.Simulation, begun);
                 done.Set();
             }
         }
