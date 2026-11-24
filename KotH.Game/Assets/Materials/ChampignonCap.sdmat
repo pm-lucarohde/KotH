@@ -1,0 +1,28 @@
+!MaterialAsset
+Id: 2A18D806-0BBA-49AE-9447-663AC9407EC8
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Attributes:
+    Diffuse: !MaterialDiffuseMapFeature
+        DiffuseMap: !ComputeShaderClassColor
+            MixinReference: FigureTint
+            Generics:
+                dab3fa311791461980c5bd7a1612c777~TextureKey: !ComputeColorParameterTexture
+                    Texture:
+                        Texture: F3D0FFB1-F90E-41BE-BAD5-5B7F2325A538:Textures/ChampignonCap
+                94dcac05a651473ca1b6f507617c59fb~MaskKey: !ComputeColorParameterTexture
+                    Texture:
+                        Texture: 10A2DC5D-D39B-454F-A943-EF2D2EBC7B55:Textures/ChampignonCapMask
+            CompositionNodes: {}
+    DiffuseModel: !MaterialDiffuseLambertModelFeature {}
+    Emissive: !MaterialEmissiveMapFeature
+        EmissiveMap: !ComputeShaderClassColor
+            MixinReference: FigureGlow
+            Generics: {}
+            CompositionNodes: {}
+        Intensity: !ComputeFloat
+            Value: 1.0
+        UseAlpha: false
+    Overrides:
+        UVScale: {X: 1.0, Y: 1.0}
+Layers: {}

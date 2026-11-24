@@ -40,6 +40,9 @@ namespace KotH.Client
     public sealed class GameRoot : StartupScript, INetWorld
     {
         [Display("Body model", "Visuals")] public Model BodyModel;
+
+        /// <userdoc>The champignon (from level 50): the same rig and clips as the body model, its own cap.</userdoc>
+        [Display("Champignon model", "Visuals")] public Model ChampignonModel;
         [Display("Damage label font", "Visuals")] public SpriteFont LabelFont;
 
         /// <userdoc>Breathing and slight swaying while a figure stands still.</userdoc>
@@ -900,7 +903,7 @@ namespace KotH.Client
 
         Entity AddVisual(Entity body, FigureLook look, RenderGroup group = RenderGroup.Group0)
         {
-            var visual = new Entity(body.Name + "Visual") { new ModelComponent(BodyModel) { RenderGroup = group } };
+            var visual = new Entity(body.Name + "Visual") { new ModelComponent(FigureModel(look)) { RenderGroup = group } };
             // In the order of PlayerVisualSystem.Clips; a missing clip just never plays.
             AnimationClip[] clips = { IdleAnimation, RestAnimation, WalkForward, WalkBack, WalkLeft, WalkRight,
                                       RunForward, RunBack, RunLeft, RunRight,
@@ -920,6 +923,9 @@ namespace KotH.Client
             visuals.Register(visual, body.Get<PlayerMotor>(), look);
             return visual;
         }
+
+        /// <summary>The figure's model for a look: the champignon or the fly agaric (also without a champignon).</summary>
+        Model FigureModel(FigureLook look) => look.Kind == FigureLook.Champignon && ChampignonModel != null ? ChampignonModel : BodyModel;
 
         /// <summary>The figure beside the main menu, upper body and head in the free space right of the
         /// buttons: hung from the flying camera, lit by its own short point light, no shadow, drawn
@@ -943,7 +949,7 @@ namespace KotH.Client
             // Its own group, drawn every frame over the map's 30 fps picture (SceneThrottle).
             var figure = new Entity("MenuFigure")
             {
-                new ModelComponent(BodyModel) { RenderGroup = MenuFigureGroup, IsShadowCaster = false },
+                new ModelComponent(FigureModel(LaunchOptions.Current.Look)) { RenderGroup = MenuFigureGroup, IsShadowCaster = false },
             };
             if (IdleAnimation != null)
                 figure.Add(new AnimationComponent { Animations = { [PlayerVisualSystem.Clips[0]] = IdleAnimation } });
@@ -970,6 +976,12 @@ namespace KotH.Client
         {
             LaunchOptions.Current.SavedLook = look;
             LaunchOptions.Current.Look = PlayerProgress.Shown(look);
+            if (menuFigure?.Get<ModelComponent>() is { } shown && FigureModel(LaunchOptions.Current.Look) is { } model && shown.Model != model)
+            {
+                // The other figure: its own materials, so the copies of the last one go.
+                shown.Materials.Clear();
+                shown.Model = model;
+            }
             FigureColors.Apply(menuFigure?.Get<ModelComponent>(), LaunchOptions.Current.Look);
         }
 

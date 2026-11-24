@@ -17,6 +17,7 @@ namespace KotH.Client.Menu
         static readonly string[] Names = { "Cap", "Skin", "Leaves", "Gloves", "Spores", "Glow", "Trail" };
         static readonly string[] GlowChoices = { "Off", "On" };
         static readonly string[] TrailChoices = { "Off", "Sparks", "Stars", "Spores" };
+        static readonly string[] Kinds = { "Fly agaric", "Champignon" };
 
         /// <summary>The look after a change by the player.</summary>
         public event Action<FigureLook> LookChanged;
@@ -39,10 +40,11 @@ namespace KotH.Client.Menu
                 dots[i] = new Ellipse { Width = 18, Height = 18, Stroke = new SolidColorBrush(Color.FromArgb(90, 0, 0, 0)), StrokeThickness = 1.5 };
                 tabs[i] = new Border
                 {
-                    Classes = { "Tab" }, Padding = new Avalonia.Thickness(16, 7, 20, 7),
+                    // Narrow enough for two rows of four and three, so the wheel keeps its room.
+                    Classes = { "Tab" }, Padding = new Avalonia.Thickness(10, 7, 13, 7),
                     Child = new StackPanel
                     {
-                        Orientation = Orientation.Horizontal, Spacing = 9,
+                        Orientation = Orientation.Horizontal, Spacing = 7,
                         Children = { dots[i], new TextBlock { Text = Names[i], VerticalAlignment = VerticalAlignment.Center } },
                     },
                 };
@@ -54,11 +56,16 @@ namespace KotH.Client.Menu
             Reset.Click += (_, _) =>
             {
                 if (!Locked)
-                    Set(FigureLook.PaintedColor(part));
+                    Set(FigureLook.PaintedColor(look.Kind, part));
             };
             ResetAll.Click += (_, _) =>
             {
+                // Every colour as painted; the figure, the glow's switch and the trail's shape stay.
                 FigureLook painted = FigureLook.Default;
+                painted.Kind = look.Kind;
+                painted[FigureLook.Cap] = FigureLook.PaintedColor(look.Kind, FigureLook.Cap);
+                painted.Glows = look.Glows;
+                painted.TrailShape = look.TrailShape;
                 if (painted.Equals(look))
                     return;
                 look = painted;
@@ -81,9 +88,40 @@ namespace KotH.Client.Menu
             }
         }
 
+        // The two figures as chips; the champignon locked below level 50.
+        void ShowFigures()
+        {
+            Figures.Children.Clear();
+            for (int k = 0; k < Kinds.Length; k++)
+            {
+                byte kind = (byte)k;
+                bool locked = kind == FigureLook.Champignon && PlayerProgress.Level < Levels.ChampignonLevel;
+                var chip = new Border
+                {
+                    Classes = { "Tab" }, Padding = new Avalonia.Thickness(18, 7),
+                    Child = new TextBlock { Text = locked ? Kinds[k] + " · Level " + Levels.ChampignonLevel : Kinds[k] },
+                };
+                chip.Classes.Set("Chosen", look.Kind == kind);
+                chip.Classes.Set("Off", locked);
+                if (!locked)
+                    chip.PointerPressed += (_, _) => Become(kind);
+                Figures.Children.Add(chip);
+            }
+        }
+
+        void Become(byte kind)
+        {
+            if (look.Kind == kind)
+                return;
+            look.Become(kind);
+            Choose(part);
+            LookChanged?.Invoke(look);
+        }
+
         void Choose(int index)
         {
             part = index;
+            ShowFigures();
             for (int i = 0; i < tabs.Length; i++)
             {
                 tabs[i].Classes.Set("Chosen", i == part);

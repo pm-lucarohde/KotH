@@ -20,7 +20,12 @@ namespace KotH.Client.Player
         static readonly ValueParameterKey<Vector4> SkinShift = ParameterKeys.NewValue<Vector4>(default, "FigureTint.SkinShift");
         static readonly ValueParameterKey<Vector4> LeafShift = ParameterKeys.NewValue<Vector4>(default, "FigureTint.LeafShift");
         static readonly ValueParameterKey<Vector4> GloveShift = ParameterKeys.NewValue<Vector4>(default, "FigureTint.GloveShift");
+        static readonly ValueParameterKey<float> CapByLight = ParameterKeys.NewValue<float>(0f, "FigureTint.CapByLight");
         static readonly ValueParameterKey<Vector4> GlowColor = ParameterKeys.NewValue<Vector4>(default, "FigureGlow.GlowColor");
+
+        // The champignon's cap (its 4th material, after the fly agaric's three as in the glb): no red
+        // share to move, its colour goes by the texel's light.
+        const int ChampignonCapSlot = 3;
 
         /// <summary>Recolours model's figure materials; once copied, a model keeps its copies.</summary>
         public static void Apply(ModelComponent model, FigureLook look)
@@ -37,8 +42,10 @@ namespace KotH.Client.Player
                     own = Copy(shared);
                     model.Materials[i] = own;
                 }
+                bool byLight = i == ChampignonCapSlot;
                 foreach (MaterialPass pass in own.Passes)
                 {
+                    pass.Parameters.Set(CapByLight, byLight ? 1f : 0f);
                     pass.Parameters.Set(CapShift, Shift(look, FigureLook.Cap));
                     pass.Parameters.Set(SkinShift, Shift(look, FigureLook.Skin));
                     pass.Parameters.Set(LeafShift, Shift(look, FigureLook.Leaves));
@@ -52,8 +59,9 @@ namespace KotH.Client.Player
         // that replaces the texture: none at the painted colour, all a quarter of the cube away.
         static Vector4 Shift(FigureLook look, int part)
         {
-            Vector3 c = Linear(look[part]), r = Linear(FigureLook.PaintedColor(part));
-            float away = (Unit(look[part]) - Unit(FigureLook.PaintedColor(part))).Length();
+            uint painted = FigureLook.PaintedColor(look.Kind, part);
+            Vector3 c = Linear(look[part]), r = Linear(painted);
+            float away = (Unit(look[part]) - Unit(painted)).Length();
             return new Vector4(c / MathF.Max(1e-3f, Luminance(r)), Math.Clamp(away * 4f, 0f, 1f));
         }
 

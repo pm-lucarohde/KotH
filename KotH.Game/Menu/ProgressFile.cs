@@ -85,7 +85,7 @@ namespace KotH.Client.Menu
                 return FigureLook.Default;
             FigureLook look = saved;
             if (level < Levels.ChampignonLevel)
-                look.Kind = FigureLook.FlyAgaric;
+                look.Become(FigureLook.FlyAgaric);
             if (level < Levels.GlowLevel)
             {
                 look.Glows = false;

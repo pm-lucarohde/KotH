@@ -9,15 +9,20 @@
     <Grid Width="560" Height="790">
         <Panel Width="510" Height="740" Margin="24,24,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
             <Image Source="/Menu/Art/Panel.png" Margin="-24" Stretch="Fill" />
-            <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="44,34,44,34">
+            <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="44,34,44,34">
                 <TextBlock Classes="Title" Text="Customize" />
 
-                <WrapPanel Name="Tabs" Grid.Row="1" Margin="0,16,0,0" ItemSpacing="10" LineSpacing="12" />
+                <!-- The figure: fly agaric, or the champignon from level 50 -->
+                <WrapPanel Name="Figures" Grid.Row="1" Margin="0,14,0,0" ItemSpacing="10" LineSpacing="10" />
 
-                <Border Grid.Row="2" Classes="Well" Margin="0,18,0,0">
+                <WrapPanel Name="Tabs" Grid.Row="2" Margin="0,12,0,0" ItemSpacing="6" LineSpacing="10" />
+
+                <Border Grid.Row="3" Classes="Well" Margin="0,16,0,0">
                     <Grid RowDefinitions="*,Auto,Auto,Auto" ColumnDefinitions="Auto,*">
-                        <menu:ColorWheel Name="Wheel" Grid.ColumnSpan="2" Width="220" Height="220"
-                                         HorizontalAlignment="Center" />
+                        <!-- Shrinks into the height the tabs leave (figure choice, three tab rows) -->
+                        <Viewbox Grid.ColumnSpan="2" Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Center">
+                            <menu:ColorWheel Name="Wheel" Width="220" Height="220" />
+                        </Viewbox>
                         <Path Grid.Row="1" Width="30" Height="30" Margin="0,14,14,0" VerticalAlignment="Center"
                               Data="M 15,8 A 7,7 0 1 1 14.99,8 Z M 15,0 L 15,4 M 15,26 L 15,30 M 0,15 L 4,15 M 26,15 L 30,15 M 4.4,4.4 L 7.2,7.2 M 22.8,22.8 L 25.6,25.6 M 4.4,25.6 L 7.2,22.8 M 22.8,7.2 L 25.6,4.4"
                               Stroke="{StaticResource BrownBrush}" StrokeThickness="2.6" StrokeLineCap="Round" />
@@ -30,12 +35,12 @@
                         </Border>
                         <!-- Glow: Off | On; trail: its shapes. Empty for the figure's parts -->
                         <WrapPanel Name="Options" Grid.Row="3" Grid.ColumnSpan="2" HorizontalAlignment="Center"
-                                   ItemSpacing="8" LineSpacing="8" />
+                                   Margin="0,10,0,0" ItemSpacing="8" LineSpacing="8" />
                     </Grid>
                 </Border>
 
                 <!-- Reset: the chosen part's painted colour; Reset all: every part's -->
-                <Grid Grid.Row="3" ColumnDefinitions="*,22,*,22,*" Margin="0,18,0,0">
+                <Grid Grid.Row="4" ColumnDefinitions="*,22,*,22,*" Margin="0,18,0,0">
                     <Button Name="Reset" Width="NaN" Classes="Menu Small" Content="Reset" HorizontalAlignment="Stretch" />
                     <Button Name="ResetAll" Width="NaN" Grid.Column="2" Classes="Menu Small" Content="Reset all" HorizontalAlignment="Stretch" />
                     <Button Name="Back" Width="NaN" Grid.Column="4" Classes="Menu Small" Content="Back" HorizontalAlignment="Stretch" />

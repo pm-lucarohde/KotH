@@ -19,6 +19,10 @@ run "KOTH_SHOT_MENU=1 KOTH_SHOT_MENU_PAGE=0 KOTH_SHOT_SECONDS=10"
 run "KOTH_SHOT_LOAD=1 KOTH_SHOT_SECONDS=2" --offline
 # Level 100 looks: glow and each sparkle trail shape.
 for t in sparks stars spores; do run "KOTH_SHOT_SECONDS=5 KOTH_SHOT_THIRD=3.5 KOTH_SHOT_MOVE=1,0 KOTH_SHOT_LOOK=AD1815,E7CEBE,396C26,513222,FFEB4D,30C8FF,FF70D0,glow,$t" --offline; done
+# The champignon (its cap material): menu, Customize and a round in third person.
+run "KOTH_SHOT_MENU=1 KOTH_SHOT_MENU_PAGE=3 KOTH_XP=9999999 KOTH_SHOT_LOOK=champignon KOTH_SHOT_SECONDS=4"
+run "KOTH_SHOT_SECONDS=6 KOTH_SHOT_THIRD=3.5 KOTH_SHOT_LOOK=champignon" --offline --bots 3
+run "KOTH_SHOT_SECONDS=6 KOTH_SHOT_THIRD=3.5 KOTH_SHOT_LOOK=champignon,glow,stars" --offline --bots 3 --dlss quality
 run "KOTH_SHOT_SECONDS=14 KOTH_SHOT_STRIKE=2,4,6 KOTH_SHOT_HIT=0,0.5 KOTH_SHOT_MOVE=0,1,sprint KOTH_SHOT_CROUCH=8 KOTH_SHOT_JUMP=10,10.3" --offline --bots 3
 run "KOTH_SHOT_SECONDS=14 KOTH_SHOT_THIRD=1 KOTH_SHOT_STRIKE=2,4 KOTH_SHOT_HIT=90 KOTH_SHOT_BLINK=1 KOTH_SHOT_TURN=180,6,90" --offline --bots 3
 run "KOTH_SHOT_SECONDS=8 KOTH_SHOT_BLASTER=1 KOTH_SHOT_FIRE=3,4,5" --offline --bots 3

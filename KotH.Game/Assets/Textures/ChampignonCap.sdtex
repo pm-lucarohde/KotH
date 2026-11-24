@@ -1,0 +1,8 @@
+!Texture
+Id: F3D0FFB1-F90E-41BE-BAD5-5B7F2325A538
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Models/ChampignonCap.png
+IsCompressed: true
+Type: !ColorTextureType
+    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}

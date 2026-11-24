@@ -71,6 +71,20 @@ namespace KotH.Shared.Net
 
         public static uint PaintedColor(int part) => Painted[part];
 
+        // The champignon's cap as painted (the mean of ChampignonCap.png under its mask).
+        const uint ChampignonCap = 0xD3B999;
+
+        /// <summary>Part's painted colour on the figure kind: the champignon's cap differs.</summary>
+        public static uint PaintedColor(byte kind, int part) => kind == Champignon && part == Cap ? ChampignonCap : Painted[part];
+
+        /// <summary>Changes the figure; a cap still as painted takes the new figure's painted cap.</summary>
+        public void Become(byte kind)
+        {
+            if (this[Cap] == PaintedColor(Kind, Cap))
+                this[Cap] = PaintedColor(kind, Cap);
+            Kind = kind;
+        }
+
         public void Write(ref Writer w)
         {
             for (int i = 0; i < Colors; i++)

@@ -120,7 +120,10 @@ namespace KotH.Client.Net
                     if (i < FigureLook.Colors && LookFile.ParseHex(parts[i]) is { } rgb)
                         o.Look[i] = o.SavedLook[i] = rgb;
                     else if (parts[i] == "champignon")
-                        o.Look.Kind = o.SavedLook.Kind = FigureLook.Champignon;
+                    {
+                        o.Look.Become(FigureLook.Champignon);
+                        o.SavedLook.Become(FigureLook.Champignon);
+                    }
                     else if (parts[i] == "glow")
                         o.Look.Glows = o.SavedLook.Glows = true;
                     else if (Array.IndexOf(new[] { "sparks", "stars", "spores" }, parts[i]) is >= 0 and var shape)

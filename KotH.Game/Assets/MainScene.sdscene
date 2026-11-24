@@ -94,6 +94,7 @@ Hierarchy:
                     7f9467f2e64555ac90453b3985caa0e5: !KotH.GameRoot
                         Id: 7A1E6D17-27F1-5245-927C-BDB7EEB027B0
                         BodyModel: 5A577C74-31C4-461E-AB70-D9ECAE3CC5D1:Models/Mushroom
+                        ChampignonModel: 36528790-19E6-42AC-93B2-564082F02D39:Models/Champignon
                         LabelFont: 6B653845-EFE6-5534-8C3D-396207FA2121:Fonts/Label
                         IdleAnimation: DBE76364-9F21-49D0-B4BB-37E7DDFC9601:Models/MushroomIdle
                         RestAnimation: 4EEEBC59-E9FC-46BA-8EF7-FE181A7BB0AC:Models/MushroomRest

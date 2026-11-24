@@ -17,6 +17,7 @@ shader FigureTint<LinkType TextureKey, LinkType MaskKey>
         stage float4 SkinShift;
         stage float4 LeafShift;
         stage float4 GloveShift;
+        stage float CapByLight;   // 1: a cap without red share (the champignon's): colour times light
     }
 
     override float4 Compute()
@@ -32,7 +33,7 @@ shader FigureTint<LinkType TextureKey, LinkType MaskKey>
         float red = c.r >= hi ? smoothstep(0.3, 0.17, hue) : 0.0;
         float t = smoothstep(0.08, 0.85, sat) * red;
         float family = 1.0 - smoothstep(0.1, 0.25, sat) * (1.0 - red);
-        float3 cap = lerp(c.rgb, lerp(float3(hi, hi, hi), CapShift.rgb * lum, t), family);
+        float3 cap = lerp(lerp(c.rgb, lerp(float3(hi, hi, hi), CapShift.rgb * lum, t), family), CapShift.rgb * lum, CapByLight);
         float3 d = m.r * CapShift.w * (cap - c.rgb) + m.g * SkinShift.w * (SkinShift.rgb * lum - c.rgb)
                  + m.b * LeafShift.w * (LeafShift.rgb * lum - c.rgb) + (1.0 - m.a) * GloveShift.w * (GloveShift.rgb * lum - c.rgb);
         return float4(saturate(c.rgb + d), c.a);
