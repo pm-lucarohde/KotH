@@ -3,7 +3,7 @@
 #:include ../../KotH.MapFormat/Unwrap/LightmapUnwrap.cs
 #:include ../Common/Png.cs
 // The sample custom map, as a kit would export it: a 48 m meadow with a stepped tower (zone on
-// top), crates and a pillar; four spawns facing the zone. Writes the package the probe
+// top), crates, a pillar with a ladder, a trampoline and a lava pit; four spawns facing the zone. Writes the package the probe
 // `custommap` loads; with --install also into the player's map folder (KotH's Maps page).
 //   dotnet run Tools/maps/SampleMap.cs [-- --install | --live DIR]
 using System;
@@ -24,6 +24,7 @@ model.Materials.Add(new MapMaterial { Name = "Crate", Template = "Surface", Colo
 model.Materials.Add(new MapMaterial { Name = "Pillar", Template = "Surface", Color = [0.8f, 0.3f, 0.25f, 1f], Roughness = 0.5f });
 model.Materials.Add(new MapMaterial { Name = "Pond", Template = "Water" });
 model.Materials.Add(new MapMaterial { Name = "Bush", Template = "Leaves", Color = [0.35f, 0.6f, 0.25f, 1f], ColorTexture = 1 });
+model.Materials.Add(new MapMaterial { Name = "Lava", Template = "Lava" });
 model.Textures.Add(Checker());
 model.Textures.Add(Blob());
 
@@ -41,6 +42,8 @@ Box("Pillar", 3, -15, 0, 12, -13, 6, 14, MapShadows.Live);
 Quad("Pond", 4, [-20f, 0.04f, -20f], [-20f, 0.04f, -14f], [-14f, 0.04f, -14f], [-14f, 0.04f, -20f], MapShadows.Off);
 Quad("BushA", 5, [17f, 0f, -12f], [19f, 0f, -12f], [19f, 2f, -12f], [17f, 2f, -12f], MapShadows.Baked);
 Quad("BushB", 5, [18f, 0f, -13f], [18f, 0f, -11f], [18f, 2f, -11f], [18f, 2f, -13f], MapShadows.Baked);
+// The lava pit's surface (its area is the manifest's [[lava]]), not solid either.
+Quad("Lava", 6, [-3f, 0.06f, -18f], [-3f, 0.06f, -14f], [3f, 0.06f, -14f], [3f, 0.06f, -18f], MapShadows.Off);
 // An invisible wall round the edge: the meadow ends at a drop otherwise.
 Box("EdgeNorth", 0, -24, 0, -25, 24, 3, -24, MapShadows.Off, MapCollide.Only);
 
@@ -54,6 +57,10 @@ var manifest = new MapManifest
 manifest.Zone = new MapZone { X = 0, Y = 5f + 1.75f, Z = 0, SizeX = 3f, SizeY = 3.5f, SizeZ = 3f, RespawnBelow = -5f };
 foreach (var (x, z) in new[] { (16f, 16f), (-16f, 16f), (16f, -16f), (-16f, -16f) })
     manifest.Spawns.Add(new MapSpawn { X = x, Y = 0f, Z = z });
+// A ladder up the pillar's +X face, a trampoline and a lava pit, each with the game's look.
+manifest.Ladders.Add(new MapLadder { X = -13f, Y = 0f, Z = 13f, Yaw = -90f, Width = 1f, Height = 6f });
+manifest.Trampolines.Add(new MapTrampoline { X = 10f, Y = 0.6f, Z = -2f });
+manifest.Lava.Add(new MapLava { X = 0f, Y = 0f, Z = -16f, SizeX = 6f, SizeY = 0.6f, SizeZ = 4f });
 
 string folder = Path.Combine(root, "KotH.Probes/Resources/MapPackages/Sample");
 // --live DIR: every object's shadow live, written to DIR instead (a test of the cascades).

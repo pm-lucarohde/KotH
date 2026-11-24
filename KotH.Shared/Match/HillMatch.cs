@@ -83,6 +83,15 @@ namespace KotH.Shared.Match
         readonly float magmaRadius, magmaSurface, magmaWave, magmaRespawn;
         readonly int magmaEvery;
 
+        struct Lava
+        {
+            public float X, Z, HalfX, HalfZ, Top, Bottom, Cos, Sin, Wave, Respawn;
+            public int Every;
+            public bool Round;
+        }
+
+        readonly Lava[] lava;
+
         MatchState state;
 
         public HillMatch(CaptureZone zone)
@@ -95,6 +104,19 @@ namespace KotH.Shared.Match
             if (zone.Entity.Get<MagmaPool>() is { } magma)
                 (magmaRadius, magmaSurface, magmaWave, magmaEvery, magmaRespawn) =
                     (magma.Radius, magma.Surface, magma.DamagePerWave, Math.Max(1, Ticks(magma.WaveSeconds)), magma.RespawnAbove);
+            var pits = new List<Lava>();
+            foreach (LavaArea a in zone.Entity.GetAll<LavaArea>())
+            {
+                float yaw = a.Yaw * (MathF.PI / 180f);
+                pits.Add(new Lava
+                {
+                    X = a.Center.X, Z = a.Center.Z, HalfX = UMath.Abs(a.Size.X) * 0.5f, HalfZ = UMath.Abs(a.Size.Z) * 0.5f,
+                    Top = a.Center.Y + UMath.Abs(a.Size.Y) * 0.5f, Bottom = a.Center.Y - UMath.Abs(a.Size.Y) * 0.5f,
+                    Cos = DetMath.CosF(yaw), Sin = DetMath.SinF(yaw), Round = a.Cylinder,
+                    Wave = a.DamagePerWave, Every = Math.Max(1, Ticks(a.WaveSeconds)), Respawn = a.RespawnAbove,
+                });
+            }
+            lava = pits.ToArray();
 
             // A polygon's half size is the reach of its corners, for the bots' sense of the zone.
             foreach (Vector2 c in corners)
@@ -244,18 +266,56 @@ namespace KotH.Shared.Match
         bool Burns(SimulationBody body)
         {
             int tick = body.Simulation?.CurrentTick ?? 0;
-            if (magmaRadius <= 0f || body.Damage == null || tick % magmaEvery != 0)
+            if (body.Damage == null)
                 return false;
-            Vector3 p = body.Motor.Position;
-            float dx = p.X - center.X, dz = p.Z - center.Z;
-            if (p.Y - body.Motor.StandHeight * 0.5f >= magmaSurface || dx * dx + dz * dz > magmaRadius * magmaRadius)
-                return false;
-            bool over = body.Damage.Percent > magmaRespawn;
+            if (magmaRadius > 0f && tick % magmaEvery == 0)
+            {
+                Vector3 p = body.Motor.Position;
+                float dx = p.X - center.X, dz = p.Z - center.Z;
+                if (p.Y - body.Motor.StandHeight * 0.5f < magmaSurface && dx * dx + dz * dz <= magmaRadius * magmaRadius)
+                    return Hit(body, tick, magmaWave, magmaRespawn);
+            }
+            Vector3 feet = UMath.Sub(body.Motor.Position, new Vector3(0f, body.Motor.StandHeight * 0.5f, 0f));
+            for (int i = 0; i < lava.Length; i++)
+                if (tick % lava[i].Every == 0 && InPit(lava[i], feet))
+                    return Hit(body, tick, lava[i].Wave, lava[i].Respawn);
+            return false;
+        }
+
+        /// <summary>One wave's hit; true when the body already had more than the limit.</summary>
+        static bool Hit(SimulationBody body, int tick, float wave, float respawn)
+        {
+            bool over = body.Damage.Percent > respawn;
             body.Damage.LastHitTick = tick;
             body.Damage.LastHitAway = default;
             body.Damage.LastHitAt = default;
-            body.Damage.Add(magmaWave);
+            body.Damage.Add(wave);
             return over;
+        }
+
+        /// <summary>Whether feet stand in one of the lava areas, grown by margin to the sides (the
+        /// bots' grid keeps a body's width off them).</summary>
+        public bool InLava(Vector3 feet, float margin = 0f)
+        {
+            foreach (Lava l in lava)
+                if (InPit(l, feet, margin))
+                    return true;
+            return false;
+        }
+
+        // Feet from the bottom up to under the top, inside the turned box or the ellipse.
+        static bool InPit(in Lava l, Vector3 feet, float margin = 0f)
+        {
+            if (feet.Y >= l.Top || feet.Y < l.Bottom)
+                return false;
+            float dx = feet.X - l.X, dz = feet.Z - l.Z;
+            float x = dx * l.Cos - dz * l.Sin, z = dx * l.Sin + dz * l.Cos;
+            float hx = l.HalfX + margin, hz = l.HalfZ + margin;
+            if (!l.Round)
+                return UMath.Abs(x) <= hx && UMath.Abs(z) <= hz;
+            x /= UMath.Max(hx, 1e-4f);
+            z /= UMath.Max(hz, 1e-4f);
+            return x * x + z * z <= 1f;
         }
 
         /// <summary>Even-odd test of a floor point against the drawn corners (Y holds Z).</summary>

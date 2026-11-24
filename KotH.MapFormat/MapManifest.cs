@@ -30,12 +30,44 @@ namespace KotH.MapFormat
         public float RingInner, RingOuter, RingSpacing = 6f;
     }
 
+    /// <summary>A ladder on a wall: its foot on the wall's face, looking out of the wall (yaw as a spawn's).
+    /// Model: the export adds the game's ladder (rails and rungs); off, the maker draws one.</summary>
+    public sealed class MapLadder
+    {
+        public float X, Y, Z, Yaw;
+        public float Width = 1f, Height = 3f;
+        public bool Model = true;
+    }
+
+    /// <summary>A trampoline: the middle of its top. Model: the export adds the game's trampoline and its
+    /// solid block down to Y less Height; off, the maker draws one and its solid top.</summary>
+    public sealed class MapTrampoline
+    {
+        public float X, Y, Z;
+        public float Diameter = 1.2f, Height = 0.6f, Bounce = 0.9f;
+        public bool Model = true;
+    }
+
+    /// <summary>A lava pit: box or cylinder round its middle, the lava's surface at its top; hits in waves
+    /// as Volcano's magma. The look is the maker's (template Lava, collision None).</summary>
+    public sealed class MapLava
+    {
+        public float X, Y, Z, Yaw;
+        public float SizeX = 4f, SizeY = 1f, SizeZ = 4f;
+        public string Shape = "box";
+        public float DamagePerWave = 10f, WaveSeconds = 1f, RespawnAbove = 100f;
+    }
+
     /// <summary>map.toml: what the map is and how it plays. The geometry is in map.glb (seen) and
     /// collision.bin (solid); this file holds the rest.</summary>
     public sealed class MapManifest
     {
         public const string Game = "KotH";
         public const int Format = 1;
+
+        /// <summary>Written by maps with ladders, trampolines or lava: older games refuse them instead of
+        /// playing them without. This game reads both.</summary>
+        public const int FormatObjects = 2;
 
         /// <summary>Folder name and local id: letters, digits, '-' and '_'.</summary>
         public string Name = "MyMap";
@@ -58,6 +90,12 @@ namespace KotH.MapFormat
         /// <summary>BotSettings fields by name (as in Game Studio, e.g. JumpUp), only those changed.</summary>
         public readonly SortedDictionary<string, double> Bots = new SortedDictionary<string, double>(StringComparer.Ordinal);
 
+        public readonly List<MapLadder> Ladders = new List<MapLadder>();
+        public readonly List<MapTrampoline> Trampolines = new List<MapTrampoline>();
+        public readonly List<MapLava> Lava = new List<MapLava>();
+
+        bool HasObjects => Ladders.Count > 0 || Trampolines.Count > 0 || Lava.Count > 0;
+
         public static readonly string[] Visibilities = { "public", "friends", "unlisted", "private" };
         public static readonly string[] Shapes = { "box", "cylinder", "polygon" };
 
@@ -67,8 +105,8 @@ namespace KotH.MapFormat
             if (t.String("game") != Game)
                 throw new FormatException("not a KotH map (game = \"KotH\" missing)");
             int format = (int)t.Number("format", 0);
-            if (format != Format)
-                throw new FormatException($"map format {format}, this game reads {Format}: update the game or the kit");
+            if (format != Format && format != FormatObjects)
+                throw new FormatException($"map format {format}, this game reads {Format} and {FormatObjects}: update the game or the kit");
             var m = new MapManifest
             {
                 Name = t.String("name"),
@@ -115,6 +153,39 @@ namespace KotH.MapFormat
                 throw new FormatException("no [[spawn]]: at least one spawn point");
             if (t.Table("dummies") is TomlTable d)
                 m.Dummies = Spawn(d, "dummies");
+            foreach (TomlTable l in t.Array("ladder"))
+            {
+                double[] p = l.Numbers("position", 3) ?? throw new FormatException("ladder position = [x, y, z] missing");
+                m.Ladders.Add(new MapLadder
+                {
+                    X = (float)p[0], Y = (float)p[1], Z = (float)p[2], Yaw = (float)l.Number("yaw", 0),
+                    Width = (float)l.Number("width", 1), Height = (float)l.Number("height", 3), Model = l.Bool("model", true),
+                });
+            }
+            foreach (TomlTable a in t.Array("trampoline"))
+            {
+                double[] p = a.Numbers("position", 3) ?? throw new FormatException("trampoline position = [x, y, z] missing");
+                m.Trampolines.Add(new MapTrampoline
+                {
+                    X = (float)p[0], Y = (float)p[1], Z = (float)p[2], Diameter = (float)a.Number("diameter", 1.2),
+                    Height = (float)a.Number("height", 0.6), Bounce = (float)a.Number("bounce", 0.9), Model = a.Bool("model", true),
+                });
+            }
+            foreach (TomlTable v in t.Array("lava"))
+            {
+                double[] p = v.Numbers("position", 3) ?? throw new FormatException("lava position = [x, y, z] missing");
+                double[] extent = v.Numbers("size", 3) ?? new double[] { 4, 1, 4 };
+                var lava = new MapLava
+                {
+                    X = (float)p[0], Y = (float)p[1], Z = (float)p[2], Yaw = (float)v.Number("yaw", 0),
+                    SizeX = (float)extent[0], SizeY = (float)extent[1], SizeZ = (float)extent[2], Shape = v.String("shape", "box"),
+                    DamagePerWave = (float)v.Number("damage_per_wave", 10), WaveSeconds = (float)v.Number("wave_seconds", 1),
+                    RespawnAbove = (float)v.Number("respawn_above", 100),
+                };
+                if (lava.Shape != "box" && lava.Shape != "cylinder")
+                    throw new FormatException($"lava shape \"{lava.Shape}\": box or cylinder");
+                m.Lava.Add(lava);
+            }
             if (t.Table("bots") is TomlTable b)
                 foreach (KeyValuePair<string, object> kv in b.Values)
                     if (kv.Value is double v)
@@ -142,7 +213,7 @@ namespace KotH.MapFormat
         {
             var w = new TomlWriter()
                 .Comment("A KotH map, written by the map kit. Edit in the kit and export again.")
-                .Key("game", Game).Key("format", Format)
+                .Key("game", Game).Key("format", HasObjects ? FormatObjects : Format)
                 .Key("name", Name).Key("title", Title).Key("author", Author).Key("description", Description)
                 .Key("visibility", Visibility).Key("workshop_id", WorkshopId.ToString());
             MapZone z = Zone;
@@ -167,6 +238,16 @@ namespace KotH.MapFormat
             }
             foreach (MapSpawn s in Spawns)
                 WriteSpawn(w.ArrayItem("spawn"), s);
+            foreach (MapLadder l in Ladders)
+                w.ArrayItem("ladder").Key("position", l.X, l.Y, l.Z).Key("yaw", l.Yaw).Key("width", l.Width)
+                 .Key("height", l.Height).Key("model", l.Model);
+            foreach (MapTrampoline a in Trampolines)
+                w.ArrayItem("trampoline").Key("position", a.X, a.Y, a.Z).Key("diameter", a.Diameter)
+                 .Key("height", a.Height).Key("bounce", a.Bounce).Key("model", a.Model);
+            foreach (MapLava v in Lava)
+                w.ArrayItem("lava").Key("shape", v.Shape).Key("position", v.X, v.Y, v.Z).Key("size", v.SizeX, v.SizeY, v.SizeZ)
+                 .Key("yaw", v.Yaw).Key("damage_per_wave", v.DamagePerWave).Key("wave_seconds", v.WaveSeconds)
+                 .Key("respawn_above", v.RespawnAbove);
             return w.ToString();
         }
 

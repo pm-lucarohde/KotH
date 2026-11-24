@@ -194,7 +194,7 @@ namespace KotH.Shared.Bots
             int nz = Math.Max(1, (int)MathF.Ceiling((maxZ - minZ) / cell));
             var grid = new ClimbGrid(minX, minZ, cell, nx, nz, motor, s);
             grid.Rasterize(tris, DetMath.CosF(motor.SlopeLimit * (MathF.PI / 180f)));
-            grid.FindFloors();
+            grid.FindFloors(zone);
             grid.FindWalks();
             grid.FindLinks(ladders);
             grid.Fields(zone, Math.Max(0, s.RouteVariants), seed, start);
@@ -281,7 +281,7 @@ namespace KotH.Shared.Bots
 
         // A floor is a flat surface with free room above it: under the sky,
         // or under a face looking down, at least a body's height away.
-        void FindFloors()
+        void FindFloors(HillMatch zone)
         {
             floorStart = new int[Columns + 1];
             var ys = new List<float>();
@@ -298,6 +298,9 @@ namespace KotH.Shared.Bots
                     bool open = i == surfStart[c] || surfFacing[i - 1] < 0;
                     float above = i == surfStart[c] ? float.MaxValue : surfY[i - 1] - surfY[i];
                     if (!open || above < standHeight - 0.05f)
+                        continue;
+                    // A floor in lava, or a body and half a cell from it, is none: the bots keep off.
+                    if (zone != null && zone.InLava(new Vector3(CentreX(c), surfY[i], CentreZ(c)), radius + 0.5f * cell))
                         continue;
                     ys.Add(surfY[i]);
                     cols.Add(c);

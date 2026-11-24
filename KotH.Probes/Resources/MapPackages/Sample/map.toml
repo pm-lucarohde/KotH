@@ -1,6 +1,6 @@
 # A KotH map, written by the map kit. Edit in the kit and export again.
 game = "KotH"
-format = 1
+format = 2
 name = "Sample"
 title = "Sample tower"
 author = "KotH"
@@ -33,3 +33,26 @@ position = [16, 0, -16]
 
 [[spawn]]
 position = [-16, 0, -16]
+
+[[ladder]]
+position = [-13, 0, 13]
+yaw = -90
+width = 1
+height = 6
+model = true
+
+[[trampoline]]
+position = [10, 0.6, -2]
+diameter = 1.2
+height = 0.6
+bounce = 0.9
+model = true
+
+[[lava]]
+shape = "box"
+position = [0, 0, -16]
+size = [6, 0.6, 4]
+yaw = 0
+damage_per_wave = 10
+wave_seconds = 1
+respawn_above = 100

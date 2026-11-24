@@ -202,6 +202,29 @@ namespace KotH.Shared.Hosting
                 Bots.Set(kv.Key, kv.Value);   // unknown names: from a newer kit, ignored
             Mark(new Entity("Bots") { Bots }, Vector3.Zero, Quaternion.Identity);
 
+            // Ladders and trampolines as The Ladder's entities, lava on the zone as Volcano's magma.
+            for (int i = 0; i < m.Ladders.Count; i++)
+            {
+                MapLadder l = m.Ladders[i];
+                var ladder = new Ladder { Width = l.Width, Height = l.Height };
+                Mark(new Entity("Ladder_" + i) { ladder }, new Vector3(l.X, l.Y, l.Z), Yaw(l.Yaw));
+                queries.Ladders.Add(ladder.Strip());
+            }
+            for (int i = 0; i < m.Trampolines.Count; i++)
+            {
+                MapTrampoline t = m.Trampolines[i];
+                var pad = new BouncePad { Size = new Vector2(t.Diameter, t.Diameter), Bounce = t.Bounce };
+                Mark(new Entity("Pad_" + i) { pad }, new Vector3(t.X, t.Y, t.Z), Quaternion.Identity);
+                queries.Pads.Add(pad.Area());
+            }
+            foreach (MapLava v in m.Lava)
+                Zone.Entity.Add(new LavaArea
+                {
+                    Center = new Vector3(v.X, v.Y, v.Z), Size = new Vector3(v.SizeX, v.SizeY, v.SizeZ), Yaw = v.Yaw,
+                    Cylinder = v.Shape == "cylinder", DamagePerWave = v.DamagePerWave, WaveSeconds = v.WaveSeconds,
+                    RespawnAbove = v.RespawnAbove,
+                });
+
             using Stream file = File.OpenRead(package.CollisionPath);
             AddCollision(MapCollision.Read(file));
         }
@@ -216,6 +239,12 @@ namespace KotH.Shared.Hosting
         {
             float yaw = s.Yaw.HasValue ? s.Yaw.Value * (MathF.PI / 180f)
                       : UMath.Atan2(-(zone.X - s.X), -(zone.Z - s.Z));
+            return new Quaternion(0f, DetMath.SinF(yaw * 0.5f), 0f, DetMath.CosF(yaw * 0.5f));
+        }
+
+        static Quaternion Yaw(float degrees)
+        {
+            float yaw = degrees * (MathF.PI / 180f);
             return new Quaternion(0f, DetMath.SinF(yaw * 0.5f), 0f, DetMath.CosF(yaw * 0.5f));
         }
 
