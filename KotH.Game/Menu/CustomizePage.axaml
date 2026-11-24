@@ -1,6 +1,6 @@
 <!-- Customize, beside the main menu's buttons and narrower than the other pages, so the figure
-     on the right stays in sight: a tab per part, its colour on a wheel with a brightness slider,
-     Reset (the part) and Reset all. -->
+     on the right stays in sight: a tab per part (and glow, trail), its colour on a wheel with a
+     brightness slider, the glow's switch or the trail's shape under it, Reset and Reset all. -->
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:menu="using:KotH.Client.Menu"
@@ -15,8 +15,8 @@
                 <WrapPanel Name="Tabs" Grid.Row="1" Margin="0,16,0,0" ItemSpacing="10" LineSpacing="12" />
 
                 <Border Grid.Row="2" Classes="Well" Margin="0,18,0,0">
-                    <Grid RowDefinitions="*,Auto,Auto" ColumnDefinitions="Auto,*">
-                        <menu:ColorWheel Name="Wheel" Grid.ColumnSpan="2" Width="260" Height="260"
+                    <Grid RowDefinitions="*,Auto,Auto,Auto" ColumnDefinitions="Auto,*">
+                        <menu:ColorWheel Name="Wheel" Grid.ColumnSpan="2" Width="220" Height="220"
                                          HorizontalAlignment="Center" />
                         <Path Grid.Row="1" Width="30" Height="30" Margin="0,14,14,0" VerticalAlignment="Center"
                               Data="M 15,8 A 7,7 0 1 1 14.99,8 Z M 15,0 L 15,4 M 15,26 L 15,30 M 0,15 L 4,15 M 26,15 L 30,15 M 4.4,4.4 L 7.2,7.2 M 22.8,22.8 L 25.6,25.6 M 4.4,25.6 L 7.2,22.8 M 22.8,7.2 L 25.6,4.4"
@@ -28,6 +28,9 @@
                             <TextBlock Name="Hex" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Center"
                                        VerticalAlignment="Center" />
                         </Border>
+                        <!-- Glow: Off | On; trail: its shapes. Empty for the figure's parts -->
+                        <WrapPanel Name="Options" Grid.Row="3" Grid.ColumnSpan="2" HorizontalAlignment="Center"
+                                   ItemSpacing="8" LineSpacing="8" />
                     </Grid>
                 </Border>
 

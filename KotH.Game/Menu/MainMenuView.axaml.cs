@@ -210,7 +210,7 @@ namespace KotH.Client.Menu
                              : button == Find ? "Find other players' rounds on Steam and join them."
                              : button == SocialButton ? "Invite a friend into your party, and see who has won the most rounds."
                              : button == Customize && locked ? "Reach level 10 to colour your mushroom. Online rounds give XP."
-                             : button == Customize ? "Colour your mushroom: cap, skin, leaves, gloves and spores."
+                             : button == Customize ? "Colour your mushroom; from level 100 a glow and a sparkle trail."
                              : button == Settings ? "Graphics, sound and controls to your taste."
                              : button == Languages ? "Choose the game's language."
                              : "Back to the desktop. See you on the summit!";
