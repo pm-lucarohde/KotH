@@ -16,10 +16,10 @@ namespace KotH.MapFormat
 
     /// <summary>A material by one of the game's templates: Surface (colour or texture, normal map,
     /// roughness, metalness), Terrain (Surface projected from three sides, for rock and ground),
-    /// Leaves (alpha cut, both sides, sways) or Water (waves, reflection).</summary>
+    /// Leaves (alpha cut, both sides, sways), Water (waves, reflection) or Lava (Volcano's glowing magma).</summary>
     public sealed class MapMaterial
     {
-        public static readonly string[] Templates = { "Surface", "Terrain", "Leaves", "Water" };
+        public static readonly string[] Templates = { "Surface", "Terrain", "Leaves", "Water", "Lava" };
 
         public string Name = "Material";
         public string Template = "Surface";

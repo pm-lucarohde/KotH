@@ -8,7 +8,7 @@ namespace KotH.MapKit
 
     public enum MapCollisionMode { Mesh, None, InvisibleWall }
 
-    public enum MapTemplate { Surface, Terrain, Leaves, Water }
+    public enum MapTemplate { Surface, Terrain, Leaves, Water, Lava }
 
     /// <summary>How the models of this entity and its children are exported (the nearest one up
     /// the tree counts). Without it: Surface, baked shadow, solid.</summary>
@@ -24,7 +24,8 @@ namespace KotH.MapKit
         /// solid but not drawn.</userdoc>
         [DataMember(20)] public MapCollisionMode Collision { get; set; } = MapCollisionMode.Mesh;
         /// <userdoc>Surface: colour/texture by UVs. Terrain: texture projected from the sides, no
-        /// UVs needed. Leaves: alpha cut, both sides. Water: the game's waves.</userdoc>
+        /// UVs needed. Leaves: alpha cut, both sides. Water: the game's waves (players wade in it).
+        /// Lava: Volcano's glowing magma (burns only inside a Map lava).</userdoc>
         [DataMember(30)] public MapTemplate Template { get; set; } = MapTemplate.Surface;
         /// <userdoc>Terrain: metres one texture repeat spans.</userdoc>
         [DataMember(40)] public float TextureScale { get; set; } = 4f;

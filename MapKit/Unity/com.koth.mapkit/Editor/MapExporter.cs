@@ -7,10 +7,10 @@ using UnityEngine.SceneManagement;
 
 namespace KotH.MapKit.Editor
 {
-    /// <summary>Turns a scene into a map package: the markers (info, zone, spawns, bots) into
-    /// map.toml, every drawn mesh and terrain in world space with its material into map.glb and the
-    /// collision, then <see cref="MapBuilder.Write"/> checks and writes it. Unity's axes become
-    /// the game's on the way: z → −z, so the triangles turn round too.</summary>
+    /// <summary>Turns a scene into a map package: the markers (info, zone, spawns, bots, ladders,
+    /// trampolines, lava) into map.toml, every drawn mesh and terrain in world space with its material
+    /// into map.glb and the collision, then <see cref="MapBuilder.Write"/> checks and writes it.
+    /// Unity's axes become the game's on the way: z → −z, so the triangles turn round too.</summary>
     public sealed class MapExporter
     {
         readonly List<string> notes = new List<string>();
@@ -23,6 +23,9 @@ namespace KotH.MapKit.Editor
         readonly List<MapZone> zones = new List<MapZone>();
         readonly List<MapSpawn> spawns = new List<MapSpawn>();
         readonly List<MapBots> bots = new List<MapBots>();
+        readonly List<MapLadder> ladders = new List<MapLadder>();
+        readonly List<MapTrampoline> trampolines = new List<MapTrampoline>();
+        readonly List<MapLava> lava = new List<MapLava>();
 
         /// <summary>Exports into mapsRoot/NAME; the result's errors and warnings plus this run's notes.</summary>
         public MapBuilder.Result Export(Scene scene, string mapsRoot, byte[] previewPng, out List<string> notes)
@@ -55,12 +58,34 @@ namespace KotH.MapKit.Editor
                 Vector3 at = Game(s.transform.position);
                 var spawn = new MapFormat.MapSpawn { X = at.x, Y = at.y, Z = at.z };
                 if (!s.faceZone)
-                {
-                    // The game's yaw: 0 looks along its −Z (Unity's +Z), 90 along −X.
-                    Vector3 f = s.transform.forward;
-                    spawn.Yaw = (float)Math.Round(Math.Atan2(-f.x, f.z) * 180.0 / Math.PI, 3);
-                }
+                    spawn.Yaw = Yaw(s.transform);
                 manifest.Spawns.Add(spawn);
+            }
+            foreach (MapLadder l in ladders)
+            {
+                Vector3 at = Game(l.transform.position);
+                manifest.Ladders.Add(new MapFormat.MapLadder
+                {
+                    X = at.x, Y = at.y, Z = at.z, Yaw = Yaw(l.transform), Width = l.width, Height = l.height, Model = l.model,
+                });
+            }
+            foreach (MapTrampoline t in trampolines)
+            {
+                Vector3 at = Game(t.transform.position);
+                manifest.Trampolines.Add(new MapFormat.MapTrampoline
+                {
+                    X = at.x, Y = at.y + t.height, Z = at.z, Diameter = t.diameter, Height = t.height, Bounce = t.bounce, Model = t.model,
+                });
+            }
+            foreach (MapLava v in lava)
+            {
+                Vector3 at = Game(v.transform.position), scale = v.transform.lossyScale;
+                manifest.Lava.Add(new MapFormat.MapLava
+                {
+                    X = at.x, Y = at.y, Z = at.z, Yaw = Yaw(v.transform), SizeX = Math.Abs(scale.x), SizeY = Math.Abs(scale.y),
+                    SizeZ = Math.Abs(scale.z), Shape = v.shape.ToString().ToLowerInvariant(), DamagePerWave = v.damagePerWave,
+                    WaveSeconds = v.waveSeconds, RespawnAbove = v.respawnAbove,
+                });
             }
             if (bots.Count == 1)
                 foreach (MapBots.Setting kv in bots[0].settings)
@@ -85,6 +110,13 @@ namespace KotH.MapKit.Editor
                 }
             return MapBuilder.Write(folder, manifest, model, previewPng,
                                     baked => LightmapAtlas.Run(baked, lightmapUvs, this.notes), info.changeNote);
+        }
+
+        /// <summary>The game's yaw of the object's forward: 0 looks along its −Z (Unity's +Z), 90 along −X.</summary>
+        static float Yaw(Transform t)
+        {
+            Vector3 f = t.forward;
+            return (float)Math.Round(Math.Atan2(-f.x, f.z) * 180.0 / Math.PI, 3);
         }
 
         /// <summary>A Unity point or direction in the game's axes.</summary>
@@ -149,6 +181,15 @@ namespace KotH.MapKit.Editor
             if (go.TryGetComponent(out MapSpawn spawn))
             {
                 spawns.Add(spawn);
+                marker = true;
+            }
+            if (go.TryGetComponent(out MapLadder ladder))
+                ladders.Add(ladder);
+            if (go.TryGetComponent(out MapTrampoline trampoline))
+                trampolines.Add(trampoline);
+            if (go.TryGetComponent(out MapLava pit))
+            {
+                lava.Add(pit);
                 marker = true;
             }
             geometry &= !marker;

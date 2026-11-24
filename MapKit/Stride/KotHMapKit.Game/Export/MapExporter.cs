@@ -12,8 +12,8 @@ using Stride.Rendering.Materials;
 
 namespace KotH.MapKit
 {
-    /// <summary>Turns the running scene into a map package: the markers (info, zone, spawns, bots)
-    /// into map.toml, every model's meshes in world space with their materials into map.glb and the
+    /// <summary>Turns the running scene into a map package: the markers (info, zone, spawns, bots,
+    /// ladders, trampolines, lava) into map.toml, every model's meshes in world space with their materials into map.glb and the
     /// collision, then <see cref="MapBuilder.Write"/> checks and writes it. Reads the compiled scene,
     /// so prefabs, imported files and procedural models all export the same way.</summary>
     public sealed class MapExporter
@@ -28,6 +28,9 @@ namespace KotH.MapKit
         readonly List<MapZoneComponent> zones = new List<MapZoneComponent>();
         readonly List<MapSpawnComponent> spawns = new List<MapSpawnComponent>();
         readonly List<MapBotsComponent> bots = new List<MapBotsComponent>();
+        readonly List<MapLadderComponent> ladders = new List<MapLadderComponent>();
+        readonly List<MapTrampolineComponent> trampolines = new List<MapTrampolineComponent>();
+        readonly List<MapLavaComponent> lava = new List<MapLavaComponent>();
 
         public MapExporter(IServiceRegistry services)
         {
@@ -65,11 +68,34 @@ namespace KotH.MapKit
                 Vector3 at = s.Entity.Transform.WorldMatrix.TranslationVector;
                 var spawn = new MapSpawn { X = at.X, Y = at.Y, Z = at.Z };
                 if (!s.FaceZone)
-                {
-                    Vector3 f = Vector3.TransformNormal(-Vector3.UnitZ, s.Entity.Transform.WorldMatrix);
-                    spawn.Yaw = MathF.Round(MathF.Atan2(-f.X, -f.Z) * 180f / MathF.PI, 3);
-                }
+                    spawn.Yaw = Yaw(s.Entity);
                 manifest.Spawns.Add(spawn);
+            }
+            foreach (MapLadderComponent l in ladders)
+            {
+                Vector3 at = l.Entity.Transform.WorldMatrix.TranslationVector;
+                manifest.Ladders.Add(new MapFormat.MapLadder
+                {
+                    X = at.X, Y = at.Y, Z = at.Z, Yaw = Yaw(l.Entity), Width = l.Width, Height = l.Height, Model = l.Model,
+                });
+            }
+            foreach (MapTrampolineComponent t in trampolines)
+            {
+                Vector3 at = t.Entity.Transform.WorldMatrix.TranslationVector;
+                manifest.Trampolines.Add(new MapFormat.MapTrampoline
+                {
+                    X = at.X, Y = at.Y + t.Height, Z = at.Z, Diameter = t.Diameter, Height = t.Height, Bounce = t.Bounce, Model = t.Model,
+                });
+            }
+            foreach (MapLavaComponent v in lava)
+            {
+                v.Entity.Transform.WorldMatrix.Decompose(out Vector3 scale, out Quaternion _, out Vector3 at);
+                manifest.Lava.Add(new MapFormat.MapLava
+                {
+                    X = at.X, Y = at.Y, Z = at.Z, Yaw = Yaw(v.Entity), SizeX = Math.Abs(scale.X), SizeY = Math.Abs(scale.Y),
+                    SizeZ = Math.Abs(scale.Z), Shape = v.Shape.ToString().ToLowerInvariant(), DamagePerWave = v.DamagePerWave,
+                    WaveSeconds = v.WaveSeconds, RespawnAbove = v.RespawnAbove,
+                });
             }
             if (bots.Count == 1)
                 foreach (KeyValuePair<string, double> kv in bots[0].Settings)
@@ -93,6 +119,13 @@ namespace KotH.MapKit
                 {
                 }
             return MapBuilder.Write(folder, manifest, model, previewPng, LightmapUnwrap.Run, info.ChangeNote);
+        }
+
+        /// <summary>The game's yaw of the entity's forward (-Z), in degrees.</summary>
+        static float Yaw(Entity e)
+        {
+            Vector3 f = Vector3.TransformNormal(-Vector3.UnitZ, e.Transform.WorldMatrix);
+            return MathF.Round(MathF.Atan2(-f.X, -f.Z) * 180f / MathF.PI, 3);
         }
 
         static void Zone(MapZoneComponent c, MapFormat.MapZone z)
@@ -157,6 +190,9 @@ namespace KotH.MapKit
                     case MapZoneComponent z: zones.Add(z); marker = true; break;
                     case MapSpawnComponent s: spawns.Add(s); marker = true; break;
                     case MapBotsComponent b: bots.Add(b); break;
+                    case MapLadderComponent l: ladders.Add(l); break;
+                    case MapTrampolineComponent t: trampolines.Add(t); break;
+                    case MapLavaComponent v: lava.Add(v); marker = true; break;
                 }
             geometry &= !marker;
             if (geometry)

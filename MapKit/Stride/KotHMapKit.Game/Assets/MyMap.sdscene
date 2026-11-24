@@ -22,6 +22,10 @@ Hierarchy:
         - ref!! A52B2D05-1137-4829-A987-BA74A810796E
         - ref!! DE9A7BE4-9827-49F8-A2FF-BCF889BDD7A1
         - ref!! 84D4752C-C9F7-4960-9F8B-49047DFBD792
+        - ref!! 5ABF2E30-5033-43C8-9174-40FEB98D2FC2
+        - ref!! 74CA4A04-BD16-441D-AF0E-0EAD455745E3
+        - ref!! 3DAEDC4E-0DCF-4964-A550-941BA1F03D46
+        - ref!! B8E43C82-4A3B-42B1-9AE7-28FFDD836587
     Parts:
         -   Entity:
                 Id: 4A91F2A8-D532-4AE6-A1CC-6F33BF7787D8
@@ -637,3 +641,74 @@ Hierarchy:
                         Id: B1F52C19-A9E2-4E8E-BF2C-68EDD6909F26
                         Model: 6A19E7AD-CEA0-4C7D-A6F2-5C71BE20498A:Bounds edge (kit only)
                         Materials: {}
+        -   Entity:
+                Id: 5ABF2E30-5033-43C8-9174-40FEB98D2FC2
+                Name: Ladder (on the pillar)
+                Components:
+                    96bfe430f3b44fb1aa376a2a74dc88e8: !TransformComponent
+                        Id: 43D899C8-D2B9-4651-BEFC-EB8C8A6BDE90
+                        Position: {X: 11.0, Y: 0.0, Z: -8.0}
+                        Rotation: {X: 0, Y: -0.7071068, Z: 0, W: 0.7071068}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    0c044f6f5ef34969a75a9b553dff9274: !KotH.MapKit.MapLadder
+                        Id: 11DDDFEF-5105-4AB6-832F-ADB6774441D5
+                        Width: 1.0
+                        Height: 6.0
+                        Model: true
+        -   Entity:
+                Id: 74CA4A04-BD16-441D-AF0E-0EAD455745E3
+                Name: Trampoline
+                Components:
+                    8214b1adab5a4470bb1219d9f21411e4: !TransformComponent
+                        Id: 5E794F41-DBF9-4778-9482-14FAAC87448D
+                        Position: {X: -8.0, Y: 0.0, Z: -4.0}
+                        Rotation: {X: 0, Y: 0, Z: 0, W: 1}
+                        Scale: {X: 1.0, Y: 1.0, Z: 1.0}
+                        Children: {}
+                    50c3263d6ab34c8ca1a387e32395d606: !KotH.MapKit.MapTrampoline
+                        Id: F1C24FD9-20AC-4632-9AF0-E7E00628202B
+                        Diameter: 1.2
+                        Height: 0.6
+                        Bounce: 0.9
+                        Model: true
+        -   Entity:
+                Id: 3DAEDC4E-0DCF-4964-A550-941BA1F03D46
+                Name: Lava pit
+                Components:
+                    362a3ee59324477ab0a897d69be04845: !TransformComponent
+                        Id: 68A4D708-9111-4316-800A-87A50DABBEDF
+                        Position: {X: 0.0, Y: 0.0, Z: -16.0}
+                        Rotation: {X: 0, Y: 0, Z: 0, W: 1}
+                        Scale: {X: 6.0, Y: 0.6, Z: 4.0}
+                        Children: {}
+                    f2fe7d7b3e6e450bad32bdd27392bd6b: !ModelComponent
+                        Id: 8F9B8768-B0DF-4533-B8B3-76A0976A33E0
+                        Model: E89FA8AD-8646-4D5C-9C6A-17A14242409F:Lava box (kit only)
+                        Materials: {}
+                    9f413f38a62343bba6adc8743619851e: !KotH.MapKit.MapLava
+                        Id: 9D66CC30-A9BE-42DD-810B-2DF00D97EE1F
+                        Shape: Box
+                        DamagePerWave: 10.0
+                        WaveSeconds: 1.0
+                        RespawnAbove: 100.0
+        -   Entity:
+                Id: B8E43C82-4A3B-42B1-9AE7-28FFDD836587
+                Name: Lava surface
+                Components:
+                    188f805cc3b8452887a3420673f38b76: !TransformComponent
+                        Id: E62C520B-7C49-41FB-A273-AC6D7B2D42D1
+                        Position: {X: 0.0, Y: 0.06, Z: -16.0}
+                        Rotation: {X: 0, Y: 0, Z: 0, W: 1}
+                        Scale: {X: 6.0, Y: 1.0, Z: 4.0}
+                        Children: {}
+                    0ef0ea12531b4d8892842dd18c64035c: !ModelComponent
+                        Id: C0B05D8A-CF30-4C42-9002-83527B7DE5E6
+                        Model: 406152EE-2B10-416D-A502-60F985C41409:Lava plane
+                        Materials: {}
+                    5cb45cbcd67d48f1a6650963315a9de7: !KotH.MapKit.MapObject
+                        Id: 73AB7986-0115-4C1A-B894-DB830E4D0DFC
+                        Shadows: Off
+                        Collision: None
+                        Template: Lava
+                        TextureScale: 4.0

@@ -20,18 +20,25 @@ Add the **KotH map** components:
 | Map zone | the zone, once | position = centre, scale = size in metres; shape box, cylinder or polygon (corners = child objects in order); rules |
 | Map spawn | a figure | a player's feet; face the zone or the object's forward; up to 12 |
 | Map object | an object or a group | shadow Baked / Live / Off, collision Mesh / None / InvisibleWall, template |
+| Map ladder | an empty at its foot on a wall, forward out of the wall | climbable strip (width, height); the game's ladder model or your own |
+| Map trampoline | an empty at its foot on the ground | bounces whoever lands on its top (diameter, height, bounce); the game's model or your own |
+| Map lava | the pit, once per pit | position = centre, scale = size, top = surface; burns in waves (damage, wave time, respawn) |
 | Map bots | any object, optional | bot tuning by name (see the component's description) |
 | Map ignore | helpers | never exported (scale figures; Unity: also EditorOnly and inactive objects) |
 
 - **Templates:** Surface (colour and texture by UVs), Terrain (texture projected from the sides, `TextureScale`
-  metres per repeat), Leaves (alpha cut, both sides), Water (the game's waves). Colour, texture, glossiness and
-  metalness come from the material; normal maps are not drawn yet.
+  metres per repeat), Leaves (alpha cut, both sides), Water (the game's waves; players wade in it), Lava (Volcano's
+  glowing magma). Colour, texture, glossiness and metalness come from the material; normal maps are not drawn yet.
+- **Ladders, trampolines, lava:** with Model off, build the look yourself (a trampoline solid up to its top). Lava
+  burns only inside a Map lava; draw its surface with template Lava and, like water, collision None. Bots climb
+  ladders and keep off lava.
 - **Shadows:** Baked is cheapest (lightmap, static sun shadow). Live costs time each frame (drawn into the moving casters' shadow tiles); use it sparingly.
 - **Collision** is the drawn mesh itself. Decoration you walk through: None. Invisible walls: InvisibleWall.
 - **Unity terrains** export as one mesh with their first layer's texture; place trees as objects.
 - **Stride textures:** untick **Stream** in each texture asset, else the export keeps only the colour.
 - **Scale:** a player is 1.8 m tall and 0.8 m wide, jumps 1.6 m (double jump +1.1 m). Bots find their own way.
-- **Limits:** static geometry only (no scripts, nothing that moves), at most 256 m on every axis
+- **Limits:** static geometry only (no scripts, nothing that moves; maps with ladders, trampolines or lava need an
+  up-to-date game), at most 256 m on every axis
   (Stride: the red bounds; Unity: select Map info, its box turns red beyond).
 
 ## Export and test

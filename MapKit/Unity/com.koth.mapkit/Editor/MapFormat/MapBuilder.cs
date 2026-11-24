@@ -50,6 +50,22 @@ namespace KotH.MapFormat
             if (z.Shape == "polygon" && z.Corners.Length < 6)
                 r.Errors.Add("A polygon zone needs at least 3 corners.");
 
+            foreach (MapLadder l in manifest.Ladders)
+                if (!(l.Width > 0 && l.Height > 0))
+                    r.Errors.Add($"Ladder at ({l.X:F1}, {l.Y:F1}, {l.Z:F1}): width and height above 0.");
+            foreach (MapTrampoline t in manifest.Trampolines)
+                if (!(t.Diameter > 0 && t.Height > 0 && t.Bounce >= 0))
+                    r.Errors.Add($"Trampoline at ({t.X:F1}, {t.Y:F1}, {t.Z:F1}): diameter and height above 0.");
+            foreach (MapLava v in manifest.Lava)
+                if (!(v.SizeX > 0 && v.SizeY > 0 && v.SizeZ > 0 && v.WaveSeconds > 0))
+                    r.Errors.Add($"Lava at ({v.X:F1}, {v.Y:F1}, {v.Z:F1}): a size above 0 on every axis and a wave time.");
+            model = MapProps.With(model, manifest);
+            foreach (MapMesh m in model.Meshes)
+                if (m.Collide == MapCollide.Mesh && m.Material >= 0 && m.Material < model.Materials.Count &&
+                    model.Materials[m.Material].Template is "Water" or "Lava")
+                    r.Warnings.Add($"{m.Name}: players stand on its {model.Materials[m.Material].Template.ToLowerInvariant()} " +
+                                   "instead of wading in; set its collision to None.");
+
             // The solid: every mesh but the decoration, in one soup.
             var positions = new List<float>();
             var triangles = new List<int>();
@@ -102,7 +118,7 @@ namespace KotH.MapFormat
             }
             foreach (MapMaterial mat in model.Materials)
                 if (Array.IndexOf(MapMaterial.Templates, mat.Template) < 0)
-                    r.Errors.Add($"Material {mat.Name}: unknown template {mat.Template} (Surface, Terrain, Leaves, Water).");
+                    r.Errors.Add($"Material {mat.Name}: unknown template {mat.Template} (Surface, Terrain, Leaves, Water, Lava).");
             if (!r.Ok)
                 return r;
 
