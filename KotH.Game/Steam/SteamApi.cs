@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -19,17 +18,10 @@ namespace KotH.Client.Steam
         /// <summary>sizeof(SteamNetworkingIdentity): type, size and a 128-byte union, packed by 1.</summary>
         public const int IdentitySize = 136;
 
-        static bool resolving;
+        public static void Load() => NativeImports.Install(typeof(SteamApi).Assembly);
 
-        public static void Load()
-        {
-            if (resolving)
-                return;
-            resolving = true;
-            NativeLibrary.SetDllImportResolver(typeof(SteamApi).Assembly, Resolve);
-        }
-
-        static IntPtr Resolve(string name, Assembly assembly, DllImportSearchPath? path)
+        /// <summary>For NativeImports: Steam's library from next to the executable, else zero.</summary>
+        internal static IntPtr Resolve(string name)
         {
             if (name != Lib)
                 return IntPtr.Zero;

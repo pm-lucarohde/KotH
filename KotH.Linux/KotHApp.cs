@@ -50,6 +50,10 @@ SteamClient.Start();
 StartLog.Took("steam", steamAt, SteamClient.Ready ? "ready" : SteamClient.Failure);
 // The own XP and wins come from Steam's leaderboards (KotH.Client.Steam.SteamStats).
 KotH.Client.Steam.SteamStats.Start();
+#if !WINDOWS
+// In a Wayland session the window is native there (system SDL, Vulkan instance with Wayland's surface).
+KotH.Client.Rendering.Wayland.Prepare(typeof(KotHGame).Assembly);
+#endif
 using var game = new KotHGame();
 game.Run();
 KotH.Client.Steam.SteamStats.Settle(3);
@@ -220,6 +224,13 @@ sealed class KotHGame : Game
         TreatNotFocusedLikeMinimized = false;
         InactiveSleepTime = TimeSpan.Zero;
 
+        // Wayland's surface has no size of its own (extent 0xFFFFFFFF): Stride's back buffer must not take it.
+        GraphicsDeviceManager.PreparingDeviceSettings += (_, e) =>
+        {
+            if (KotH.Client.Rendering.Wayland.Native)
+                e.GraphicsDeviceInformation.PresentationParameters.SkipBackBufferClampToWindow = true;
+        };
+
         // Frame cap and V-Sync from the settings (off by Luca's choice), --fps, KOTH_FPS or KOTH_VSYNC.
         settings = new KotH.Client.Settings.SettingsApplier(this, headless);
 
@@ -287,8 +298,10 @@ sealed class KotHGame : Game
         KotH.Client.Settings.DisplayModes.Window = sdl.SdlHandle;
 
         // Pumping only moves the window's events into SDL's queue; the game
-        // still reads every one of them later.
-        PumpUntil("focus wait", () => SdlGrab.SDL_GetKeyboardFocus() == sdl.SdlHandle);
+        // still reads every one of them later. Wayland shows (and focuses) a window only with its first frame.
+        StartLog.Mark(KotH.Client.Rendering.Wayland.Native ? "window on Wayland" : "window on X11");
+        if (!KotH.Client.Rendering.Wayland.Native)
+            PumpUntil("focus wait", () => SdlGrab.SDL_GetKeyboardFocus() == sdl.SdlHandle);
 
         if (LaunchOptions.Current.Display is { } display)
             MoveToDisplay(sdl.SdlHandle, display);
@@ -307,7 +320,7 @@ sealed class KotHGame : Game
             if (LaunchOptions.Current.Display != null)
             {
                 SdlGrab.SDL_GetWindowPosition(sdl.SdlHandle, out int fx, out int fy);
-                Console.WriteLine($"[monitor] fullscreen at {fx},{fy} (monitor {LaunchOptions.Current.Display} from the left wanted)");
+                Console.WriteLine($"[monitor] fullscreen at {fx},{fy} on display {SdlGrab.SDL_GetWindowDisplayIndex(sdl.SdlHandle)} (monitor {LaunchOptions.Current.Display} from the left wanted)");
             }
         }
 
@@ -321,7 +334,8 @@ sealed class KotHGame : Game
         if ((SdlGrab.SDL_GetWindowFlags(sdl.SdlHandle) & (SdlGrab.Minimized | SdlGrab.Hidden)) != 0)
             return;
         SdlGrab.SDL_SetRelativeMouseMode(1);
-        SdlGrab.SDL_SetWindowGrab(sdl.SdlHandle, 1);
+        if (!KotH.Client.Rendering.Wayland.Native)
+            SdlGrab.SDL_SetWindowGrab(sdl.SdlHandle, 1);
     }
 
     /// <summary>
@@ -340,10 +354,9 @@ sealed class KotHGame : Game
         Console.WriteLine($"[headless] {target.Width}x{target.Height} {target.ViewFormat}");
     }
 
-    /// <summary>
-    /// Puts the window on a monitor counted from the left, 0 the leftmost,
-    /// before it goes fullscreen there. SDL's own numbering follows no order.
-    /// </summary>
+    /// <summary>Puts the window on a monitor counted from the left, 0 the leftmost, before it goes fullscreen
+    /// there. SDL's own numbering follows no order. Wayland moves no window: there the position only
+    /// names the screen its fullscreen goes to.</summary>
     static void MoveToDisplay(nint window, int fromLeft)
     {
         int count = SdlGrab.SDL_GetNumVideoDisplays();
@@ -355,6 +368,11 @@ sealed class KotHGame : Game
             return;
         bounds.Sort((a, b) => a.X.CompareTo(b.X));
         SdlGrab.Rect target = bounds[Math.Clamp(fromLeft, 0, bounds.Count - 1)];
+        if (KotH.Client.Rendering.Wayland.Native)
+        {
+            SdlGrab.SDL_SetWindowPosition(window, target.X + 40, target.Y + 40);
+            return;
+        }
         // The window manager hands out the new window maximised, and a
         // maximised window does not move.
         SdlGrab.SDL_RestoreWindow(window);
@@ -701,11 +719,13 @@ sealed class KotHGame : Game
         }
     }
 
-    /// <summary>SDL's relative mode only hides the pointer here (X11 on Wayland): it
-    /// never grabs, so the pointer left the fullscreen window for the other screen. While
-    /// the game has the mouse, the window grabs it as well.</summary>
+    /// <summary>SDL's relative mode only hides the pointer on X11 (XWayland): it never grabs,
+    /// so the pointer left the fullscreen window for the other screen. While the game has the
+    /// mouse, the window grabs it as well. On Wayland relative mode locks the pointer itself.</summary>
     void ConfinePointer()
     {
+        if (KotH.Client.Rendering.Wayland.Native)
+            return;
         bool confine = Input.IsMousePositionLocked && Window.Focused;
         if (confine == confined || Window.NativeWindow?.NativeWindow is not Stride.Graphics.SDL.Window sdl)
             return;

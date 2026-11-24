@@ -18,6 +18,8 @@
     <PackageReference Include="Stride.AssetCompiler" Version="4.4.1" IncludeAssets="build;buildTransitive" />
     <!-- Stride's own Vulkan binding, for DLSS (Rendering/Dlss); the version Stride 4.4.1 uses. -->
     <PackageReference Include="Vortice.Vulkan" Version="3.0.3" />
+    <!-- Stride's SDL loader, pointed at the system SDL on Wayland (Rendering/Wayland.cs); Stride 4.4.1's version. -->
+    <PackageReference Include="Silk.NET.Core" Version="2.23.0" />
     <!-- The main menu: Avalonia rendered headless by Skia (Menu/MenuOverlay.cs). -->
     <PackageReference Include="Avalonia" Version="12.1.1" />
     <PackageReference Include="Avalonia.Skia" Version="12.1.1" />

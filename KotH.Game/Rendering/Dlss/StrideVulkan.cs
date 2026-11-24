@@ -21,6 +21,12 @@ namespace KotH.Client.Rendering.Dlss
         [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "NativeInstance")]
         public static extern ref VkInstance Instance([UnsafeAccessorType(FactoryInstance)] object factory);
 
+        [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "defaultPhysicalDevice")]
+        public static extern ref VkPhysicalDevice AdapterDevice(GraphicsAdapter adapter);
+
+        [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "enumerationIndex")]
+        public static extern ref int AdapterIndex(GraphicsAdapter adapter);
+
         [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "get_NativePhysicalDevice")]
         public static extern VkPhysicalDevice PhysicalDevice(GraphicsDevice device);
 
