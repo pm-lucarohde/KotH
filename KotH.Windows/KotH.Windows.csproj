@@ -20,6 +20,7 @@
          is given; without it they are built for Direct3D11, which cannot be compiled on Linux. -->
     <StrideCompileAssetOptions>--property:StrideGraphicsApi=Vulkan</StrideCompileAssetOptions>
     <PublishAot>true</PublishAot>
+    <ApplicationIcon>KotH.ico</ApplicationIcon>
     <DlssSdk>$(MSBuildThisFileDirectory)..\.work\dlss\v310.9.16\</DlssSdk>
     <NgxLoader>$(DlssSdk)lib/Windows_x86_64/x64/nvsdk_ngx_s.lib</NgxLoader>
   </PropertyGroup>

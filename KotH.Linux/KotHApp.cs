@@ -296,6 +296,7 @@ sealed class KotHGame : Game
         if (Window.NativeWindow?.NativeWindow is not Stride.Graphics.SDL.Window sdl)
             return;
         KotH.Client.Settings.DisplayModes.Window = sdl.SdlHandle;
+        KotH.Client.Rendering.WindowIcon.Set(sdl.SdlHandle);
 
         // Pumping only moves the window's events into SDL's queue; the game
         // still reads every one of them later. Wayland shows (and focuses) a window only with its first frame.

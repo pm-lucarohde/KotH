@@ -34,6 +34,8 @@
   </ItemGroup>
   <ItemGroup>
     <!-- Per map the ground the grass stands on (Tools/maps/MapUV, Rendering/GrassField.cs). -->
+    <!-- The window icon (Rendering/WindowIcon.cs); KotH.Windows/KotH.ico is the same picture for the exe. -->
+    <EmbeddedResource Include="Resources/Icon.png" LogicalName="KotH.Icon.png" />
     <EmbeddedResource Include="Resources/Maps/*Grass.bin" LogicalName="Maps/%(Filename)%(Extension)" />
     <EmbeddedResource Include="Resources/Maps/*Surface.bin" LogicalName="Maps/%(Filename)%(Extension)" />
   </ItemGroup>
