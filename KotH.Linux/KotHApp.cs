@@ -297,6 +297,9 @@ sealed class KotHGame : Game
             return;
         KotH.Client.Settings.DisplayModes.Window = sdl.SdlHandle;
         KotH.Client.Rendering.WindowIcon.Set(sdl.SdlHandle);
+        // SDL starts with text input on; on Wayland the input method then reports a held letter as released at
+        // once (only W walked). MenuTextBox turns it on while a field is typed in.
+        SdlGrab.SDL_StopTextInput();
 
         // Pumping only moves the window's events into SDL's queue; the game
         // still reads every one of them later. Wayland shows (and focuses) a window only with its first frame.
@@ -1269,6 +1272,7 @@ static class SdlGrab
     [DllImport(Lib)] public static extern int SDL_SetRelativeMouseMode(int enabled);
     [DllImport(Lib)] public static extern nint SDL_GetKeyboardFocus();
     [DllImport(Lib)] public static extern void SDL_PumpEvents();
+    [DllImport(Lib)] public static extern void SDL_StopTextInput();
     [DllImport(Lib)] public static extern int SDL_SetWindowFullscreen(nint window, uint flags);
 
     /// <summary>SDL_WINDOW_FULLSCREEN_DESKTOP: borderless at the desktop's size; SDL_WINDOW_FULLSCREEN: the screen's mode switched.</summary>
