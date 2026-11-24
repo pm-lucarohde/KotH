@@ -29,7 +29,7 @@ Hierarchy:
                             Emitters:
                                 53ae0edc3a9c49e1ac6eae650131eb12:
                                     EmitterName: sparks
-                                    ParticleLifetime: {X: 0.5, Y: 0.9}
+                                    ParticleLifetime: {X: 0.25, Y: 0.45}
                                     ShapeBuilder: !ShapeBuilderBillboard
                                         SamplerPosition: null
                                         SamplerSize: null
@@ -73,7 +73,7 @@ Hierarchy:
                                             DisplayParticleRotation: false
                                             DisplayParticleScale: false
                                             DisplayParticleScaleUniform: true
-                                            RandomSize: {X: 0.11, Y: 0.2}
+                                            RandomSize: {X: 0.0825, Y: 0.15}
                                         150248a8c899483bb2e4ef955f59d8e1: !InitialPositionSeed
                                             InheritPosition: true
                                             Position: {X: 0.0, Y: 0.0, Z: 0.0}
@@ -150,7 +150,7 @@ Hierarchy:
                                             SeedOffset: 0
                                 f46e04915f6d4593b3a5c7f1a07734a8:
                                     EmitterName: stars
-                                    ParticleLifetime: {X: 0.7, Y: 1.1}
+                                    ParticleLifetime: {X: 0.35, Y: 0.55}
                                     ShapeBuilder: !ShapeBuilderBillboard
                                         SamplerPosition: null
                                         SamplerSize: null
@@ -194,7 +194,7 @@ Hierarchy:
                                             DisplayParticleRotation: false
                                             DisplayParticleScale: false
                                             DisplayParticleScaleUniform: true
-                                            RandomSize: {X: 0.19, Y: 0.32}
+                                            RandomSize: {X: 0.1425, Y: 0.24}
                                         201b0bc337484a5ab536d7f6aef74c5d: !InitialPositionSeed
                                             InheritPosition: true
                                             Position: {X: 0.0, Y: 0.0, Z: 0.0}
@@ -285,7 +285,7 @@ Hierarchy:
                                             SeedOffset: 0
                                 3e78654cf11c42e1a75330d155b4d1e5:
                                     EmitterName: spores
-                                    ParticleLifetime: {X: 0.8, Y: 1.3}
+                                    ParticleLifetime: {X: 0.4, Y: 0.65}
                                     ShapeBuilder: !ShapeBuilderBillboard
                                         SamplerPosition: null
                                         SamplerSize: null
@@ -329,7 +329,7 @@ Hierarchy:
                                             DisplayParticleRotation: false
                                             DisplayParticleScale: false
                                             DisplayParticleScaleUniform: true
-                                            RandomSize: {X: 0.09, Y: 0.17}
+                                            RandomSize: {X: 0.0675, Y: 0.1275}
                                         ca5aa4ec2a824719a7f07c896aff2bdb: !InitialPositionSeed
                                             InheritPosition: true
                                             Position: {X: 0.0, Y: 0.0, Z: 0.0}
