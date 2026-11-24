@@ -24,7 +24,8 @@
     <NgxLoader>$(DlssSdk)lib/Windows_x86_64/x64/nvsdk_ngx_s.lib</NgxLoader>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="..\KotH.Linux\KotHApp.cs" Link="KotHApp.cs" />
+    <!-- AutoGen: Game Studio skips it as an asset, which KotH.Linux already holds (else the solution fails to open). -->
+    <Compile Include="..\KotH.Linux\KotHApp.cs" Link="KotHApp.cs" AutoGen="true" />
     <ProjectReference Include="..\KotH.Game\KotH.Game.csproj" />
     <PackageReference Include="Avalonia.BuildServices" Version="11.3.2" ExcludeAssets="all" PrivateAssets="all" />
     <!-- As in KotH.Linux: scripts and serializers are only reached through the asset database. -->
