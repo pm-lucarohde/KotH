@@ -2,7 +2,8 @@
 
 Stride 4.4.1 (`stride3d/stride`, 1be8907, MIT) rebuilt with `patches/koth.patch`, so the running round and the main
 menu allocate nothing (Luca's choice, 24.11.2026). Same assembly names as the NuGet packages; the root
-`Directory.Build.targets` swaps the DLLs in `lib/` for theirs (`-p:KotHStridePatchedOff=true` builds without them).
+`Directory.Build.targets` swaps the DLLs in `lib/` for theirs, on Linux and Windows alike: like the packages' `net10.0`
+assemblies they check the OS at run time (`-p:KotHStridePatchedOff=true` builds without them).
 
 - `build.sh` fetches the sources sparse (`sparse-checkout`) into `src/`, the Linux LFS binaries by hash, applies the
   patch and builds Core, Graphics (Vulkan), Rendering, Engine, UI, Particles and BepuPhysics into `lib/` (box `aot`).
