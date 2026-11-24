@@ -1,0 +1,1805 @@
+diff --git a/sources/core/Stride.Core/Threading/Dispatcher.cs b/sources/core/Stride.Core/Threading/Dispatcher.cs
+index 3c81cd0..c124758 100644
+--- a/sources/core/Stride.Core/Threading/Dispatcher.cs
++++ b/sources/core/Stride.Core/Threading/Dispatcher.cs
+@@ -371,6 +371,14 @@ public static class Dispatcher
+         if (length <= 0)
+             return;
+ 
++        // KotH patch: below the parallel threshold the caller sorts alone, with Array.Sort's own algorithm but
++        // without the Comparison delegate it makes of the comparer, and without the sort state and closure.
++        if (length < SequentialSortThreshold)
++        {
++            KotHSort<T>.Sort(collection, index, length, comparer);
++            return;
++        }
++
+         var state = SortState.Acquire(MaxDegreeOfParallelism);
+ 
+         try
+@@ -392,9 +400,11 @@ public static class Dispatcher
+         }
+     }
+ 
++    private const int SequentialSortThreshold = 2048;
++
+     private static void SortOnThread<T>(T[] collection, IComparer<T> comparer, SortState state)
+     {
+-        const int sequentialThreshold = 2048;
++        const int sequentialThreshold = SequentialSortThreshold;
+ 
+         var hasChild = false;
+         try
+@@ -411,7 +421,7 @@ public static class Dispatcher
+                 if (range.Right - range.Left < sequentialThreshold)
+                 {
+                     // Sort small collections sequentially
+-                    Array.Sort(collection, range.Left, range.Right - range.Left + 1, comparer);
++                    KotHSort<T>.Sort(collection, range.Left, range.Right - range.Left + 1, comparer); // KotH patch
+                     Interlocked.Decrement(ref state.OpLeft);
+                 }
+                 else
+@@ -443,7 +453,7 @@ public static class Dispatcher
+                         if (w >= 0)
+                         {
+                             state.AddReference();
+-                            ThreadPool.Instance.QueueWorkItem(() => SortOnThread(collection, comparer, state));
++                            SortChild<T>.Queue(collection, comparer, state); // KotH patch: pooled, no closure
+                         }
+                         hasChild = true;
+                     }
+@@ -517,7 +527,8 @@ public static class Dispatcher
+ 
+     private sealed class BatchState<TJob> where TJob : IBatchJob
+     {
+-        private static readonly ConcurrentStack<BatchState<TJob>> Pool = new();
++        // KotH patch: a ring of segments; ConcurrentStack made a node for every Push.
++        private static readonly ConcurrentPool<BatchState<TJob>> Pool = new(() => new());
+ 
+         private int referenceCount;
+ 
+@@ -529,8 +540,7 @@ public static class Dispatcher
+ 
+         public static BatchState<TJob> Borrow(uint itemsPerBatch, uint endExclusive, int references, TJob job)
+         {
+-            if (!Pool.TryPop(out var state))
+-                state = new();
++            var state = Pool.Acquire();
+ 
+             state.Index = 0;
+             state.Total = endExclusive;
+@@ -548,7 +558,7 @@ public static class Dispatcher
+             if (refCount == 0)
+             {
+                 Job = default; // Clear any references it may hold onto
+-                Pool.Push(this);
++                Pool.Release(this);
+             }
+             Debug.Assert(refCount >= 0);
+         }
+@@ -576,6 +586,31 @@ public static class Dispatcher
+         }
+     }
+ 
++    /// <summary>KotH patch: a sort worker's arguments, pooled, queued without a closure.</summary>
++    private sealed class SortChild<T>
++    {
++        private static readonly ConcurrentPool<SortChild<T>> Pool = new(() => new());
++        private T[] collection;
++        private IComparer<T> comparer;
++        private SortState state;
++
++        public static unsafe void Queue(T[] collection, IComparer<T> comparer, SortState state)
++        {
++            var child = Pool.Acquire();
++            (child.collection, child.comparer, child.state) = (collection, comparer, state);
++            ThreadPool.Instance.QueueUnsafeWorkItem(child, &Run);
++        }
++
++        private static void Run(object obj)
++        {
++            var child = (SortChild<T>)obj;
++            (T[] collection, IComparer<T> comparer, SortState state) = (child.collection, child.comparer, child.state);
++            (child.collection, child.comparer, child.state) = (null, null, null);
++            Pool.Release(child);
++            SortOnThread(collection, comparer, state);
++        }
++    }
++
+     private readonly struct SortRange
+     {
+         public readonly int Left;
+diff --git a/sources/core/Stride.Core/Threading/KotHSort.cs b/sources/core/Stride.Core/Threading/KotHSort.cs
+new file mode 100644
+index 0000000..2d7a887
+--- /dev/null
++++ b/sources/core/Stride.Core/Threading/KotHSort.cs
+@@ -0,0 +1,125 @@
++// KotH patch: Array.Sort's introspective sort (ArraySortHelper<T>, .NET, MIT) over an IComparer<T>, step for
++// step, so equal keys end where Array.Sort put them; Array.Sort made a Comparison delegate on every call.
++
++using System.Numerics;
++
++namespace Stride.Core.Threading;
++
++public static class KotHSort<T>
++{
++    private const int IntrosortSizeThreshold = 16;
++
++    public static void Sort(T[] array, int index, int length, IComparer<T> comparer)
++    {
++        if (length > 1)
++            IntroSort(new Span<T>(array, index, length), 2 * (BitOperations.Log2((uint)length) + 1), comparer);
++    }
++
++    private static void IntroSort(Span<T> keys, int depthLimit, IComparer<T> comparer)
++    {
++        int partitionSize = keys.Length;
++        while (partitionSize > 1)
++        {
++            if (partitionSize <= IntrosortSizeThreshold)
++            {
++                if (partitionSize == 2)
++                {
++                    SwapIfGreater(keys, comparer, 0, 1);
++                    return;
++                }
++                if (partitionSize == 3)
++                {
++                    SwapIfGreater(keys, comparer, 0, 1);
++                    SwapIfGreater(keys, comparer, 0, 2);
++                    SwapIfGreater(keys, comparer, 1, 2);
++                    return;
++                }
++                InsertionSort(keys[..partitionSize], comparer);
++                return;
++            }
++            if (depthLimit == 0)
++            {
++                HeapSort(keys[..partitionSize], comparer);
++                return;
++            }
++            depthLimit--;
++            int p = PickPivotAndPartition(keys[..partitionSize], comparer);
++            IntroSort(keys[(p + 1)..partitionSize], depthLimit, comparer);
++            partitionSize = p;
++        }
++    }
++
++    private static void SwapIfGreater(Span<T> keys, IComparer<T> comparer, int i, int j)
++    {
++        if (comparer.Compare(keys[i], keys[j]) > 0)
++            (keys[i], keys[j]) = (keys[j], keys[i]);
++    }
++
++    private static void Swap(Span<T> keys, int i, int j) => (keys[i], keys[j]) = (keys[j], keys[i]);
++
++    private static int PickPivotAndPartition(Span<T> keys, IComparer<T> comparer)
++    {
++        int hi = keys.Length - 1;
++        int middle = hi >> 1;
++        SwapIfGreater(keys, comparer, 0, middle);
++        SwapIfGreater(keys, comparer, 0, hi);
++        SwapIfGreater(keys, comparer, middle, hi);
++        T pivot = keys[middle];
++        Swap(keys, middle, hi - 1);
++        int left = 0, right = hi - 1;
++        while (left < right)
++        {
++            while (comparer.Compare(keys[++left], pivot) < 0) { }
++            while (comparer.Compare(pivot, keys[--right]) < 0) { }
++            if (left >= right)
++                break;
++            Swap(keys, left, right);
++        }
++        if (left != hi - 1)
++            Swap(keys, left, hi - 1);
++        return left;
++    }
++
++    private static void HeapSort(Span<T> keys, IComparer<T> comparer)
++    {
++        int n = keys.Length;
++        for (int i = n >> 1; i >= 1; i--)
++            DownHeap(keys, i, n, comparer);
++        for (int i = n; i > 1; i--)
++        {
++            Swap(keys, 0, i - 1);
++            DownHeap(keys, 1, i - 1, comparer);
++        }
++    }
++
++    private static void DownHeap(Span<T> keys, int i, int n, IComparer<T> comparer)
++    {
++        T d = keys[i - 1];
++        while (i <= n >> 1)
++        {
++            int child = 2 * i;
++            if (child < n && comparer.Compare(keys[child - 1], keys[child]) < 0)
++                child++;
++            if (!(comparer.Compare(d, keys[child - 1]) < 0))
++                break;
++            keys[i - 1] = keys[child - 1];
++            i = child;
++        }
++        keys[i - 1] = d;
++    }
++
++    private static void InsertionSort(Span<T> keys, IComparer<T> comparer)
++    {
++        for (int i = 0; i < keys.Length - 1; i++)
++        {
++            T t = keys[i + 1];
++            int j = i;
++            while (j >= 0 && comparer.Compare(t, keys[j]) < 0)
++            {
++                keys[j + 1] = keys[j];
++                j--;
++            }
++            keys[j + 1] = t;
++        }
++    }
++}
+diff --git a/sources/engine/Stride.BepuPhysics/Stride.BepuPhysics/Definitions/UnsortedO1List.cs b/sources/engine/Stride.BepuPhysics/Stride.BepuPhysics/Definitions/UnsortedO1List.cs
+index 925d2e9..5300b25 100644
+--- a/sources/engine/Stride.BepuPhysics/Stride.BepuPhysics/Definitions/UnsortedO1List.cs
++++ b/sources/engine/Stride.BepuPhysics/Stride.BepuPhysics/Definitions/UnsortedO1List.cs
+@@ -16,6 +16,7 @@ internal class UnsortedO1List<T, T2> where T : notnull
+ {
+     private readonly Dictionary<T, Indexer> _dict = new();
+     private readonly List<SequentialData> _list = new();
++    private readonly Stack<Indexer> _spare = new(); // KotH patch: removed indexers, reused by Add
+ 
+     internal class Indexer
+     {
+@@ -50,7 +51,9 @@ internal class UnsortedO1List<T, T2> where T : notnull
+ 
+     public void Add(T key, T2 value)
+     {
+-        var index = new Indexer { Value = _list.Count };
++        // KotH patch: a hull re-attached on every height change made a new indexer each time.
++        var index = _spare.TryPop(out var reused) ? reused : new Indexer();
++        index.Value = _list.Count;
+         _dict.Add(key, index);
+         _list.Add(new()
+         {
+@@ -76,6 +79,7 @@ internal class UnsortedO1List<T, T2> where T : notnull
+             }
+ 
+             _list.RemoveAt(_list.Count - 1);
++            _spare.Push(indexer); // KotH patch
+             return true;
+         }
+ 
+@@ -91,6 +95,7 @@ internal class UnsortedO1List<T, T2> where T : notnull
+     public void SwapRemoveAt(int index)
+     {
+         _dict.Remove(_list[index].Key);
++        _spare.Push(_list[index].Indexer); // KotH patch
+         if (_list.Count > 0)
+         {
+             var last = _list[^1];
+diff --git a/sources/engine/Stride.Engine/Animations/AnimationClipEvaluator.cs b/sources/engine/Stride.Engine/Animations/AnimationClipEvaluator.cs
+index 99a5bcf..0ed3d75 100644
+--- a/sources/engine/Stride.Engine/Animations/AnimationClipEvaluator.cs
++++ b/sources/engine/Stride.Engine/Animations/AnimationClipEvaluator.cs
+@@ -42,7 +42,14 @@ namespace Stride.Animations
+             {
+                 foreach (var optimizedData in clip.OptimizedAnimationDatas)
+                 {
+-                    var optimizedEvaluatorGroup = curveEvaluatorGroups.OfType<AnimationCurveEvaluatorOptimizedGroup>().FirstOrDefault(x => x.ElementType == optimizedData.ElementType);
++                    // KotH patch: a loop instead of OfType/FirstOrDefault, which allocated on every clip start.
++                    AnimationCurveEvaluatorOptimizedGroup optimizedEvaluatorGroup = null;
++                    foreach (var group in curveEvaluatorGroups)
++                        if (group is AnimationCurveEvaluatorOptimizedGroup optimized && optimized.ElementType == optimizedData.ElementType)
++                        {
++                            optimizedEvaluatorGroup = optimized;
++                            break;
++                        }
+                     if (optimizedEvaluatorGroup == null)
+                     {
+                         optimizedEvaluatorGroup = optimizedData.CreateEvaluator();
+@@ -141,7 +148,7 @@ namespace Stride.Animations
+                     curve = clip.Curves[clipChannel.CurveIndex];
+ 
+                     // TODO: Optimize this search?
+-                    var curveEvaluatorGroup = curveEvaluatorGroups.OfType<AnimationCurveEvaluatorDirectGroup>().FirstOrDefault(x => x.ElementType == clipChannel.ElementType);
++                    var curveEvaluatorGroup = FindGroup<AnimationCurveEvaluatorDirectGroup>(clipChannel.ElementType); // KotH patch
+                     if (curveEvaluatorGroup == null)
+                     {
+                         // First time, let's create it
+@@ -154,7 +161,8 @@ namespace Stride.Animations
+                 else
+                 {
+                     // TODO: Optimize this search?
+-                    var curveEvaluatorGroup = curveEvaluatorGroups.OfType<AnimationCurveEvaluatorOptimizedGroup>().First(x => x.ElementType == clipChannel.ElementType);
++                    var curveEvaluatorGroup = FindGroup<AnimationCurveEvaluatorOptimizedGroup>(clipChannel.ElementType)
++                        ?? throw new InvalidOperationException("No optimized curve group for the channel."); // KotH patch
+ 
+                     curveEvaluatorGroup.SetChannelOffset(channel.PropertyName, offset);
+                 }
+@@ -163,6 +171,15 @@ namespace Stride.Animations
+             Channels.Add(new EvaluatorChannel { Offset = channel.Offset, BlendType = channel.BlendType, Curve = curve, Factor = itemFound ? 1.0f : 0.0f });
+         }
+ 
++        // KotH patch: the group of a type for an element type, by a loop; OfType/First allocated per channel.
++        private T FindGroup<T>(Type elementType) where T : AnimationCurveEvaluatorGroup
++        {
++            foreach (var group in curveEvaluatorGroups)
++                if (group is T typed && typed.ElementType == elementType)
++                    return typed;
++            return null;
++        }
++
+         internal struct EvaluatorChannel
+         {
+             public int Offset;
+diff --git a/sources/engine/Stride.Engine/Animations/AnimationProcessor.cs b/sources/engine/Stride.Engine/Animations/AnimationProcessor.cs
+index 82965c8..daa0d5f 100644
+--- a/sources/engine/Stride.Engine/Animations/AnimationProcessor.cs
++++ b/sources/engine/Stride.Engine/Animations/AnimationProcessor.cs
+@@ -60,132 +60,153 @@ namespace Stride.Animations
+         {
+             var time = context.Time;
+ 
+-            //foreach (var entity in ComponentDatas.Values)
+-            Dispatcher.ForEach(ComponentDatas, () => animationOperationPool.Acquire(), (entity, animationOperations) =>
+-            {
+-                var associatedData = entity.Value;
++            // KotH patch: cached delegates over a field; the lambdas made a closure and three delegates per frame.
++            drawTime = time;
++            acquireOperations ??= AcquireOperations;
++            animateEntity ??= AnimateEntity;
++            releaseOperations ??= ReleaseOperations;
++            Dispatcher.ForEach(ComponentDatas, acquireOperations, animateEntity, releaseOperations);
++            drawTime = null;
++        }
+ 
+-                var animationUpdater = associatedData.AnimationUpdater;
+-                var animationComponent = associatedData.AnimationComponent;
++        private GameTime drawTime;
++        private Func<List<AnimationOperation>> acquireOperations;
++        private Action<KeyValuePair<AnimationComponent, AssociatedData>, List<AnimationOperation>> animateEntity;
++        private Action<List<AnimationOperation>> releaseOperations;
+ 
+-                if (animationComponent.BlendTreeBuilder != null)
+-                {
+-                    animationComponent.BlendTreeBuilder.BuildBlendTree(animationOperations);
+-                }
+-                else
+-                {
+-                    // Advance time for all playing animations with AutoPlay set to on
+-                    foreach (var playingAnimation in animationComponent.PlayingAnimations)
+-                    {
+-                        if (!playingAnimation.Enabled || playingAnimation.Clip == null)
+-                            continue;
++        private List<AnimationOperation> AcquireOperations() => animationOperationPool.Acquire();
+ 
+-                        switch (playingAnimation.RepeatMode)
+-                        {
+-                            case AnimationRepeatMode.PlayOnceHold:
+-                            case AnimationRepeatMode.PlayOnce:
+-                                playingAnimation.CurrentTime = TimeSpan.FromTicks(playingAnimation.CurrentTime.Ticks + (long)(time.WarpElapsed.Ticks * (double)playingAnimation.TimeFactor));
+-                                if (playingAnimation.CurrentTime > playingAnimation.Clip.Duration)
+-                                    playingAnimation.CurrentTime = playingAnimation.Clip.Duration;
+-                                else if (playingAnimation.CurrentTime < TimeSpan.Zero)
+-                                    playingAnimation.CurrentTime = TimeSpan.Zero;
+-                                break;
+-                            case AnimationRepeatMode.LoopInfinite:
+-                                playingAnimation.CurrentTime = playingAnimation.Clip.Duration == TimeSpan.Zero
+-                                    ? TimeSpan.Zero
+-                                    : TimeSpan.FromTicks((playingAnimation.CurrentTime.Ticks + playingAnimation.Clip.Duration.Ticks
+-                                        + (long)(time.WarpElapsed.Ticks * (double)playingAnimation.TimeFactor)) % playingAnimation.Clip.Duration.Ticks);
+-                                break;
+-                            default:
+-                                throw new ArgumentOutOfRangeException();
+-                        }
+-                    }
++        private void ReleaseOperations(List<AnimationOperation> animationOperations) => animationOperationPool.Release(animationOperations);
+ 
+-                    // Regenerate animation operations
+-                    float totalWeight = 0.0f;
++        private void AnimateEntity(KeyValuePair<AnimationComponent, AssociatedData> entity, List<AnimationOperation> animationOperations)
++        {
++            var associatedData = entity.Value;
++
++            var animationUpdater = associatedData.AnimationUpdater;
++            var animationComponent = associatedData.AnimationComponent;
+ 
+-                    for (int index = 0; index < animationComponent.PlayingAnimations.Count; index++)
++            if (animationComponent.BlendTreeBuilder != null)
++            {
++                animationComponent.BlendTreeBuilder.BuildBlendTree(animationOperations);
++            }
++            else
++            {
++                // Advance time for all playing animations with AutoPlay set to on
++                foreach (var playingAnimation in animationComponent.PlayingAnimations)
++                {
++                    if (!playingAnimation.Enabled || playingAnimation.Clip == null)
++                        continue;
++
++                    switch (playingAnimation.RepeatMode)
+                     {
+-                        var playingAnimation = animationComponent.PlayingAnimations[index];
+-                        var animationWeight = playingAnimation.Weight;
++                        case AnimationRepeatMode.PlayOnceHold:
++                        case AnimationRepeatMode.PlayOnce:
++                            playingAnimation.CurrentTime = TimeSpan.FromTicks(playingAnimation.CurrentTime.Ticks + (long)(drawTime.WarpElapsed.Ticks * (double)playingAnimation.TimeFactor));
++                            if (playingAnimation.CurrentTime > playingAnimation.Clip.Duration)
++                                playingAnimation.CurrentTime = playingAnimation.Clip.Duration;
++                            else if (playingAnimation.CurrentTime < TimeSpan.Zero)
++                                playingAnimation.CurrentTime = TimeSpan.Zero;
++                            break;
++                        case AnimationRepeatMode.LoopInfinite:
++                            playingAnimation.CurrentTime = playingAnimation.Clip.Duration == TimeSpan.Zero
++                                ? TimeSpan.Zero
++                                : TimeSpan.FromTicks((playingAnimation.CurrentTime.Ticks + playingAnimation.Clip.Duration.Ticks
++                                    + (long)(drawTime.WarpElapsed.Ticks * (double)playingAnimation.TimeFactor)) % playingAnimation.Clip.Duration.Ticks);
++                            break;
++                        default:
++                            throw new ArgumentOutOfRangeException();
++                    }
++                }
+ 
+-                        // Skip animation with 0.0f weight
+-                        if (animationWeight == 0.0f || playingAnimation.Clip == null)
+-                            continue;
++                // Regenerate animation operations
++                float totalWeight = 0.0f;
+ 
+-                        // Default behavior for linea blending (it will properly accumulate multiple blending with their cumulative weight)
+-                        totalWeight += animationWeight;
+-                        float currentBlend = animationWeight / totalWeight;
++                for (int index = 0; index < animationComponent.PlayingAnimations.Count; index++)
++                {
++                    var playingAnimation = animationComponent.PlayingAnimations[index];
++                    var animationWeight = playingAnimation.Weight;
+ 
+-                        if (playingAnimation.BlendOperation == AnimationBlendOperation.Add)
+-                        {
+-                            // Additive or substractive blending will use the weight as is (and reset total weight with it)
+-                            currentBlend = animationWeight;
+-                            totalWeight = animationWeight;
+-                        }
++                    // KotH patch: the evaluator from the clip's first frame on, also at weight 0; made at its
++                    // first weight, a clip played rarely allocated in the middle of a round.
++                    if (playingAnimation.Evaluator == null && playingAnimation.Clip != null)
++                        playingAnimation.Evaluator = animationComponent.Blender.CreateEvaluator(playingAnimation.Clip);
+ 
+-                        // Create evaluator
+-                        var evaluator = playingAnimation.Evaluator;
+-                        if (evaluator == null)
+-                        {
+-                            evaluator = animationComponent.Blender.CreateEvaluator(playingAnimation.Clip);
+-                            playingAnimation.Evaluator = evaluator;
+-                        }
++                    // Skip animation with 0.0f weight
++                    if (animationWeight == 0.0f || playingAnimation.Clip == null)
++                        continue;
+ 
+-                        animationOperations.Add(CreatePushOperation(playingAnimation));
++                    // Default behavior for linea blending (it will properly accumulate multiple blending with their cumulative weight)
++                    totalWeight += animationWeight;
++                    float currentBlend = animationWeight / totalWeight;
+ 
+-                        if (animationOperations.Count >= 2)
+-                            animationOperations.Add(AnimationOperation.NewBlend((CoreAnimationOperation)playingAnimation.BlendOperation, currentBlend));
++                    if (playingAnimation.BlendOperation == AnimationBlendOperation.Add)
++                    {
++                        // Additive or substractive blending will use the weight as is (and reset total weight with it)
++                        currentBlend = animationWeight;
++                        totalWeight = animationWeight;
+                     }
+-                }
+ 
+-                if (animationOperations.Count > 0)
+-                {
+-                    // Animation blending
+-                    animationComponent.Blender.Compute(animationOperations, ref associatedData.AnimationClipResult);
++                    // Create evaluator
++                    var evaluator = playingAnimation.Evaluator;
++                    if (evaluator == null)
++                    {
++                        evaluator = animationComponent.Blender.CreateEvaluator(playingAnimation.Clip);
++                        playingAnimation.Evaluator = evaluator;
++                    }
++
++                    animationOperations.Add(CreatePushOperation(playingAnimation));
+ 
+-                    // Update animation data if we have a model component
+-                    animationUpdater.Update(animationComponent.Entity, associatedData.AnimationClipResult);
++                    if (animationOperations.Count >= 2)
++                        animationOperations.Add(AnimationOperation.NewBlend((CoreAnimationOperation)playingAnimation.BlendOperation, currentBlend));
+                 }
++            }
++
++            if (animationOperations.Count > 0)
++            {
++                // Animation blending
++                animationComponent.Blender.Compute(animationOperations, ref associatedData.AnimationClipResult);
++
++                // Update animation data if we have a model component
++                animationUpdater.Update(animationComponent.Entity, associatedData.AnimationClipResult);
++            }
+ 
+-                if (animationComponent.BlendTreeBuilder == null)
++            if (animationComponent.BlendTreeBuilder == null)
++            {
++                // Update weight animation
++                for (int index = 0; index < animationComponent.PlayingAnimations.Count; index++)
+                 {
+-                    // Update weight animation
+-                    for (int index = 0; index < animationComponent.PlayingAnimations.Count; index++)
++                    var playingAnimation = animationComponent.PlayingAnimations[index];
++                    bool removeAnimation = false;
++                    if (playingAnimation.CrossfadeRemainingTime > TimeSpan.Zero)
+                     {
+-                        var playingAnimation = animationComponent.PlayingAnimations[index];
+-                        bool removeAnimation = false;
+-                        if (playingAnimation.CrossfadeRemainingTime > TimeSpan.Zero)
++                        playingAnimation.Weight += (playingAnimation.WeightTarget - playingAnimation.Weight)
++                                                   * ((float)drawTime.WarpElapsed.Ticks / playingAnimation.CrossfadeRemainingTime.Ticks);
++                        playingAnimation.CrossfadeRemainingTime -= drawTime.WarpElapsed;
++                        if (playingAnimation.CrossfadeRemainingTime <= TimeSpan.Zero)
+                         {
+-                            playingAnimation.Weight += (playingAnimation.WeightTarget - playingAnimation.Weight)
+-                                                       * ((float)time.WarpElapsed.Ticks / playingAnimation.CrossfadeRemainingTime.Ticks);
+-                            playingAnimation.CrossfadeRemainingTime -= time.WarpElapsed;
+-                            if (playingAnimation.CrossfadeRemainingTime <= TimeSpan.Zero)
+-                            {
+-                                playingAnimation.Weight = playingAnimation.WeightTarget;
+-
+-                                // If weight target was 0, removes the animation
+-                                if (playingAnimation.Weight <= 0.0f)
+-                                    removeAnimation = true;
+-                            }
+-                        }
++                            playingAnimation.Weight = playingAnimation.WeightTarget;
+ 
+-                        if (playingAnimation.RepeatMode == AnimationRepeatMode.PlayOnce)
+-                        {
+-                             if ((playingAnimation.TimeFactor > 0 && playingAnimation.CurrentTime == playingAnimation.Clip.Duration) ||
+-                                 (playingAnimation.TimeFactor < 0 && playingAnimation.CurrentTime == TimeSpan.Zero))
+-                            removeAnimation = true;
++                            // If weight target was 0, removes the animation
++                            if (playingAnimation.Weight <= 0.0f)
++                                removeAnimation = true;
+                         }
++                    }
+ 
+-                        if (removeAnimation)
+-                        {
+-                            animationComponent.PlayingAnimations.RemoveAt(index--); // Will also release its evaluator
+-                        }
++                    if (playingAnimation.RepeatMode == AnimationRepeatMode.PlayOnce)
++                    {
++                         if ((playingAnimation.TimeFactor > 0 && playingAnimation.CurrentTime == playingAnimation.Clip.Duration) ||
++                             (playingAnimation.TimeFactor < 0 && playingAnimation.CurrentTime == TimeSpan.Zero))
++                        removeAnimation = true;
++                    }
++
++                    if (removeAnimation)
++                    {
++                        animationComponent.PlayingAnimations.RemoveAt(index--); // Will also release its evaluator
+                     }
+                 }
++            }
+ 
+-                animationOperations.Clear();
+-            }, animationOperations => animationOperationPool.Release(animationOperations));
++            animationOperations.Clear();
+         }
+ 
+         private AnimationOperation CreatePushOperation(PlayingAnimation playingAnimation)
+diff --git a/sources/engine/Stride.Engine/Engine/FlexibleProcessing/ProcessorManager.cs b/sources/engine/Stride.Engine/Engine/FlexibleProcessing/ProcessorManager.cs
+index f2c1c3f..97c4add 100644
+--- a/sources/engine/Stride.Engine/Engine/FlexibleProcessing/ProcessorManager.cs
++++ b/sources/engine/Stride.Engine/Engine/FlexibleProcessing/ProcessorManager.cs
+@@ -161,8 +161,11 @@ namespace Stride.Engine.FlexibleProcessing
+ 
+         public void Update(GameTime gameTime)
+         {
+-            foreach (var (_, processor) in processorsToUpdate)
++            // KotH patch: by index over the cached Values; foreach made a SortedList enumerator every frame.
++            var processors = processorsToUpdate.Values;
++            for (int i = 0; i < processors.Count; i++)
+             {
++                var processor = processors[i];
+                 using (Profiler.Begin(processor.ProfilingKey))
+                 {
+                     processor.Instance.Update(gameTime);
+@@ -172,8 +175,11 @@ namespace Stride.Engine.FlexibleProcessing
+ 
+         public void Draw(RenderContext context)
+         {
+-            foreach (var (_, processor) in processorsToDraw)
++            // KotH patch: by index over the cached Values; foreach made a SortedList enumerator every frame.
++            var processors = processorsToDraw.Values;
++            for (int i = 0; i < processors.Count; i++)
+             {
++                var processor = processors[i];
+                 using (Profiler.Begin(processor.ProfilingKey))
+                 {
+                     processor.Instance.Draw(context);
+diff --git a/sources/engine/Stride.Graphics/BatchBase.cs b/sources/engine/Stride.Graphics/BatchBase.cs
+index a5771b7..200a3a4 100644
+--- a/sources/engine/Stride.Graphics/BatchBase.cs
++++ b/sources/engine/Stride.Graphics/BatchBase.cs
+@@ -346,7 +346,7 @@ namespace Stride.Graphics
+                 sortIndices[i] = i;
+             }
+ 
+-            Array.Sort(sortIndices, 0, drawsQueueCount, comparer);
++            Stride.Core.Threading.KotHSort<int>.Sort(sortIndices, 0, drawsQueueCount, comparer); // KotH patch: no Comparison per call
+         }
+ 
+         private void FlushBatch()
+diff --git a/sources/engine/Stride.Graphics/BufferPool.cs b/sources/engine/Stride.Graphics/BufferPool.cs
+index 306a725..107e59b 100644
+--- a/sources/engine/Stride.Graphics/BufferPool.cs
++++ b/sources/engine/Stride.Graphics/BufferPool.cs
+@@ -27,6 +27,9 @@ namespace Stride.Graphics
+ 
+         private int bufferAllocationOffset;
+ 
++        // KotH patch: one handler for every buffer; += OnBufferDestroyed made a delegate each frame.
++        private readonly EventHandler<EventArgs> onBufferDestroyed;
++
+         internal BufferPool(GraphicsResourceAllocator allocator, GraphicsDevice graphicsDevice, int size)
+         {
+             constantBufferAlignment = graphicsDevice.ConstantBufferDataPlacementAlignment;
+@@ -34,6 +37,7 @@ namespace Stride.Graphics
+                 throw new ArgumentException($"size needs to be a multiple of constant buffer alignment ({constantBufferAlignment})", nameof(size));
+ 
+             this.allocator = allocator;
++            onBufferDestroyed = OnBufferDestroyed;
+ 
+             Size = size;
+ 
+@@ -65,7 +69,7 @@ namespace Stride.Graphics
+ 
+         private void ReleaseBuffer()
+         {
+-            constantBuffer.Destroyed -= OnBufferDestroyed;
++            constantBuffer.Destroyed -= onBufferDestroyed;
+             allocator.ReleaseReference(constantBuffer);
+         }
+ 
+@@ -117,7 +121,7 @@ namespace Stride.Graphics
+                     ReleaseBuffer();
+ 
+                 constantBuffer = allocator.GetTemporaryBuffer(new BufferDescription(Size, BufferFlags.ConstantBuffer, GraphicsResourceUsage.Dynamic));
+-                constantBuffer.Destroyed += OnBufferDestroyed;
++                constantBuffer.Destroyed += onBufferDestroyed;
+             }
+ #pragma warning restore 162
+ 
+diff --git a/sources/engine/Stride.Particles/ParticleEmitter.cs b/sources/engine/Stride.Particles/ParticleEmitter.cs
+index 592aced..f325c0c 100644
+--- a/sources/engine/Stride.Particles/ParticleEmitter.cs
++++ b/sources/engine/Stride.Particles/ParticleEmitter.cs
+@@ -599,7 +599,11 @@ namespace Stride.Particles
+                     rngSeed = uintX ^ uintY ^ uintZ;
+                 }
+ 
+-                RandomSeedGenerator = new ParticleRandomSeedGenerator(rngSeed);
++                // KotH patch: reseeded when there is one already (every restart).
++                if (RandomSeedGenerator != null)
++                    RandomSeedGenerator.Reseed(rngSeed);
++                else
++                    RandomSeedGenerator = new ParticleRandomSeedGenerator(rngSeed);
+             }
+ 
+         }
+@@ -609,12 +613,18 @@ namespace Stride.Particles
+         /// </summary>
+         public void ResetSimulation()
+         {
+-            // Reset the particle pool which allocates unmanaged memory
+-            DirtyParticlePool = true;
+-            pool.SetCapacity(0);
++            // KotH patch: a restart of a sized pool only drops its particles. Freeing pool and vertex
++            // builder made every restart (each hit, kick, puff) rebuild sorter, vertex layout, effect
++            // permutation and pipeline state, allocating each time; the next burst needs them all again.
++            if (pool.ParticleCapacity == 0 || !pool.KillAll())
++            {
++                // Reset the particle pool which allocates unmanaged memory
++                DirtyParticlePool = true;
++                pool.SetCapacity(0);
+ 
+-            // Reset the vertex builder which allocates graphics memory
+-            VertexBuilder.Reset();
++                // Reset the vertex builder which allocates graphics memory
++                VertexBuilder.Reset();
++            }
+ 
+             // Restart all spawners
+             foreach (var spawner in Spawners)
+diff --git a/sources/engine/Stride.Particles/ParticlePool.cs b/sources/engine/Stride.Particles/ParticlePool.cs
+index f23bae7..61fc669 100644
+--- a/sources/engine/Stride.Particles/ParticlePool.cs
++++ b/sources/engine/Stride.Particles/ParticlePool.cs
+@@ -174,6 +174,15 @@ namespace Stride.Particles
+             RecalculateFieldsArrays();
+         }
+ 
++        // KotH patch: drops every particle of a stack pool, keeping memory and fields; false for a ring.
++        internal bool KillAll()
++        {
++            if (listPolicy == ListPolicy.Ring)
++                return false;
++            nextFreeIndex = 0;
++            return true;
++        }
++
+         /// <summary>
+         /// Clears all particle fields, but keeps the particle capacity the same.
+         /// </summary>
+diff --git a/sources/engine/Stride.Particles/ParticleRandomSeedGenerator.cs b/sources/engine/Stride.Particles/ParticleRandomSeedGenerator.cs
+index ec0b9b5..bf1cdfc 100644
+--- a/sources/engine/Stride.Particles/ParticleRandomSeedGenerator.cs
++++ b/sources/engine/Stride.Particles/ParticleRandomSeedGenerator.cs
+@@ -42,6 +42,9 @@ namespace Stride.Particles
+             rngSeed = seed;
+         }
+ 
++        // KotH patch: a restarted emitter reseeds its generator instead of making a new one.
++        internal void Reseed(uint seed) => rngSeed = seed;
++
+         public double GetNextDouble() => GetNextSeed().GetDouble(0);
+ 
+         public RandomSeed GetNextSeed()
+diff --git a/sources/engine/Stride.Rendering/Rendering/Compositing/RenderOutputValidator.cs b/sources/engine/Stride.Rendering/Rendering/Compositing/RenderOutputValidator.cs
+index eb7d8d7..c2b9098 100644
+--- a/sources/engine/Stride.Rendering/Rendering/Compositing/RenderOutputValidator.cs
++++ b/sources/engine/Stride.Rendering/Rendering/Compositing/RenderOutputValidator.cs
+@@ -37,13 +37,14 @@ namespace Stride.Rendering.Compositing
+         public void Add<T>(PixelFormat format, bool isShaderResource = true)
+             where T : IRenderTargetSemantic, new()
+         {
++            // KotH patch: the semantic already there is kept (equality is by type), not made anew every frame.
++            int index = validatedTargetCount++;
+             var description = new RenderTargetDescription
+             {
+-                Semantic = new T(),
++                Semantic = index < renderTargets.Count && renderTargets[index].Semantic is T same ? same : new T(),
+                 Format = format,
+             };
+ 
+-            int index = validatedTargetCount++;
+             if (index < renderTargets.Count)
+             {
+                 if (renderTargets[index] != description)
+diff --git a/sources/engine/Stride.Rendering/Rendering/EffectSystem.cs b/sources/engine/Stride.Rendering/Rendering/EffectSystem.cs
+index cd76b5a..1443115 100644
+--- a/sources/engine/Stride.Rendering/Rendering/EffectSystem.cs
++++ b/sources/engine/Stride.Rendering/Rendering/EffectSystem.cs
+@@ -67,8 +67,8 @@ namespace Stride.Rendering
+ 
+ #if STRIDE_PLATFORM_DESKTOP
+             Enabled = true;
+-            directoryWatcher = new DirectoryWatcher("*.sdsl");
+-            directoryWatcher.Modified += FileModifiedEvent;
++            // KotH patch: no shader source watcher; the game never reloads shaders, and its thread
++            // polled the tracked directories every 200 ms, allocating each time.
+             // TODO: sdfx too
+ #endif
+ 
+@@ -208,6 +208,7 @@ namespace Stride.Rendering
+                     cachedEffects.Add(bytecode, effect);
+ 
+ #if STRIDE_PLATFORM_DESKTOP
++                    if (directoryWatcher is not null) // KotH patch: nothing to track without one
+                     foreach (var type in bytecode.HashSources.Keys)
+                     {
+                         var storagePath = EffectCompilerBase.GetStoragePathFromShaderType(type);
+@@ -224,7 +225,7 @@ namespace Stride.Rendering
+                             }
+                         }
+                         if (filePath is not null)
+-                            directoryWatcher.Track(filePath);
++                            directoryWatcher?.Track(filePath); // KotH patch: none, see Initialize
+                     }
+ #endif
+                 }
+diff --git a/sources/engine/Stride.Rendering/Rendering/Lights/ForwardLightingRenderFeature.cs b/sources/engine/Stride.Rendering/Rendering/Lights/ForwardLightingRenderFeature.cs
+index a756bcf..cc6c941 100644
+--- a/sources/engine/Stride.Rendering/Rendering/Lights/ForwardLightingRenderFeature.cs
++++ b/sources/engine/Stride.Rendering/Rendering/Lights/ForwardLightingRenderFeature.cs
+@@ -103,6 +103,7 @@ namespace Stride.Rendering.Lights
+         /// List of renderers that can handle a specific light type by light type
+         /// </summary>
+         private readonly Dictionary<Type, List<LightGroupRendererBase>> lightRenderersByType = new Dictionary<Type, List<LightGroupRendererBase>>();
++        private readonly Dictionary<Type, LightGroupRendererBase[]> lightRendererArraysByType = new Dictionary<Type, LightGroupRendererBase[]>(); // KotH patch
+ 
+         private readonly Dictionary<RenderView, RenderViewLightData> renderViewDatas = new Dictionary<RenderView, RenderViewLightData>();
+ 
+@@ -360,6 +361,56 @@ namespace Stride.Rendering.Lights
+         }
+ 
+         /// <inheritdoc/>
++        private RenderDrawContext prepareDrawContext;
++        private int prepareViewIndex;
++        private Func<PrepareThreadLocals> prepareLocals;
++        private Action<RenderNodeReference, PrepareThreadLocals> prepareDraw;
++
++        private PrepareThreadLocals PrepareLocalsOfThread() => prepareThreadLocals.Value;
++
++        private void PrepareDrawLighting(RenderNodeReference renderNodeReference, PrepareThreadLocals locals)
++        {
++            var renderNode = RootRenderFeature.GetRenderNode(renderNodeReference);
++
++            // Ignore fallback effects
++            if (renderNode.RenderEffect.State != RenderEffectState.Normal)
++                return;
++
++            var drawLayout = renderNode.RenderEffect.Reflection?.PerDrawLayout;
++            if (drawLayout == null)
++                return;
++
++            var drawLighting = drawLayout.GetLogicalGroup(drawLightingKey);
++            if (drawLighting.Hash == ObjectId.Empty)
++                return;
++
++            // Rebuild thread-local layout when this node's hash differs from the previous one
++            // processed on this thread (different effects in the same view can produce different
++            // PerDraw Lighting layouts).
++            if (drawLighting.Hash != locals.DrawLayoutHash)
++            {
++                locals.DrawLayoutHash = drawLighting.Hash;
++
++                var drawParameterLayout = new ParameterCollectionLayout();
++                drawParameterLayout.ProcessLogicalGroup(drawLayout, ref drawLighting);
++
++                locals.DrawParameters.UpdateLayout(drawParameterLayout);
++            }
++
++            // Compute PerDraw lighting
++            foreach (var directLightGroup in shaderPermutation.DirectLightGroups)
++            {
++                directLightGroup.ApplyDrawParameters(prepareDrawContext, prepareViewIndex, locals.DrawParameters, ref renderNode.RenderObject.BoundingBox);
++            }
++            foreach (var environmentLight in shaderPermutation.EnvironmentLights)
++            {
++                environmentLight.ApplyDrawParameters(prepareDrawContext, prepareViewIndex, locals.DrawParameters, ref renderNode.RenderObject.BoundingBox);
++            }
++
++            // Update resources
++            renderNode.Resources.UpdateLogicalGroup(ref drawLighting, locals.DrawParameters);
++        }
++
+         public override void Prepare(RenderDrawContext context)
+         {
+             using var _ = Profiler.Begin(PrepareKey);
+@@ -408,48 +459,12 @@ namespace Stride.Rendering.Lights
+                 }
+ 
+                 // PerDraw
+-                Dispatcher.ForEach(viewFeature.RenderNodes, () => prepareThreadLocals.Value, (renderNodeReference, locals) =>
+-                {
+-                    var renderNode = RootRenderFeature.GetRenderNode(renderNodeReference);
+-
+-                    // Ignore fallback effects
+-                    if (renderNode.RenderEffect.State != RenderEffectState.Normal)
+-                        return;
+-
+-                    var drawLayout = renderNode.RenderEffect.Reflection?.PerDrawLayout;
+-                    if (drawLayout == null)
+-                        return;
+-
+-                    var drawLighting = drawLayout.GetLogicalGroup(drawLightingKey);
+-                    if (drawLighting.Hash == ObjectId.Empty)
+-                        return;
+-
+-                    // Rebuild thread-local layout when this node's hash differs from the previous one
+-                    // processed on this thread (different effects in the same view can produce different
+-                    // PerDraw Lighting layouts).
+-                    if (drawLighting.Hash != locals.DrawLayoutHash)
+-                    {
+-                        locals.DrawLayoutHash = drawLighting.Hash;
+-
+-                        var drawParameterLayout = new ParameterCollectionLayout();
+-                        drawParameterLayout.ProcessLogicalGroup(drawLayout, ref drawLighting);
+-
+-                        locals.DrawParameters.UpdateLayout(drawParameterLayout);
+-                    }
+-
+-                    // Compute PerDraw lighting
+-                    foreach (var directLightGroup in shaderPermutation.DirectLightGroups)
+-                    {
+-                        directLightGroup.ApplyDrawParameters(context, viewIndex, locals.DrawParameters, ref renderNode.RenderObject.BoundingBox);
+-                    }
+-                    foreach (var environmentLight in shaderPermutation.EnvironmentLights)
+-                    {
+-                        environmentLight.ApplyDrawParameters(context, viewIndex, locals.DrawParameters, ref renderNode.RenderObject.BoundingBox);
+-                    }
+-
+-                    // Update resources
+-                    renderNode.Resources.UpdateLogicalGroup(ref drawLighting, locals.DrawParameters);
+-                });
++                // KotH patch: cached delegates over fields; the lambdas made two delegates and closures per view.
++                (prepareDrawContext, prepareViewIndex) = (context, viewIndex);
++                prepareLocals ??= PrepareLocalsOfThread;
++                prepareDraw ??= PrepareDrawLighting;
++                Dispatcher.ForEach(viewFeature.RenderNodes, prepareLocals, prepareDraw);
++                prepareDrawContext = null;
+             }
+         }
+ 
+@@ -512,7 +527,10 @@ namespace Stride.Rendering.Lights
+                     
+                     if (lightGroup != null && lightGroup.Count > 0)
+                     {
+-                        var activeLightGroup = new ActiveLightGroupRenderer(lightGroup, p.Value);
++                        // KotH patch: the renderers' array made once per light type, not copied every frame.
++                        if (!lightRendererArraysByType.TryGetValue(p.Key, out var renderers))
++                            lightRendererArraysByType.Add(p.Key, renderers = p.Value.ToArray());
++                        var activeLightGroup = new ActiveLightGroupRenderer(lightGroup, renderers);
+                         viewData.ActiveRenderers.Add(activeLightGroup);
+                     }
+                 }
+@@ -704,6 +722,7 @@ namespace Stride.Rendering.Lights
+         private void EvaluateLightTypes()
+         {
+             lightRenderersByType.Clear();
++            lightRendererArraysByType.Clear(); // KotH patch
+             foreach (var renderer in lightRenderers)
+             {
+                 foreach (var lightType in renderer.LightTypes)
+@@ -745,10 +764,10 @@ namespace Stride.Rendering.Lights
+ 
+         internal struct ActiveLightGroupRenderer
+         {
+-            public ActiveLightGroupRenderer(RenderLightCollectionGroup lightGroup, IEnumerable<LightGroupRendererBase> lightGroupRenderers)
++            public ActiveLightGroupRenderer(RenderLightCollectionGroup lightGroup, LightGroupRendererBase[] lightGroupRenderers)
+             {
+                 LightGroup = lightGroup;
+-                Renderers = lightGroupRenderers.ToArray();
++                Renderers = lightGroupRenderers; // KotH patch: shared, made once per light type
+             }
+ 
+             /// <summary>
+diff --git a/sources/engine/Stride.Rendering/Rendering/Lights/LightAmbientRenderer.cs b/sources/engine/Stride.Rendering/Rendering/Lights/LightAmbientRenderer.cs
+index 1bd1223..cbe0736 100644
+--- a/sources/engine/Stride.Rendering/Rendering/Lights/LightAmbientRenderer.cs
++++ b/sources/engine/Stride.Rendering/Rendering/Lights/LightAmbientRenderer.cs
+@@ -37,7 +37,9 @@ namespace Stride.Rendering.Lights
+             base.SetViews(views);
+ 
+             // Make sure array is big enough for all render views
+-            Array.Resize(ref lightShaderGroup.AmbientColor, views.Count);
++            // KotH patch: grow only; a view count going down and up reallocated the array.
++            if (lightShaderGroup.AmbientColor == null || lightShaderGroup.AmbientColor.Length < views.Count)
++                Array.Resize(ref lightShaderGroup.AmbientColor, views.Count);
+         }
+ 
+         public override void ProcessLights(ProcessLightsParameters parameters)
+diff --git a/sources/engine/Stride.Rendering/Rendering/Lights/LightClusteredPointSpotGroupRenderer.cs b/sources/engine/Stride.Rendering/Rendering/Lights/LightClusteredPointSpotGroupRenderer.cs
+index f224bdf..d329768 100644
+--- a/sources/engine/Stride.Rendering/Rendering/Lights/LightClusteredPointSpotGroupRenderer.cs
++++ b/sources/engine/Stride.Rendering/Rendering/Lights/LightClusteredPointSpotGroupRenderer.cs
+@@ -158,6 +158,8 @@ namespace Stride.Rendering.Lights
+             private FastListStruct<LightClusterLinkedNode> lightNodes = new FastListStruct<LightClusterLinkedNode>(8);
+             private FastListStruct<Int2> clusterInfos = new FastListStruct<Int2>(8);
+             private RenderViewInfo[] renderViewInfos;
++            private readonly Dictionary<LightClusterLinkedNode, int> movedClusters = new Dictionary<LightClusterLinkedNode, int>(); // KotH patch
++            private int viewCount; // KotH patch: the array only grows, so its clusters and lists are kept
+             private Int2 maxClusterCount;
+             //private Plane[] zPlanes;
+ 
+@@ -208,7 +210,10 @@ namespace Stride.Rendering.Lights
+ 
+                 maxClusterCount = Int2.Zero;
+ 
+-                Array.Resize(ref renderViewInfos, views.Count);
++                // KotH patch: a view count that went down and up again reallocated every cluster array.
++                if (renderViewInfos == null || renderViewInfos.Length < views.Count)
++                    Array.Resize(ref renderViewInfos, views.Count);
++                viewCount = views.Count;
+                 for (int i = 0; i < views.Count; ++i)
+                 {
+                     if (renderViewInfos[i].RenderView == null)
+@@ -289,7 +294,9 @@ namespace Stride.Rendering.Lights
+                 }
+ 
+                 // List of clusters moved by this light
+-                var movedClusters = new Dictionary<LightClusterLinkedNode, int>();
++                // KotH patch: one dictionary, cleared; a new one per view and frame allocated as it grew.
++                var movedClusters = this.movedClusters;
++                movedClusters.Clear();
+ 
+                 // Try to use SpecialNearPlane to not waste too much slices in very small depth
+                 // Make sure we don't go to more than 10% of max depth
+@@ -449,7 +456,7 @@ namespace Stride.Rendering.Lights
+                 var maxPointLightsCount = 0;
+                 var maxSpotLightsCount = 0;
+ 
+-                for (var viewIndex = 0; viewIndex < renderViewInfos.Length; viewIndex++)
++                for (var viewIndex = 0; viewIndex < viewCount; viewIndex++) // KotH patch: viewCount
+                 {
+                     var renderView = renderViewInfos[viewIndex].RenderView;
+                     if ((renderView.Flags & RenderViewFlags.NotDrawn) != 0)
+diff --git a/sources/engine/Stride.Rendering/Rendering/Lights/LightGroupRendererShadow.cs b/sources/engine/Stride.Rendering/Rendering/Lights/LightGroupRendererShadow.cs
+index 0135139..f8c77d1 100644
+--- a/sources/engine/Stride.Rendering/Rendering/Lights/LightGroupRendererShadow.cs
++++ b/sources/engine/Stride.Rendering/Rendering/Lights/LightGroupRendererShadow.cs
+@@ -45,7 +45,8 @@ namespace Stride.Rendering.Lights
+ 
+         public bool Equals(LightShaderGroupEntry<T> other)
+         {
+-            return Key.Equals(other.Key) && Value.Equals(other.Value);
++            // KotH patch: the comparer, not Key.Equals(object), which boxed a struct key per call.
++            return EqualityComparer<T>.Default.Equals(Key, other.Key) && Value.Equals(other.Value);
+         }
+ 
+         public override bool Equals(object obj)
+diff --git a/sources/engine/Stride.Rendering/Rendering/Lights/LightShaderGroupDynamic.cs b/sources/engine/Stride.Rendering/Rendering/Lights/LightShaderGroupDynamic.cs
+index 4705270..97a39d3 100644
+--- a/sources/engine/Stride.Rendering/Rendering/Lights/LightShaderGroupDynamic.cs
++++ b/sources/engine/Stride.Rendering/Rendering/Lights/LightShaderGroupDynamic.cs
+@@ -51,7 +51,9 @@ namespace Stride.Rendering.Lights
+ 
+         public virtual void SetViews(List<RenderView> views)
+         {
+-            Array.Resize(ref lightRanges, views.Count);
++            // KotH patch: grow only; a view count going down and up reallocated the array.
++            if (lightRanges == null || lightRanges.Length < views.Count)
++                Array.Resize(ref lightRanges, views.Count);
+ 
+             // Reset ranges
+             for (var i = 0; i < views.Count; ++i)
+diff --git a/sources/engine/Stride.Rendering/Rendering/RenderContext.cs b/sources/engine/Stride.Rendering/Rendering/RenderContext.cs
+index edf1cf0..ef89160 100644
+--- a/sources/engine/Stride.Rendering/Rendering/RenderContext.cs
++++ b/sources/engine/Stride.Rendering/Rendering/RenderContext.cs
+@@ -23,6 +23,7 @@ namespace Stride.Rendering
+         private const string SharedImageEffectContextKey = "__SharedRenderContext__";
+         private readonly ThreadLocal<RenderDrawContext> threadContext;
+         private readonly object threadContextLock = new object();
++        private volatile RenderDrawContext[] threadContexts = [];
+ 
+         // Used for API that don't support multiple command lists
+         internal CommandList SharedCommandList;
+@@ -44,7 +45,13 @@ namespace Stride.Rendering
+             {
+                 lock (threadContextLock)
+                 {
+-                    return new RenderDrawContext(Services, this, new GraphicsContext(GraphicsDevice, Allocator));
++                    var created = new RenderDrawContext(Services, this, new GraphicsContext(GraphicsDevice, Allocator));
++                    // KotH patch: the contexts kept here too; ThreadLocal.Values made a list on every call.
++                    var all = new RenderDrawContext[threadContexts.Length + 1];
++                    threadContexts.CopyTo(all, 0);
++                    all[^1] = created;
++                    threadContexts = all;
++                    return created;
+                 }
+             }, true);
+         }
+@@ -130,12 +137,26 @@ namespace Stride.Rendering
+         /// </summary>
+         /// <param name="services">The services.</param>
+         /// <returns>RenderContext.</returns>
++        private static GraphicsDevice sharedDevice; // KotH patch
++        private static RenderContext sharedContext; // KotH patch
++
+         public static RenderContext GetShared(IServiceRegistry services)
+         {
+             if (services == null) throw new ArgumentNullException(nameof(services));
+ 
+             // Store RenderContext shared into the GraphicsDevice
+             var graphicsDevice = services.GetSafeServiceAs<IGraphicsDeviceService>().GraphicsDevice;
++            // KotH patch: the lambda captures services, a closure on every call; scripts ask every frame.
++            if (graphicsDevice == sharedDevice && sharedContext != null)
++                return sharedContext;
++            sharedContext = CreateShared(graphicsDevice, services);
++            sharedDevice = graphicsDevice;
++            return sharedContext;
++        }
++
++        // KotH patch: apart, as a captured parameter makes the closure on entry to its method.
++        private static RenderContext CreateShared(GraphicsDevice graphicsDevice, IServiceRegistry services)
++        {
+             return graphicsDevice.GetOrCreateSharedData(SharedImageEffectContextKey, d => new RenderContext(services));
+         }
+ 
+@@ -170,8 +191,8 @@ namespace Stride.Rendering
+ 
+         public void Reset()
+         {
+-            var contextList = threadContext.Values;     // returns IList so don't use foreach otherwise an object will be allocated
+-            for (int i = 0; i < contextList.Count; i++)
++            var contextList = threadContexts;
++            for (int i = 0; i < contextList.Length; i++)
+             {
+                 var context = contextList[i];
+                 context.ResourceGroupAllocator.Reset(context.CommandList);
+@@ -180,8 +201,8 @@ namespace Stride.Rendering
+ 
+         public void Flush()
+         {
+-            var contextList = threadContext.Values;     // returns IList so don't use foreach otherwise an object will be allocated
+-            for (int i = 0; i < contextList.Count; i++)
++            var contextList = threadContexts;
++            for (int i = 0; i < contextList.Length; i++)
+             {
+                 var context = contextList[i];
+                 context.ResourceGroupAllocator.Flush();
+diff --git a/sources/engine/Stride.Rendering/Rendering/RenderSystem.cs b/sources/engine/Stride.Rendering/Rendering/RenderSystem.cs
+index bb2acf7..fc145e1 100644
+--- a/sources/engine/Stride.Rendering/Rendering/RenderSystem.cs
++++ b/sources/engine/Stride.Rendering/Rendering/RenderSystem.cs
+@@ -413,103 +413,110 @@ namespace Stride.Rendering
+             }
+             else
+             {
+-                // Create at most one batch per processor
+-                int batchCount = Math.Min(Dispatcher.MaxDegreeOfParallelism, renderNodeCount);
+-                int batchSize = (renderNodeCount + (batchCount - 1)) / batchCount;
+-                batchCount = (renderNodeCount + (batchSize - 1)) / batchSize;
++                // KotH patch: in a method of its own, so the parallel draw's closure is made only here, not
++                // on every call (C# makes it where the captured locals begin, at the top of Draw).
++                DrawDeferred(renderDrawContext, renderView, renderViewStage, renderNodes, renderNodeCount, stageDepthAccess);
++            }
++        }
+ 
+-                var commandList = renderDrawContext.CommandList;
++        private void DrawDeferred(RenderDrawContext renderDrawContext, RenderView renderView, RenderViewStage renderViewStage, System.Collections.Generic.List<RenderNodeFeatureReference> renderNodes, int renderNodeCount, RenderStageDepthAccess stageDepthAccess)
++        {
++            // Create at most one batch per processor
++            int batchCount = Math.Min(Dispatcher.MaxDegreeOfParallelism, renderNodeCount);
++            int batchSize = (renderNodeCount + (batchCount - 1)) / batchCount;
++            batchCount = (renderNodeCount + (batchSize - 1)) / batchSize;
+ 
+-                // Remember state
+-                var depthStencilBuffer = commandList.DepthStencilBuffer;
++            var commandList = renderDrawContext.CommandList;
+ 
+-                int renderTargetCount = commandList.RenderTargetCount;
+-                renderTargets ??= new Texture[CommandList.MaxRenderTargetCount];
+-                commandList.RenderTargets.CopyTo(renderTargets);
++            // Remember state
++            var depthStencilBuffer = commandList.DepthStencilBuffer;
+ 
+-                var viewport = commandList.Viewport;
+-                var scissor = commandList.Scissor;
++            int renderTargetCount = commandList.RenderTargetCount;
++            renderTargets ??= new Texture[CommandList.MaxRenderTargetCount];
++            commandList.RenderTargets.CopyTo(renderTargets);
+ 
+-                // Pass-entry barriers on the main CB (single-threaded, submitted first). Worker CBs
+-                // that follow see the RT/depth layouts already at their target and issue no
+-                // transitions of their own. Depth transition follows the stage's declared access mode.
+-                for (int i = 0; i < renderTargetCount; i++)
+-                {
+-                    if (renderTargets[i] != null)
+-                        commandList.ResourceBarrierTransition(renderTargets[i], BarrierLayout.RenderTarget);
+-                }
+-                if (depthStencilBuffer != null)
+-                {
+-                    // stageDepthAccess here is Write or Read (Mixed was routed to the sequential branch above)
+-                    commandList.ResourceBarrierTransition(depthStencilBuffer,
+-                        stageDepthAccess == RenderStageDepthAccess.Read
+-                            ? BarrierLayout.DepthStencilRead
+-                            : BarrierLayout.DepthStencilWrite);
+-                }
++            var viewport = commandList.Viewport;
++            var scissor = commandList.Scissor;
+ 
+-                // Let command lists know the depth buffer stays readable during this stage, so the
+-                // depth attachment layout and descriptors can declare it (e.g. sampling the depth
+-                // while it stays bound)
+-                var depthStencilAccess = stageDepthAccess == RenderStageDepthAccess.Read
+-                    ? DepthStencilAccess.Read
+-                    : DepthStencilAccess.Write;
+-                commandList.DepthStencilAccess = depthStencilAccess;
++            // Pass-entry barriers on the main CB (single-threaded, submitted first). Worker CBs
++            // that follow see the RT/depth layouts already at their target and issue no
++            // transitions of their own. Depth transition follows the stage's declared access mode.
++            for (int i = 0; i < renderTargetCount; i++)
++            {
++                if (renderTargets[i] != null)
++                    commandList.ResourceBarrierTransition(renderTargets[i], BarrierLayout.RenderTarget);
++            }
++            if (depthStencilBuffer != null)
++            {
++                // stageDepthAccess here is Write or Read (Mixed was routed to the sequential branch above)
++                commandList.ResourceBarrierTransition(depthStencilBuffer,
++                    stageDepthAccess == RenderStageDepthAccess.Read
++                        ? BarrierLayout.DepthStencilRead
++                        : BarrierLayout.DepthStencilWrite);
++            }
+ 
+-                // Collect one command list per batch and the main one up to this point
+-                if (commandLists == null || (commandLists.Length < batchCount + 1))
+-                {
+-                    Array.Resize(ref commandLists, batchCount + 1);
+-                }
+-                commandLists[0] = commandList.Close();
++            // Let command lists know the depth buffer stays readable during this stage, so the
++            // depth attachment layout and descriptors can declare it (e.g. sampling the depth
++            // while it stays bound)
++            var depthStencilAccess = stageDepthAccess == RenderStageDepthAccess.Read
++                ? DepthStencilAccess.Read
++                : DepthStencilAccess.Write;
++            commandList.DepthStencilAccess = depthStencilAccess;
+ 
+-                Dispatcher.For(0, batchCount, () => renderDrawContext.RenderContext.GetThreadContext(), (batchIndex, threadContext) =>
+-                {
+-                    using var _ = Profiler.Begin(DrawRenderFeatureChunksKey);
+-                    threadContext.CommandList.Reset();
+-                    threadContext.CommandList.ClearState();
++            // Collect one command list per batch and the main one up to this point
++            if (commandLists == null || (commandLists.Length < batchCount + 1))
++            {
++                Array.Resize(ref commandLists, batchCount + 1);
++            }
++            commandLists[0] = commandList.Close();
++
++            Dispatcher.For(0, batchCount, () => renderDrawContext.RenderContext.GetThreadContext(), (batchIndex, threadContext) =>
++            {
++                using var _ = Profiler.Begin(DrawRenderFeatureChunksKey);
++                threadContext.CommandList.Reset();
++                threadContext.CommandList.ClearState();
+ 
+-                    // Transfer state to all command lists
+-                    scoped ReadOnlySpan<Texture> renderTargetsToSet = renderTargets.AsSpan(0, renderTargetCount);
+-                    threadContext.CommandList.SetRenderTargets(depthStencilBuffer, renderTargetsToSet);
+-                    threadContext.CommandList.SetViewport(viewport);
+-                    threadContext.CommandList.SetScissorRectangle(scissor);
+-                    threadContext.CommandList.DepthStencilAccess = depthStencilAccess;
++                // Transfer state to all command lists
++                scoped ReadOnlySpan<Texture> renderTargetsToSet = renderTargets.AsSpan(0, renderTargetCount);
++                threadContext.CommandList.SetRenderTargets(depthStencilBuffer, renderTargetsToSet);
++                threadContext.CommandList.SetViewport(viewport);
++                threadContext.CommandList.SetScissorRectangle(scissor);
++                threadContext.CommandList.DepthStencilAccess = depthStencilAccess;
+ 
+-                    var currentStart = batchSize * batchIndex;
+-                    int currentEnd;
++                var currentStart = batchSize * batchIndex;
++                int currentEnd;
+ 
+-                    var endExclusive = Math.Min(renderNodeCount, currentStart + batchSize);
++                var endExclusive = Math.Min(renderNodeCount, currentStart + batchSize);
+ 
+-                    if (endExclusive <= currentStart)
+-                        return;
++                if (endExclusive <= currentStart)
++                    return;
+ 
+-                    for (; currentStart < endExclusive; currentStart = currentEnd)
++                for (; currentStart < endExclusive; currentStart = currentEnd)
++                {
++                    var currentRenderFeature = renderNodes[currentStart].RootRenderFeature;
++                    currentEnd = currentStart + 1;
++                    while (currentEnd < endExclusive && renderNodes[currentEnd].RootRenderFeature == currentRenderFeature)
+                     {
+-                        var currentRenderFeature = renderNodes[currentStart].RootRenderFeature;
+-                        currentEnd = currentStart + 1;
+-                        while (currentEnd < endExclusive && renderNodes[currentEnd].RootRenderFeature == currentRenderFeature)
+-                        {
+-                            currentEnd++;
+-                        }
+-
+-                        // Divide into task chunks for parallelism
+-                        currentRenderFeature.Draw(threadContext, renderView, renderViewStage, currentStart, currentEnd);
++                        currentEnd++;
+                     }
+ 
+-                    commandLists[batchIndex + 1] = threadContext.CommandList.Close();
+-                });
++                    // Divide into task chunks for parallelism
++                    currentRenderFeature.Draw(threadContext, renderView, renderViewStage, currentStart, currentEnd);
++                }
+ 
+-                GraphicsDevice.ExecuteCommandLists(batchCount + 1, commandLists);
++                commandLists[batchIndex + 1] = threadContext.CommandList.Close();
++            });
+ 
+-                commandList.Reset();
+-                commandList.ClearState();
++            GraphicsDevice.ExecuteCommandLists(batchCount + 1, commandLists);
+ 
+-                // Reapply previous state
+-                scoped ReadOnlySpan<Texture> renderTargetsToSet = renderTargets.AsSpan(0, renderTargetCount);
+-                commandList.SetRenderTargets(depthStencilBuffer, renderTargetsToSet);
+-                commandList.SetViewport(viewport);
+-                commandList.SetScissorRectangle(scissor);
+-            }
++            commandList.Reset();
++            commandList.ClearState();
++
++            // Reapply previous state
++            scoped ReadOnlySpan<Texture> renderTargetsToSet = renderTargets.AsSpan(0, renderTargetCount);
++            commandList.SetRenderTargets(depthStencilBuffer, renderTargetsToSet);
++            commandList.SetViewport(viewport);
++            commandList.SetScissorRectangle(scissor);
+         }
+ 
+         /// <summary>
+diff --git a/sources/engine/Stride.Rendering/Rendering/RootEffectRenderFeature.cs b/sources/engine/Stride.Rendering/Rendering/RootEffectRenderFeature.cs
+index 3ad56be..961739a 100644
+--- a/sources/engine/Stride.Rendering/Rendering/RootEffectRenderFeature.cs
++++ b/sources/engine/Stride.Rendering/Rendering/RootEffectRenderFeature.cs
+@@ -422,6 +422,43 @@ namespace Stride.Rendering
+         }
+ 
+         /// <inheritdoc/>
++        private StaticObjectPropertyData<RenderEffect> markRenderEffects;
++        private int markSlotCount;
++        private Action<RenderView> markView;
++        private Action<RenderNodeReference> markNode;
++
++        private void MarkViewEffects(RenderView view)
++        {
++            var viewFeature = view.Features[Index];
++            Dispatcher.ForEach(viewFeature.RenderNodes, markNode);
++        }
++
++        private void MarkNodeEffect(RenderNodeReference renderNodeReference)
++        {
++            var renderNode = this.GetRenderNode(renderNodeReference);
++            var renderObject = renderNode.RenderObject;
++
++            // Get RenderEffect
++            var staticObjectNode = renderObject.StaticObjectNode;
++            var staticEffectObjectNode = staticObjectNode * markSlotCount + effectSlots[renderNode.RenderStage.Index].Index;
++            var renderEffect = markRenderEffects[staticEffectObjectNode];
++
++            var effectSelector = renderObject.ActiveRenderStages[renderNode.RenderStage.Index].EffectSelector;
++
++            // Create it (first time) or regenerate it if effect changed
++            if (renderEffect == null || effectSelector != renderEffect.EffectSelector)
++            {
++                renderEffect = new RenderEffect(renderObject.ActiveRenderStages[renderNode.RenderStage.Index].EffectSelector);
++                markRenderEffects[staticEffectObjectNode] = renderEffect;
++            }
++
++            // Is it the first time this frame that we check this RenderEffect?
++            if (renderEffect.MarkAsUsed(RenderSystem))
++            {
++                renderEffect.EffectValidator.BeginEffectValidation();
++            }
++        }
++
+         public override void PrepareEffectPermutations(RenderDrawContext context)
+         {
+             using var _ = Profiler.Begin(PrepareEffectPermutationsKey);
+@@ -431,35 +468,12 @@ namespace Stride.Rendering
+             var renderEffects = RenderData.GetData(RenderEffectKey);
+             int effectSlotCount = EffectPermutationSlotCount;
+ 
+-            Dispatcher.ForEach(RenderSystem.Views, view =>
+-            {
+-                var viewFeature = view.Features[Index];
+-                Dispatcher.ForEach(viewFeature.RenderNodes, renderNodeReference =>
+-                {
+-                    var renderNode = this.GetRenderNode(renderNodeReference);
+-                    var renderObject = renderNode.RenderObject;
+-
+-                    // Get RenderEffect
+-                    var staticObjectNode = renderObject.StaticObjectNode;
+-                    var staticEffectObjectNode = staticObjectNode * effectSlotCount + effectSlots[renderNode.RenderStage.Index].Index;
+-                    var renderEffect = renderEffects[staticEffectObjectNode];
+-
+-                    var effectSelector = renderObject.ActiveRenderStages[renderNode.RenderStage.Index].EffectSelector;
+-
+-                    // Create it (first time) or regenerate it if effect changed
+-                    if (renderEffect == null || effectSelector != renderEffect.EffectSelector)
+-                    {
+-                        renderEffect = new RenderEffect(renderObject.ActiveRenderStages[renderNode.RenderStage.Index].EffectSelector);
+-                        renderEffects[staticEffectObjectNode] = renderEffect;
+-                    }
+-
+-                    // Is it the first time this frame that we check this RenderEffect?
+-                    if (renderEffect.MarkAsUsed(RenderSystem))
+-                    {
+-                        renderEffect.EffectValidator.BeginEffectValidation();
+-                    }
+-                });
+-            });
++            // KotH patch: cached delegates over fields; the nested lambdas made a closure and a delegate per view.
++            (markRenderEffects, markSlotCount) = (renderEffects, effectSlotCount);
++            markView ??= MarkViewEffects;
++            markNode ??= MarkNodeEffect;
++            Dispatcher.ForEach(RenderSystem.Views, markView);
++            (markRenderEffects, markSlotCount) = (default, 0);
+ 
+             // Step1: Perform permutations
+             PrepareEffectPermutationsImpl(context);
+@@ -709,174 +723,189 @@ namespace Stride.Rendering
+         }
+ 
+         /// <inheritdoc/>
+-        public override void Prepare(RenderDrawContext context)
+-        {
+-            EffectObjectNodes.Clear(false);
++        private RenderView prepareView;
++        private RenderViewFeature prepareViewFeature;
++        private StaticObjectPropertyData<RenderEffect> prepareRenderEffects;
++        private int prepareSlotCount;
++        private Func<PrepareThreadContext> prepareContext;
++        private Action<RenderNodeReference, PrepareThreadContext> prepareNode;
+ 
+-            // Make sure descriptor set pool is large enough
+-            var expectedDescriptorSetPoolSize = RenderNodes.Count * effectDescriptorSetSlots.Count;
+-            if (ResourceGroupPool.Length < expectedDescriptorSetPoolSize)
+-                Array.Resize(ref ResourceGroupPool, expectedDescriptorSetPoolSize);
++        private PrepareThreadContext PrepareContextOfThread() => prepareThreadContext.Value;
+ 
+-            // Allocate PerFrame, PerView and PerDraw resource groups and constant buffers
+-            var renderEffects = RenderData.GetData(RenderEffectKey);
+-            int effectSlotCount = EffectPermutationSlotCount;
+-            foreach (var view in RenderSystem.Views)
+-            {
+-                var viewFeature = view.Features[Index];
+-
+-                Dispatcher.ForEach(viewFeature.RenderNodes, () => prepareThreadContext.Value, (renderNodeReference, batch) =>
+-                {
+-                    var threadContext = batch.Context;
+-                    var renderNode = this.GetRenderNode(renderNodeReference);
+-                    var renderObject = renderNode.RenderObject;
++        private void PrepareNode(RenderNodeReference renderNodeReference, PrepareThreadContext batch)
++        {
++            var threadContext = batch.Context;
++            var renderNode = this.GetRenderNode(renderNodeReference);
++            var renderObject = renderNode.RenderObject;
+ 
+-                    // Get RenderEffect
+-                    var staticObjectNode = renderObject.StaticObjectNode;
+-                    var staticEffectObjectNode = staticObjectNode * effectSlotCount + effectSlots[renderNode.RenderStage.Index].Index;
+-                    var renderEffect = renderEffects[staticEffectObjectNode];
++            // Get RenderEffect
++            var staticObjectNode = renderObject.StaticObjectNode;
++            var staticEffectObjectNode = staticObjectNode * prepareSlotCount + effectSlots[renderNode.RenderStage.Index].Index;
++            var renderEffect = prepareRenderEffects[staticEffectObjectNode];
+ 
+-                    // Not compiled yet?
+-                    if (renderEffect.Effect == null)
+-                    {
+-                        renderNode.RenderEffect = renderEffect;
+-                        renderNode.EffectObjectNode = EffectObjectNodeReference.Invalid;
+-                        renderNode.Resources = null;
+-                        RenderNodes[renderNodeReference.Index] = renderNode;
+-                        return;
+-                    }
++            // Not compiled yet?
++            if (renderEffect.Effect == null)
++            {
++                renderNode.RenderEffect = renderEffect;
++                renderNode.EffectObjectNode = EffectObjectNodeReference.Invalid;
++                renderNode.Resources = null;
++                RenderNodes[renderNodeReference.Index] = renderNode;
++                return;
++            }
+ 
+-                    var renderEffectReflection = renderEffect.Reflection;
++            var renderEffectReflection = renderEffect.Reflection;
+ 
+-                    // PerView resources/cbuffer
+-                    var viewLayout = renderEffectReflection.PerViewLayout;
+-                    if (viewLayout != null)
++            // PerView resources/cbuffer
++            var viewLayout = renderEffectReflection.PerViewLayout;
++            if (viewLayout != null)
++            {
++                var viewCount = RenderSystem.Views.Count;
++                if (viewLayout.Entries?.Length < viewCount)
++                {
++                    // TODO: Should this be a first loop?
++                    lock (viewLayout)
+                     {
+-                        var viewCount = RenderSystem.Views.Count;
+                         if (viewLayout.Entries?.Length < viewCount)
+                         {
+-                            // TODO: Should this be a first loop?
+-                            lock (viewLayout)
+-                            {
+-                                if (viewLayout.Entries?.Length < viewCount)
+-                                {
+-                                    var newEntries = new ResourceGroupEntry[viewCount];
++                            var newEntries = new ResourceGroupEntry[viewCount];
+ 
+-                                    for (int index = 0; index < viewLayout.Entries.Length; index++)
+-                                        newEntries[index] = viewLayout.Entries[index];
++                            for (int index = 0; index < viewLayout.Entries.Length; index++)
++                                newEntries[index] = viewLayout.Entries[index];
+ 
+-                                    for (int index = viewLayout.Entries.Length; index < viewCount; index++)
+-                                        newEntries[index].Resources = new ResourceGroup();
++                            for (int index = viewLayout.Entries.Length; index < viewCount; index++)
++                                newEntries[index].Resources = new ResourceGroup();
+ 
+-                                    viewLayout.Entries = newEntries;
+-                                }
+-                            }
++                            viewLayout.Entries = newEntries;
+                         }
++                    }
++                }
+ 
+-                        if (viewLayout.Entries[view.Index].MarkAsUsed(RenderSystem))
+-                        {
+-                            threadContext.ResourceGroupAllocator.PrepareResourceGroup(viewLayout, BufferPoolAllocationType.UsedMultipleTime, viewLayout.Entries[view.Index].Resources);
++                if (viewLayout.Entries[prepareView.Index].MarkAsUsed(RenderSystem))
++                {
++                    threadContext.ResourceGroupAllocator.PrepareResourceGroup(viewLayout, BufferPoolAllocationType.UsedMultipleTime, viewLayout.Entries[prepareView.Index].Resources);
+ 
+-                            // Register it in list of view layouts to update for this frame
+-                            viewFeature.Layouts.Add(viewLayout);
+-                        }
+-                    }
++                    // Register it in list of view layouts to update for this frame
++                    prepareViewFeature.Layouts.Add(viewLayout);
++                }
++            }
+ 
+-                    // PerFrame resources/cbuffer
+-                    var frameLayout = renderEffect.Reflection.PerFrameLayout;
+-                    if (frameLayout != null && frameLayout.Entry.MarkAsUsed(RenderSystem))
+-                    {
+-                        threadContext.ResourceGroupAllocator.PrepareResourceGroup(frameLayout, BufferPoolAllocationType.UsedMultipleTime, frameLayout.Entry.Resources);
++            // PerFrame resources/cbuffer
++            var frameLayout = renderEffect.Reflection.PerFrameLayout;
++            if (frameLayout != null && frameLayout.Entry.MarkAsUsed(RenderSystem))
++            {
++                threadContext.ResourceGroupAllocator.PrepareResourceGroup(frameLayout, BufferPoolAllocationType.UsedMultipleTime, frameLayout.Entry.Resources);
+ 
+-                        // Register it in list of frame layouts to update for this frame
+-                        FrameLayouts.Add(frameLayout);
+-                    }
++                // Register it in list of frame layouts to update for this frame
++                FrameLayouts.Add(frameLayout);
++            }
+ 
+-                    // PerDraw resources/cbuffer
+-                    // Get nodes
+-                    var viewObjectNode = GetViewObjectNode(renderNode.ViewObjectNode);
++            // PerDraw resources/cbuffer
++            // Get nodes
++            var viewObjectNode = GetViewObjectNode(renderNode.ViewObjectNode);
+ 
+-                    // Allocate descriptor set
+-                    renderNode.Resources = threadContext.ResourceGroupAllocator.AllocateResourceGroup();
+-                    if (renderEffectReflection.PerDrawLayout != null)
+-                    {
+-                        threadContext.ResourceGroupAllocator.PrepareResourceGroup(renderEffectReflection.PerDrawLayout, BufferPoolAllocationType.UsedOnce, renderNode.Resources);
+-                    }
++            // Allocate descriptor set
++            renderNode.Resources = threadContext.ResourceGroupAllocator.AllocateResourceGroup();
++            if (renderEffectReflection.PerDrawLayout != null)
++            {
++                threadContext.ResourceGroupAllocator.PrepareResourceGroup(renderEffectReflection.PerDrawLayout, BufferPoolAllocationType.UsedOnce, renderNode.Resources);
++            }
+ 
+-                    // Create EffectObjectNode
+-                    var effectObjectNodeIndex = EffectObjectNodes.Add(new EffectObjectNode(renderEffect, viewObjectNode.ObjectNode));
++            // Create EffectObjectNode
++            var effectObjectNodeIndex = EffectObjectNodes.Add(new EffectObjectNode(renderEffect, viewObjectNode.ObjectNode));
+ 
+-                    // Link to EffectObjectNode (created right after)
+-                    // TODO: rewrite this
+-                    renderNode.EffectObjectNode = new EffectObjectNodeReference(effectObjectNodeIndex);
++            // Link to EffectObjectNode (created right after)
++            // TODO: rewrite this
++            renderNode.EffectObjectNode = new EffectObjectNodeReference(effectObjectNodeIndex);
+ 
+-                    renderNode.RenderEffect = renderEffect;
++            renderNode.RenderEffect = renderEffect;
+ 
+-                    // Bind well-known descriptor sets
+-                    var descriptorSetPoolOffset = ComputeResourceGroupOffset(renderNodeReference);
+-                    ResourceGroupPool[descriptorSetPoolOffset + perFrameDescriptorSetSlot.Index] = frameLayout?.Entry.Resources;
+-                    ResourceGroupPool[descriptorSetPoolOffset + perViewDescriptorSetSlot.Index] = renderEffect.Reflection.PerViewLayout?.Entries[view.Index].Resources;
+-                    ResourceGroupPool[descriptorSetPoolOffset + perDrawDescriptorSetSlot.Index] = renderNode.Resources;
++            // Bind well-known descriptor sets
++            var descriptorSetPoolOffset = ComputeResourceGroupOffset(renderNodeReference);
++            ResourceGroupPool[descriptorSetPoolOffset + perFrameDescriptorSetSlot.Index] = frameLayout?.Entry.Resources;
++            ResourceGroupPool[descriptorSetPoolOffset + perViewDescriptorSetSlot.Index] = renderEffect.Reflection.PerViewLayout?.Entries[prepareView.Index].Resources;
++            ResourceGroupPool[descriptorSetPoolOffset + perDrawDescriptorSetSlot.Index] = renderNode.Resources;
+ 
+-                    // Create resource group for everything else in case of fallback effects
+-                    if (renderEffect.State != RenderEffectState.Normal && renderEffect.FallbackParameters != null)
+-                    {
+-                        if (renderEffect.FallbackParameterUpdater.ResourceGroups == null)
+-                        {
+-                            // First time
+-                            renderEffect.FallbackParameterUpdater = new EffectParameterUpdater(renderEffect.Reflection.FallbackUpdaterLayout, renderEffect.FallbackParameters);
+-                        }
++            // Create resource group for everything else in case of fallback effects
++            if (renderEffect.State != RenderEffectState.Normal && renderEffect.FallbackParameters != null)
++            {
++                if (renderEffect.FallbackParameterUpdater.ResourceGroups == null)
++                {
++                    // First time
++                    renderEffect.FallbackParameterUpdater = new EffectParameterUpdater(renderEffect.Reflection.FallbackUpdaterLayout, renderEffect.FallbackParameters);
++                }
+ 
+-                        renderEffect.FallbackParameterUpdater.Update(RenderSystem.GraphicsDevice, threadContext.ResourceGroupAllocator, renderEffect.FallbackParameters);
++                renderEffect.FallbackParameterUpdater.Update(RenderSystem.GraphicsDevice, threadContext.ResourceGroupAllocator, renderEffect.FallbackParameters);
+ 
+-                        var fallbackResourceGroupMapping = renderEffect.Reflection.FallbackResourceGroupMapping;
+-                        for (int i = 0; i < fallbackResourceGroupMapping.Length; ++i)
+-                        {
+-                            ResourceGroupPool[descriptorSetPoolOffset + fallbackResourceGroupMapping[i]] = renderEffect.FallbackParameterUpdater.ResourceGroups[i];
+-                        }
+-                    }
++                var fallbackResourceGroupMapping = renderEffect.Reflection.FallbackResourceGroupMapping;
++                for (int i = 0; i < fallbackResourceGroupMapping.Length; ++i)
++                {
++                    ResourceGroupPool[descriptorSetPoolOffset + fallbackResourceGroupMapping[i]] = renderEffect.FallbackParameterUpdater.ResourceGroups[i];
++                }
++            }
+ 
+-                    // Use the output captured for this view's stage so the pipeline state matches this
+-                    // view's render target format (e.g. an RGBA render-texture vs a BGRA backbuffer).
+-                    var stageOutput = renderNode.RenderView?.GetRenderStageOutput(renderNode.RenderStage) ?? renderNode.RenderStage.Output;
++            // Use the output captured for this view's stage so the pipeline state matches this
++            // view's render target format (e.g. an RGBA render-texture vs a BGRA backbuffer).
++            var stageOutput = renderNode.RenderView?.GetRenderStageOutput(renderNode.RenderStage) ?? renderNode.RenderStage.Output;
+ 
+-                    // Compile pipeline state object (once per output format the effect is drawn into)
+-                    // TODO GRAPHICS REFACTOR how to invalidate if we want to change some state? (setting to null should be fine)
+-                    var pipelineStateObject = renderEffect.GetPipelineState(stageOutput);
+-                    if (pipelineStateObject == null)
+-                    {
+-                        var mutablePipelineState = batch.MutablePipelineState;
+-                        var pipelineState = mutablePipelineState.State;
+-                        pipelineState.SetDefaults();
++            // Compile pipeline state object (once per output format the effect is drawn into)
++            // TODO GRAPHICS REFACTOR how to invalidate if we want to change some state? (setting to null should be fine)
++            var pipelineStateObject = renderEffect.GetPipelineState(stageOutput);
++            if (pipelineStateObject == null)
++            {
++                var mutablePipelineState = batch.MutablePipelineState;
++                var pipelineState = mutablePipelineState.State;
++                pipelineState.SetDefaults();
+ 
+-                        // Effect
+-                        pipelineState.EffectBytecode = renderEffect.Effect.Bytecode;
+-                        pipelineState.RootSignature = renderEffect.Reflection.RootSignature;
++                // Effect
++                pipelineState.EffectBytecode = renderEffect.Effect.Bytecode;
++                pipelineState.RootSignature = renderEffect.Reflection.RootSignature;
+ 
+-                        pipelineState.Output = stageOutput;
+-                        pipelineState.RasterizerState.MultisampleCount = stageOutput.MultisampleCount;
++                pipelineState.Output = stageOutput;
++                pipelineState.RasterizerState.MultisampleCount = stageOutput.MultisampleCount;
+ 
+-                        // Bind VAO
+-                        ProcessPipelineState(Context, renderNodeReference, ref renderNode, renderObject, pipelineState);
++                // Bind VAO
++                ProcessPipelineState(Context, renderNodeReference, ref renderNode, renderObject, pipelineState);
+ 
+-                        foreach (var pipelineProcessor in PipelineProcessors)
+-                            pipelineProcessor.Process(renderNodeReference, ref renderNode, renderObject, pipelineState);
++                foreach (var pipelineProcessor in PipelineProcessors)
++                    pipelineProcessor.Process(renderNodeReference, ref renderNode, renderObject, pipelineState);
+ 
+-                        mutablePipelineState.Update();
+-                        pipelineStateObject = mutablePipelineState.CurrentState;
+-                        renderEffect.SetPipelineState(stageOutput, pipelineStateObject);
++                mutablePipelineState.Update();
++                pipelineStateObject = mutablePipelineState.CurrentState;
++                renderEffect.SetPipelineState(stageOutput, pipelineStateObject);
+ 
+-                        // Snapshot depth-write state so RenderSystem.Draw can auto-detect the
+-                        // stage's depth access mode (pre-barrier Read vs Write) before dispatch.
+-                        var dss = pipelineState.DepthStencilState;
+-                        renderEffect.WritesDepth = dss.DepthBufferWriteEnable
+-                            || (dss.StencilEnable && dss.StencilWriteMask != 0);
+-                    }
++                // Snapshot depth-write state so RenderSystem.Draw can auto-detect the
++                // stage's depth access mode (pre-barrier Read vs Write) before dispatch.
++                var dss = pipelineState.DepthStencilState;
++                renderEffect.WritesDepth = dss.DepthBufferWriteEnable
++                    || (dss.StencilEnable && dss.StencilWriteMask != 0);
++            }
+ 
+-                    renderNode.PipelineState = pipelineStateObject;
++            renderNode.PipelineState = pipelineStateObject;
+ 
+-                    RenderNodes[renderNodeReference.Index] = renderNode;
+-                });
++            RenderNodes[renderNodeReference.Index] = renderNode;
++        }
++
++        public override void Prepare(RenderDrawContext context)
++        {
++            EffectObjectNodes.Clear(false);
++
++            // Make sure descriptor set pool is large enough
++            var expectedDescriptorSetPoolSize = RenderNodes.Count * effectDescriptorSetSlots.Count;
++            if (ResourceGroupPool.Length < expectedDescriptorSetPoolSize)
++                Array.Resize(ref ResourceGroupPool, expectedDescriptorSetPoolSize);
++
++            // Allocate PerFrame, PerView and PerDraw resource groups and constant buffers
++            var renderEffects = RenderData.GetData(RenderEffectKey);
++            int effectSlotCount = EffectPermutationSlotCount;
++            foreach (var view in RenderSystem.Views)
++            {
++                var viewFeature = view.Features[Index];
++
++                // KotH patch: cached delegates over fields; the lambdas made two delegates and closures per view.
++                (prepareView, prepareViewFeature, prepareRenderEffects, prepareSlotCount) = (view, viewFeature, renderEffects, effectSlotCount);
++                prepareContext ??= PrepareContextOfThread;
++                prepareNode ??= PrepareNode;
++                Dispatcher.ForEach(viewFeature.RenderNodes, prepareContext, prepareNode);
+ 
+                 viewFeature.RenderNodes.Close();
+                 viewFeature.Layouts.Close();
+diff --git a/sources/engine/Stride.Rendering/Rendering/Shadows/ShadowMapRenderer.cs b/sources/engine/Stride.Rendering/Rendering/Shadows/ShadowMapRenderer.cs
+index 8ee0e8e..f274067 100644
+--- a/sources/engine/Stride.Rendering/Rendering/Shadows/ShadowMapRenderer.cs
++++ b/sources/engine/Stride.Rendering/Rendering/Shadows/ShadowMapRenderer.cs
+@@ -200,15 +200,22 @@ namespace Stride.Rendering.Shadows
+             return fallbackAtlas ??= new ShadowMapAtlasTexture(context.GraphicsDevice.GetSharedDepthTexture(), -1);
+         }
+ 
++        // KotH patch: one callback for every insert, writing to the map being assigned; a lambda
++        // capturing the map made a closure and a delegate per shadow map and frame.
++        private LightShadowMapTexture assigning;
++        private GuillotinePacker.InsertRectangleCallback setAssigned;
++
+         private void AssignRectangle(LightShadowMapTexture lightShadowMapTexture)
+         {
+             var size = lightShadowMapTexture.Size;
++            assigning = lightShadowMapTexture;
++            setAssigned ??= (int index, ref Rectangle rectangle) => assigning.SetRectangle(index, rectangle);
+ 
+             // Try to fit the shadow map into an existing atlas
+             ShadowMapAtlasTexture currentAtlas = null;
+             foreach (var atlas in atlases)
+             {
+-                if (atlas.TryInsert(size, size, lightShadowMapTexture.CascadeCount, (int index, ref Rectangle rectangle) => lightShadowMapTexture.SetRectangle(index, rectangle)))
++                if (atlas.TryInsert(size, size, lightShadowMapTexture.CascadeCount, setAssigned))
+                 {
+                     currentAtlas = atlas;
+                     break;
+diff --git a/sources/engine/Stride.UI/Rendering/UI/UIRenderFeature.cs b/sources/engine/Stride.UI/Rendering/UI/UIRenderFeature.cs
+index 542ccdb..3fa602c 100644
+--- a/sources/engine/Stride.UI/Rendering/UI/UIRenderFeature.cs
++++ b/sources/engine/Stride.UI/Rendering/UI/UIRenderFeature.cs
+@@ -33,6 +33,7 @@ namespace Stride.Rendering.UI
+         private readonly LayoutingContext layoutingContext = new LayoutingContext();
+ 
+         private readonly List<UIElementState> uiElementStates = new List<UIElementState>();
++        private readonly List<UIElementState> uiElementStatePool = new List<UIElementState>(); // KotH patch
+ 
+         public override Type SupportedRenderObjectType => typeof(RenderUIElement);
+ 
+@@ -97,7 +98,13 @@ namespace Stride.Rendering.UI
+                 var renderNode = GetRenderNode(renderNodeReference);
+                 var renderElement = (RenderUIElement)renderNode.RenderObject;
+ 
+-                uiElementStates.Add(new UIElementState(renderElement));
++                // KotH patch: the states are reused frame to frame instead of made anew for every element.
++                var count = uiElementStates.Count;
++                if (count == uiElementStatePool.Count)
++                    uiElementStatePool.Add(new UIElementState(renderElement));
++                else
++                    uiElementStatePool[count].Reset(renderElement);
++                uiElementStates.Add(uiElementStatePool[count]);
+             }
+ 
+             // evaluate the current draw time (game instance is null for thumbnails)
+@@ -351,11 +358,16 @@ namespace Stride.Rendering.UI
+ 
+         private class UIElementState
+         {
+-            public readonly RenderUIElement RenderObject;
++            public RenderUIElement RenderObject; // KotH patch: not readonly, see Reset
+             public Matrix WorldViewProjectionMatrix;
+             public Vector3 VirtualResolution;
+ 
+             public UIElementState(RenderUIElement renderObject)
++            {
++                Reset(renderObject);
++            }
++
++            public void Reset(RenderUIElement renderObject)
+             {
+                 RenderObject = renderObject;
+                 WorldViewProjectionMatrix = Matrix.Identity;

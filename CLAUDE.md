@@ -38,7 +38,7 @@ Bin/Probes/aot/KotH.Probes <worldquery|rotation|slopejump|crest|impact|jumpheigh
 Bin/Probes/aot/KotH.Probes determinism hashes   # hash chain 28366336E685DE48
 Bin/Probes/aot/KotH.Probes bots climb 12        # MountDestiny, mean ≤ 140 s; also bots stats 12, bots jumplab
 .work/tools/climb_many.sh DIR 8 13 && dotnet run .work/tools/climb_many.cs -- DIR   # 104 seeds, each bot
-.work/tools/stride_runs.sh 3; R=Reference/unity/runs
+.work/tools/stride_runs.sh 3; R=Reference/unity/runs; .work/perf/zero.sh   # zero.sh: rounds + menu allocate 0 B
 dotnet run Tools/Verdict.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # verdicts (95, 94 the same)
 dotnet run Tools/Regress.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # numbers within 5 mm / 1 %
 ```
@@ -49,7 +49,7 @@ dotnet run Tools/Regress.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # nu
 ## Architecture
 
 **KotH.Shared** (the whole simulation, no graphics), **KotH.Game** (client, `MainScene`, visible prefabs), **KotH.Linux**
-(exe), **KotH.Server** (`HeadlessWorld`, 40 Hz), **KotH.Probes** (`Harness/`, `Ref` = Unity), **ThirdParty** (READMEs).
+(exe), **KotH.Server** (`HeadlessWorld`, 40 Hz), **KotH.Probes** (`Harness/`, `Ref` = Unity), **ThirdParty** (READMEs; Stride patched: `StridePatched`).
 
 ### Simulation
 - `SimulationSystem` is the only clock: contacts → `Motor.Simulate` → `SeparateBodies` → `TieTeams` → `Publish` → `SyncHull` →

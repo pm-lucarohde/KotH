@@ -40,4 +40,22 @@
       <CppLinker>lld-link</CppLinker>
     </PropertyGroup>
   </Target>
+
+  <!-- Stride assemblies built from 4.4.1 with KotH's patches (ThirdParty/StridePatched, build.sh) replace the
+       packages' at run time and in the NativeAOT binary; compiling still sees the packages' (same API).
+       After Stride's own graphics API pick. Linux only: they are built for it, Windows keeps the packages'. -->
+  <PropertyGroup>
+    <KotHStridePatched>$(MSBuildThisFileDirectory)ThirdParty/StridePatched/lib/</KotHStridePatched>
+  </PropertyGroup>
+  <Target Name="KotHUseStridePatched" BeforeTargets="ResolveLockFileCopyLocalFiles"
+          Condition="'$(KotHStridePatchedOff)' != 'true' and !$(RuntimeIdentifier.StartsWith('win'))">
+    <Error Condition="!Exists('$(KotHStridePatched)Stride.Engine.dll')"
+           Text="Patched Stride missing: run ThirdParty/StridePatched/build.sh" />
+    <ItemGroup>
+      <_KotHStrideSwap Include="@(RuntimeCopyLocalItems)"
+                       Condition="'%(RuntimeCopyLocalItems.Extension)' == '.dll' and Exists('$(KotHStridePatched)%(RuntimeCopyLocalItems.Filename).dll')" />
+      <RuntimeCopyLocalItems Remove="@(_KotHStrideSwap)" />
+      <RuntimeCopyLocalItems Include="@(_KotHStrideSwap->'$(KotHStridePatched)%(Filename)%(Extension)')" />
+    </ItemGroup>
+  </Target>
 </Project>

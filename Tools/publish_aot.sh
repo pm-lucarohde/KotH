@@ -8,6 +8,8 @@ set -e
 case " ${*:-linux} " in *" linux "*) "$(dirname "$0")/dlss/fetch.sh" linux ;; esac
 case " $* " in *" windows "*) "$(dirname "$0")/dlss/fetch.sh" windows ;; esac
 cd "$(dirname "$0")/.."
+# Stride rebuilt with KotH's allocation patches (ThirdParty/StridePatched), once.
+[ -f ThirdParty/StridePatched/lib/Stride.Engine.dll ] || ThirdParty/StridePatched/build.sh
 targets=${*:-linux server probes}
 for t in $targets; do
   rid=linux-x64; exe=
