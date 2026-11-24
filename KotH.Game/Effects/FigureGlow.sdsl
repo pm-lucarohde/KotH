@@ -1,0 +1,18 @@
+/// <summary>A figure's glow (emissive, from level 100): a strong rim where the surface turns away from
+/// the eye and a faint glow all over, in GlowColor (linear, times its w). Zero w for figures that do
+/// not glow, so they look as before; HDR above 1 feeds the bloom.</summary>
+shader FigureGlow : ComputeColor, PositionStream4, NormalStream, Transformation
+{
+    cbuffer PerMaterial
+    {
+        stage float4 GlowColor;
+    }
+
+    override float4 Compute()
+    {
+        float3 v = normalize(Eye.xyz - streams.PositionWS.xyz);
+        float facing = saturate(abs(dot(normalize(streams.normalWS), v)));
+        float rim = pow(1.0 - facing, 4.0);
+        return float4(GlowColor.rgb * GlowColor.w * (0.06 + 1.4 * rim), 1.0);
+    }
+};

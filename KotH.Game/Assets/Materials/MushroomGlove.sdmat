@@ -15,6 +15,14 @@ Attributes:
                         Texture: F0681C94-C237-472B-9A4A-85014FF5F596:Textures/MushroomGloveMask
             CompositionNodes: {}
     DiffuseModel: !MaterialDiffuseLambertModelFeature {}
+    Emissive: !MaterialEmissiveMapFeature
+        EmissiveMap: !ComputeShaderClassColor
+            MixinReference: FigureGlow
+            Generics: {}
+            CompositionNodes: {}
+        Intensity: !ComputeFloat
+            Value: 1.0
+        UseAlpha: false
     Overrides:
         UVScale: {X: 1.0, Y: 1.0}
 Layers: {}

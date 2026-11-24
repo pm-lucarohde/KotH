@@ -27,6 +27,9 @@ namespace KotH.Client.Player
 
         /// <summary>The figures' root entities, centred on their bodies.</summary>
         public IReadOnlyList<Entity> Figures => visuals;
+
+        /// <summary>The look figure i (as in Figures) was registered with.</summary>
+        public FigureLook LookOf(int i) => figures[i].Colors;
         readonly List<PlayerMotor> motors = new List<PlayerMotor>();
 
         // The rotations of the last two ticks per body: the motor keeps only
@@ -283,7 +286,8 @@ namespace KotH.Client.Player
             public int TwistSeen;
             public bool TwistWatching;
             public Vector3 ShownAt;
-            public Entity Spores, Sparkles;
+            public Entity Spores, Sparkles, Trail;
+            public ParticleSystemComponent TrailParticles;
             public HeldLeaf Held;
             public Gun Gun;
             public MeleeAttack Melee;
@@ -451,6 +455,8 @@ namespace KotH.Client.Player
                 spores.Scene?.Entities.Remove(spores);
             if (figures[i].Sparkles is { } sparkles)
                 sparkles.Scene?.Entities.Remove(sparkles);
+            if (figures[i].Trail is { } trail)
+                trail.Scene?.Entities.Remove(trail);
             DropGun(figures[i].Gun);
             DropShards(figures[i].Shards);
             DropRipples(figures[i].Ripples);
@@ -546,6 +552,7 @@ namespace KotH.Client.Player
             Wade(f, motor, t.Position);
             t.Scale = new Vector3(width, scale, width);
             t.Position.Y += 0.5f * (motor.StandHeight * scale - motor.Height) - sink;
+            Trail(f, t.Position);
             Blink(f, dt);
             Breathe(f, dt);
             if (f.Gun != null && f.Body != null)

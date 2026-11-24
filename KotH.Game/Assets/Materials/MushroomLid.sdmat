@@ -15,6 +15,14 @@ Attributes:
                         Texture: DE7AF712-1F33-4F9A-B45D-347DC2F6D8CD:Textures/MushroomLidMask
             CompositionNodes: {}
     DiffuseModel: !MaterialDiffuseLambertModelFeature {}
+    Emissive: !MaterialEmissiveMapFeature
+        EmissiveMap: !ComputeShaderClassColor
+            MixinReference: FigureGlow
+            Generics: {}
+            CompositionNodes: {}
+        Intensity: !ComputeFloat
+            Value: 1.0
+        UseAlpha: false
     Overrides:
         UVScale: {X: 1.0, Y: 1.0}
 Layers: {}

@@ -15,6 +15,14 @@ Attributes:
                         Texture: 16C981FA-27DB-4C2A-B763-4C3BE54DD927:Textures/MushroomMask
             CompositionNodes: {}
     DiffuseModel: !MaterialDiffuseLambertModelFeature {}
+    Emissive: !MaterialEmissiveMapFeature
+        EmissiveMap: !ComputeShaderClassColor
+            MixinReference: FigureGlow
+            Generics: {}
+            CompositionNodes: {}
+        Intensity: !ComputeFloat
+            Value: 1.0
+        UseAlpha: false
     Overrides:
         UVScale: {X: 1.0, Y: 1.0}
 Layers: {}

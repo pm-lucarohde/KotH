@@ -1,0 +1,8 @@
+!Texture
+Id: 18CA7E1E-B507-4B11-831C-1C653562B43A
+SerializedVersion: {Stride: 2.0.0.0}
+Tags: []
+Source: !file ../../Resources/Effects/Star.png
+IsCompressed: false
+Type: !ColorTextureType
+    ColorKeyColor: {R: 255, G: 0, B: 255, A: 255}

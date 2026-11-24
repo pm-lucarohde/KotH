@@ -20,6 +20,7 @@ namespace KotH.Client.Player
         static readonly ValueParameterKey<Vector4> SkinShift = ParameterKeys.NewValue<Vector4>(default, "FigureTint.SkinShift");
         static readonly ValueParameterKey<Vector4> LeafShift = ParameterKeys.NewValue<Vector4>(default, "FigureTint.LeafShift");
         static readonly ValueParameterKey<Vector4> GloveShift = ParameterKeys.NewValue<Vector4>(default, "FigureTint.GloveShift");
+        static readonly ValueParameterKey<Vector4> GlowColor = ParameterKeys.NewValue<Vector4>(default, "FigureGlow.GlowColor");
 
         /// <summary>Recolours model's figure materials; once copied, a model keeps its copies.</summary>
         public static void Apply(ModelComponent model, FigureLook look)
@@ -42,6 +43,7 @@ namespace KotH.Client.Player
                     pass.Parameters.Set(SkinShift, Shift(look, FigureLook.Skin));
                     pass.Parameters.Set(LeafShift, Shift(look, FigureLook.Leaves));
                     pass.Parameters.Set(GloveShift, Shift(look, FigureLook.Gloves));
+                    pass.Parameters.Set(GlowColor, Glow(look));
                 }
             }
         }
@@ -54,6 +56,12 @@ namespace KotH.Client.Player
             float away = (Unit(look[part]) - Unit(FigureLook.PaintedColor(part))).Length();
             return new Vector4(c / MathF.Max(1e-3f, Luminance(r)), Math.Clamp(away * 4f, 0f, 1f));
         }
+
+        /// <summary>The glow's colour in linear light, w its strength; zero when look does not glow.</summary>
+        public static Vector4 Glow(FigureLook look) => look.Glows ? new Vector4(Linear(look[FigureLook.Glow]), 1f) : Vector4.Zero;
+
+        /// <summary>The sparkle trail's colour in linear light, for its particles' colour.</summary>
+        public static Color4 Trail(FigureLook look) => new Color4(Linear(look[FigureLook.Trail]), 1f);
 
         /// <summary>The spores of a particle effect in look's spore colour, scaled to the brightness of
         /// its colour curve's first key; the painted yellow leaves them as they are.</summary>

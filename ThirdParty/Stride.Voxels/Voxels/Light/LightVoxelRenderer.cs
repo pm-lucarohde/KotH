@@ -93,6 +93,7 @@ namespace Stride.Rendering.Voxels.VoxelGI
             // KotH patch: capsules for what the voxels do not hold.
             private ValueParameterKey<Vector4> occludersKey;
             private ValueParameterKey<Vector4> occluderGroupsKey;
+            private ValueParameterKey<Vector4> occluderGlowsKey;
             private ValueParameterKey<int> occluderGroupCountKey;
             private ValueParameterKey<int> occluderGroupSizeKey;
             private ValueParameterKey<float> occluderFadeKey;
@@ -158,6 +159,7 @@ namespace Stride.Rendering.Voxels.VoxelGI
                 skyCubeMapKey = LightVoxelShaderKeys.SkyCubeMap.ComposeWith(compositionName);
                 occludersKey = LightVoxelShaderKeys.Occluders.ComposeWith(compositionName);
                 occluderGroupsKey = LightVoxelShaderKeys.OccluderGroups.ComposeWith(compositionName);
+                occluderGlowsKey = LightVoxelShaderKeys.OccluderGlows.ComposeWith(compositionName);
                 occluderGroupCountKey = LightVoxelShaderKeys.OccluderGroupCount.ComposeWith(compositionName);
                 occluderGroupSizeKey = LightVoxelShaderKeys.OccluderGroupSize.ComposeWith(compositionName);
                 occluderFadeKey = LightVoxelShaderKeys.OccluderFade.ComposeWith(compositionName);
@@ -240,6 +242,7 @@ namespace Stride.Rendering.Voxels.VoxelGI
                 if (groups > 0)
                 {
                     parameters.Set(occluderGroupsKey, groups, ref lightVoxel.OccluderGroups[0]);
+                    parameters.Set(occluderGlowsKey, groups, ref lightVoxel.OccluderGlows[0]);
                     parameters.Set(occludersKey, 2 * groups * groupSize, ref lightVoxel.Occluders[0]);
                 }
 

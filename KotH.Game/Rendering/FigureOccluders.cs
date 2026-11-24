@@ -30,6 +30,12 @@ namespace KotH.Client.Rendering
         /// <summary>A part on one skeleton: bone indices and the ends in their bones' frames.</summary>
         readonly record struct Hung(int BoneA, Vector3 A, int BoneB, Vector3 B, float Radius);
 
+        /// <userdoc>How bright a glowing figure lights what is near it (indirect light).</userdoc>
+        public float GlowLight = 1.6f;
+
+        /// <userdoc>How far a glowing figure's light reaches, metres.</userdoc>
+        public float GlowReach = 3.5f;
+
         // Every figure is the same model, so the parts hang the same on each.
         Hung[] hung;
         PlayerVisualSystem visuals;
@@ -48,12 +54,15 @@ namespace KotH.Client.Rendering
             int groups = 0;
             if (visuals != null)
             {
-                foreach (Entity figure in visuals.Figures)
+                for (int i = 0; i < visuals.Figures.Count; i++)
                 {
                     if (groups == LightVoxel.MaxOccluderGroups)
                         break;
+                    Entity figure = visuals.Figures[i];
                     if (figure.Get<ModelComponent>()?.Skeleton is not { } skeleton)
                         continue;
+                    Vector4 glow = FigureColors.Glow(visuals.LookOf(i));
+                    light.OccluderGlows[groups] = new Vector4(glow.XYZ() * GlowLight, glow.W > 0f ? GlowReach : 0f);
                     Fill(light, groups++, figure.Transform, skeleton);
                 }
             }

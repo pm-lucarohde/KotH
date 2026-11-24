@@ -134,6 +134,7 @@ Hierarchy:
                         HitSparkles: 87f49f94-4646-4758-b39c-669d881da1e8:Effects/HitSparkles
                         SporeShot: 6af3c03b-56b0-48fe-a892-c13d9ae44acc:Effects/SporeShot
                         SporePuff: 3d244201-f014-461e-96ef-433706687317:Effects/SporePuff
+                        GlowTrail: c7d5b9f5-f587-4452-b44c-63ab029bb6f4:Effects/GlowTrail
                         GroundShards: 96914af8-035b-45c3-b503-c64b1e13f324:Effects/GroundShards
                         GroundChip: 31D352DC-C10D-4CDF-AB1B-B52FD6867242:Textures/Shards/GroundChip
                         GrassChip: F6110094-DE73-4010-9367-6E4F40CF1F8F:Textures/Shards/GrassChip

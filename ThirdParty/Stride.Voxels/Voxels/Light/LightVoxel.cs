@@ -70,6 +70,11 @@ namespace Stride.Rendering.Voxels.VoxelGI
         [DataMemberIgnore]
         public Vector4[] OccluderGroups { get; } = new Vector4[MaxOccluderGroups];
 
+        /// <summary>KotH patch: a glowing group's light (linear colour) and how far it reaches (0 = none);
+        /// it lights what the camera sees from the group's centre, as indirect light.</summary>
+        [DataMemberIgnore]
+        public Vector4[] OccluderGlows { get; } = new Vector4[MaxOccluderGroups];
+
         /// <summary>KotH patch: groups used.</summary>
         [DataMemberIgnore]
         public int OccluderGroupCount { get; set; }

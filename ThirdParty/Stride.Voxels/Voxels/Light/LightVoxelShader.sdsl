@@ -22,6 +22,8 @@ namespace Stride.Rendering.Voxels.VoxelGI
             // OccluderGroupSize behind a sphere (centre, reach); each capsule two
             // entries: end a and radius, end b. They darken the bounce and the sky.
             float4 OccluderGroups[12];
+            // KotH patch: a glowing figure's light per group (rgb) and its reach (w, 0 = none).
+            float4 OccluderGlows[12];
             float4 Occluders[192];
             int OccluderGroupCount;
             int OccluderGroupSize;
@@ -48,7 +50,8 @@ namespace Stride.Rendering.Voxels.VoxelGI
             streams.envLightDiffuseColor = baked.rgb;
             sky.w = baked.a;
             if (OccluderGroupCount > 0)
-                streams.envLightDiffuseColor *= CapsuleVisibility(streams.PositionWS, normal);
+                streams.envLightDiffuseColor = streams.envLightDiffuseColor * CapsuleVisibility(streams.PositionWS, normal)
+                                             + CapsuleGlow(streams.PositionWS, normal);
 #else
             LiveEnvironmentLight(normal, sky);
 #endif
@@ -88,7 +91,8 @@ namespace Stride.Rendering.Voxels.VoxelGI
             }
 #ifndef KOTH_LIGHTMAP_BAKE
             if (OccluderGroupCount > 0)
-                streams.envLightDiffuseColor *= CapsuleVisibility(streams.PositionWS, normal);
+                streams.envLightDiffuseColor = streams.envLightDiffuseColor * CapsuleVisibility(streams.PositionWS, normal)
+                                             + CapsuleGlow(streams.PositionWS, normal);
 #endif
         }
 
@@ -112,6 +116,25 @@ namespace Stride.Rendering.Voxels.VoxelGI
                 }
             }
             return visible;
+        }
+
+        // KotH patch: the glowing figures' light at p, from each group's centre, soft to its reach.
+        float3 CapsuleGlow(float3 p, float3 n)
+        {
+            float3 light = 0.0;
+            for (int g = 0; g < OccluderGroupCount; g++)
+            {
+                float4 glow = OccluderGlows[g];
+                if (glow.w <= 0.0)
+                    continue;
+                float3 d = OccluderGroups[g].xyz - p;
+                float l = length(d);
+                if (l >= glow.w)
+                    continue;
+                float fall = 1.0 - l / glow.w;
+                light += glow.rgb * (fall * fall * saturate(dot(n, d) / max(l, 1e-4)));
+            }
+            return light;
         }
 
         // Cosine-weighted share of the hemisphere over n that a capsule hides, as the
