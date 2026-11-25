@@ -93,16 +93,26 @@ namespace KotH.Shared.Bots
         /// The climbing grid and the bodies' settings out of the arena and the
         /// player prefab, the same way for the game, the server and probes.
         /// </summary>
-        public static BotDirector Create(WorldBuilder builder, SimulationSystem simulation, IFinalStates states, int seed)
+        public static BotDirector Create(WorldBuilder builder, SimulationSystem simulation, IFinalStates states, int seed,
+                                         BotNavigation ready = null)
         {
             BotSettings settings = builder.Bots ?? new BotSettings();
             PlayerMotor motor = builder.Template<PlayerMotor>(WorldBuilder.PlayerBodyUrl);
+            BotNavigation nav = ready ?? PrepareNavigation(builder, simulation, seed)();
             MeleeAttack fists = builder.Template<MeleeAttack>(WorldBuilder.PlayerBodyUrl) ?? new MeleeAttack();
             Blaster gun = builder.Template<Blaster>(WorldBuilder.PlayerBodyUrl) ?? new Blaster();
             Dash dash = builder.Template<Dash>(WorldBuilder.PlayerBodyUrl) ?? new Dash();
-            HillMatch zone = simulation.Match ?? (builder.Zone != null ? new HillMatch(builder.Zone) : null);
-            BotNavigation nav = BotNavigation.Build(builder.Arena, motor, settings, zone, seed, SpawnMiddle(builder));
             return new BotDirector(nav, settings, simulation.Match, motor, fists, gun, dash, states, seed);
+        }
+
+        /// <summary>The map's navigation: its shapes gathered now, the grid (~0.9 s on MountDestiny) when called,
+        /// on any thread. A pure function of the arena and the seed, so one serves every director.</summary>
+        public static Func<BotNavigation> PrepareNavigation(WorldBuilder builder, SimulationSystem simulation, int seed)
+        {
+            BotSettings settings = builder.Bots ?? new BotSettings();
+            PlayerMotor motor = builder.Template<PlayerMotor>(WorldBuilder.PlayerBodyUrl);
+            HillMatch zone = simulation.Match ?? (builder.Zone != null ? new HillMatch(builder.Zone) : null);
+            return BotNavigation.Prepare(builder.Arena, motor, settings, zone, seed, SpawnMiddle(builder));
         }
 
         // Where the players start, on average: the route variants fan out from there.

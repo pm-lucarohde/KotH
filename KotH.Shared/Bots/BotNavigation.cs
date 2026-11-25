@@ -47,6 +47,12 @@ namespace KotH.Shared.Bots
         /// variants' noise seeded from seed, their sides round the start.</summary>
         public static BotNavigation Build(IEnumerable<Entity> arena, PlayerMotor motor, BotSettings s, HillMatch zone, int seed,
                                           Vector3 start)
+            => Prepare(arena, motor, s, zone, seed, start)();
+
+        /// <summary>The arena's shapes gathered now; the grid (the slow part) when the result is called,
+        /// which touches no entity, so a worker may (the lobby's bots switch, Luca).</summary>
+        public static Func<BotNavigation> Prepare(IEnumerable<Entity> arena, PlayerMotor motor, BotSettings s, HillMatch zone,
+                                                  int seed, Vector3 start)
         {
             var tris = new List<ClimbGrid.Triangle>();
             var ladders = new List<LadderStrip>();
@@ -59,7 +65,7 @@ namespace KotH.Shared.Bots
                 if (e.Get<Ladder>() is { } ladder)
                     ladders.Add(ladder.Strip());
             }
-            return new BotNavigation(ClimbGrid.Build(tris, ladders, motor, s, zone, seed, start), ladders);
+            return () => new BotNavigation(ClimbGrid.Build(tris, ladders, motor, s, zone, seed, start), ladders);
         }
 
         /// <summary>The arena's ladders, indexed as the motors and the grid's Ladder links know them.</summary>

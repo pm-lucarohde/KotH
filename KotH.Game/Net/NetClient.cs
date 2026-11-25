@@ -110,6 +110,13 @@ namespace KotH.Client.Net
         /// begin at the given tick), thinking from these states.</summary>
         public Func<IFinalStates, int, BotDirector> MakeBots { get; set; }
 
+        /// <summary>Whether MakeBots runs without a stall now; asked in a lobby without bots, it has the map's
+        /// navigation built on a worker first (switching bots on stalled the frame ~0.9 s, Luca).</summary>
+        public Func<bool> BotsReady { get; set; } = () => true;
+
+        // A lobby change waiting for the bots' navigation, with its start; applied once it is ready.
+        bool lobbyWaits, waitingStart;
+
         /// <summary>GameRoot: this side no longer hosts (a host change); its bot director goes.</summary>
         public Action DropBots { get; set; }
 
@@ -149,6 +156,12 @@ namespace KotH.Client.Net
             if (Host == null || Host.Stage != MatchStage.Lobby || Host.Restarting)
                 return;
             LaunchOptions o = LaunchOptions.Current;
+            if (!o.BotsOff && o.Bots > 0 && Host.Bots == null && !BotsReady())
+            {
+                (lobbyWaits, waitingStart) = (true, waitingStart || start);
+                return;
+            }
+            (lobbyWaits, waitingStart) = (false, false);
             Host.Capacity = o.Room;
             Lobby?.SetMode(o.Mode);
             Lobby?.SetMax(o.Room);
@@ -182,6 +195,8 @@ namespace KotH.Client.Net
         {
             double now = Now;
             Host?.Update(now);
+            if (Host != null && Host.Stage == MatchStage.Lobby && Host.Bots == null && BotsReady() && lobbyWaits)
+                ApplyLobby(waitingStart);
             Session.Exchange(now);
             FollowRestart(now);
             if (Session.MissingMap is { } missing && !gaveUpMap)

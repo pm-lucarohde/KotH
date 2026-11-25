@@ -394,6 +394,8 @@ namespace KotH.Client.Menu
                     view.RoundView.Pretend(mode);
                     ChangeRound(start: true);
                 }
+                if (int.TryParse(Environment.GetEnvironmentVariable("KOTH_SHOT_BOTS"), out int bots))
+                    view.RoundView.PretendBots(bots);   // KOTH_SHOT_BOTS=n: the bots switched on (Luca's stall)
             }
         }
 

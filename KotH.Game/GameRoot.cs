@@ -604,7 +604,7 @@ namespace KotH.Client
                 {
                     DropBots();
                     long at = StartLog.Now;
-                    BotDirector made = BotDirector.Create(builder, simulation, states, options.BotSeed);
+                    BotDirector made = BotDirector.Create(builder, simulation, states, options.BotSeed, ReadyNavigation(options.BotSeed));
                     made.Since = since;
                     StartLog.Took("bot director", at);
                     WorkAhead(made);
@@ -612,6 +612,7 @@ namespace KotH.Client
                 },
                 DropBots = DropBots,
             };
+            net.BotsReady = () => NavigationReady(options.BotSeed);
             Services.AddService(net);
             if (options.Host && options.Bots > 0 && !options.BotsOff)
             {
@@ -762,6 +763,28 @@ namespace KotH.Client
         }
 
         // The bot director goes (a restart, the main menu, a host change that ends this side's hosting).
+        // The bots' map navigation, built on a worker while the host's lobby has none (NetClient.BotsReady):
+        // a pure function of the map and the seed, kept for that pair.
+        System.Threading.Tasks.Task<BotNavigation> navTask;
+        BotNavigation navReady;
+        (string Map, int Seed) navFor;
+
+        bool NavigationReady(int seed)
+        {
+            if (builder.Map == null || builder.Zone == null)
+                return true;
+            if (navFor != (builder.Map, seed))
+            {
+                (navFor, navReady) = ((builder.Map, seed), null);
+                navTask = System.Threading.Tasks.Task.Run(BotDirector.PrepareNavigation(builder, simulation, seed));
+            }
+            if (navTask is { IsCompleted: true } done)
+                (navReady, navTask) = (done.IsCompletedSuccessfully ? done.Result : null, null);
+            return navTask == null;
+        }
+
+        BotNavigation ReadyNavigation(int seed) => navFor == (builder.Map, seed) ? navReady : null;
+
         void DropBots()
         {
             if (botDirector == null)

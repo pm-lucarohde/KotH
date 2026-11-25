@@ -101,6 +101,15 @@ namespace KotH.Client.Menu
             Changed?.Invoke();
         }
 
+        /// <summary>Test aid (KOTH_SHOT_BOTS=n): bots switched on, n of them, as if by hand.</summary>
+        public void PretendBots(int count)
+        {
+            (edited.HostBots, edited.HostBotCount) = (true, count);
+            ClientSettings.RememberRound(edited);
+            Refresh();
+            Changed?.Invoke();
+        }
+
         static float Tenths(double v) => (float)Math.Round(v, 1);
 
         static string Hit(double v) => "+" + Text(v, "0.0") + " %";
