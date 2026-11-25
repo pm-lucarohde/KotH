@@ -82,7 +82,7 @@ namespace KotH.Client.Settings
             Text(t, "mode", KotH.Shared.Match.HillMatch.ModeName(s.HostMode));
             Number(t, "start_percent", s.HostStartPercent); Number(t, "melee_percent", s.HostMelee);
             Number(t, "spore_percent", s.HostSpore); Number(t, "dash_percent", s.HostDash); Number(t, "knockback", s.HostKnock);
-            Flag(t, "bots", s.HostBots); Number(t, "bot_count", s.HostBotCount);
+            Number(t, "bot_count", s.HostBotCount);
             Flag(t, "auto_start", s.HostAutoStart); Number(t, "max_players", s.HostMaxPlayers);
             return t.ToString();
         }
@@ -174,7 +174,6 @@ namespace KotH.Client.Settings
                 case ("host", "spore_percent"): s.HostSpore = Math.Clamp(Float(v, s.HostSpore), 0f, PlayerSettings.MaxHitPercent); break;
                 case ("host", "dash_percent"): s.HostDash = Math.Clamp(Float(v, s.HostDash), 0f, PlayerSettings.MaxHitPercent); break;
                 case ("host", "knockback"): s.HostKnock = Math.Clamp(Float(v, s.HostKnock), PlayerSettings.MinKnock, PlayerSettings.MaxKnock); break;
-                case ("host", "bots"): s.HostBots = Bool(v, s.HostBots); break;
                 case ("host", "bot_count"): s.HostBotCount = Math.Clamp(Int(v, s.HostBotCount), 1, KotH.Shared.Match.HillMatch.FreeMaxPlayers - 1); break;
                 case ("host", "auto_start"): s.HostAutoStart = Bool(v, s.HostAutoStart); break;
                 case ("host", "max_players"): s.HostMaxPlayers = Math.Clamp(Int(v, s.HostMaxPlayers), 0, KotH.Shared.Match.HillMatch.FreeMaxPlayers); break;

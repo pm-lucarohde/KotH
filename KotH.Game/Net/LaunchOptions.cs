@@ -113,6 +113,8 @@ namespace KotH.Client.Net
             o.Display = Number(args, "--display");
             if (Number(args, "--bots") is { } bots)
                 o.Bots = Math.Clamp(bots, 0, NetWorld.MaxPlayers - 1);
+            else if (o.Host)
+                o.Bots = 0;   // a server starts without bots unless asked (Luca)
             if (Number(args, "--bot-seed") is { } seed)
                 o.BotSeed = seed;
             o.Map = Text(args, "--map") ?? o.Map;

@@ -315,6 +315,7 @@ namespace KotH.Client
             options.Steam = SteamClient.Ready;
             options.Password = password;
             options.Mode = flags.Mode;
+            ClientSettings.Applied.HostBots = false;   // a new server starts without bots (Luca)
             TakeHostRound(options, ClientSettings.Applied);
             StartNetworked(options, options.Steam ? SteamLobby.Open(builder.Map, flags) : null);
         }

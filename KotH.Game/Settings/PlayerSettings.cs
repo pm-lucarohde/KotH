@@ -50,7 +50,8 @@ namespace KotH.Client.Settings
         // The host's next round, from the lobby's Esc menu (Luca): start damage (< 0 the mode's own), percent
         // per hit of cane, spore and dash, knockback factor, bots and how many, auto start (at a full lobby).
         public float HostStartPercent = -1f, HostMelee = DefaultHitPercent, HostSpore = DefaultHitPercent, HostDash = DefaultHitPercent, HostKnock = 1f;
-        public bool HostBots, HostAutoStart = true;   // bots off by default (Luca)
+        // Bots: off on every new server (Luca), on or off then for its lobby; never saved, unlike the count.
+        public bool HostBots, HostAutoStart = true;
         public int HostBotCount = 3;
 
         /// <summary>The most on the host's server (Host page, Round), 0 for the mode's most (16 in 1, 2, 3, Free, else 12).
