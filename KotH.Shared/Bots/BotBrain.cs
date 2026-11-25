@@ -121,6 +121,7 @@ namespace KotH.Shared.Bots
             this.route = (route % 1024 + 1024) % 1024;
             rng = seed;
             missRng = seed ^ 0x9E3779B9u | 1u;
+            persona = Personality.From(seed);
             this.nav = nav;
             this.settings = settings;
             this.match = match;
@@ -235,7 +236,10 @@ namespace KotH.Shared.Bots
                 nextThink = u + Math.Max(1, settings.ThinkTicks);
                 BotIntent was = intent;
                 int wasTarget = target;
+                thinkTick = u;
                 Think(view, self, at, phase, knocked);
+                if (target != wasTarget)
+                    targetSince = u;
                 // Up the hill along the own route; inside the zone to the own spot. A target in the zone is
                 // climbed to the same way: straight at it the search ends on the floor nearest below it.
                 int ti = intent == BotIntent.Attack ? IndexOf(view, target) : -1;
@@ -425,7 +429,7 @@ namespace KotH.Shared.Bots
             team = view.StateAt(self).Team;
             int holderTeam = holder != null && IndexOf(view, holder.NetId) is var h and >= 0 ? view.StateAt(h).Team : 0;
             bool weHold = holder != null && (holder.NetId == netId || team != 0 && holderTeam == team);
-            float reach = shotsLeft > 0 ? UMath.Max(settings.EngageRange, settings.BlasterRange) : settings.EngageRange;
+            float reach = shotsLeft > 0 ? UMath.Max(settings.EngageRange, settings.BlasterRange * persona.Blaster) : settings.EngageRange;
 
             if (match != null && view.Match.Mode == MatchMode.Free)
                 ThinkFree();
@@ -518,8 +522,15 @@ namespace KotH.Shared.Bots
                 if (live && match != null)
                 {
                     Offer(BotIntent.Capture, 0, inZone ? 0f : 1.2f);
-                    Offer(BotIntent.Hold, 0, inZone ? 0.9f + (weHold ? 0.2f : 0f) : 0f);
+                    // Alone in the zone it is taken by staying; held, it is kept by staying, the more the warier.
+                    // Shared with others and not held, staying scores nothing: they have to go first.
+                    float hold = view.Match.Inside <= 1 ? HoldAlone : weHold ? HoldKept + 0.2f * persona.Caution : HoldShared;
+                    Offer(BotIntent.Hold, 0, inZone ? hold : 0f);
                 }
+                int ownDamage = (int)view.StateAt(self).DamagePercent, bestScore = 0;
+                for (int i = 0; i < view.Count; i++)
+                    bestScore = Math.Max(bestScore, view.StateAt(i).ScoreTicks);
+                watchId = inZone && live ? Watch(view, at) : 0;
                 Offer(BotIntent.Idle, 0, live ? 0.05f : phase == MatchPhase.Over ? 1f : 0.4f);
 
                 for (int i = 0; i < view.Count; i++)
@@ -547,7 +558,10 @@ namespace KotH.Shared.Bots
                         score *= 0.4f;
                     if (inZone && !theyHold && d > 4f)
                         score *= 0.5f;
-                    Offer(BotIntent.Attack, other.NetId, score);
+                    // Holding, only who comes for the zone is fought.
+                    if (weHold && !theyHold && !NearHill(there))
+                        score *= 0.3f;
+                    Offer(BotIntent.Attack, other.NetId, FightWorth(view, i, score, there, holder == other || theyHold, ownDamage, bestScore));
                 }
             }
         }
@@ -948,11 +962,15 @@ namespace KotH.Shared.Bots
                 return input;
             // A glance: the hand turns there (Look), the swing once the view is on it, then back to the way.
             float flatAim = UMath.Sqrt(aim.X * aim.X + aim.Z * aim.Z);
-            glanceYaw = UMath.Atan2(-aim.X, -aim.Z) * (180f / MathF.PI) + missYaw * settings.AimError;
-            glancePitch = UMath.Clamp(UMath.Atan2(aim.Y, flatAim) * (180f / MathF.PI) + missPitch * settings.AimError, -60f, 60f);
+            glanceYaw = UMath.Atan2(-aim.X, -aim.Z) * (180f / MathF.PI) + missYaw * settings.AimError * persona.Accuracy;
+            glancePitch = UMath.Clamp(UMath.Atan2(aim.Y, flatAim) * (180f / MathF.PI) + missPitch * settings.AimError * persona.Accuracy, -60f, 60f);
             glanceUntil = u + 10;
-            if (UMath.Abs(MathF.IEEERemainder(glanceYaw - yaw, 360f)) < 12f && UMath.Abs(glancePitch - pitch) < 20f)
+            if (UMath.Magnitude(aim) < fists.Range - 0.2f && OnTarget(UMath.Atan2(-aim.X, -aim.Z) * (180f / MathF.PI),
+                                                                  UMath.Atan2(aim.Y, flatAim) * (180f / MathF.PI), flatAim))
             {
+                SwingEye = eye;
+                SwingCentre = UMath.Add(eye, aim);
+                SwingFrom = 2;
                 input.AttackPresses = 1;
                 lastStrike = u;
                 glanceUntil = u + 4;
@@ -979,7 +997,7 @@ namespace KotH.Shared.Bots
             double t = u * Dt, phase = netId * 1.618;
             float wanderYaw = wander * (float)(1.2 * DetMath.Sin(t * 0.9 + phase) + 0.6 * DetMath.Sin(t * 2.3 + phase * 1.7));
             float wanderPitch = wander * (float)(1.0 * DetMath.Sin(t * 0.7 + phase * 2.1) + 0.5 * DetMath.Sin(t * 1.9 + phase * 0.6));
-            float accel = HandAccel * maxRate / UMath.Max(1f, settings.TurnRate);
+            float accel = HandAccel * persona.Hand * maxRate / UMath.Max(1f, settings.TurnRate);
             float follow = MathF.IEEERemainder(wantYaw - lastWantYaw, 360f);
             lastWantYaw = wantYaw;
             yawRate = Hand(yawRate, MathF.IEEERemainder(wantYaw + wanderYaw - yaw, 360f), follow, maxRate, accel);
@@ -1387,21 +1405,37 @@ namespace KotH.Shared.Bots
             float wantPitch = WalkPitch;
             float targetDistance = float.MaxValue;
             bool aiming = false;
+            float bearYaw = 0f, bearPitch = 0f, reach3 = float.MaxValue;
             if (ti >= 0)
             {
                 BodyState t = view.StateAt(ti);
                 Vector3 centre = Ahead(t.Motor.BodyCenter, t.Motor.Velocity, Reaction * Dt);
                 Vector3 eye = Ahead(me.Motor.EyePosition, me.Motor.Velocity, Reaction * Dt);
                 Vector3 d = UMath.Sub(centre, eye);
+                if (UMath.SqrMagnitude(d) < 64f)
+                {
+                    eye = EyeNow(u, me);
+                    d = UMath.Sub(centre, eye);
+                }
                 targetDistance = UMath.Sqrt(d.X * d.X + d.Z * d.Z);
+                reach3 = UMath.Magnitude(d);
                 if (targetDistance < 6f || intent == BotIntent.Attack && (arrived || holdBlaster))
                 {
                     Vector3 aim = holdBlaster ? Lead(eye, centre, t.Motor.Velocity) : d;
-                    float miss = holdBlaster ? settings.BlasterAimError : settings.AimError;
-                    faceYaw = UMath.Atan2(-aim.X, -aim.Z) * (180f / MathF.PI) + missYaw * miss;
-                    wantPitch = UMath.Atan2(aim.Y, UMath.Sqrt(aim.X * aim.X + aim.Z * aim.Z)) * (180f / MathF.PI) + missPitch * miss;
+                    float miss = (holdBlaster ? settings.BlasterAimError : settings.AimError) * persona.Accuracy;
+                    bearYaw = UMath.Atan2(-aim.X, -aim.Z) * (180f / MathF.PI);
+                    bearPitch = UMath.Atan2(aim.Y, UMath.Sqrt(aim.X * aim.X + aim.Z * aim.Z)) * (180f / MathF.PI);
+                    faceYaw = bearYaw + missYaw * miss;
+                    wantPitch = bearPitch + missPitch * miss;
                     aiming = true;
                 }
+            }
+            else if (intent == BotIntent.Hold && watchId != 0 && IndexOf(view, watchId) is var wi and >= 0)
+            {
+                // Holding: the view on the one coming up, where it will climb over the edge.
+                Vector3 eye = me.Motor.EyePosition, to = UMath.Sub(view.StateAt(wi).Motor.BodyCenter, eye);
+                faceYaw = UMath.Atan2(-to.X, -to.Z) * (180f / MathF.PI);
+                wantPitch = UMath.Clamp(UMath.Atan2(to.Y, UMath.Sqrt(to.X * to.X + to.Z * to.Z)) * (180f / MathF.PI), -30f, 10f);
             }
             else if (arrived && intent == BotIntent.Idle)
                 faceYaw = yaw;
@@ -1425,7 +1459,7 @@ namespace KotH.Shared.Bots
                     break;
                 case Maneuver.StrafeLeft:
                 case Maneuver.StrafeRight:
-                    float side = m == Maneuver.StrafeLeft ? -1f : 1f;
+                    float side = intent == BotIntent.Attack ? DuelSide(u) : m == Maneuver.StrafeLeft ? -1f : 1f;
                     local = UMath.ClampMagnitude(new Vector2(local.X + side, local.Y * 0.6f), 1f);
                     break;
                 case Maneuver.Sprint:
@@ -1467,6 +1501,16 @@ namespace KotH.Shared.Bots
                     break;
             }
 
+            // Ready to swing and close: run at the target as a player does, the own speed goes into the knock.
+            if (aiming && intent == BotIntent.Attack && !holdBlaster && targetDistance < ChargeRange &&
+                u + ChargeLead >= lastStrike + fists.CooldownTicks && CaneReady(u))
+            {
+                float rel = (bearYaw - yaw) * (MathF.PI / 180f);
+                local = new Vector2(-UMath.Sin(rel), UMath.Cos(rel));
+                input.Sprint = true;
+                arrived = false;
+            }
+
             // The path comes first: a ledge to jump onto is jumped whatever the plan says.
             if ((link == LinkKind.Jump || link == LinkKind.DoubleJump) && linkDistance < 0.9f && !airborne)
             {
@@ -1503,10 +1547,13 @@ namespace KotH.Shared.Bots
             // round runs (a plan from before the lobby may still hold one); a dash first.
             bool live = match == null || view.Match.Phase == MatchPhase.Running;
             bool slam = live && ti >= 0 && intent == BotIntent.Attack && Slam(u, view, me, ti, airborne, ref input);
-            if (!slam && m == Maneuver.Strike && live && ti >= 0 && targetDistance < fists.Range - 0.2f &&
-                u >= lastStrike + fists.CooldownTicks && CaneReady(u) && aiming &&
-                UMath.Abs(MathF.IEEERemainder(faceYaw - yaw, 360f)) < StrikeCone)
+            // Any slot: in reach, ready and on target a player swings, whatever the feet are doing.
+            if (!slam && intent == BotIntent.Attack && live && ti >= 0 && reach3 < fists.Range - 0.2f &&
+                u >= lastStrike + fists.CooldownTicks && CaneReady(u) && aiming && OnTarget(bearYaw, bearPitch, targetDistance))
             {
+                SwingEye = EyeNow(u, me);
+                SwingCentre = Ahead(view.StateAt(ti).Motor.BodyCenter, view.StateAt(ti).Motor.Velocity, Reaction * Dt);
+                SwingFrom = 1;
                 input.AttackPresses = 1;
                 lastStrike = u;
             }
@@ -1514,7 +1561,7 @@ namespace KotH.Shared.Bots
                 Shoot(u, view, me, ti, ref input);
 
             // Keys, not a stick: each axis pressed or not, as on WASD.
-            input.Move = new Vector2(Key(local.X), Key(local.Y));
+            input.Move = HeldKeys(u, new Vector2(Key(local.X), Key(local.Y)));
             return input;
         }
 
@@ -1595,13 +1642,13 @@ namespace KotH.Shared.Bots
             Vector3 eye = Ahead(me.Motor.EyePosition, me.Motor.Velocity, Reaction * Dt);
             Vector3 centre = Ahead(t.Motor.BodyCenter, t.Motor.Velocity, Reaction * Dt);
             Vector3 aim = Lead(eye, centre, t.Motor.Velocity);
-            if (UMath.Magnitude(aim) > settings.BlasterRange || !nav.InSight(eye, centre))
+            if (UMath.Magnitude(aim) > settings.BlasterRange * persona.Blaster || !nav.InSight(eye, centre))
                 return;
 
             // Fired once the hand is on the lead and its drift (Steer aims there): the drift is the miss.
             float flat = UMath.Sqrt(aim.X * aim.X + aim.Z * aim.Z);
-            float wantYaw = UMath.Atan2(-aim.X, -aim.Z) * (180f / MathF.PI) + missYaw * settings.BlasterAimError;
-            float wantPitch = UMath.Atan2(aim.Y, flat) * (180f / MathF.PI) + missPitch * settings.BlasterAimError;
+            float wantYaw = UMath.Atan2(-aim.X, -aim.Z) * (180f / MathF.PI) + missYaw * settings.BlasterAimError * persona.Accuracy;
+            float wantPitch = UMath.Atan2(aim.Y, flat) * (180f / MathF.PI) + missPitch * settings.BlasterAimError * persona.Accuracy;
             if (UMath.Abs(MathF.IEEERemainder(wantYaw - yaw, 360f)) > ShotCone || UMath.Abs(wantPitch - pitch) > ShotCone)
                 return;
             input.AttackPresses = 1;

@@ -55,6 +55,7 @@ Probe probe = name switch
         Lab = args.Length > 1 && args[1] == "jumplab" ? (args.Length > 2 ? int.Parse(args[2]) : 200) : 0,
         Reach = args.Length > 1 && args[1] == "reach" ? (args.Length > 2 ? args[2] : Maps.Atrium) : null,
         Rounds = args.Length > 1 && args[1] == "rounds" ? (args.Length > 2 ? int.Parse(args[2]) : 3) : 0,
+        Duel = args.Length > 1 && args[1] == "duel" ? (args.Length > 2 ? int.Parse(args[2]) : 600) : 0,
     },
     _ => null,
 };

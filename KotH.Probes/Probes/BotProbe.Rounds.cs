@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using KotH.Shared.Bots;
 using KotH.Shared.Combat;
 using KotH.Shared.Hosting;
@@ -19,6 +20,7 @@ namespace KotH.Probes.Probes
         public int Rounds = 0;
 
         // Over all rounds, per bot tick out of the climb (after its first step into the zone): view and keys.
+        readonly double[] zoneIntent = new double[8];
         double natTicks, natGround, jerks, flicks, keyChanges, reversals, zoneTicks, zoneJumps, zoneStanding, turnSum;
         double maneuverChanges, maneuverTicks;
 
@@ -57,7 +59,21 @@ namespace KotH.Probes.Probes
             var hitsBefore = new int[count];
             int done = 0, leader = -1, leadChanges = 0, contested = 0, byPoints = 0;
             double sumSeconds = 0, sumShare = 0, sumLeads = 0, sumContested = 0, sumHits = 0;
-            bool wasOver = false;
+            bool wasOver = false, wasScoring = false;
+            int falls = 0, holds = 0, heldTicks = 0, lastScoreSum = 0;
+            var wasIn = new bool[count];
+            var lastHit = new int[count];
+            var swingsWas = new int[count];
+            var hitsWas = new int[count];
+            var missWhy = new long[6];   // no target, far, yaw, pitch, other; hits
+            var hitInZoneAt = new long[count];
+            long zoneHits = 0, knockedOut = 0, hitFalls = 0;
+            double zonePercent = 0, zonePercentN = 0, hitPercent = 0;
+            for (int i = 0; i < count; i++)
+            {
+                hitInZoneAt[i] = -1000;
+                lastHit[i] = -1;
+            }
             for (long t = 0; done < wanted && t < 48000L * wanted; t++)
             {
                 world.Simulation.Tick();
@@ -67,13 +83,83 @@ namespace KotH.Probes.Probes
                 {
                     leader = -1;
                     leadChanges = contested = 0;
+                    falls = holds = heldTicks = lastScoreSum = 0;
+                    wasScoring = false;
+                    Array.Clear(wasIn);
                     Array.Clear(up);
                     for (int i = 0; i < count; i++)
                         hitsBefore[i] = Hits(bots[i]);
                 }
+                for (int i = 0; i < count; i++)
+                {
+                    var melee = bots[i].Entity.Get<MeleeAttack>();
+                    if (melee.SwingCount == swingsWas[i])
+                        continue;
+                    swingsWas[i] = melee.SwingCount;
+                    bool hit = melee.HitCount != hitsWas[i];
+                    hitsWas[i] = melee.HitCount;
+                    if (hit)
+                    {
+                        missWhy[5]++;
+                        continue;
+                    }
+                    BotBrain mind = director.BrainOf(bots[i].NetId);
+                    int ti = bots.FindIndex(b => b.NetId == mind.Target);
+                    if (ti < 0)
+                    {
+                        missWhy[0]++;
+                        continue;
+                    }
+                    Vector3 to = bots[ti].Motor.BodyCenter - bots[i].Motor.EyePosition;
+                    float flat = MathF.Sqrt(to.X * to.X + to.Z * to.Z), dist = to.Length();
+                    float yawTo = MathF.Atan2(-to.X, -to.Z) * 180f / MathF.PI, pitchTo = MathF.Atan2(to.Y, flat) * 180f / MathF.PI;
+                    float dy = MathF.Abs(MathF.IEEERemainder(yawTo - mind.LastInput.Yaw, 360f)), dp2 = MathF.Abs(pitchTo - mind.LastInput.Pitch);
+                    missWhy[dist > 3.8f ? 1 : dy > MathF.Atan2(0.35f, flat) * 180f / MathF.PI ? 2 : dp2 > MathF.Atan2(0.8f, flat) * 180f / MathF.PI ? 3 : 4]++;
+                }
                 if (running)
                 {
                     contested += m.Inside > 1 ? 1 : 0;
+                    int scoreSum = 0;
+                    for (int i = 0; i < count; i++)
+                    {
+                        scoreSum += bots[i].ScoreTicks;
+                        Vector3 at = bots[i].Motor.Position;
+                        var dp = bots[i].Entity.Get<DamagePercent>();
+                        bool inside = match.Contains(at);
+                        if (dp.LastHitTick != lastHit[i])
+                        {
+                            lastHit[i] = dp.LastHitTick;
+                            if (inside)
+                            {
+                                zoneHits++;
+                                hitPercent += dp.Percent;
+                                hitInZoneAt[i] = t;
+                            }
+                        }
+                        if (inside)
+                        {
+                            zonePercent += dp.Percent;
+                            zonePercentN++;
+                        }
+                        if (inside)
+                            wasIn[i] = true;
+                        else if (wasIn[i] && at.Y < match.Center.Y - match.HalfSize.Y - 8f)
+                        {
+                            wasIn[i] = false;
+                            falls++;
+                            hitFalls += t - hitInZoneAt[i] < 120 ? 1 : 0;
+                        }
+                        if (!inside && hitInZoneAt[i] >= 0 && t - hitInZoneAt[i] < 40)
+                        {
+                            knockedOut++;
+                            hitInZoneAt[i] = t - 40;   // counted once, still a fall cause
+                        }
+                    }
+                    bool scoring = scoreSum > lastScoreSum;
+                    holds += scoring && !wasScoring ? 1 : 0;
+                    heldTicks += scoring ? 1 : 0;
+                    wasScoring = scoring;
+                    lastScoreSum = scoreSum;
                     int best = -1;
                     for (int i = 0; i < count; i++)
                         if (bots[i].ScoreTicks >= HillMatch.TicksPerPoint && (best < 0 || bots[i].ScoreTicks > bots[best].ScoreTicks))
@@ -110,11 +196,15 @@ namespace KotH.Probes.Probes
                     sumHits += hits / (seconds / 60.0) / count;
                     Log($"[round] {done}: {seconds:F0} s, winner {(w >= 0 ? bots[w].Entity.Name : "none")} by {(points ? "points" : "time")}, " +
                         $"its share {share * 100:F0} %, {leadChanges} lead changes, contested {contested * 100.0 / Math.Max(1, m.RoundTicks):F0} %, " +
-                        $"{hits / (seconds / 60.0) / count:F1} hits/min per bot");
+                        $"{hits / (seconds / 60.0) / count:F1} hits/min per bot, scored {total * 100.0 / Math.Max(1, m.RoundTicks):F0} % of the time, " +
+                        $"falls {falls}, holds {holds} (mean {heldTicks / 40.0 / Math.Max(1, holds):F0} s)");
                 }
                 wasOver = m.Over;
             }
             director.Dispose();
+            Log($"[rounds] melee swings: hit {missWhy[5]}, missed without target {missWhy[0]}, too far {missWhy[1]}, beside {missWhy[2]}, above/below {missWhy[3]}, other {missWhy[4]}");
+            Log($"[rounds] hits in the zone {zoneHits}: out within 1 s {knockedOut * 100 / Math.Max(1, zoneHits)} %, percent at the hit {hitPercent / Math.Max(1, zoneHits):F0}, " +
+                $"in the zone {zonePercent / Math.Max(1, zonePercentN):F0}; falls after a hit {hitFalls}");
 
             int n = Math.Max(1, done);
             int most = 0;
@@ -128,7 +218,8 @@ namespace KotH.Probes.Probes
                 $"{flicks / min:F1} flicks/min (> 5° and straight back)");
             Log($"[rounds] keys: {keyChanges / ground * 40:F2} changes/s, {reversals / ground * 2400:F1} reversals/min on the ground; " +
                 $"manoeuvre held {maneuverTicks / Math.Max(1, maneuverChanges) / 40:F2} s");
-            Log($"[rounds] in the zone: {zoneJumps / Math.Max(1, zoneTicks) * 2400:F1} jumps/min, standing {zoneStanding / Math.Max(1, zoneTicks) * 100:F0} %");
+            Log($"[rounds] in the zone: {zoneJumps / Math.Max(1, zoneTicks) * 2400:F1} jumps/min, standing {zoneStanding / Math.Max(1, zoneTicks) * 100:F0} %; intents " +
+                string.Join(" ", Enum.GetNames<BotIntent>().Select((n, k) => $"{n} {zoneIntent[k] * 100 / Math.Max(1, zoneTicks):F0} %")));
             return 0;
         }
 
@@ -181,6 +272,7 @@ namespace KotH.Probes.Probes
             if (inZone)
             {
                 zoneTicks++;
+                zoneIntent[(int)mind.Intent]++;
                 zoneJumps += input.JumpPresses > 0 && ms.Grounded ? 1 : 0;
                 zoneStanding += MathF.Sqrt(ms.Velocity.X * ms.Velocity.X + ms.Velocity.Z * ms.Velocity.Z) < 0.3f ? 1 : 0;
             }

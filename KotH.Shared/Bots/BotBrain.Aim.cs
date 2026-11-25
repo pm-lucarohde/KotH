@@ -15,8 +15,8 @@ namespace KotH.Shared.Bots
         // Braking plans with half the hand's grip, so a turn ends without overshooting; then the last share per tick.
         const float BrakeShare = 0.5f, Settle = 0.5f;
 
-        // The view a little down on the way ahead; how far off a swing and a shot may still go out (degrees).
-        const float WalkPitch = -5f, StrikeCone = 20f, ShotCone = 1.2f;
+        // The view a little down on the way ahead; how far off a shot may still go out (degrees).
+        const float WalkPitch = -5f, ShotCone = 1.2f;
 
         float lastWantYaw, lastWantPitch;
         float missYaw, missPitch, missYawGoal, missPitchGoal;  // the drift, -1..1 of the aim error
