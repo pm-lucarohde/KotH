@@ -96,7 +96,7 @@ namespace KotH.Client.Menu
                 string where = round.Regions.Length == 0 ? "" : "  " + string.Join(", ", Array.ConvertAll(round.Regions, LobbyFlags.RegionName));
                 string ping = round.PingMs < 0 ? "? ms" : $"{round.PingMs} ms";
                 string marks = (round.Mode != MatchMode.Solo ? "  " + HillMatch.DisplayName(round.Mode) : "") + (round.Private ? "  private" : "") + (round.Modded ? "  modded" : "");
-                rows.Add(new RowList.Row(round.Host, $"{round.Map}  {round.Players}/{NetWorld.MaxPlayers}{where}{marks}  {ping}", "Join",
+                rows.Add(new RowList.Row(round.Host, $"{round.Map}  {round.Players}/{HillMatch.MaxPlayers(round.Mode)}{where}{marks}  {ping}", "Join",
                                          () => { if (!busy) Choose(chosen); }));
             }
             list.Show(rows, keepPlace: again);

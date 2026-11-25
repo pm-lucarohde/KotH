@@ -49,7 +49,8 @@ namespace KotH.Shared.Net
     public static class NetWorld
     {
         public const int FirstPlayerId = 4;
-        public const int MaxPlayers = 12;
+        /// <summary>Slots of any game: 16 for 1, 2, 3, Free; a game's own limit is HillMatch.MaxPlayers.</summary>
+        public const int MaxPlayers = 16;
 
         static readonly float[] DummyPercents = { 0f, 50f, 100f };
 
@@ -78,7 +79,7 @@ namespace KotH.Shared.Net
 
         /// <summary>The slots bots take, in order: wide apart first, out to both ends of the front
         /// row, then the middle behind, and so on.</summary>
-        public static readonly int[] BotSlots = { 0, 5, 8, 11, 2, 6, 3, 9, 1, 10, 4, 7 };
+        public static readonly int[] BotSlots = { 0, 5, 8, 11, 2, 6, 3, 9, 1, 10, 4, 7, 12, 14, 13, 15 };
 
         /// <summary>Where a player slot starts and faces: markers PlayerSpawn0 to PlayerSpawn11,
         /// two rows of six behind the offline spawn.</summary>

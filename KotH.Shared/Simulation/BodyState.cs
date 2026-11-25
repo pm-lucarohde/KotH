@@ -26,5 +26,13 @@ namespace KotH.Shared.Simulation
         public int Team;
         public int Wish;
         public byte Bot;
+
+        // 1, 2, 3, Free (FreeRole): the role, the count in the zone in ticks, the order it was caught in (1 first),
+        // the catcher who marked or caught it, and its weight in the next draw (255: certain). 0 in other modes.
+        public byte Role;
+        public int RoleTicks;
+        public int CaughtOrder;
+        public int MarkedBy;
+        public byte Odds;
     }
 }

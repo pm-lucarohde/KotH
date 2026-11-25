@@ -14,12 +14,12 @@ namespace KotH.Probes.Probes
 {
     /// <summary>The game modes' rules on the Test arena. "mighty": Mighty & High against solo, each in a fresh
     /// world: the walk 1.25 times as fast, the jump 1.5 times and the double jump 3 times as high, a cane's knock
-    /// 3 times as far at the same height (Luca, 25.11.2026).</summary>
-    public sealed class ModesProbe : Probe
+    /// 3 times as far at the same height (Luca, 25.11.2026). "free": 1, 2, 3, Free's rules (ModesProbe.Free.cs).</summary>
+    public sealed partial class ModesProbe : Probe
     {
         protected override string Tag => "modes";
 
-        /// <summary>Which mode's rules: "mighty", or "free" (later).</summary>
+        /// <summary>Which mode's rules: "mighty" or "free".</summary>
         public string Which = "mighty";
 
         HeadlessWorld world;
@@ -32,6 +32,8 @@ namespace KotH.Probes.Probes
 
         public override int Run(HeadlessWorld host, int maxTicks)
         {
+            if (Which == "free")
+                return RunFree(host);
             if (Which != "mighty")
             {
                 Log($"[modes] unknown: {Which}");

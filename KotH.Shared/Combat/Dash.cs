@@ -133,7 +133,7 @@ namespace KotH.Shared.Combat
                 SimulationBody body = bodies[i];
                 PlayerMotor victim = body.Motor;
                 DamagePercent target = body.Entity.Get<DamagePercent>();
-                if (victim == motor || body.IsParked || target == null)
+                if (victim == motor || body.IsParked || body.IsOut || target == null)
                     continue;
 
                 // The nearest point of the body's axis, ends rounded by its radius.
@@ -156,6 +156,8 @@ namespace KotH.Shared.Combat
                     away = UMath.Rotate(motor.Rotation, UMath.Forward);
 
                 HitCount++;
+                SimulationBody self = Entity.Get<SimulationBody>();
+                self?.Simulation?.ReportHit(self, body);
                 target.LastHitTick = tick;
                 target.LastHitAway = away;
                 target.LastHitAt = UMath.Sub(nearest, centre);

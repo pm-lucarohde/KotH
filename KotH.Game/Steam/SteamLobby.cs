@@ -76,7 +76,7 @@ namespace KotH.Client.Steam
             var lobby = new SteamLobby(hosting: true) { HostName = host, Private = flags.Private };
             lobby.map = map;
             const int Public = 2;   // k_ELobbyTypePublic
-            Create(lobby, Public, NetWorld.MaxPlayers, () =>
+            Create(lobby, Public, HillMatch.MaxPlayers(flags.Mode), () =>
             {
                 lobby.Set("map", lobby.map);
                 lobby.Set("maptitle", lobby.mapTitle ?? lobby.map);

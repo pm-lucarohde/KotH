@@ -49,6 +49,7 @@ namespace KotH.Client.Net
                     Console.WriteLine($"[net] invite: {Invite}");
                 }
                 Host = NewHost(Now);
+                Host.Capacity = HillMatch.MaxPlayers(options.Mode);
                 // A private round: only the key of its password is kept; invited friends need none.
                 Host.Password = options.Password != null ? PasswordKey.Make(options.Password) : null;
                 // The lobby's round goes to --map (Mount Destiny unless given); the host may choose another.
@@ -58,7 +59,7 @@ namespace KotH.Client.Net
                 if (round != null)
                 {
                     round.Stage = MatchStage.Lobby;
-                    round.MinPlayers = options.MinPlayers;
+                    round.MinPlayers = HillMatch.MinPlayersOf(options.Mode, options.MinPlayers);
                 }
                 address = lobby != null ? "Steam" : $"Port {options.Port}";
             }
@@ -180,7 +181,7 @@ namespace KotH.Client.Net
                 int players = HillMatch.CountPlayers(Session.Simulation.Bodies);
                 Lobby.SetPlayers(players);
                 Lobby.SetMap(world.Map, TitleOf?.Invoke(world.Map));
-                Lobby.SetJoinable(players < NetWorld.MaxPlayers && !Host.Restarting && Host.CanJoin());
+                Lobby.SetJoinable(players < Host.Capacity && !Host.Restarting && Host.CanJoin());
             }
         }
 
@@ -201,7 +202,11 @@ namespace KotH.Client.Net
                     Host.Restart(Host.NextMap ?? Maps.Default, MatchStage.Round);
                 }
                 else if (Host.Stage == MatchStage.Round && m.Phase == MatchPhase.Over)
+                {
+                    // 1, 2, 3, Free: the next draw's weights go along with the players' joins.
+                    Session.ConfirmedOdds(Host.KeepOdds);
                     Host.Restart(Maps.Default, MatchStage.Lobby);
+                }
             }
             if (Session.RestartTo is { } to && !changing)
             {
@@ -225,7 +230,7 @@ namespace KotH.Client.Net
             int count = HillMatch.CountPlayers(Session.Simulation.Bodies), size = HillMatch.Size(m.Mode);
             if (MakeBots == null)
                 return;
-            for (int k = (size - count % size) % size; k > 0 && count < NetWorld.MaxPlayers; k--, count++)
+            for (int k = (size - count % size) % size; k > 0 && count < Host.Capacity; k--, count++)
                 Host.AddBot($"Bot {Host.BotIds.Count + 1}");
         }
 

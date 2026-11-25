@@ -67,8 +67,9 @@ namespace KotH.Server
                 session = new PeerSession(new HeadlessNetWorld(world), host.LocalTransport, sample, name, founder: true, Now());
                 host.AttachFounder(session);
                 HillMatch round = world.Simulation.Match;
-                round.MinPlayers = minPlayers;
                 round.Mode = HillMatch.ParseMode(Text(args, "--mode")) ?? MatchMode.Solo;
+                round.MinPlayers = HillMatch.MinPlayersOf(round.Mode, minPlayers);
+                host.Capacity = HillMatch.MaxPlayers(round.Mode);
                 host.CanJoin = () => round.AcceptsJoin;
                 Console.WriteLine($"[net] host on port {port}, map {map}, round from {minPlayers} players, build {NetProtocol.BuildText}");
                 if (bots > 0)

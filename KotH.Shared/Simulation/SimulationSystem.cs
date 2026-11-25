@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using KotH.Shared.Match;
 using KotH.Shared.Mathematics;
+using KotH.Shared.Net;
 using KotH.Shared.Physics;
 using KotH.Shared.Player;
 using Stride.Core.Diagnostics;
@@ -74,7 +75,27 @@ namespace KotH.Shared.Simulation
         /// <summary>Teams: each chain link between neighbours, body centre to body centre (Luca: 5 m, first 3.5, then 4).</summary>
         public float ChainLength = 5f;
 
+        /// <summary>One attack that struck a body this tick: who by and whom (cane, spore or dash).</summary>
+        public struct HitReport
+        {
+            public SimulationBody By, Target;
+        }
+
+        // This tick's hits, filled by the attacks and read by the round in the same tick: no state.
+        readonly List<HitReport> hits = new List<HitReport>(64);
+
+        /// <summary>The hits of the tick being stepped, in the order the attacks struck (HillMatch sorts them).</summary>
+        public IReadOnlyList<HitReport> Hits => hits;
+
+        /// <summary>Called by an attack that struck a body; either may be null (a probe's bare motor).</summary>
+        public void ReportHit(SimulationBody by, SimulationBody target)
+        {
+            if (by != null && target != null)
+                hits.Add(new HitReport { By = by, Target = target });
+        }
+
         // Reused across ticks so a step allocates nothing.
+        readonly List<MoveInput> filtered = new List<MoveInput>(NetWorld.MaxPlayers + 4);
         readonly List<BodyContact.Body> states = new List<BodyContact.Body>();
         readonly List<Vector3> impulses = new List<Vector3>();
         readonly List<Vector3> shifts = new List<Vector3>();
@@ -170,12 +191,22 @@ namespace KotH.Shared.Simulation
 
             // Before anything moves, so a new round puts a body back exactly
             // where it joined.
+            hits.Clear();
             Match?.MarkNewcomers(bodies);
 
             // The mode's factors, from the round's state each tick: a rollback or a guest sees the same.
             MotorTuning tuning = ModeRules.For(Match?.Mode ?? MatchMode.Solo);
             for (int i = 0; i < count; i++)
                 bodies[i].Motor.Tuning = tuning;
+
+            // 1, 2, 3, Free: while the wheel turns and in the head start some stand still (the view turns).
+            if (Match is { IsFree: true } free)
+            {
+                filtered.Clear();
+                for (int i = 0; i < count; i++)
+                    filtered.Add(free.Filter(bodies[i], tickInputs[i]));
+                tickInputs = filtered;
+            }
 
             // Contacts first, so a push still takes effect in this tick
             // instead of 25 ms later. It reads what the last tick left
@@ -189,6 +220,8 @@ namespace KotH.Shared.Simulation
             // changes, so the list order stays out of the result either way.
             for (int i = 0; i < count; i++)
             {
+                if (bodies[i].IsOut)
+                    continue;   // out of a round of 1, 2, 3, Free: it stands
                 bodies[i].Motor.Simulate(tickInputs[i], dt);
                 bodies[i].Look(tickInputs[i].Pitch);
             }
@@ -196,6 +229,9 @@ namespace KotH.Shared.Simulation
             // After the moves, because that is when bodies can overlap, and
             // before combat, so a swing sees where everyone really stands.
             SeparateBodies();
+
+            // The catcher's head start: kept away from the runners.
+            Match?.Hold(bodies);
 
             // After the push apart, so chained neighbours never end up farther than the chain.
             TieTeams();
@@ -209,12 +245,18 @@ namespace KotH.Shared.Simulation
             // hulls only where they were last put. A resimulation runs many
             // ticks in a row and would hit stale hulls.
             for (int i = 0; i < count; i++)
-                bodies[i].Motor.SyncHull();
+            {
+                if (bodies[i].IsOut)
+                    bodies[i].Motor.ParkHull();
+                else
+                    bodies[i].Motor.SyncHull();
+            }
 
             // After every body has moved, so a swing sees where they all
             // ended up rather than where the ones ahead of it stood.
             for (int i = 0; i < count; i++)
-                bodies[i].TickCombat(tickInputs[i], dt);
+                if (!bodies[i].IsOut)
+                    bodies[i].TickCombat(tickInputs[i], dt);
 
             // Last, on the poses everyone ended up in, after any knock.
             Match?.Tick(bodies);
@@ -309,6 +351,8 @@ namespace KotH.Shared.Simulation
             {
                 for (int j = i + 1; j < count; j++)
                 {
+                    if (bodies[i].IsOut || bodies[j].IsOut)
+                        continue;
                     if (!BodyContact.TryGetSideways(
                             states[i], states[j],
                             out Vector3 n, out float overlap))
@@ -423,6 +467,8 @@ namespace KotH.Shared.Simulation
             {
                 for (int j = i + 1; j < count; j++)
                 {
+                    if (bodies[i].IsOut || bodies[j].IsOut)
+                        continue;
                     BodyContact.Body a = states[i];
                     BodyContact.Body b = states[j];
 

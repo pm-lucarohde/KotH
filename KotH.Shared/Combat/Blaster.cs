@@ -125,6 +125,13 @@ namespace KotH.Shared.Combat
             Fly(ref shot, tick, dt);
         }
 
+        /// <summary>One shot back, up to MaxShots (1, 2, 3, Free: the catcher's hit on a runner).</summary>
+        public void Refund()
+        {
+            if (state.Shots < MaxShots)
+                state.Shots++;
+        }
+
         // Grows only while not full, so standing in the zone with three shots saves none up.
         void Earn(int scoreTicks)
         {
@@ -205,6 +212,9 @@ namespace KotH.Shared.Combat
 
             float before = target.Percent;
             target.Add(DamagePercent);
+
+            SimulationBody shooter = Entity.Get<SimulationBody>();
+            shooter?.Simulation?.ReportHit(shooter, target.Entity.Get<SimulationBody>());
 
             PlayerMotor victim = target.Entity.Get<PlayerMotor>();
             if (victim == null)

@@ -63,6 +63,10 @@ namespace KotH.Shared.Match
         /// <summary>Solo or teams of two to four.</summary>
         public MatchMode Mode;
 
+        /// <summary>1, 2, 3, Free: catchers this round (1, 2 from 11 players), and the round tick of the last draw.</summary>
+        public byte Catchers;
+        public int DrawnAt;
+
         /// <summary>The round has ended and the winner is shown.</summary>
         public readonly bool Over => Phase == MatchPhase.Over;
     }
@@ -71,7 +75,7 @@ namespace KotH.Shared.Match
     /// second while the holder stays inside, whoever comes in (Luca's rule). First to the winning
     /// points wins, else the leader at the time limit. Ticked by SimulationSystem after combat;
     /// with MinPlayers a round waits for players and counts down (dummies do not count).</summary>
-    public sealed class HillMatch
+    public sealed partial class HillMatch
     {
         public const int TicksPerPoint = 40;
 
@@ -369,6 +373,8 @@ namespace KotH.Shared.Match
             // Into a running round: a team with room, then straight to a place round the hill.
             if (moving.Count > 0 && state.Phase == MatchPhase.Running && Teamed)
                 FormTeams(bodies);
+            if (moving.Count > 0 && state.Phase == MatchPhase.Running && state.Mode == MatchMode.Free)
+                Await();
             if (moving.Count > 0 && state.Phase == MatchPhase.Running && HasSpawnRing)
                 Place(bodies);
             else if (moving.Count > 0 && state.Phase == MatchPhase.Running && Teamed)
@@ -387,7 +393,7 @@ namespace KotH.Shared.Match
             bool ring = HasSpawnRing && (state.Phase == MatchPhase.Running || state.Phase == MatchPhase.Over);
             moving.Clear();
             for (int i = 0; i < count; i++)
-                if (bodies[i].HasSpawn && (bodies[i].Motor.Position.Y < RespawnBelow || Burns(bodies[i])))
+                if (bodies[i].HasSpawn && !bodies[i].IsOut && (bodies[i].Motor.Position.Y < RespawnBelow || Burns(bodies[i])))
                 {
                     if (!moving.Contains(bodies[i]))
                         moving.Add(bodies[i]);
@@ -454,6 +460,12 @@ namespace KotH.Shared.Match
                     TeamEveryone(bodies);
                     PlaceEveryone(bodies);
                     return;
+            }
+
+            if (state.Mode == MatchMode.Free)
+            {
+                TickFree(bodies);
+                return;
             }
 
             ReadTeams(bodies);
@@ -802,12 +814,12 @@ namespace KotH.Shared.Match
                 uint dice = Mix(state.Seed ^ Mix((uint)tick * 2654435761u ^ (uint)body.NetId * 40503u ^ 0x9E3779B9u));
                 float bestRoom = -1f;
                 Vector3 best = Vector3.Zero;
-                for (int k = 0; k < 48 && bestRoom < spacing; k++)
+                for (int k = 0; k < 48 && bestRoom < UMath.Max(spacing, placeRoom); k++)
                 {
                     float angle = Unit(ref dice) * 2f * MathF.PI;
                     float r = UMath.Sqrt(UMath.Lerp(ringInner * ringInner, ringOuter * ringOuter, Unit(ref dice)));
                     // Every other time near someone already there (Luca: now close, now far).
-                    if (taken.Count > 0 && Unit(ref dice) < NearShare)
+                    if (placeRoom <= 0f && taken.Count > 0 && Unit(ref dice) < NearShare)
                     {
                         Vector3 anchor = taken[Math.Min(taken.Count - 1, (int)(Unit(ref dice) * taken.Count))];
                         float along = UMath.Lerp(spacing, NearReach, Unit(ref dice)) / UMath.Max(r, 1f);

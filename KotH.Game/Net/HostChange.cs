@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using KotH.Client.Steam;
 using KotH.Shared.Bots;
+using KotH.Shared.Match;
 using KotH.Shared.Net;
 
 namespace KotH.Client.Net
@@ -32,6 +33,7 @@ namespace KotH.Client.Net
                 Claims = Claims,
             };
             host.Began += Founded;
+            host.Capacity = HillMatch.MaxPlayers(world.Simulation.Match?.Mode ?? MatchMode.Solo);
             host.CanJoin = () => world.Simulation.Match?.AcceptsJoin ?? true;
             hostAtStart = Text(SteamClient.SteamId);
             return host;

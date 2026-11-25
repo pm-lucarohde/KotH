@@ -255,7 +255,10 @@ namespace KotH.Client
             // joiners, so they think exactly as they would on a host.
             // Teams (Luca): bots fill the last team, so nobody plays short.
             int size = HillMatch.Size(options.Mode), short_ = (size - (1 + botsWanted) % size) % size;
-            int botCount = Math.Min(botsWanted + short_, NetWorld.MaxPlayers - 1);
+            // 1, 2, 3, Free needs five: bots make up the rest.
+            if (options.Mode == MatchMode.Free)
+                botsWanted = Math.Max(botsWanted, HillMatch.FreeMinPlayers - 1);
+            int botCount = Math.Min(botsWanted + short_, HillMatch.MaxPlayers(options.Mode) - 1);
             var states = new LocalFinalStates(simulation);
             BotDirector director = botCount > 0 ? BotDirector.Create(builder, simulation, states, options.BotSeed) : null;
             WorkAhead(director);
@@ -392,7 +395,7 @@ namespace KotH.Client
                     // The host's own round; a guest takes the host's state when it joins.
                     simulation.Match = new HillMatch(builder.Zone) { Seed = (uint)Random.Shared.Next(), Stage = stage, Mode = LaunchOptions.Current.Mode };
                     if (stage == MatchStage.Lobby)
-                        simulation.Match.MinPlayers = LaunchOptions.Current.MinPlayers;
+                        simulation.Match.MinPlayers = HillMatch.MinPlayersOf(LaunchOptions.Current.Mode, LaunchOptions.Current.MinPlayers);
                 }
                 BindWorld(null);
                 cover.Hold = () => net == client && (client.Restarting || !client.Joined);

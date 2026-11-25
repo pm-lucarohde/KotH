@@ -420,6 +420,19 @@ namespace KotH.Shared.Net
         /// </summary>
         public IBotInputs KnownInputs { get; set; }
 
+        /// <summary>1, 2, 3, Free: each body's weight in the next draw as the last confirmed tick left it, for the
+        /// host to carry over a restart (HostSession.KeepOdds). False without a confirmed tick.</summary>
+        public bool ConfirmedOdds(Action<int, byte> each)
+        {
+            int tick = FinalTick;
+            if (tick < 0 || snapTicks[tick % Ring] != tick)
+                return false;
+            WorldSnapshot snap = snaps[tick % Ring];
+            for (int i = 0; i < snap.Count; i++)
+                each(snap.BodyAt(i).NetId, snap.StateAt(i).Odds);
+            return true;
+        }
+
         /// <summary>
         /// The round as no rollback can change it any more. What the HUD
         /// shows for a win, so a banner never flashes up and vanishes again.
@@ -953,6 +966,7 @@ namespace KotH.Shared.Net
             SimulationBody body = world.SpawnPlayer(e.NetId, e.Slot, e.Name, e.Look);
             body.NetId = e.NetId;
             body.Wish = e.Wish;
+            body.Odds = e.Odds;
             body.Bot = e.Bot;
             bodies[e.NetId] = body;
             roster[e.NetId] = e;

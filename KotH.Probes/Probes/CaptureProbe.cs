@@ -347,7 +347,8 @@ namespace KotH.Probes.Probes
                     Log($"[capture]        S{slot} at {want} stands at {got}");
                 }
             }
-            Check(players.Count == 12 && moved == 0, $"12 spawn points free and on the ground (largest deviation {worst * 100f:F1} cm)");
+            Check(players.Count == NetWorld.MaxPlayers && moved == 0,
+                  $"{players.Count} spawn points free and on the ground (largest deviation {worst * 100f:F1} cm)");
         }
 
         /// <summary>Duo (Luca's rule): pairs by wish then the rest, a team takes the zone alone or two against

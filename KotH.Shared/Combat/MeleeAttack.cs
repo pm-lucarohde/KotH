@@ -136,6 +136,9 @@ namespace KotH.Shared.Combat
             target.LastHitAway = default;
             target.LastHitAt = default;
 
+            SimulationBody self = Entity.Get<SimulationBody>();
+            self?.Simulation?.ReportHit(self, target.Entity.Get<SimulationBody>());
+
             // The percent before this hit decides: a fresh body is not moved.
             float before = target.Percent;
             float scale = before / 100f;

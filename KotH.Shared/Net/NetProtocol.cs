@@ -43,6 +43,8 @@ namespace KotH.Shared.Net
         public FigureLook Look;
         /// <summary>Duo: the NetId of the player this one came with (invite, friend, party); 0 for none.</summary>
         public int Wish;
+        /// <summary>1, 2, 3, Free: the player's weight in the next draw (SimulationBody.Odds); 0 for none.</summary>
+        public byte Odds;
     }
 
     /// <summary>
@@ -207,6 +209,7 @@ namespace KotH.Shared.Net
             w.Text(e.Name);
             e.Look.Write(ref w);
             w.Int(e.Wish);
+            w.Byte(e.Odds);
         }
 
         public static NetEvent ReadEvent(ref Reader r)
@@ -219,6 +222,7 @@ namespace KotH.Shared.Net
                 e.Name = r.Text();
                 e.Look = FigureLook.Read(ref r);
                 e.Wish = r.Int();
+                e.Odds = r.Byte();
             }
             return e;
         }

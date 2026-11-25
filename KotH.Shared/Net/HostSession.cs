@@ -34,6 +34,7 @@ namespace KotH.Shared.Net
             public string Name;
             public FigureLook Look;
             public int Wish;   // duo: the NetId of the player it came with
+            public byte Odds;  // 1, 2, 3, Free: its weight in the next draw, kept over restarts (KeepOdds)
             public Phase Phase;
             public int JoinTick = -1;
             public int LeaveTick = int.MaxValue;
@@ -195,6 +196,18 @@ namespace KotH.Shared.Net
 
         string nextMap;
 
+        /// <summary>Most players the game takes (HillMatch.MaxPlayers of its mode).</summary>
+        public int Capacity { get; set; } = HillMatch.NormalMaxPlayers;
+
+        /// <summary>1, 2, 3, Free: a player's weight in the next draw, from the round just over; its joins
+        /// after the restarts carry it (NetEvent.Odds).</summary>
+        public void KeepOdds(int netId, byte odds)
+        {
+            foreach (Client c in clients.Values)
+                if (c.NetId == netId)
+                    c.Odds = odds;
+        }
+
         /// <summary>Between Restart and its beginning: no tick goes final.</summary>
         public bool Restarting { get; private set; }
 
@@ -284,7 +297,7 @@ namespace KotH.Shared.Net
             {
                 var c = new Client
                 {
-                    NetId = e.NetId, Slot = e.Slot, Name = e.Name, Look = e.Look, IsBot = e.Bot, Wish = e.Wish,
+                    NetId = e.NetId, Slot = e.Slot, Name = e.Name, Look = e.Look, IsBot = e.Bot, Wish = e.Wish, Odds = e.Odds,
                     JoinTick = Math.Max(0, from.Tick - 1), AckFloor = from.Tick - 1,
                 };
                 if (e.Bot)
@@ -362,7 +375,7 @@ namespace KotH.Shared.Net
             start = now;
             foreach (Client c in clients.Values)
                 if (c.IsBot)
-                    pending.Add(new NetEvent { Join = true, Bot = true, NetId = c.NetId, Slot = c.Slot, Name = c.Name, Look = c.Look });
+                    pending.Add(new NetEvent { Join = true, Bot = true, NetId = c.NetId, Slot = c.Slot, Name = c.Name, Look = c.Look, Odds = c.Odds });
             Began?.Invoke();
             foreach (int peer in asked)
                 AnswerAsk(peer);
@@ -545,7 +558,7 @@ namespace KotH.Shared.Net
         bool Refused(int peer, ReadOnlySpan<byte> build)
         {
             RejectReason? why = !build.SequenceEqual(NetProtocol.BuildId) ? RejectReason.Version
-                              : Players >= NetWorld.MaxPlayers ? RejectReason.Full
+                              : Players >= Capacity ? RejectReason.Full
                               : !CanJoin() ? RejectReason.Closed
                               : null;
             if (why == null)
@@ -591,7 +604,7 @@ namespace KotH.Shared.Net
                     back.Rejoining = false;
                     back.EchoTime = sent;
                     back.EchoReceived = now;
-                    pending.Add(new NetEvent { Join = true, NetId = back.NetId, Slot = back.Slot, Name = back.Name, Look = back.Look, Wish = back.Wish });
+                    pending.Add(new NetEvent { Join = true, NetId = back.NetId, Slot = back.Slot, Name = back.Name, Look = back.Look, Wish = back.Wish, Odds = back.Odds });
                 }
                 return;
             }
@@ -872,7 +885,7 @@ namespace KotH.Shared.Net
                     roster.Add(c);
             w.Int(roster.Count);
             foreach (Client c in roster)
-                NetProtocol.WriteEvent(ref w, new NetEvent { Join = true, Bot = c.IsBot, NetId = c.NetId, Slot = c.Slot, Name = c.Name, Look = c.Look, Wish = c.Wish });
+                NetProtocol.WriteEvent(ref w, new NetEvent { Join = true, Bot = c.IsBot, NetId = c.NetId, Slot = c.Slot, Name = c.Name, Look = c.Look, Wish = c.Wish, Odds = c.Odds });
         }
 
         // The tick sits after the codec's magic and version.

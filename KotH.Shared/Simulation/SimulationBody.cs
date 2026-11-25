@@ -1,4 +1,5 @@
 using KotH.Shared.Combat;
+using KotH.Shared.Match;
 using KotH.Shared.Mathematics;
 using KotH.Shared.Physics;
 using KotH.Shared.Player;
@@ -51,6 +52,25 @@ namespace KotH.Shared.Simulation
 
         /// <summary>Driven by a bot, as its join said: pairs go to players first (state).</summary>
         [DataMemberIgnore] public bool Bot { get; set; }
+
+        /// <summary>1, 2, 3, Free: the body's role (state); None in the other modes. See HillMatch.Free.</summary>
+        [DataMemberIgnore] public FreeRole Role { get; set; }
+
+        /// <summary>1, 2, 3, Free: ticks counted in the zone, the catcher's since its last mark (state).</summary>
+        [DataMemberIgnore] public int RoleTicks { get; set; }
+
+        /// <summary>1, 2, 3, Free: the order it was caught in, 1 first, 0 not caught (state).</summary>
+        [DataMemberIgnore] public int CaughtOrder { get; set; }
+
+        /// <summary>1, 2, 3, Free: the catcher's NetId that marked it, or caught it once caught; 0 none (state).</summary>
+        [DataMemberIgnore] public int MarkedBy { get; set; }
+
+        /// <summary>1, 2, 3, Free: the weight in the next round's draw, 255 certain, 0 for all alike (state; it
+        /// outlives a new round and comes along with a networked join).</summary>
+        [DataMemberIgnore] public byte Odds { get; set; }
+
+        /// <summary>1, 2, 3, Free: out of the round (caught, free or waiting for the next): not ticked, hull parked.</summary>
+        public bool IsOut => Role is FreeRole.Caught or FreeRole.Free or FreeRole.Waiting;
 
         [DataMemberIgnore] public bool HasSpawn { get; private set; }
 
@@ -155,6 +175,11 @@ namespace KotH.Shared.Simulation
                 Team = Team,
                 Wish = Wish,
                 Bot = Bot ? (byte)1 : (byte)0,
+                Role = (byte)Role,
+                RoleTicks = RoleTicks,
+                CaughtOrder = CaughtOrder,
+                MarkedBy = MarkedBy,
+                Odds = Odds,
             };
         }
 
@@ -165,6 +190,10 @@ namespace KotH.Shared.Simulation
             spawn.ScoreTicks = 0;
             spawn.AloneTicks = 0;
             spawn.Team = 0;
+            spawn.Role = 0;
+            spawn.RoleTicks = 0;
+            spawn.CaughtOrder = 0;
+            spawn.MarkedBy = 0;
             spawn.Blaster.ScoreSeen = 0;
             spawn.Dash.ScoreSeen = 0;
             HasSpawn = true;
@@ -189,12 +218,14 @@ namespace KotH.Shared.Simulation
             MovedTick = Simulation?.CurrentTick ?? 0;
         }
 
-        /// <summary>Back to where it joined, with no points: a new round.</summary>
+        /// <summary>Back to where it joined, with no points: a new round. The draw's weight stays (Odds).</summary>
         public void ResetToSpawn()
         {
             if (!HasSpawn)
                 return;
+            byte odds = Odds;
             RestoreState(spawn);
+            Odds = odds;
             MovedTick = Simulation?.CurrentTick ?? 0;
         }
 
@@ -217,7 +248,15 @@ namespace KotH.Shared.Simulation
             Team = state.Team;
             Wish = state.Wish;
             Bot = state.Bot != 0;
+            Role = (FreeRole)state.Role;
+            RoleTicks = state.RoleTicks;
+            CaughtOrder = state.CaughtOrder;
+            MarkedBy = state.MarkedBy;
+            Odds = state.Odds;
         }
+
+        /// <summary>1, 2, 3, Free: a catcher's hit on a runner brings a shot back, up to the most it holds.</summary>
+        internal void RefundShot() => blaster?.Refund();
 
         /// <summary>Combat for this tick. Driven separately from movement so every swing
         /// sees where all bodies ended up, not where the ones ahead of it in the list

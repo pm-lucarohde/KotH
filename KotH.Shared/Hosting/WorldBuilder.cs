@@ -94,6 +94,33 @@ namespace KotH.Shared.Hosting
                     queries.Pads.Add(pad.Area());
             }
             AddTerrain(map);
+            ExtraSlots();
+        }
+
+        /// <summary>The map's assets hold twelve slot markers; 1, 2, 3, Free takes sixteen. The others stand
+        /// beside markers 0, 3, 6 and 9 (0.75 m right, 1.25 m back: between their neighbours on Mount Destiny's
+        /// rows), as high over the ground there as that marker over its own, else on that marker.</summary>
+        void ExtraSlots()
+        {
+            for (int slot = 12; slot < NetWorld.MaxPlayers; slot++)
+            {
+                if (Find("PlayerSpawn" + slot) != null || Find("PlayerSpawn" + (slot - 12) * 3) is not { } near)
+                    continue;
+                Vector3 from = near.Transform.Position;
+                Quaternion facing = near.Transform.Rotation;
+                Vector3 side = UMath.Add(UMath.Mul(UMath.Rotate(facing, UMath.Right), 0.75f), UMath.Mul(UMath.Rotate(facing, UMath.Forward), -1.25f));
+                Vector3 at = from;
+                if (GroundUnder(from, out float under) && GroundUnder(UMath.Add(from, side), out float there) && UMath.Abs(there - under) < 0.6f)
+                    at = new Vector3(from.X + side.X, there + (from.Y - under), from.Z + side.Z);
+                Mark(new Entity("PlayerSpawn" + slot), at, facing);
+            }
+        }
+
+        bool GroundUnder(Vector3 at, out float y)
+        {
+            bool hit = queries.Raycast(UMath.Add(at, new Vector3(0f, 1.5f, 0f)), UMath.Down, 6f, WorldQueries.WorldMask, out QueryHit ground);
+            y = hit ? ground.Point.Y : 0f;
+            return hit;
         }
 
         /// <summary>Takes the map's colliders out again, with no body left in the world: the
