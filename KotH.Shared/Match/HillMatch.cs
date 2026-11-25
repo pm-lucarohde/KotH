@@ -70,8 +70,8 @@ namespace KotH.Shared.Match
         /// <summary>The host's choices for the round (Esc menu in the lobby); unset, each attack's and mode's own.</summary>
         public RoundRules Rules;
 
-        /// <summary>Lobby (host's Esc menu): no start by count, Start was pressed, no bots fill 1, 2, 3, Free up.</summary>
-        public bool ManualStart, Forced, BotsOff;
+        /// <summary>Lobby (host's Esc menu): no start by count, and Start was pressed.</summary>
+        public bool ManualStart, Forced;
 
         /// <summary>The round has ended and the winner is shown.</summary>
         public readonly bool Over => Phase == MatchPhase.Over;
@@ -85,7 +85,7 @@ namespace KotH.Shared.Match
     {
         public MatchMode Mode;
         public int MinPlayers;
-        public bool ManualStart, BotsOff, Start;
+        public bool ManualStart, Start;
     }
 
     /// <summary>A round's values the host set in the lobby (Luca, 25.11.2026); Set false keeps the attacks'
@@ -298,10 +298,10 @@ namespace KotH.Shared.Match
         }
 
         /// <summary>Whether the lobby counts down: Start pressed, or enough people while it starts by count;
-        /// 1, 2, 3, Free with the bots off needs its 5 players (with them, bots fill up at the start).</summary>
+        /// 1, 2, 3, Free never with fewer than 5 in the lobby, people and bots (Luca: me and 4 bots).</summary>
         public bool Starts(IReadOnlyList<SimulationBody> bodies)
         {
-            if (state.Mode == MatchMode.Free && state.BotsOff && CountPlayers(bodies) < FreeMinPlayers)
+            if (state.Mode == MatchMode.Free && CountPlayers(bodies) < FreeMinPlayers)
                 return false;
             return state.Forced || !state.ManualStart && CountPeople(bodies) >= state.MinPlayers;
         }
@@ -312,7 +312,6 @@ namespace KotH.Shared.Match
             state.Mode = c.Mode;
             state.MinPlayers = Math.Max(1, c.MinPlayers);
             state.ManualStart = c.ManualStart;
-            state.BotsOff = c.BotsOff;
             state.Forced |= c.Start;
         }
 
@@ -442,7 +441,6 @@ namespace KotH.Shared.Match
                 Mode = state.Mode,
                 Rules = state.Rules,
                 ManualStart = state.ManualStart,
-                BotsOff = state.BotsOff,
                 Phase = state.MinPlayers > 0 ? MatchPhase.Waiting : MatchPhase.Running,
             };
 
@@ -552,7 +550,7 @@ namespace KotH.Shared.Match
                     state = new MatchState
                     {
                         MinPlayers = state.MinPlayers, Seed = state.Seed, Mode = state.Mode, Rules = state.Rules,
-                        ManualStart = state.ManualStart, BotsOff = state.BotsOff,
+                        ManualStart = state.ManualStart,
                     };
                     Hurt(bodies);
                     TeamEveryone(bodies);

@@ -211,7 +211,7 @@ namespace KotH.Shared.Net
                 w.Byte(4);
                 w.Byte((byte)e.Lobby.Mode);
                 w.Byte((byte)e.Lobby.MinPlayers);
-                w.Byte((byte)((e.Lobby.ManualStart ? 1 : 0) | (e.Lobby.BotsOff ? 2 : 0) | (e.Lobby.Start ? 4 : 0)));
+                w.Byte((byte)((e.Lobby.ManualStart ? 1 : 0) | (e.Lobby.Start ? 2 : 0)));
                 return;
             }
             w.Byte(e.Join ? e.Bot ? (byte)3 : (byte)1 : (byte)0);
@@ -232,7 +232,7 @@ namespace KotH.Shared.Net
             {
                 var lobby = new LobbyCommand { Mode = (MatchMode)Math.Min(r.Byte(), (byte)MatchMode.Free), MinPlayers = r.Byte() };
                 byte flags = r.Byte();
-                (lobby.ManualStart, lobby.BotsOff, lobby.Start) = ((flags & 1) != 0, (flags & 2) != 0, (flags & 4) != 0);
+                (lobby.ManualStart, lobby.Start) = ((flags & 1) != 0, (flags & 2) != 0);
                 return new NetEvent { IsLobby = true, Lobby = lobby };
             }
             var e = new NetEvent { Join = kind != 0, Bot = (kind & 2) != 0, NetId = r.Int() };

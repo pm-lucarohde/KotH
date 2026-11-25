@@ -70,10 +70,11 @@ namespace KotH.Client.Menu
             Refresh();
         }
 
-        /// <summary>Why the round cannot start now, else null (1, 2, 3, Free with bots off needs five).</summary>
+        /// <summary>Why the round cannot start now, else null: 1, 2, 3, Free needs five, people and the bots chosen
+        /// (counted as chosen: the lobby's bodies follow a few ticks later).</summary>
         public string Problem
-            => edited.HostMode == MatchMode.Free && !edited.HostBots && Count().Players < HillMatch.FreeMinPlayers
-               ? $"1, 2, 3, Free needs {HillMatch.FreeMinPlayers} players: turn the bots on or wait for more."
+            => edited.HostMode == MatchMode.Free && Count().People + (edited.HostBots ? edited.HostBotCount : 0) < HillMatch.FreeMinPlayers
+               ? $"1, 2, 3, Free needs {HillMatch.FreeMinPlayers} players: add bots or wait for more people."
                : null;
 
         void Refresh()

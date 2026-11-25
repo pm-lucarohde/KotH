@@ -12,7 +12,7 @@ namespace KotH.Probes.Probes
 {
     /// <summary>"rules": the host's lobby settings (Luca, 25.11.2026). The start damage, the percent each attack adds,
     /// the knockback factor; the lobby counting people only, starting by hand, Start pressed, and 1, 2, 3, Free
-    /// without bots waiting for five.</summary>
+    /// waiting for five, people and bots.</summary>
     public sealed partial class ModesProbe
     {
         int RunRules(HeadlessWorld host)
@@ -91,19 +91,19 @@ namespace KotH.Probes.Probes
             Check(lobby.State.Phase == MatchPhase.Countdown, "the countdown Start began goes on");
 
             lobby.MinPlayers = 1;   // a fresh wait
-            lobby.Command(new LobbyCommand { Mode = MatchMode.Free, MinPlayers = 1, BotsOff = true, Start = true });
+            lobby.Command(new LobbyCommand { Mode = MatchMode.Free, MinPlayers = 1, Start = true });
             Ticks(2);
-            Check(lobby.State.Phase == MatchPhase.Countdown && lobby.Mode == MatchMode.Free, "1, 2, 3, Free with five bodies starts");
+            Check(lobby.State.Phase == MatchPhase.Countdown && lobby.Mode == MatchMode.Free, "1, 2, 3, Free with two people and three bots starts");
             lobby.MinPlayers = 1;
-            var bots = new System.Collections.Generic.List<SimulationBody>();
             foreach (SimulationBody body in world.Simulation.Bodies)
                 if (body.Bot)
-                    bots.Add(body);
-            foreach (SimulationBody body in bots)
-                world.Simulation.Leave(body);
-            lobby.Command(new LobbyCommand { Mode = MatchMode.Free, MinPlayers = 1, BotsOff = true, Start = true });
+                {
+                    world.Simulation.Leave(body);
+                    break;
+                }
+            lobby.Command(new LobbyCommand { Mode = MatchMode.Free, MinPlayers = 1, Start = true });
             Ticks(2);
-            Check(lobby.State.Phase == MatchPhase.Waiting, $"1, 2, 3, Free without bots and two people waits, Start or not ({lobby.State.Phase})");
+            Check(lobby.State.Phase == MatchPhase.Waiting, $"1, 2, 3, Free with four (two bots) waits, Start or not ({lobby.State.Phase})");
         }
     }
 }

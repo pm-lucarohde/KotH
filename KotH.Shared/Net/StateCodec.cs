@@ -118,7 +118,7 @@ namespace KotH.Shared.Net
             BinaryPrimitives.WriteSingleLittleEndian(to[41..], m.Rules.Spore);
             BinaryPrimitives.WriteSingleLittleEndian(to[45..], m.Rules.Dash);
             BinaryPrimitives.WriteSingleLittleEndian(to[49..], m.Rules.Knock);
-            to[53] = (byte)((m.ManualStart ? 1 : 0) | (m.Forced ? 2 : 0) | (m.BotsOff ? 4 : 0));
+            to[53] = (byte)((m.ManualStart ? 1 : 0) | (m.Forced ? 2 : 0));
         }
 
         static MatchState ReadMatch(ReadOnlySpan<byte> from, Func<int, SimulationBody> bodyOf)
@@ -149,7 +149,6 @@ namespace KotH.Shared.Net
                 },
                 ManualStart = (from[53] & 1) != 0,
                 Forced = (from[53] & 2) != 0,
-                BotsOff = (from[53] & 4) != 0,
             };
         }
 

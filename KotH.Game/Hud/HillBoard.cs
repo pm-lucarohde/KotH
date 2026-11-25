@@ -274,8 +274,8 @@ namespace KotH.Client.Hud
 
             if (m.Phase == MatchPhase.Waiting)
             {
-                // People only (bots do not count); the host starting by hand, or 1, 2, 3, Free short of five without bots.
-                bool shortOfFive = m.Mode == MatchMode.Free && m.BotsOff && HillMatch.CountPlayers(Simulation.Bodies) < HillMatch.FreeMinPlayers;
+                // People only (bots do not count); the host starting by hand, or 1, 2, 3, Free short of five (bots count there).
+                bool shortOfFive = m.Mode == MatchMode.Free && HillMatch.CountPlayers(Simulation.Bodies) < HillMatch.FreeMinPlayers;
                 caption = shortOfFive ? FreeNeedsFive
                         : m.ManualStart ? "The host starts the round"
                         : Match.Mode == MatchMode.Solo ? "Waiting for players" : waitingCaption.Of(HillMatch.DisplayName(Match.Mode), ": waiting for players");

@@ -140,7 +140,7 @@ namespace KotH.Client.Net
 
         /// <summary>The host's lobby settings as the round's command.</summary>
         public static LobbyCommand LobbyOf(LaunchOptions o, bool start)
-            => new LobbyCommand { Mode = o.Mode, MinPlayers = o.MinPlayers, ManualStart = o.ManualStart, BotsOff = o.BotsOff, Start = start };
+            => new LobbyCommand { Mode = o.Mode, MinPlayers = o.MinPlayers, ManualStart = o.ManualStart, Start = start };
 
         /// <summary>The host changed its lobby (Esc, Round; LaunchOptions.Current): the mode, its room and the list's
         /// word for it now, bots come or go, then every peer gets the settings in a confirmed tick; start counts down.</summary>
@@ -263,9 +263,6 @@ namespace KotH.Client.Net
             if (MakeBots == null)
                 return;
             for (int k = (size - count % size) % size; k > 0 && count < Host.Capacity; k--, count++)
-                Host.AddBot($"Bot {Host.BotIds.Count + 1}");
-            // 1, 2, 3, Free needs five: with bots on they make up the rest (people alone start only with five).
-            for (; m.Mode == MatchMode.Free && !m.BotsOff && count < HillMatch.FreeMinPlayers; count++)
                 Host.AddBot($"Bot {Host.BotIds.Count + 1}");
         }
 
