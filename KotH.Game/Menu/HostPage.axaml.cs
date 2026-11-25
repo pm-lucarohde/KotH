@@ -32,8 +32,8 @@ namespace KotH.Client.Menu
             password.TextChanged += _ => Refresh();
             rows.Add(new FieldRow("Name", name));
             rows.Add(new ChoiceRow<MatchMode>("Mode", _ => new[] { MatchMode.Solo, MatchMode.Duo, MatchMode.Trio, MatchMode.Squad, MatchMode.Mighty, MatchMode.Free },
-                                              s => s.HostMode, (s, v) => s.HostMode = v, HillMatch.DisplayName,
-                                              "teams of 2, 3 or 4 chained; Mighty & High; 1, 2, 3, Free: catch or get free"));
+                                              s => s.HostMode, (s, v) => s.HostMode = v, HillMatch.DisplayName)
+                     { NoteOf = HillMatch.ModeNote });
             rows.Add(new ChoiceRow<bool>("Access", _ => new[] { false, true }, s => s.HostPrivate, (s, v) => s.HostPrivate = v,
                                          v => v ? "Private" : "Public"));
             rows.Add(new FieldRow("Password", password, "private only") { Locked = s => s.HostPrivate ? null : "" });

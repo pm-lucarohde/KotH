@@ -211,6 +211,13 @@ namespace KotH.Shared.Match
             MatchMode.Mighty => "Mighty & High", MatchMode.Free => "1, 2, 3, Free", _ => "Solo",
         };
 
+        /// <summary>A short line on what the mode is, for the menus.</summary>
+        public static string ModeNote(MatchMode mode) => mode switch
+        {
+            MatchMode.Duo => "teams of 2, chained", MatchMode.Trio => "teams of 3, chained", MatchMode.Squad => "teams of 4, chained",
+            MatchMode.Mighty => "jump ×1.5, knockback ×3", MatchMode.Free => "catch or get free", _ => "everyone for themselves",
+        };
+
         /// <summary>A mode from its word (any case), null for none.</summary>
         public static MatchMode? ParseMode(string word) => word?.ToLowerInvariant() switch
         {

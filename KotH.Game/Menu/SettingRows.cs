@@ -25,13 +25,21 @@ namespace KotH.Client.Menu
 
         protected TextBlock Name { get; }
 
+        /// <summary>The hint beside the name, cut short before the control (it ran under the arrows).</summary>
+        protected TextBlock Note { get; }
+
         protected SettingRow(string name, string note)
         {
-            Name = new TextBlock { Classes = { "Label" }, Text = name };
-            var left = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, VerticalAlignment = VerticalAlignment.Center };
+            Name = new TextBlock { Classes = { "Label" }, Text = name, VerticalAlignment = VerticalAlignment.Center };
+            Note = new TextBlock
+            {
+                Classes = { "Hint" }, Text = note, IsVisible = note != null, VerticalAlignment = VerticalAlignment.Center,
+                TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(12, 0, 16, 0),
+            };
+            var left = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), VerticalAlignment = VerticalAlignment.Center };
             left.Children.Add(Name);
-            if (note != null)
-                left.Children.Add(new TextBlock { Classes = { "Hint" }, Text = note, VerticalAlignment = VerticalAlignment.Center });
+            Grid.SetColumn(Note, 1);
+            left.Children.Add(Note);
             Grid line = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Height = 60 };
             line.Children.Add(left);
             View = line;
@@ -130,6 +138,9 @@ namespace KotH.Client.Menu
         readonly Action<PlayerSettings, T> set;
         readonly Func<T, string> text;
 
+        /// <summary>A hint that follows the choice (the mode's), else null.</summary>
+        public Func<T, string> NoteOf { get; init; }
+
         public ChoiceRow(string name, Func<PlayerSettings, IReadOnlyList<T>> values, Func<PlayerSettings, T> get, Action<PlayerSettings, T> set,
                          Func<T, string> text, string note = null) : base(name, note)
         {
@@ -166,7 +177,15 @@ namespace KotH.Client.Menu
             return -1;
         }
 
-        protected override void Fill(PlayerSettings s, string reason) => value.Text = reason ?? text(get(s));
+        protected override void Fill(PlayerSettings s, string reason)
+        {
+            value.Text = reason ?? text(get(s));
+            if (NoteOf != null)
+            {
+                Note.Text = NoteOf(get(s));
+                Note.IsVisible = Note.Text != null;
+            }
+        }
     }
 
     /// <summary>On or off.</summary>
