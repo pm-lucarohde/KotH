@@ -42,6 +42,8 @@ namespace KotH.Probes.Probes
                 return Reaches(Reach);
             if (Climb > 0)
                 return Climbs(Climb);
+            if (Rounds > 0)
+                return RoundsRun(Rounds);
             if (Lab > 0)
                 return Labs(Lab);
             if (Stats > 0)

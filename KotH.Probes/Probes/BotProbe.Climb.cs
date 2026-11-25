@@ -224,6 +224,9 @@ namespace KotH.Probes.Probes
             long started = Stopwatch.GetTimestamp();
             BotDirector director = BotDirector.Create(world.Builder, world.Simulation, states, seed);
             double buildMs = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+            // KOTH_CLIMB_PEACE=1: no fights (engage and blaster range all but 0), the climb alone.
+            if (Environment.GetEnvironmentVariable("KOTH_CLIMB_PEACE") != null)
+                (director.Settings.EngageRange, director.Settings.BlasterRange) = (0.01f, 0f);
 
             var bots = new List<BotBody>();
             for (int i = 0; i < (teamSize > 1 ? 2 * teamSize : 3); i++)

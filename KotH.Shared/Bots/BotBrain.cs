@@ -17,7 +17,7 @@ namespace KotH.Shared.Bots
     /// tick in tick order, and keeps everything else to itself: the intent, the path, the
     /// maneuver plan and its xorshift. Called with the same states it always answers the
     /// same, which is all the netcode needs.</summary>
-    public sealed class BotBrain
+    public sealed partial class BotBrain
     {
         const float Dt = SimulationSystem.TickSeconds;
 
@@ -120,6 +120,7 @@ namespace KotH.Shared.Bots
             this.netId = netId;
             this.route = (route % 1024 + 1024) % 1024;
             rng = seed;
+            missRng = seed ^ 0x9E3779B9u | 1u;
             this.nav = nav;
             this.settings = settings;
             this.match = match;
@@ -188,11 +189,13 @@ namespace KotH.Shared.Bots
             }
             lastSeen = me.Motor.Position;
             seenFell = me.Motor.FellOff;
+            Drift(u);
             shotsLeft = ShotsLeft(u, me);
             if (!started)
             {
                 started = true;
-                yaw = UMath.YawOf(me.Motor.Rotation);
+                yaw = lastWantYaw = UMath.YawOf(me.Motor.Rotation);
+                yawRate = pitchRate = 0f;
                 nextThink = u;
                 bestTick = u;
             }
@@ -288,8 +291,6 @@ namespace KotH.Shared.Bots
         // How far from a target a bot likes to stand, inside the reach.
         const float Spacing = 2.3f;
 
-        // Share of the remaining angle turned per tick.
-        const float Ease = 0.3f;
 
         // A body's centre as seen, carried forward like the own; false when it is not in the view.
         static bool Seen(WorldSnapshot view, int id, float ahead, out Vector3 at)
@@ -800,7 +801,10 @@ namespace KotH.Shared.Bots
             {
                 flight = LinkKind.None;
                 hopping = false;
-                return new MoveInput { Yaw = yaw + 90f * ((jamTicks - 40) / 20), Pitch = pitch, Move = new Vector2(0f, 1f) };
+                if (jamTicks == 41)
+                    jamYaw = yaw;
+                Look(u, jamYaw + 90f * ((jamTicks - 40) / 20), pitch, settings.TurnRate * 2f);
+                return new MoveInput { Yaw = yaw, Pitch = pitch, Move = new Vector2(0f, 1f) };
             }
             JumpPilot.Body b = Predict(u, me.Motor);
             var feet = new Vector3(b.X, b.Y, b.Z);
@@ -911,7 +915,7 @@ namespace KotH.Shared.Bots
         MoveInput Passing(int u, WorldSnapshot view, int self, in BodyState me, MatchPhase phase, MoveInput input)
         {
             if (!farBelow || ladderRoute.Count > 0 || phase != MatchPhase.Running || input.JumpPresses > 0 || u < lastStrike + fists.CooldownTicks ||
-                !CaneReady(u))
+                !CaneReady(u) || Hopping && u >= glanceUntil)
                 return input;
             Vector3 eye = Ahead(me.Motor.EyePosition, me.Motor.Velocity, Reaction * Dt);
             float best = fists.Range - 0.2f;
@@ -935,11 +939,17 @@ namespace KotH.Shared.Bots
             }
             if (pick < 0)
                 return input;
+            // A glance: the hand turns there (Look), the swing once the view is on it, then back to the way.
             float flatAim = UMath.Sqrt(aim.X * aim.X + aim.Z * aim.Z);
-            input.Yaw = UMath.Atan2(-aim.X, -aim.Z) * (180f / MathF.PI) + BotRandom.Signed(ref rng, settings.AimError);
-            input.Pitch = UMath.Clamp(UMath.Atan2(aim.Y, flatAim) * (180f / MathF.PI) + BotRandom.Signed(ref rng, settings.AimError), -89f, 89f);
-            input.AttackPresses = 1;
-            lastStrike = u;
+            glanceYaw = UMath.Atan2(-aim.X, -aim.Z) * (180f / MathF.PI) + missYaw * settings.AimError;
+            glancePitch = UMath.Clamp(UMath.Atan2(aim.Y, flatAim) * (180f / MathF.PI) + missPitch * settings.AimError, -60f, 60f);
+            glanceUntil = u + 10;
+            if (UMath.Abs(MathF.IEEERemainder(glanceYaw - yaw, 360f)) < 12f && UMath.Abs(glancePitch - pitch) < 20f)
+            {
+                input.AttackPresses = 1;
+                lastStrike = u;
+                glanceUntil = u + 4;
+            }
             return input;
         }
 
@@ -952,22 +962,24 @@ namespace KotH.Shared.Bots
             Look(u, wantYaw, UMath.Clamp(wantPitch, -35f, 35f), settings.TurnRate);
         }
 
-        // How fast the hand takes up a new turn rate, per tick.
-        const float Grip = 0.6f;
-
-        /// <summary>The view as a hand moves a mouse: it speeds up into a turn, slows
-        /// into the target, overshoots a little and never rests perfectly still (a slow
-        /// wander of a degree or two). At most maxRate a tick.</summary>
-        void Look(int u, float wantYaw, float wantPitch, float maxRate)
+        /// <summary>The view as a hand moves a mouse (BotBrain.Aim): speeds up into a turn, slows into the
+        /// target, follows a moving one and never rests perfectly still (a slow wander of a degree or two, less
+        /// while aiming). At most maxRate a tick; a glance at someone in passing goes first.</summary>
+        void Look(int u, float wantYaw, float wantPitch, float maxRate, float wander = 1f)
         {
+            if (u < glanceUntil && ladderRoute.Count == 0)
+                (wantYaw, wantPitch, wander) = (glanceYaw, glancePitch, 0.3f);
             double t = u * Dt, phase = netId * 1.618;
-            float wanderYaw = (float)(1.2 * DetMath.Sin(t * 0.9 + phase) + 0.6 * DetMath.Sin(t * 2.3 + phase * 1.7));
-            float wanderPitch = (float)(1.0 * DetMath.Sin(t * 0.7 + phase * 2.1) + 0.5 * DetMath.Sin(t * 1.9 + phase * 0.6));
-            float turn = MathF.IEEERemainder(wantYaw + wanderYaw - yaw, 360f);
-            yawRate += (UMath.Clamp(turn * Ease, -maxRate, maxRate) - yawRate) * Grip;
+            float wanderYaw = wander * (float)(1.2 * DetMath.Sin(t * 0.9 + phase) + 0.6 * DetMath.Sin(t * 2.3 + phase * 1.7));
+            float wanderPitch = wander * (float)(1.0 * DetMath.Sin(t * 0.7 + phase * 2.1) + 0.5 * DetMath.Sin(t * 1.9 + phase * 0.6));
+            float accel = HandAccel * maxRate / UMath.Max(1f, settings.TurnRate);
+            float follow = MathF.IEEERemainder(wantYaw - lastWantYaw, 360f);
+            lastWantYaw = wantYaw;
+            yawRate = Hand(yawRate, MathF.IEEERemainder(wantYaw + wanderYaw - yaw, 360f), follow, maxRate, accel);
             yaw = MathF.IEEERemainder(yaw + yawRate, 360f);
-            float nod = UMath.Clamp(wantPitch + wanderPitch, -60f, 60f) - pitch;
-            pitchRate += (UMath.Clamp(nod * Ease, -maxRate, maxRate) - pitchRate) * Grip;
+            float nodFollow = wantPitch - lastWantPitch;
+            lastWantPitch = wantPitch;
+            pitchRate = Hand(pitchRate, UMath.Clamp(wantPitch + wanderPitch, -60f, 60f) - pitch, nodFollow, maxRate, accel);
             pitch += pitchRate;
         }
 
@@ -1361,11 +1373,13 @@ namespace KotH.Shared.Bots
             bool arrived = distance < 0.4f && Flat(feet, goal) < 0.6f;
             float moveYaw = distance > 1e-3f ? UMath.Atan2(-way.X, -way.Z) * (180f / MathF.PI) : yaw;
 
-            // Facing: the target when it is close, else the way.
+            // Facing: the target when it is close (with the blaster its lead), missed by the hand's own drift;
+            // else the way, the eyes a little down on it.
             int ti = target != 0 ? IndexOf(view, target) : -1;
             float faceYaw = moveYaw;
-            float wantPitch = 0f;
+            float wantPitch = WalkPitch;
             float targetDistance = float.MaxValue;
+            bool aiming = false;
             if (ti >= 0)
             {
                 BodyState t = view.StateAt(ti);
@@ -1375,17 +1389,17 @@ namespace KotH.Shared.Bots
                 targetDistance = UMath.Sqrt(d.X * d.X + d.Z * d.Z);
                 if (targetDistance < 6f || intent == BotIntent.Attack && (arrived || holdBlaster))
                 {
-                    faceYaw = UMath.Atan2(-d.X, -d.Z) * (180f / MathF.PI);
-                    wantPitch = UMath.Atan2(d.Y, targetDistance) * (180f / MathF.PI);
+                    Vector3 aim = holdBlaster ? Lead(eye, centre, t.Motor.Velocity) : d;
+                    float miss = holdBlaster ? settings.BlasterAimError : settings.AimError;
+                    faceYaw = UMath.Atan2(-aim.X, -aim.Z) * (180f / MathF.PI) + missYaw * miss;
+                    wantPitch = UMath.Atan2(aim.Y, UMath.Sqrt(aim.X * aim.X + aim.Z * aim.Z)) * (180f / MathF.PI) + missPitch * miss;
+                    aiming = true;
                 }
             }
             else if (arrived && intent == BotIntent.Idle)
                 faceYaw = yaw;
 
-            // A hand on a mouse: fast across a wide angle, slowing down into it.
-            float turn = MathF.IEEERemainder(faceYaw - yaw, 360f);
-            yaw = MathF.IEEERemainder(yaw + UMath.Clamp(turn * Ease, -settings.TurnRate, settings.TurnRate), 360f);
-            pitch += UMath.Clamp((UMath.Clamp(wantPitch, -60f, 60f) - pitch) * Ease, -settings.TurnRate, settings.TurnRate);
+            Look(u, faceYaw, wantPitch, settings.TurnRate, aiming ? 0.25f : 1f);
             input.Yaw = yaw;
             input.Pitch = pitch;
 
@@ -1483,10 +1497,9 @@ namespace KotH.Shared.Bots
             bool live = match == null || view.Match.Phase == MatchPhase.Running;
             bool slam = live && ti >= 0 && intent == BotIntent.Attack && Slam(u, view, me, ti, airborne, ref input);
             if (!slam && m == Maneuver.Strike && live && ti >= 0 && targetDistance < fists.Range - 0.2f &&
-                u >= lastStrike + fists.CooldownTicks && CaneReady(u))
+                u >= lastStrike + fists.CooldownTicks && CaneReady(u) && aiming &&
+                UMath.Abs(MathF.IEEERemainder(faceYaw - yaw, 360f)) < StrikeCone)
             {
-                input.Yaw = yaw + BotRandom.Signed(ref rng, settings.AimError);
-                input.Pitch = UMath.Clamp(pitch + BotRandom.Signed(ref rng, settings.AimError), -89f, 89f);
                 input.AttackPresses = 1;
                 lastStrike = u;
             }
@@ -1578,13 +1591,12 @@ namespace KotH.Shared.Bots
             if (UMath.Magnitude(aim) > settings.BlasterRange || !nav.InSight(eye, centre))
                 return;
 
+            // Fired once the hand is on the lead and its drift (Steer aims there): the drift is the miss.
             float flat = UMath.Sqrt(aim.X * aim.X + aim.Z * aim.Z);
-            float wantYaw = UMath.Atan2(-aim.X, -aim.Z) * (180f / MathF.PI);
-            if (UMath.Abs(MathF.IEEERemainder(wantYaw - yaw, 360f)) > 12f)
+            float wantYaw = UMath.Atan2(-aim.X, -aim.Z) * (180f / MathF.PI) + missYaw * settings.BlasterAimError;
+            float wantPitch = UMath.Atan2(aim.Y, flat) * (180f / MathF.PI) + missPitch * settings.BlasterAimError;
+            if (UMath.Abs(MathF.IEEERemainder(wantYaw - yaw, 360f)) > ShotCone || UMath.Abs(wantPitch - pitch) > ShotCone)
                 return;
-            input.Yaw = wantYaw + BotRandom.Signed(ref rng, settings.BlasterAimError);
-            input.Pitch = UMath.Clamp(UMath.Atan2(aim.Y, flat) * (180f / MathF.PI) +
-                                      BotRandom.Signed(ref rng, settings.BlasterAimError), -89f, 89f);
             input.AttackPresses = 1;
             lastShot = u;
         }

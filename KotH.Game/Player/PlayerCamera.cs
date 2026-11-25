@@ -99,7 +99,7 @@ namespace KotH.Client.Player
             float aspect = (float)backBuffer.Width / backBuffer.Height;
             SimulationBody watched = Watch();
             Vector3 eye = ViewMath.Eye(watched?.Motor ?? Motor, TickInterpolation.Alpha);
-            float yaw = Reader.Yaw, pitch = Reader.Pitch;
+            (float yaw, float pitch) = Reader.ViewAt(TickInterpolation.Alpha);
             if (ViewTurn != Vector2.Zero)
                 (yaw, pitch) = (yaw + ViewTurn.X, UMath.Clamp(pitch + ViewTurn.Y, -85f, 85f));
             Quaternion rotation = UMath.Euler(pitch, yaw);

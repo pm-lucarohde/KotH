@@ -44,7 +44,7 @@ dotnet run Tools/Regress.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # nu
 ```
 - Deviations and intended changes: `Reference/REGRESSION.md`. Regression only if the measuring path is touched; bots
   ≥ 100 runs; runs ≤ 15 min. `.work/` holds tools and measurements (`/tmp` is volatile).
-- Bot traces: `KOTH_BOTTRACE=tick` (`_BOT=n`), `KOTH_HOPLOG=n`, `KOTH_BOTPATH=file`, `KOTH_CLIMB_FIRST=k`, `KOTH_CLIMB_TEAM=2|3|4` (+`KOTH_CLIMB_SECONDS=1200`).
+- Bot traces: `KOTH_BOTTRACE=tick` (`_BOT=n`), `KOTH_HOPLOG=n`, `KOTH_BOTPATH=file`, `KOTH_CLIMB_FIRST=k`, `KOTH_CLIMB_TEAM=2|3|4` (+`KOTH_CLIMB_SECONDS=1200`), `_PEACE=1`; `bots rounds N` (`KOTH_ROUNDS_MAP`, `_MODE`, `_BOTS`: balance, natural view and keys).
 
 ## Architecture
 

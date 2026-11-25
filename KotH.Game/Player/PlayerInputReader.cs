@@ -75,6 +75,16 @@ namespace KotH.Client.Player
         /// view follows it (a bot flying the own figure in measured rounds).</summary>
         [DataMemberIgnore] public System.Func<MoveInput?> Pilot { get; set; }
 
+        // The pilot's look one tick before, so the view blends between ticks as the figure does.
+        float pilotYaw, pilotPitch;
+        bool piloted;
+
+        /// <summary>The view the camera shows: the mouse's, or with a pilot its look blended over the
+        /// last tick (it changes only 40 times a second); alpha as TickInterpolation.Alpha.</summary>
+        public (float Yaw, float Pitch) ViewAt(float alpha)
+            => piloted ? (pilotYaw + System.MathF.IEEERemainder(yaw - pilotYaw, 360f) * alpha, pilotPitch + (pitch - pilotPitch) * alpha)
+                       : (yaw, pitch);
+
         /// <summary>Keys held from now on, as a test aid: animations seen in a screenshot run.</summary>
         public void Hold(Vector2 keys, bool sprint)
         {
@@ -221,15 +231,18 @@ namespace KotH.Client.Player
                 yaw = bodyYaw = PlacedYaw;
                 pitch = 0f;
             }
-            if (Pilot?.Invoke() is { } piloted)
+            if (Pilot?.Invoke() is { } flown)
             {
-                yaw = bodyYaw = piloted.Yaw;
-                pitch = piloted.Pitch;
-                blaster = piloted.Blaster;
+                (pilotYaw, pilotPitch) = piloted ? (yaw, pitch) : (flown.Yaw, flown.Pitch);
+                piloted = true;
+                yaw = bodyYaw = flown.Yaw;
+                pitch = flown.Pitch;
+                blaster = flown.Blaster;
                 jumpPresses = attackPresses = 0;
                 crouchPressed = false;
-                return piloted;
+                return flown;
             }
+            piloted = false;
             Vector2 wish = move;
             sentPitch = pitch;
             if (!thirdPerson)
