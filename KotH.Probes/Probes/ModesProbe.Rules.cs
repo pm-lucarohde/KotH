@@ -104,6 +104,20 @@ namespace KotH.Probes.Probes
             lobby.Command(new LobbyCommand { Mode = MatchMode.Free, MinPlayers = 1, Start = true });
             Ticks(2);
             Check(lobby.State.Phase == MatchPhase.Waiting, $"1, 2, 3, Free with four (two bots) waits, Start or not ({lobby.State.Phase})");
+
+            // Every other mode needs two (Luca): one alone waits, Start or not.
+            world = new HeadlessWorld();
+            world.LoadArena(Maps.Test);
+            HillMatch alone = world.StartMatch();
+            alone.Stage = MatchStage.Lobby;
+            alone.MinPlayers = 1;
+            Spawn("Alone", new Vector3(-2f, 0.9f, 5f), NetWorld.FirstPlayerId);
+            alone.Command(new LobbyCommand { Mode = MatchMode.Solo, MinPlayers = 1, Start = true });
+            Ticks(2);
+            Check(alone.State.Phase == MatchPhase.Waiting, $"solo alone waits, Start or not ({alone.State.Phase})");
+            Spawn("Bot", new Vector3(2f, 0.9f, 5f), NetWorld.FirstPlayerId + 1).Bot = true;
+            Ticks(2);
+            Check(alone.State.Phase == MatchPhase.Countdown, $"with a bot, two: Start counts down ({alone.State.Phase})");
         }
     }
 }

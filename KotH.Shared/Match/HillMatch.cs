@@ -297,11 +297,14 @@ namespace KotH.Shared.Match
             return people;
         }
 
+        /// <summary>The fewest a round of the mode starts with, people and bots: 5 in 1, 2, 3, Free, else 2 (Luca).</summary>
+        public static int FewestOf(MatchMode mode) => mode == MatchMode.Free ? FreeMinPlayers : 2;
+
         /// <summary>Whether the lobby counts down: Start pressed, or enough people while it starts by count;
-        /// 1, 2, 3, Free never with fewer than 5 in the lobby, people and bots (Luca: me and 4 bots).</summary>
+        /// never with fewer in the lobby than the mode's fewest (FewestOf), people and bots together.</summary>
         public bool Starts(IReadOnlyList<SimulationBody> bodies)
         {
-            if (state.Mode == MatchMode.Free && CountPlayers(bodies) < FreeMinPlayers)
+            if (CountPlayers(bodies) < FewestOf(state.Mode))
                 return false;
             return state.Forced || !state.ManualStart && CountPeople(bodies) >= state.MinPlayers;
         }

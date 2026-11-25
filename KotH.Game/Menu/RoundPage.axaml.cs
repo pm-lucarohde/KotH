@@ -70,11 +70,11 @@ namespace KotH.Client.Menu
             Refresh();
         }
 
-        /// <summary>Why the round cannot start now, else null: 1, 2, 3, Free needs five, people and the bots chosen
-        /// (counted as chosen: the lobby's bodies follow a few ticks later).</summary>
+        /// <summary>Why the round cannot start now, else null: fewer than the mode's fewest (5 in 1, 2, 3, Free, else 2),
+        /// people and the bots chosen (counted as chosen: the lobby's bodies follow a few ticks later).</summary>
         public string Problem
-            => edited.HostMode == MatchMode.Free && Count().People + (edited.HostBots ? edited.HostBotCount : 0) < HillMatch.FreeMinPlayers
-               ? $"1, 2, 3, Free needs {HillMatch.FreeMinPlayers} players: add bots or wait for more people."
+            => Count().People + (edited.HostBots ? edited.HostBotCount : 0) is var n && n < HillMatch.FewestOf(edited.HostMode)
+               ? $"{HillMatch.DisplayName(edited.HostMode)} needs {HillMatch.FewestOf(edited.HostMode)} players: add bots or wait for more people."
                : null;
 
         void Refresh()
