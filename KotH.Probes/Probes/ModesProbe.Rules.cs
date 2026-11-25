@@ -11,8 +11,8 @@ using Stride.Core.Mathematics;
 namespace KotH.Probes.Probes
 {
     /// <summary>"rules": the host's lobby settings (Luca, 25.11.2026). The start damage, the percent each attack adds,
-    /// the knockback factor; the lobby counting people only, starting by hand, Start pressed, and 1, 2, 3, Free
-    /// waiting for five, people and bots.</summary>
+    /// the knockback factor; the lobby starting when full (bots count), by hand, Start pressed, and the fewest
+    /// a mode needs (five in 1, 2, 3, Free, else two).</summary>
     public sealed partial class ModesProbe
     {
         int RunRules(HeadlessWorld host)
@@ -67,17 +67,17 @@ namespace KotH.Probes.Probes
             world.LoadArena(Maps.Test);
             HillMatch lobby = world.StartMatch();
             lobby.Stage = MatchStage.Lobby;
-            lobby.MinPlayers = 2;
+            lobby.MinPlayers = 5;   // the host's most: a full lobby starts
             Spawn("Host", new Vector3(-2f, 0.9f, 5f), NetWorld.FirstPlayerId);
             for (int i = 0; i < 3; i++)
                 Spawn($"Bot {i + 1}", new Vector3(2f + 3f * i, 0.9f, 5f), NetWorld.FirstPlayerId + 1 + i).Bot = true;
             Ticks(2);
-            Check(lobby.State.Phase == MatchPhase.Waiting, $"one person and three bots wait for two people ({lobby.State.Phase})");
+            Check(lobby.State.Phase == MatchPhase.Waiting, $"one person and three bots wait for a full lobby of five ({lobby.State.Phase})");
             Spawn("Guest", new Vector3(-5f, 0.9f, 5f), NetWorld.FirstPlayerId + 4);
             Ticks(2);
-            Check(lobby.State.Phase == MatchPhase.Countdown, $"two people count down ({lobby.State.Phase})");
+            Check(lobby.State.Phase == MatchPhase.Countdown, $"full, bots counted: counts down ({lobby.State.Phase})");
 
-            var c = new LobbyCommand { Mode = MatchMode.Solo, MinPlayers = 2, ManualStart = true };
+            var c = new LobbyCommand { Mode = MatchMode.Solo, MinPlayers = 5, ManualStart = true };
             lobby.Command(c);
             Ticks(2);
             Check(lobby.State.Phase == MatchPhase.Waiting, $"auto start off: back to waiting ({lobby.State.Phase})");

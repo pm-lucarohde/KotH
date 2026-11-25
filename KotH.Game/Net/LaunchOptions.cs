@@ -22,7 +22,8 @@ namespace KotH.Client.Net
         public bool Offline;
         public int Port = LiteNetTransport.DefaultPort;
         public string Name;
-        public int MinPlayers = HillMatch.DefaultMinPlayers;
+        /// <summary>--min-players: start at this many, people and bots; 0 (the default) at a full lobby (StartAt).</summary>
+        public int MinPlayers;
 
         /// <summary>Solo or teams (--mode duo|trio|squad, the Host server page); a guest plays the host's.</summary>
         public MatchMode Mode;
@@ -30,6 +31,15 @@ namespace KotH.Client.Net
         /// <summary>The host's lobby (Esc menu, Round): start only by hand, no bots; the next round's values.</summary>
         public bool ManualStart, BotsOff;
         public RoundRules Rules;
+
+        /// <summary>The most on the host's server (Host page, Round), 0 for the mode's most.</summary>
+        public int MaxPlayers;
+
+        /// <summary>The room the host gives its mode: MaxPlayers, cut to what the mode takes.</summary>
+        public int Room => MaxPlayers > 0 ? Math.Min(MaxPlayers, HillMatch.MaxPlayers(Mode)) : HillMatch.MaxPlayers(Mode);
+
+        /// <summary>How many the lobby starts with by itself: --min-players, else a full lobby (Luca).</summary>
+        public int StartAt => MinPlayers > 0 ? MinPlayers : Room;
         public int? Display;
         public int Bots = 3;
         public int BotSeed = 1;

@@ -274,12 +274,12 @@ namespace KotH.Client.Hud
 
             if (m.Phase == MatchPhase.Waiting)
             {
-                // People only (bots do not count); the host starting by hand, or short of the mode's fewest (bots count there).
+                // People and bots against the full lobby; the host starting by hand, or short of the mode's fewest.
                 bool tooFew = HillMatch.CountPlayers(Simulation.Bodies) < HillMatch.FewestOf(m.Mode);
                 caption = tooFew ? needsText.Of(HillMatch.DisplayName(m.Mode), m.Mode == MatchMode.Free ? FreeNeeds : TwoNeeded)
                         : m.ManualStart ? "The host starts the round"
                         : Match.Mode == MatchMode.Solo ? "Waiting for players" : waitingCaption.Of(HillMatch.DisplayName(Match.Mode), ": waiting for players");
-                count = m.ManualStart || tooFew ? "" : countText.Of(CountFormat, HillMatch.CountPeople(Simulation.Bodies), m.MinPlayers);
+                count = m.ManualStart || tooFew ? "" : countText.Of(CountFormat, HillMatch.CountPlayers(Simulation.Bodies), m.MinPlayers);
                 time = statusText = "";
             }
             else if (m.Phase == MatchPhase.Countdown)

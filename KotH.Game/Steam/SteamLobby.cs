@@ -9,7 +9,8 @@ namespace KotH.Client.Steam
 {
     /// <summary>A round open on Steam, as the lobby list shows it; PingMs -1 when unknown.</summary>
     public readonly record struct LobbyListing(ulong Id, string Host, string Map, int Players, int PingMs,
-                                               bool Private, string[] Regions, string[] Languages, bool Modded, MatchMode Mode = MatchMode.Solo);
+                                               bool Private, string[] Regions, string[] Languages, bool Modded, MatchMode Mode = MatchMode.Solo,
+                                               int Max = 0);
 
     /// <summary>A KotH round as a Steam lobby: the host opens one (Open) with its name, map, build, player
     /// count, flags and ping location as lobby data, others find it (Search) and enter it (Enter); the
@@ -76,6 +77,7 @@ namespace KotH.Client.Steam
             var lobby = new SteamLobby(hosting: true) { HostName = host, Private = flags.Private };
             lobby.map = map;
             lobby.mode = flags.Mode;
+            lobby.max = flags.Max;
             const int Public = 2;   // k_ELobbyTypePublic
             // Room for the largest mode: the host may change it in the lobby, its own capacity turns joins away.
             Create(lobby, Public, HillMatch.FreeMaxPlayers, () =>
@@ -91,6 +93,8 @@ namespace KotH.Client.Steam
                     lobby.Set("lang_" + language, "1");
                 lobby.Set("modded", flags.Modded ? "1" : "0");
                 lobby.Set("mode", HillMatch.ModeName(lobby.mode));
+                if (lobby.max > 0)
+                    lobby.Set("max", lobby.max.ToString(CultureInfo.InvariantCulture));
                 lobby.Set("host", SteamClient.SteamId.ToString(CultureInfo.InvariantCulture));
                 lobby.Refresh(force: true);
                 if (lobby.players >= 0)
@@ -204,7 +208,8 @@ namespace KotH.Client.Steam
                     string[] regions = Marked(id, "region_", LobbyFlags.AllRegions), languages = Marked(id, "lang_", LobbyFlags.AllLanguages);
                     list.Add(new LobbyListing(id, Data(id, "name") ?? "?", Data(id, "maptitle") ?? Data(id, "map"), n, SteamClient.EstimatePing(Data(id, "ping")),
                                               Data(id, "access") == "private", regions, languages, Data(id, "modded") == "1",
-                                              HillMatch.ParseMode(Data(id, "mode")) ?? MatchMode.Solo));
+                                              HillMatch.ParseMode(Data(id, "mode")) ?? MatchMode.Solo,
+                                              int.TryParse(Data(id, "max"), NumberStyles.Integer, CultureInfo.InvariantCulture, out int most) ? most : 0));
                 }
                 list.Sort((a, b) => (a.PingMs < 0, b.PingMs < 0) switch
                 {
@@ -345,6 +350,20 @@ namespace KotH.Client.Steam
 
         string mapTitle;
         MatchMode mode;
+        int max;
+
+        /// <summary>The most players the host lets in (Host page, Round), for the list; 0 unknown.</summary>
+        public int Max => int.TryParse(Get("max"), NumberStyles.Integer, CultureInfo.InvariantCulture, out int m) ? m : max;
+
+        /// <summary>The host: the most it lets in now (Round, a mode change), for the list.</summary>
+        public void SetMax(int value)
+        {
+            if (value == max)
+                return;
+            max = value;
+            if (Id != 0)
+                Set("max", value.ToString(CultureInfo.InvariantCulture));
+        }
 
         /// <summary>The host changed the mode in the lobby (Esc, Round): the list shows the new one (Luca).</summary>
         public void SetMode(MatchMode value)

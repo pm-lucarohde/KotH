@@ -118,9 +118,14 @@ namespace KotH.Client.Menu
 
         double Real(double steps) => min + Math.Round(steps) * step;
 
+        /// <summary>A top that depends on other choices (the mode's most players), else the fixed one.</summary>
+        public Func<PlayerSettings, double> MaxOf { get; init; }
+
         protected override void Fill(PlayerSettings s, string reason)
         {
             filling = true;
+            if (MaxOf != null)
+                slider.Maximum = Math.Round((MaxOf(s) - min) / step);
             slider.Value = Math.Round((get(s) - min) / step);
             filling = false;
             value.Text = text(get(s));

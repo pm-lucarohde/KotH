@@ -49,7 +49,7 @@ namespace KotH.Client.Net
                     Console.WriteLine($"[net] invite: {Invite}");
                 }
                 Host = NewHost(Now);
-                Host.Capacity = HillMatch.MaxPlayers(options.Mode);
+                Host.Capacity = options.Room;
                 // A private round: only the key of its password is kept; invited friends need none.
                 Host.Password = options.Password != null ? PasswordKey.Make(options.Password) : null;
                 // The lobby's round goes to --map (Mount Destiny unless given); the host may choose another.
@@ -59,7 +59,7 @@ namespace KotH.Client.Net
                 if (round != null)
                 {
                     round.Stage = MatchStage.Lobby;
-                    round.MinPlayers = options.MinPlayers;
+                    round.MinPlayers = options.StartAt;
                     round.Command(LobbyOf(options, start: false));
                 }
                 address = lobby != null ? "Steam" : $"Port {options.Port}";
@@ -140,7 +140,7 @@ namespace KotH.Client.Net
 
         /// <summary>The host's lobby settings as the round's command.</summary>
         public static LobbyCommand LobbyOf(LaunchOptions o, bool start)
-            => new LobbyCommand { Mode = o.Mode, MinPlayers = o.MinPlayers, ManualStart = o.ManualStart, Start = start };
+            => new LobbyCommand { Mode = o.Mode, MinPlayers = o.StartAt, ManualStart = o.ManualStart, Start = start };
 
         /// <summary>The host changed its lobby (Esc, Round; LaunchOptions.Current): the mode, its room and the list's
         /// word for it now, bots come or go, then every peer gets the settings in a confirmed tick; start counts down.</summary>
@@ -149,8 +149,9 @@ namespace KotH.Client.Net
             if (Host == null || Host.Stage != MatchStage.Lobby || Host.Restarting)
                 return;
             LaunchOptions o = LaunchOptions.Current;
-            Host.Capacity = HillMatch.MaxPlayers(o.Mode);
+            Host.Capacity = o.Room;
             Lobby?.SetMode(o.Mode);
+            Lobby?.SetMax(o.Room);
             List<int> bots = Host.BotIds;
             int want = o.BotsOff ? 0 : o.Bots, players = HillMatch.CountPlayers(Session.Simulation.Bodies);
             for (int k = bots.Count - 1; k >= want; k--)

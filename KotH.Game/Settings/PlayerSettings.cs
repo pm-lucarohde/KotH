@@ -48,10 +48,21 @@ namespace KotH.Client.Settings
         public string[] HostLanguages = System.Array.Empty<string>();
 
         // The host's next round, from the lobby's Esc menu (Luca): start damage (< 0 the mode's own), percent
-        // per hit of cane, spore and dash, knockback factor, bots and how many, start by count from how many people.
+        // per hit of cane, spore and dash, knockback factor, bots and how many, auto start (at a full lobby).
         public float HostStartPercent = -1f, HostMelee = DefaultHitPercent, HostSpore = DefaultHitPercent, HostDash = DefaultHitPercent, HostKnock = 1f;
         public bool HostBots = true, HostAutoStart = true;
-        public int HostBotCount = 3, HostMinPlayers = KotH.Shared.Match.HillMatch.DefaultMinPlayers;
+        public int HostBotCount = 3;
+
+        /// <summary>The most on the host's server (Host page, Round), 0 for the mode's most (16 in 1, 2, 3, Free, else 12).
+        /// At the most it follows a mode change, an own number stays (Luca), cut to what the mode takes.</summary>
+        public int HostMaxPlayers;
+
+        public int MaxPlayersOf => HostMaxPlayers <= 0 ? KotH.Shared.Match.HillMatch.MaxPlayers(HostMode)
+            : Math.Clamp(HostMaxPlayers, KotH.Shared.Match.HillMatch.FewestOf(HostMode), KotH.Shared.Match.HillMatch.MaxPlayers(HostMode));
+
+        /// <summary>Sets the most from a slider: the mode's most is stored as 0, so it follows the mode.</summary>
+        public void ChooseMaxPlayers(int value)
+            => HostMaxPlayers = value >= KotH.Shared.Match.HillMatch.MaxPlayers(HostMode) ? 0 : value;
 
         /// <summary>Every attack's own percent per hit (the body prefab's), and the menu's ranges.</summary>
         public const float DefaultHitPercent = 1.2f, MaxHitPercent = 10f, MaxStartPercent = 150f, MinKnock = 0.25f, MaxKnock = 3f;

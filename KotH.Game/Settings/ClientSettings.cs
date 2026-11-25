@@ -20,7 +20,7 @@ namespace KotH.Client.Settings
         public static void RememberHost(PlayerSettings from)
         {
             PlayerSettings s = Applied;
-            (s.HostName, s.HostPrivate, s.HostModded, s.HostMode) = (from.HostName, from.HostPrivate, from.HostModded, from.HostMode);
+            (s.HostName, s.HostPrivate, s.HostModded, s.HostMode, s.HostMaxPlayers) = (from.HostName, from.HostPrivate, from.HostModded, from.HostMode, from.HostMaxPlayers);
             s.HostLanguages = (string[])from.HostLanguages.Clone();
             s.HostRegions = (string[])from.HostRegions.Clone();
             SettingsFile.Save(s);
@@ -32,7 +32,7 @@ namespace KotH.Client.Settings
             PlayerSettings s = Applied;
             (s.HostMode, s.HostStartPercent, s.HostMelee, s.HostSpore, s.HostDash, s.HostKnock) =
                 (from.HostMode, from.HostStartPercent, from.HostMelee, from.HostSpore, from.HostDash, from.HostKnock);
-            (s.HostBots, s.HostBotCount, s.HostAutoStart, s.HostMinPlayers) = (from.HostBots, from.HostBotCount, from.HostAutoStart, from.HostMinPlayers);
+            (s.HostBots, s.HostBotCount, s.HostAutoStart, s.HostMaxPlayers) = (from.HostBots, from.HostBotCount, from.HostAutoStart, from.HostMaxPlayers);
             SettingsFile.Save(s);
         }
 

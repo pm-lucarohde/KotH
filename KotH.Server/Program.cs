@@ -224,7 +224,7 @@ static void ReportMatch(SimulationSystem simulation, HillMatch match)
     MatchState m = match.State;
     int left = Math.Max(0, match.LimitTicks - m.RoundTicks) / 40;
     string zone = m.Over ? (m.Winner != null ? m.Winner.Entity.Name + " wins" : "draw")
-                : m.Phase == MatchPhase.Waiting ? $"waiting for players ({HillMatch.CountPeople(simulation.Bodies)} / {m.MinPlayers})"
+                : m.Phase == MatchPhase.Waiting ? $"waiting for players ({HillMatch.CountPlayers(simulation.Bodies)} / {m.MinPlayers})"
                 : m.Phase == MatchPhase.Countdown ? $"Start in {(m.PhaseTicks + 39) / 40} s"
                 : m.Holder != null ? m.Holder.Entity.Name + (m.Inside > 1 ? $" holds ({m.Inside} inside)" : " alone")
                 : m.Inside > 1 ? $"contested ({m.Inside})" : "free";

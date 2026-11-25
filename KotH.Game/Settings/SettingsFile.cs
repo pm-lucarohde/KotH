@@ -83,7 +83,7 @@ namespace KotH.Client.Settings
             Number(t, "start_percent", s.HostStartPercent); Number(t, "melee_percent", s.HostMelee);
             Number(t, "spore_percent", s.HostSpore); Number(t, "dash_percent", s.HostDash); Number(t, "knockback", s.HostKnock);
             Flag(t, "bots", s.HostBots); Number(t, "bot_count", s.HostBotCount);
-            Flag(t, "auto_start", s.HostAutoStart); Number(t, "min_players", s.HostMinPlayers);
+            Flag(t, "auto_start", s.HostAutoStart); Number(t, "max_players", s.HostMaxPlayers);
             return t.ToString();
         }
 
@@ -177,7 +177,7 @@ namespace KotH.Client.Settings
                 case ("host", "bots"): s.HostBots = Bool(v, s.HostBots); break;
                 case ("host", "bot_count"): s.HostBotCount = Math.Clamp(Int(v, s.HostBotCount), 1, KotH.Shared.Match.HillMatch.FreeMaxPlayers - 1); break;
                 case ("host", "auto_start"): s.HostAutoStart = Bool(v, s.HostAutoStart); break;
-                case ("host", "min_players"): s.HostMinPlayers = Math.Clamp(Int(v, s.HostMinPlayers), 1, KotH.Shared.Match.HillMatch.FreeMaxPlayers); break;
+                case ("host", "max_players"): s.HostMaxPlayers = Math.Clamp(Int(v, s.HostMaxPlayers), 0, KotH.Shared.Match.HillMatch.FreeMaxPlayers); break;
                 case ("keys", _):
                     foreach (Binding b in Enum.GetValues<Binding>())
                         if (KeyName(b) == key && Enum.TryParse(v, true, out Keys k) && Enum.IsDefined(k))

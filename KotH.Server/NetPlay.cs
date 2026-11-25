@@ -28,7 +28,7 @@ namespace KotH.Server
             string name = Text(args, "--name") ?? (hosting ? "Host" : "Guest");
             double? seconds = Number(args, "--seconds");
             bool bot = Array.IndexOf(args, "--bot") >= 0;
-            int minPlayers = (int)(Number(args, "--min-players") ?? HillMatch.DefaultMinPlayers);
+            int minPlayers = (int)(Number(args, "--min-players") ?? 0);   // 0: a full lobby starts (Luca)
             int bots = Math.Clamp((int)(Number(args, "--bots") ?? 3), 0, NetWorld.MaxPlayers - 1);
             int botSeed = (int)(Number(args, "--bot-seed") ?? 1);
             string map = Text(args, "--map") ?? Maps.Default;
@@ -68,8 +68,10 @@ namespace KotH.Server
                 host.AttachFounder(session);
                 HillMatch round = world.Simulation.Match;
                 round.Mode = HillMatch.ParseMode(Text(args, "--mode")) ?? MatchMode.Solo;
-                round.MinPlayers = minPlayers;
                 host.Capacity = HillMatch.MaxPlayers(round.Mode);
+                if (minPlayers <= 0)
+                    minPlayers = host.Capacity;
+                round.MinPlayers = minPlayers;
                 host.CanJoin = () => round.AcceptsJoin;
                 Console.WriteLine($"[net] host on port {port}, map {map}, round from {minPlayers} players, build {NetProtocol.BuildText}");
                 if (bots > 0)
@@ -161,7 +163,7 @@ namespace KotH.Server
         static void Report(HeadlessWorld world, PeerSession session, HostSession host)
         {
             MatchState m = world.Simulation.Match?.State ?? default;
-            int players = HillMatch.CountPeople(world.Simulation.Bodies);
+            int players = HillMatch.CountPlayers(world.Simulation.Bodies);
             string phase = m.Phase switch
             {
                 MatchPhase.Waiting => $"waiting ({players} / {m.MinPlayers})",

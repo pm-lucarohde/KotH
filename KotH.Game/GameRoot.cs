@@ -358,13 +358,14 @@ namespace KotH.Client
             cover.Hold = () => !guest.Joined;
         }
 
-        /// <summary>The host's remembered lobby (Esc menu, Round) into the options: bots, the start, the round's values.</summary>
+        /// <summary>The host's remembered lobby (Esc menu, Round) into the options: room, bots, the start, the round's values.</summary>
         public static void TakeHostRound(LaunchOptions options, PlayerSettings s)
         {
-            options.Bots = Math.Min(s.HostBotCount, HillMatch.MaxPlayers(options.Mode) - 1);
+            options.MaxPlayers = s.MaxPlayersOf;
+            options.Bots = Math.Min(s.HostBotCount, options.Room - 1);
             options.BotsOff = !s.HostBots;
             options.ManualStart = !s.HostAutoStart;
-            options.MinPlayers = s.HostMinPlayers;
+            options.MinPlayers = 0;   // the auto start: a full lobby, people and bots (Luca)
             options.Rules = s.RulesOf;
         }
 
@@ -407,7 +408,7 @@ namespace KotH.Client
                     simulation.Match = new HillMatch(builder.Zone) { Seed = (uint)Random.Shared.Next(), Stage = stage, Mode = LaunchOptions.Current.Mode };
                     if (stage == MatchStage.Lobby)
                     {
-                        simulation.Match.MinPlayers = LaunchOptions.Current.MinPlayers;
+                        simulation.Match.MinPlayers = LaunchOptions.Current.StartAt;
                         simulation.Match.Command(NetClient.LobbyOf(LaunchOptions.Current, start: false));
                     }
                     else if (stage == MatchStage.Round && client?.Host != null)

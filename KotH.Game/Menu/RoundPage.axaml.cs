@@ -31,6 +31,7 @@ namespace KotH.Client.Menu
                 s.HostMode = v;
                 s.HostStartPercent = -1f;   // the new mode's own start damage, changeable again
             }, HillMatch.DisplayName) { NoteOf = HillMatch.ModeNote });
+            rows.Add(HostPage.MaxPlayersRow());
             rows.Add(new SliderRow("Start damage", 0, PlayerSettings.MaxStartPercent, 5, s => s.StartPercentOf,
                                    (s, v) => s.HostStartPercent = (float)Math.Round(v), v => Text(v, "0") + " %", "everyone, at the start"));
             rows.Add(new SliderRow("Cane hit", 0, PlayerSettings.MaxHitPercent, 0.1, s => s.HostMelee,
@@ -44,10 +45,7 @@ namespace KotH.Client.Menu
             rows.Add(new ToggleRow("Bots", s => s.HostBots, (s, v) => s.HostBots = v, "they join the lobby now"));
             rows.Add(new SliderRow("Bot count", 1, HillMatch.FreeMaxPlayers - 1, 1, s => s.HostBotCount,
                                    (s, v) => s.HostBotCount = (int)Math.Round(v), v => Text(v, "0")) { Locked = s => s.HostBots ? null : "" });
-            rows.Add(new ToggleRow("Auto start", s => s.HostAutoStart, (s, v) => s.HostAutoStart = v, "bots do not count"));
-            rows.Add(new SliderRow("Start at", 1, HillMatch.FreeMaxPlayers, 1, s => s.HostMinPlayers,
-                                   (s, v) => s.HostMinPlayers = (int)Math.Round(v), v => Text(v, "0") + " people")
-                     { Locked = s => s.HostAutoStart ? null : "" });
+            rows.Add(new ToggleRow("Auto start", s => s.HostAutoStart, (s, v) => s.HostAutoStart = v, "when the lobby is full, bots too"));
             foreach (SettingRow row in rows)
             {
                 row.Edited = () => edited;

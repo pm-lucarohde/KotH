@@ -287,7 +287,7 @@ namespace KotH.Shared.Match
             return players;
         }
 
-        /// <summary>Players who are people, not bots: the lobby's count to start (Luca).</summary>
+        /// <summary>Players who are people, not bots (a host's Free round waits for one before its draw).</summary>
         public static int CountPeople(IReadOnlyList<SimulationBody> bodies)
         {
             int people = 0;
@@ -300,13 +300,13 @@ namespace KotH.Shared.Match
         /// <summary>The fewest a round of the mode starts with, people and bots: 5 in 1, 2, 3, Free, else 2 (Luca).</summary>
         public static int FewestOf(MatchMode mode) => mode == MatchMode.Free ? FreeMinPlayers : 2;
 
-        /// <summary>Whether the lobby counts down: Start pressed, or enough people while it starts by count;
-        /// never with fewer in the lobby than the mode's fewest (FewestOf), people and bots together.</summary>
+        /// <summary>Whether the lobby counts down: Start pressed, or a full lobby (MinPlayers, the host's most) while it
+        /// starts by itself; never with fewer than the mode's fewest (FewestOf). People and bots count alike (Luca).</summary>
         public bool Starts(IReadOnlyList<SimulationBody> bodies)
         {
             if (CountPlayers(bodies) < FewestOf(state.Mode))
                 return false;
-            return state.Forced || !state.ManualStart && CountPeople(bodies) >= state.MinPlayers;
+            return state.Forced || !state.ManualStart && CountPlayers(bodies) >= state.MinPlayers;
         }
 
         /// <summary>The host's lobby choices, from a confirmed tick (every peer alike); Start counts down at once.</summary>

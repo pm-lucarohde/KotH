@@ -34,6 +34,7 @@ namespace KotH.Client.Menu
             rows.Add(new ChoiceRow<MatchMode>("Mode", _ => new[] { MatchMode.Solo, MatchMode.Duo, MatchMode.Trio, MatchMode.Squad, MatchMode.Mighty, MatchMode.Free },
                                               s => s.HostMode, (s, v) => s.HostMode = v, HillMatch.DisplayName)
                      { NoteOf = HillMatch.ModeNote });
+            rows.Add(MaxPlayersRow());
             rows.Add(new ChoiceRow<bool>("Access", _ => new[] { false, true }, s => s.HostPrivate, (s, v) => s.HostPrivate = v,
                                          v => v ? "Private" : "Public"));
             rows.Add(new FieldRow("Password", password, "private only") { Locked = s => s.HostPrivate ? null : "" });
@@ -89,7 +90,8 @@ namespace KotH.Client.Menu
             MenuTextBox.Focus(null);
             ClientSettings.RememberHost(edited);
             string shown = edited.HostName.Length > 0 ? edited.HostName : fallbackName;
-            var flags = new LobbyFlags(shown, edited.HostPrivate, (string[])edited.HostRegions.Clone(), (string[])edited.HostLanguages.Clone(), edited.HostModded, edited.HostMode);
+            var flags = new LobbyFlags(shown, edited.HostPrivate, (string[])edited.HostRegions.Clone(), (string[])edited.HostLanguages.Clone(), edited.HostModded,
+                                       edited.HostMode, edited.MaxPlayersOf);
             HostRequested?.Invoke(flags, edited.HostPrivate ? password.Text : null);
         }
 
@@ -103,6 +105,13 @@ namespace KotH.Client.Menu
             if (Environment.GetEnvironmentVariable("KOTH_SHOT_HOST_SCROLL") == "1")
                 Scroll.Offset = new Avalonia.Vector(0, 400);
         }
+
+        /// <summary>The most players on the server: up to 16 in 1, 2, 3, Free, else 12 (Luca); at least the mode's fewest.</summary>
+        public static SliderRow MaxPlayersRow()
+            => new SliderRow("Max players", 2, HillMatch.FreeMaxPlayers, 1, s => s.MaxPlayersOf,
+                             (s, v) => s.ChooseMaxPlayers(Math.Max((int)Math.Round(v), HillMatch.FewestOf(s.HostMode))),
+                             v => ((int)Math.Round(v)).ToString(System.Globalization.CultureInfo.InvariantCulture), "a full lobby starts")
+               { MaxOf = s => HillMatch.MaxPlayers(s.HostMode) };
 
         /// <summary>A text field as a settings row.</summary>
         sealed class FieldRow : SettingRow

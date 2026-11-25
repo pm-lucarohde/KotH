@@ -7,7 +7,8 @@ namespace KotH.Client.Steam
     /// <summary>What a host tells the lobby list about its round besides map and players: its name,
     /// private (a password guards it) or public, up to 2 regions, up to 4 languages (ISO 639-1), whether
     /// it is modded (only a label for now), and solo or teams.</summary>
-    public sealed record LobbyFlags(string Name, bool Private, string[] Regions, string[] Languages, bool Modded, MatchMode Mode = MatchMode.Solo)
+    public sealed record LobbyFlags(string Name, bool Private, string[] Regions, string[] Languages, bool Modded, MatchMode Mode = MatchMode.Solo,
+                                    int Max = 0)
     {
         /// <summary>Languages a host can name, by code, with their English names (the menu's font
         /// has no CJK or Cyrillic letters).</summary>
