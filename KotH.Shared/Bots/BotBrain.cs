@@ -735,6 +735,7 @@ namespace KotH.Shared.Bots
         const float FailedJump = 3f;
         // Teams share one memory and both members judge the same miss, often one the chain caused:
         // a quarter each (Volcano duo: mean end height 37 -> 71 m; MountDestiny, Atrium a little faster).
+        // A hop given up or never flyable is no chain's fault: full, or the bot waits and plans it again.
         const float TeamMiss = 0.25f;
         float Missed => teamSize > 1 ? FailedJump * TeamMiss : FailedJump;
         const float NoProgress = 2f;
@@ -898,7 +899,7 @@ namespace KotH.Shared.Bots
                         hopStart = u;
                     if (!hopping)
                     {
-                        nav.Grid.Punish(fromFloor, toFloor, Missed * 3f, memory);
+                        nav.Grid.Punish(fromFloor, toFloor, FailedJump * 3f, memory);
                         break;
                     }
                 }
@@ -906,7 +907,7 @@ namespace KotH.Shared.Bots
                 {
                     // No take-off that lands: let the way go round it.
                     HopsGivenUp++;
-                    nav.Grid.Punish(fromFloor, toFloor, Missed, memory);
+                    nav.Grid.Punish(fromFloor, toFloor, FailedJump, memory);
                     hopping = false;
                     hopStart = u;
                     break;
@@ -1144,7 +1145,7 @@ namespace KotH.Shared.Bots
             {
                 // A way that never got there costs this bot more next time; a knock off does not.
                 if (missed || late || fell && cornerStart >= 0)
-                    nav.Grid.Punish(ladderFrom, ladderTo, Missed * 3f, memory);
+                    nav.Grid.Punish(ladderFrom, ladderTo, FailedJump * 3f, memory);
                 if (HopLog != null)
                 {
                     Vector3 rel = new Vector3(me.Motor.Position.X - s.Foot.X, 0f, me.Motor.Position.Z - s.Foot.Z);
