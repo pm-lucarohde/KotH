@@ -56,7 +56,7 @@ namespace KotH.Client.Menu
         // The lobby session the map choice opened by itself for: once per landing.
         PeerSession landed;
 
-        // Test aid for shots: KOTH_SHOT_PAUSE=open, settings, menu or leave (Main menu once a round runs), once per process.
+        // Test aid for shots: KOTH_SHOT_PAUSE=open, settings, menu, players, maps, round or leave (Main menu once a round runs), once per process.
         static string pretend = Environment.GetEnvironmentVariable("KOTH_SHOT_PAUSE") is { Length: > 0 } p ? p : null;
 
         public override void Start()
@@ -70,6 +70,10 @@ namespace KotH.Client.Menu
             view.InviteOpened += ListFriends;
             view.MapsOpened += ListMaps;
             view.PlayersOpened += ListPlayers;
+            view.RoundOpened += () => view.RoundView.Open(LaunchOptions.Current.Mode);
+            view.RoundChanged += ChangeRound;
+            view.RoundView.Count = () => LobbyHost?.Session.Simulation.Bodies is { } bodies
+                                         ? (HillMatch.CountPeople(bodies), HillMatch.CountPlayers(bodies)) : (1, 1);
             view.Confirmed += leave =>
             {
                 if (leave)
@@ -122,7 +126,7 @@ namespace KotH.Client.Menu
                 return;
             }
             // The lobby ends (restart to the round's map): the map choice goes with it.
-            if (Open && view.MapsShown && LobbyHost == null)
+            if (Open && (view.MapsShown || view.RoundShown) && LobbyHost == null)
                 Show(false);
             if (LobbyHost is { } host && host.Session != landed && Services.GetService<LoadScreen>() is not { Covers: true })
             {
@@ -307,6 +311,20 @@ namespace KotH.Client.Menu
             view.ShowList(rows, "", $"The round starts on {chosenTitle} when the countdown ends.");
         }
 
+        // Round: the host's remembered choices become the lobby's (mode, bots, start) and the next round's values.
+        void ChangeRound(bool start)
+        {
+            if (LobbyHost is not { } client)
+                return;
+            LaunchOptions options = LaunchOptions.Current;
+            options.Mode = Settings.ClientSettings.Applied.HostMode;
+            GameRoot.TakeHostRound(options, Settings.ClientSettings.Applied);
+            client.ApplyLobby(start);
+            // Start closes the menu, as Resume does (out of Avalonia's dispatcher).
+            if (start)
+                resumeWanted = true;
+        }
+
         // The lobby of the round, if it runs over Steam.
         SteamLobby Lobby => Services.GetService<NetClient>()?.Lobby is { Id: not 0 } lobby && SteamClient.Ready ? lobby : null;
 
@@ -366,6 +384,16 @@ namespace KotH.Client.Menu
                 view.Pretend(4);
             else if (what == "maps")
                 view.Pretend(5);
+            else if (what == "round")
+            {
+                view.Pretend(6);
+                // KOTH_SHOT_ROUND=free: that mode chosen, then Start round (use KOTH_SETTINGS: it is remembered).
+                if (HillMatch.ParseMode(Environment.GetEnvironmentVariable("KOTH_SHOT_ROUND")) is { } mode)
+                {
+                    view.RoundView.Pretend(mode);
+                    ChangeRound(start: true);
+                }
+            }
         }
 
         /// <summary>The veil under the board.</summary>

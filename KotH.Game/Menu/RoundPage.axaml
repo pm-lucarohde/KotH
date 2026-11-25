@@ -1,0 +1,18 @@
+<!-- Round (Esc menu, the host in the lobby): the mode, start damage, percent per hit of each attack,
+     knockback, bots and the start for the next round; remembered in settings.toml [host]. -->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="KotH.Client.Menu.RoundPage"
+             x:CompileBindings="True" ClipToBounds="False">
+    <UserControl.Styles>
+        <Style Selector="UserControl /template/ ContentPresenter">
+            <Setter Property="ClipToBounds" Value="False" />
+        </Style>
+    </UserControl.Styles>
+    <Border Classes="Well" Padding="0,8">
+        <ScrollViewer Name="Scroll" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"
+                      AllowAutoHide="False">
+            <StackPanel Name="Rows" Margin="26,0,30,0" />
+        </ScrollViewer>
+    </Border>
+</UserControl>

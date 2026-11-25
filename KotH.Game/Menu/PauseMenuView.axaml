@@ -1,6 +1,6 @@
 <!-- The menu Escape opens in a game, in parts that PauseMenu shows as overlays in the middle of
      the screen: the buttons on their board, or instead a page (Settings, the friends to invite or the
-     players to mute in a Steam round, the lobby's map for the host), or the question before leaving.
+     players to mute in a Steam round, the lobby's map and round for the host), or the question before leaving.
      Laid out for a screen 1080 high; the pictures carry 24 px of shadow on every side. -->
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -15,6 +15,7 @@
                             KeyboardNavigation.TabNavigation="Cycle">
                     <Button Name="Resume" Classes="Menu" Content="Resume" />
                     <Button Name="Maps" Classes="Menu" Content="Map" IsVisible="False" />
+                    <Button Name="Round" Classes="Menu" Content="Round" IsVisible="False" />
                     <Button Name="Invite" Classes="Menu" Content="Invite friends" IsVisible="False" />
                     <Button Name="Players" Classes="Menu" Content="Players" IsVisible="False" />
                     <Button Name="Settings" Classes="Menu" Content="Settings" />
@@ -45,14 +46,17 @@
                 <Grid RowDefinitions="Auto,*,Auto" Margin="50,36,50,34">
                     <TextBlock Name="PageTitle" Classes="Title" Text="Settings" />
                     <menu:SettingsPage Name="SettingsPage" Grid.RowSpan="3" />
+                    <menu:RoundPage Name="RoundPage" Grid.Row="1" Margin="0,20,0,0" IsVisible="False" />
                     <Border Name="ListPage" Grid.Row="1" Classes="Well" Margin="0,20,0,0" Padding="0,8">
                         <Panel Name="ListInside">
                             <TextBlock Name="NoRows" Classes="Label" FontSize="28" HorizontalAlignment="Center" Margin="26,10" />
                         </Panel>
                     </Border>
-                    <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Margin="0,18,0,0">
+                    <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" Margin="0,18,0,0">
                         <TextBlock Name="Status" Classes="Hint" VerticalAlignment="Center" TextWrapping="Wrap" />
-                        <Button Name="Back" Grid.Column="1" Classes="Menu Small" Content="Back" Margin="18,0,0,0" />
+                        <Button Name="StartRound" Grid.Column="1" Classes="Menu Small" Content="Start round" Width="230"
+                                Margin="18,0,0,0" IsVisible="False" />
+                        <Button Name="Back" Grid.Column="2" Classes="Menu Small" Content="Back" Margin="18,0,0,0" />
                     </Grid>
                 </Grid>
             </Panel>

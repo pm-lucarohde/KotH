@@ -33,6 +33,12 @@ namespace KotH.Client.Menu
         /// <summary>Map was chosen: time to list the maps.</summary>
         public event Action MapsOpened;
 
+        /// <summary>Round: a value changed (false) or Start round was pressed (true).</summary>
+        public event Action<bool> RoundChanged;
+
+        /// <summary>Round was chosen: the page needs the lobby's mode.</summary>
+        public event Action RoundOpened;
+
         /// <summary>The question before leaving a running round: Leave (true) or Stay.</summary>
         public event Action<bool> Confirmed;
 
@@ -58,6 +64,18 @@ namespace KotH.Client.Menu
                 PlayersOpened?.Invoke();
             };
             Maps.Click += (_, _) => OpenMaps();
+            Round.Click += (_, _) =>
+            {
+                ShowPage("Round", list: false, round: true);
+                RoundOpened?.Invoke();
+                ShowRound();
+            };
+            RoundPage.Changed += () =>
+            {
+                ShowRound();
+                RoundChanged?.Invoke(false);
+            };
+            StartRound.Click += (_, _) => RoundChanged?.Invoke(true);
             Stay.Click += (_, _) => Confirmed?.Invoke(false);
             Leave.Click += (_, _) => Confirmed?.Invoke(true);
             Back.Click += (_, _) => PageOpen = false;
@@ -66,13 +84,13 @@ namespace KotH.Client.Menu
         /// <summary>Whether a page shows instead of the buttons.</summary>
         public bool PageOpen { get; set; }
 
-        /// <summary>The buttons for this game: Invite friends (and Players) in a Steam round, Map for the host in the lobby.</summary>
+        /// <summary>The buttons for this game: Invite friends (and Players) in a Steam round, Map and Round for the host in the lobby.</summary>
         public void Offer(bool invite, bool players, bool maps)
         {
             Invite.IsVisible = invite;
             Players.IsVisible = players;
-            Maps.IsVisible = maps;
-            int extra = (invite ? 1 : 0) + (players ? 1 : 0) + (maps ? 1 : 0);
+            Maps.IsVisible = Round.IsVisible = maps;
+            int extra = (invite ? 1 : 0) + (players ? 1 : 0) + (maps ? 2 : 0);
             Board.Height = BoardHeight + ButtonStep * extra;
         }
 
@@ -91,6 +109,20 @@ namespace KotH.Client.Menu
         /// <summary>The Settings page, which takes keys while one of its rows waits for one.</summary>
         public SettingsPage SettingsView => SettingsPage;
 
+        /// <summary>The Round page.</summary>
+        public RoundPage RoundView => RoundPage;
+
+        /// <summary>Whether the Round page shows.</summary>
+        public bool RoundShown => PageOpen && RoundPage.IsVisible;
+
+        // The Round page's word underneath and whether Start round may be pressed.
+        void ShowRound()
+        {
+            string why = RoundPage.Problem;
+            StartRound.IsEnabled = why == null;
+            Status.Text = why ?? "The values count from the next round; bots and the start right away.";
+        }
+
         /// <summary>Whether the Map page shows.</summary>
         public bool MapsShown => PageOpen && ListPage.IsVisible && PageTitle.Text == "Map";
 
@@ -101,14 +133,16 @@ namespace KotH.Client.Menu
             MapsOpened?.Invoke();
         }
 
-        void ShowPage(string title, bool list)
+        void ShowPage(string title, bool list, bool round = false)
         {
             PageOpen = true;
             PageTitle.Text = title;
-            SettingsPage.IsVisible = !list;
-            PageTitle.IsVisible = Back.IsVisible = list;
-            ListPage.IsVisible = Status.IsVisible = list;
-            if (!list)
+            SettingsPage.IsVisible = !list && !round;
+            RoundPage.IsVisible = StartRound.IsVisible = round;
+            PageTitle.IsVisible = Back.IsVisible = list || round;
+            ListPage.IsVisible = list;
+            Status.IsVisible = list || round;
+            if (!list && !round)
                 SettingsPage.Open();
         }
 
@@ -130,10 +164,10 @@ namespace KotH.Client.Menu
             return (BoardPart, PagePart, ConfirmPart);
         }
 
-        /// <summary>Test aid (KOTH_SHOT_PAUSE): clicks button 0-4 (4 Players, also where it is hidden).</summary>
+        /// <summary>Test aid (KOTH_SHOT_PAUSE): clicks button 0-6 (4 Players, 5 Map, 6 Round, also where hidden).</summary>
         public void Pretend(int button)
         {
-            Button[] buttons = { Resume, Settings, ToMenu, Quit, Players, Maps };
+            Button[] buttons = { Resume, Settings, ToMenu, Quit, Players, Maps, Round };
             if (button >= 0 && button < buttons.Length)
                 buttons[button].RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         }
