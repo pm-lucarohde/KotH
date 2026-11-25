@@ -66,7 +66,7 @@ namespace KotH.Client.Menu
             Maps.Click += (_, _) => OpenMaps();
             Round.Click += (_, _) =>
             {
-                ShowPage("Round", list: false, round: true);
+                ShowPage("Game mode", list: false, round: true);
                 RoundOpened?.Invoke();
                 ShowRound();
             };

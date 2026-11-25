@@ -15,7 +15,7 @@
                             KeyboardNavigation.TabNavigation="Cycle">
                     <Button Name="Resume" Classes="Menu" Content="Resume" />
                     <Button Name="Maps" Classes="Menu" Content="Map" IsVisible="False" />
-                    <Button Name="Round" Classes="Menu" Content="Round" IsVisible="False" />
+                    <Button Name="Round" Classes="Menu" Content="Game mode" IsVisible="False" />
                     <Button Name="Invite" Classes="Menu" Content="Invite friends" IsVisible="False" />
                     <Button Name="Players" Classes="Menu" Content="Players" IsVisible="False" />
                     <Button Name="Settings" Classes="Menu" Content="Settings" />
