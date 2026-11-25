@@ -94,7 +94,9 @@ namespace KotH.Shared.Bots
             for (float s = 0.1f; s <= reach + 0.25f; s += 0.1f)
             {
                 float top = TopAt(hop, s, above);
-                if (top >= rise - 0.35f && (rise > 0.35f || hop.Edge != float.MaxValue))
+                // Up: the top starts where the ground is that high. Level or down across a hole: where the ground
+                // is back at the landing's height, not yet on the slope down to it (that left no landing window).
+                if (rise > 0.35f ? top >= rise - 0.35f : hop.Edge != float.MaxValue && UMath.Abs(top - rise) <= 0.35f)
                 {
                     hop.Lip = s;
                     break;

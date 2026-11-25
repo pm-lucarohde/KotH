@@ -23,12 +23,16 @@ namespace KotH.Probes.Probes
         const float ClimbGoal = 140f;
         static readonly float[] Heights = { 20f, 50f, 90f };
         readonly int[] HopStats = new int[3], Predictions = new int[2];
+        int pressedTakeOffs, deadTakeOffs;   // take-off presses while climbing, and those the body did not leave the ground on
 
         // How human the climbing looks, summed over all bots and rounds: ground ticks,
         // key changes, reversals, strafing ticks, standing ticks, air ticks, yaw sum,
         // yaw wobbles, yaw snaps, pitch sum.
         readonly double[] Nat = new double[18];
         double PredictionError;
+        // Over the bots on top: the plain field's seconds from where each stood at the start, and its own seconds.
+        double gridSum, ownSum;
+        int gridBots;
         float StartSpacing = float.MaxValue, StartFacing;
         readonly int[] PredClass = new int[4];
         readonly double[] PredClassErr = new double[4], PredClassErrY = new double[4];
@@ -78,6 +82,9 @@ namespace KotH.Probes.Probes
             Log($"[climb] over {seeds} seeds: mean {average:F1} s (goal at most {ClimbGoal:F0} s), " +
                 $"slowest seed {worstMean:F0} s, slowest bot {worstBot:F0} s, {missing} not on top, " +
                 $"route spread {(spreads > 0 ? sumSpread / spreads : 0f):F0}°");
+            Log($"[climb] grid: fastest way from the starts {gridSum / Math.Max(1, gridBots):F1} s with the start wait, " +
+                $"the bots on top took {ownSum / Math.Max(1e-9, gridSum):F2}× that");
+            Log($"[climb] take-offs pressed: {pressedTakeOffs}, the body did not leave the ground on {deadTakeOffs}");
             Log($"[climb] jumps landed: {HopStats[1]} of {HopStats[0]}, {HopStats[2]} given up before take-off");
             double ground = Math.Max(1, Nat[0]), all = Math.Max(1, Nat[0] + Nat[5]);
             Log($"[climb] on the ground: {Nat[1] / ground * 40:F2} key changes/s, {Nat[2] / ground * 2400:F1} reversals/min, " +
@@ -229,6 +236,11 @@ namespace KotH.Probes.Probes
                 (director.Settings.EngageRange, director.Settings.BlasterRange) = (0.01f, 0f);
 
             var bots = new List<BotBody>();
+            var inFlight = new bool[16]; var touched = new bool[16]; var touchSteep = new bool[16];
+            var apexY = new float[16]; var touchN = new float[16]; var touchAt = new Vector3[16];
+            var flightLog = new System.Text.StringBuilder[16];
+            for (int k = 0; k < 16; k++)
+                flightLog[k] = new System.Text.StringBuilder();
             for (int i = 0; i < (teamSize > 1 ? 2 * teamSize : 3); i++)
             {
                 Entity marker = NetWorld.SlotMarker(world.Builder, NetWorld.BotSlots[i]);
@@ -236,12 +248,19 @@ namespace KotH.Probes.Probes
                 Entity e = world.SpawnBody(HeadlessWorld.PlayerBodyUrl, marker.Transform.Position, marker.Transform.Rotation,
                                            bot, new DamagePercent());
                 e.Name = $"Bot {i + 1}";
+                int me = i;
                 if (Environment.GetEnvironmentVariable("KOTH_HOPLOG") is string who && (who == "0" || who == $"{i + 1}"))
-                    director.BrainOf(bot.NetId).HopLog = line => Log($"[jump] {line}");
+                    director.BrainOf(bot.NetId).HopLog = line =>
+                    {
+                        if (line.Contains("MISSED") || line.Contains("good"))
+                            Log(FormattableString.Invariant($"[jump]   flight: apex {apexY[me]:F2}, first touch {touchAt[me].X:F2} {touchAt[me].Y:F2} {touchAt[me].Z:F2} ground n {touchN[me]:F2}, steep {touchSteep[me]}; ticks {flightLog[me]}"));
+                        Log($"[jump] {line}");
+                    };
                 bots.Add(bot);
             }
 
             var times = new float[bots.Count];
+            var gridAt = new float[bots.Count];
             var best = new float[bots.Count];
             var low = new bool[bots.Count];
             var angles = new float[bots.Count, Heights.Length];
@@ -299,6 +318,12 @@ namespace KotH.Probes.Probes
                     {
                         times[i] = (t + 1) / 40f;
                         left--;
+                        if (gridAt[i] < float.MaxValue)
+                        {
+                            gridSum += gridAt[i] + director.Settings.StartWait;
+                            ownSum += times[i];
+                            gridBots++;
+                        }
                     }
                     if (jamTest && !jamDone && t > 400)
                     {
@@ -311,6 +336,43 @@ namespace KotH.Probes.Probes
                         }
                     }
                     BotBrain mind = director.BrainOf(bots[i].NetId);
+                    {
+                        MotorState m = bots[i].Motor.CaptureState();
+                        if (mind.LastInput.JumpPresses == 1 && m.Velocity.Y > 1f && !inFlight[i])
+                        {
+                            flightLog[i].Clear();
+                            MotorState p0 = before[i];
+                            flightLog[i].Append(FormattableString.Invariant($"[pre g{(p0.Grounded ? 1 : 0)} f{(p0.FellOff ? 1 : 0)} t{(p0.TouchingGround ? 1 : 0)} s{(p0.OnSteepGround ? 1 : 0)} w{(p0.Wedged ? 1 : 0)} n{p0.GroundNormal.Y:F2} v{p0.Velocity.X:F1},{p0.Velocity.Y:F1},{p0.Velocity.Z:F1} at {p0.Position.X:F2},{p0.Position.Y - 0.9f:F2},{p0.Position.Z:F2}] "));
+                            inFlight[i] = true;
+                            apexY[i] = m.Position.Y - 0.9f;
+                            touched[i] = false;
+                        }
+                        if (inFlight[i])
+                        {
+                            flightLog[i].Append(FormattableString.Invariant($"{mind.LastInput.JumpPresses}{(m.DoubleJumpUsed ? "D" : "")}:{m.Velocity.Y:F1} "));
+                            apexY[i] = MathF.Max(apexY[i], m.Position.Y - 0.9f);
+                            if (!touched[i] && (m.Grounded || m.TouchingGround) && m.Velocity.Y <= 0f)
+                            {
+                                touched[i] = true;
+                                inFlight[i] = false;
+                                touchAt[i] = new Vector3(m.Position.X, m.Position.Y - 0.9f, m.Position.Z);
+                                touchN[i] = m.GroundNormal.Y;
+                                touchSteep[i] = !m.Grounded;
+                            }
+                        }
+                    }
+                    if (mind.Climbing && times[i] < 0f && mind.LastInput.JumpPresses == 1)
+                    {
+                        pressedTakeOffs++;
+                        MotorState now = bots[i].Motor.CaptureState();
+                        bool dead = now.Velocity.Y < 1f && !before[i].Wedged;
+                        deadTakeOffs += dead ? 1 : 0;
+                        if (dead && Environment.GetEnvironmentVariable("KOTH_DEADLOG") != null)
+                        {
+                            MotorState w = before[i];
+                            Log(FormattableString.Invariant($"[dead] seed {seed} bot {i + 1} tick {t}: grounded {w.Grounded} steep {w.OnSteepGround} touching {w.TouchingGround} wedged {w.Wedged} fell {w.FellOff} n {w.GroundNormal.Y:F2} v {w.Velocity.X:F1} {w.Velocity.Y:F1} {w.Velocity.Z:F1} flight {mind.Flight} hops {mind.Hops} at {w.Position.X:F1} {w.Position.Y:F1} {w.Position.Z:F1}"));
+                        }
+                    }
                     if (mind.Climbing && times[i] < 0f && t > 0)
                         Naturalness(i, t, mind.LastInput, bots[i].Motor.CaptureState(), lastMove, lastYaw, lastTurn, axisSign, axisTick, mind.Hopping, mind.Flight != LinkKind.None, flatHistory, lastBack);
                     if (mind.Climbing)
@@ -329,6 +391,7 @@ namespace KotH.Probes.Probes
                     }
                     if (t == 0)
                     {
+                        gridAt[i] = director.Navigation.Grid.TimeToZone(new Vector3(p.X, p.Y - 0.9f, p.Z), 0);
                         starts.Add(bots[i].Motor.CaptureState());
                         faced.Add(bots[i].PlacedTick == 0 ? bots[i].PlacedYaw : float.NaN);
                     }

@@ -759,7 +759,7 @@ namespace KotH.Shared.Bots
 
         // A hop is flown from this far before its take-off corner; given up after so many ticks on the ground.
         const float RunUp = 2f;
-        const int HopPatience = 120;
+        const int HopPatience = 120, RePress = 1;   // one press more only: a second would complete a double tap
 
         /// <summary>Where the own body is now: the seen state carried forward over the
         /// reaction time with the bot's own keys since, in the pilot's model of the
@@ -803,8 +803,10 @@ namespace KotH.Shared.Bots
                 hopping = false;
                 if (jamTicks == 41)
                     jamYaw = yaw;
-                Look(u, jamYaw + 90f * ((jamTicks - 40) / 20), pitch, settings.TurnRate * 2f);
-                return new MoveInput { Yaw = yaw, Pitch = pitch, Move = new Vector2(0f, 1f) };
+                // The push turns at once, the view follows by hand: keys towards the wiggle's way, not the view's.
+                float wiggle = (jamYaw + 90f * ((jamTicks - 40) / 20)) * (MathF.PI / 180f);
+                Look(u, wiggle * (180f / MathF.PI), pitch, settings.TurnRate * 2f);
+                return new MoveInput { Yaw = yaw, Pitch = pitch, Move = KeysFor(new Vector3(-UMath.Sin(wiggle), 0f, -UMath.Cos(wiggle)), yaw) };
             }
             JumpPilot.Body b = Predict(u, me.Motor);
             var feet = new Vector3(b.X, b.Y, b.Z);
@@ -832,6 +834,11 @@ namespace KotH.Shared.Bots
                     LookAt(u, b, landing, UMath.Atan2(-hop.DX, -hop.DZ) * (180f / MathF.PI));
                     MoveInput flying = pilot.Drive(hop, b, yaw, ref attempt);
                     flying.Pitch = pitch;
+                    // On a rough flank the body is off the ground now and then, and a press there is lost: pressed
+                    // again as a player would. After a take-off it is a double tap's first (Fly allows for it); after
+                    // a lost one it fires the fall's double jump at once, the most height left (Volcano 80 -> 56 of 312).
+                    if (u - lastJump <= RePress && flying.JumpPresses == 0)
+                        flying.JumpPresses = 1;
                     return flying;
                 }
             }
@@ -1282,8 +1289,8 @@ namespace KotH.Shared.Bots
                     lastJump = u;
                     jumpHeldUntil = u + 10;
                     input.JumpPresses = 1;
-                    // The foot over a single jump's reach: the double jump on the way up.
-                    if (s.Foot.Y - 0.9f + 0.2f - ladderTakeoff.Y > settings.JumpUp - 0.05f)
+                    // The foot over a single jump's reach (the mode's: Mighty jumps 1.5 times as high): the double jump.
+                    if (s.Foot.Y - 0.9f + 0.2f - ladderTakeoff.Y > settings.JumpUp * tuning.Jump - 0.05f)
                         ladderDoubleAt = u + 9;
                 }
             }

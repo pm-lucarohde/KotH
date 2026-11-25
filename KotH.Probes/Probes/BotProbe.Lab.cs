@@ -5,6 +5,7 @@ using KotH.Probes.Harness;
 using KotH.Shared.Bots;
 using KotH.Shared.Combat;
 using KotH.Shared.Hosting;
+using KotH.Shared.Match;
 using KotH.Shared.Mathematics;
 using KotH.Shared.Net;
 using KotH.Shared.Player;
@@ -16,7 +17,7 @@ namespace KotH.Probes.Probes
 {
     public sealed partial class BotProbe
     {
-        /// <summary>Links for "bots jumplab N": how jumps up the mountain of map MountDestiny land.</summary>
+        /// <summary>Links for "bots jumplab N": how jumps up the mountain land (KOTH_CLIMB_MAP, MountDestiny).</summary>
         public int Lab = 0;
 
         struct Way
@@ -39,9 +40,11 @@ namespace KotH.Probes.Probes
         int Labs(int links)
         {
             using var world = new HeadlessWorld();
-            world.LoadArena(Maps.Default);
+            world.LoadArena(Environment.GetEnvironmentVariable("KOTH_CLIMB_MAP") ?? Maps.Default);
             var states = new LocalFinalStates(world.Simulation);
             BotDirector director = BotDirector.Create(world.Builder, world.Simulation, states, 1);
+            HillMatch hill = world.Builder.Zone != null ? new HillMatch(world.Builder.Zone) : null;
+            float highest = hill != null ? hill.Center.Y - hill.HalfSize.Y : 110f;
             ClimbGrid grid = director.Navigation.Grid;
             var pilot = new JumpPilot(grid, world.Builder.Template<PlayerMotor>(WorldBuilder.PlayerBodyUrl), MotorTuning.None);
 
@@ -51,6 +54,17 @@ namespace KotH.Probes.Probes
             for (int t = 0; t < 20; t++)
                 world.Simulation.Tick();
             MotorState rest = body.Motor.CaptureState();
+
+            // One hop of the climb again, model against body tick by tick: from, to, the feet's start (x, z).
+            if (Environment.GetEnvironmentVariable("KOTH_LAB_HOP") is string hopAt)
+            {
+                float[] v = hopAt.Split(',').Select(t => float.Parse(t, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+                Trace = line => Log("[lab] " + line);
+                Fly(world, body, rest, pilot, new Vector3(v[0], v[1], v[2]), new Vector3(v[3], v[4], v[5]), 8, out Vector3 end, out bool went,
+                    new Vector3(v[6], v[1], v[7]));
+                Log(FormattableString.Invariant($"[lab] went {went}, down at {end.X:F2} {end.Y:F2} {end.Z:F2}"));
+                return 0;
+            }
 
             // The ground around a spot: top surface and the ceiling above the feet, every 0,5 m.
             if (Environment.GetEnvironmentVariable("KOTH_LAB_LOOK") is string look)
@@ -124,6 +138,7 @@ namespace KotH.Probes.Probes
                 new Way { Name = "walk 5 m/s, 0.5 m back", Speed = 5f, Back = 0.5f, Hold = 0, Double = 6 },
             };
 
+            var outcome = new int[2, 4];   // never went, on the target, higher elsewhere, level or lower
             var gain = new double[ways.Count, 2];
             var binGain = new double[ways.Count, 2, 5];
             var binSpent = new double[ways.Count, 2, 5];
@@ -138,7 +153,7 @@ namespace KotH.Probes.Probes
             {
                 int i = (int)(BotRandom.Next(ref rng) % (uint)grid.LinkCount);
                 LinkKind kind = grid.LinkAt(i, out Vector3 from, out Vector3 to);
-                if (kind != LinkKind.Jump && kind != LinkKind.DoubleJump || to.Y - from.Y < 0.6f || from.Y < 8f || from.Y > 110f)
+                if (kind != LinkKind.Jump && kind != LinkKind.DoubleJump || to.Y - from.Y < 0.6f || from.Y < 8f || from.Y > highest)
                     continue;
                 picked++;
                 int k = kind == LinkKind.DoubleJump ? 1 : 0;
@@ -159,6 +174,20 @@ namespace KotH.Probes.Probes
                     float dx = lf.X - to.X, dz = lf.Z - to.Z;
                     string res = MathF.Sqrt(dx * dx + dz * dz) < 0.6f && MathF.Abs(lf.Y - to.Y) < 0.3f ? "TARGET" : lf.Y > from.Y + 0.3f ? "higher" : lf.Y > from.Y - 0.3f ? "level" : "lower";
                     Log(FormattableString.Invariant($"[lab] {kind} distance {reach:F2} rise {to.Y - from.Y:F2} -> {res} (from target {dx:F2} {lf.Y - to.Y:F2} {dz:F2}, {dt} ticks) profile {string.Join(' ', prof)}"));
+                    if (res is "level" or "lower" && Environment.GetEnvironmentVariable("KOTH_LAB_TRACE") != null)
+                    {
+                        Log(FormattableString.Invariant($"[lab]   hop from {from.X:F2} {from.Y:F2} {from.Z:F2} to {to.X:F2} {to.Y:F2} {to.Z:F2}, lip {(pilot.Prepare(from, to, out JumpPilot.Hop ph) ? ph.Lip : -1f):F2} target {ph.Target:F2} end {ph.End:F2} need {ph.Need:F2} edge {ph.Edge:F2}"));
+                        Trace = line => Log("[lab]   " + line);
+                        Fly(world, body, rest, pilot, from, to, 8, out _);
+                        Trace = null;
+                    }
+                }
+                {
+                    // The pilot as the bots fly it: did it go, and where did it come down?
+                    Fly(world, body, rest, pilot, from, to, 8, out Vector3 lf, out bool took);
+                    float dx = lf.X - to.X, dz = lf.Z - to.Z;
+                    int o = !took ? 0 : MathF.Sqrt(dx * dx + dz * dz) < 0.6f && MathF.Abs(lf.Y - to.Y) < 0.3f ? 1 : lf.Y > from.Y + 0.3f ? 2 : 3;
+                    outcome[k, o]++;
                 }
                 for (int w = 0; w < ways.Count; w++)
                 {
@@ -177,7 +206,8 @@ namespace KotH.Probes.Probes
 
             for (int k = 0; k < 2; k++)
             {
-                Log($"[lab] {(k == 0 ? "jump" : "double jump")}: {total[k]} links");
+                Log($"[lab] {(k == 0 ? "jump" : "double jump")}: {total[k]} links; the pilot 8 ticks late: {outcome[k, 0]} never went, " +
+                    $"{outcome[k, 1]} on the target, {outcome[k, 2]} higher elsewhere, {outcome[k, 3]} level or lower");
                 for (int w = 0; w < ways.Count; w++)
                     Log($"[lab]   {ways[w].Name}: {up[w, k] * 100 / Math.Max(1, total[k])} % higher, " +
                         $"gains {gain[w, k] / Math.Max(1, total[k]):F2} s in {spent[w, k] / Math.Max(1, total[k]):F2} s, " +
@@ -190,19 +220,36 @@ namespace KotH.Probes.Probes
 
         // One hop by the pilot, which sees the motor delay ticks late and
         // carries that forward with its own keys, as the bots do.
+        static Action<string> Trace;
+
         static int Fly(HeadlessWorld world, ScriptedBody body, MotorState rest, JumpPilot pilot, Vector3 from, Vector3 to,
-                       int delay, out Vector3 feet)
+                       int delay, out Vector3 feet) => Fly(world, body, rest, pilot, from, to, delay, out feet, out _);
+
+        static int Fly(HeadlessWorld world, ScriptedBody body, MotorState rest, JumpPilot pilot, Vector3 from, Vector3 to,
+                       int delay, out Vector3 feet, out bool took, Vector3? start = null)
         {
             feet = from;
+            took = false;
             if (!pilot.Prepare(from, to, out JumpPilot.Hop hop))
                 return 1;
             float yaw = UMath.Atan2(-hop.DX, -hop.DZ) * (180f / MathF.PI);
+            Vector3 at = start ?? from;
             MotorState s = rest;
-            s.Position = new Vector3(from.X, from.Y + 0.9f + 0.05f, from.Z);
+            s.Position = new Vector3(at.X, from.Y + 0.9f + 0.05f, at.Z);
             s.Velocity = Vector3.Zero;
             s.Rotation = Quaternion.RotationY(yaw * (MathF.PI / 180f));
             body.Motor.RestoreState(s);
             body.Motor.Teleport(s.Position);
+            if (start != null)
+            {
+                for (int k = 0; k < 20; k++)
+                {
+                    body.Input = new MoveInput { Yaw = yaw };
+                    world.Simulation.Tick();
+                }
+                if (Trace != null)
+                    Trace(FormattableString.Invariant($"hop lip {hop.Lip:F2} target {hop.Target:F2} end {hop.End:F2} need {hop.Need:F2} edge {hop.Edge:F2} double {hop.Double}"));
+            }
 
             var seen = new MotorState[128];
             var keys = new MoveInput[128];
@@ -218,6 +265,13 @@ namespace KotH.Probes.Probes
                 if (attempt.Flying && jumped >= 0 && t - jumped > 3 && b.Grounded)
                     break;
                 MoveInput input = pilot.Drive(hop, b, yaw, ref attempt);
+                if (Trace != null)
+                {
+                    MotorState r = seen[t];
+                    float sr = (r.Position.X - from.X) * hop.DX + (r.Position.Z - from.Z) * hop.DZ;
+                    float sm = (b.X - from.X) * hop.DX + (b.Z - from.Z) * hop.DZ;
+                    Trace(FormattableString.Invariant($"{t} real s {sr:F2} y {r.Position.Y - 0.9f - from.Y:F2} g {(r.Grounded ? 1 : 0)}{(r.OnSteepGround ? "s" : "")} n {r.GroundNormal.Y:F2} | model s {sm:F2} y {b.Y - from.Y:F2} g {(b.Grounded ? 1 : 0)} | keys {input.Move.X:F0},{input.Move.Y:F0} jump {input.JumpPresses}"));
+                }
                 if (input.JumpPresses == 1 && jumped < 0)
                     jumped = t;
                 keys[t] = input;
@@ -231,6 +285,7 @@ namespace KotH.Probes.Probes
                 world.Simulation.Tick();
             }
             feet = new Vector3(body.Motor.Position.X, body.Motor.Position.Y - 0.9f, body.Motor.Position.Z);
+            took = jumped >= 0;
             return t + 1;
         }
 
