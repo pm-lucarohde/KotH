@@ -48,6 +48,9 @@ namespace KotH.Client.Hud
         /// <summary>The own colour (HillBoard's own zone), for the team mates' labels.</summary>
         public static readonly Color MateColor = new Color(30, 200, 230);
 
+        /// <summary>A catcher's label in 1, 2, 3, Free (HillBoard's enemy red).</summary>
+        public static readonly Color CatcherColor = new Color(255, 85, 70);
+
         SimulationBody body;
 
         /// <summary>The camera the text turns towards.</summary>
@@ -138,7 +141,13 @@ namespace KotH.Client.Hud
                 Entity.Transform.Rotation = Facing(Camera.Position - position);
 
             body ??= Motor.Entity.Get<SimulationBody>();
-            Color tint = Self != null && body != Self && HillMatch.SameTeam(body, Self) ? MateColor : Color;
+            // Caught and free ones are gone from the round (1, 2, 3, Free); a catcher's label is red.
+            UIComponent ui = Entity.Get<UIComponent>();
+            bool inRound = body?.IsOut != true;
+            if (ui != null && ui.Enabled != inRound)
+                ui.Enabled = inRound;
+            Color tint = body?.Role == FreeRole.Catcher ? CatcherColor
+                       : Self != null && body != Self && HillMatch.SameTeam(body, Self) ? MateColor : Color;
             if (text.TextColor != tint)
                 text.TextColor = tint;
 

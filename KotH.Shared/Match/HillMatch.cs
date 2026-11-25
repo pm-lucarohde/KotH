@@ -373,7 +373,7 @@ namespace KotH.Shared.Match
             // Into a running round: a team with room, then straight to a place round the hill.
             if (moving.Count > 0 && state.Phase == MatchPhase.Running && Teamed)
                 FormTeams(bodies);
-            if (moving.Count > 0 && state.Phase == MatchPhase.Running && state.Mode == MatchMode.Free)
+            if (moving.Count > 0 && state.Phase == MatchPhase.Running && state.Mode == MatchMode.Free && state.RoundTicks > 0)
                 Await();
             if (moving.Count > 0 && state.Phase == MatchPhase.Running && HasSpawnRing)
                 Place(bodies);

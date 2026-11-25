@@ -27,8 +27,8 @@ namespace KotH.Shared.Match
         /// <summary>In the head start the catcher stays this far from every runner, flat metres.</summary>
         public const float KeepAway = 15f;
 
-        /// <summary>A catcher's percent from the draw on (instead of 0).</summary>
-        public const float CatcherPercent = 50f;
+        /// <summary>Every player's percent from the draw on, catcher and runners alike (instead of 0, Luca).</summary>
+        public const float StartPercent = 30f;
 
         /// <summary>Odds: certain to be drawn again (a catcher who caught nobody).</summary>
         public const byte Certain = 255;
@@ -122,6 +122,15 @@ namespace KotH.Shared.Match
             return false;
         }
 
+        /// <summary>Whether a catcher stands in the zone (for the HUD and the zone's colour).</summary>
+        public bool CatcherIn(IReadOnlyList<SimulationBody> bodies)
+        {
+            for (int i = 0; i < bodies.Count; i++)
+                if (bodies[i].Role == FreeRole.Catcher && Contains(bodies[i].Motor.Position))
+                    return true;
+            return false;
+        }
+
         /// <summary>Runners still to get free or be caught (the last one rescuing among them).</summary>
         public static int RunnersLeft(IReadOnlyList<SimulationBody> bodies)
         {
@@ -143,6 +152,8 @@ namespace KotH.Shared.Match
         void TickFree(IReadOnlyList<SimulationBody> bodies)
         {
             Sorted(bodies);
+            if (state.RoundTicks == 0 && (order.Count == 0 || order[^1].NetId < NetWorld.FirstPlayerId))
+                return;   // nobody to draw yet (a host's round before its players): it waits at its start
             if (state.RoundTicks == 0)
                 Draw(bodies, true);
             else if (Count(FreeRole.Catcher) < state.Catchers && Count(FreeRole.Runner) > 0)
@@ -290,6 +301,7 @@ namespace KotH.Shared.Match
                     {
                         b.Role = FreeRole.Runner;
                         b.RoleTicks = b.CaughtOrder = b.MarkedBy = 0;
+                        b.Damage?.Restore(UMath.Max(b.Damage.Percent, StartPercent));
                         players++;
                     }
                 state.Catchers = (byte)(players >= TwoCatchersFrom ? 2 : 1);
@@ -304,7 +316,6 @@ namespace KotH.Shared.Match
                 chosen.Role = FreeRole.Catcher;
                 chosen.RoleTicks = 0;
                 chosen.MarkedBy = 0;
-                chosen.Damage?.Restore(UMath.Max(chosen.Damage.Percent, CatcherPercent));
                 if (start && HasSpawnRing)
                 {
                     moving.Clear();
@@ -345,7 +356,9 @@ namespace KotH.Shared.Match
             return pool[pool.Count - 1];
         }
 
-        static int Weight(SimulationBody b, bool weighted, bool certain)
+        /// <summary>A runner's weight in a draw: alike unless weighted (the round's start), then only the certain
+        /// ones while there is one, else the Odds. All 0: alike (Pick).</summary>
+        public static int Weight(SimulationBody b, bool weighted, bool certain)
             => !weighted ? 1 : certain ? b.Odds == Certain ? 1 : 0 : b.Odds;
 
         /// <summary>The wheel's share of a body in the draw at the round's start, 0 to 1 (the HUD shows it as the slice).</summary>

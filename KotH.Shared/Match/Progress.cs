@@ -122,16 +122,31 @@ namespace KotH.Shared.Match
         {
             int score = 0;
             bool person = false;
+            FreeRole role = FreeRole.None;
             for (int i = 0; i < snapshot.Count; i++)
             {
                 SimulationBody body = snapshot.BodyAt(i);
                 if (body == self)
-                    score = snapshot.StateAt(i).ScoreTicks;
+                    (score, role) = (snapshot.StateAt(i).ScoreTicks, (FreeRole)snapshot.StateAt(i).Role);
                 else if (body.NetId >= NetWorld.FirstPlayerId && !body.Bot)
                     person = true;
             }
             MatchState m = snapshot.Match;
-            Step(m, score, m.Over && HillMatch.SameTeam(m.Winner, self), connected && (person || Solo));
+            bool won = m.Mode == MatchMode.Free ? FreeWon(snapshot, self, role) : HillMatch.SameTeam(m.Winner, self);
+            Step(m, score, m.Over && won, connected && (person || Solo));
+        }
+
+        // HillMatch.Won on a snapshot's states: free, or a catcher with one of its catches still caught.
+        static bool FreeWon(WorldSnapshot snapshot, SimulationBody self, FreeRole role)
+        {
+            if (role is FreeRole.Free or FreeRole.Rescuing)
+                return true;
+            if (role != FreeRole.Catcher)
+                return false;
+            for (int i = 0; i < snapshot.Count; i++)
+                if ((FreeRole)snapshot.StateAt(i).Role == FreeRole.Caught && snapshot.StateAt(i).MarkedBy == self.NetId)
+                    return true;
+            return false;
         }
 
         /// <summary>Test aid (KOTH_XP_SOLO=1): a round without another person counts too.</summary>

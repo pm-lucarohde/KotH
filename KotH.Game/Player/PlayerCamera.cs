@@ -1,6 +1,9 @@
 using System;
 using KotH.Client.Rendering;
+using System.Collections.Generic;
 using KotH.Shared.Combat;
+using KotH.Shared.Match;
+using KotH.Shared.Simulation;
 using KotH.Shared.Mathematics;
 using KotH.Shared.Physics;
 using KotH.Shared.Player;
@@ -93,7 +96,8 @@ namespace KotH.Client.Player
 
             var backBuffer = GraphicsDevice.Presenter.BackBuffer;
             float aspect = (float)backBuffer.Width / backBuffer.Height;
-            Vector3 eye = ViewMath.Eye(Motor, TickInterpolation.Alpha);
+            SimulationBody watched = Watch();
+            Vector3 eye = ViewMath.Eye(watched?.Motor ?? Motor, TickInterpolation.Alpha);
             float yaw = Reader.Yaw, pitch = Reader.Pitch;
             if (ViewTurn != Vector2.Zero)
                 (yaw, pitch) = (yaw + ViewTurn.X, UMath.Clamp(pitch + ViewTurn.Y, -85f, 85f));
@@ -101,7 +105,7 @@ namespace KotH.Client.Player
             // Stride's a * b turns by a first: the shake about the view's own axes.
             Entity.Transform.Rotation = Shake((float)Game.UpdateTime.Elapsed.TotalSeconds) * rotation;
 
-            if (!Reader.ThirdPerson || World == null)
+            if (watched == null && !Reader.ThirdPerson || World == null)
             {
                 Entity.Transform.Position = eye;
                 cam.NearClipPlane = ViewMath.NearPlane(Motor, cam.VerticalFieldOfView, aspect, NearClipMargin);
@@ -119,9 +123,42 @@ namespace KotH.Client.Player
             Vector3 position = path.At(shown);
             Entity.Transform.Position = position;
             cam.NearClipPlane = ViewMath.NearPlane(Radius, cam.VerticalFieldOfView, aspect, NearClipMargin);
-            ShowOwnFigure(UMath.Magnitude(UMath.Sub(position, eye)) >= ShowFigureFrom, false);
-            Reader.AimAt(AimTarget(path.Pivot, eye, rotation));
+            ShowOwnFigure(watched == null && UMath.Magnitude(UMath.Sub(position, eye)) >= ShowFigureFrom, false);
+            Reader.AimAt(watched == null ? AimTarget(path.Pivot, eye, rotation) : null);
         }
+
+        /// <summary>Who the view follows while the own body is out of a round of 1, 2, 3, Free (caught, free,
+        /// waiting): one still playing, in third person, the next by NetId on a click; null while in the round.</summary>
+        [DataMemberIgnore] public SimulationBody Watched { get; private set; }
+
+        int clicksSeen;
+
+        SimulationBody Watch()
+        {
+            bool click = Reader.Clicks != clicksSeen;
+            clicksSeen = Reader.Clicks;
+            if (!Reader.IsOut || Reader.Simulation is not { } sim)
+                return Watched = null;
+            if (Watched != null && Playing(Watched) && !click)
+                return Watched;
+            // The next playing one after the last watched by NetId, else the first.
+            IReadOnlyList<SimulationBody> bodies = sim.Bodies;
+            int after = Watched?.NetId ?? int.MinValue;
+            SimulationBody next = null, first = null;
+            for (int i = 0; i < bodies.Count; i++)
+            {
+                SimulationBody b = bodies[i];
+                if (!Playing(b))
+                    continue;
+                if (first == null || b.NetId < first.NetId)
+                    first = b;
+                if (b.NetId > after && (next == null || b.NetId < next.NetId))
+                    next = b;
+            }
+            return Watched = next ?? first;
+        }
+
+        static bool Playing(SimulationBody b) => b.Role is FreeRole.Runner or FreeRole.Catcher or FreeRole.Rescuing && b.Entity?.Scene != null;
 
         /// <summary>The view's wobble this frame, identity when still. Starts again with
         /// every new hit on the own body, at full strength whatever its percent, and

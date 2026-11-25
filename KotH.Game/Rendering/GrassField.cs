@@ -273,17 +273,18 @@ namespace KotH.Client.Rendering
             visuals ??= Find<PlayerVisualSystem>();
             if (visuals == null)
                 return;
-            int n = 0;
+            // The nearest to the camera, when there are more than the blades take (1, 2, 3, Free: 16).
             IReadOnlyList<Entity> all = visuals.Figures; // by index: foreach over the interface boxes its enumerator
-            for (int i = 0; i < all.Count; i++)
+            int n = visuals.Nearest(camera.Entity.Transform.WorldMatrix.TranslationVector, nearest);
+            for (int k = 0; k < n; k++)
             {
-                Entity figure = all[i];
-                if (n == MaxFigures)
-                    break;
+                Entity figure = all[nearest[k]];
                 Vector3 at = figure.Transform.WorldMatrix.TranslationVector;
-                figures[n++] = new Vector4(at.X, at.Y - FeetBelow * figure.Transform.Scale.Y, at.Z, FigureReach);
+                figures[k] = new Vector4(at.X, at.Y - FeetBelow * figure.Transform.Scale.Y, at.Z, FigureReach);
             }
         }
+
+        readonly int[] nearest = new int[MaxFigures];
 
         CameraComponent FindCamera() => Find<CameraComponent>();
 

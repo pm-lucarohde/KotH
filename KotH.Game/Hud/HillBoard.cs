@@ -19,7 +19,7 @@ namespace KotH.Client.Hud
     /// middle; before a networked round it waits or counts down. Reads the match and the bodies,
     /// never writes.</summary>
     [DataContract("KotH.HillBoard")]
-    public sealed class HillBoard : SyncScript
+    public sealed partial class HillBoard : SyncScript
     {
         [Display("Free", "Colours")] public Color FreeColor = Color.White;
         [Display("Own zone", "Colours")] public Color OwnColor = new Color(30, 200, 230);
@@ -59,6 +59,7 @@ namespace KotH.Client.Hud
         HudView view;
         HudRenderer hud;
         MenuOverlay top, points, status, track, fill, board, ranks, hurt, ammo, dashChip, banner, countdown, notice;
+        MenuOverlay role, call, watch, wheel, pointer, wheelCaption;
         MenuOverlay[] overlays;
         XpCard xpCard;
         float scale;
@@ -114,8 +115,17 @@ namespace KotH.Client.Hud
             banner = new MenuOverlay(view.BannerPart, Corner.TopCenter, 0f, 358f, Size);
             countdown = new MenuOverlay(view.CountdownPart, Corner.TopCenter, 0f, 470f, Size);
             notice = new MenuOverlay(view.NoticePart, Corner.TopCenter, 0f, 358f, Size);
+            // 1, 2, 3, Free: the role in the free corner, the count above the banner's place, the wheel's
+            // pointer tip 10 into its rim (the wheel's 420 sit 24 into its part).
+            role = new MenuOverlay(view.RolePart, Corner.BottomLeft, 8f, 12f, Size);
+            call = new MenuOverlay(view.CallPart, Corner.TopCenter, 0f, 200f, Size);
+            watch = new MenuOverlay(view.WatchPart, Corner.BottomCenter, 0f, 16f, Size);
+            wheel = new MenuOverlay(view.WheelPart, Corner.TopCenter, 0f, 190f, Size);
+            pointer = new MenuOverlay(view.PointerPart, Corner.TopCenter, 0f, 162f, Size);
+            wheelCaption = new MenuOverlay(view.WheelCaptionPart, Corner.TopCenter, 0f, 652f, Size);
             xpCard = new XpCard(Size);
-            overlays = new[] { top, points, status, track, fill, board, ranks, hurt, ammo, dashChip, banner, countdown, notice };
+            overlays = new[] { top, points, status, track, fill, board, ranks, hurt, ammo, dashChip, banner, countdown, notice,
+                               role, call, watch, wheel, pointer, wheelCaption };
             overlays = [.. overlays, .. xpCard.Overlays];
             foreach (MenuOverlay overlay in overlays)
             {
@@ -137,9 +147,22 @@ namespace KotH.Client.Hud
             overlays = null;
         }
 
-        /// <summary>What the zone means for this screen; the visual uses the same colours.</summary>
-        public static ZoneLook Look(in MatchState m, SimulationBody self, int warmupTicks)
+        /// <summary>What the zone means for this screen; the visual uses the same colours. In 1, 2, 3, Free:
+        /// red with a catcher in it, own while the own count runs, else for the catcher orange with runners in.</summary>
+        public static ZoneLook Look(HillMatch match, SimulationBody self)
         {
+            MatchState m = match.State;
+            int warmupTicks = match.WarmupTicks;
+            if (match.IsFree)
+            {
+                if (m.Phase != MatchPhase.Running || m.Inside == 0 || self?.Simulation is not { } sim)
+                    return ZoneLook.Free;
+                if (match.CatcherIn(sim.Bodies))
+                    return ZoneLook.Enemy;
+                if (self.Role is FreeRole.Runner or FreeRole.Rescuing && self.RoleTicks > 0)
+                    return ZoneLook.Own;
+                return self.Role == FreeRole.Catcher ? ZoneLook.EnemyTaking : ZoneLook.Contested;
+            }
             if (m.Over || m.Inside == 0)
                 return ZoneLook.Free;
             if (m.Holder == null)
@@ -197,9 +220,11 @@ namespace KotH.Client.Hud
             status.Visible = round && statusText.Length > 0;
             track.Visible = fill.Visible = round && warmup > 0f;
             fill.Reveal = warmup;
-            hurt.Visible = round && ShowDamage();
-            ammo.Visible = round && ShowShots();
-            dashChip.Visible = round && ShowDash();
+            bool inRound = Self?.IsOut != true;
+            hurt.Visible = round && inRound && ShowDamage();
+            ammo.Visible = round && inRound && ShowShots();
+            dashChip.Visible = round && inRound && ShowDash();
+            ShowFree(round && says == null);
 
             bool won = round && bannerText.Length > 0 && says == null;
             banner.Visible = countdown.Visible = won;
@@ -221,12 +246,17 @@ namespace KotH.Client.Hud
             builtTick = tick;
 
             MatchState m = Match.State;
+            if (Match.IsFree && m.Phase is MatchPhase.Running or MatchPhase.Over)
+            {
+                RebuildFree(m, Look(Match, Self));
+                return;
+            }
             int own = Self != null ? HillMatch.Points(Self.ScoreTicks) : 0;
             int win = Match.WinTicks / HillMatch.TicksPerPoint;
             int left = (Math.Max(0, Match.LimitTicks - m.RoundTicks) + HillMatch.TicksPerPoint - 1) / HillMatch.TicksPerPoint;
             string caption = "Points", count = null, time = null;
 
-            ZoneLook look = Look(m, Self, Match.WarmupTicks);
+            ZoneLook look = Look(Match, Self);
             // In teams the team is meant: "you" for the own, all names for another team.
             bool team = Match.Teamed && Mate(Self) != null;
             statusText = look switch

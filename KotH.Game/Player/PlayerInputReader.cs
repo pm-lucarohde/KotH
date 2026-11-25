@@ -123,6 +123,9 @@ namespace KotH.Client.Player
             motor = Entity.Get<PlayerMotor>();
         }
 
+        /// <summary>Left clicks while captured, counted by the view alone (watching: the next player).</summary>
+        [DataMemberIgnore] public int Clicks { get; private set; }
+
         /// <summary>What the crosshair points at in third person, null in first person.</summary>
         public void AimAt(Vector3? target) => aimTarget = target;
 
@@ -145,6 +148,8 @@ namespace KotH.Client.Player
                 // never lands a swing.
                 if (input.IsMouseButtonPressed(MouseButton.Left) && attackPresses < byte.MaxValue)
                     attackPresses++;
+                if (input.IsMouseButtonPressed(MouseButton.Left))
+                    Clicks++;
 
                 // Wheel back steps out of the eyes, forward back into them.
                 if (input.MouseWheelDelta < 0f)

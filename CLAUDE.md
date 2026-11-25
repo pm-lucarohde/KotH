@@ -74,7 +74,7 @@ dotnet run Tools/Regress.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # nu
 - `HillMatch`: 3 s alone takes the zone, holder scores inside; phases `Running`/`Over` (+ `Waiting`/`Countdown` net).
   Net `MatchStage`: lobby on MountDestiny, host picks the map (Esc), countdown end restarts there, round end back.
   Respawn below `RespawnBelow` (percent, points, shots stay), spawn ring round the zone (`MatchState.Seed`), lobby on markers.
-- Teams (`MatchMode` duo/trio/squad): `Team` ids at round start (wishes: invite, `SteamParty`), most inside take, row chain.
+- Teams (`MatchMode` duo/trio/squad): `Team` ids at round start (wishes: invite, `SteamParty`), most inside take, row chain. `mighty`: `ModeRules` → `MotorTuning`; `free` ("1, 2, 3, Free", 5–16): `HillMatch.Free.cs`, roles in `BodyState` (probe `modes`).
 
 ### Maps and assets
 - **Game Studio is the source of all assets** (YAML editable; Proton: CRLF, `.nuget` a symlink, never replace files there); `GraphicsCompositor` without `Archetype`.

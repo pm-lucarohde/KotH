@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Media;
@@ -149,6 +152,84 @@ namespace KotH.Client.Hud
         }
 
         public void Say(string notice) => Set(Notice, notice);
+
+        /// <summary>1, 2, 3, Free: the own role and its colour.</summary>
+        public void ShowRole(string role, Color color)
+        {
+            Set(Role, role);
+            if (color != roleColor)
+            {
+                roleColor = color;
+                RoleDot.Fill = Role.Foreground = new SolidColorBrush(color);
+            }
+        }
+
+        Color roleColor = Colors.White;
+
+        /// <summary>The count in the middle (1, 2, 3, Free!) and the line below it, in a colour.</summary>
+        public void ShowCall(string call, string name, Color color)
+        {
+            Set(Call, call);
+            Set(CallName, name);
+            CallName.IsVisible = name.Length > 0;
+            if (color != callColor)
+            {
+                callColor = color;
+                Call.Foreground = new SolidColorBrush(color);
+            }
+        }
+
+        Color callColor = Colors.White;
+
+        public void ShowWatch(string text) => Set(Watch, text);
+
+        public void ShowWheelCaption(string text) => Set(WheelCaption, text);
+
+        /// <summary>The wheel's slices from the top clockwise: a name, its share (all add to 1) and a colour.
+        /// Made anew once per draw, not per frame; the picture is turned as a whole.</summary>
+        public void BuildWheel(IReadOnlyList<string> names, IReadOnlyList<double> shares, IReadOnlyList<Color> colors)
+        {
+            const double R = 210, C = 210;
+            Wheel.Children.Clear();
+            double from = 0;
+            for (int i = 0; i < names.Count; i++)
+            {
+                double sweep = shares[i] * 2 * Math.PI;
+                if (sweep <= 0)
+                    continue;
+                var fill = new SolidColorBrush(colors[i]);
+                var edge = new SolidColorBrush(Color.FromArgb(200, 16, 20, 24));
+                if (sweep >= 2 * Math.PI - 1e-6)
+                    Wheel.Children.Add(new Ellipse { Width = 2 * R, Height = 2 * R, Fill = fill, Stroke = edge, StrokeThickness = 3 });
+                else
+                {
+                    var slice = new StreamGeometry();
+                    using (StreamGeometryContext g = slice.Open())
+                    {
+                        g.BeginFigure(new Point(C, C), true);
+                        g.LineTo(At(from, R));
+                        g.ArcTo(At(from + sweep, R), new Size(R, R), 0, sweep > Math.PI, SweepDirection.Clockwise);
+                        g.EndFigure(true);
+                    }
+                    Wheel.Children.Add(new Path { Data = slice, Fill = fill, Stroke = edge, StrokeThickness = 3 });
+                }
+                // The name along the slice's middle, read outwards.
+                double mid = from + sweep / 2;
+                var label = new TextBlock
+                {
+                    Text = names[i], Classes = { "Hud" }, FontSize = names.Count > 10 ? 17 : 21, Width = 150,
+                    TextAlignment = TextAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis,
+                    RenderTransform = new RotateTransform(mid * 180 / Math.PI - 90),
+                };
+                Point at = At(mid, R * 0.6);
+                Canvas.SetLeft(label, at.X - 75);
+                Canvas.SetTop(label, at.Y - 14);
+                Wheel.Children.Add(label);
+                from += sweep;
+            }
+
+            static Point At(double angle, double radius) => new Point(C + radius * Math.Sin(angle), C - radius * Math.Cos(angle));
+        }
 
         static void Set(TextBlock block, string text)
         {

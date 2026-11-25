@@ -103,6 +103,51 @@
             </Border>
         </Grid>
 
+        <!-- 1, 2, 3, Free: the own role bottom left, the count for everyone in the middle (a big
+             number, a name below), whom a caught or free one watches, and the draw's wheel with
+             its pointer; the wheel is drawn once and turned as a picture (MenuOverlay.Angle). -->
+        <Grid Name="RolePart" Width="348" Height="92">
+            <Border Classes="Glass" Margin="24" CornerRadius="11" Padding="16,0">
+                <StackPanel Orientation="Horizontal" Spacing="9" HorizontalAlignment="Center">
+                    <Ellipse Name="RoleDot" Width="12" Height="12" Fill="White" VerticalAlignment="Center" />
+                    <TextBlock Name="Role" Classes="Hud" Text="You are the catcher" FontSize="24" Margin="0,0,0,3"
+                               MaxWidth="260" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <Grid Name="CallPart" Width="900" Height="230">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="2">
+                <Border Classes="Glass" CornerRadius="24" HorizontalAlignment="Center" Padding="44,0" Margin="24,24,24,0">
+                    <TextBlock Name="Call" Classes="Hud" Text="Free!" FontSize="80" Margin="0,0,0,8"
+                               HorizontalAlignment="Center" />
+                </Border>
+                <TextBlock Name="CallName" Classes="Hud" Text="Bot 3 is free!" FontSize="30" HorizontalAlignment="Center"
+                           MaxWidth="820" TextTrimming="CharacterEllipsis" Margin="0,0,0,20" />
+            </StackPanel>
+        </Grid>
+
+        <Grid Name="WatchPart" Width="620" Height="92">
+            <Border Classes="Glass" Margin="24" Height="44" CornerRadius="11" HorizontalAlignment="Center" Padding="20,0">
+                <TextBlock Name="Watch" Classes="Hud" Text="Watching Bot 3 · click for the next" FontSize="24" Margin="0,0,0,3"
+                           MaxWidth="540" TextTrimming="CharacterEllipsis" />
+            </Border>
+        </Grid>
+
+        <Grid Name="WheelPart" Width="468" Height="468">
+            <Ellipse Margin="18" Fill="#59101418" />
+            <Canvas Name="Wheel" Width="420" Height="420" />
+            <Ellipse Width="44" Height="44" Fill="#E6F4F4F4" />
+        </Grid>
+        <Grid Name="PointerPart" Width="84" Height="78">
+            <Path Data="M 18,14 L 66,14 L 42,62 Z" Fill="White" Stroke="#C0101418" StrokeThickness="3" />
+        </Grid>
+        <Grid Name="WheelCaptionPart" Width="900" Height="104">
+            <Border Classes="Glass" Margin="24" Height="56" CornerRadius="13" HorizontalAlignment="Center" Padding="26,0">
+                <TextBlock Name="WheelCaption" Classes="Hud" Text="Drawing the catcher ..." FontSize="29" Margin="0,0,0,4" />
+            </Border>
+        </Grid>
+
         <Grid Name="NoticePart" Width="1200" Height="104">
             <Border Classes="Glass" Margin="24" Height="56" CornerRadius="13"
                     HorizontalAlignment="Center" Padding="26,0">

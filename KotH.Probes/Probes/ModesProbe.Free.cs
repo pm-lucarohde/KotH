@@ -31,8 +31,10 @@ namespace KotH.Probes.Probes
             world = host;
             Begin(6, 7u);
             int first = catcher.NetId;
-            Check(match.State.Catchers == 1 && runners.Count == 5 && catcher.Entity.Get<DamagePercent>().Percent == HillMatch.CatcherPercent,
+            Check(match.State.Catchers == 1 && runners.Count == 5 && catcher.Entity.Get<DamagePercent>().Percent == HillMatch.StartPercent,
                   $"draw: one catcher ({catcher.Entity.Name}) at {catcher.Entity.Get<DamagePercent>().Percent} %, five runners");
+            Check(runners.TrueForAll(r => r.Entity.Get<DamagePercent>().Percent == HillMatch.StartPercent),
+                  $"the runners at {HillMatch.StartPercent} %");
 
             Wheel();
             HeadStart();
@@ -255,7 +257,7 @@ namespace KotH.Probes.Probes
                     catchers++;
                     next = b;
                 }
-            Check(catchers == 1 && match.State.DrawnAt == match.State.RoundTicks - 1 && next.Entity.Get<DamagePercent>().Percent == HillMatch.CatcherPercent,
+            Check(catchers == 1 && match.State.DrawnAt == match.State.RoundTicks - 1 && next.Entity.Get<DamagePercent>().Percent == HillMatch.StartPercent,
                   $"the catcher left: {catchers} drawn anew at {match.State.DrawnAt}");
 
             match.Restore(match.State with { RoundTicks = match.RoundLimitTicks - 1 });

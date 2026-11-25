@@ -30,6 +30,36 @@ namespace KotH.Client.Player
 
         /// <summary>The look figure i (as in Figures) was registered with.</summary>
         public FigureLook LookOf(int i) => figures[i].Colors;
+
+        /// <summary>Up to into.Length shown figures nearest to a point, nearest first, as indices into Figures;
+        /// caught and free ones (hidden) not among them. For what takes only so many (grass, light capsules).</summary>
+        public int Nearest(Vector3 from, int[] into)
+        {
+            if (nearDistance.Length < into.Length)
+                nearDistance = new float[into.Length];
+            int n = 0;
+            for (int i = 0; i < visuals.Count; i++)
+            {
+                if (figures[i].Body is { IsOut: true })
+                    continue;
+                float d = Vector3.DistanceSquared(visuals[i].Transform.Position, from);
+                int k = n;
+                if (k == into.Length)
+                {
+                    if (into.Length == 0 || d >= nearDistance[k - 1])
+                        continue;
+                    k--;
+                }
+                else
+                    n++;
+                for (; k > 0 && nearDistance[k - 1] > d; k--)
+                    (into[k], nearDistance[k]) = (into[k - 1], nearDistance[k - 1]);
+                (into[k], nearDistance[k]) = (i, d);
+            }
+            return n;
+        }
+
+        float[] nearDistance = new float[16];
         readonly List<PlayerMotor> motors = new List<PlayerMotor>();
 
         // The rotations of the last two ticks per body: the motor keeps only
@@ -552,7 +582,7 @@ namespace KotH.Client.Player
                 Spores(f, t.Position - new Vector3(0f, 0.5f * motor.Height + sink, 0f));
             Slam(f);
             Wade(f, motor, t.Position);
-            t.Scale = new Vector3(width, scale, width);
+            t.Scale = f.Body is { IsOut: true } ? new Vector3(Hidden) : new Vector3(width, scale, width);
             t.Position.Y += 0.5f * (motor.StandHeight * scale - motor.Height) - sink;
             Trail(f, t.Position);
             Blink(f, dt);

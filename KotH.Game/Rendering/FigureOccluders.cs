@@ -49,15 +49,17 @@ namespace KotH.Client.Rendering
         {
             if (Entity.Get<LightComponent>()?.Type is not LightVoxel light)
                 return;
-            visuals ??= Find();
+            visuals ??= Find<PlayerVisualSystem>();
             light.OccluderGroupSize = Parts.Length;
             int groups = 0;
-            if (visuals != null)
+            camera ??= Find<CameraComponent>();
+            if (visuals != null && camera != null)
             {
-                for (int i = 0; i < visuals.Figures.Count; i++)
+                // The nearest to the camera, when there are more than the light takes (1, 2, 3, Free: 16).
+                int n = visuals.Nearest(camera.Entity.Transform.WorldMatrix.TranslationVector, nearest);
+                for (int k = 0; k < n; k++)
                 {
-                    if (groups == LightVoxel.MaxOccluderGroups)
-                        break;
+                    int i = nearest[k];
                     Entity figure = visuals.Figures[i];
                     if (figure.Get<ModelComponent>()?.Skeleton is not { } skeleton)
                         continue;
@@ -125,12 +127,15 @@ namespace KotH.Client.Rendering
             throw new InvalidOperationException($"Bone {name} is missing");
         }
 
-        PlayerVisualSystem Find()
+        readonly int[] nearest = new int[LightVoxel.MaxOccluderGroups];
+        CameraComponent camera;
+
+        T Find<T>() where T : EntityComponent
         {
             if (SceneSystem.SceneInstance?.RootScene is not { } scene)
                 return null;
             foreach (Entity e in scene.Entities)
-                if (e.Get<PlayerVisualSystem>() is { } found)
+                if (e.Get<T>() is { } found)
                     return found;
             return null;
         }
