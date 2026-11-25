@@ -82,7 +82,7 @@ namespace KotH.Client.Hud
             int left = HillMatch.RunnersLeft(bodies), all = left;
             for (int i = 0; i < bodies.Count; i++)
                 all += bodies[i].Role is FreeRole.Caught or FreeRole.Free ? 1 : 0;
-            int ticksLeft = Math.Max(0, Match.RoundLimitTicks - m.RoundTicks);
+            int ticksLeft = Math.Max(0, Match.RoundLimitTicks - Math.Max(m.RoundTicks, HillMatch.DrawTicks));   // stands during the draw
             view.Bar("Runners", countText.Of(CountFormat, left, all), Clock((ticksLeft + HillMatch.TicksPerPoint - 1) / HillMatch.TicksPerPoint));
 
             statusText = !Match.Playing || m.Over ? "" : look switch

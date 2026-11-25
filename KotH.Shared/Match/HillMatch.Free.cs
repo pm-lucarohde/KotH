@@ -20,7 +20,7 @@ namespace KotH.Shared.Match
         public const int FreeMinPlayers = 5, FreeMaxPlayers = 16, NormalMaxPlayers = 12, TwoCatchersFrom = 11;
 
         /// <summary>The draw's wheel (all stand), the runners' wait (the catcher's head start), the counts.</summary>
-        public static readonly int DrawTicks = Ticks(5f), HeadStartTicks = Ticks(15f);
+        public static readonly int DrawTicks = Ticks(10f), HeadStartTicks = Ticks(15f);
         public static readonly int FreeTicks = Ticks(3f), RescueTicks = Ticks(6f), MarkTicks = Ticks(3f);
         static readonly int FreeLimitTicks = Ticks(15f * 60f);
 
@@ -36,8 +36,8 @@ namespace KotH.Shared.Match
         /// <summary>Whether the round is one of 1, 2, 3, Free.</summary>
         public bool IsFree => state.Mode == MatchMode.Free;
 
-        /// <summary>The round's length in ticks: 15 minutes in 1, 2, 3, Free.</summary>
-        public int RoundLimitTicks => IsFree ? FreeLimitTicks : LimitTicks;
+        /// <summary>The round's length in ticks: in 1, 2, 3, Free the draw, then 15 minutes (the clock waits for it, Luca).</summary>
+        public int RoundLimitTicks => IsFree ? DrawTicks + FreeLimitTicks : LimitTicks;
 
         bool FreeRunning => IsFree && state.Phase == MatchPhase.Running;
 
@@ -204,7 +204,7 @@ namespace KotH.Shared.Match
                 }
 
             state.RoundTicks++;
-            if (playing && RunnersLeft(bodies) == 0 || state.RoundTicks >= FreeLimitTicks)
+            if (playing && RunnersLeft(bodies) == 0 || state.RoundTicks >= DrawTicks + FreeLimitTicks)
                 EndFree(bodies);
         }
 
