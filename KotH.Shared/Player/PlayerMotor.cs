@@ -898,7 +898,7 @@ namespace KotH.Shared.Player
             Vector3 step = UMath.Sub(position, beforeMove);
             lastStepSpeed = UMath.Magnitude(step) / dt;
 
-            if (Jammed())
+            if (Jammed() || CaughtFalling(step, dt))
                 EscapeJam();
 
             eyePosition = CurrentEyeWorldPosition();
@@ -1665,6 +1665,14 @@ namespace KotH.Shared.Player
 
         bool Jammed() => onSteepGround && !grounded && wedged
                       && steepTime >= JamSteepTime && lastStepSpeed < JamSpeed;
+
+        // Caught on an edge of a hollow shell (Volcano) without touching ground: the fall speed grows while the
+        // body sinks a few centimetres a tick, until it slips through (a chain then holds it inside). A fall of
+        // over 5 m/s that covers less than a quarter of its way down is never a real one.
+        const float JamFall = 5f;
+
+        bool CaughtFalling(Vector3 step, float dt)
+            => !grounded && !touchingGround && velocity.Y < -JamFall && step.Y > velocity.Y * dt * 0.25f;
 
         /// <summary>Lifts the jammed capsule to the nearest pose where it fits whole: 0,1
         /// to 0,8 m up and 0,3 or 0,6 m aside, in eight directions, downhill first. Never
