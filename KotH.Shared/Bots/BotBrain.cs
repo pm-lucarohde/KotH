@@ -11,7 +11,7 @@ using Stride.Core.Mathematics;
 namespace KotH.Shared.Bots
 {
     /// <summary>What a bot wants right now; the utility AI picks one per think.</summary>
-    public enum BotIntent : byte { Idle, Capture, Hold, Attack, Recover }
+    public enum BotIntent : byte { Idle, Capture, Hold, Attack, Recover, Flee }
 
     /// <summary>One bot's mind. Sees only a final state ReactionTicks old, steps once per
     /// tick in tick order, and keeps everything else to itself: the intent, the path, the
@@ -30,6 +30,7 @@ namespace KotH.Shared.Bots
             new[] { 3f, 0.5f, 1f, 1f, 2f, 0.3f, 0.1f, 0f, 0.3f, 0f },            // Hold
             new[] { 1f, 3f, 1.2f, 1.2f, 0.6f, 0.9f, 3f, 2.5f, 0.1f, 2.5f },       // Attack
             new[] { 1f, 2f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f },                    // Recover
+            new[] { 1f, 6f, 0.2f, 0.2f, 0.05f, 0.8f, 4f, 2f, 0f, 0f },           // Flee (as Capture: away fast)
         };
 
         readonly int netId;
@@ -236,7 +237,7 @@ namespace KotH.Shared.Bots
                 // climbed to the same way: straight at it the search ends on the floor nearest below it.
                 int ti = intent == BotIntent.Attack ? IndexOf(view, target) : -1;
                 bool upToTarget = ti >= 0 && match != null && match.Contains(view.StateAt(ti).Motor.Position);
-                bool toZone = match != null && (intent != BotIntent.Attack || upToTarget) && intent != BotIntent.Idle && !match.Contains(at);
+                bool toZone = match != null && (intent != BotIntent.Attack || upToTarget) && intent != BotIntent.Idle && intent != BotIntent.Flee && !match.Contains(at);
                 // Teams: all go the lead's way, chosen from where the lead stands (its route counts on with the NetId).
                 if (toZone && variant < 0)
                     variant = leadId != 0 && Seen(view, leadId, ahead, out Vector3 leader)
@@ -431,38 +432,42 @@ namespace KotH.Shared.Bots
                 ThinkHill();
             Choose(view, at);
 
-            // 1, 2, 3, Free: a runner goes to the zone, slower while a catcher stands by it, hits back a catcher
-            // close by and shoots one in the zone off it. The catcher keeps the zone (inside, no count runs, not
-            // even the last runner's rescue) and from there hits or shoots the runners that come to it.
+            // 1, 2, 3, Free (Luca): before a catcher has a catch it must hunt, and the runners keep away and wait
+            // for it to leave the zone; after it, the runners must go (left over loses), so the catcher keeps the
+            // zone (inside, no count runs, not even the rescue) and hits or shoots who comes, runners shoot it off.
             void ThinkFree()
             {
                 FreeRole role = (FreeRole)view.StateAt(self).Role;
                 bool runner = role is FreeRole.Runner or FreeRole.Rescuing, catcher = role == FreeRole.Catcher;
                 bool playing = live && view.Match.RoundTicks >= HillMatch.DrawTicks + HillMatch.HeadStartTicks;
-                bool guarded = false, marks = false, rescue = false;
+                bool guarded = false, marks = false, rescue = false, anyCaught = false, ownCatch = false;
                 for (int i = 0; i < view.Count; i++)
                 {
                     BodyState s = view.StateAt(i);
-                    guarded |= i != self && (FreeRole)s.Role == FreeRole.Catcher && NearHill(s.Motor.Position);
-                    marks |= catcher && (FreeRole)s.Role == FreeRole.Runner && s.MarkedBy == netId;
-                    rescue |= (FreeRole)s.Role == FreeRole.Rescuing;
+                    FreeRole r = (FreeRole)s.Role;
+                    guarded |= i != self && r == FreeRole.Catcher && NearHill(s.Motor.Position);
+                    marks |= catcher && r == FreeRole.Runner && s.MarkedBy == netId;
+                    rescue |= r == FreeRole.Rescuing;
+                    anyCaught |= r == FreeRole.Caught;
+                    ownCatch |= r == FreeRole.Caught && s.MarkedBy == netId;
                 }
+                bool hunting = catcher && !ownCatch && !marks && !rescue;
                 if (knocked)
                     Offer(BotIntent.Recover, 0, 2f);
                 Offer(BotIntent.Idle, 0, live ? 0.1f : 1f);
                 if (!live || !runner && !catcher)
                     return;
-                // A guarded zone is still gone for, more slowly: up there the catcher is hit off it.
                 if (runner)
                 {
-                    Offer(BotIntent.Capture, 0, inZone ? 0f : guarded ? 0.4f : 1.2f);
-                    Offer(BotIntent.Idle, 0, guarded && !inZone ? 0.4f : 0f);   // or waits for the catcher to leave
+                    // Before the first catch a guarded zone is waited out; after it, gone for more slowly.
+                    Offer(BotIntent.Capture, 0, inZone ? 0f : !guarded ? 1.2f : anyCaught ? 0.4f : 0.05f);
+                    Offer(BotIntent.Idle, 0, guarded && !inZone ? 0.4f : 0f);
                     Offer(BotIntent.Hold, 0, inZone ? 1.3f : 0f);
                 }
                 if (catcher)
                 {
-                    Offer(BotIntent.Capture, 0, inZone ? 0f : 1.6f);
-                    Offer(BotIntent.Hold, 0, inZone ? marks || rescue ? 2.2f : 1f : 0f);
+                    Offer(BotIntent.Capture, 0, inZone ? 0f : hunting ? 0.3f : 1.6f);
+                    Offer(BotIntent.Hold, 0, inZone ? marks || rescue ? 2.2f : hunting ? 0.3f : 1f : 0f);
                 }
                 if (!playing)
                     return;
@@ -475,16 +480,21 @@ namespace KotH.Shared.Bots
                     Vector3 there = Ahead(s.Motor.Position, s.Motor.Velocity, Reaction * Dt);
                     float d = UMath.Magnitude(UMath.Sub(there, at));
                     bool theyIn = match.Contains(there), shoot = shotsLeft > 0 && d < settings.BlasterRange;
-                    if (runner && d < settings.EngageRange)
-                        Offer(BotIntent.Attack, view.BodyAt(i).NetId, 1.6f - d / settings.EngageRange);
-                    else if (runner && theyIn && shoot)
-                        Offer(BotIntent.Attack, view.BodyAt(i).NetId, 1.4f);
+                    int id = view.BodyAt(i).NetId;
+                    if (runner && !theyIn && d < FleeRange && !(inZone && role == FreeRole.Rescuing))
+                        Offer(BotIntent.Flee, id, 0.6f + 1.4f * (1f - d / FleeRange));
+                    else if (runner && theyIn && d < settings.EngageRange)
+                        Offer(BotIntent.Attack, id, 1.6f - d / settings.EngageRange);
+                    else if (runner && theyIn && shoot && anyCaught)
+                        Offer(BotIntent.Attack, id, 1.4f);
                     else if (catcher && theyIn)
-                        Offer(BotIntent.Attack, view.BodyAt(i).NetId, 2f);
+                        Offer(BotIntent.Attack, id, 2f);
+                    else if (hunting && d < HuntRange)
+                        Offer(BotIntent.Attack, id, 0.8f + UMath.Max(0f, 1f - d / HuntRange));
                     else if (catcher && !rescue && NearHill(there) && d < settings.EngageRange)
-                        Offer(BotIntent.Attack, view.BodyAt(i).NetId, 1.3f);
+                        Offer(BotIntent.Attack, id, 1.3f);
                     else if (catcher && !rescue && shoot && inZone)
-                        Offer(BotIntent.Attack, view.BodyAt(i).NetId, 1.1f - 0.3f * d / settings.BlasterRange);
+                        Offer(BotIntent.Attack, id, 1.1f - 0.3f * d / settings.BlasterRange);
                 }
             }
 
@@ -530,6 +540,9 @@ namespace KotH.Shared.Bots
         }
 
         int offered;
+
+        // 1, 2, 3, Free: a runner flees a catcher closer than this; a catcher without a catch hunts this far (m).
+        const float FleeRange = 12f, HuntRange = 60f;
 
         // The intent among the offers (Think): the best ones by weighted chance.
         void Choose(WorldSnapshot view, Vector3 at)
@@ -609,6 +622,17 @@ namespace KotH.Shared.Bots
                         return there;
                     Vector3 stand = UMath.Add(there, UMath.Mul(UMath.Normalized(side), Spacing));
                     return nav.Nearest(stand, out Vector3 onMesh) ? onMesh : there;
+
+                case BotIntent.Flee:
+                    // Away from the catcher, 10 m on, where the climbing grid has ground.
+                    int fi = IndexOf(view, target);
+                    if (fi < 0)
+                        return Feet(at);
+                    Vector3 from = view.StateAt(fi).Motor.Position, away = new Vector3(at.X - from.X, 0f, at.Z - from.Z);
+                    if (UMath.SqrMagnitude(away) < 1e-4f)
+                        away = new Vector3(1f, 0f, 0f);
+                    Vector3 to = Feet(UMath.Add(at, UMath.Mul(UMath.Normalized(away), 10f)));
+                    return nav.Nearest(to, out Vector3 safe) ? safe : to;
 
                 default:
                     return Feet(at);
