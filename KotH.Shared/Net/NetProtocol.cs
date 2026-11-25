@@ -7,6 +7,7 @@ using System.Runtime.Intrinsics.X86;
 using System.Security.Cryptography;
 using System.Text;
 using KotH.Shared.Player;
+using KotH.Shared.Match;
 using KotH.Shared.Simulation;
 using Stride.Core.IO;
 using Stride.Core.Serialization.Contents;
@@ -45,6 +46,10 @@ namespace KotH.Shared.Net
         public int Wish;
         /// <summary>1, 2, 3, Free: the player's weight in the next draw (SimulationBody.Odds); 0 for none.</summary>
         public byte Odds;
+
+        /// <summary>No join or leave but the host's lobby settings (NetId 0), applied in its tick on every peer.</summary>
+        public bool IsLobby;
+        public LobbyCommand Lobby;
     }
 
     /// <summary>
@@ -201,6 +206,14 @@ namespace KotH.Shared.Net
 
         public static void WriteEvent(ref Writer w, in NetEvent e)
         {
+            if (e.IsLobby)
+            {
+                w.Byte(4);
+                w.Byte((byte)e.Lobby.Mode);
+                w.Byte((byte)e.Lobby.MinPlayers);
+                w.Byte((byte)((e.Lobby.ManualStart ? 1 : 0) | (e.Lobby.BotsOff ? 2 : 0) | (e.Lobby.Start ? 4 : 0)));
+                return;
+            }
             w.Byte(e.Join ? e.Bot ? (byte)3 : (byte)1 : (byte)0);
             w.Int(e.NetId);
             if (!e.Join)
@@ -215,6 +228,13 @@ namespace KotH.Shared.Net
         public static NetEvent ReadEvent(ref Reader r)
         {
             byte kind = r.Byte();
+            if (kind == 4)
+            {
+                var lobby = new LobbyCommand { Mode = (MatchMode)Math.Min(r.Byte(), (byte)MatchMode.Free), MinPlayers = r.Byte() };
+                byte flags = r.Byte();
+                (lobby.ManualStart, lobby.BotsOff, lobby.Start) = ((flags & 1) != 0, (flags & 2) != 0, (flags & 4) != 0);
+                return new NetEvent { IsLobby = true, Lobby = lobby };
+            }
             var e = new NetEvent { Join = kind != 0, Bot = (kind & 2) != 0, NetId = r.Int() };
             if (e.Join)
             {

@@ -347,7 +347,7 @@ namespace KotH.Probes.Probes
             HeadlessWorld home = World();
             founder = new PeerSession(new HeadlessNetWorld(home), host.LocalTransport, () => default, "Host", true, net.Now);
             host.AttachFounder(founder);
-            home.Simulation.Match.MinPlayers = HillMatch.DefaultMinPlayers;
+            home.Simulation.Match.MinPlayers = guest ? 2 : 1;   // people only: bots do not count
             BotDirector director = BotDirector.Create(home.Builder, home.Simulation, founder, Seed);
             host.Bots = director;
             founder.KnownInputs = director;

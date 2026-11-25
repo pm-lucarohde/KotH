@@ -669,6 +669,8 @@ namespace KotH.Shared.Net
                 int tick = confirmedTick + 1;
                 foreach (NetEvent e in rec.Events)
                 {
+                    if (e.IsLobby)
+                        continue;
                     if (e.Join && !bodies.ContainsKey(e.NetId))
                         Spawn(e);
                     else if (!e.Join)
@@ -815,6 +817,11 @@ namespace KotH.Shared.Net
             if (rec != null)
                 foreach (NetEvent e in rec.Events)
                 {
+                    if (e.IsLobby)
+                    {
+                        sim.Match?.Command(e.Lobby);
+                        continue;
+                    }
                     SimulationBody body = BodyOf(e.NetId);
                     if (body == null)
                         continue;

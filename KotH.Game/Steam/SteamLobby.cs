@@ -75,8 +75,10 @@ namespace KotH.Client.Steam
             string host = flags.Name;
             var lobby = new SteamLobby(hosting: true) { HostName = host, Private = flags.Private };
             lobby.map = map;
+            lobby.mode = flags.Mode;
             const int Public = 2;   // k_ELobbyTypePublic
-            Create(lobby, Public, HillMatch.MaxPlayers(flags.Mode), () =>
+            // Room for the largest mode: the host may change it in the lobby, its own capacity turns joins away.
+            Create(lobby, Public, HillMatch.FreeMaxPlayers, () =>
             {
                 lobby.Set("map", lobby.map);
                 lobby.Set("maptitle", lobby.mapTitle ?? lobby.map);
@@ -88,7 +90,7 @@ namespace KotH.Client.Steam
                 foreach (string language in flags.Languages)
                     lobby.Set("lang_" + language, "1");
                 lobby.Set("modded", flags.Modded ? "1" : "0");
-                lobby.Set("mode", HillMatch.ModeName(flags.Mode));
+                lobby.Set("mode", HillMatch.ModeName(lobby.mode));
                 lobby.Set("host", SteamClient.SteamId.ToString(CultureInfo.InvariantCulture));
                 lobby.Refresh(force: true);
                 if (lobby.players >= 0)
@@ -342,6 +344,17 @@ namespace KotH.Client.Steam
         }
 
         string mapTitle;
+        MatchMode mode;
+
+        /// <summary>The host changed the mode in the lobby (Esc, Round): the list shows the new one (Luca).</summary>
+        public void SetMode(MatchMode value)
+        {
+            if (value == mode)
+                return;
+            mode = value;
+            if (Id != 0)
+                Set("mode", HillMatch.ModeName(value));
+        }
 
         string map;
 

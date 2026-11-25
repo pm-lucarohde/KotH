@@ -274,8 +274,12 @@ namespace KotH.Client.Hud
 
             if (m.Phase == MatchPhase.Waiting)
             {
-                caption = Match.Mode == MatchMode.Solo ? "Waiting for players" : waitingCaption.Of(HillMatch.DisplayName(Match.Mode), ": waiting for players");
-                count = countText.Of(CountFormat, HillMatch.CountPlayers(Simulation.Bodies), m.MinPlayers);
+                // People only (bots do not count); the host starting by hand, or 1, 2, 3, Free short of five without bots.
+                bool shortOfFive = m.Mode == MatchMode.Free && m.BotsOff && HillMatch.CountPlayers(Simulation.Bodies) < HillMatch.FreeMinPlayers;
+                caption = shortOfFive ? FreeNeedsFive
+                        : m.ManualStart ? "The host starts the round"
+                        : Match.Mode == MatchMode.Solo ? "Waiting for players" : waitingCaption.Of(HillMatch.DisplayName(Match.Mode), ": waiting for players");
+                count = m.ManualStart || shortOfFive ? "" : countText.Of(CountFormat, HillMatch.CountPeople(Simulation.Bodies), m.MinPlayers);
                 time = statusText = "";
             }
             else if (m.Phase == MatchPhase.Countdown)
@@ -396,6 +400,8 @@ namespace KotH.Client.Hud
         }
 
         const string CountFormat = "{0} / {1}";
+
+        static readonly string FreeNeedsFive = $"1, 2, 3, Free needs {HillMatch.FreeMinPlayers} players";
 
         string Clock(int seconds) => clockText.Of("{0}:{1:D2}", seconds / 60, seconds % 60);
 

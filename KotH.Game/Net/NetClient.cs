@@ -59,7 +59,8 @@ namespace KotH.Client.Net
                 if (round != null)
                 {
                     round.Stage = MatchStage.Lobby;
-                    round.MinPlayers = HillMatch.MinPlayersOf(options.Mode, options.MinPlayers);
+                    round.MinPlayers = options.MinPlayers;
+                    round.Command(LobbyOf(options, start: false));
                 }
                 address = lobby != null ? "Steam" : $"Port {options.Port}";
             }
@@ -136,6 +137,37 @@ namespace KotH.Client.Net
         }
 
         public HostSession Host { get; private set; }
+
+        /// <summary>The host's lobby settings as the round's command.</summary>
+        public static LobbyCommand LobbyOf(LaunchOptions o, bool start)
+            => new LobbyCommand { Mode = o.Mode, MinPlayers = o.MinPlayers, ManualStart = o.ManualStart, BotsOff = o.BotsOff, Start = start };
+
+        /// <summary>The host changed its lobby (Esc, Round; LaunchOptions.Current): the mode, its room and the list's
+        /// word for it now, bots come or go, then every peer gets the settings in a confirmed tick; start counts down.</summary>
+        public void ApplyLobby(bool start)
+        {
+            if (Host == null || Host.Stage != MatchStage.Lobby || Host.Restarting)
+                return;
+            LaunchOptions o = LaunchOptions.Current;
+            Host.Capacity = HillMatch.MaxPlayers(o.Mode);
+            Lobby?.SetMode(o.Mode);
+            List<int> bots = Host.BotIds;
+            int want = o.BotsOff ? 0 : o.Bots, players = HillMatch.CountPlayers(Session.Simulation.Bodies);
+            for (int k = bots.Count - 1; k >= want; k--)
+            {
+                Host.RemoveBot(bots[k]);
+                (Host.Bots as BotDirector)?.Remove(bots[k]);
+            }
+            if (bots.Count < want && MakeBots != null && Host.Bots == null)
+            {
+                BotDirector director = MakeBots(Session, 0);
+                Host.Bots = director;
+                Session.KnownInputs = director;
+            }
+            for (int k = bots.Count; k < want && players < Host.Capacity && Host.Bots is BotDirector director; k++, players++)
+                director.Add(Host.AddBot($"Bot {k + 1}"));
+            Host.Command(LobbyOf(o, start));
+        }
 
         /// <summary>In the game: joined, or back with a new host after a host change.</summary>
         public bool Joined => Session.Joined || Session.ResumeNetId != 0 && !gaveUp;
@@ -231,6 +263,9 @@ namespace KotH.Client.Net
             if (MakeBots == null)
                 return;
             for (int k = (size - count % size) % size; k > 0 && count < Host.Capacity; k--, count++)
+                Host.AddBot($"Bot {Host.BotIds.Count + 1}");
+            // 1, 2, 3, Free needs five: with bots on they make up the rest (people alone start only with five).
+            for (; m.Mode == MatchMode.Free && !m.BotsOff && count < HillMatch.FreeMinPlayers; count++)
                 Host.AddBot($"Bot {Host.BotIds.Count + 1}");
         }
 

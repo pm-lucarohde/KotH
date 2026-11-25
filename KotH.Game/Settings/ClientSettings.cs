@@ -26,6 +26,16 @@ namespace KotH.Client.Settings
             SettingsFile.Save(s);
         }
 
+        /// <summary>The host's next round (Esc menu, Round): its mode and values, saved at once.</summary>
+        public static void RememberRound(PlayerSettings from)
+        {
+            PlayerSettings s = Applied;
+            (s.HostMode, s.HostStartPercent, s.HostMelee, s.HostSpore, s.HostDash, s.HostKnock) =
+                (from.HostMode, from.HostStartPercent, from.HostMelee, from.HostSpore, from.HostDash, from.HostKnock);
+            (s.HostBots, s.HostBotCount, s.HostAutoStart, s.HostMinPlayers) = (from.HostBots, from.HostBotCount, from.HostAutoStart, from.HostMinPlayers);
+            SettingsFile.Save(s);
+        }
+
         public static void Apply(PlayerSettings settings)
         {
             applied = settings.Clone();

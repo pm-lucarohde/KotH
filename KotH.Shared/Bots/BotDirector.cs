@@ -153,6 +153,16 @@ namespace KotH.Shared.Bots
             }
         }
 
+        /// <summary>A bot that left the game thinks no more.</summary>
+        public void Remove(int netId)
+        {
+            lock (gate)
+            {
+                if (bots.Remove(netId))
+                    roster = new List<Bot>(bots.Values).ToArray();
+            }
+        }
+
         public bool IsBot(int netId) => bots.ContainsKey(netId);
 
         public BotBrain BrainOf(int netId) => bots.TryGetValue(netId, out Bot b) ? b.Brain : null;

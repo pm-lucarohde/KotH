@@ -315,6 +315,7 @@ namespace KotH.Client
             options.Steam = SteamClient.Ready;
             options.Password = password;
             options.Mode = flags.Mode;
+            TakeHostRound(options, ClientSettings.Applied);
             StartNetworked(options, options.Steam ? SteamLobby.Open(builder.Map, flags) : null);
         }
 
@@ -357,6 +358,16 @@ namespace KotH.Client
             cover.Hold = () => !guest.Joined;
         }
 
+        /// <summary>The host's remembered lobby (Esc menu, Round) into the options: bots, the start, the round's values.</summary>
+        public static void TakeHostRound(LaunchOptions options, PlayerSettings s)
+        {
+            options.Bots = Math.Min(s.HostBotCount, HillMatch.MaxPlayers(options.Mode) - 1);
+            options.BotsOff = !s.HostBots;
+            options.ManualStart = !s.HostAutoStart;
+            options.MinPlayers = s.HostMinPlayers;
+            options.Rules = s.RulesOf;
+        }
+
         /// <summary>The host restarted the game on a map and stage (lobby to round and back): the
         /// world is taken down as for the main menu, the map changes if it differs, a fresh round
         /// waits; NetClient joins again once the map is baked. Covered until joined.</summary>
@@ -395,7 +406,12 @@ namespace KotH.Client
                     // The host's own round; a guest takes the host's state when it joins.
                     simulation.Match = new HillMatch(builder.Zone) { Seed = (uint)Random.Shared.Next(), Stage = stage, Mode = LaunchOptions.Current.Mode };
                     if (stage == MatchStage.Lobby)
-                        simulation.Match.MinPlayers = HillMatch.MinPlayersOf(LaunchOptions.Current.Mode, LaunchOptions.Current.MinPlayers);
+                    {
+                        simulation.Match.MinPlayers = LaunchOptions.Current.MinPlayers;
+                        simulation.Match.Command(NetClient.LobbyOf(LaunchOptions.Current, start: false));
+                    }
+                    else if (stage == MatchStage.Round && client?.Host != null)
+                        simulation.Match.Rules = LaunchOptions.Current.Rules;
                 }
                 BindWorld(null);
                 cover.Hold = () => net == client && (client.Restarting || !client.Joined);
@@ -595,7 +611,7 @@ namespace KotH.Client
                 DropBots = DropBots,
             };
             Services.AddService(net);
-            if (options.Host && options.Bots > 0)
+            if (options.Host && options.Bots > 0 && !options.BotsOff)
             {
                 BotDirector director = BotDirector.Create(builder, simulation, net.Session, options.BotSeed);
                 net.AddBots(director, options.Bots);

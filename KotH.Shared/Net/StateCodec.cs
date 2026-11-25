@@ -15,13 +15,14 @@ namespace KotH.Shared.Net
     public static class StateCodec
     {
         const uint Magic = 0x4B6F5448; // "KoTH"
-        const int Version = 10;
+        const int Version = 11;
 
         /// <summary>Bytes before the round: magic, version, tick, body count.</summary>
         public const int HeadBytes = 16;
 
-        // RoundTicks, Phase, PhaseTicks, Inside, Winner, Holder, MinPlayers, Seed, Mode, Catchers, DrawnAt.
-        public const int MatchBytes = 4 + 1 + 4 + 4 + 4 + 4 + 1 + 4 + 1 + 1 + 4;
+        // RoundTicks, Phase, PhaseTicks, Inside, Winner, Holder, MinPlayers, Seed, Mode, Catchers, DrawnAt,
+        // Rules (set, 5 floats), lobby flags.
+        public const int MatchBytes = 4 + 1 + 4 + 4 + 4 + 4 + 1 + 4 + 1 + 1 + 4 + 1 + 5 * 4 + 1;
 
         public static int BodyStateSize => Unsafe.SizeOf<BodyState>();
 
@@ -111,6 +112,13 @@ namespace KotH.Shared.Net
             to[26] = (byte)m.Mode;
             to[27] = m.Catchers;
             BinaryPrimitives.WriteInt32LittleEndian(to[28..], m.DrawnAt);
+            to[32] = (byte)(m.Rules.Set ? 1 : 0);
+            BinaryPrimitives.WriteSingleLittleEndian(to[33..], m.Rules.StartPercent);
+            BinaryPrimitives.WriteSingleLittleEndian(to[37..], m.Rules.Melee);
+            BinaryPrimitives.WriteSingleLittleEndian(to[41..], m.Rules.Spore);
+            BinaryPrimitives.WriteSingleLittleEndian(to[45..], m.Rules.Dash);
+            BinaryPrimitives.WriteSingleLittleEndian(to[49..], m.Rules.Knock);
+            to[53] = (byte)((m.ManualStart ? 1 : 0) | (m.Forced ? 2 : 0) | (m.BotsOff ? 4 : 0));
         }
 
         static MatchState ReadMatch(ReadOnlySpan<byte> from, Func<int, SimulationBody> bodyOf)
@@ -130,6 +138,18 @@ namespace KotH.Shared.Net
                 Mode = (MatchMode)from[26],
                 Catchers = from[27],
                 DrawnAt = BinaryPrimitives.ReadInt32LittleEndian(from[28..]),
+                Rules = new RoundRules
+                {
+                    Set = from[32] != 0,
+                    StartPercent = BinaryPrimitives.ReadSingleLittleEndian(from[33..]),
+                    Melee = BinaryPrimitives.ReadSingleLittleEndian(from[37..]),
+                    Spore = BinaryPrimitives.ReadSingleLittleEndian(from[41..]),
+                    Dash = BinaryPrimitives.ReadSingleLittleEndian(from[45..]),
+                    Knock = BinaryPrimitives.ReadSingleLittleEndian(from[49..]),
+                },
+                ManualStart = (from[53] & 1) != 0,
+                Forced = (from[53] & 2) != 0,
+                BotsOff = (from[53] & 4) != 0,
             };
         }
 

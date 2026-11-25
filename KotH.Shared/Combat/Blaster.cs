@@ -210,10 +210,10 @@ namespace KotH.Shared.Combat
             target.LastHitAway = away;
             target.LastHitAt = default;
 
-            float before = target.Percent;
-            target.Add(DamagePercent);
-
             SimulationBody shooter = Entity.Get<SimulationBody>();
+            float before = target.Percent;
+            target.Add(shooter?.Simulation?.Match?.Percent(HitKind.Spore, DamagePercent) ?? DamagePercent);
+
             shooter?.Simulation?.ReportHit(shooter, target.Entity.Get<SimulationBody>());
 
             PlayerMotor victim = target.Entity.Get<PlayerMotor>();

@@ -11,5 +11,8 @@ namespace KotH.Shared.Match
         static readonly MotorTuning Mighty = new MotorTuning(1.25f, 1.4825f, 2.90f, 3f);
 
         public static MotorTuning For(MatchMode mode) => mode == MatchMode.Mighty ? Mighty : MotorTuning.None;
+
+        /// <summary>The damage a round starts with: 30 % in 1, 2, 3, Free (catcher and runners alike, Luca), else 0.</summary>
+        public static float StartPercent(MatchMode mode) => mode == MatchMode.Free ? 30f : 0f;
     }
 }

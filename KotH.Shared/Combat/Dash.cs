@@ -163,7 +163,7 @@ namespace KotH.Shared.Combat
                 target.LastHitAt = UMath.Sub(nearest, centre);
 
                 float before = target.Percent;
-                target.Add(DamagePercent);
+                target.Add(self?.Simulation?.Match?.Percent(HitKind.Dash, DamagePercent) ?? DamagePercent);
                 float lift = UMath.Max(before, KnockbackHeightFloor) / 100f;
                 victim.Knock(away, KnockbackDistance * (before / 100f), KnockbackHeight * lift, 0f, 0f, dt);
             }

@@ -68,7 +68,7 @@ namespace KotH.Server
                 host.AttachFounder(session);
                 HillMatch round = world.Simulation.Match;
                 round.Mode = HillMatch.ParseMode(Text(args, "--mode")) ?? MatchMode.Solo;
-                round.MinPlayers = HillMatch.MinPlayersOf(round.Mode, minPlayers);
+                round.MinPlayers = minPlayers;
                 host.Capacity = HillMatch.MaxPlayers(round.Mode);
                 host.CanJoin = () => round.AcceptsJoin;
                 Console.WriteLine($"[net] host on port {port}, map {map}, round from {minPlayers} players, build {NetProtocol.BuildText}");
@@ -161,7 +161,7 @@ namespace KotH.Server
         static void Report(HeadlessWorld world, PeerSession session, HostSession host)
         {
             MatchState m = world.Simulation.Match?.State ?? default;
-            int players = HillMatch.CountPlayers(world.Simulation.Bodies);
+            int players = HillMatch.CountPeople(world.Simulation.Bodies);
             string phase = m.Phase switch
             {
                 MatchPhase.Waiting => $"waiting ({players} / {m.MinPlayers})",

@@ -26,6 +26,10 @@ namespace KotH.Client.Net
 
         /// <summary>Solo or teams (--mode duo|trio|squad, the Host server page); a guest plays the host's.</summary>
         public MatchMode Mode;
+
+        /// <summary>The host's lobby (Esc menu, Round): start only by hand, no bots; the next round's values.</summary>
+        public bool ManualStart, BotsOff;
+        public RoundRules Rules;
         public int? Display;
         public int Bots = 3;
         public int BotSeed = 1;

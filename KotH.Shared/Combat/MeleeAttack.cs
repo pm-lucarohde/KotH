@@ -1,3 +1,4 @@
+using KotH.Shared.Match;
 using KotH.Shared.Mathematics;
 using KotH.Shared.Physics;
 using KotH.Shared.Player;
@@ -142,7 +143,7 @@ namespace KotH.Shared.Combat
             // The percent before this hit decides: a fresh body is not moved.
             float before = target.Percent;
             float scale = before / 100f;
-            target.Add(DamagePercent);
+            target.Add(self?.Simulation?.Match?.Percent(HitKind.Melee, DamagePercent) ?? DamagePercent);
 
             PlayerMotor victim = target.Entity.Get<PlayerMotor>();
             if (victim == null)

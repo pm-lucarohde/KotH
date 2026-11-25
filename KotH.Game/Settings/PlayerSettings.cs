@@ -47,6 +47,24 @@ namespace KotH.Client.Settings
         public string[] HostRegions = System.Array.Empty<string>();
         public string[] HostLanguages = System.Array.Empty<string>();
 
+        // The host's next round, from the lobby's Esc menu (Luca): start damage (< 0 the mode's own), percent
+        // per hit of cane, spore and dash, knockback factor, bots and how many, start by count from how many people.
+        public float HostStartPercent = -1f, HostMelee = DefaultHitPercent, HostSpore = DefaultHitPercent, HostDash = DefaultHitPercent, HostKnock = 1f;
+        public bool HostBots = true, HostAutoStart = true;
+        public int HostBotCount = 3, HostMinPlayers = KotH.Shared.Match.HillMatch.DefaultMinPlayers;
+
+        /// <summary>Every attack's own percent per hit (the body prefab's), and the menu's ranges.</summary>
+        public const float DefaultHitPercent = 1.2f, MaxHitPercent = 10f, MaxStartPercent = 150f, MinKnock = 0.25f, MaxKnock = 3f;
+
+        /// <summary>The start damage the next round gets: the host's, else the mode's.</summary>
+        public float StartPercentOf => HostStartPercent < 0f ? KotH.Shared.Match.ModeRules.StartPercent(HostMode) : HostStartPercent;
+
+        /// <summary>The round values for the host's next round.</summary>
+        public KotH.Shared.Match.RoundRules RulesOf => new KotH.Shared.Match.RoundRules
+        {
+            Set = true, StartPercent = StartPercentOf, Melee = HostMelee, Spore = HostSpore, Dash = HostDash, Knock = HostKnock,
+        };
+
         public const float DefaultFov = 85f, MinFov = 60f, MaxFov = 120f;
         public const float MinSensitivity = 0.1f, MaxSensitivity = 10f;
 

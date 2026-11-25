@@ -167,6 +167,21 @@ namespace KotH.Shared.Net
             return c.NetId;
         }
 
+        /// <summary>A bot leaves (the host turned bots down in the lobby); false if it is not one of them.</summary>
+        public bool RemoveBot(int netId)
+        {
+            foreach (Client c in clients.Values)
+                if (c.IsBot && c.NetId == netId && c.Phase != Phase.Left)
+                {
+                    Leave(c);
+                    return true;
+                }
+            return false;
+        }
+
+        /// <summary>The host's lobby settings go into the next confirmed tick, for every peer alike.</summary>
+        public void Command(in LobbyCommand lobby) => pending.Add(new NetEvent { IsLobby = true, Lobby = lobby });
+
         /// <summary>Whether a new player may join right now; the lobby decides (N5).</summary>
         public Func<bool> CanJoin { get; set; } = () => true;
 

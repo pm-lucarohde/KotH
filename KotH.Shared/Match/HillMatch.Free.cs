@@ -27,17 +27,11 @@ namespace KotH.Shared.Match
         /// <summary>In the head start the catcher stays this far from every runner, flat metres.</summary>
         public const float KeepAway = 15f;
 
-        /// <summary>Every player's percent from the draw on, catcher and runners alike (instead of 0, Luca).</summary>
-        public const float StartPercent = 30f;
-
         /// <summary>Odds: certain to be drawn again (a catcher who caught nobody).</summary>
         public const byte Certain = 255;
 
         /// <summary>Most players a game of the mode takes.</summary>
         public static int MaxPlayers(MatchMode mode) => mode == MatchMode.Free ? FreeMaxPlayers : NormalMaxPlayers;
-
-        /// <summary>The players a game of the mode waits for: at least 5 in 1, 2, 3, Free.</summary>
-        public static int MinPlayersOf(MatchMode mode, int wanted) => mode == MatchMode.Free && wanted > 0 ? Math.Max(wanted, FreeMinPlayers) : wanted;
 
         /// <summary>Whether the round is one of 1, 2, 3, Free.</summary>
         public bool IsFree => state.Mode == MatchMode.Free;
@@ -152,8 +146,11 @@ namespace KotH.Shared.Match
         void TickFree(IReadOnlyList<SimulationBody> bodies)
         {
             Sorted(bodies);
-            if (state.RoundTicks == 0 && (order.Count == 0 || order[^1].NetId < NetWorld.FirstPlayerId))
-                return;   // nobody to draw yet (a host's round before its players): it waits at its start
+            // Nobody to draw yet: a host's round from the lobby waits at its start for a person, as its bots are in
+            // before the host's own player (it was a spectator of its own round); elsewhere for any player.
+            if (state.RoundTicks == 0 && (Stage == MatchStage.Round ? CountPeople(bodies) == 0
+                                          : order.Count == 0 || order[^1].NetId < NetWorld.FirstPlayerId))
+                return;
             if (state.RoundTicks == 0)
                 Draw(bodies, true);
             else if (Count(FreeRole.Catcher) < state.Catchers && Count(FreeRole.Runner) > 0)

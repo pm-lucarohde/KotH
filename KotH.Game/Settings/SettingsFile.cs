@@ -80,6 +80,10 @@ namespace KotH.Client.Settings
             Text(t, "name", s.HostName); Flag(t, "private", s.HostPrivate); Text(t, "regions", string.Join(",", s.HostRegions));
             Text(t, "languages", string.Join(",", s.HostLanguages)); Flag(t, "modded", s.HostModded);
             Text(t, "mode", KotH.Shared.Match.HillMatch.ModeName(s.HostMode));
+            Number(t, "start_percent", s.HostStartPercent); Number(t, "melee_percent", s.HostMelee);
+            Number(t, "spore_percent", s.HostSpore); Number(t, "dash_percent", s.HostDash); Number(t, "knockback", s.HostKnock);
+            Flag(t, "bots", s.HostBots); Number(t, "bot_count", s.HostBotCount);
+            Flag(t, "auto_start", s.HostAutoStart); Number(t, "min_players", s.HostMinPlayers);
             return t.ToString();
         }
 
@@ -165,6 +169,15 @@ namespace KotH.Client.Settings
                 case ("host", "languages"): s.HostLanguages = LobbyFlags.Known(List(v), LobbyFlags.AllLanguages, LobbyFlags.MaxLanguages); break;
                 case ("host", "modded"): s.HostModded = Bool(v, s.HostModded); break;
                 case ("host", "mode"): s.HostMode = KotH.Shared.Match.HillMatch.ParseMode(v) ?? s.HostMode; break;
+                case ("host", "start_percent"): s.HostStartPercent = Math.Clamp(Float(v, s.HostStartPercent), -1f, PlayerSettings.MaxStartPercent); break;
+                case ("host", "melee_percent"): s.HostMelee = Math.Clamp(Float(v, s.HostMelee), 0f, PlayerSettings.MaxHitPercent); break;
+                case ("host", "spore_percent"): s.HostSpore = Math.Clamp(Float(v, s.HostSpore), 0f, PlayerSettings.MaxHitPercent); break;
+                case ("host", "dash_percent"): s.HostDash = Math.Clamp(Float(v, s.HostDash), 0f, PlayerSettings.MaxHitPercent); break;
+                case ("host", "knockback"): s.HostKnock = Math.Clamp(Float(v, s.HostKnock), PlayerSettings.MinKnock, PlayerSettings.MaxKnock); break;
+                case ("host", "bots"): s.HostBots = Bool(v, s.HostBots); break;
+                case ("host", "bot_count"): s.HostBotCount = Math.Clamp(Int(v, s.HostBotCount), 1, KotH.Shared.Match.HillMatch.FreeMaxPlayers - 1); break;
+                case ("host", "auto_start"): s.HostAutoStart = Bool(v, s.HostAutoStart); break;
+                case ("host", "min_players"): s.HostMinPlayers = Math.Clamp(Int(v, s.HostMinPlayers), 1, KotH.Shared.Match.HillMatch.FreeMaxPlayers); break;
                 case ("keys", _):
                     foreach (Binding b in Enum.GetValues<Binding>())
                         if (KeyName(b) == key && Enum.TryParse(v, true, out Keys k) && Enum.IsDefined(k))

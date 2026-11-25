@@ -67,8 +67,33 @@ namespace KotH.Shared.Match
         public byte Catchers;
         public int DrawnAt;
 
+        /// <summary>The host's choices for the round (Esc menu in the lobby); unset, each attack's and mode's own.</summary>
+        public RoundRules Rules;
+
+        /// <summary>Lobby (host's Esc menu): no start by count, Start was pressed, no bots fill 1, 2, 3, Free up.</summary>
+        public bool ManualStart, Forced, BotsOff;
+
         /// <summary>The round has ended and the winner is shown.</summary>
         public readonly bool Over => Phase == MatchPhase.Over;
+    }
+
+    /// <summary>Which attack a hit came from, for the host's percent per attack.</summary>
+    public enum HitKind : byte { Melee, Spore, Dash }
+
+    /// <summary>The lobby's settings from the host's Esc menu, carried in a confirmed tick (NetEvent).</summary>
+    public struct LobbyCommand
+    {
+        public MatchMode Mode;
+        public int MinPlayers;
+        public bool ManualStart, BotsOff, Start;
+    }
+
+    /// <summary>A round's values the host set in the lobby (Luca, 25.11.2026); Set false keeps the attacks'
+    /// own percents, the mode's start damage and knockback ×1, so every round before them plays alike.</summary>
+    public struct RoundRules
+    {
+        public bool Set;
+        public float StartPercent, Melee, Spore, Dash, Knock;
     }
 
     /// <summary>King of the hill: alone in the zone for a few seconds takes it, then a point per
@@ -262,6 +287,61 @@ namespace KotH.Shared.Match
             return players;
         }
 
+        /// <summary>Players who are people, not bots: the lobby's count to start (Luca).</summary>
+        public static int CountPeople(IReadOnlyList<SimulationBody> bodies)
+        {
+            int people = 0;
+            for (int i = 0; i < bodies.Count; i++)
+                if (bodies[i].NetId >= NetWorld.FirstPlayerId && !bodies[i].Bot)
+                    people++;
+            return people;
+        }
+
+        /// <summary>Whether the lobby counts down: Start pressed, or enough people while it starts by count;
+        /// 1, 2, 3, Free with the bots off needs its 5 players (with them, bots fill up at the start).</summary>
+        public bool Starts(IReadOnlyList<SimulationBody> bodies)
+        {
+            if (state.Mode == MatchMode.Free && state.BotsOff && CountPlayers(bodies) < FreeMinPlayers)
+                return false;
+            return state.Forced || !state.ManualStart && CountPeople(bodies) >= state.MinPlayers;
+        }
+
+        /// <summary>The host's lobby choices, from a confirmed tick (every peer alike); Start counts down at once.</summary>
+        public void Command(in LobbyCommand c)
+        {
+            state.Mode = c.Mode;
+            state.MinPlayers = Math.Max(1, c.MinPlayers);
+            state.ManualStart = c.ManualStart;
+            state.BotsOff = c.BotsOff;
+            state.Forced |= c.Start;
+        }
+
+        /// <summary>The damage a round starts with: the host's, else the mode's (30 % in 1, 2, 3, Free).</summary>
+        public float StartPercent => state.Rules.Set ? state.Rules.StartPercent : ModeRules.StartPercent(state.Mode);
+
+        /// <summary>The percent a hit adds: the host's for the attack, else the attack's own.</summary>
+        public float Percent(HitKind kind, float own)
+            => !state.Rules.Set ? own : kind switch { HitKind.Spore => state.Rules.Spore, HitKind.Dash => state.Rules.Dash, _ => state.Rules.Melee };
+
+        /// <summary>The host's knockback factor, 1 when unset.</summary>
+        public float Knock => state.Rules.Set ? state.Rules.Knock : 1f;
+
+        /// <summary>The round's values; set by the host before it begins, they travel with the state.</summary>
+        public RoundRules Rules
+        {
+            get => state.Rules;
+            set => state.Rules = value;
+        }
+
+        // Everyone in a new round (and who joins one) starts with the start damage; none with 0 % as before.
+        void Hurt(IReadOnlyList<SimulationBody> bodies)
+        {
+            float start = StartPercent;
+            if (start > 0f)
+                for (int i = 0; i < bodies.Count; i++)
+                    bodies[i].Damage?.Restore(start);
+        }
+
         /// <summary>Whole points out of score ticks, as the HUD shows them.</summary>
         public static int Points(int scoreTicks) => scoreTicks / TicksPerPoint;
 
@@ -360,6 +440,9 @@ namespace KotH.Shared.Match
                 MinPlayers = state.MinPlayers,
                 Seed = state.Seed,
                 Mode = state.Mode,
+                Rules = state.Rules,
+                ManualStart = state.ManualStart,
+                BotsOff = state.BotsOff,
                 Phase = state.MinPlayers > 0 ? MatchPhase.Waiting : MatchPhase.Running,
             };
 
@@ -378,6 +461,8 @@ namespace KotH.Shared.Match
                 }
 
             // Into a running round: a team with room, then straight to a place round the hill.
+            if (moving.Count > 0 && state.Phase == MatchPhase.Running)
+                Hurt(moving);
             if (moving.Count > 0 && state.Phase == MatchPhase.Running && Teamed)
                 FormTeams(bodies);
             if (moving.Count > 0 && state.Phase == MatchPhase.Running && state.Mode == MatchMode.Free && state.RoundTicks > 0)
@@ -433,6 +518,7 @@ namespace KotH.Shared.Match
                     Reset();
                     if (state.Phase == MatchPhase.Running)
                     {
+                        Hurt(bodies);
                         TeamEveryone(bodies);
                         PlaceEveryone(bodies);
                     }
@@ -440,7 +526,7 @@ namespace KotH.Shared.Match
 
                 case MatchPhase.Waiting:
                     // The zone does not count before the round; the count is checked every tick.
-                    if (CountPlayers(bodies) >= state.MinPlayers)
+                    if (Starts(bodies))
                     {
                         state.Phase = MatchPhase.Countdown;
                         state.PhaseTicks = Math.Max(CountdownTicks, 1);
@@ -448,7 +534,7 @@ namespace KotH.Shared.Match
                     return;
 
                 case MatchPhase.Countdown:
-                    if (CountPlayers(bodies) < state.MinPlayers)
+                    if (!Starts(bodies))
                     {
                         state.Phase = MatchPhase.Waiting;
                         state.PhaseTicks = 0;
@@ -463,7 +549,12 @@ namespace KotH.Shared.Match
                     }
                     for (int i = 0; i < count; i++)
                         bodies[i].ResetToSpawn();
-                    state = new MatchState { MinPlayers = state.MinPlayers, Seed = state.Seed, Mode = state.Mode };
+                    state = new MatchState
+                    {
+                        MinPlayers = state.MinPlayers, Seed = state.Seed, Mode = state.Mode, Rules = state.Rules,
+                        ManualStart = state.ManualStart, BotsOff = state.BotsOff,
+                    };
+                    Hurt(bodies);
                     TeamEveryone(bodies);
                     PlaceEveryone(bodies);
                     return;
