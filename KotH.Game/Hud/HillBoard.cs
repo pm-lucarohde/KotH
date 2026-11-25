@@ -71,7 +71,7 @@ namespace KotH.Client.Hud
 
         // Texts made again only when their numbers or names change, so a tick allocates nothing.
         NumberText countText, clockText, winText;
-        JoinedText statusJoin, bannerJoin;
+        JoinedText statusJoin, bannerJoin, waitingCaption, startCaption;
         readonly NumberText[] rankText = new NumberText[HudView.Rows], scoreText = new NumberText[HudView.Rows];
         Comparison<SimulationBody> scoreOrder;
 
@@ -244,21 +244,13 @@ namespace KotH.Client.Hud
 
             if (m.Phase == MatchPhase.Waiting)
             {
-                caption = Match.Mode switch
-                {
-                    MatchMode.Duo => "Duo: waiting for players", MatchMode.Trio => "Trio: waiting for players",
-                    MatchMode.Squad => "Squad: waiting for players", _ => "Waiting for players",
-                };
+                caption = Match.Mode == MatchMode.Solo ? "Waiting for players" : waitingCaption.Of(HillMatch.DisplayName(Match.Mode), ": waiting for players");
                 count = countText.Of(CountFormat, HillMatch.CountPlayers(Simulation.Bodies), m.MinPlayers);
                 time = statusText = "";
             }
             else if (m.Phase == MatchPhase.Countdown)
             {
-                caption = Match.Mode switch
-                {
-                    MatchMode.Duo => "Duo match starts in", MatchMode.Trio => "Trio match starts in",
-                    MatchMode.Squad => "Squad match starts in", _ => "Match starts in",
-                };
+                caption = Match.Mode == MatchMode.Solo ? "Match starts in" : startCaption.Of(HillMatch.DisplayName(Match.Mode), " match starts in");
                 count = "";
                 time = Clock((m.PhaseTicks + HillMatch.TicksPerPoint - 1) / HillMatch.TicksPerPoint);
                 statusText = "";

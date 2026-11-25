@@ -217,6 +217,9 @@ namespace KotH.Probes.Probes
             // KOTH_CLIMB_TEAM=2|3|4: two chained teams of that size (information only, not a pass mark).
             int teamSize = int.TryParse(Environment.GetEnvironmentVariable("KOTH_CLIMB_TEAM"), out int size) ? Math.Clamp(size, 1, 4) : 1;
             match.Mode = teamSize switch { 2 => MatchMode.Duo, 3 => MatchMode.Trio, 4 => MatchMode.Squad, _ => MatchMode.Solo };
+            // KOTH_CLIMB_MODE=mighty: solo with Mighty & High's jumps and speeds (information only).
+            if (teamSize == 1 && HillMatch.ParseMode(Environment.GetEnvironmentVariable("KOTH_CLIMB_MODE")) is MatchMode chosen)
+                match.Mode = chosen;
             var states = new LocalFinalStates(world.Simulation);
             long started = Stopwatch.GetTimestamp();
             BotDirector director = BotDirector.Create(world.Builder, world.Simulation, states, seed);

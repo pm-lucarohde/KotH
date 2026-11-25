@@ -172,6 +172,11 @@ namespace KotH.Shared.Simulation
             // where it joined.
             Match?.MarkNewcomers(bodies);
 
+            // The mode's factors, from the round's state each tick: a rollback or a guest sees the same.
+            MotorTuning tuning = ModeRules.For(Match?.Mode ?? MatchMode.Solo);
+            for (int i = 0; i < count; i++)
+                bodies[i].Motor.Tuning = tuning;
+
             // Contacts first, so a push still takes effect in this tick
             // instead of 25 ms later. It reads what the last tick left
             // behind, the only state both bodies agree on.

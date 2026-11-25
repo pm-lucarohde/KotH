@@ -40,7 +40,7 @@ namespace KotH.Client.Menu
             password.Submitted += JoinAsked;
             JoinPrivate.Click += (_, _) => JoinAsked();
             bool?[] either = { null, false, true };
-            MatchMode?[] modes = { null, MatchMode.Solo, MatchMode.Duo, MatchMode.Trio, MatchMode.Squad };
+            MatchMode?[] modes = { null, MatchMode.Solo, MatchMode.Duo, MatchMode.Trio, MatchMode.Squad, MatchMode.Mighty, MatchMode.Free };
             access = Drop(either, () => Filter.Private, v => Filter = Filter with { Private = v },
                           v => v switch { null => "Any access", true => "Private", false => "Public" });
             region = Drop(Regions(), () => Filter.Region, v => Filter = Filter with { Region = v },
@@ -49,7 +49,7 @@ namespace KotH.Client.Menu
                             v => v == null ? "Any language" : LobbyFlags.LanguageName(v));
             modded = Drop(either, () => Filter.Modded, v => Filter = Filter with { Modded = v },
                           v => v switch { null => "Modded or not", true => "Modded", false => "Not modded" });
-            mode = Drop(modes, () => Filter.Mode, v => Filter = Filter with { Mode = v }, v => v?.ToString() ?? "Any mode");
+            mode = Drop(modes, () => Filter.Mode, v => Filter = Filter with { Mode = v }, v => v is MatchMode m ? HillMatch.DisplayName(m) : "Any mode");
             ShowFilter();
             // A press anywhere but on a drop-down closes its list (before the press does its own thing).
             AddHandler(PointerPressedEvent, (_, e) =>
@@ -95,7 +95,7 @@ namespace KotH.Client.Menu
                 LobbyListing chosen = round;
                 string where = round.Regions.Length == 0 ? "" : "  " + string.Join(", ", Array.ConvertAll(round.Regions, LobbyFlags.RegionName));
                 string ping = round.PingMs < 0 ? "? ms" : $"{round.PingMs} ms";
-                string marks = (round.Mode != MatchMode.Solo ? "  " + HillMatch.ModeName(round.Mode) : "") + (round.Private ? "  private" : "") + (round.Modded ? "  modded" : "");
+                string marks = (round.Mode != MatchMode.Solo ? "  " + HillMatch.DisplayName(round.Mode) : "") + (round.Private ? "  private" : "") + (round.Modded ? "  modded" : "");
                 rows.Add(new RowList.Row(round.Host, $"{round.Map}  {round.Players}/{NetWorld.MaxPlayers}{where}{marks}  {ping}", "Join",
                                          () => { if (!busy) Choose(chosen); }));
             }

@@ -529,6 +529,7 @@ namespace KotH.Probes.Probes
             "hull", "sweep", "headroomHits", "groundHits",   // parts and buffers
             "world", "hullParts",                             // wiring
             "maxStepHeight", "eyeLocal",                      // derived from the height
+            "<Tuning>k__BackingField",                        // the round's mode's, set every tick
         };
 
         // A replay only notices a forgotten field if it happened to differ.

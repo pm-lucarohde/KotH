@@ -20,8 +20,9 @@ namespace KotH.Shared.Match
     public enum MatchStage : byte { Single, Lobby, Round }
 
     /// <summary>Solo: everyone for themselves. Duo, trio, squad: teams of two, three, four, chained in a row
-    /// and formed at the round's start (Luca). Chosen by whoever starts the game; travels with the state.</summary>
-    public enum MatchMode : byte { Solo, Duo, Trio, Squad }
+    /// and formed at the round's start (Luca). Mighty: solo with higher jumps, faster runs and harder knocks
+    /// (ModeRules). Free: "1, 2, 3, Free", a catcher against runners. Chosen by whoever starts the game.</summary>
+    public enum MatchMode : byte { Solo, Duo, Trio, Squad, Mighty, Free }
 
     /// <summary>Everything a round keeps besides the bodies' own scores. Part of a
     /// snapshot: a restore puts the phase, the clocks and who stood in the zone back
@@ -195,17 +196,26 @@ namespace KotH.Shared.Match
         /// <summary>The mode's word on the command line, in settings and lobby data ("duo").</summary>
         public static string ModeName(MatchMode mode) => mode switch
         {
-            MatchMode.Duo => "duo", MatchMode.Trio => "trio", MatchMode.Squad => "squad", _ => "solo",
+            MatchMode.Duo => "duo", MatchMode.Trio => "trio", MatchMode.Squad => "squad",
+            MatchMode.Mighty => "mighty", MatchMode.Free => "free", _ => "solo",
+        };
+
+        /// <summary>The mode as menus and the HUD name it ("Mighty & High").</summary>
+        public static string DisplayName(MatchMode mode) => mode switch
+        {
+            MatchMode.Duo => "Duo", MatchMode.Trio => "Trio", MatchMode.Squad => "Squad",
+            MatchMode.Mighty => "Mighty & High", MatchMode.Free => "1, 2, 3, Free", _ => "Solo",
         };
 
         /// <summary>A mode from its word (any case), null for none.</summary>
         public static MatchMode? ParseMode(string word) => word?.ToLowerInvariant() switch
         {
-            "solo" => MatchMode.Solo, "duo" => MatchMode.Duo, "trio" => MatchMode.Trio, "squad" => MatchMode.Squad, _ => null,
+            "solo" => MatchMode.Solo, "duo" => MatchMode.Duo, "trio" => MatchMode.Trio, "squad" => MatchMode.Squad,
+            "mighty" => MatchMode.Mighty, "free" => MatchMode.Free, _ => null,
         };
 
         /// <summary>Whether the round plays in chained teams.</summary>
-        public bool Teamed => state.Mode != MatchMode.Solo;
+        public bool Teamed => TeamSize > 1;
 
         /// <summary>The middle of the zone and half its bounding box, for the bots.</summary>
         public Vector3 Center => center;

@@ -232,6 +232,17 @@ namespace KotH.Shared.Player
         public float MaxStepHeight => maxStepHeight;
         public bool IsGrounded => grounded;
 
+        /// <summary>The round's mode's factors, set by SimulationSystem before every tick (not state).</summary>
+        [DataMemberIgnore] public MotorTuning Tuning { get; set; } = MotorTuning.None;
+
+        /// <summary>The speeds and heights with the mode's factors, as the motor uses them (and the bots' model).</summary>
+        public float TunedWalk => WalkSpeed * Tuning.Speed;
+        public float TunedSprint => SprintSpeed * Tuning.Speed;
+        public float TunedCrouch => CrouchSpeed * Tuning.Speed;
+        public float TunedJumpHeight => JumpHeight * Tuning.Jump;
+        public float TunedMinJumpHeight => MinJumpHeight * Tuning.Jump;
+        public float TunedDoubleJumpHeight => DoubleJumpHeight * Tuning.DoubleJump;
+
         /// <summary>Standing, or hovering a skin over a step just climbed (the looks: a run up a flight).</summary>
         public bool IsOnFeet => grounded || OnStep;
 
@@ -382,6 +393,7 @@ namespace KotH.Shared.Player
         /// never points back; running against it takes exactly that speed off.</summary>
         public void Knock(Vector3 away, float distance, float height, float carry, float absorb, float dt)
         {
+            distance *= Tuning.Knock;
             if (distance <= 0f && height <= 0f)
                 return;
 
@@ -996,7 +1008,7 @@ namespace KotH.Shared.Player
             climbing = false;
             ladder = 0;
             climbWait = RegrabWait;
-            velocity = new Vector3(s.Out.X * ClimbJumpOff, UMath.Sqrt(JumpHeight * -2f * Gravity), s.Out.Z * ClimbJumpOff);
+            velocity = new Vector3(s.Out.X * ClimbJumpOff, UMath.Sqrt(TunedJumpHeight * -2f * Gravity), s.Out.Z * ClimbJumpOff);
             doubleJumpUsed = false;
             jumpWindowOpen = true;
             timeSinceGroundJump = 0f;
@@ -1064,8 +1076,8 @@ namespace KotH.Shared.Player
             // standstill the speed starts below it, which would end the
             // sprint in the very tick it began.
             if (!sprintArmed)
-                sprintArmed = flat > WalkSpeed;
-            else if (flat < WalkSpeed)
+                sprintArmed = flat > TunedWalk;
+            else if (flat < TunedWalk)
                 sprinting = false;
         }
 
@@ -1085,7 +1097,7 @@ namespace KotH.Shared.Player
                 // Letting go of the key does NOT end it -- a tap is enough
                 // to start, so there is nothing to release. The jump key
                 // cancels it in ProcessJumpPresses, before any of this.
-                if (!grounded || onSteepGround || slideSpeed < WalkSpeed)
+                if (!grounded || onSteepGround || slideSpeed < TunedWalk)
                 {
                     sliding = false;
                     return;
@@ -1112,8 +1124,8 @@ namespace KotH.Shared.Player
             // out of the run-up ends at once). Cooldown from the start, so a full slide never waits.
             // Landing with the key held slides out of a sprint jump; there the flat speed counts.
             float flatSpeed = UMath.Magnitude(new Vector2(velocity.X, velocity.Z));
-            bool tapped = input.CrouchPressed && lastStepSpeed > WalkSpeed;
-            bool landedCrouched = landed && input.Crouch && flatSpeed > WalkSpeed;
+            bool tapped = input.CrouchPressed && lastStepSpeed > TunedWalk;
+            bool landedCrouched = landed && input.Crouch && flatSpeed > TunedWalk;
 
             if ((tapped || landedCrouched) && sprinting && grounded && !onSteepGround
                 && slideCooldownLeft <= 0f)
@@ -1150,9 +1162,9 @@ namespace KotH.Shared.Player
             // Crouching in the air out of a sprint keeps the sprint's speed:
             // it is the run-up to a slide on landing, not crouched walking.
             float speed = sliding ? slideSpeed
-                        : isCrouching && (grounded || !sprinting) ? CrouchSpeed
-                        : sprinting ? SprintSpeed
-                        : WalkSpeed;
+                        : isCrouching && (grounded || !sprinting) ? TunedCrouch
+                        : sprinting ? TunedSprint
+                        : TunedWalk;
 
             // No input in the air means rate 0, so momentum stays (anything else is a hidden air brake).
             // Right after a push air control holds on the ground too, else it is gone in a tick or two.
@@ -1242,7 +1254,7 @@ namespace KotH.Shared.Player
                 // and keeps the slower crouch speed.
                 if (grounded)
                 {
-                    velocity.Y = UMath.Sqrt(JumpHeight * -2f * Gravity);
+                    velocity.Y = UMath.Sqrt(TunedJumpHeight * -2f * Gravity);
                     grounded = false;
                     doubleJumpUsed = false;
                     jumped = true;
@@ -1281,7 +1293,7 @@ namespace KotH.Shared.Player
                 // gets here. Crouch is checked at trigger time, not take-off.
                 if ((hangReady || !doubleJumpUsed) && !isCrouching)
                 {
-                    velocity.Y = UMath.Sqrt(DoubleJumpHeight * -2f * Gravity);
+                    velocity.Y = UMath.Sqrt(TunedDoubleJumpHeight * -2f * Gravity);
                     doubleJumpUsed = true;
                     jumpWindowOpen = false;
                     jumped = true;
@@ -1298,10 +1310,10 @@ namespace KotH.Shared.Player
         void ClampToSprintSpeed()
         {
             Vector3 flat = new Vector3(velocity.X, 0f, velocity.Z);
-            if (UMath.Magnitude(flat) <= SprintSpeed)
+            if (UMath.Magnitude(flat) <= TunedSprint)
                 return;
 
-            flat = UMath.Mul(UMath.Normalized(flat), SprintSpeed);
+            flat = UMath.Mul(UMath.Normalized(flat), TunedSprint);
             velocity.X = flat.X;
             velocity.Z = flat.Z;
         }
@@ -1325,7 +1337,7 @@ namespace KotH.Shared.Player
             // out at the earned height whichever tick this runs in. Min, not
             // assignment: anyone already slower keeps his speed.
             float t = UMath.InverseLerp(MinJumpHold, FullJumpHold, jumpHeldTime);
-            float target = UMath.Lerp(MinJumpHeight, JumpHeight, t);
+            float target = UMath.Lerp(TunedMinJumpHeight, TunedJumpHeight, t);
             float risen = position.Y - jumpStartY;
             float rest = UMath.Sqrt(UMath.Max(0f, (target - risen) * -2f * Gravity));
 

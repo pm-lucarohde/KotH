@@ -109,6 +109,9 @@ namespace KotH.Shared.Bots
         bool ladderUp;               // told to climb up last tick
         bool lined;                  // on the take-off floor, running at the ladder
 
+        // The round's mode's factors: body is the template, never ticked, so it does not carry them.
+        readonly MotorTuning tuning;
+
         public BotBrain(int netId, uint seed, int route, BotNavigation nav, BotSettings settings, HillMatch match,
                         PlayerMotor body, MeleeAttack fists, Blaster gun,
                         Dash dash)
@@ -125,7 +128,8 @@ namespace KotH.Shared.Bots
             this.dash = dash;
             wfc = new ManeuverWfc(Math.Max(2, settings.SlotsPerPlan), Math.Max(1, settings.SlotTicks), fists.CooldownTicks);
             allowed = new ushort[wfc.Slots];
-            pilot = new JumpPilot(nav.Grid, body);
+            tuning = ModeRules.For(match?.Mode ?? MatchMode.Solo);
+            pilot = new JumpPilot(nav.Grid, body, tuning);
             memory = own;
             nav.Grid.Prepare(own);
         }
@@ -562,7 +566,7 @@ namespace KotH.Shared.Bots
             if (i >= 0)
             {
                 float d = Flat(at, view.StateAt(i).Motor.Position);
-                int k = (int)MathF.Floor(UMath.Max(0f, d - fists.Range + 0.3f) / (body.SprintSpeed * Slot * Dt));
+                int k = (int)MathF.Floor(UMath.Max(0f, d - fists.Range + 0.3f) / (body.SprintSpeed * tuning.Speed * Slot * Dt));
                 if (k < allowed.Length)
                     allowed[k] = (ushort)(1 << (int)Maneuver.Strike);
 
@@ -984,7 +988,7 @@ namespace KotH.Shared.Bots
             {
                 // The last ladder: over the top by now, on towards the exit at walking speed, then let go.
                 float toTop = (s.Top - seen.Y) / (body.ClimbSpeed * Dt);
-                float walked = UMath.Max(0f, Reaction - toTop) * Dt * body.WalkSpeed;
+                float walked = UMath.Max(0f, Reaction - toTop) * Dt * body.WalkSpeed * tuning.Speed;
                 var off = new Vector3(me.Motor.Position.X - s.Foot.X, 0f, me.Motor.Position.Z - s.Foot.Z);
                 float need = UMath.Dot(off, s.Out) + UMath.Dot(new Vector3(s.Foot.X - ladderExit.X, 0f, s.Foot.Z - ladderExit.Z), s.Out);
                 Look(u, wall, walked > 0f ? -10f : 25f, settings.TurnRate);
@@ -1294,7 +1298,7 @@ namespace KotH.Shared.Bots
                     float run = UMath.Magnitude(new Vector3(me.Motor.Velocity.X, 0f, me.Motor.Velocity.Z));
                     if (airborne)
                         input.Crouch = true;
-                    else if (slideTap < 0 && run > body.WalkSpeed + 0.3f)
+                    else if (slideTap < 0 && run > body.WalkSpeed * tuning.Speed + 0.3f)
                     {
                         input.CrouchPressed = input.Crouch = true;
                         slideTap = u;

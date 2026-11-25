@@ -44,18 +44,19 @@ namespace KotH.Shared.Bots
         readonly ClimbGrid grid;
         readonly float walk, sprint, groundAcc, groundDec, airAcc, jumpSpeed, doubleSpeed, doubleHeight, gravity, radius;
 
-        public JumpPilot(ClimbGrid grid, PlayerMotor motor)
+        /// <summary>The model of motor, with the round's mode's factors (ModeRules) as the real body has them.</summary>
+        public JumpPilot(ClimbGrid grid, PlayerMotor motor, MotorTuning tuning)
         {
             this.grid = grid;
-            walk = motor.WalkSpeed;
-            sprint = motor.SprintSpeed;
+            walk = motor.WalkSpeed * tuning.Speed;
+            sprint = motor.SprintSpeed * tuning.Speed;
             groundAcc = motor.GroundAcceleration;
             groundDec = motor.GroundDeceleration;
             airAcc = motor.AirAcceleration;
             gravity = motor.Gravity;
-            jumpSpeed = UMath.Sqrt(motor.JumpHeight * -2f * gravity);
-            doubleSpeed = UMath.Sqrt(motor.DoubleJumpHeight * -2f * gravity);
-            doubleHeight = motor.DoubleJumpHeight;
+            jumpSpeed = UMath.Sqrt(motor.JumpHeight * tuning.Jump * -2f * gravity);
+            doubleSpeed = UMath.Sqrt(motor.DoubleJumpHeight * tuning.DoubleJump * -2f * gravity);
+            doubleHeight = motor.DoubleJumpHeight * tuning.DoubleJump;
             radius = motor.BodyRadius;
         }
 

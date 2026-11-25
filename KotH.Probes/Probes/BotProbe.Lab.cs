@@ -43,7 +43,7 @@ namespace KotH.Probes.Probes
             var states = new LocalFinalStates(world.Simulation);
             BotDirector director = BotDirector.Create(world.Builder, world.Simulation, states, 1);
             ClimbGrid grid = director.Navigation.Grid;
-            var pilot = new JumpPilot(grid, world.Builder.Template<PlayerMotor>(WorldBuilder.PlayerBodyUrl));
+            var pilot = new JumpPilot(grid, world.Builder.Template<PlayerMotor>(WorldBuilder.PlayerBodyUrl), MotorTuning.None);
 
             var body = new ScriptedBody { NetId = 4 };
             Entity marker = NetWorld.SlotMarker(world.Builder, 0);
