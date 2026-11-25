@@ -120,13 +120,14 @@ namespace KotH.Probes.Probes
                 return m;
             }
             percent.Restore(50f);
+            float scale = percent.KnockPercent / 100f;
             a.Input.Pitch = 0f;
             a.Input.AttackPresses = 1;
             Ticks(1);
             a.Input.AttackPresses = 0;
             m.Knock = b.Motor.KnockLeft;
             m.KnockUp = b.Motor.Velocity.Y;
-            m.KnockWant = PlayerMotor.LaunchSpeed(cane.KnockbackDistance * 0.5f * ModeRules.For(mode).Knock,
+            m.KnockWant = PlayerMotor.LaunchSpeed(cane.KnockbackDistance * scale * ModeRules.For(mode).Knock,
                                                   b.Motor.AirAcceleration, SimulationSystem.TickSeconds);
             Check(cane.HitCount == 1, $"{HillMatch.ModeName(mode)}: the cane hit B");
             return m;

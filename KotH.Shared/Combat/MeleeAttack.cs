@@ -26,7 +26,7 @@ namespace KotH.Shared.Combat
 
         /// <userdoc>How far a target at 100 % flies horizontally, in metres, without
         /// steering against it on flat ground. Grows linearly with the percent before the
-        /// hit: 0 % does not push horizontally at all, 1000 % ten times as far.</userdoc>
+        /// hit plus the target's "Knock as from %": 0 % there does not push at all.</userdoc>
         [Display("Distance at 100 %", "Knockback")] public float KnockbackDistance = 12f;
 
         /// <userdoc>
@@ -140,8 +140,8 @@ namespace KotH.Shared.Combat
             SimulationBody self = Entity.Get<SimulationBody>();
             self?.Simulation?.ReportHit(self, target.Entity.Get<SimulationBody>());
 
-            // The percent before this hit decides: a fresh body is not moved.
-            float before = target.Percent;
+            // The percent before this hit decides, shifted by the target's offset: a fresh body flies too.
+            float before = target.KnockPercent;
             float scale = before / 100f;
             target.Add(self?.Simulation?.Match?.Percent(HitKind.Melee, DamagePercent) ?? DamagePercent);
 

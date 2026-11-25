@@ -49,6 +49,7 @@ namespace KotH.Probes.Probes
 
             victimInput = new ScriptedBody();
             damage = new DamagePercent();
+            damage.KnockOffset = 0f;   // the Unity reference knew no offset
             Entity body = world.SpawnBody(HeadlessWorld.PlayerBodyUrl, Ref.Pos(AwaySpot), Quaternion.Identity,
                                           victimInput, damage);
             body.Name = "Victim";

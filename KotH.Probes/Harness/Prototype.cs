@@ -1,3 +1,4 @@
+using KotH.Shared.Combat;
 using KotH.Shared.Hosting;
 using KotH.Shared.Player;
 using KotH.Shared.Simulation;
@@ -32,6 +33,9 @@ namespace KotH.Probes.Harness
             p.Dummy = world.SpawnBody(HeadlessWorld.DummyBodyUrl,
                 dummySpawn.Transform.Position, dummySpawn.Transform.Rotation);
             p.Dummy.Name = "Dummy";
+            // The Unity reference scene: its dummy knows no knock offset, so the recorded runs stay comparable.
+            if (p.Dummy.Get<DamagePercent>() is { } damage)
+                damage.KnockOffset = 0f;
             return p;
         }
     }

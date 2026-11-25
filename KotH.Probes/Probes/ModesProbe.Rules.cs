@@ -53,11 +53,12 @@ namespace KotH.Probes.Probes
             DamagePercent percent = b.Entity.Get<DamagePercent>();
             MeleeAttack cane = a.Entity.Get<MeleeAttack>();
             percent.Restore(50f);
+            float scale = percent.KnockPercent / 100f;
             a.Input.Pitch = 0f;
             a.Input.AttackPresses = 1;
             Ticks(1);
             a.Input.AttackPresses = 0;
-            float want = PlayerMotor.LaunchSpeed(cane.KnockbackDistance * 0.5f * 2f, b.Motor.AirAcceleration, SimulationSystem.TickSeconds);
+            float want = PlayerMotor.LaunchSpeed(cane.KnockbackDistance * scale * 2f, b.Motor.AirAcceleration, SimulationSystem.TickSeconds);
             Check(cane.HitCount == 1 && percent.Percent == 52.5f, $"the cane adds 2.5 % (50 -> {percent.Percent}, {cane.HitCount} hit)");
             Check(Near(b.Motor.KnockLeft, want, 1e-4f), $"knockback x2: speed {b.Motor.KnockLeft:F3}, for twice the distance {want:F3}");
         }

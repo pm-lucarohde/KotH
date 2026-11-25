@@ -211,7 +211,7 @@ namespace KotH.Shared.Combat
             target.LastHitAt = default;
 
             SimulationBody shooter = Entity.Get<SimulationBody>();
-            float before = target.Percent;
+            float before = target.KnockPercent;
             target.Add(shooter?.Simulation?.Match?.Percent(HitKind.Spore, DamagePercent) ?? DamagePercent);
 
             shooter?.Simulation?.ReportHit(shooter, target.Entity.Get<SimulationBody>());

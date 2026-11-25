@@ -17,9 +17,17 @@ namespace KotH.Shared.Combat
         /// <userdoc>Upper limit. Above it the body takes nothing more.</userdoc>
         [Display("Maximum", "Damage percent")] public float MaxPercent = 1000f;
 
+        /// <userdoc>Hits push as if the body had this many percent more: a fresh body
+        /// (0 %) flies as one at this value, so it can be knocked out from the start.
+        /// Height, distance and the speed share all take the shifted value.</userdoc>
+        [Display("Knock as from %", "Damage percent")] public float KnockOffset = 10f;
+
         float percent;
 
         [DataMemberIgnore] public float Percent => percent;
+
+        /// <summary>The percent a hit's knock is computed from (Percent plus KnockOffset).</summary>
+        [DataMemberIgnore] public float KnockPercent => percent + KnockOffset;
         [DataMemberIgnore] public bool IsCapped => percent >= MaxPercent;
 
         /// <summary>The tick of the last hit taken, also at the cap; -1 for none. For the

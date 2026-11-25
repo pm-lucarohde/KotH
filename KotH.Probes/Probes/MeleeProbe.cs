@@ -75,6 +75,7 @@ namespace KotH.Probes.Probes
             dummy = target.Motor;
             dummyHull = dummy.Hull;
             damage = target.Entity.Get<DamagePercent>();
+            damage.KnockOffset = 0f;   // the Unity reference knew no offset
             attack = scene.Player.Get<MeleeAttack>();
 
             // Reach and hit rate against Unity, which had no knockback: a
