@@ -33,8 +33,9 @@ namespace KotH.Client.Menu
             }, HillMatch.DisplayName) { NoteOf = HillMatch.ModeNote });
             rows.Add(HostPage.MaxPlayersRow());
             rows.Add(new ToggleRow("Bots", s => s.HostBots, (s, v) => s.HostBots = v));
-            rows.Add(new SliderRow("Bot count", 1, HillMatch.FreeMaxPlayers - 1, 1, s => s.HostBotCount,
-                                   (s, v) => s.HostBotCount = (int)Math.Round(v), v => Text(v, "0")) { Locked = s => s.HostBots ? null : "" });
+            rows.Add(new SliderRow("Bot count", 1, HillMatch.FreeMaxPlayers - 1, 1, s => s.BotCountOf,
+                                   (s, v) => s.HostBotCount = (int)Math.Round(v), v => Text(v, "0"))
+                     { Locked = s => s.HostBots ? null : "", MaxOf = s => Math.Max(1, s.MaxPlayersOf - 1) });
             rows.Add(new ToggleRow("Auto start", s => s.HostAutoStart, (s, v) => s.HostAutoStart = v, "when the lobby is full"));
             rows.Add(new SliderRow("Start damage", 0, PlayerSettings.MaxStartPercent, 5, s => s.StartPercentOf,
                                    (s, v) => s.HostStartPercent = (float)Math.Round(v), v => Text(v, "0") + " %", "everyone, at the start"));
@@ -71,9 +72,11 @@ namespace KotH.Client.Menu
         /// <summary>Why the round cannot start now, else null: fewer than the mode's fewest (5 in 1, 2, 3, Free, else 2),
         /// people and the bots chosen (counted as chosen: the lobby's bodies follow a few ticks later).</summary>
         public string Problem
-            => Count().People + (edited.HostBots ? edited.HostBotCount : 0) is var n && n < HillMatch.FewestOf(edited.HostMode)
-               ? $"{HillMatch.DisplayName(edited.HostMode)} needs {HillMatch.FewestOf(edited.HostMode)} players: add bots or wait for more people."
-               : null;
+            => TooFew ? $"{HillMatch.DisplayName(edited.HostMode)} needs {HillMatch.FewestOf(edited.HostMode)} players: add bots or wait for more people."
+                      : null;
+
+        /// <summary>Whether too few would be in the round: checked every frame, people come and go.</summary>
+        public bool TooFew => Count().People + (edited.HostBots ? edited.BotCountOf : 0) < HillMatch.FewestOf(edited.HostMode);
 
         void Refresh()
         {

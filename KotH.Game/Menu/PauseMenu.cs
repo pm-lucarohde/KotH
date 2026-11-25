@@ -165,6 +165,7 @@ namespace KotH.Client.Menu
                 view.Ask(Penalty);
             if (view.PlayersShown && Game.UpdateTime.Total.TotalSeconds - listedAt > 0.5)
                 ListPlayers();
+            view.FollowRound();
             board.Visible = !view.PageOpen && !confirming;
             page.Visible = view.PageOpen && !confirming;
             confirm.Visible = confirming;

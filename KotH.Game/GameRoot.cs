@@ -362,7 +362,7 @@ namespace KotH.Client
         public static void TakeHostRound(LaunchOptions options, PlayerSettings s)
         {
             options.MaxPlayers = s.MaxPlayersOf;
-            options.Bots = Math.Min(s.HostBotCount, options.Room - 1);
+            options.Bots = Math.Min(s.BotCountOf, options.Room - 1);
             options.BotsOff = !s.HostBots;
             options.ManualStart = !s.HostAutoStart;
             options.MinPlayers = 0;   // the auto start: a full lobby, people and bots (Luca)

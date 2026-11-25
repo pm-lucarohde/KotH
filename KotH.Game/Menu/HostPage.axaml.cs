@@ -38,7 +38,7 @@ namespace KotH.Client.Menu
             rows.Add(new ChoiceRow<bool>("Access", _ => new[] { false, true }, s => s.HostPrivate, (s, v) => s.HostPrivate = v,
                                          v => v ? "Private" : "Public"));
             rows.Add(new FieldRow("Password", password, "private only") { Locked = s => s.HostPrivate ? null : "" });
-            rows.Add(new ToggleRow("Modded", s => s.HostModded, (s, v) => s.HostModded = v, "a label for now"));
+            rows.Add(new ToggleRow("Modded", s => s.HostModded, (s, v) => s.HostModded = v));
             rows.Add(new HeadingRow("Regions", $"where the players are, up to {LobbyFlags.MaxRegions}"));
             rows.Add(new ChipsRow(LobbyFlags.AllRegions, LobbyFlags.MaxRegions, s => s.HostRegions, (s, v) => s.HostRegions = v));
             rows.Add(new HeadingRow("Languages", $"spoken in the round, up to {LobbyFlags.MaxLanguages}"));

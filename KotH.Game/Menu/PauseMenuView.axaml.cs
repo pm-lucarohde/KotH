@@ -115,6 +115,13 @@ namespace KotH.Client.Menu
         /// <summary>Whether the Round page shows.</summary>
         public bool RoundShown => PageOpen && RoundPage.IsVisible;
 
+        /// <summary>Each frame while Round shows: the word and Start round follow who is in the lobby.</summary>
+        public void FollowRound()
+        {
+            if (RoundShown && RoundPage.TooFew == StartRound.IsEnabled)
+                ShowRound();
+        }
+
         // The Round page's word underneath and whether Start round may be pressed.
         void ShowRound()
         {
