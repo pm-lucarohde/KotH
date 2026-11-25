@@ -432,9 +432,9 @@ namespace KotH.Shared.Bots
                 ThinkHill();
             Choose(view, at);
 
-            // 1, 2, 3, Free (Luca): before a catcher has a catch it must hunt, and the runners keep away and wait
-            // for it to leave the zone; after it, the runners must go (left over loses), so the catcher keeps the
-            // zone (inside, no count runs, not even the rescue) and hits or shoots who comes, runners shoot it off.
+            // 1, 2, 3, Free (Luca): all race up first. Once a catcher was in the zone it must hunt until its
+            // first catch while the runners keep away and wait it out; after that it keeps the zone (inside no
+            // count runs, not even the rescue) and hits or shoots who comes, and the runners must go or shoot it off.
             void ThinkFree()
             {
                 FreeRole role = (FreeRole)view.StateAt(self).Role;
@@ -451,7 +451,13 @@ namespace KotH.Shared.Bots
                     anyCaught |= r == FreeRole.Caught;
                     ownCatch |= r == FreeRole.Caught && s.MarkedBy == netId;
                 }
-                bool hunting = catcher && !ownCatch && !marks && !rescue;
+                // Whether a catcher stood in the zone this round yet, as this bot saw it (a new round starts over).
+                if (view.Match.RoundTicks < seenRound)
+                    catcherUp = false;
+                seenRound = view.Match.RoundTicks;
+                for (int i = 0; i < view.Count && !catcherUp; i++)
+                    catcherUp = (FreeRole)view.StateAt(i).Role == FreeRole.Catcher && match.Contains(view.StateAt(i).Motor.Position);
+                bool hunting = catcherUp && catcher && !ownCatch && !marks && !rescue;
                 if (knocked)
                     Offer(BotIntent.Recover, 0, 2f);
                 Offer(BotIntent.Idle, 0, live ? 0.1f : 1f);
@@ -460,13 +466,13 @@ namespace KotH.Shared.Bots
                 if (runner)
                 {
                     // Before the first catch a guarded zone is waited out; after it, gone for more slowly.
-                    Offer(BotIntent.Capture, 0, inZone ? 0f : !guarded ? 1.2f : anyCaught ? 0.4f : 0.05f);
+                    Offer(BotIntent.Capture, 0, inZone ? 0f : !catcherUp || !guarded ? 1.2f : anyCaught ? 0.4f : 0.05f);
                     Offer(BotIntent.Idle, 0, guarded && !inZone ? 0.4f : 0f);
                     Offer(BotIntent.Hold, 0, inZone ? 1.3f : 0f);
                 }
                 if (catcher)
                 {
-                    Offer(BotIntent.Capture, 0, inZone ? 0f : hunting ? 0.3f : 1.6f);
+                    Offer(BotIntent.Capture, 0, inZone ? 0f : !catcherUp ? 2.2f : hunting ? 0.3f : 1.6f);
                     Offer(BotIntent.Hold, 0, inZone ? marks || rescue ? 2.2f : hunting ? 0.3f : 1f : 0f);
                 }
                 if (!playing)
@@ -481,7 +487,7 @@ namespace KotH.Shared.Bots
                     float d = UMath.Magnitude(UMath.Sub(there, at));
                     bool theyIn = match.Contains(there), shoot = shotsLeft > 0 && d < settings.BlasterRange;
                     int id = view.BodyAt(i).NetId;
-                    if (runner && !theyIn && d < FleeRange && !(inZone && role == FreeRole.Rescuing))
+                    if (runner && !theyIn && d < (catcherUp ? FleeRange : RaceFlee) && !(inZone && role == FreeRole.Rescuing))
                         Offer(BotIntent.Flee, id, 0.6f + 1.4f * (1f - d / FleeRange));
                     else if (runner && theyIn && d < settings.EngageRange)
                         Offer(BotIntent.Attack, id, 1.6f - d / settings.EngageRange);
@@ -489,6 +495,12 @@ namespace KotH.Shared.Bots
                         Offer(BotIntent.Attack, id, 1.4f);
                     else if (catcher && theyIn)
                         Offer(BotIntent.Attack, id, 2f);
+                    else if (catcher && !catcherUp)
+                    {
+                        // Up first; a runner met on the way is still tried for when close (Luca).
+                        if (d < settings.EngageRange)
+                            Offer(BotIntent.Attack, id, 1.4f + 1.4f * (1f - d / settings.EngageRange));
+                    }
                     else if (hunting && d < HuntRange)
                         Offer(BotIntent.Attack, id, 0.8f + UMath.Max(0f, 1f - d / HuntRange));
                     else if (catcher && !rescue && NearHill(there) && d < settings.EngageRange)
@@ -542,7 +554,10 @@ namespace KotH.Shared.Bots
         int offered;
 
         // 1, 2, 3, Free: a runner flees a catcher closer than this; a catcher without a catch hunts this far (m).
-        const float FleeRange = 12f, HuntRange = 60f;
+        // While all race up, a runner only dodges a catcher right beside it.
+        const float FleeRange = 12f, HuntRange = 60f, RaceFlee = 5f;
+        bool catcherUp;
+        int seenRound = int.MaxValue;
 
         // The intent among the offers (Think): the best ones by weighted chance.
         void Choose(WorldSnapshot view, Vector3 at)
