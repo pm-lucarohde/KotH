@@ -935,12 +935,15 @@ namespace KotH.Shared.Bots
                 if (zone == null)
                     continue;
                 heap.Clear();
-                for (int f = 0; f < floorY.Length; f++)
-                    if (zone.Contains(Centre(f)))
-                    {
-                        t[f] = 0f;
-                        heap.Push(0f, f);
-                    }
+                // Only floors a bot still stands inside on when it stops short of the middle (BotBrain arrives
+                // within 0.4 m); else, for a zone too thin for that, every floor whose middle is in it.
+                for (int pass = 0; pass < 2 && heap.Count == 0; pass++)
+                    for (int f = 0; f < floorY.Length; f++)
+                        if (pass == 0 ? Deep(zone, Centre(f)) : zone.Contains(Centre(f)))
+                        {
+                            t[f] = 0f;
+                            heap.Push(0f, f);
+                        }
                 while (heap.Count > 0)
                 {
                     heap.Pop(out float at, out int g);
@@ -976,6 +979,12 @@ namespace KotH.Shared.Bots
 
         /// <summary>Where a body stands on the floor, its centre half a body above.</summary>
         Vector3 Centre(int f) => new Vector3(CentreX(floorCol[f]), floorY[f] + standHeight * 0.5f, CentreZ(floorCol[f]));
+
+        const float ZoneMargin = 0.45f;
+
+        static bool Deep(HillMatch zone, Vector3 c)
+            => zone.Contains(c) && zone.Contains(new Vector3(c.X + ZoneMargin, c.Y, c.Z)) && zone.Contains(new Vector3(c.X - ZoneMargin, c.Y, c.Z)) &&
+               zone.Contains(new Vector3(c.X, c.Y, c.Z + ZoneMargin)) && zone.Contains(new Vector3(c.X, c.Y, c.Z - ZoneMargin));
 
         Vector3 FeetOn(int f) => new Vector3(CentreX(floorCol[f]), floorY[f], CentreZ(floorCol[f]));
 
