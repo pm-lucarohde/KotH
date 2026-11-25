@@ -77,6 +77,9 @@ for (int i = 0; i < botCount; i++)
 
 Console.WriteLine($"[server] map {map} loaded, {world.Simulation.Bodies.Count} bodies, {1.0 / TickClock.TickSeconds:F0} Hz");
 
+if (Option(args, "--rounds") is { } rounds)
+    return Rounds(world, match, (int)rounds, botSeed);
+
 var timing = new TickTiming((int)(fastTicks ?? 0));
 
 if (fastTicks.HasValue)
@@ -174,6 +177,46 @@ timing.Report();
 ReportMatch(world.Simulation, match);
 Console.WriteLine("[server] stopped");
 return 0;
+
+// --rounds N: N rounds as fast as it goes, a line at each end (1, 2, 3, Free: who got free, was caught or is
+// left, the chasers' result, whether a rescue freed everyone; else the winner). Stops after 20 min per round.
+static int Rounds(HeadlessWorld world, HillMatch match, int wanted, int seed)
+{
+    int done = 0, caughtBefore = 0, rescues = 0;
+    bool wasOver = false;
+    IReadOnlyList<SimulationBody> bodies = world.Simulation.Bodies;
+    for (long t = 0; done < wanted && t < 48000L * wanted; t++)
+    {
+        world.Simulation.Tick();
+        MatchState m = match.State;
+        int caught = 0;
+        foreach (SimulationBody b in bodies)
+            caught += b.Role == FreeRole.Caught ? 1 : 0;
+        if (caughtBefore > 0 && caught == 0 && m.RoundTicks > 0)
+            rescues++;
+        caughtBefore = m.Over ? 0 : caught;
+        if (m.Over && !wasOver)
+        {
+            done++;
+            int players = 0, chasers = 0, free = 0, left = 0, chaserWins = 0;
+            foreach (SimulationBody b in bodies)
+            {
+                players += b.Role is FreeRole.None or FreeRole.Waiting ? 0 : 1;
+                chasers += b.Role == FreeRole.Catcher ? 1 : 0;
+                free += b.Role is FreeRole.Free or FreeRole.Rescuing ? 1 : 0;
+                left += b.Role == FreeRole.Runner ? 1 : 0;
+                chaserWins += b.Role == FreeRole.Catcher && HillMatch.Won(b, bodies) ? 1 : 0;
+            }
+            Console.WriteLine(match.IsFree
+                ? $"[round] {done} seed {seed} players {players} chasers {chasers} seconds {m.RoundTicks / 40} free {free} caught {caught} " +
+                  $"left {left} chaserwins {chaserWins} rescued {rescues} timeup {(m.RoundTicks >= match.RoundLimitTicks ? 1 : 0)}"
+                : $"[round] {done} seed {seed} seconds {m.RoundTicks / 40} winner {m.Winner?.Entity.Name ?? "draw"}");
+            rescues = 0;
+        }
+        wasOver = m.Over;
+    }
+    return done == wanted ? 0 : 1;
+}
 
 // The round in one line: time, who holds the zone and the best three.
 static void ReportMatch(SimulationSystem simulation, HillMatch match)

@@ -21,7 +21,7 @@ Tools/publish_aot.sh [linux|server|probes]   # NativeAOT -> Bin/{Linux,Server,Pr
   bundle). After new materials/effects/scenes: `Tools/effects/record.sh`. JIT = AOT only with `DOTNET_EnableAVX=0`.
 - Client: no arguments = main menu, `--offline` alone; `--host`/`--join ADDRESS[:PORT]`, `--name`, `--port`,
   `--min-players`, `--bots N`, `--mode duo|trio|squad`, `--display N`, `--map NAME`, `--map-file DIR`, `--fps N`, `--dlss MODE`. Two clients: `Tools/two_clients.sh`.
-- Server: real time, `--seconds N` or `--ticks N` (fast, exact end state); `--map`, `--bots`, `--mode …`, load test `--bodies N`
+- Server: real time, `--seconds N` or `--ticks N` (fast, exact end state), `--rounds N` (outcomes); `--map`, `--bots`, `--mode …`, load test `--bodies N`
   (`--map Test`); network `--host`/`--join`/`--bot` (`NetPlay.cs`). Traces `KOTH_TRACE=BotName`, `KOTH_FALLS=1`.
 - Test aids (`KotHApp.cs` fields, times from the end of the load screen): `KOTH_SHOT=shot.png` (+ `_SECONDS`, `_YAW`,
   `_AT`, `_THIRD=N` (> 1: metres), `_MOVE`, `_BLASTER`, `_FIRE`, `_VIDEO` …), `KOTH_HEADLESS=1`, `KOTH_X11=1` (XWayland, else native Wayland), `KOTH_SIZE`, `KOTH_MUSIC_VOLUME=0` (mute), `KOTH_EFFECTLOG`,
