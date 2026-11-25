@@ -150,6 +150,7 @@ namespace KotH.Shared.Bots
         public int NetId => netId;
         public BotIntent Intent => intent;
         public long[] PilotWaits => pilot.Waits;
+        public Action<int, int, bool> Judged;   // probes: a jump's floors and whether it missed
         public int Target => target;
         public Vector3 Goal => goal;
         public Maneuver Running => running;
@@ -934,6 +935,7 @@ namespace KotH.Shared.Bots
             if (missed && !l.Taut)
                 nav.Grid.Punish(l.From, l.To, FailedJump, memory);
             HopsLanded += missed ? 0 : 1;
+            Judged?.Invoke(l.From, l.To, missed);
             HopLog?.Invoke(FormattableString.Invariant(
                 $"{u} Bot {netId}: {(missed ? "MISSED" : "good")} sees {seen.X:F2} {seen.Y:F2} {seen.Z:F2}, target {l.Spot.X:F2} {l.Spot.Y:F2} {l.Spot.Z:F2}"));
         }

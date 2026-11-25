@@ -20,5 +20,6 @@
   <ItemGroup>
     <!-- Generated ground (Tools/maps): triangles too many for a prefab, loaded by WorldBuilder. -->
     <EmbeddedResource Include="Resources/Maps/*Terrain.bin" LogicalName="Maps/%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Resources/Maps/*Jumps.txt" LogicalName="Maps/%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

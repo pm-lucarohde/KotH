@@ -40,6 +40,9 @@ namespace KotH.Shared.Hosting
         /// <summary>Generated ground (Tools/maps), loaded after the collision prefab if the map has one.</summary>
         public static string TerrainResource(string map) => $"Maps/{map}Terrain.bin";
 
+        /// <summary>The bots' learned jumps of a map, embedded as Resources/Maps/NAMEJumps.txt.</summary>
+        public static string JumpsResource(string map) => $"Maps/{map}Jumps.txt";
+
         public static string VisualUrl(string map) => $"Maps/{map}/{map}Visual";
     }
 }

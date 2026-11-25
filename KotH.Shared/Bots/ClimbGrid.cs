@@ -178,7 +178,7 @@ namespace KotH.Shared.Bots
         /// plain field and the route variants, their noise seeded from seed.
         /// </summary>
         public static ClimbGrid Build(List<Triangle> tris, IReadOnlyList<LadderStrip> ladders, PlayerMotor motor, BotSettings s,
-                                      HillMatch zone, int seed, Vector3 start)
+                                      HillMatch zone, int seed, Vector3 start, IReadOnlyList<Jumped> jumps = null)
         {
             float cell = UMath.Max(0.25f, s.CellSize);
             float minX = float.MaxValue, minZ = float.MaxValue, maxX = float.MinValue, maxZ = float.MinValue;
@@ -199,6 +199,7 @@ namespace KotH.Shared.Bots
             grid.FindFloors(zone);
             grid.FindWalks();
             grid.FindLinks(ladders);
+            grid.Learn(jumps);
             grid.Fields(zone, Math.Max(0, s.RouteVariants), seed, start);
             grid.EnsureSearch();
             for (int v = 0; v < grid.nextFloor.Length; v++)
@@ -329,6 +330,67 @@ namespace KotH.Shared.Bots
                     if (n < 0 || Highest(n, y + 0.5f) < y - 1f)
                         edges[f] |= (byte)(1 << d);
                 }
+        }
+
+        /// <summary>One jump of the climbs a map's experience was learned from: the floors it went between
+        /// (column centre and height) and how often it came down where it should.</summary>
+        public struct Jumped
+        {
+            public Vector3 From, To;
+            public int Good, Missed;
+        }
+
+        // A jump missing more often than one in four (the climbs' mean on Volcano) costs this many seconds
+        // more per unit of the odds above it (tried on half the seeds, measured on the rest).
+        const float MissLoss = 5f, MeanOdds = 1f / 3f;
+
+        /// <summary>Makes jumps that bots miss more often than most dearer, from the climbs' record
+        /// (Volcano, seeds not learned from: 31 -> 0-2 of 312 bots not on top, mean 175 -> 152-156 s).</summary>
+        void Learn(IReadOnlyList<Jumped> jumps)
+        {
+            if (jumps == null)
+                return;
+            foreach (Jumped j in jumps)
+            {
+                int a = FloorNear(j.From), b = FloorNear(j.To);
+                if (a < 0 || b < 0)
+                    continue;
+                float miss = (j.Missed + 1.25f) / (j.Good + j.Missed + 5f);
+                float extra = UMath.Max(0f, miss / (1f - miss) - MeanOdds);
+                for (int l = linkStart[a]; l < linkStart[a + 1]; l++)
+                    if (linkTo[l] == b)
+                        linkCost[l] += MissLoss * extra;
+            }
+        }
+
+        int FloorNear(Vector3 spot)
+        {
+            int col = ColumnAt(spot.X, spot.Z);
+            return col >= 0 ? FloorIn(col, spot.Y, 0.05f, 0.05f) : -1;
+        }
+
+        /// <summary>A floor's column centre at its height, the key of its jumps in a map's experience.</summary>
+        public Vector3 FloorSpot(int f) => new Vector3(CentreX(floorCol[f]), floorY[f], CentreZ(floorCol[f]));
+
+        /// <summary>A map's experience as the probe writes it: per line from x y z, to x y z, good, missed.</summary>
+        public static List<Jumped> ReadJumps(System.IO.Stream stream)
+        {
+            var list = new List<Jumped>();
+            using var reader = new System.IO.StreamReader(stream);
+            var inv = System.Globalization.CultureInfo.InvariantCulture;
+            for (string line; (line = reader.ReadLine()) != null;)
+            {
+                string[] p = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (p.Length != 8)
+                    continue;
+                list.Add(new Jumped
+                {
+                    From = new Vector3(float.Parse(p[0], inv), float.Parse(p[1], inv), float.Parse(p[2], inv)),
+                    To = new Vector3(float.Parse(p[3], inv), float.Parse(p[4], inv), float.Parse(p[5], inv)),
+                    Good = int.Parse(p[6], inv), Missed = int.Parse(p[7], inv),
+                });
+            }
+            return list;
         }
 
         int Neighbour(int col, int d)

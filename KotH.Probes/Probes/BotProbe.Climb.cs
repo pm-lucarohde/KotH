@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using KotH.Shared.Bots;
 using KotH.Shared.Combat;
 using KotH.Shared.Hosting;
@@ -30,6 +31,8 @@ namespace KotH.Probes.Probes
         // yaw wobbles, yaw snaps, pitch sum.
         readonly double[] Nat = new double[24];
         readonly long[] PW = new long[5];
+        readonly Dictionary<(int, int), (int Good, int Missed)> LinkStats = new();
+        ClimbGrid LinkGrid;
         double LostMetres;
         double PredictionError;
         // Over the bots on top: the plain field's seconds from where each stood at the start, and its own seconds.
@@ -100,6 +103,13 @@ namespace KotH.Probes.Probes
                 Log($"[climb]   real/model {names[c]}: {PredClass[c]} ticks, {PredClassErr[c] * 100 / Math.Max(1, PredClass[c]):F1} cm, height {PredClassErrY[c] * 100 / Math.Max(1, PredClass[c]):F1} cm");
             Log($"[climb] tick with 3 bots: median {Pick(0.5):F0} µs, 99 % {Pick(0.99):F0} µs, at most {Pick(1.0):F0} µs");
             Log($"[climb] height lost in falls before the top: {LostMetres:F0} m");
+            // Every jump judged, by its floors, for Tools/bots/learn_jumps.sh (the map's Jumps.txt).
+            if (Environment.GetEnvironmentVariable("KOTH_JUMPS_OUT") is string jumpsOut && LinkGrid != null)
+                File.WriteAllLines(jumpsOut, LinkStats.Select(kv =>
+                {
+                    Vector3 a = LinkGrid.FloorSpot(kv.Key.Item1), b = LinkGrid.FloorSpot(kv.Key.Item2);
+                    return FormattableString.Invariant($"{a.X:F2} {a.Y:F2} {a.Z:F2} {b.X:F2} {b.Y:F2} {b.Z:F2} {kv.Value.Good} {kv.Value.Missed}");
+                }));
             Log($"[climb] pilot waits (ticks): unsettled {PW[0]}, not standing {PW[1]}, at the lip with room {PW[2]}, at the lip without {PW[3]}, else {PW[4]}");
             Log($"[climb] standing: keys held at a take-off {Nat[18] / Math.Max(1, Nat[0]) * 100:F0} %, keys held walking {Nat[19] / Math.Max(1, Nat[0]) * 100:F0} %, " +
                 $"no keys at a take-off {Nat[20] / Math.Max(1, Nat[0]) * 100:F0} %, no keys walking {Nat[21] / Math.Max(1, Nat[0]) * 100:F0} % of ground ticks");
@@ -258,6 +268,12 @@ namespace KotH.Probes.Probes
                                            bot, new DamagePercent());
                 e.Name = $"Bot {i + 1}";
                 int me = i;
+                LinkGrid = director.Navigation.Grid;
+                director.BrainOf(bot.NetId).Judged = (a, b, missed) =>
+                {
+                    LinkStats.TryGetValue((a, b), out (int Good, int Missed) v);
+                    LinkStats[(a, b)] = missed ? (v.Good, v.Missed + 1) : (v.Good + 1, v.Missed);
+                };
                 if (Environment.GetEnvironmentVariable("KOTH_HOPLOG") is string who && (who == "0" || who == $"{i + 1}"))
                     director.BrainOf(bot.NetId).HopLog = line =>
                     {

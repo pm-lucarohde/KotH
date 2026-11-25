@@ -112,7 +112,14 @@ namespace KotH.Shared.Bots
             BotSettings settings = builder.Bots ?? new BotSettings();
             PlayerMotor motor = builder.Template<PlayerMotor>(WorldBuilder.PlayerBodyUrl);
             HillMatch zone = simulation.Match ?? (builder.Zone != null ? new HillMatch(builder.Zone) : null);
-            return BotNavigation.Prepare(builder.Arena, motor, settings, zone, seed, SpawnMiddle(builder));
+            return BotNavigation.Prepare(builder.Arena, motor, settings, zone, seed, SpawnMiddle(builder), Jumps(builder.Map));
+        }
+
+        // The map's learned jumps (Tools/bots/learn_jumps.sh), none for a map without them.
+        static List<ClimbGrid.Jumped> Jumps(string map)
+        {
+            using System.IO.Stream stream = map == null ? null : typeof(BotDirector).Assembly.GetManifestResourceStream(Maps.JumpsResource(map));
+            return stream != null ? ClimbGrid.ReadJumps(stream) : null;
         }
 
         // Where the players start, on average: the route variants fan out from there.

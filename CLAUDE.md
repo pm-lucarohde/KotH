@@ -94,7 +94,7 @@ dotnet run Tools/Regress.cs -- $R/run1,$R/run2,$R/run3 .work/regress/run1   # nu
 ### Bots (`KotH.Shared/Bots`) and figure
 - **Only the host computes them, deterministically:** `BotDirector` decides tick t from the final state at t − 8;
   no bot state in the snapshot; in the client on its own thread. Read only snapshot states (teams: the lead's memory via `Peer`), no `System.Random`.
-- `ClimbGrid` (0.5 m columns, floors, moves in seconds), RTAA* to the zone, `JumpPilot` flies every jump in the motor
-  model first (no jitter, Luca), `BotBrain` utility AI with `ManeuverWfc`. Status: 312/312 on top, mean 90 s; duo 72/72 (≤ 470 s); TheLadder (ladders, corners, catch jumps) 312/312, 45 s.
+- `ClimbGrid` (0.5 m columns, floors, moves in seconds; missed jumps dearer: `Resources/Maps/*Jumps.txt`, `Tools/bots/learn_jumps.sh MAP`),
+  RTAA*, `JumpPilot` flies every jump in the motor model first (no jitter, Luca), `BotBrain` utility AI with `ManeuverWfc`. Status: 312/312 on top, mean 90 s; duo 72/72 (≤ 470 s); TheLadder 312/312, 45 s; Volcano 152 s.
 - Figure (visuals only): `Mushroom.glb` (20 clips, `.work/rig/build.sh`), `Champignon.glb` (own cap, `.work/champignon/build_cap.py`);
   the game moves `Mouth`, `Leaf.*`, lids, `Look`, `Recoil`, `*ArmSwing.R`: **clips have no channels for them.** Cane/`Blaster` on `Grip.R`.
