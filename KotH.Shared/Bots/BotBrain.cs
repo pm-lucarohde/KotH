@@ -525,7 +525,7 @@ namespace KotH.Shared.Bots
                 {
                     SimulationBody other = view.BodyAt(i);
                     BodyState s = view.StateAt(i);
-                    if (i == self || other.NetId == 0 || team != 0 && s.Team == team)
+                    if (i == self || other.NetId == 0 || team != 0 && s.Team == team || (FreeRole)s.Role == FreeRole.Waiting)
                         continue;
                     Vector3 there = Ahead(s.Motor.Position, s.Motor.Velocity, Reaction * Dt);
                     float d = UMath.Magnitude(UMath.Sub(there, at));
@@ -919,7 +919,8 @@ namespace KotH.Shared.Bots
             Vector3 aim = Vector3.Zero;
             for (int i = 0; i < view.Count; i++)
             {
-                if (i == self || view.BodyAt(i).NetId == 0 || mine != 0 && view.StateAt(i).Team == mine)
+                if (i == self || view.BodyAt(i).NetId == 0 || mine != 0 && view.StateAt(i).Team == mine
+                    || (FreeRole)view.StateAt(i).Role == FreeRole.Waiting)
                     continue;
                 BodyState s = view.StateAt(i);
                 Vector3 d = UMath.Sub(Ahead(s.Motor.BodyCenter, s.Motor.Velocity, Reaction * Dt), eye);

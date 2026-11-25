@@ -50,7 +50,6 @@ namespace KotH.Probes.Probes
             founderWorld.Simulation.Deactivate();
             founder = new PeerSession(new HeadlessNetWorld(founderWorld), host.LocalTransport, () => default, "Host", founder: true, net.Now);
             host.AttachFounder(founder);
-            host.CanJoin = () => true;
             Pump(500.0, null);
         }
 

@@ -23,7 +23,7 @@ namespace KotH.Probes.Probes
         const double FrameMs = 8.0;
         const double EndMs = 60000.0, SettleMs = 4000.0;
         const double LateJoinMs = 20000.0, LeaveMs = 30000.0, DamageMs = 35000.0, WrongBuildMs = 40000.0, TooLateMs = 45000.0;
-        const int CountdownTicks = 400, JoinTicks = 800;
+        const int CountdownTicks = 400;
         const int EarlyPeers = 6, LatePeers = 4;
         const double LoadMs = 1000.0;    // how long a late peer takes to load the map before its Hello
         const int Seed = 20261021;
@@ -64,7 +64,6 @@ namespace KotH.Probes.Probes
             host.AttachFounder(founder.Session);
             HillMatch round = founder.World.Simulation.Match;
             round.MinPlayers = HillMatch.DefaultMinPlayers;
-            host.CanJoin = () => round.AcceptsJoin;
             int countdownAt = -1, runningAt = -1;
 
             var rng = new Random(Seed);
@@ -77,7 +76,7 @@ namespace KotH.Probes.Probes
             int damagedTick = -1, leaverIndex = -1;
             Peer damaged = null;
             MemoryNetwork.Endpoint wrong = null, tooLate = null;
-            bool rejected = false, closed = false;
+            bool rejected = false;
             var stopwatch = Stopwatch.StartNew();
 
             while (net.Now < EndMs + SettleMs)
@@ -127,7 +126,6 @@ namespace KotH.Probes.Probes
                 rejected |= Refused(wrong, RejectReason.Version);
                 if (tooLate == null && net.Now >= TooLateMs)
                     tooLate = Knock(NetProtocol.BuildId, "Late");
-                closed |= Refused(tooLate, RejectReason.Closed);
 
                 MatchPhase phase = round.State.Phase;
                 if (countdownAt < 0 && phase == MatchPhase.Countdown)
@@ -159,7 +157,17 @@ namespace KotH.Probes.Probes
             Log($"[netplay] Build {NetProtocol.BuildText}");
 
             Report(founder, damaged, damagedTick, rejected);
-            Check(closed, "join after the window rejected");
+            // Joined a running round (Luca): in, but watching until the next.
+            int watching = 0;
+            SimulationBody last = null;
+            foreach (SimulationBody body in founder.World.Simulation.Bodies)
+            {
+                watching += body.Role == FreeRole.Waiting && body.IsOut ? 1 : 0;
+                if (last == null || body.NetId > last.NetId)
+                    last = body;
+            }
+            Check(round.State.Phase == MatchPhase.Running && last?.Role == FreeRole.Waiting && watching >= LatePeers,
+                  $"joins into the running round watch ({watching}, the last knock {last?.Role})");
             Check(host.Sanitized == 0, $"honest inputs never clamped ({host.Sanitized})");
             Sanitizing();
             Check(countdownAt > 0 && runningAt - countdownAt >= CountdownTicks && runningAt - countdownAt < CountdownTicks + 40,
@@ -185,7 +193,6 @@ namespace KotH.Probes.Probes
             NetWorld.SpawnDummies(world.Builder);
             HillMatch match = world.StartMatch();
             match.CountdownTicks = CountdownTicks;
-            match.JoinTicks = JoinTicks;
             world.Simulation.Deactivate();
 
             var p = new Peer { Name = name, World = world, Bot = new Random(Seed + peers.Count * 7919), Asking = ask };

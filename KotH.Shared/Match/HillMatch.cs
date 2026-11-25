@@ -162,7 +162,6 @@ namespace KotH.Shared.Match
             LimitTicks = Ticks(zone.TimeLimitMinutes * 60f);
             PauseTicks = Ticks(zone.WinPauseSeconds);
             CountdownTicks = Ticks(zone.CountdownSeconds);
-            JoinTicks = Ticks(zone.JoinSeconds);
             ringInner = UMath.Max(0f, zone.SpawnRingInner);
             ringOuter = UMath.Max(ringInner, zone.SpawnRingOuter);
             spacing = UMath.Max(0f, zone.SpawnSpacing);
@@ -190,8 +189,9 @@ namespace KotH.Shared.Match
         public int PauseTicks { get; set; }
         public int CountdownTicks { get; set; }
 
-        /// <summary>How long into a running round players may still join.</summary>
-        public int JoinTicks { get; set; }
+        /// <summary>Who joins a running round later than this watches until the next (Luca, 25.11.2026); a restart's
+        /// players arrive a few ticks apart (the host's own last), so the first 2 s still play.</summary>
+        public static readonly int LateTicks = Ticks(2f);
 
         /// <summary>Lobby: the countdown stops at 0 instead of starting the round (Countdown, PhaseTicks 0).
         /// Round: the win pause stops at 0 instead of a new round (Over, PhaseTicks 0). The host then changes maps.</summary>
@@ -271,11 +271,6 @@ namespace KotH.Shared.Match
             }
         }
 
-        /// <summary>
-        /// Whether a host takes a new player now: while waiting, counting
-        /// down, after a win, and in the first JoinTicks of a round.
-        /// </summary>
-        public bool AcceptsJoin => state.Phase != MatchPhase.Running || state.RoundTicks < JoinTicks;
 
         /// <summary>Players among the bodies: everyone from the first player NetId on.</summary>
         public static int CountPlayers(IReadOnlyList<SimulationBody> bodies)
@@ -461,13 +456,19 @@ namespace KotH.Shared.Match
                     moving.Add(bodies[i]);
                 }
 
-            // Into a running round: a team with room, then straight to a place round the hill.
+            // Into a running round: late, it watches until the next; at its start a team with room,
+            // in 1, 2, 3, Free after the draw a runner, then straight to a place round the hill.
+            if (moving.Count > 0 && state.Phase == MatchPhase.Running && state.RoundTicks > LateTicks)
+            {
+                Await();
+                return;
+            }
             if (moving.Count > 0 && state.Phase == MatchPhase.Running)
                 Hurt(moving);
             if (moving.Count > 0 && state.Phase == MatchPhase.Running && Teamed)
                 FormTeams(bodies);
             if (moving.Count > 0 && state.Phase == MatchPhase.Running && state.Mode == MatchMode.Free && state.RoundTicks > 0)
-                Await();
+                RunAlong();
             if (moving.Count > 0 && state.Phase == MatchPhase.Running && HasSpawnRing)
                 Place(bodies);
             else if (moving.Count > 0 && state.Phase == MatchPhase.Running && Teamed)
@@ -636,7 +637,7 @@ namespace KotH.Shared.Match
             for (int i = 0; i < bodies.Count; i++)
             {
                 SimulationBody body = bodies[i];
-                ins.Add(Contains(body.Motor.Position));
+                ins.Add(!body.IsOut && Contains(body.Motor.Position));   // a spectator's hidden body never counts
                 if (body.Team != 0 && Members(body.Team, bodies) < 2)
                     body.Team = 0;
                 leads.Add(LeadOf(body, bodies));

@@ -31,7 +31,7 @@ namespace KotH.Shared.Net
         NextMap = 11,   // host -> peer: the map the lobby's round will be on
     }
 
-    public enum RejectReason : byte { Version = 1, Full = 2, Closed = 3, Password = 4 }
+    public enum RejectReason : byte { Version = 1, Full = 2, Password = 4 }   // 3 was Closed: a late joiner now watches
 
     /// <summary>A join or a leave, part of the confirmed tick it happens in.</summary>
     public struct NetEvent

@@ -203,6 +203,8 @@ namespace KotH.Client.Hud
             (flashText, flashName, flashColor, flashOwn, flashUntil) = (text, name, color, own, tick + FlashTicks);
         }
 
+        const string Spectator = "Spectator";
+
         void ShowOwnRole(IReadOnlyList<SimulationBody> bodies)
         {
             FreeRole r = Self != null ? Shown(Self) : FreeRole.None;
@@ -213,7 +215,7 @@ namespace KotH.Client.Hud
                 FreeRole.Rescuing => ("Free: stay to free all", Green),
                 FreeRole.Free => ("Free", Green),
                 FreeRole.Caught => ("Caught", Grey),
-                FreeRole.Waiting => ("Spectator", Grey),
+                FreeRole.Waiting => (Spectator, Grey),
                 _ => ("", Color.White),
             };
             roleText = text;
@@ -266,12 +268,16 @@ namespace KotH.Client.Hud
             MatchState m = free ? Match.State : default;
             bool playing = free && m.Phase is MatchPhase.Running or MatchPhase.Over;
             bool spinning = playing && m.Phase == MatchPhase.Running && Wheel(m);
-            role.Visible = playing && roleText.Length > 0;
+            // Any other mode: a late joiner watches, its badge says so (Luca).
+            bool watching = !free && visible && Match != null && Self?.Role == FreeRole.Waiting && Match.State.Phase == MatchPhase.Running;
+            if (watching && roleText != Spectator)
+                view.ShowRole(roleText = Spectator, ToAvalonia(Grey));
+            role.Visible = playing && roleText.Length > 0 || watching;
             wheel.Visible = pointer.Visible = wheelCaption.Visible = spinning;
             call.Visible = playing && !spinning && callText.Length > 0 && bannerText.Length == 0;
 
             camera ??= FindCamera();
-            SimulationBody watched = free ? camera?.Watched : null;
+            SimulationBody watched = visible ? camera?.Watched : null;
             watch.Visible = watched != null && bannerText.Length == 0;
             if (watched != null && watched != watchShown)
                 view.ShowWatch("Watching " + NameOf(watched) + " · click for the next");

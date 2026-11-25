@@ -135,12 +135,20 @@ namespace KotH.Shared.Match
             return n;
         }
 
-        // Joined into a running round: watches until the next.
+        // Joined a running round late (any mode): watches until the next, out of it (SimulationBody.IsOut).
         void Await()
         {
             foreach (SimulationBody body in moving)
                 if (body.NetId >= NetWorld.FirstPlayerId)
                     body.Role = FreeRole.Waiting;
+        }
+
+        // Joined in the first LateTicks, after the draw (a restart's own player comes last): runs along.
+        void RunAlong()
+        {
+            foreach (SimulationBody body in moving)
+                if (body.NetId >= NetWorld.FirstPlayerId)
+                    body.Role = FreeRole.Runner;
         }
 
         void TickFree(IReadOnlyList<SimulationBody> bodies)

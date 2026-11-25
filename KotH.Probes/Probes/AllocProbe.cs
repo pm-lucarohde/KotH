@@ -48,7 +48,6 @@ namespace KotH.Probes.Probes
             host.AttachFounder(session);
             HillMatch round = world.Simulation.Match;
             round.MinPlayers = 1;
-            host.CanJoin = () => round.AcceptsJoin;
             using BotDirector made = director = BotDirector.Create(world.Builder, world.Simulation, session, Seed);
             host.Bots = director;
             session.KnownInputs = director;

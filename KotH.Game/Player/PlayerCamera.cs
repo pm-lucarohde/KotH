@@ -5,6 +5,7 @@ using KotH.Shared.Combat;
 using KotH.Shared.Match;
 using KotH.Shared.Simulation;
 using KotH.Shared.Mathematics;
+using KotH.Shared.Net;
 using KotH.Shared.Physics;
 using KotH.Shared.Player;
 using Stride.Core;
@@ -127,8 +128,8 @@ namespace KotH.Client.Player
             Reader.AimAt(watched == null ? AimTarget(path.Pivot, eye, rotation) : null);
         }
 
-        /// <summary>Who the view follows while the own body is out of a round of 1, 2, 3, Free (caught, free,
-        /// waiting): one still playing, in third person, the next by NetId on a click; null while in the round.</summary>
+        /// <summary>Who the view follows while the own body is out of the round (caught or free in 1, 2, 3, Free,
+        /// a spectator in any mode): one still playing, in third person, the next by NetId on a click; else null.</summary>
         [DataMemberIgnore] public SimulationBody Watched { get; private set; }
 
         int clicksSeen;
@@ -158,7 +159,8 @@ namespace KotH.Client.Player
             return Watched = next ?? first;
         }
 
-        static bool Playing(SimulationBody b) => b.Role is FreeRole.Runner or FreeRole.Catcher or FreeRole.Rescuing && b.Entity?.Scene != null;
+        static bool Playing(SimulationBody b)
+            => b.NetId >= NetWorld.FirstPlayerId && !b.IsOut && b.Entity?.Scene != null;
 
         /// <summary>The view's wobble this frame, identity when still. Starts again with
         /// every new hit on the own body, at full strength whatever its percent, and

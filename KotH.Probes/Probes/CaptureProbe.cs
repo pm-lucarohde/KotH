@@ -273,7 +273,7 @@ namespace KotH.Probes.Probes
             a.Motor.Teleport(HillA);
             Ticks(200);
             Check(match.State.Phase == MatchPhase.Waiting && match.State.Holder == null && a.ScoreTicks == carried &&
-                  match.AcceptsJoin && HillMatch.CountPlayers(world.Simulation.Bodies) == 3,
+                  HillMatch.CountPlayers(world.Simulation.Bodies) == 3,
                   $"3 players and a dummy: waiting, the zone does not count ({a.ScoreTicks - carried})");
 
             ScriptedBody d = Spawn("D", new Vector3(-9f, 0.9f, -2f));
@@ -301,16 +301,19 @@ namespace KotH.Probes.Probes
                   match.State.MinPlayers == 4 && SameAsSpawn(a.CaptureState(), a.SpawnState),
                   "at 0 the round runs, all at their spawn points");
 
-            Ticks(match.JoinTicks - 1);
-            bool open = match.AcceptsJoin;
+            // A join into the running round watches until the next (Luca), its body out of it.
+            Ticks(HillMatch.LateTicks + 1);
+            ScriptedBody e = Spawn("E", new Vector3(-12f, 0.9f, -2f));
+            e.NetId = NetWorld.FirstPlayerId + 4;
             Ticks(1);
-            Check(open && !match.AcceptsJoin, $"join until tick {match.JoinTicks} of the round, then closed");
+            Check(e.Role == FreeRole.Waiting && e.IsOut && e.Motor.Position.Y > 0f, $"a late join watches ({e.Role})");
 
             match.LimitTicks = match.State.RoundTicks + 1;
             Ticks(1);
-            Check(match.State.Over && match.AcceptsJoin, "round over, join open again");
+            Check(match.State.Over, "round over");
             Ticks(match.PauseTicks);
-            Check(match.State.Phase == MatchPhase.Waiting, "after the pause waiting again");
+            Check(match.State.Phase == MatchPhase.Waiting && e.Role == FreeRole.None && !e.IsOut,
+                  "after the pause waiting again, the spectator plays along");
             Ticks(1);
             Check(match.State.Phase == MatchPhase.Countdown, "enough players: countdown again at once");
 
@@ -540,13 +543,14 @@ namespace KotH.Probes.Probes
             Ticks(match.WarmupTicks + 1);
             Check(match.State.Holder == a, $"three against two and one: taken ({Name(match.State.Holder)})");
 
-            // A joiner in the running round fills the short team.
+            // A joiner in the running round watches (Luca): in no team, the short one stays short.
             Everyone(t);
             ScriptedBody shortOne = sizeD == 2 ? d : other;
             ScriptedBody i = Spawn("I", Out(8));
             i.NetId = NetWorld.FirstPlayerId + 8;
             Ticks(1);
-            Check(HillMatch.SameTeam(i, shortOne), $"a joiner fills the team of two ({TeamOf(i)})");
+            Check(i.Role == FreeRole.Waiting && i.Team == 0 && !HillMatch.SameTeam(i, shortOne),
+                  $"a late joiner watches, in no team ({TeamOf(i)})");
 
             world.Simulation.Leave(b);
             Ticks(1);

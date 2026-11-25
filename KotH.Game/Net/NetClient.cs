@@ -229,7 +229,7 @@ namespace KotH.Client.Net
                 int players = HillMatch.CountPlayers(Session.Simulation.Bodies);
                 Lobby.SetPlayers(players);
                 Lobby.SetMap(world.Map, TitleOf?.Invoke(world.Map));
-                Lobby.SetJoinable(players < Host.Capacity && !Host.Restarting && Host.CanJoin());
+                Lobby.SetJoinable(players < Host.Capacity && !Host.Restarting);
             }
         }
 
@@ -305,7 +305,6 @@ namespace KotH.Client.Net
             {
                 RejectReason.Version => "Rejected: different build than the host",
                 RejectReason.Full => "Rejected: the game is full",
-                RejectReason.Closed => "Rejected: the round has run too long",
                 RejectReason.Password => "Rejected: wrong password",
                 _ => KeyRefused is { } why ? why
                    : gaveUp || Session.HostLost && Lobby == null ? "The host is gone, the game is over"

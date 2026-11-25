@@ -182,8 +182,6 @@ namespace KotH.Shared.Net
         /// <summary>The host's lobby settings go into the next confirmed tick, for every peer alike.</summary>
         public void Command(in LobbyCommand lobby) => pending.Add(new NetEvent { IsLobby = true, Lobby = lobby });
 
-        /// <summary>Whether a new player may join right now; the lobby decides (N5).</summary>
-        public Func<bool> CanJoin { get; set; } = () => true;
 
         /// <summary>The stage of the game's round, sent with every welcome; Single never changes maps.</summary>
         public MatchStage Stage { get; private set; }
@@ -569,12 +567,11 @@ namespace KotH.Shared.Net
             Send(peer, reliable: true);
         }
 
-        // Rejects a peer of another build, into a full game or a closed round; true then.
+        // Rejects a peer of another build or into a full game; true then.
         bool Refused(int peer, ReadOnlySpan<byte> build)
         {
             RejectReason? why = !build.SequenceEqual(NetProtocol.BuildId) ? RejectReason.Version
                               : Players >= Capacity ? RejectReason.Full
-                              : !CanJoin() ? RejectReason.Closed
                               : null;
             if (why == null)
                 return false;

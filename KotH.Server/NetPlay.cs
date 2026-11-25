@@ -72,7 +72,6 @@ namespace KotH.Server
                 if (minPlayers <= 0)
                     minPlayers = host.Capacity;
                 round.MinPlayers = minPlayers;
-                host.CanJoin = () => round.AcceptsJoin;
                 Console.WriteLine($"[net] host on port {port}, map {map}, round from {minPlayers} players, build {NetProtocol.BuildText}");
                 if (bots > 0)
                 {

@@ -133,7 +133,8 @@ namespace KotH.Shared.Match
             }
             MatchState m = snapshot.Match;
             bool won = m.Mode == MatchMode.Free ? FreeWon(snapshot, self, role) : HillMatch.SameTeam(m.Winner, self);
-            Step(m, score, m.Over && won, connected && (person || Solo));
+            // A spectator (joined late) neither earns nor pays for leaving.
+            Step(m, score, m.Over && won, connected && (person || Solo) && role != FreeRole.Waiting);
         }
 
         // HillMatch.Won on a snapshot's states: free, or a catcher with one of its catches still caught.

@@ -36,7 +36,6 @@ namespace KotH.Client.Net
             // A host change keeps the room the lobby says (the old host's choice), else the mode's most.
             int most = HillMatch.MaxPlayers(world.Simulation.Match?.Mode ?? MatchMode.Solo);
             host.Capacity = Lobby?.Max is > 0 and var max ? Math.Min(max, most) : most;
-            host.CanJoin = () => world.Simulation.Match?.AcceptsJoin ?? true;
             hostAtStart = Text(SteamClient.SteamId);
             return host;
         }
