@@ -401,17 +401,17 @@ namespace KotH.Shared.Bots
         /// weighted by score.</summary>
         void Think(WorldSnapshot view, int self, Vector3 at, MatchPhase phase, bool knocked)
         {
-            int n = 0;
+            offered = 0;
 
             void Offer(BotIntent i, int t, float score)
             {
-                if (n >= scores.Length || score <= 0f)
+                if (offered >= scores.Length || score <= 0f)
                     return;
                 if (i == intent && t == target)
                     score += settings.Persistence;
-                intents[n] = i;
-                targets[n] = t;
-                scores[n++] = score;
+                intents[offered] = i;
+                targets[offered] = t;
+                scores[offered++] = score;
             }
 
             bool live = phase == MatchPhase.Running;
@@ -425,44 +425,111 @@ namespace KotH.Shared.Bots
             bool weHold = holder != null && (holder.NetId == netId || team != 0 && holderTeam == team);
             float reach = shotsLeft > 0 ? UMath.Max(settings.EngageRange, settings.BlasterRange) : settings.EngageRange;
 
-            if (knocked)
-                Offer(BotIntent.Recover, 0, 2f);
-            if (live && match != null)
+            if (match != null && view.Match.Mode == MatchMode.Free)
+                ThinkFree();
+            else
+                ThinkHill();
+            Choose(view, at);
+
+            // 1, 2, 3, Free (simple, Luca): a runner goes to the zone, slower while a catcher stands by it, and
+            // hits back a catcher close by; the catcher hunts runners within CatcherReach, else guards the zone,
+            // where it also cashes in its marks.
+            void ThinkFree()
             {
-                Offer(BotIntent.Capture, 0, inZone ? 0f : 1.2f);
-                Offer(BotIntent.Hold, 0, inZone ? 0.9f + (weHold ? 0.2f : 0f) : 0f);
+                FreeRole role = (FreeRole)view.StateAt(self).Role;
+                bool runner = role is FreeRole.Runner or FreeRole.Rescuing, catcher = role == FreeRole.Catcher;
+                bool playing = live && view.Match.RoundTicks >= HillMatch.DrawTicks + HillMatch.HeadStartTicks;
+                bool guarded = false, marks = false;
+                for (int i = 0; i < view.Count; i++)
+                {
+                    BodyState s = view.StateAt(i);
+                    guarded |= i != self && (FreeRole)s.Role == FreeRole.Catcher && NearHill(s.Motor.Position);
+                    marks |= catcher && (FreeRole)s.Role == FreeRole.Runner && s.MarkedBy == netId;
+                }
+                if (knocked)
+                    Offer(BotIntent.Recover, 0, 2f);
+                Offer(BotIntent.Idle, 0, live ? 0.1f : 1f);
+                if (!live || !runner && !catcher)
+                    return;
+                // A guarded zone is still gone for, more slowly: up there the catcher is hit off it.
+                if (runner)
+                {
+                    Offer(BotIntent.Capture, 0, inZone ? 0f : guarded ? 0.5f : 1.2f);
+                    Offer(BotIntent.Hold, 0, inZone ? 1.3f : 0f);
+                }
+                if (catcher)
+                {
+                    Offer(BotIntent.Capture, 0, inZone ? 0f : marks ? 1.8f : 0.5f);
+                    Offer(BotIntent.Hold, 0, inZone ? marks ? 1.8f : 0.4f : 0f);
+                }
+                if (!playing)
+                    return;
+                for (int i = 0; i < view.Count; i++)
+                {
+                    BodyState s = view.StateAt(i);
+                    FreeRole r = (FreeRole)s.Role;
+                    if (i == self || (runner ? r != FreeRole.Catcher : r is not (FreeRole.Runner or FreeRole.Rescuing) || s.MarkedBy == netId))
+                        continue;
+                    Vector3 there = Ahead(s.Motor.Position, s.Motor.Velocity, Reaction * Dt);
+                    float d = UMath.Magnitude(UMath.Sub(there, at));
+                    if (runner && d < settings.EngageRange)
+                        Offer(BotIntent.Attack, view.BodyAt(i).NetId, 1.6f - d / settings.EngageRange);
+                    else if (catcher && d < CatcherReach)
+                        Offer(BotIntent.Attack, view.BodyAt(i).NetId, 0.6f + UMath.Max(0f, 1f - d / CatcherReach)
+                                                                      + (match.Contains(there) ? 0.6f : 0f));
+                }
             }
-            Offer(BotIntent.Idle, 0, live ? 0.05f : phase == MatchPhase.Over ? 1f : 0.4f);
 
-            for (int i = 0; i < view.Count; i++)
+            void ThinkHill()
             {
-                SimulationBody other = view.BodyAt(i);
-                BodyState s = view.StateAt(i);
-                if (i == self || other.NetId == 0 || team != 0 && s.Team == team)
-                    continue;
-                Vector3 there = Ahead(s.Motor.Position, s.Motor.Velocity, Reaction * Dt);
-                float d = UMath.Magnitude(UMath.Sub(there, at));
-                // Only a running round is fought over: no hits in the lobby,
-                // the countdown or after a win. With shots left, from further.
-                if (d > reach || !live || below)
-                    continue;
+                if (knocked)
+                    Offer(BotIntent.Recover, 0, 2f);
+                if (live && match != null)
+                {
+                    Offer(BotIntent.Capture, 0, inZone ? 0f : 1.2f);
+                    Offer(BotIntent.Hold, 0, inZone ? 0.9f + (weHold ? 0.2f : 0f) : 0f);
+                }
+                Offer(BotIntent.Idle, 0, live ? 0.05f : phase == MatchPhase.Over ? 1f : 0.4f);
 
-                // Fights are about the hill: far from it they are worth little.
-                bool theyHold = match != null && match.Contains(there);
-                float score = 0.3f + 0.5f * UMath.Max(0f, 1f - d / settings.EngageRange)
-                            + (theyHold ? 0.6f : 0f)
-                            + (holder == other || holderTeam != 0 && s.Team == holderTeam ? 0.4f : 0f)
-                            + 0.2f * UMath.Min(1f, s.DamagePercent / 100f);
-                if (nav.NearestEdge(Feet(there), 2.5f, out _, out _))
-                    score += 0.2f;
-                if (live && match != null && !theyHold && !NearHill(at) && !NearHill(there))
-                    score *= 0.4f;
-                if (inZone && !theyHold && d > 4f)
-                    score *= 0.5f;
-                Offer(BotIntent.Attack, other.NetId, score);
+                for (int i = 0; i < view.Count; i++)
+                {
+                    SimulationBody other = view.BodyAt(i);
+                    BodyState s = view.StateAt(i);
+                    if (i == self || other.NetId == 0 || team != 0 && s.Team == team)
+                        continue;
+                    Vector3 there = Ahead(s.Motor.Position, s.Motor.Velocity, Reaction * Dt);
+                    float d = UMath.Magnitude(UMath.Sub(there, at));
+                    // Only a running round is fought over: no hits in the lobby,
+                    // the countdown or after a win. With shots left, from further.
+                    if (d > reach || !live || below)
+                        continue;
+
+                    // Fights are about the hill: far from it they are worth little.
+                    bool theyHold = match != null && match.Contains(there);
+                    float score = 0.3f + 0.5f * UMath.Max(0f, 1f - d / settings.EngageRange)
+                                + (theyHold ? 0.6f : 0f)
+                                + (holder == other || holderTeam != 0 && s.Team == holderTeam ? 0.4f : 0f)
+                                + 0.2f * UMath.Min(1f, s.DamagePercent / 100f);
+                    if (nav.NearestEdge(Feet(there), 2.5f, out _, out _))
+                        score += 0.2f;
+                    if (live && match != null && !theyHold && !NearHill(at) && !NearHill(there))
+                        score *= 0.4f;
+                    if (inZone && !theyHold && d > 4f)
+                        score *= 0.5f;
+                    Offer(BotIntent.Attack, other.NetId, score);
+                }
             }
+        }
 
-            if (n == 0)
+        int offered;
+
+        // How far a catcher bot chases a runner (1, 2, 3, Free), metres.
+        const float CatcherReach = 60f;
+
+        // The intent among the offers (Think): the best ones by weighted chance.
+        void Choose(WorldSnapshot view, Vector3 at)
+        {
+            if (offered == 0)
             {
                 intent = BotIntent.Idle;
                 target = 0;
@@ -471,15 +538,15 @@ namespace KotH.Shared.Bots
             }
 
             float best = 0f;
-            for (int i = 0; i < n; i++)
+            for (int i = 0; i < offered; i++)
                 best = UMath.Max(best, scores[i]);
             float floor = best * (1f - settings.Randomness), total = 0f;
-            for (int i = 0; i < n; i++)
+            for (int i = 0; i < offered; i++)
                 if (scores[i] >= floor)
                     total += scores[i];
             float roll = BotRandom.Unit(ref rng) * total;
             int pick = 0;
-            for (int i = 0; i < n; i++)
+            for (int i = 0; i < offered; i++)
             {
                 if (scores[i] < floor)
                     continue;
