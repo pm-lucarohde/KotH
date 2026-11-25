@@ -75,10 +75,10 @@ namespace KotH.Client.Hud
             flash = At(view.FlashPart, BarLeft - 24f, BarTop - 24f, size);
             spark = At(view.SparkPart, BarLeft - 24f, BarTop + BarHeight * 0.5f - 24f, size);
             numbers = At(view.NumbersPart, BarLeft, BarTop + 24f, size);
-            hint = At(view.HintPart, 48f, BarTop + 24f, size);
+            hint = At(view.HintPart, 48f, BarTop + 46f, size);   // clear under the badge (Luca: Esc sat on it)
             // The stamp over the card's top edge, right, clear of the sum.
             levelUp = At(view.LevelUpPart, 490f, -54f, size);
-            unlock = At(view.UnlockPart, 24f, 302f, size);
+            unlock = At(view.UnlockPart, 24f, 326f, size);
             levelUp.Angle = -0.1f;
             // Drawn in this order: the gain under the old share, the flash and spark over both.
             Overlays = new[] { card, head, lines[0], lines[1], lines[2], note, badge, gain, old, flash, spark, numbers, hint, levelUp, unlock };

@@ -13,7 +13,7 @@
     </UserControl.Styles>
     <Panel Name="Parts">
         <!-- The glass, the line under the title and the bar's empty track: drawn once -->
-        <Grid Name="CardPart" Width="688" Height="340">
+        <Grid Name="CardPart" Width="688" Height="364">
             <!-- Denser than the HUD's glass: more to read, often over bright grass -->
             <Border Classes="Glass" Margin="24" CornerRadius="18">
                 <Border.Background>
