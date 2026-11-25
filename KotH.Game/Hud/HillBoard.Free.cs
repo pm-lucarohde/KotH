@@ -87,7 +87,7 @@ namespace KotH.Client.Hud
 
             statusText = !Match.Playing || m.Over ? "" : look switch
             {
-                ZoneLook.Enemy => "Catcher in the zone",
+                ZoneLook.Enemy => "Chaser in the zone",
                 ZoneLook.Own => Self.Role == FreeRole.Rescuing ? "Freeing everyone" : "You are counting",
                 ZoneLook.EnemyTaking or ZoneLook.Contested => "Runners in the zone",
                 _ => "Zone free",
@@ -135,7 +135,7 @@ namespace KotH.Client.Hud
 
         string StatusOf(SimulationBody b) => Shown(b) switch
         {
-            FreeRole.Catcher => "Catcher",
+            FreeRole.Catcher => "Chaser",
             FreeRole.Runner => b.MarkedBy != 0 ? "Marked" : "Runner",
             FreeRole.Rescuing or FreeRole.Free => "Free",
             FreeRole.Caught => "Caught",
@@ -192,7 +192,7 @@ namespace KotH.Client.Hud
                 Flash("Free!", "Everyone is free!", Green, true, tick);
             int marked = Self?.Role == FreeRole.Runner ? Self.MarkedBy : 0;
             if (marked != 0 && marked != lastMarked)
-                Flash("Marked!", "3 s of the catcher in the zone catch you", EnemyTakingColor, true, tick);
+                Flash("Marked!", "3 s of the chaser in the zone catch you", EnemyTakingColor, true, tick);
             lastMarked = marked;
         }
 
@@ -208,7 +208,7 @@ namespace KotH.Client.Hud
             FreeRole r = Self != null ? Shown(Self) : FreeRole.None;
             (string text, Color color) = r switch
             {
-                FreeRole.Catcher => ("You are the catcher", EnemyColor),
+                FreeRole.Catcher => ("Chaser", EnemyColor),
                 FreeRole.Runner => Self.MarkedBy != 0 ? ("Runner, marked", EnemyTakingColor) : ("Runner", OwnColor),
                 FreeRole.Rescuing => ("Free: stay to free all", Green),
                 FreeRole.Free => ("Free", Green),
@@ -234,7 +234,7 @@ namespace KotH.Client.Hud
             {
                 int seconds = (Match.HeadStartLeft + HillMatch.TicksPerPoint - 1) / HillMatch.TicksPerPoint;
                 text = Digits[Math.Min(seconds, Digits.Length - 1)];
-                name = Self?.Role == FreeRole.Catcher ? "Head start: go!" : "The catcher's head start";
+                name = Self?.Role == FreeRole.Catcher ? "Head start: go!" : "The chaser's head start";
             }
             else if (Match.Playing)
             {
@@ -321,8 +321,8 @@ namespace KotH.Client.Hud
             {
                 captionShown = caption;
                 string who = spin.Chosen == Self ? "You are" : NameOf(spin.Chosen) + " is";
-                view.ShowWheelCaption(x < 1f ? wheelDrawnAt > 0 ? "A catcher left: drawing anew ..." : spinCount > 1 ? "Drawing the catchers ..." : "Drawing the catcher ..."
-                                             : spinCount > 1 ? who + " a catcher!" : who + " the catcher!");
+                view.ShowWheelCaption(x < 1f ? wheelDrawnAt > 0 ? "A chaser left: drawing anew ..." : spinCount > 1 ? "Drawing the chasers ..." : "Drawing the chaser ..."
+                                             : spinCount > 1 ? who + " a chaser!" : who + " the chaser!");
             }
             return true;
         }

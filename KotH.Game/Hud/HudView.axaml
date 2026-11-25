@@ -110,7 +110,7 @@
             <Border Classes="Glass" Margin="24" CornerRadius="11" Padding="16,0">
                 <StackPanel Orientation="Horizontal" Spacing="9" HorizontalAlignment="Center">
                     <Ellipse Name="RoleDot" Width="12" Height="12" Fill="White" VerticalAlignment="Center" />
-                    <TextBlock Name="Role" Classes="Hud" Text="You are the catcher" FontSize="24" Margin="0,0,0,3"
+                    <TextBlock Name="Role" Classes="Hud" Text="Chaser" FontSize="24" Margin="0,0,0,3"
                                MaxWidth="260" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
             </Border>
@@ -144,7 +144,7 @@
         </Grid>
         <Grid Name="WheelCaptionPart" Width="900" Height="104">
             <Border Classes="Glass" Margin="24" Height="56" CornerRadius="13" HorizontalAlignment="Center" Padding="26,0">
-                <TextBlock Name="WheelCaption" Classes="Hud" Text="Drawing the catcher ..." FontSize="29" Margin="0,0,0,4" />
+                <TextBlock Name="WheelCaption" Classes="Hud" Text="Drawing the chaser ..." FontSize="29" Margin="0,0,0,4" />
             </Border>
         </Grid>
 
