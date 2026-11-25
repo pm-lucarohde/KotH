@@ -39,12 +39,8 @@ namespace KotH.Client.Menu
             rows.Add(new ToggleRow("Auto start", s => s.HostAutoStart, (s, v) => s.HostAutoStart = v, "when the lobby is full"));
             rows.Add(new SliderRow("Start damage", 0, PlayerSettings.MaxStartPercent, 5, s => s.StartPercentOf,
                                    (s, v) => s.HostStartPercent = (float)Math.Round(v), v => Text(v, "0") + " %", "everyone, at the start"));
-            rows.Add(new SliderRow("Cane hit", 0, PlayerSettings.MaxHitPercent, 0.1, s => s.HostMelee,
-                                   (s, v) => s.HostMelee = Tenths(v), Hit, "percent it adds"));
-            rows.Add(new SliderRow("Spore hit", 0, PlayerSettings.MaxHitPercent, 0.1, s => s.HostSpore,
-                                   (s, v) => s.HostSpore = Tenths(v), Hit));
-            rows.Add(new SliderRow("Dash hit", 0, PlayerSettings.MaxHitPercent, 0.1, s => s.HostDash,
-                                   (s, v) => s.HostDash = Tenths(v), Hit));
+            rows.Add(new SliderRow("Hit", 0, PlayerSettings.MaxHitPercent, 0.1, s => s.HostHit,
+                                   (s, v) => s.HostHit = Tenths(v), Hit, "percent each hit adds"));
             rows.Add(new SliderRow("Knockback", PlayerSettings.MinKnock, PlayerSettings.MaxKnock, 0.05, s => s.HostKnock,
                                    (s, v) => s.HostKnock = (float)Math.Round(v, 2), v => "×" + Text(v, "0.00"), "how far hits throw"));
             foreach (SettingRow row in rows)

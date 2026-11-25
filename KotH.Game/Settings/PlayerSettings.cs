@@ -48,8 +48,8 @@ namespace KotH.Client.Settings
         public string[] HostLanguages = System.Array.Empty<string>();
 
         // The host's next round, from the lobby's Esc menu (Luca): start damage (< 0 the mode's own), percent
-        // per hit of cane, spore and dash, knockback factor, bots and how many, auto start (at a full lobby).
-        public float HostStartPercent = -1f, HostMelee = DefaultHitPercent, HostSpore = DefaultHitPercent, HostDash = DefaultHitPercent, HostKnock = 1f;
+        // per hit (one for cane, spore and dash), knockback factor, bots and how many, auto start (a full lobby).
+        public float HostStartPercent = -1f, HostHit = DefaultHitPercent, HostKnock = 1f;
         // Bots: off on every new server (Luca), on or off then for its lobby; never saved, unlike the count.
         public bool HostBots, HostAutoStart = true;
         public int HostBotCount = 3;
@@ -77,7 +77,7 @@ namespace KotH.Client.Settings
         /// <summary>The round values for the host's next round.</summary>
         public KotH.Shared.Match.RoundRules RulesOf => new KotH.Shared.Match.RoundRules
         {
-            Set = true, StartPercent = StartPercentOf, Melee = HostMelee, Spore = HostSpore, Dash = HostDash, Knock = HostKnock,
+            Set = true, StartPercent = StartPercentOf, Melee = HostHit, Spore = HostHit, Dash = HostHit, Knock = HostKnock,
         };
 
         public const float DefaultFov = 85f, MinFov = 60f, MaxFov = 120f;

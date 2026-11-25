@@ -107,7 +107,7 @@
              number, a name below), whom a caught or free one watches, and the draw's wheel with
              its pointer; the wheel is drawn once and turned as a picture (MenuOverlay.Angle). -->
         <Grid Name="RolePart" Width="348" Height="92">
-            <Border Classes="Glass" Margin="24" CornerRadius="11" Padding="16,0">
+            <Border Classes="Glass" Margin="24" CornerRadius="11" Padding="16,0" HorizontalAlignment="Left">
                 <StackPanel Orientation="Horizontal" Spacing="9" HorizontalAlignment="Center">
                     <Ellipse Name="RoleDot" Width="12" Height="12" Fill="White" VerticalAlignment="Center" />
                     <TextBlock Name="Role" Classes="Hud" Text="Chaser" FontSize="24" Margin="0,0,0,3"
@@ -118,10 +118,8 @@
 
         <Grid Name="CallPart" Width="900" Height="230">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="2">
-                <Border Classes="Glass" CornerRadius="24" HorizontalAlignment="Center" Padding="44,0" Margin="24,24,24,0">
-                    <TextBlock Name="Call" Classes="Hud" Text="Free!" FontSize="80" Margin="0,0,0,8"
-                               HorizontalAlignment="Center" />
-                </Border>
+                <TextBlock Name="Call" Classes="Hud" Text="Free!" FontSize="80" Margin="24,24,24,8"
+                           HorizontalAlignment="Center" />
                 <TextBlock Name="CallName" Classes="Hud" Text="Bot 3 is free!" FontSize="30" HorizontalAlignment="Center"
                            MaxWidth="820" TextTrimming="CharacterEllipsis" Margin="0,0,0,20" />
             </StackPanel>

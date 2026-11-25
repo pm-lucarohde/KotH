@@ -30,8 +30,7 @@ namespace KotH.Client.Settings
         public static void RememberRound(PlayerSettings from)
         {
             PlayerSettings s = Applied;
-            (s.HostMode, s.HostStartPercent, s.HostMelee, s.HostSpore, s.HostDash, s.HostKnock) =
-                (from.HostMode, from.HostStartPercent, from.HostMelee, from.HostSpore, from.HostDash, from.HostKnock);
+            (s.HostMode, s.HostStartPercent, s.HostHit, s.HostKnock) = (from.HostMode, from.HostStartPercent, from.HostHit, from.HostKnock);
             (s.HostBots, s.HostBotCount, s.HostAutoStart, s.HostMaxPlayers) = (from.HostBots, from.HostBotCount, from.HostAutoStart, from.HostMaxPlayers);
             SettingsFile.Save(s);
         }
