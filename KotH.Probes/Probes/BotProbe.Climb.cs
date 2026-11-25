@@ -28,7 +28,9 @@ namespace KotH.Probes.Probes
         // How human the climbing looks, summed over all bots and rounds: ground ticks,
         // key changes, reversals, strafing ticks, standing ticks, air ticks, yaw sum,
         // yaw wobbles, yaw snaps, pitch sum.
-        readonly double[] Nat = new double[18];
+        readonly double[] Nat = new double[24];
+        readonly long[] PW = new long[5];
+        double LostMetres;
         double PredictionError;
         // Over the bots on top: the plain field's seconds from where each stood at the start, and its own seconds.
         double gridSum, ownSum;
@@ -97,6 +99,10 @@ namespace KotH.Probes.Probes
             for (int c = 0; c < 4; c++)
                 Log($"[climb]   real/model {names[c]}: {PredClass[c]} ticks, {PredClassErr[c] * 100 / Math.Max(1, PredClass[c]):F1} cm, height {PredClassErrY[c] * 100 / Math.Max(1, PredClass[c]):F1} cm");
             Log($"[climb] tick with 3 bots: median {Pick(0.5):F0} µs, 99 % {Pick(0.99):F0} µs, at most {Pick(1.0):F0} µs");
+            Log($"[climb] height lost in falls before the top: {LostMetres:F0} m");
+            Log($"[climb] pilot waits (ticks): unsettled {PW[0]}, not standing {PW[1]}, at the lip with room {PW[2]}, at the lip without {PW[3]}, else {PW[4]}");
+            Log($"[climb] standing: keys held at a take-off {Nat[18] / Math.Max(1, Nat[0]) * 100:F0} %, keys held walking {Nat[19] / Math.Max(1, Nat[0]) * 100:F0} %, " +
+                $"no keys at a take-off {Nat[20] / Math.Max(1, Nat[0]) * 100:F0} %, no keys walking {Nat[21] / Math.Max(1, Nat[0]) * 100:F0} % of ground ticks");
             Log($"[climb] spawns: closest spacing {StartSpacing:F1} m, view at most {StartFacing:F1}° beside the zone");
             bool passed = missing == 0 && average <= ClimbGoal && StartSpacing >= 6f && StartFacing < 1f;
             Log(passed ? "[climb] PASSED" : "[climb] NOT PASSED");
@@ -131,6 +137,9 @@ namespace KotH.Probes.Probes
                 Nat[3] += input.Move.X != 0f ? 1 : 0;
                 float flat = MathF.Sqrt(m.Velocity.X * m.Velocity.X + m.Velocity.Z * m.Velocity.Z);
                 Nat[4] += flat < 0.3f ? 1 : 0;
+                // Standing: with keys pressed (held by something) or without, hopping (waiting at a take-off) or not.
+                if (flat < 0.3f)
+                    Nat[input.Move != Vector2.Zero ? (hop ? 18 : 19) : (hop ? 20 : 21)]++;
                 // Visible back and forth: the way turned round within 0,15 s.
                 var v = new Vector2(m.Velocity.X, m.Velocity.Z);
                 Vector2 then = flatHistory[i, t % 8];
@@ -307,6 +316,7 @@ namespace KotH.Probes.Probes
                     else if (best[i] - p.Y > 3f && best[i] > 3f)
                     {
                         falls++;
+                        LostMetres += times[i] < 0f ? best[i] - p.Y : 0f;
                         best[i] = p.Y;
                     }
                     respawns += low[i] && p.Y > 0.5f ? 1 : 0;
@@ -429,6 +439,8 @@ namespace KotH.Probes.Probes
                 HopStats[0] += mind.Hops;
                 HopStats[1] += mind.HopsLanded;
                 HopStats[2] += mind.HopsGivenUp;
+                for (int k = 0; k < PW.Length; k++)
+                    PW[k] += mind.PilotWaits[k];
             }
             var highest = new List<string>();
             for (int i = 0; i < bots.Count; i++)

@@ -55,14 +55,14 @@ namespace KotH.Probes.Probes
                 {
                     Result r = Play(1000 + k);
                     sum.Jumps += r.Jumps; sum.Doubles += r.Doubles; sum.Slides += r.Slides;
-                    sum.Hits += r.Hits; sum.Swings += r.Swings; sum.Points += r.Points; sum.ZoneTicks += r.ZoneTicks;
+                    sum.Hits += r.Hits; sum.Swings += r.Swings; sum.Points += r.Points; sum.ZoneTicks += r.ZoneTicks; sum.InZone += r.InZone;
                     sum.Shots += r.Shots; sum.SporeHits += r.SporeHits; sum.Slams += r.Slams; sum.SlamHits += r.SlamHits;
                 }
                 float per = Stats * 3 * PlayTicks / 2400f;
                 Log($"[bots] per bot and minute over {Stats} seeds: {sum.Jumps / per:F1} jumps, {sum.Doubles / per:F1} double jumps, " +
                     $"{sum.Slides / per:F1} slides, {sum.Swings / per:F1} swings, {sum.Hits / per:F1} hits, " +
                     $"{sum.Shots / per:F1} shots, {sum.SporeHits / per:F1} spore hits, {sum.Slams / per:F1} dashes, {sum.SlamHits / per:F1} dash hits; " +
-                    $"points per round {sum.Points / (float)Stats:F1}, first in the zone on average after {sum.ZoneTicks / 40f / Stats:F1} s");
+                    $"points per round {sum.Points / (float)Stats:F1}, first in the zone on average after {sum.ZoneTicks / 40f / Stats:F1} s, in the zone {sum.InZone * 100f / (Stats * 3f * PlayTicks):F0} % of the time");
                 return 0;
             }
             world.LoadArena(Maps.Test);
@@ -80,6 +80,9 @@ namespace KotH.Probes.Probes
             Check(first.Inputs == second.Inputs && first.End == second.End,
                   $"same seed, same inputs ({first.Inputs:X16} / {second.Inputs:X16})");
             Check(first.Inputs != other.Inputs, "other seed, other inputs");
+            // Over both seeds: one round alone swings by a tenth either way (12 seeds: 40 %).
+            Check(first.InZone + other.InZone > 2 * PlayTicks,
+                  $"bots stand in the zone over a third of the time ({first.InZone * 100 / (PlayTicks * 3)} %, {other.InZone * 100 / (PlayTicks * 3)} %)");
             // Worked out ahead, on a thread or a little each frame: the same bits.
             Result threaded = Play(Seed, ahead: 1), pumped = Play(Seed, ahead: 2);
             Check(threaded.Inputs == first.Inputs && threaded.End == first.End &&
@@ -132,7 +135,7 @@ namespace KotH.Probes.Probes
         struct Result
         {
             public ulong Inputs, End;
-            public int Jumps, Doubles, Slides, Hits, Swings, Points, ZoneTicks, Shots, SporeHits, Slams, SlamHits;
+            public int Jumps, Doubles, Slides, Hits, Swings, Points, ZoneTicks, Shots, SporeHits, Slams, SlamHits, InZone;
         }
 
         /// <summary>Averages over many seeds, for tuning: "bots stats N".</summary>
@@ -267,7 +270,6 @@ namespace KotH.Probes.Probes
                 Check(lost == 0, $"no bot falls forever ({lost} below the arena)");
                 Check(firstInZone >= 0 && firstInZone < 40 * 20, "a bot in the zone within 20 s");
                 Log($"[bots] points together {HillMatch.Points(score)}; alone counts only who pushes the others out");
-                Check(zoneTicks > PlayTicks, $"bots stand in the zone over a third of the time ({zoneTicks * 100 / (PlayTicks * 3)} %)");
                 Check(hits > 0, $"bots hit ({hits} of {swings})");
                 Check(shots > 0, $"bots fire the blaster ({shots} shots)");
                 Check(slams > 0, $"bots dash ({slams} dashes)");
@@ -287,7 +289,7 @@ namespace KotH.Probes.Probes
             return new Result
             {
                 Inputs = chain, End = end, Jumps = jumps, Doubles = doubles, Slides = slides,
-                Hits = allHits, Swings = allSwings, Points = allScore, ZoneTicks = firstInZone,
+                Hits = allHits, Swings = allSwings, Points = allScore, ZoneTicks = firstInZone, InZone = zoneTicks,
                 Shots = allShots, SporeHits = allSporeHits, Slams = allSlams, SlamHits = allSlamHits,
             };
         }

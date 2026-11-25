@@ -88,11 +88,18 @@ namespace KotH.Shared.Bots
         JumpPilot.Hop hop;           // the jump being flown or prepared
         JumpPilot.Attempt attempt;
         bool hopping;
-        int hopStart, hopSeen = int.MinValue / 2, verifyAt = -1;
+        int hopStart, hopSeen = int.MinValue / 2;
         int fromFloor, toFloor;      // the floors of that jump
-        Vector3 landed;              // the last jump's, checked once the bot sees itself down
-        int landedFrom, landedTo;
-        float landedTime;
+        // Jumps flown and not yet judged: each once the bot sees the tick it should have come down in.
+        struct Pending
+        {
+            public int At, From, To;
+            public Vector3 Spot;
+            public float Time;
+            public bool Taut;
+        }
+        readonly Pending[] unjudged = new Pending[4];
+        int unjudgedCount;
         readonly MoveInput[] past = new MoveInput[64];
         readonly int[] pastTick = new int[64];
         readonly ClimbGrid.Memory own = new ClimbGrid.Memory();
@@ -142,6 +149,7 @@ namespace KotH.Shared.Bots
 
         public int NetId => netId;
         public BotIntent Intent => intent;
+        public long[] PilotWaits => pilot.Waits;
         public int Target => target;
         public Vector3 Goal => goal;
         public Maneuver Running => running;
@@ -184,7 +192,7 @@ namespace KotH.Shared.Bots
                 corners.Clear();
                 flight = LinkKind.None;
                 hopping = false;
-                verifyAt = -1;
+                unjudgedCount = 0;
                 bestTime = float.MaxValue;
                 ladderRoute.Clear();
             }
@@ -319,7 +327,7 @@ namespace KotH.Shared.Bots
         // A row of three or four: a jump that missed with a link near taut is the chain's fault, not the jump's
         // (the team's shared memory would learn the good way off); a pair keeps learning from every miss.
         const float TautAt = 4.6f;  // 0.4 m short of the 5 m link
-        bool tautInFlight, landedTaut;
+        bool tautInFlight;
         Vector3 hopTo;               // the landing the hop was prepared for
 
         bool Taut(Vector3 feet)
@@ -826,8 +834,11 @@ namespace KotH.Shared.Bots
             var feet = new Vector3(b.X, b.Y, b.Z);
             Predicted = b;
             eyeAbove = me.Motor.EyePosition.Y - Feet(me.Motor.Position).Y;
-            if (verifyAt >= 0 && u >= verifyAt && (me.Motor.Grounded || u >= verifyAt + 40))
-                Verify(u, Feet(me.Motor.Position));
+            while (unjudgedCount > 0 && u >= unjudged[0].At)
+            {
+                Verify(u, Feet(me.Motor.Position), unjudged[0]);
+                Array.Copy(unjudged, 1, unjudged, 0, --unjudgedCount);
+            }
 
             if (flight != LinkKind.None)
             {
@@ -835,12 +846,13 @@ namespace KotH.Shared.Bots
                 {
                     flight = LinkKind.None;
                     hopping = false;
-                    verifyAt = u + Reaction + 1;
-                    landed = landing;
-                    landedFrom = fromFloor;
-                    landedTo = toFloor;
-                    landedTime = nav.Grid.TimeToZone(landing, variant);
-                    landedTaut = tautInFlight;
+                    if (unjudgedCount == unjudged.Length)
+                        Array.Copy(unjudged, 1, unjudged, 0, --unjudgedCount);
+                    unjudged[unjudgedCount++] = new Pending
+                    {
+                        At = u + Reaction + 3, From = fromFloor, To = toFloor, Spot = landing,
+                        Time = nav.Grid.TimeToZone(landing, variant), Taut = tautInFlight,
+                    };
                 }
                 else
                 {
@@ -900,9 +912,6 @@ namespace KotH.Shared.Bots
                 input.Pitch = pitch;
                 if (input.JumpPresses == 1)
                 {
-                    // A jump still unchecked is judged by where this one starts.
-                    if (verifyAt >= 0)
-                        Verify(u, feet);
                     lastJump = u;
                     Hops++;
                     HopLog?.Invoke(FormattableString.Invariant(
@@ -917,17 +926,16 @@ namespace KotH.Shared.Bots
         }
 
         // Whether the last jump came down where it should; a miss costs it more next time.
-        void Verify(int u, Vector3 seen)
+        void Verify(int u, Vector3 seen, in Pending l)
         {
-            // Down on the top, or anywhere at least as close to the zone.
-            bool missed = seen.Y < landed.Y - 0.3f ||
-                          Flat(seen, landed) > 0.8f && nav.Grid.TimeToZone(seen, variant) > landedTime + 0.5f;
-            if (missed && !landedTaut)
-                nav.Grid.Punish(landedFrom, landedTo, FailedJump, memory);
+            // Down on the top, or anywhere at least as close to the zone; a chained jump on from it is seen rising.
+            bool missed = seen.Y < l.Spot.Y - 0.3f ||
+                          Flat(seen, l.Spot) > 0.8f && nav.Grid.TimeToZone(seen, variant) > l.Time + 0.5f;
+            if (missed && !l.Taut)
+                nav.Grid.Punish(l.From, l.To, FailedJump, memory);
             HopsLanded += missed ? 0 : 1;
             HopLog?.Invoke(FormattableString.Invariant(
-                $"{u} Bot {netId}: {(missed ? "MISSED" : "good")} sees {seen.X:F2} {seen.Y:F2} {seen.Z:F2}, target {landed.X:F2} {landed.Y:F2} {landed.Z:F2}"));
-            verifyAt = -1;
+                $"{u} Bot {netId}: {(missed ? "MISSED" : "good")} sees {seen.X:F2} {seen.Y:F2} {seen.Z:F2}, target {l.Spot.X:F2} {l.Spot.Y:F2} {l.Spot.Z:F2}"));
         }
 
         /// <summary>Climbing far below the zone a bot swings only at whoever is right in

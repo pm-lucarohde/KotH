@@ -45,6 +45,8 @@ namespace KotH.Shared.Bots
         readonly float walk, sprint, groundAcc, groundDec, airAcc, jumpSpeed, doubleSpeed, doubleHeight, gravity, radius;
 
         /// <summary>The model of motor, with the round's mode's factors (ModeRules) as the real body has them.</summary>
+        public readonly long[] Waits = new long[5];   // probes: ticks standing still, by why (see Drive)
+
         public JumpPilot(ClimbGrid grid, PlayerMotor motor, MotorTuning tuning)
         {
             this.grid = grid;
@@ -61,9 +63,6 @@ namespace KotH.Shared.Bots
         }
 
         public float Radius => radius;
-
-        /// <summary>Takes off only once the bot has seen itself standing; a landing can turn its speed unseen.</summary>
-        public bool SettledOnly = true;
 
         // ---------- the hop ----------
 
@@ -414,7 +413,9 @@ namespace KotH.Shared.Bots
             h.Double = twice;
             miss = float.MaxValue;
             ticks = 0;
-            if (!b.Grounded || b.Standing < 2 || SettledOnly && !b.Settled)
+            // Not waiting to see itself standing: on a steep flank the motor seldom says so, and the body slid
+            // off while it waited (Volcano 21 -> 8 of 96 not on top in 6 min).
+            if (!b.Grounded || b.Standing < 2)
                 return false;
             for (int k = 0; k < MaxFlight; k++)
             {
@@ -475,6 +476,8 @@ namespace KotH.Shared.Bots
                 a.Backing = true;
             else if (a.Backing && s <= back + 0.05f)
                 a.Backing = false;
+            if (b.Grounded && input.Move == Vector2.Zero)
+                Waits[!b.Settled ? 0 : b.Standing < 2 ? 1 : s >= stop - 0.15f ? (back < stop - 0.3f ? 2 : 3) : 4]++;
             return input;
         }
 
@@ -487,12 +490,6 @@ namespace KotH.Shared.Bots
             s = ox * h.DX + oz * h.DZ;
             float w = -ox * h.DZ + oz * h.DX;
             float stop = UMath.Min(h.Lip - radius - 0.05f, h.Edge - 0.1f);
-            // Just down and not yet seen standing: let go and catch the landing.
-            if (!b.Settled && s < stop - 0.3f)
-            {
-                a.Keys = Vector2.Zero;
-                return new MoveInput { Yaw = yaw };
-            }
             float goal = a.Backing ? UMath.Max(stop - 1f, h.Back) : stop;
             float along = Want(goal - s, 0.25f, groundDec * 0.8f);
             along = UMath.Clamp(along, -walk, walk);
