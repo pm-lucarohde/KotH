@@ -733,6 +733,10 @@ namespace KotH.Shared.Bots
 
         // Seconds a failed jump adds to it, and that a floor without progress adds to its way.
         const float FailedJump = 3f;
+        // Teams share one memory and both members judge the same miss, often one the chain caused:
+        // a quarter each (Volcano duo: mean end height 37 -> 71 m; MountDestiny, Atrium a little faster).
+        const float TeamMiss = 0.25f;
+        float Missed => teamSize > 1 ? FailedJump * TeamMiss : FailedJump;
         const float NoProgress = 2f;
         const int ProgressTicks = 160;
 
@@ -894,7 +898,7 @@ namespace KotH.Shared.Bots
                         hopStart = u;
                     if (!hopping)
                     {
-                        nav.Grid.Punish(fromFloor, toFloor, FailedJump * 3f, memory);
+                        nav.Grid.Punish(fromFloor, toFloor, Missed * 3f, memory);
                         break;
                     }
                 }
@@ -902,7 +906,7 @@ namespace KotH.Shared.Bots
                 {
                     // No take-off that lands: let the way go round it.
                     HopsGivenUp++;
-                    nav.Grid.Punish(fromFloor, toFloor, FailedJump, memory);
+                    nav.Grid.Punish(fromFloor, toFloor, Missed, memory);
                     hopping = false;
                     hopStart = u;
                     break;
@@ -933,7 +937,7 @@ namespace KotH.Shared.Bots
             bool missed = seen.Y < l.Spot.Y - 0.3f ||
                           Flat(seen, l.Spot) > 0.8f && nav.Grid.TimeToZone(seen, variant) > l.Time + 0.5f;
             if (missed && !l.Taut)
-                nav.Grid.Punish(l.From, l.To, FailedJump, memory);
+                nav.Grid.Punish(l.From, l.To, Missed, memory);
             HopsLanded += missed ? 0 : 1;
             Judged?.Invoke(l.From, l.To, missed);
             HopLog?.Invoke(FormattableString.Invariant(
@@ -1140,7 +1144,7 @@ namespace KotH.Shared.Bots
             {
                 // A way that never got there costs this bot more next time; a knock off does not.
                 if (missed || late || fell && cornerStart >= 0)
-                    nav.Grid.Punish(ladderFrom, ladderTo, FailedJump * 3f, memory);
+                    nav.Grid.Punish(ladderFrom, ladderTo, Missed * 3f, memory);
                 if (HopLog != null)
                 {
                     Vector3 rel = new Vector3(me.Motor.Position.X - s.Foot.X, 0f, me.Motor.Position.Z - s.Foot.Z);
