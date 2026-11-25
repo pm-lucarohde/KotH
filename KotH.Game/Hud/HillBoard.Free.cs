@@ -139,7 +139,7 @@ namespace KotH.Client.Hud
             FreeRole.Runner => b.MarkedBy != 0 ? "Marked" : "Runner",
             FreeRole.Rescuing or FreeRole.Free => "Free",
             FreeRole.Caught => "Caught",
-            FreeRole.Waiting => "Waits",
+            FreeRole.Waiting => "Spectator",
             _ => "",
         };
 
@@ -213,7 +213,7 @@ namespace KotH.Client.Hud
                 FreeRole.Rescuing => ("Free: stay to free all", Green),
                 FreeRole.Free => ("Free", Green),
                 FreeRole.Caught => ("Caught", Grey),
-                FreeRole.Waiting => ("Waiting for the next round", Grey),
+                FreeRole.Waiting => ("Spectator", Grey),
                 _ => ("", Color.White),
             };
             roleText = text;
