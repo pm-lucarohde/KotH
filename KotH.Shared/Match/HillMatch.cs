@@ -162,6 +162,7 @@ namespace KotH.Shared.Match
             LimitTicks = Ticks(zone.TimeLimitMinutes * 60f);
             PauseTicks = Ticks(zone.WinPauseSeconds);
             CountdownTicks = Ticks(zone.CountdownSeconds);
+            JoinTicks = Ticks(zone.JoinSeconds);
             ringInner = UMath.Max(0f, zone.SpawnRingInner);
             ringOuter = UMath.Max(ringInner, zone.SpawnRingOuter);
             spacing = UMath.Max(0f, zone.SpawnSpacing);
@@ -189,9 +190,16 @@ namespace KotH.Shared.Match
         public int PauseTicks { get; set; }
         public int CountdownTicks { get; set; }
 
-        /// <summary>Who joins a running round later than this watches until the next (Luca, 25.11.2026); a restart's
-        /// players arrive a few ticks apart (the host's own last), so the first 2 s still play.</summary>
+        /// <summary>Who joins a running round from this tick on watches until the next (Luca, 25.11.2026); before
+        /// it plays along. The map's "Join until", 60 s.</summary>
+        public int JoinTicks { get; set; }
+
+        /// <summary>1, 2, 3, Free: after the draw only the first 2 s run along (a restart's players arrive a
+        /// few ticks apart, the host's own last); later joiners watch.</summary>
         public static readonly int LateTicks = Ticks(2f);
+
+        // Whether a join now comes too late to play this round (never in its first 2 s, whatever the map says).
+        bool Late => state.RoundTicks > LateTicks && (state.Mode == MatchMode.Free || state.RoundTicks >= JoinTicks);
 
         /// <summary>Lobby: the countdown stops at 0 instead of starting the round (Countdown, PhaseTicks 0).
         /// Round: the win pause stops at 0 instead of a new round (Over, PhaseTicks 0). The host then changes maps.</summary>
@@ -456,9 +464,9 @@ namespace KotH.Shared.Match
                     moving.Add(bodies[i]);
                 }
 
-            // Into a running round: late, it watches until the next; at its start a team with room,
+            // Into a running round: late, it watches until the next; else a team with room,
             // in 1, 2, 3, Free after the draw a runner, then straight to a place round the hill.
-            if (moving.Count > 0 && state.Phase == MatchPhase.Running && state.RoundTicks > LateTicks)
+            if (moving.Count > 0 && state.Phase == MatchPhase.Running && Late)
             {
                 Await();
                 return;

@@ -301,8 +301,8 @@ namespace KotH.Probes.Probes
                   match.State.MinPlayers == 4 && SameAsSpawn(a.CaptureState(), a.SpawnState),
                   "at 0 the round runs, all at their spawn points");
 
-            // A join into the running round watches until the next (Luca), its body out of it.
-            Ticks(HillMatch.LateTicks + 1);
+            // A join from JoinTicks into the round on watches until the next (Luca), its body out of it.
+            Ticks(match.JoinTicks);
             ScriptedBody e = Spawn("E", new Vector3(-12f, 0.9f, -2f));
             e.NetId = NetWorld.FirstPlayerId + 4;
             Ticks(1);
@@ -543,14 +543,13 @@ namespace KotH.Probes.Probes
             Ticks(match.WarmupTicks + 1);
             Check(match.State.Holder == a, $"three against two and one: taken ({Name(match.State.Holder)})");
 
-            // A joiner in the running round watches (Luca): in no team, the short one stays short.
+            // A joiner in the round's first minute fills the short team.
             Everyone(t);
             ScriptedBody shortOne = sizeD == 2 ? d : other;
             ScriptedBody i = Spawn("I", Out(8));
             i.NetId = NetWorld.FirstPlayerId + 8;
             Ticks(1);
-            Check(i.Role == FreeRole.Waiting && i.Team == 0 && !HillMatch.SameTeam(i, shortOne),
-                  $"a late joiner watches, in no team ({TeamOf(i)})");
+            Check(HillMatch.SameTeam(i, shortOne) && !i.IsOut, $"a joiner fills the team of two ({TeamOf(i)})");
 
             world.Simulation.Leave(b);
             Ticks(1);

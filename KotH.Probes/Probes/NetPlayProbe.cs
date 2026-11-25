@@ -23,7 +23,7 @@ namespace KotH.Probes.Probes
         const double FrameMs = 8.0;
         const double EndMs = 60000.0, SettleMs = 4000.0;
         const double LateJoinMs = 20000.0, LeaveMs = 30000.0, DamageMs = 35000.0, WrongBuildMs = 40000.0, TooLateMs = 45000.0;
-        const int CountdownTicks = 400;
+        const int CountdownTicks = 400, JoinTicks = 800;
         const int EarlyPeers = 6, LatePeers = 4;
         const double LoadMs = 1000.0;    // how long a late peer takes to load the map before its Hello
         const int Seed = 20261021;
@@ -157,7 +157,7 @@ namespace KotH.Probes.Probes
             Log($"[netplay] Build {NetProtocol.BuildText}");
 
             Report(founder, damaged, damagedTick, rejected);
-            // Joined a running round (Luca): in, but watching until the next.
+            // The late peers came in the join window and play; the knock after it watches (Luca).
             int watching = 0;
             SimulationBody last = null;
             foreach (SimulationBody body in founder.World.Simulation.Bodies)
@@ -166,8 +166,8 @@ namespace KotH.Probes.Probes
                 if (last == null || body.NetId > last.NetId)
                     last = body;
             }
-            Check(round.State.Phase == MatchPhase.Running && last?.Role == FreeRole.Waiting && watching >= LatePeers,
-                  $"joins into the running round watch ({watching}, the last knock {last?.Role})");
+            Check(round.State.Phase == MatchPhase.Running && last?.Role == FreeRole.Waiting && watching == 1,
+                  $"only the join after the window watches ({watching}, the last knock {last?.Role})");
             Check(host.Sanitized == 0, $"honest inputs never clamped ({host.Sanitized})");
             Sanitizing();
             Check(countdownAt > 0 && runningAt - countdownAt >= CountdownTicks && runningAt - countdownAt < CountdownTicks + 40,
@@ -193,6 +193,7 @@ namespace KotH.Probes.Probes
             NetWorld.SpawnDummies(world.Builder);
             HillMatch match = world.StartMatch();
             match.CountdownTicks = CountdownTicks;
+            match.JoinTicks = JoinTicks;
             world.Simulation.Deactivate();
 
             var p = new Peer { Name = name, World = world, Bot = new Random(Seed + peers.Count * 7919), Asking = ask };
