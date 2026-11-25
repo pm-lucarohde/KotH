@@ -416,10 +416,9 @@ namespace KotH.Shared.Simulation
             if (leftB > 1e-4f)
                 a.Motor.Tug(UMath.Mul(n, leftB));
             // Pulled up more than 30°: hanging on the chain, if not on the ground (the motor judges).
-            // Not for bots yet (Luca): they keep letting a hanging neighbour down instead.
-            if (n.Y > HangSine && !a.Bot)
+            if (n.Y > HangSine)
                 a.Motor.HeldUp();
-            else if (n.Y < -HangSine && !b.Bot)
+            else if (n.Y < -HangSine)
                 b.Motor.HeldUp();
 
             float apart = UMath.Dot(UMath.Sub(b.Motor.Velocity, a.Motor.Velocity), n);
