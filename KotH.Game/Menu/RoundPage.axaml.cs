@@ -32,6 +32,10 @@ namespace KotH.Client.Menu
                 s.HostStartPercent = -1f;   // the new mode's own start damage, changeable again
             }, HillMatch.DisplayName) { NoteOf = HillMatch.ModeNote });
             rows.Add(HostPage.MaxPlayersRow());
+            rows.Add(new ToggleRow("Bots", s => s.HostBots, (s, v) => s.HostBots = v));
+            rows.Add(new SliderRow("Bot count", 1, HillMatch.FreeMaxPlayers - 1, 1, s => s.HostBotCount,
+                                   (s, v) => s.HostBotCount = (int)Math.Round(v), v => Text(v, "0")) { Locked = s => s.HostBots ? null : "" });
+            rows.Add(new ToggleRow("Auto start", s => s.HostAutoStart, (s, v) => s.HostAutoStart = v, "when the lobby is full"));
             rows.Add(new SliderRow("Start damage", 0, PlayerSettings.MaxStartPercent, 5, s => s.StartPercentOf,
                                    (s, v) => s.HostStartPercent = (float)Math.Round(v), v => Text(v, "0") + " %", "everyone, at the start"));
             rows.Add(new SliderRow("Cane hit", 0, PlayerSettings.MaxHitPercent, 0.1, s => s.HostMelee,
@@ -42,10 +46,6 @@ namespace KotH.Client.Menu
                                    (s, v) => s.HostDash = Tenths(v), Hit));
             rows.Add(new SliderRow("Knockback", PlayerSettings.MinKnock, PlayerSettings.MaxKnock, 0.05, s => s.HostKnock,
                                    (s, v) => s.HostKnock = (float)Math.Round(v, 2), v => "×" + Text(v, "0.00"), "how far hits throw"));
-            rows.Add(new ToggleRow("Bots", s => s.HostBots, (s, v) => s.HostBots = v, "they join the lobby now"));
-            rows.Add(new SliderRow("Bot count", 1, HillMatch.FreeMaxPlayers - 1, 1, s => s.HostBotCount,
-                                   (s, v) => s.HostBotCount = (int)Math.Round(v), v => Text(v, "0")) { Locked = s => s.HostBots ? null : "" });
-            rows.Add(new ToggleRow("Auto start", s => s.HostAutoStart, (s, v) => s.HostAutoStart = v, "when the lobby is full, bots too"));
             foreach (SettingRow row in rows)
             {
                 row.Edited = () => edited;

@@ -110,7 +110,7 @@ namespace KotH.Client.Menu
         public static SliderRow MaxPlayersRow()
             => new SliderRow("Max players", 2, HillMatch.FreeMaxPlayers, 1, s => s.MaxPlayersOf,
                              (s, v) => s.ChooseMaxPlayers(Math.Max((int)Math.Round(v), HillMatch.FewestOf(s.HostMode))),
-                             v => ((int)Math.Round(v)).ToString(System.Globalization.CultureInfo.InvariantCulture), "a full lobby starts")
+                             v => ((int)Math.Round(v)).ToString(System.Globalization.CultureInfo.InvariantCulture))
                { MaxOf = s => HillMatch.MaxPlayers(s.HostMode) };
 
         /// <summary>A text field as a settings row.</summary>
