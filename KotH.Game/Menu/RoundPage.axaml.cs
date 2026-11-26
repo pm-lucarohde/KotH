@@ -7,13 +7,13 @@ using KotH.Shared.Match;
 
 namespace KotH.Client.Menu
 {
-    /// <summary>The host's next round, from the lobby's Esc menu (Luca, 25.11.2026): every change is remembered
-    /// and goes to the lobby at once (Changed); the mode and the start show there, the values count from the round.</summary>
+    /// <summary>The host's next round, from the lobby's Esc menu (Luca, 25.11.2026): rows edit a local
+    /// copy until Apply confirms them (RememberRound); Back drops unapplied edits.</summary>
     public partial class RoundPage : UserControl
     {
         static readonly MatchMode[] Modes = { MatchMode.Solo, MatchMode.Duo, MatchMode.Trio, MatchMode.Squad, MatchMode.Mighty, MatchMode.Free };
 
-        /// <summary>A change was made (remembered already); the lobby takes it.</summary>
+        /// <summary>A row was edited (not yet applied); the footer updates Apply and Start round.</summary>
         public event Action Changed;
 
         /// <summary>Who is in the lobby now: people and all players (bots too), for the choices that fit.</summary>
@@ -21,6 +21,7 @@ namespace KotH.Client.Menu
 
         readonly List<SettingRow> rows = new List<SettingRow>();
         readonly List<MatchMode> fitting = new List<MatchMode>();
+        PlayerSettings applied = ClientSettings.Applied.Clone();
         PlayerSettings edited = ClientSettings.Applied.Clone();
 
         public RoundPage()
@@ -48,7 +49,6 @@ namespace KotH.Client.Menu
                 row.Edited = () => edited;
                 row.Changed = () =>
                 {
-                    ClientSettings.RememberRound(edited);
                     Refresh();
                     Changed?.Invoke();
                 };
@@ -56,23 +56,43 @@ namespace KotH.Client.Menu
             }
         }
 
-        /// <summary>Shown again: the remembered values, with the mode the lobby has now.</summary>
+        /// <summary>Shown again: from the settings in force, with the mode the lobby has now; unapplied edits are dropped.</summary>
         public void Open(MatchMode mode)
         {
-            edited = ClientSettings.Applied.Clone();
-            edited.HostMode = mode;
+            applied = ClientSettings.Applied.Clone();
+            applied.HostMode = mode;
+            edited = applied.Clone();
             Scroll.Offset = default;
             Refresh();
         }
 
+        /// <summary>Whether any row differs from the applied round settings.</summary>
+        public bool HasChanges
+            => edited.HostMode != applied.HostMode
+            || edited.MaxPlayersOf != applied.MaxPlayersOf
+            || edited.HostBots != applied.HostBots
+            || edited.HostBots && edited.BotCountOf != applied.BotCountOf
+            || edited.HostAutoStart != applied.HostAutoStart
+            || MathF.Abs(edited.StartPercentOf - applied.StartPercentOf) > 1e-3f
+            || MathF.Abs(edited.HostHit - applied.HostHit) > 1e-3f
+            || MathF.Abs(edited.HostKnock - applied.HostKnock) > 1e-3f;
+
+        /// <summary>Confirms the edited settings so the lobby and next round take them.</summary>
+        public void Apply()
+        {
+            ClientSettings.RememberRound(edited);
+            applied = edited.Clone();
+            Refresh();
+        }
+
         /// <summary>Why the round cannot start now, else null: fewer than the mode's fewest (5 in 1, 2, 3, Free, else 2),
-        /// people and the bots chosen (counted as chosen: the lobby's bodies follow a few ticks later).</summary>
+        /// people and the applied bots (counted as applied: the lobby's bodies follow a few ticks later).</summary>
         public string Problem
-            => TooFew ? $"{HillMatch.DisplayName(edited.HostMode)} needs {HillMatch.FewestOf(edited.HostMode)} players: add bots or wait for more people."
+            => TooFew ? $"{HillMatch.DisplayName(applied.HostMode)} needs {HillMatch.FewestOf(applied.HostMode)} players: add bots or wait for more people."
                       : null;
 
         /// <summary>Whether too few would be in the round: checked every frame, people come and go.</summary>
-        public bool TooFew => Count().People + (edited.HostBots ? edited.BotCountOf : 0) < HillMatch.FewestOf(edited.HostMode);
+        public bool TooFew => Count().People + (applied.HostBots ? applied.BotCountOf : 0) < HillMatch.FewestOf(applied.HostMode);
 
         void Refresh()
         {
@@ -91,22 +111,20 @@ namespace KotH.Client.Menu
             return fitting;
         }
 
-        /// <summary>Test aid (KOTH_SHOT_ROUND=mode): that mode chosen as if by the arrows.</summary>
+        /// <summary>Test aid (KOTH_SHOT_ROUND=mode): that mode chosen and applied as if by hand.</summary>
         public void Pretend(MatchMode mode)
         {
             edited.HostMode = mode;
             edited.HostStartPercent = -1f;
-            ClientSettings.RememberRound(edited);
-            Refresh();
+            Apply();
             Changed?.Invoke();
         }
 
-        /// <summary>Test aid (KOTH_SHOT_BOTS=n): bots switched on, n of them, as if by hand.</summary>
+        /// <summary>Test aid (KOTH_SHOT_BOTS=n): bots switched on, n of them, and applied.</summary>
         public void PretendBots(int count)
         {
             (edited.HostBots, edited.HostBotCount) = (true, count);
-            ClientSettings.RememberRound(edited);
-            Refresh();
+            Apply();
             Changed?.Invoke();
         }
 

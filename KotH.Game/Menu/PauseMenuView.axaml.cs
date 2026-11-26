@@ -70,8 +70,10 @@ namespace KotH.Client.Menu
                 RoundOpened?.Invoke();
                 ShowRound();
             };
-            RoundPage.Changed += () =>
+            RoundPage.Changed += ShowRound;
+            ApplyRound.Click += (_, _) =>
             {
+                RoundPage.Apply();
                 ShowRound();
                 RoundChanged?.Invoke(false);
             };
@@ -125,16 +127,19 @@ namespace KotH.Client.Menu
         /// <summary>Each frame while Round shows: the word and Start round follow who is in the lobby.</summary>
         public void FollowRound()
         {
-            if (RoundShown && RoundPage.TooFew == StartRound.IsEnabled)
+            if (RoundShown && (!RoundPage.HasChanges && !RoundPage.TooFew) != StartRound.IsEnabled)
                 ShowRound();
         }
 
-        // The Round page's word underneath and whether Start round may be pressed.
+        // The Round page's word underneath and whether Apply and Start round may be pressed.
         void ShowRound()
         {
+            bool dirty = RoundPage.HasChanges;
             string why = RoundPage.Problem;
-            StartRound.IsEnabled = why == null;
-            Status.Text = why ?? "The values count from the next round; bots and the start right away.";
+            ApplyRound.IsEnabled = dirty;
+            StartRound.IsEnabled = !dirty && why == null;
+            Status.Text = dirty ? "Press Apply to confirm changes."
+                        : why ?? "The values count from the next round; bots and the start right away.";
         }
 
         /// <summary>Whether the Map page shows.</summary>
@@ -152,7 +157,8 @@ namespace KotH.Client.Menu
             PageOpen = true;
             PageTitle.Text = title;
             SettingsPage.IsVisible = !list && !round;
-            RoundPage.IsVisible = StartRound.IsVisible = round;
+            RoundPage.IsVisible = StartRound.IsVisible = ApplyRound.IsVisible = round;
+            Back.Width = round ? 150 : double.NaN;
             PageTitle.IsVisible = Back.IsVisible = list || round;
             ListPage.IsVisible = list;
             Status.IsVisible = list || round;

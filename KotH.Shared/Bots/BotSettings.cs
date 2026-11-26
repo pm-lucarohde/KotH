@@ -41,7 +41,7 @@ namespace KotH.Shared.Bots
         [Display("Persistence", "Decisions")] public float Persistence = 0.3f;
 
         /// <userdoc>How long a bot stands still at round start before it sets off, in seconds.</userdoc>
-        [Display("Wait at round start (s)", "Decisions")] public float StartWait = 3f;
+        [Display("Wait at round start (s)", "Decisions")] public float StartWait = 0.5f;
 
         /// <userdoc>Ticks per manoeuvre of a sequence (sprint, jump, swing …).</userdoc>
         [Display("Manoeuvre length (ticks)", "Manoeuvres")] public int SlotTicks = 8;
