@@ -42,8 +42,8 @@ namespace KotH.Client.Hud
         /// <summary>One opaque white pixel, for filled rectangles.</summary>
         public Texture White => white;
 
-        /// <summary>The scene's HUD, appended to the compositor on first use, the scene wrapped in a
-        /// SceneThrottle around a DlssRenderer.</summary>
+        /// <summary>The scene's HUD, appended to the compositor on first use, with SceneThrottle,
+        /// DlssRenderer and ResolutionScaler wrapping the whole frame.</summary>
         public static HudRenderer Of(ScriptComponent script)
         {
             var hud = script.Services.GetService<HudRenderer>();
@@ -59,7 +59,9 @@ namespace KotH.Client.Hud
             script.Services.AddService(dlss);
             var throttle = new SceneThrottle { Child = dlss };
             script.Services.AddService(throttle);
-            compositor.Game = new SceneRendererCollection { throttle, hud };
+            var scaler = new ResolutionScaler { Child = new SceneRendererCollection { throttle, hud } };
+            script.Services.AddService(scaler);
+            compositor.Game = scaler;
 
             hud.white = Texture.New2D(script.GraphicsDevice, 1, 1, PixelFormat.R8G8B8A8_UNorm,
                                       new byte[] { 255, 255, 255, 255 });
@@ -83,7 +85,7 @@ namespace KotH.Client.Hud
 
             batch ??= new SpriteBatch(drawContext.GraphicsDevice);
 
-            Texture target = drawContext.GraphicsDevice.Presenter.BackBuffer;
+            Texture target = drawContext.CommandList.RenderTarget ?? drawContext.GraphicsDevice.Presenter.BackBuffer;
             drawContext.CommandList.SetRenderTargetAndViewport(null, target);
             var screen = new Vector2(target.Width, target.Height);
 

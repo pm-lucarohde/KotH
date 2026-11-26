@@ -149,6 +149,11 @@ namespace KotH.Client.Menu
                 root.Prepare();
                 root.StartRendering();
             }
+            else
+            {
+                root.InvalidateMeasure();
+                root.InvalidateVisual();
+            }
         }
 
         /// <summary>Uploads what Avalonia changed: the changed rows into this frame's staging copy, which the
@@ -215,17 +220,17 @@ namespace KotH.Client.Menu
         {
             if (!Visible || texture == null || Alpha <= 0f)
                 return;
-            float width = texture.Width * Zoom, height = texture.Height * Zoom;
+            float width = rect.Width * Zoom, height = rect.Height * Zoom;
             // Avalonia's pixels are premultiplied, so the tint fades all four channels.
             Color4 tint = (Color.White * Alpha).ToColor4();
             if (Angle != 0f)
             {
                 // Rotated, the rectangle's corner is where the picture's centre goes.
-                var centre = new RectangleF(rect.X + Shift.X + texture.Width * 0.5f, rect.Y + Shift.Y + texture.Height * 0.5f, width, height);
+                var centre = new RectangleF(rect.X + Shift.X + rect.Width * 0.5f, rect.Y + Shift.Y + rect.Height * 0.5f, width, height);
                 batch.Draw(texture, centre, null, tint, Angle, new Vector2(texture.Width * 0.5f, texture.Height * 0.5f));
                 return;
             }
-            var at = new RectangleF(rect.X + Shift.X + (texture.Width - width) * 0.5f, rect.Y + Shift.Y + (texture.Height - height) * 0.5f, width, height);
+            var at = new RectangleF(rect.X + Shift.X + (rect.Width - width) * 0.5f, rect.Y + Shift.Y + (rect.Height - height) * 0.5f, width, height);
             if (Reveal < 1f)
             {
                 float share = Math.Max(0f, Reveal);

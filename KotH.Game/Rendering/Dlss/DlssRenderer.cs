@@ -8,9 +8,9 @@ using Stride.Rendering.Images;
 
 namespace KotH.Client.Rendering.Dlss
 {
-    /// <summary>With DLSS: the scene and atmosphere at DLSS's render size, jittered, then DLSS (DlssUpscale,
-    /// in FXAA's place) to the output size and DlssSharpen onto the target. Scaled (Resolution in borderless):
-    /// the scene smaller, stretched and sharpened. The HUD draws after, at full size; else it passes through.</summary>
+    /// <summary>With DLSS: the scene and atmosphere at DLSS's render size relative to the current
+    /// target resolution, jittered, then DLSS (DlssUpscale, in FXAA's place) to the target size and
+    /// DlssSharpen onto the target. Without DLSS it passes straight through.</summary>
     public sealed class DlssRenderer : SceneRendererBase
     {
         /// <summary>The scene renderer it wraps (the compositor's game renderer).</summary>
@@ -25,7 +25,7 @@ namespace KotH.Client.Rendering.Dlss
         DlssFeature feature;
         ImageEffectShader sharpen;
         Texture lowColor, lowDepth, output;
-        bool active, scaled, reset = true;
+        bool active, reset = true;
         int outputWidth, outputHeight, renderWidth, renderHeight, frame;
         DlssMode sizedFor;
 
@@ -54,11 +54,8 @@ namespace KotH.Client.Rendering.Dlss
         internal bool Reset => reset;
         internal bool Evaluated { get; set; }
 
-        /// <summary>For the F3 overlay: "DLSS Quality 1920x1080", "Scaled 1920x1080" or null.</summary>
-        public string Status => active ? $"DLSS {Dlss.Mode} {renderWidth}x{renderHeight}" : scaled ? $"Scaled {renderWidth}x{renderHeight}" : null;
-
-        // The sharpening after stretching a smaller scene (the Resolution setting in borderless).
-        const float ScaledSharpness = 0.3f;
+        /// <summary>For the F3 overlay: "DLSS Quality 1920x1080 -> 2560x1440" or null.</summary>
+        public string Status => active ? $"DLSS {Dlss.Mode} {renderWidth}x{renderHeight} -> {outputWidth}x{outputHeight}" : null;
 
         /// <summary>Starts DLSS's history anew (a cut: map change, teleport, other camera).</summary>
         public void Restart()
@@ -93,10 +90,9 @@ namespace KotH.Client.Rendering.Dlss
             bool found = Find(), wanted = Dlss.Active && found;
             Viewport viewport = context.ViewportState.Viewport0;
             int width = Math.Max(1, (int)viewport.Width), height = Math.Max(1, (int)viewport.Height);
-            Int2 smaller = found && !wanted ? ScaledSize(width, height) : Int2.Zero;
-            if (wanted != active || (smaller != Int2.Zero) != scaled)
+            if (wanted != active)
             {
-                (active, scaled) = (wanted, smaller != Int2.Zero);
+                active = wanted;
                 if (atmosphere != null)
                     atmosphere.Inner = active ? upscale : fxaa;
                 outputWidth = 0;
@@ -105,15 +101,13 @@ namespace KotH.Client.Rendering.Dlss
             // Without DLSS, FXAA as the settings say (it is the post effects' anti-aliasing).
             if (fxaa is PostProcessingEffects post && post.Antialiasing is ImageEffect aa)
                 aa.Enabled = ClientSettings.Applied.Fxaa;
-            if (!active && !scaled)
+            if (!active)
             {
                 Child?.Collect(context);
                 return;
             }
 
-            if (scaled)
-                (renderWidth, renderHeight, outputWidth, outputHeight) = (smaller.X, smaller.Y, width, height);
-            else if (width != outputWidth || height != outputHeight || sizedFor != Dlss.Mode)
+            if (width != outputWidth || height != outputHeight || sizedFor != Dlss.Mode)
             {
                 Dlss.RenderSize(Dlss.Mode, width, height, out renderWidth, out renderHeight);
                 (outputWidth, outputHeight, sizedFor) = (width, height, Dlss.Mode);
@@ -125,8 +119,6 @@ namespace KotH.Client.Rendering.Dlss
                 context.ViewportState.Viewport0 = new Viewport(0, 0, renderWidth, renderHeight);
                 Child?.Collect(context);
             }
-            if (scaled)
-                return;
 
             // Halton(2,3), as many phases as DLSS wants for this scale (8 per output pixel per render pixel).
             RenderView renderView = view.RenderView;
@@ -176,19 +168,9 @@ namespace KotH.Client.Rendering.Dlss
             return (Matrix.Invert(jitteredProjection), projection, toPrevious);
         }
 
-        /// <summary>The Resolution setting in borderless fullscreen: the scene at that size when it is
-        /// smaller than the screen, zero for the screen's own.</summary>
-        static Int2 ScaledSize(int width, int height)
-        {
-            PlayerSettings s = ClientSettings.Applied;
-            if (s.Window != WindowMode.Borderless || s.Width <= 0 || s.Height <= 0 || s.Width >= width && s.Height >= height)
-                return Int2.Zero;
-            return new Int2(Math.Min(s.Width, width), Math.Min(s.Height, height));
-        }
-
         protected override void DrawCore(RenderContext context, RenderDrawContext drawContext)
         {
-            if (!active && !scaled)
+            if (!active)
             {
                 Child?.Draw(drawContext);
                 return;
@@ -206,19 +188,7 @@ namespace KotH.Client.Rendering.Dlss
                 Child?.Draw(drawContext);
             }
             list.SetRenderTargetAndViewport(targetDepth, target);
-            if (scaled)
-            {
-                // Stretched bilinearly to the screen's size, then sharpened a little onto the target.
-                list.SetRenderTargetAndViewport(null, output);
-                drawContext.GraphicsContext.DrawTexture(lowColor, BlendStates.Opaque);
-                list.SetRenderTargetAndViewport(targetDepth, target);
-                sharpen.Parameters.Set(SharpnessKey, ScaledSharpness);
-                sharpen.SetInput(0, output);
-                sharpen.SetOutput(target);
-                sharpen.Draw(drawContext);
-                list.SetRenderTargetAndViewport(targetDepth, target);
-            }
-            else if (Evaluated)
+            if (Evaluated)
             {
                 sharpen.Parameters.Set(SharpnessKey, Dlss.Sharpness);
                 sharpen.SetInput(0, output);

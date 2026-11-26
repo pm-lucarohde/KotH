@@ -68,10 +68,11 @@ namespace KotH.Client.Rendering
             overlayColor = overlayDepth = null;
         }
 
-        /// <summary>The game's camera pass, also inside the collection, SceneThrottle and DlssRenderer around it.</summary>
+        /// <summary>The game's camera pass, also inside the collection, ResolutionScaler, SceneThrottle and DlssRenderer.</summary>
         public static SceneCameraRenderer FindView(ISceneRenderer renderer) => renderer switch
         {
             SceneCameraRenderer camera => camera,
+            ResolutionScaler scaler => FindView(scaler.Child),
             SceneThrottle throttle => FindView(throttle.Child),
             Dlss.DlssRenderer dlss => FindView(dlss.Child),
             SceneRendererCollection collection => Find(collection, FindView),
@@ -108,8 +109,9 @@ namespace KotH.Client.Rendering
             due = true;
             if (Interval > 0.0)
             {
-                Texture back = context.GraphicsDevice.Presenter.BackBuffer;
-                if (color != null && (color.Width != back.Width || color.Height != back.Height))
+                Viewport viewport = context.ViewportState.Viewport0;
+                int width = (int)viewport.Width, height = (int)viewport.Height;
+                if (color != null && (color.Width != width || color.Height != height))
                     Release();
                 // Due on time or later; behind by more than a frame, it counts on from now.
                 long now = Stopwatch.GetTimestamp(), step = (long)(Interval * Stopwatch.Frequency);
@@ -156,10 +158,13 @@ namespace KotH.Client.Rendering
             }
 
             GraphicsPresenter presenter = drawContext.GraphicsDevice.Presenter;
-            Texture back = presenter.BackBuffer, backDepth = presenter.DepthStencilBuffer;
+            Texture back = drawContext.CommandList.RenderTarget ?? presenter.BackBuffer;
+            Texture backDepth = drawContext.CommandList.RenderTarget != null ? drawContext.CommandList.DepthStencilBuffer : presenter.DepthStencilBuffer;
+            if (color != null && (color.Width != back.Width || color.Height != back.Height || color.ViewFormat != back.ViewFormat))
+                Release();
             if (color == null)
             {
-                // Same formats as the back buffer, so the compositor's render output still fits;
+                // Same formats as the target, so the compositor's render output still fits;
                 // the depth readable like the presenter's, the atmosphere samples it.
                 color = Texture.New2D(drawContext.GraphicsDevice, back.Width, back.Height, back.ViewFormat,
                                       TextureFlags.RenderTarget | TextureFlags.ShaderResource);
@@ -185,7 +190,8 @@ namespace KotH.Client.Rendering
             if (overlay == null)
                 return;
             GraphicsPresenter presenter = drawContext.GraphicsDevice.Presenter;
-            Texture back = presenter.BackBuffer, backDepth = presenter.DepthStencilBuffer;
+            Texture back = drawContext.CommandList.RenderTarget ?? presenter.BackBuffer;
+            Texture backDepth = drawContext.CommandList.RenderTarget != null ? drawContext.CommandList.DepthStencilBuffer : presenter.DepthStencilBuffer;
             if (overlayColor != null && (overlayColor.Width != back.Width || overlayColor.Height != back.Height))
             {
                 overlayColor.Dispose();

@@ -185,8 +185,7 @@ namespace KotH.Client.Hud
         {
             if (overlays == null)
                 return;
-            var backBuffer = GraphicsDevice.Presenter.BackBuffer;
-            var screen = new Vector2(backBuffer.Width, backBuffer.Height);
+            Vector2 screen = Rendering.ResolutionScaler.ScreenSize(GraphicsDevice.Presenter.BackBuffer);
             scale = screen.Y / (float)MenuOverlay.DesignHeight * Size;
             foreach (MenuOverlay overlay in overlays)
                 overlay.Place(screen);

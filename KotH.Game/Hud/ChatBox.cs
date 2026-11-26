@@ -114,10 +114,10 @@ namespace KotH.Client.Hud
             if (!talkOverlay.Visible)
                 return;
             view.ShowTalk(mic);
-            var backBuffer = GraphicsDevice.Presenter.BackBuffer;
-            float scale = backBuffer.Height / (float)MenuOverlay.DesignHeight * Size;
+            Vector2 screen = Rendering.ResolutionScaler.ScreenSize(GraphicsDevice.Presenter.BackBuffer);
+            float scale = screen.Y / (float)MenuOverlay.DesignHeight * Size;
             talkOverlay.Shift = new Vector2(0f, (float)(overlay.Visible ? view.ChatBottom : view.ChatTop) * scale);
-            talkOverlay.Place(new Vector2(backBuffer.Width, backBuffer.Height));
+            talkOverlay.Place(screen);
             MenuOverlay.Tick(frame);
             talkOverlay.Upload(Game.GraphicsContext.CommandList);
         }
@@ -138,8 +138,7 @@ namespace KotH.Client.Hud
                 return;
             overlay.Alpha = open ? 1f : (float)Math.Clamp((shown - age) / FadeMs, 0.0, 1.0);
             view.Show(comms.Lines, comms.Version, open ? OpenLines : ClosedLines, open);
-            var backBuffer = GraphicsDevice.Presenter.BackBuffer;
-            overlay.Place(new Vector2(backBuffer.Width, backBuffer.Height));
+            overlay.Place(Rendering.ResolutionScaler.ScreenSize(GraphicsDevice.Presenter.BackBuffer));
             MenuOverlay.Tick(frame);
             overlay.Upload(Game.GraphicsContext.CommandList);
         }

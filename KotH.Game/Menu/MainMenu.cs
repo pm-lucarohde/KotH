@@ -156,8 +156,7 @@ namespace KotH.Client.Menu
         {
             if (view == null)
                 return;
-            var backBuffer = GraphicsDevice.Presenter.BackBuffer;
-            var screen = new Vector2(backBuffer.Width, backBuffer.Height);
+            Vector2 screen = Rendering.ResolutionScaler.ScreenSize(GraphicsDevice.Presenter.BackBuffer);
             foreach (MenuOverlay overlay in overlays)
                 overlay.Place(screen);
 

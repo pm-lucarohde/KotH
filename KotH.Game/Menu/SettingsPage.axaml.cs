@@ -261,10 +261,7 @@ namespace KotH.Client.Menu
         static List<SettingRow> GraphicsRows() => new List<SettingRow>
         {
             new ChoiceRow<WindowMode>("Window", _ => Windows, s => s.Window, (s, v) => s.Window = v, w => WindowNames[(int)w]),
-            new ChoiceRow<Int2>("Resolution", Resolutions, s => new Int2(s.Width, s.Height), (s, v) => (s.Width, s.Height) = (v.X, v.Y), Resolution)
-            {
-                Locked = s => s.Window == WindowMode.Borderless && Upscaled(s) ? "Set by DLSS" : null,
-            },
+            new ChoiceRow<Int2>("Resolution", Resolutions, s => new Int2(s.Width, s.Height), (s, v) => (s.Width, s.Height) = (v.X, v.Y), Resolution),
             new ChoiceRow<int>("Frame rate limit", _ => PlayerSettings.FpsLimits, s => s.FpsLimit, (s, v) => s.FpsLimit = v,
                                n => n == 0 ? "Off" : $"{n} fps"),
             new ToggleRow("V-Sync", s => s.VSync, (s, v) => s.VSync = v),

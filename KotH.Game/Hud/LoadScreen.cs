@@ -134,8 +134,7 @@ namespace KotH.Client.Hud
 
             turned += seconds;
             view.Say((begun && !loaded ? null : Text?.Invoke()) ?? "Loading …");
-            Texture backBuffer = commandList.GraphicsDevice.Presenter.BackBuffer;
-            var screen = new Vector2(backBuffer.Width, backBuffer.Height);
+            Vector2 screen = Rendering.ResolutionScaler.ScreenSize(commandList.GraphicsDevice.Presenter.BackBuffer);
             foreach (MenuOverlay overlay in overlays)
                 overlay.Place(screen);
             minute.Angle = (float)(turned % MinuteTurn / MinuteTurn * 2.0 * Math.PI);
