@@ -105,7 +105,7 @@ namespace KotH.Client
             if (paused || inMenu || typing)
                 LocalInput?.Rest();
             else
-                LocalInput?.Collect(Input, Captured && !settling);
+                LocalInput?.Collect(Input, Captured && !settling, (float)Game.UpdateTime.Elapsed.TotalSeconds);
             settling = false;
 
             // Alone, the round starts once the load screen is gone; networked
@@ -166,6 +166,7 @@ namespace KotH.Client
             else
                 Input.UnlockMousePosition();
             Game.IsMouseVisible = !captured;
+            Gamepad.Pad.IgnoreMouseBriefly();
         }
     }
 

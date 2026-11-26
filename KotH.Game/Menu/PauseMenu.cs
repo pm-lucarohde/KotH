@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using KotH.Client.Audio;
+using KotH.Client.Gamepad;
 using KotH.Client.Hud;
 using KotH.Client.Net;
 using KotH.Client.Player;
@@ -50,6 +51,9 @@ namespace KotH.Client.Menu
         MenuOverlay board, page, confirm;
         MenuOverlay[] overlays;
         readonly OverlayPointer pointer = new OverlayPointer();
+        readonly PadMenuNav nav = new PadMenuNav();
+        Action<int> stepTab;
+        bool padActive;
         bool resumeWanted, menuWanted, quitWanted, leaveWanted, confirming, toDesktop;
         float since;
 
@@ -87,6 +91,7 @@ namespace KotH.Client.Menu
             page = new MenuOverlay(parts.Page, MenuOverlay.Corner.TopCenter, 0f, (1080f - 770f) / 2f) { Visible = false };
             confirm = new MenuOverlay(parts.Confirm, MenuOverlay.Corner.TopCenter, 0f, (1080f - 330f) / 2f) { Visible = false };
             overlays = new[] { board, page, confirm };
+            stepTab = view.StepTab;
             hud.AddFront(this);
             hud.AddFront(board);
             hud.AddFront(page);
@@ -135,10 +140,13 @@ namespace KotH.Client.Menu
                     Show(true);
                 view.OpenMaps();
             }
-            if (Open && view.PageOpen && view.SettingsView.Capture(Input))
+            bool settings = Open && view.PageOpen && view.SettingsView.Capture(Input);
+            if (settings)
             {
             }
-            else if (!Hud.ChatBox.Busy && KeyPresses.Pressed(Input, Keys.Escape))
+            // The pad: Start opens and closes like Escape, B steps back once the menu is open.
+            else if (!Hud.ChatBox.Busy && (KeyPresses.Pressed(Input, Keys.Escape) || Pad.Pressed(PadButton.Start)
+                                           || (Open || confirming) && Pad.Pressed(PadButton.B)))
             {
                 if (confirming)
                     confirming = false;
@@ -159,7 +167,28 @@ namespace KotH.Client.Menu
             var screen = new Vector2(backBuffer.Width, backBuffer.Height);
             foreach (MenuOverlay overlay in overlays)
                 overlay.Place(screen);
-            pointer.Update(Input, screen, overlays);
+            if (Pad.Active)
+            {
+                if (!padActive)
+                {
+                    pointer.Reset();
+                    Game.IsMouseVisible = false;
+                    padActive = true;
+                }
+                Avalonia.Controls.Control scope = confirming ? confirm.Content : view.PageOpen ? page.Content : board.Content;
+                nav.Update(scope, (float)Game.UpdateTime.Elapsed.TotalSeconds, !settings && !view.SettingsView.Listening,
+                           view.PageOpen ? stepTab : null);
+            }
+            else
+            {
+                if (padActive)
+                {
+                    nav.Clear();
+                    Game.IsMouseVisible = true;
+                    padActive = false;
+                }
+                pointer.Update(Input, screen, overlays);
+            }
             MenuOverlay.Tick(Game.UpdateTime.FrameCount);
             if (confirming)
                 view.Ask(Penalty);
@@ -212,6 +241,7 @@ namespace KotH.Client.Menu
         {
             Open = open;
             Driver.Paused = open;
+            padActive = false;   // Paused showed the system's pointer or grabbed it
             resumeWanted = menuWanted = leaveWanted = confirming = false;
             view.PageOpen = false;
             if (open)
@@ -220,6 +250,7 @@ namespace KotH.Client.Menu
             if (!open)
             {
                 pointer.Reset();
+                nav.Clear();
                 board.Visible = page.Visible = confirm.Visible = false;
             }
         }

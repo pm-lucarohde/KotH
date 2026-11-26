@@ -1,3 +1,4 @@
+using System;
 using Avalonia.Controls;
 
 namespace KotH.Client.Menu
@@ -8,10 +9,17 @@ namespace KotH.Client.Menu
         public SocialPage()
         {
             InitializeComponent();
+            PartyTab.Classes.Add("PageTab");
+            BoardTab.Classes.Add("PageTab");
+            PartyTab.Tag = (Action)(() => Choose(false));
+            BoardTab.Tag = (Action)(() => Choose(true));
             PartyTab.PointerPressed += (_, _) => Choose(false);
             BoardTab.PointerPressed += (_, _) => Choose(true);
             Choose(false);
         }
+
+        /// <summary>Gamepad LB/RB: switches between Party and Leaderboard.</summary>
+        public void StepTab(int delta) => Choose(!BoardShown);
 
         /// <summary>The Party tab's page.</summary>
         public PartyPage Partier => Party;

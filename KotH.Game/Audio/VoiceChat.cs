@@ -147,7 +147,8 @@ namespace KotH.Client.Audio
         }
 
         bool Held() => Driver is { InMenu: false, Typing: false }
-                       && (hold || Input.IsKeyDown(ClientSettings.Applied.Key(Binding.PushToTalk)));
+                       && (hold || Input.IsKeyDown(ClientSettings.Applied.Key(Binding.PushToTalk))
+                           || KotH.Client.Gamepad.Pad.Down(ClientSettings.Applied.Button(PadAction.PushToTalk)));
 
         // Kind, the sequence number of the first frame, then the frame count (set in Out).
         void Head(byte kind)

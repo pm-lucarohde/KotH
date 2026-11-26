@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
+using KotH.Client.Gamepad;
 using KotH.Client.Settings;
 using Stride.Input;
 
@@ -15,6 +16,7 @@ namespace KotH.Client.Menu
     public abstract class SettingRow
     {
         public Control View { get; private set; }
+        protected Grid Line { get; }
 
         /// <summary>The settings being edited, and what to do after a change.</summary>
         public Func<PlayerSettings> Edited;
@@ -40,16 +42,16 @@ namespace KotH.Client.Menu
             left.Children.Add(Name);
             Grid.SetColumn(Note, 1);
             left.Children.Add(Note);
-            Grid line = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Height = 60 };
-            line.Children.Add(left);
-            View = line;
+            Line = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Height = 60 };
+            Line.Children.Add(left);
+            View = new Border { Classes = { "SettingLine" }, Child = Line };
         }
 
         protected void Place(Control control)
         {
             control.VerticalAlignment = VerticalAlignment.Center;
             Grid.SetColumn(control, 1);
-            ((Grid)View).Children.Add(control);
+            Line.Children.Add(control);
         }
 
         public void Show(PlayerSettings s)
@@ -72,14 +74,23 @@ namespace KotH.Client.Menu
     /// <summary>A heading between groups of rows.</summary>
     public sealed class HeadingRow : SettingRow
     {
+        public Func<string> DynamicNote { get; init; }
+
         public HeadingRow(string name, string note = null) : base(name, note)
         {
             Name.Classes.Set("Label", false);
             Name.Classes.Add("Heading");
-            ((Grid)View).Height = 44;
+            Line.Height = 44;
         }
 
-        protected override void Fill(PlayerSettings s, string reason) { }
+        protected override void Fill(PlayerSettings s, string reason)
+        {
+            if (DynamicNote != null)
+            {
+                Note.Text = DynamicNote();
+                Note.IsVisible = Note.Text != null;
+            }
+        }
     }
 
     /// <summary>A slider with its value written beside it. Inside it counts whole steps from 0, as the
@@ -121,6 +132,9 @@ namespace KotH.Client.Menu
         /// <summary>A top that depends on other choices (the mode's most players), else the fixed one.</summary>
         public Func<PlayerSettings, double> MaxOf { get; init; }
 
+        /// <summary>Optional step size (in slider ticks) for gamepad left/right navigation.</summary>
+        public double PadStep { init => slider.Tag = value; }
+
         protected override void Fill(PlayerSettings s, string reason)
         {
             filling = true;
@@ -150,7 +164,7 @@ namespace KotH.Client.Menu
                          Func<T, string> text, string note = null) : base(name, note)
         {
             (this.values, this.get, this.set, this.text) = (values, get, set, text);
-            var box = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+            var box = new StackPanel { Classes = { "Choice" }, Orientation = Orientation.Horizontal, Spacing = 6, Tag = (Action<int>)Step };
             box.Children.Add(Arrow("‹", -1));
             box.Children.Add(value);
             box.Children.Add(Arrow("›", +1));
@@ -263,5 +277,88 @@ namespace KotH.Client.Menu
             }
             return spaced.ToString();
         }
+    }
+
+    /// <summary>A gamepad button to set: clicked, it waits for the next button (PadText names them,
+    /// PlayStation face buttons render as crisp vector symbols).</summary>
+    public sealed class PadRow : SettingRow
+    {
+        static readonly IBrush IconBrush = new SolidColorBrush(Color.FromRgb(0x5B, 0x3A, 0x24));
+        static Geometry crossIcon, circleIcon, squareIcon, triangleIcon;
+
+        readonly Button button = new Button { Classes = { "Menu", "Small" }, Width = 250 };
+        readonly Avalonia.Controls.Shapes.Path icon = new Avalonia.Controls.Shapes.Path
+        {
+            Width = 22, Height = 22, Stretch = Stretch.None, Stroke = IconBrush, StrokeThickness = 3.0,
+            StrokeLineCap = PenLineCap.Round, StrokeJoin = PenLineJoin.Round,
+            HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
+            IsHitTestVisible = false,
+        };
+        readonly PadAction action;
+
+        /// <summary>Clicked: this row wants the next button.</summary>
+        public event Action<PadRow> Listen;
+
+        public PadRow(string name, PadAction action, string note = null) : base(name, note)
+        {
+            this.action = action;
+            button.Click += (_, _) => Listen?.Invoke(this);
+            Place(button);
+        }
+
+        /// <summary>Shows that it waits for a button.</summary>
+        public void Waiting() => button.Content = "Press a button";
+
+        public void Bind(PadButton b) => Change(s => s.Bind(action, b));
+
+        protected override void Fill(PlayerSettings s, string reason)
+        {
+            PadButton b = s.Button(action);
+            if (Pad.Style == PadStyle.PlayStation && PlayStationIcon(b) is { } shape)
+            {
+                icon.Data = shape;
+                button.Content = icon;
+                return;
+            }
+            button.Content = PadText(b, Pad.Style);
+        }
+
+        static Geometry PlayStationIcon(PadButton b) => b switch
+        {
+            PadButton.A => crossIcon ??= Geometry.Parse("M 4,4 L 18,18 M 18,4 L 4,18"),
+            PadButton.B => circleIcon ??= Geometry.Parse("M 11,3 A 8,8 0 1 0 11,19 A 8,8 0 1 0 11,3 Z"),
+            PadButton.X => squareIcon ??= Geometry.Parse("M 4,4 L 18,4 L 18,18 L 4,18 Z"),
+            PadButton.Y => triangleIcon ??= Geometry.Parse("M 11,3 L 19,18 L 3,18 Z"),
+            _ => null,
+        };
+
+        /// <summary>A button by its Xbox or PlayStation name, matching the connected gamepad.</summary>
+        public static string PadText(PadButton b, PadStyle style = PadStyle.Xbox) => (style, b) switch
+        {
+            (_, PadButton.None) => "—",
+            (PadStyle.PlayStation, PadButton.A) => "Cross",
+            (PadStyle.PlayStation, PadButton.B) => "Circle",
+            (PadStyle.PlayStation, PadButton.X) => "Square",
+            (PadStyle.PlayStation, PadButton.Y) => "Triangle",
+            (PadStyle.PlayStation, PadButton.Back) => "Share",
+            (PadStyle.PlayStation, PadButton.Start) => "Options",
+            (PadStyle.PlayStation, PadButton.LeftShoulder) => "L1",
+            (PadStyle.PlayStation, PadButton.RightShoulder) => "R1",
+            (PadStyle.PlayStation, PadButton.LeftTrigger) => "L2",
+            (PadStyle.PlayStation, PadButton.RightTrigger) => "R2",
+            (_, PadButton.Back) => "View",
+            (_, PadButton.Start) => "Menu",
+            (_, PadButton.LeftStick) => "L3 (left stick)",
+            (_, PadButton.RightStick) => "R3 (right stick)",
+            (_, PadButton.LeftShoulder) => "LB",
+            (_, PadButton.RightShoulder) => "RB",
+            (_, PadButton.LeftTrigger) => "LT",
+            (_, PadButton.RightTrigger) => "RT",
+            (_, PadButton.DPadUp) => "D-pad up",
+            (_, PadButton.DPadDown) => "D-pad down",
+            (_, PadButton.DPadLeft) => "D-pad left",
+            (_, PadButton.DPadRight) => "D-pad right",
+            _ => b.ToString(),
+        };
     }
 }

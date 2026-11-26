@@ -159,6 +159,24 @@ namespace KotH.Client.Menu
 
         static string Number(int n) => n.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
 
+        /// <summary>Gamepad LB/RB: switches tabs in the open submenu (Settings, Social or Customize).</summary>
+        public void StepTab(int delta)
+        {
+            if (open == Settings)
+                SettingsPage.StepTab(delta);
+            else if (open == SocialButton)
+                SocialPage.StepTab(delta);
+            else if (open == Customize)
+                CustomizeView.StepTab(delta);
+        }
+
+        /// <summary>Updates the note on the bottom left when gamepad focus moves in the main column.</summary>
+        public void DescribeControl(Control control)
+        {
+            if (control is Button b && (b == Host || b == Find || b == SocialButton || b == Customize || b == Settings || b == Languages || b == Quit))
+                Describe(b);
+        }
+
         /// <summary>Escape: closes the open page; false when none was open.</summary>
         public bool GoBack()
         {

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using Avalonia.Controls;
@@ -20,6 +21,8 @@ namespace KotH.Client.Menu
         public LeaderboardPage()
         {
             InitializeComponent();
+            GlobalTab.Tag = (Action)(() => Choose(false));
+            FriendsTab.Tag = (Action)(() => Choose(true));
             GlobalTab.PointerPressed += (_, _) => Choose(false);
             FriendsTab.PointerPressed += (_, _) => Choose(true);
             Choose(false, load: false);

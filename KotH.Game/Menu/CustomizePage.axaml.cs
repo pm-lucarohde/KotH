@@ -37,18 +37,19 @@ namespace KotH.Client.Menu
             for (int i = 0; i < FigureLook.Colors; i++)
             {
                 int index = i;
+                Action pick = () => Choose(index);
                 dots[i] = new Ellipse { Width = 18, Height = 18, Stroke = new SolidColorBrush(Color.FromArgb(90, 0, 0, 0)), StrokeThickness = 1.5 };
                 tabs[i] = new Border
                 {
                     // Narrow enough for two rows of four and three, so the wheel keeps its room.
-                    Classes = { "Tab" }, Padding = new Avalonia.Thickness(10, 7, 13, 7),
+                    Classes = { "Tab", "PageTab" }, Padding = new Avalonia.Thickness(10, 7, 13, 7), Tag = pick,
                     Child = new StackPanel
                     {
                         Orientation = Orientation.Horizontal, Spacing = 7,
                         Children = { dots[i], new TextBlock { Text = Names[i], VerticalAlignment = VerticalAlignment.Center } },
                     },
                 };
-                tabs[i].PointerPressed += (_, _) => Choose(index);
+                tabs[i].PointerPressed += (_, _) => pick();
                 Tabs.Children.Add(tabs[i]);
             }
             Wheel.Picked += Slid;
@@ -104,10 +105,17 @@ namespace KotH.Client.Menu
                 chip.Classes.Set("Chosen", look.Kind == kind);
                 chip.Classes.Set("Off", locked);
                 if (!locked)
-                    chip.PointerPressed += (_, _) => Become(kind);
+                {
+                    Action pick = () => Become(kind);
+                    chip.Tag = pick;
+                    chip.PointerPressed += (_, _) => pick();
+                }
                 Figures.Children.Add(chip);
             }
         }
+
+        /// <summary>Gamepad LB/RB: switches between figure parts, glow and trail.</summary>
+        public void StepTab(int delta) => Choose((part + delta + tabs.Length) % tabs.Length);
 
         void Become(byte kind)
         {
@@ -163,7 +171,11 @@ namespace KotH.Client.Menu
                 chip.Classes.Set("Chosen", i == current);
                 chip.Classes.Set("Off", locked);
                 if (!locked)
-                    chip.PointerPressed += (_, _) => Pick(choice);
+                {
+                    Action pick = () => Pick(choice);
+                    chip.Tag = pick;
+                    chip.PointerPressed += (_, _) => pick();
+                }
                 Options.Children.Add(chip);
             }
             if (locked)

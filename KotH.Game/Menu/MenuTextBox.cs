@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
+using KotH.Client.Gamepad;
 using Stride.Input;
 
 namespace KotH.Client.Menu
@@ -35,6 +36,7 @@ namespace KotH.Client.Menu
 
         public MenuTextBox()
         {
+            Classes.Add("TextField");
             Height = 50;
             CornerRadius = new CornerRadius(25);
             Padding = new Thickness(22, 0);
@@ -99,7 +101,7 @@ namespace KotH.Client.Menu
                 Focus(null);
                 box.Submitted?.Invoke();
             }
-            else if (input.IsKeyPressed(Keys.Escape))
+            else if (input.IsKeyPressed(Keys.Escape) || Pad.Pressed(PadButton.B))
                 Focus(null);
             return true;
         }
@@ -124,6 +126,9 @@ namespace KotH.Client.Menu
             TextChanged?.Invoke(text);
         }
 
+        /// <summary>Refreshes the border when gamepad focus enters or leaves this field.</summary>
+        public void RefreshFocus() => Redraw();
+
         void Redraw()
         {
             bool empty = text.Length == 0;
@@ -132,7 +137,9 @@ namespace KotH.Client.Menu
             // While typing the end shows (the caret's side); a long text loses its beginning, not what is typed.
             shown.TextTrimming = HasFocus ? TextTrimming.LeadingCharacterEllipsis : TextTrimming.CharacterEllipsis;
             shown.Foreground = new SolidColorBrush(Color.Parse(empty && !HasFocus ? "#A08A70" : "#5A3A22"));
-            BorderBrush = new SolidColorBrush(Color.Parse(HasFocus ? "#C8231F" : "#D3BEA1"));
+            bool padFocus = !HasFocus && Classes.Contains("PadFocus");
+            BorderBrush = new SolidColorBrush(Color.Parse(HasFocus ? "#C8231F" : padFocus ? "#E0A820" : "#D3BEA1"));
+            BorderThickness = new Thickness(padFocus ? 3 : 2);
         }
 
         /// <summary>SDL's clipboard, the window's own (Stride runs on SDL).</summary>

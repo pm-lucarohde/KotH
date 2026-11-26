@@ -85,6 +85,11 @@ namespace KotH.Client.Menu
             double d = Math.Min(Bounds.Width, Bounds.Height);
             var rect = new Rect((Bounds.Width - d) / 2, (Bounds.Height - d) / 2, d, d);
             context.DrawImage(disc, new Rect(0, 0, Size, Size), rect);
+            if (Classes.Contains("PadFocus") || Classes.Contains("PadEdit"))
+            {
+                Color ring = Classes.Contains("PadEdit") ? Color.FromRgb(0xC4, 0x23, 0x1F) : Color.FromRgb(0xF7, 0xD4, 0x6A);
+                context.DrawEllipse(null, new Pen(new SolidColorBrush(ring), 5), rect.Center, d / 2 - 2.5, d / 2 - 2.5);
+            }
 
             double angle = hue * Math.PI / 180.0, reach = saturation * (d / 2 - 2);
             var at = new Point(rect.Center.X + Math.Cos(angle) * reach, rect.Center.Y - Math.Sin(angle) * reach);
@@ -115,6 +120,26 @@ namespace KotH.Client.Menu
         }
 
         protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e) => dragging = false;
+
+        /// <summary>Gamepad stick editing: moves the pick across the disc in unit-circle coordinates.</summary>
+        public void Nudge(float dx, float dy, float seconds)
+        {
+            double angle = hue * Math.PI / 180.0;
+            double x = Math.Cos(angle) * saturation + dx * 0.9 * seconds;
+            double y = Math.Sin(angle) * saturation + dy * 0.9 * seconds;
+            double r = Math.Sqrt(x * x + y * y);
+            if (r > 1.0)
+            {
+                x /= r;
+                y /= r;
+                r = 1.0;
+            }
+            if (r > 1e-6)
+                hue = (Math.Atan2(y, x) * 180.0 / Math.PI + 360.0) % 360.0;
+            saturation = r;
+            InvalidateVisual();
+            Picked?.Invoke();
+        }
 
         void Pick(Point p)
         {

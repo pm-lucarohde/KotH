@@ -35,13 +35,17 @@ namespace KotH.Client.Menu
             var inside = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12 };
             inside.Children.Add(label);
             inside.Children.Add(caret);
-            Head = new Border { Classes = { "Tab" }, Child = inside, Cursor = new Cursor(StandardCursorType.Hand) };
-            Head.PointerPressed += (_, e) =>
+            Action toggle = () =>
             {
                 if (IsOpen)
                     Close();
                 else
                     Open();
+            };
+            Head = new Border { Classes = { "Tab" }, Child = inside, Cursor = new Cursor(StandardCursorType.Hand), Tag = toggle };
+            Head.PointerPressed += (_, e) =>
+            {
+                toggle();
                 e.Handled = true;
             };
             scroll = new ScrollViewer
@@ -79,12 +83,16 @@ namespace KotH.Client.Menu
             for (int i = 0; i < texts.Count; i++)
             {
                 int index = i;
-                var line = new Border { Classes = { "Pick" }, Child = new TextBlock { Text = texts[i] }, Cursor = new Cursor(StandardCursorType.Hand) };
-                line.Classes.Set("Chosen", i == chosen);
-                line.PointerPressed += (_, e) =>
+                Action choose = () =>
                 {
                     Close();
                     pick(index);
+                };
+                var line = new Border { Classes = { "Pick" }, Child = new TextBlock { Text = texts[i] }, Cursor = new Cursor(StandardCursorType.Hand), Tag = choose };
+                line.Classes.Set("Chosen", i == chosen);
+                line.PointerPressed += (_, e) =>
+                {
+                    choose();
                     e.Handled = true;
                 };
                 lines.Children.Add(line);

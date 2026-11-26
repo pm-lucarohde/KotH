@@ -411,6 +411,8 @@ namespace KotH.Client.Player
             armsGun = FindGun(visual, motor, look);
             armsModel = visual.Get<ModelComponent>();
             armsMelee = motor.Entity.Get<MeleeAttack>();
+            armsBlaster = motor.Entity.Get<Blaster>();
+            armsDash = motor.Entity.Get<Dash>();
             armsNetId = motor.Entity.Get<SimulationBody>()?.NetId ?? 0;
             armPlays = null;
             Array.Clear(armWeights);
@@ -424,6 +426,9 @@ namespace KotH.Client.Player
             armsLeaf = null;
             armsGun = null;
             armsModel = null;
+            armsMelee = null;
+            armsBlaster = null;
+            armsDash = null;
         }
 
         /// <summary>
@@ -970,6 +975,7 @@ namespace KotH.Client.Player
                     f.HitAxis = RecoilAxis(f, f.Damage.LastHitAway);
                     Sound(f, FigureSound.Hit, 1f);
                     Sparkle(f, f.Damage.LastHitAway, f.Damage.LastHitAt);
+                    Rumble(f, hit);
                 }
                 f.SeenHit = hit;
             }

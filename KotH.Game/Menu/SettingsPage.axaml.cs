@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Avalonia;
 using Avalonia.Controls;
+using KotH.Client.Gamepad;
 using KotH.Client.Settings;
 using Stride.Core.Mathematics;
 using Stride.Input;
@@ -12,7 +13,8 @@ namespace KotH.Client.Menu
 {
     /// <summary>The Settings page, in the main menu and in the pause menu: tabs Sound, Graphics and Input.
     /// The rows edit a copy of the settings in force; Apply puts it in force (ClientSettings), Revert and
-    /// <see cref="Open"/> start again from them. The owner hands over keys while a key row waits (<see cref="Capture"/>).</summary>
+    /// <see cref="Open"/> start again from them. The owner hands over keys while a key row waits (<see cref="Capture"/>).
+    /// Input shows the gamepad's rows instead of the keys' while the pad is in use (Luca).</summary>
     public partial class SettingsPage : UserControl
     {
         static readonly string[] TabNames = { "Sound", "Graphics", "Input" };
@@ -24,7 +26,14 @@ namespace KotH.Client.Menu
         readonly List<SettingRow>[] rows;
         PlayerSettings edited = ClientSettings.Applied.Clone();
         KeyRow listening;
+        PadRow listeningPad;
         int tab;
+        bool padShown;
+        PadStyle padStyle;
+
+        // The rows on show: the Input tab has a second list for the gamepad.
+        const int PadRows = 3;
+        int Shown => tab == 2 && padShown ? PadRows : tab;
 
         public SettingsPage()
         {
@@ -32,11 +41,12 @@ namespace KotH.Client.Menu
             for (int i = 0; i < tabs.Length; i++)
             {
                 int index = i;
-                tabs[i] = new Border { Classes = { "Tab" }, Child = new TextBlock { Text = TabNames[i] } };
-                tabs[i].PointerPressed += (_, _) => Choose(index);
+                Action pick = () => Choose(index);
+                tabs[i] = new Border { Classes = { "Tab", "PageTab" }, Child = new TextBlock { Text = TabNames[i] }, Tag = pick };
+                tabs[i].PointerPressed += (_, _) => pick();
                 Tabs.Children.Add(tabs[i]);
             }
-            rows = new[] { SoundRows(), GraphicsRows(), InputRows() };
+            rows = new[] { SoundRows(), GraphicsRows(), InputRows(), GamepadRows() };
             foreach (List<SettingRow> list in rows)
                 foreach (SettingRow row in list)
                 {
@@ -44,11 +54,14 @@ namespace KotH.Client.Menu
                     row.Changed = Refresh;
                     if (row is KeyRow key)
                         key.Listen += Listen;
+                    if (row is PadRow pad)
+                        pad.Listen += Listen;
                 }
             Reset.Click += (_, _) =>
             {
                 if (tab == 0) edited.ResetSound();
                 else if (tab == 1) edited.ResetGraphics();
+                else if (padShown) edited.ResetPad();
                 else edited.ResetInput();
                 Refresh();
             };
@@ -61,6 +74,7 @@ namespace KotH.Client.Menu
             Back.Click += (_, _) =>
             {
                 listening = null;
+                listeningPad = null;
                 BackRequested?.Invoke();
             };
             Choose(0);
@@ -71,6 +85,7 @@ namespace KotH.Client.Menu
         {
             edited = ClientSettings.Applied.Clone();
             listening = null;
+            listeningPad = null;
             Refresh();
         }
 
@@ -82,14 +97,20 @@ namespace KotH.Client.Menu
                 Choose(i);
         }
 
+        /// <summary>Gamepad LB/RB: moves to the previous or next tab, wrapping at the ends.</summary>
+        public void StepTab(int delta) => Choose((tab + delta + tabs.Length) % tabs.Length);
+
         void Choose(int index)
         {
             tab = index;
             listening = null;
+            listeningPad = null;
+            padShown = Pad.Active;
+            padStyle = Pad.Style;
             for (int i = 0; i < tabs.Length; i++)
                 tabs[i].Classes.Set("Chosen", i == tab);
             Rows.Children.Clear();
-            foreach (SettingRow row in rows[tab])
+            foreach (SettingRow row in rows[Shown])
                 Rows.Children.Add(row.View);
             Scroll.Offset = default;
             Refresh();
@@ -97,9 +118,10 @@ namespace KotH.Client.Menu
 
         void Refresh()
         {
-            foreach (SettingRow row in rows[tab])
+            foreach (SettingRow row in rows[Shown])
                 row.Show(edited);
             listening?.Waiting();
+            listeningPad?.Waiting();
             bool changed = !edited.Same(ClientSettings.Applied);
             Apply.IsEnabled = Revert.IsEnabled = changed;
         }
@@ -110,14 +132,25 @@ namespace KotH.Client.Menu
             Refresh();
         }
 
-        /// <summary>Whether a key row waits for a key.</summary>
-        public bool Listening => listening != null;
+        void Listen(PadRow row)
+        {
+            listeningPad = row;
+            Refresh();
+        }
+
+        /// <summary>Whether a key or button row waits.</summary>
+        public bool Listening => listening != null || listeningPad != null;
 
         /// <summary>Per frame from the owner, before its own keys: while a row waits, the next key
         /// goes to it (Escape cancels, the fixed keys are refused) and true says the frame's keys
         /// are taken.</summary>
         public bool Capture(InputManager input)
         {
+            // The Input tab follows the device in use (and refreshes button names on hot-swap).
+            if (tab == 2 && (padShown != Pad.Active || padShown && padStyle != Pad.Style))
+                Choose(2);
+            if (listeningPad != null)
+                return CapturePad(input);
             if (listening == null)
                 return false;
             foreach (KeyEvent e in input.KeyEvents)
@@ -134,6 +167,25 @@ namespace KotH.Client.Menu
                 }
             }
             Refresh();
+            return true;
+        }
+
+        // The next gamepad button goes to the waiting row; Menu (Start) and Escape cancel.
+        bool CapturePad(InputManager input)
+        {
+            PadButton b = Pad.AnyPressed();
+            if (b == PadButton.Start || KotH.Client.Player.KeyPresses.Pressed(input, Keys.Escape))
+            {
+                listeningPad = null;
+                Refresh();
+            }
+            else if (b != PadButton.None)
+            {
+                PadRow row = listeningPad;
+                listeningPad = null;
+                row.Bind(b);
+                Refresh();
+            }
             return true;
         }
 
@@ -258,6 +310,29 @@ namespace KotH.Client.Menu
             new KeyRow("Blaster", Binding.Blaster),
             new KeyRow("Chat", Binding.Chat, "Steam rounds"),
             new KeyRow("Push to talk", Binding.PushToTalk, "voice chat"),
+        };
+
+        static List<SettingRow> GamepadRows() => new List<SettingRow>
+        {
+            new SliderRow("Look sensitivity", PlayerSettings.MinStickSensitivity, PlayerSettings.MaxStickSensitivity, 0.1,
+                          s => s.StickSensitivity, (s, v) => s.StickSensitivity = (float)Math.Round(v, 1), v => $"{v:0.0}"),
+            new SliderRow("Stick dead zone", 0, 40, 1, s => s.StickDeadZone * 100.0,
+                          (s, v) => s.StickDeadZone = (float)Math.Round(v / 100.0, 2), Percent) { PadStep = 1 },
+            new ToggleRow("Invert look", s => s.InvertY, (s, v) => s.InvertY = v, "up and down"),
+            new ToggleRow("Vibration", s => s.Vibration, (s, v) => s.Vibration = v),
+            new HeadingRow("Buttons", "")
+            {
+                DynamicNote = () => Pad.Style == PadStyle.PlayStation
+                    ? "left stick walks, right stick looks, Options pauses"
+                    : "left stick walks, right stick looks, Menu pauses",
+            },
+            new PadRow("Jump", PadAction.Jump),
+            new PadRow("Sprint", PadAction.Sprint),
+            new PadRow("Crouch", PadAction.Crouch, "slide, dash"),
+            new PadRow("Attack", PadAction.Attack),
+            new PadRow("Cane / blaster", PadAction.Weapon),
+            new PadRow("Camera", PadAction.View, "first or third person"),
+            new PadRow("Push to talk", PadAction.PushToTalk, "voice chat"),
         };
     }
 }

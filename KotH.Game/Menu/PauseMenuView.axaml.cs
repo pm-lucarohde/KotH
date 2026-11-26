@@ -109,6 +109,13 @@ namespace KotH.Client.Menu
         /// <summary>The Settings page, which takes keys while one of its rows waits for one.</summary>
         public SettingsPage SettingsView => SettingsPage;
 
+        /// <summary>Gamepad LB/RB: switches tabs when Settings is open.</summary>
+        public void StepTab(int delta)
+        {
+            if (PageOpen && SettingsPage.IsVisible)
+                SettingsPage.StepTab(delta);
+        }
+
         /// <summary>The Round page.</summary>
         public RoundPage RoundView => RoundPage;
 

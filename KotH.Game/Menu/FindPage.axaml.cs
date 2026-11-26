@@ -155,6 +155,9 @@ namespace KotH.Client.Menu
                 MenuTextBox.Focus(null);
         }
 
+        /// <summary>The open drop-down's sheet if one is up, else null (for gamepad focus).</summary>
+        public Control OpenDrop => Drops.Children.Count > 0 ? Drops.Children[0] : null;
+
         /// <summary>Escape: closes an open drop-down or the password prompt; false when neither was open.</summary>
         public bool Cancel()
         {

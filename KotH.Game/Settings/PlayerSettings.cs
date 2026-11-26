@@ -1,4 +1,5 @@
 using System;
+using KotH.Client.Gamepad;
 using KotH.Client.Rendering.Dlss;
 using Stride.Input;
 
@@ -13,6 +14,10 @@ namespace KotH.Client.Settings
     /// <summary>The keys the player may move to another key (keyboard only; the arrows,
     /// the left button, the wheel, Escape, F3 and F11 stay where they are).</summary>
     public enum Binding { Forward, Back, Left, Right, Jump, Sprint, Crouch, Cane, Blaster, PushToTalk, Chat }
+
+    /// <summary>The gamepad buttons the player may move (the sticks walk and look, Start pauses; in the
+    /// menus left stick selects, A clicks, B goes back, right stick scrolls, LB/RB switch tabs).</summary>
+    public enum PadAction { Jump, Sprint, Crouch, Attack, Weapon, View, PushToTalk }
 
     /// <summary>Everything the Settings page offers. The defaults are the game as it was before
     /// the page: 80 % is today's loudness, High today's look, FOV 85, no cap, no V-Sync, FXAA.</summary>
@@ -38,6 +43,11 @@ namespace KotH.Client.Settings
         // Input.
         public float MouseSensitivity = 2f;
         public Keys[] Keys = DefaultKeys();
+
+        // Gamepad: look speed (1 = the game's own), radial dead zone (5 % default), Y invert, rumble.
+        public float StickSensitivity = 1f, StickDeadZone = 0.05f;
+        public bool InvertY, Vibration = true;
+        public PadButton[] PadButtons = DefaultPad();
 
         // Hosting, from the Host page: the round's name, private or public and its flags. Never the password.
         // No region or no language: Steam's guess for this player when hosting.
@@ -82,6 +92,8 @@ namespace KotH.Client.Settings
 
         public const float DefaultFov = 85f, MinFov = 60f, MaxFov = 120f;
         public const float MinSensitivity = 0.1f, MaxSensitivity = 10f;
+        public const float MinStickSensitivity = 0.2f, MaxStickSensitivity = 3f;
+        public const float MinDeadZone = 0f, MaxDeadZone = 0.4f;
 
         /// <summary>The frame caps offered, 0 for none.</summary>
         public static readonly int[] FpsLimits = { 0, 30, 60, 90, 120, 144, 165, 240 };
@@ -95,6 +107,23 @@ namespace KotH.Client.Settings
 
         public Keys Key(Binding binding) => Keys[(int)binding];
 
+        public static PadButton[] DefaultPad() => new[]
+        {
+            PadButton.A, PadButton.LeftStick, PadButton.B, PadButton.RightTrigger, PadButton.Y, PadButton.RightStick,
+            PadButton.LeftShoulder,
+        };
+
+        public PadButton Button(PadAction action) => PadButtons[(int)action];
+
+        /// <summary>Puts the button on the action; an action that had it before loses it (None).</summary>
+        public void Bind(PadAction action, PadButton button)
+        {
+            for (int i = 0; i < PadButtons.Length; i++)
+                if (PadButtons[i] == button)
+                    PadButtons[i] = PadButton.None;
+            PadButtons[(int)action] = button;
+        }
+
         /// <summary>A volume slider as a gain on today's value: squared, so 0.8 is 1 and 1 about +4 dB.</summary>
         public static float Gain(float slider)
         {
@@ -106,6 +135,7 @@ namespace KotH.Client.Settings
         {
             var copy = (PlayerSettings)MemberwiseClone();
             copy.Keys = (Keys[])Keys.Clone();
+            copy.PadButtons = (PadButton[])PadButtons.Clone();
             copy.HostLanguages = (string[])HostLanguages.Clone();
             copy.HostRegions = (string[])HostRegions.Clone();
             return copy;
@@ -130,6 +160,13 @@ namespace KotH.Client.Settings
         {
             MouseSensitivity = new PlayerSettings().MouseSensitivity;
             Keys = DefaultKeys();
+        }
+
+        public void ResetPad()
+        {
+            var d = new PlayerSettings();
+            (StickSensitivity, StickDeadZone, InvertY, Vibration) = (d.StickSensitivity, d.StickDeadZone, d.InvertY, d.Vibration);
+            PadButtons = DefaultPad();
         }
 
         /// <summary>Equal when they would be saved alike.</summary>

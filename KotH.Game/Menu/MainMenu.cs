@@ -1,5 +1,6 @@
 using System;
 using System.Runtime;
+using KotH.Client.Gamepad;
 using KotH.Client.Hud;
 using KotH.Client.Net;
 using KotH.Client.Player;
@@ -79,6 +80,10 @@ namespace KotH.Client.Menu
         MenuOverlay column, page, customize, logo, corner;
         MenuOverlay[] overlays, pointed;
         readonly OverlayPointer pointer = new OverlayPointer();
+        readonly PadMenuNav nav = new PadMenuNav();
+        Action<int> stepTab;
+        Action<Avalonia.Controls.Control> describe;
+        bool padActive;
         readonly bool[] calmWindow = new bool[CalmFrames];
         int calmSlot, calmFilled, calm;
         readonly System.Diagnostics.Stopwatch waiting = new System.Diagnostics.Stopwatch();
@@ -137,6 +142,8 @@ namespace KotH.Client.Menu
             corner = new MenuOverlay(parts.Corner, MenuOverlay.Corner.BottomRight, 0f, 0f);
             overlays = new[] { column, page, customize, logo, corner };
             pointed = new[] { column, page, customize };
+            stepTab = view.StepTab;
+            describe = view.DescribeControl;
             foreach (MenuOverlay overlay in overlays)
                 hud.Add(overlay);
         }
@@ -156,11 +163,38 @@ namespace KotH.Client.Menu
                     throttle.Interval = 1.0 / MapFps;
                 if (!shown)
                     Reveal();
-                Enter((float)Game.UpdateTime.Elapsed.TotalSeconds, screen.Y / (float)MainMenuView.DesignHeight);
-                if (!MenuTextBox.Capture(Input) && !view.SettingsView.Capture(Input) && KeyPresses.Pressed(Input, Keys.Escape)
+                float dt = (float)Game.UpdateTime.Elapsed.TotalSeconds;
+                Enter(dt, screen.Y / (float)MainMenuView.DesignHeight);
+                bool text = MenuTextBox.Capture(Input);
+                bool settings = !text && view.SettingsView.Capture(Input);
+                bool wheelBack = false;
+                if (Pad.Active)
+                {
+                    if (!padActive)
+                    {
+                        pointer.Reset();
+                        Game.IsMouseVisible = false;
+                        padActive = true;
+                    }
+                    Avalonia.Controls.Control scope = view.CustomizeOpen ? customize.Content
+                                                    : view.PageOpen ? (view.FindOpen ? view.Finder.OpenDrop ?? page.Content : page.Content)
+                                                    : column.Content;
+                    wheelBack = nav.Update(scope, dt, !text && !settings && !view.SettingsView.Listening,
+                                           view.PageOpen || view.CustomizeOpen ? stepTab : null, describe);
+                }
+                else
+                {
+                    if (padActive)
+                    {
+                        nav.Clear();
+                        Game.IsMouseVisible = true;
+                        padActive = false;
+                    }
+                    pointer.Update(Input, screen, pointed);
+                }
+                if (!text && !settings && !wheelBack && (KeyPresses.Pressed(Input, Keys.Escape) || Pad.Pressed(PadButton.B))
                     && !view.Finder.Cancel())
                     view.GoBack();
-                pointer.Update(Input, screen, pointed);
             }
 
             if (progressShown != SteamStats.Version)
@@ -426,6 +460,7 @@ namespace KotH.Client.Menu
 
             if (overlays == null)
                 return;
+            nav.Reset();
             foreach (MenuOverlay overlay in overlays)
             {
                 hud.Remove(overlay);

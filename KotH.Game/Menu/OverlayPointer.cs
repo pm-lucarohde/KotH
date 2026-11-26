@@ -1,4 +1,3 @@
-using System;
 using Stride.Core.Mathematics;
 using Stride.Input;
 
@@ -15,9 +14,9 @@ namespace KotH.Client.Menu
         // A loop, not Array.Find: its lambda captured the point, a closure every frame.
         static MenuOverlay Under(MenuOverlay[] targets, Vector2 at)
         {
-            foreach (MenuOverlay o in targets)
-                if (o.Contains(at))
-                    return o;
+            foreach (MenuOverlay target in targets)
+                if (target.Contains(at))
+                    return target;
             return null;
         }
 
@@ -28,6 +27,7 @@ namespace KotH.Client.Menu
                 return;
             Vector2 at = input.MousePosition * screen;
             bool down = input.IsMouseButtonPressed(MouseButton.Left), up = input.IsMouseButtonReleased(MouseButton.Left);
+
             MenuOverlay target = pressed ?? Under(targets, at);
             if (target != hovered)
             {
@@ -39,8 +39,8 @@ namespace KotH.Client.Menu
             last = at;
             if (down && target != null)
             {
-                target.Press(at);
                 pressed = target;
+                target.Press(at);
             }
             if (up && pressed != null)
             {

@@ -78,7 +78,7 @@
             </ControlTemplate>
         </Setter>
     </Style>
-    <Style Selector="Button.Menu:pointerover /template/ Image#Hot, Button.Menu:focus-visible /template/ Image#Hot">
+    <Style Selector="Button.Menu:pointerover /template/ Image#Hot, Button.Menu:focus-visible /template/ Image#Hot, Button.Menu.PadFocus /template/ Image#Hot">
         <Setter Property="Opacity" Value="1" />
     </Style>
     <!-- Fluent shrinks a pressed button to 98 %: a click near the edge then
@@ -188,6 +188,14 @@
     <Style Selector="Border.Tab.Off">
         <Setter Property="Opacity" Value="0.45" />
     </Style>
+    <Style Selector="Border.Tab.PadFocus">
+        <Setter Property="Background" Value="#F7D46A" />
+        <Setter Property="BoxShadow" Value="0 4 0 0 #C49A2B" />
+    </Style>
+    <Style Selector="Border.Tab.Chosen.PadFocus">
+        <Setter Property="Background" Value="{StaticResource RedBrush}" />
+        <Setter Property="BoxShadow" Value="0 0 0 4 #F7D46A, 0 4 0 0 #8A1815" />
+    </Style>
 
     <!-- A drop-down's open list (MenuDropdown): a cream sheet over the page, a line per value -->
     <Style Selector="Border.Drop">
@@ -207,7 +215,7 @@
         <Setter Property="CornerRadius" Value="12" />
         <Setter Property="Padding" Value="18,7" />
     </Style>
-    <Style Selector="Border.Pick:pointerover">
+    <Style Selector="Border.Pick:pointerover, Border.Pick.PadFocus">
         <Setter Property="Background" Value="{StaticResource WellBrush}" />
     </Style>
     <Style Selector="Border.Pick TextBlock">
@@ -251,8 +259,25 @@
             </ControlTemplate>
         </Setter>
     </Style>
-    <Style Selector="Button.Step:pointerover /template/ Border#Face">
+    <Style Selector="Button.Step:pointerover /template/ Border#Face, Button.Step.PadFocus /template/ Border#Face,
+                     StackPanel.Choice.PadFocus Button.Step /template/ Border#Face">
         <Setter Property="Background" Value="#F7D46A" />
+    </Style>
+    <Style Selector="Border.SettingLine">
+        <Setter Property="CornerRadius" Value="14" />
+        <Setter Property="Padding" Value="10,0" />
+        <Setter Property="Margin" Value="-10,0" />
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="Border.SettingLine.PadFocus">
+        <Setter Property="Background" Value="#38F7D46A" />
+    </Style>
+    <Style Selector="Slider.PadFocus /template/ Thumb">
+        <Setter Property="Background" Value="#F7D46A" />
+    </Style>
+    <Style Selector="Border.TextField.PadFocus">
+        <Setter Property="BorderBrush" Value="#E0A820" />
+        <Setter Property="BorderThickness" Value="3" />
     </Style>
     <Style Selector="Button.Step:pressed /template/ Border#Face">
         <Setter Property="Margin" Value="0,3,0,0" />

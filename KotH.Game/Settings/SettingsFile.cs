@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using KotH.Client.Gamepad;
 using KotH.Client.Rendering.Dlss;
 using KotH.Client.Steam;
 using Stride.Input;
@@ -76,6 +77,12 @@ namespace KotH.Client.Settings
             t.Append("\n[keys]\n");
             foreach (Binding b in Enum.GetValues<Binding>())
                 Text(t, KeyName(b), s.Key(b).ToString());
+            t.Append("\n[gamepad]\n");
+            Number(t, "stick_sensitivity", s.StickSensitivity); Number(t, "dead_zone", s.StickDeadZone);
+            Flag(t, "invert_y", s.InvertY); Flag(t, "vibration", s.Vibration);
+            t.Append("\n[pad_buttons]\n");
+            foreach (PadAction a in Enum.GetValues<PadAction>())
+                Text(t, PadName(a), s.Button(a).ToString());
             t.Append("\n[host]\n");
             Text(t, "name", s.HostName); Flag(t, "private", s.HostPrivate); Text(t, "regions", string.Join(",", s.HostRegions));
             Text(t, "languages", string.Join(",", s.HostLanguages)); Flag(t, "modded", s.HostModded);
@@ -89,6 +96,8 @@ namespace KotH.Client.Settings
         static string Name(Quality q) => q.ToString().ToLowerInvariant();
 
         static string KeyName(Binding b) => b == Binding.PushToTalk ? "push_to_talk" : b.ToString().ToLowerInvariant();
+
+        static string PadName(PadAction a) => a == PadAction.PushToTalk ? "push_to_talk" : a.ToString().ToLowerInvariant();
 
         static void Number(StringBuilder t, string key, float v) => t.Append(key).Append(" = ").Append(v.ToString("0.###", Invariant)).Append('\n');
 
@@ -174,6 +183,19 @@ namespace KotH.Client.Settings
                 case ("host", "bot_count"): s.HostBotCount = Math.Clamp(Int(v, s.HostBotCount), 1, KotH.Shared.Match.HillMatch.FreeMaxPlayers - 1); break;
                 case ("host", "auto_start"): s.HostAutoStart = Bool(v, s.HostAutoStart); break;
                 case ("host", "max_players"): s.HostMaxPlayers = Math.Clamp(Int(v, s.HostMaxPlayers), 0, KotH.Shared.Match.HillMatch.FreeMaxPlayers); break;
+                case ("gamepad", "stick_sensitivity"):
+                    s.StickSensitivity = Math.Clamp(Float(v, s.StickSensitivity), PlayerSettings.MinStickSensitivity, PlayerSettings.MaxStickSensitivity);
+                    break;
+                case ("gamepad", "dead_zone"):
+                    s.StickDeadZone = Math.Clamp(Float(v, s.StickDeadZone), PlayerSettings.MinDeadZone, PlayerSettings.MaxDeadZone);
+                    break;
+                case ("gamepad", "invert_y"): s.InvertY = Bool(v, s.InvertY); break;
+                case ("gamepad", "vibration"): s.Vibration = Bool(v, s.Vibration); break;
+                case ("pad_buttons", _):
+                    foreach (PadAction a in Enum.GetValues<PadAction>())
+                        if (PadName(a) == key && Enum.TryParse(v, true, out PadButton b) && Enum.IsDefined(b) && b != PadButton.Start)
+                            s.PadButtons[(int)a] = b;
+                    break;
                 case ("keys", _):
                     foreach (Binding b in Enum.GetValues<Binding>())
                         if (KeyName(b) == key && Enum.TryParse(v, true, out Keys k) && Enum.IsDefined(k))

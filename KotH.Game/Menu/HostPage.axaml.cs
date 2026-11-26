@@ -135,25 +135,25 @@ namespace KotH.Client.Menu
                 (this.get, this.max) = (get, max);
                 foreach ((string code, string title) in values)
                 {
-                    var chip = new Border
-                    {
-                        Classes = { "Tab" }, Child = new TextBlock { Text = title }, Margin = new Avalonia.Thickness(0, 0, 10, 12),
-                        Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand),
-                    };
-                    chip.PointerPressed += (_, _) => Change(s =>
+                    Action toggle = () => Change(s =>
                     {
                         var chosen = new List<string>(get(s));
                         if (!chosen.Remove(code) && chosen.Count < max)
                             chosen.Add(code);
                         set(s, chosen.ToArray());
                     });
+                    var chip = new Border
+                    {
+                        Classes = { "Tab" }, Child = new TextBlock { Text = title }, Margin = new Avalonia.Thickness(0, 0, 10, 12),
+                        Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand), Tag = toggle,
+                    };
+                    chip.PointerPressed += (_, _) => toggle();
                     byCode[code] = chip;
                     chips.Children.Add(chip);
                 }
-                var grid = (Grid)View;
-                grid.Height = double.NaN;
-                grid.Children.Clear();
-                grid.Children.Add(chips);
+                Line.Height = double.NaN;
+                Line.Children.Clear();
+                Line.Children.Add(chips);
                 Grid.SetColumnSpan(chips, 2);
             }
 

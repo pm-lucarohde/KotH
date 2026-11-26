@@ -56,6 +56,9 @@ namespace KotH.Client.Menu
         /// <summary>Whether it is drawn and takes the pointer.</summary>
         public bool Visible { get; set; } = true;
 
+        /// <summary>The overlay's root control (for gamepad focus navigation).</summary>
+        public Control Content => scaler.Child;
+
         /// <summary>Drawn this far off its place, in pixels (the entrance; the pointer ignores it).</summary>
         public Vector2 Shift { get; set; }
 

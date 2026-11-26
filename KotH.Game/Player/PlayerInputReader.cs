@@ -1,3 +1,4 @@
+using KotH.Client.Gamepad;
 using KotH.Client.Settings;
 using KotH.Shared.Mathematics;
 using KotH.Shared.Player;
@@ -8,7 +9,7 @@ using Stride.Input;
 
 namespace KotH.Client.Player
 {
-    /// <summary>Turns keyboard and mouse into a MoveInput, once per tick. The only class
+    /// <summary>Turns keyboard, mouse and gamepad into a MoveInput, once per tick. The only class
     /// that reads input the SIMULATION consumes, so switching to network packets later
     /// means changing exactly one file. Collect runs every frame, ReadInput once per
     /// tick; presses are counted in between. Keys and mouse sensitivity come from the settings.</summary>
@@ -20,6 +21,12 @@ namespace KotH.Client.Player
         // gave a quarter of the 0.1 per count its axis setting suggests.
         // SDL's relative mode here delivers whole counts.
         const float DegreesPerPixelAtOne = 0.025f;
+
+        // Gamepad look at sensitivity 1, degrees per second with the stick at the rim; the stick's
+        // length is raised to LookCurve, so a small tilt aims finely. Held at the rim sideways for
+        // TurnBoostAfter, the turn speeds up to TurnBoost times over as long again.
+        const float PadYawSpeed = 260f, PadPitchSpeed = 170f, LookCurve = 2f, TurnBoost = 1.7f, TurnBoostAfter = 0.3f;
+        float rimSeconds;
 
         [Display("Pitch down", "Mouse")] public float MinPitch = -89f;
         [Display("Pitch up", "Mouse")] public float MaxPitch = 89f;
@@ -142,9 +149,11 @@ namespace KotH.Client.Player
         /// <summary>Per frame: mouse look and every press since the last frame. The
         /// driver calls it before ticking, so a press reaches the very next tick. Mouse
         /// look only while the cursor is captured.</summary>
-        public void Collect(InputManager input, bool captured)
+        public void Collect(InputManager input, bool captured, float seconds)
         {
             PlayerSettings settings = ClientSettings.Applied;
+            if (captured)
+                PadLook(settings, seconds);
             if (captured && input.HasMouse)
             {
                 // Pixels, not Stride's window-normalised delta: the sensitivity
@@ -188,12 +197,58 @@ namespace KotH.Client.Player
             jumpHeld = Down(input, jump);
             sprintHeld = Down(input, settings.Key(Binding.Sprint));
             crouchHeld = Down(input, crouch);
+            if (captured)
+                PadButtons(settings);
             if (heldKeys.HasValue)
             {
                 move = heldKeys.Value;
                 sprintHeld |= heldSprint;
             }
             crouchHeld |= heldCrouch;
+        }
+
+        /// <summary>The gamepad's buttons as the keys: counted presses, held states, the weapon and the
+        /// camera switched. The left stick walks when no walking key is held, analog.</summary>
+        void PadButtons(PlayerSettings settings)
+        {
+            if (!Pad.Connected)
+                return;
+            if (Pad.Pressed(settings.Button(PadAction.Jump)) && jumpPresses < byte.MaxValue)
+                jumpPresses++;
+            if (Pad.Pressed(settings.Button(PadAction.Crouch)))
+                crouchPressed = true;
+            if (Pad.Pressed(settings.Button(PadAction.Attack)))
+            {
+                if (attackPresses < byte.MaxValue)
+                    attackPresses++;
+                Clicks++;
+            }
+            if (Pad.Pressed(settings.Button(PadAction.Weapon)))
+                blaster = !blaster;
+            if (Pad.Pressed(settings.Button(PadAction.View)))
+                thirdPerson = !thirdPerson;
+            jumpHeld |= Pad.Down(settings.Button(PadAction.Jump));
+            sprintHeld |= Pad.Down(settings.Button(PadAction.Sprint));
+            crouchHeld |= Pad.Down(settings.Button(PadAction.Crouch));
+            if (move == Vector2.Zero)
+                move = Pad.Left;
+        }
+
+        /// <summary>The right stick turns the view, per frame like the mouse.</summary>
+        void PadLook(PlayerSettings settings, float seconds)
+        {
+            Vector2 stick = Pad.Right;
+            float length = stick.Length();
+            if (length <= 0f)
+            {
+                rimSeconds = 0f;
+                return;
+            }
+            rimSeconds = System.Math.Abs(stick.X) > 0.95f ? rimSeconds + seconds : 0f;
+            float boost = 1f + (TurnBoost - 1f) * System.Math.Clamp((rimSeconds - TurnBoostAfter) / TurnBoostAfter, 0f, 1f);
+            Vector2 look = stick * (System.MathF.Pow(length, LookCurve) / length) * (settings.StickSensitivity * seconds);
+            yaw -= look.X * PadYawSpeed * boost;
+            pitch = UMath.Clamp(pitch + look.Y * PadPitchSpeed * (settings.InvertY ? -1f : 1f), MinPitch, MaxPitch);
         }
 
         /// <summary>

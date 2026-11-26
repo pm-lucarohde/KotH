@@ -550,6 +550,7 @@ sealed class KotHGame : Game
         // Steam's callbacks before the scripts, which read lobbies and sessions.
         SteamClient.RunFrame();
         settings.Update();
+        KotH.Client.Gamepad.Pad.Update(Input, gameTime.Elapsed.TotalSeconds);
         if (windowVersion != ClientSettings.Version)
         {
             windowVersion = ClientSettings.Version;
