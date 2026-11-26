@@ -62,7 +62,17 @@ namespace KotH.Probes.Probes
             int done = 0, leader = -1, leadChanges = 0, contested = 0, byPoints = 0;
             double sumSeconds = 0, sumShare = 0, sumLeads = 0, sumContested = 0, sumHits = 0;
             bool wasOver = false, wasScoring = false;
-            int falls = 0, holds = 0, heldTicks = 0, lastScoreSum = 0;
+            int falls = 0, holds = 0, heldTicks = 0, lastScoreSum = 0, empty = 0;
+            long insideSum = 0, returnSum = 0;
+            int returns = 0, aloneRun = 0, alones = 0, alonesTaken = 0, aloneEndedBy = 0;
+            var fellAt = new long[count];
+            var lastScoreOf = new int[count];
+            var backSum = new long[count];
+            var backN = new int[count];
+            int holderIdx = -1;
+            var holdEnds = new Dictionary<string, int>();
+            int onHolder = 0, onOthers = 0;
+            Array.Fill(fellAt, -1L);
             var wasIn = new bool[count];
             var lastHit = new int[count];
             var swingsWas = new int[count];
@@ -76,7 +86,7 @@ namespace KotH.Probes.Probes
                 hitInZoneAt[i] = -1000;
                 lastHit[i] = -1;
             }
-            for (long t = 0; done < wanted && t < 48000L * wanted; t++)
+            for (long t = 0; done < wanted && t < 52000L * wanted; t++)
             {
                 world.Simulation.Tick();
                 MatchState m = match.State;
@@ -85,7 +95,10 @@ namespace KotH.Probes.Probes
                 {
                     leader = -1;
                     leadChanges = contested = 0;
-                    falls = holds = heldTicks = lastScoreSum = 0;
+                    falls = holds = heldTicks = lastScoreSum = empty = 0;
+                    insideSum = returnSum = 0;
+                    returns = aloneRun = alones = alonesTaken = aloneEndedBy = 0;
+                    Array.Fill(fellAt, -1L);
                     wasScoring = false;
                     Array.Clear(wasIn);
                     Array.Clear(up);
@@ -121,6 +134,18 @@ namespace KotH.Probes.Probes
                 if (running)
                 {
                     contested += m.Inside > 1 ? 1 : 0;
+                    // Alone spells: how often one stood alone, held it past the warm-up, or was joined.
+                    if (m.Inside == 1)
+                        aloneRun++;
+                    else if (aloneRun > 0)
+                    {
+                        alones++;
+                        alonesTaken += aloneRun > 120 ? 1 : 0;
+                        aloneEndedBy += m.Inside > 1 ? 1 : 0;
+                        aloneRun = 0;
+                    }
+                    empty += m.Inside == 0 ? 1 : 0;
+                    insideSum += m.Inside;
                     int scoreSum = 0;
                     for (int i = 0; i < count; i++)
                     {
@@ -131,6 +156,11 @@ namespace KotH.Probes.Probes
                         if (dp.LastHitTick != lastHit[i])
                         {
                             lastHit[i] = dp.LastHitTick;
+                            if (inside && wasScoring && holderIdx >= 0)
+                            {
+                                onHolder += i == holderIdx ? 1 : 0;
+                                onOthers += i == holderIdx ? 0 : 1;
+                            }
                             if (inside)
                             {
                                 zoneHits++;
@@ -144,10 +174,21 @@ namespace KotH.Probes.Probes
                             zonePercentN++;
                         }
                         if (inside)
+                        {
+                            if (fellAt[i] >= 0)
+                            {
+                                returnSum += t - fellAt[i];
+                                returns++;
+                                backSum[i] += t - fellAt[i];
+                                backN[i]++;
+                                fellAt[i] = -1;
+                            }
                             wasIn[i] = true;
+                        }
                         else if (wasIn[i] && at.Y < match.Center.Y - match.HalfSize.Y - 8f)
                         {
                             wasIn[i] = false;
+                            fellAt[i] = t;
                             falls++;
                             hitFalls += t - hitInZoneAt[i] < 120 ? 1 : 0;
                         }
@@ -158,6 +199,19 @@ namespace KotH.Probes.Probes
                         }
                     }
                     bool scoring = scoreSum > lastScoreSum;
+                    if (scoring)
+                        for (int i = 0; i < count; i++)
+                            if (bots[i].ScoreTicks > lastScoreOf[i])
+                                holderIdx = i;
+                    for (int i = 0; i < count; i++)
+                        lastScoreOf[i] = bots[i].ScoreTicks;
+                    if (!scoring && wasScoring && holderIdx >= 0)
+                    {
+                        // Why a hold ended: knocked out (hit in the zone within 1.5 s) or left on its own, by intent.
+                        bool knocked = t - hitInZoneAt[holderIdx] < 100;
+                        string why = knocked ? "knocked" : director.BrainOf(bots[holderIdx].NetId).Intent.ToString();
+                        holdEnds[why] = holdEnds.GetValueOrDefault(why) + 1;
+                    }
                     holds += scoring && !wasScoring ? 1 : 0;
                     heldTicks += scoring ? 1 : 0;
                     wasScoring = scoring;
@@ -199,8 +253,10 @@ namespace KotH.Probes.Probes
                         hits += Hits(bots[i]) - hitsBefore[i];
                     }
                     int w = m.Winner != null ? bots.FindIndex(b => b.Entity == m.Winner.Entity) : -1;
-                    if (w >= 0)
-                        wins[w]++;
+                    // A team's win counts for each of its members (teams are drawn anew each round).
+                    for (int i = 0; i < count && w >= 0; i++)
+                        if (i == w || bots[w].Team != 0 && bots[i].Team == bots[w].Team)
+                            wins[i]++;
                     bool points = m.Winner != null && m.Winner.ScoreTicks >= match.WinTicks;
                     byPoints += points ? 1 : 0;
                     float seconds = m.RoundTicks / 40f;
@@ -213,10 +269,19 @@ namespace KotH.Probes.Probes
                     Log($"[round] {done}: {seconds:F0} s, winner {(w >= 0 ? bots[w].Entity.Name : "none")} by {(points ? "points" : "time")}, " +
                         $"its share {share * 100:F0} %, {leadChanges} lead changes, contested {contested * 100.0 / Math.Max(1, m.RoundTicks):F0} %, " +
                         $"{hits / (seconds / 60.0) / count:F1} hits/min per bot, scored {total * 100.0 / Math.Max(1, m.RoundTicks):F0} % of the time, " +
-                        $"falls {falls}, holds {holds} (mean {heldTicks / 40.0 / Math.Max(1, holds):F0} s)");
+                        $"falls {falls}, holds {holds} (mean {heldTicks / 40.0 / Math.Max(1, holds):F0} s), " +
+                        $"empty {empty * 100.0 / Math.Max(1, m.RoundTicks):F0} %, inside {insideSum / (double)Math.Max(1, m.RoundTicks):F1}, " +
+                        $"back after a fall {returnSum / 40.0 / Math.Max(1, returns):F0} s, alone {alones} times ({alonesTaken} over 3 s, {aloneEndedBy} ended by another coming)");
                 }
                 wasOver = m.Over;
             }
+            for (int i = 0; i < count; i++)
+            {
+                Personality pp = director.BrainOf(bots[i].NetId).Persona;
+                Log($"[persona] bot {i + 1}: wins {wins[i]}, aggression {pp.Aggression:F2}, caution {pp.Caution:F2}, accuracy {pp.Accuracy:F2}, " +
+                    $"hand {pp.Hand:F2}, blaster {pp.Blaster:F2}, focus {pp.Focus}, back {backSum[i] / 40.0 / Math.Max(1, backN[i]):F1} s, hits {Hits(bots[i])}");
+            }
+            Log($"[holds] while held, hits on the holder {onHolder}, on others in the zone {onOthers}; ended: {string.Join(", ", holdEnds.OrderByDescending(k => k.Value).Select(k => $"{k.Key} {k.Value}"))}");
             director.Dispose();
             Log($"[rounds] melee swings: hit {missWhy[5]}, missed without target {missWhy[0]}, too far {missWhy[1]}, beside {missWhy[2]}, above/below {missWhy[3]}, other {missWhy[4]}");
             Log($"[rounds] hits in the zone {zoneHits}: out within 1 s {knockedOut * 100 / Math.Max(1, zoneHits)} %, percent at the hit {hitPercent / Math.Max(1, zoneHits):F0}, " +
@@ -228,7 +293,7 @@ namespace KotH.Probes.Probes
                 most = Math.Max(most, w);
             Log($"[rounds] {done} rounds: mean {sumSeconds / n:F0} s, by points {byPoints * 100 / n} %, winner's share {sumShare / n * 100:F0} %, " +
                 $"{sumLeads / n:F1} lead changes, contested {sumContested / n * 100:F0} %, {sumHits / n:F1} hits/min per bot");
-            Log($"[rounds] wins per bot: {string.Join(" ", wins)} (most {most}, fair {done / (float)count:F1})");
+            Log($"[rounds] wins per bot: {string.Join(" ", wins)} (most {most}, fair {done * HillMatch.Size(match.Mode) / (float)count:F1})");
             double min = Math.Max(1, natTicks) / 2400.0, ground = Math.Max(1, natGround);
             Log($"[rounds] view: {turnSum / Math.Max(1, natTicks):F2}°/tick, {jerks / min:F1} jerks/min (turn rate changed > 8°/tick), " +
                 $"{flicks / min:F1} flicks/min (> 5° and straight back)");

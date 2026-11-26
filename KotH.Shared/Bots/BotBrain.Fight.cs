@@ -58,8 +58,9 @@ namespace KotH.Shared.Bots
         // Hold over attack: alone in the zone it is to be taken (3 s), held it is to be kept.
         const float HoldAlone = 1.6f, HoldKept = 1.25f, HoldShared = 0.4f;
 
-        // Two already at a target are enough (unless it is in the zone); one already at it is a fight to join.
-        const float Crowded = 0.5f, ThirdParty = 0.25f, LeaderBonus = 0.35f, Busy = 3f;
+        // Two already at a target are enough (in the zone a little less so); one already at it is a fight to join.
+        // The points leader draws a little more (much more sent the bots after it all over Atrium).
+        const float Crowded = 0.5f, HolderCrowded = 0.7f, ThirdParty = 0.25f, LeaderBonus = 0.35f, Busy = 3f;
 
         // A target newly preferred while the old one has not held attention for Focus ticks (1.5 to 3.5 s) counts
         // this much less, and less again while circling the old one: a fight is fought out (80 switches a minute before).
@@ -82,8 +83,8 @@ namespace KotH.Shared.Bots
             }
             if (near == 1)
                 score += ThirdParty;
-            else if (near >= 2 && !isHolder)
-                score *= Crowded;
+            else if (near >= 2)
+                score *= isHolder ? HolderCrowded : Crowded;
             if (bestScore > 0)
                 score += LeaderBonus * s.ScoreTicks / (float)bestScore;
             score *= persona.Aggression * (1f - 0.4f * persona.Caution * UMath.Min(1f, ownDamage / 150f));
@@ -276,6 +277,46 @@ namespace KotH.Shared.Bots
                && nav.InSight(UMath.Add(at, new Vector3(0f, 0.6f, 0f)), there);
 
         const float RecoverTurn = 5f;
+
+        // In the zone, one this close in it or at its edge is fought off, however hurt: standing by only waits
+        // for the knock (holders never swung back before).
+        const float DefendRange = 4f, Defend = 0.2f, DefendEdge = 1.5f;
+
+        // Holding, the nearest opponent this close is looked at and swung at when in reach, as a player on guard.
+        const float GuardRange = 3.5f;
+
+        int Guarded(WorldSnapshot view, Vector3 at)
+        {
+            int best = -1;
+            float bestD = GuardRange;
+            for (int i = 0; i < view.Count; i++)
+            {
+                BodyState s = view.StateAt(i);
+                if (view.BodyAt(i).NetId == netId || view.BodyAt(i).NetId == 0 || team != 0 && s.Team == team)
+                    continue;
+                float d = Flat(at, Ahead(s.Motor.Position, s.Motor.Velocity, Reaction * Dt));
+                if (d < bestD)
+                {
+                    bestD = d;
+                    best = i;
+                }
+            }
+            return best;
+        }
+
+        bool Threatens(Vector3 there)
+            => UMath.Abs(there.X - match.Center.X) < match.HalfSize.X + DefendEdge
+               && UMath.Abs(there.Z - match.Center.Z) < match.HalfSize.Z + DefendEdge
+               && UMath.Abs(there.Y - match.Center.Y) < match.HalfSize.Y + DefendEdge;
+
+        // A zone a step wide (TheLadder's top block) is held standing: a strafe, run or jump steps out of it.
+        const float TightZone = 1.5f;
+        const ushort Standing = 1 << (int)Maneuver.Walk | 1 << (int)Maneuver.Feint | 1 << (int)Maneuver.Crouch
+                                | 1 << (int)Maneuver.Strike;
+
+        bool TightHold(Vector3 at)
+            => match != null && intent is BotIntent.Hold or BotIntent.Attack && match.Contains(at)
+               && UMath.Min(match.HalfSize.X, match.HalfSize.Z) < TightZone;
 
         // 1, 2, 3, Free. A catcher hunting for its first catch goes for the weaker runner a little more.
         const float Weakest = 0.4f;

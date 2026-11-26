@@ -300,6 +300,12 @@ namespace KotH.Shared.Bots
             bool slotStart = (u - planStart) % Slot == 0;
             if (slotStart)
                 running = m;
+            // On a step-wide zone the stale view's guess overshoots: the own keys since say where it stands.
+            if (TightHold(at))
+            {
+                JumpPilot.Body now = Predict(u, me.Motor);
+                feet = new Vector3(now.X, now.Y, now.Z);
+            }
 
             return Remember(u, Steer(u, view, me, at, feet, m, slotStart, airborne));
         }
@@ -540,12 +546,13 @@ namespace KotH.Shared.Bots
             {
                 if (knocked)
                     Offer(BotIntent.Recover, 0, 2f);
+                float hold = 0f;
                 if (live && match != null)
                 {
                     Offer(BotIntent.Capture, 0, inZone ? 0f : 1.2f);
                     // Alone in the zone it is taken by staying; held, it is kept by staying, the more the warier.
                     // Shared with others and not held, staying scores nothing: they have to go first.
-                    float hold = view.Match.Inside <= 1 ? HoldAlone : weHold ? HoldKept + 0.2f * persona.Caution : HoldShared;
+                    hold = view.Match.Inside <= 1 ? HoldAlone : weHold ? HoldKept + 0.2f * persona.Caution : HoldShared;
                     Offer(BotIntent.Hold, 0, inZone ? hold : 0f);
                 }
                 int ownDamage = (int)view.StateAt(self).DamagePercent, bestScore = 0;
@@ -584,7 +591,10 @@ namespace KotH.Shared.Bots
                         score *= 0.3f;
                     if (inZone && !theyHold && Snipes(at, there, d))
                         score = UMath.Max(score, Snipe + SnipeNear * (1f - d / SnipeRange));
-                    Offer(BotIntent.Attack, other.NetId, FightWorth(view, i, score, there, holder == other || theyHold, ownDamage, bestScore));
+                    float worth = FightWorth(view, i, score, there, holder == other || theyHold, ownDamage, bestScore);
+                    if (inZone && d < DefendRange && Threatens(there))
+                        worth = UMath.Max(worth, hold + Defend);
+                    Offer(BotIntent.Attack, other.NetId, worth);
                 }
             }
         }
@@ -745,6 +755,13 @@ namespace KotH.Shared.Bots
                 else if (way < 0.8f)
                     allowed[k - 1] = (ushort)(1 << (int)Maneuver.Jump);
             }
+
+            if (TightHold(at))
+                for (int k = 0; k < allowed.Length; k++)
+                {
+                    ushort keep = (ushort)(allowed[k] & Standing);
+                    allowed[k] = keep == 0 ? Standing : keep;
+                }
 
             plan = wfc.Collapse(allowed, running, PlanWeights, ref rng);
             planStart = u;
@@ -1436,7 +1453,8 @@ namespace KotH.Shared.Bots
 
             // Facing: the target when it is close (with the blaster its lead), missed by the hand's own drift;
             // else the way, the eyes a little down on it.
-            int ti = target != 0 ? IndexOf(view, target) : -1;
+            int ti = target != 0 ? IndexOf(view, target)
+                   : intent == BotIntent.Hold && match != null && view.Match.Mode != MatchMode.Free ? Guarded(view, at) : -1;
             float faceYaw = moveYaw;
             float wantPitch = WalkPitch;
             float targetDistance = float.MaxValue;
@@ -1599,7 +1617,7 @@ namespace KotH.Shared.Bots
             bool live = match == null || view.Match.Phase == MatchPhase.Running;
             bool slam = live && ti >= 0 && intent == BotIntent.Attack && Slam(u, view, me, ti, airborne, ref input);
             // Any slot: in reach, ready and on target a player swings, whatever the feet are doing.
-            if (!slam && intent == BotIntent.Attack && live && ti >= 0 && reach3 < fists.Range - 0.2f &&
+            if (!slam && intent is BotIntent.Attack or BotIntent.Hold && live && ti >= 0 && reach3 < fists.Range - 0.2f &&
                 u >= lastStrike + fists.CooldownTicks && CaneReady(u) && aiming && OnTarget(bearYaw, bearPitch, targetDistance))
             {
                 SwingEye = EyeNow(u, me);
