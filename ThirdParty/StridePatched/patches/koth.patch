@@ -676,7 +676,7 @@ index 306a725..107e59b 100644
  #pragma warning restore 162
  
 diff --git a/sources/engine/Stride.Particles/ParticleEmitter.cs b/sources/engine/Stride.Particles/ParticleEmitter.cs
-index 592aced..f325c0c 100644
+index 592aced..14b2a28 100644
 --- a/sources/engine/Stride.Particles/ParticleEmitter.cs
 +++ b/sources/engine/Stride.Particles/ParticleEmitter.cs
 @@ -599,7 +599,11 @@ namespace Stride.Particles
@@ -716,6 +716,21 @@ index 592aced..f325c0c 100644
  
              // Restart all spawners
              foreach (var spawner in Spawners)
+@@ -943,10 +953,12 @@ namespace Stride.Particles
+             // Recalculate the required vertex count and stride
+             VertexBuilder.SetRequiredQuads(ShapeBuilder.QuadsPerParticle, pool.LivingParticles, pool.ParticleCapacity);
+ 
+-            vertexBufferHasChanged = (Material.HasVertexLayoutChanged || ShapeBuilder.VertexLayoutHasChanged || VertexBuilder.IsBufferDirty);
++            // KotH patch: a buffer that only changes size keeps its layout (rebuilding allocated a declaration)
++            var vertexLayoutHasChanged = Material.HasVertexLayoutChanged || ShapeBuilder.VertexLayoutHasChanged;
++            vertexBufferHasChanged = (vertexLayoutHasChanged || VertexBuilder.IsBufferDirty);
+ 
+             // Update the vertex builder and the vertex layout if needed
+-            if (vertexBufferHasChanged)
++            if (vertexLayoutHasChanged)
+             {
+                 VertexBuilder.ResetVertexElementList();
+ 
 diff --git a/sources/engine/Stride.Particles/ParticlePool.cs b/sources/engine/Stride.Particles/ParticlePool.cs
 index f23bae7..61fc669 100644
 --- a/sources/engine/Stride.Particles/ParticlePool.cs
@@ -1125,11 +1140,36 @@ index edf1cf0..ef89160 100644
              {
                  var context = contextList[i];
                  context.ResourceGroupAllocator.Flush();
+diff --git a/sources/engine/Stride.Rendering/Rendering/RenderDataHolder.cs b/sources/engine/Stride.Rendering/Rendering/RenderDataHolder.cs
+index 3a3e1c6..64d3799 100644
+--- a/sources/engine/Stride.Rendering/Rendering/RenderDataHolder.cs
++++ b/sources/engine/Stride.Rendering/Rendering/RenderDataHolder.cs
+@@ -118,7 +118,8 @@ namespace Stride.Rendering
+                     return;
+ 
+                 var arrayT = (T[])array;
+-                Array.Resize(ref arrayT, totalSize);
++                // KotH patch: grow by doubling, not to the exact size (a round's first seconds grew it every frame)
++                Array.Resize(ref arrayT, Math.Max(totalSize, arrayT != null ? arrayT.Length * 2 : 0));
+                 array = arrayT;
+             }
+ 
 diff --git a/sources/engine/Stride.Rendering/Rendering/RenderSystem.cs b/sources/engine/Stride.Rendering/Rendering/RenderSystem.cs
-index bb2acf7..fc145e1 100644
+index bb2acf7..bb29615 100644
 --- a/sources/engine/Stride.Rendering/Rendering/RenderSystem.cs
 +++ b/sources/engine/Stride.Rendering/Rendering/RenderSystem.cs
-@@ -413,103 +413,110 @@ namespace Stride.Rendering
+@@ -291,8 +291,9 @@ namespace Stride.Rendering
+                         if (renderStage.SortMode != null)
+                         {
+                             // Make sure sortKeys is big enough
++                            // KotH patch: grow by doubling (each worker grew its own to the exact count)
+                             if (local.SortKeys == null || local.SortKeys.Length < renderNodes.Count)
+-                                Array.Resize(ref local.SortKeys, renderNodes.Count);
++                                Array.Resize(ref local.SortKeys, Math.Max(renderNodes.Count, (local.SortKeys?.Length ?? 0) * 2));
+ 
+                             // renderNodes[start..end] belongs to the same render feature
+                             fixed (SortKey* sortKeysPtr = local.SortKeys)
+@@ -413,103 +414,110 @@ namespace Stride.Rendering
              }
              else
              {
@@ -1319,7 +1359,7 @@ index bb2acf7..fc145e1 100644
  
          /// <summary>
 diff --git a/sources/engine/Stride.Rendering/Rendering/RootEffectRenderFeature.cs b/sources/engine/Stride.Rendering/Rendering/RootEffectRenderFeature.cs
-index 3ad56be..961739a 100644
+index 3ad56be..41204f9 100644
 --- a/sources/engine/Stride.Rendering/Rendering/RootEffectRenderFeature.cs
 +++ b/sources/engine/Stride.Rendering/Rendering/RootEffectRenderFeature.cs
 @@ -422,6 +422,43 @@ namespace Stride.Rendering
@@ -1408,7 +1448,7 @@ index 3ad56be..961739a 100644
  
              // Step1: Perform permutations
              PrepareEffectPermutationsImpl(context);
-@@ -709,174 +723,189 @@ namespace Stride.Rendering
+@@ -709,174 +723,190 @@ namespace Stride.Rendering
          }
  
          /// <inheritdoc/>
@@ -1426,15 +1466,15 @@ index 3ad56be..961739a 100644
 -            var expectedDescriptorSetPoolSize = RenderNodes.Count * effectDescriptorSetSlots.Count;
 -            if (ResourceGroupPool.Length < expectedDescriptorSetPoolSize)
 -                Array.Resize(ref ResourceGroupPool, expectedDescriptorSetPoolSize);
-+        private PrepareThreadContext PrepareContextOfThread() => prepareThreadContext.Value;
- 
+-
 -            // Allocate PerFrame, PerView and PerDraw resource groups and constant buffers
 -            var renderEffects = RenderData.GetData(RenderEffectKey);
 -            int effectSlotCount = EffectPermutationSlotCount;
 -            foreach (var view in RenderSystem.Views)
 -            {
 -                var viewFeature = view.Features[Index];
--
++        private PrepareThreadContext PrepareContextOfThread() => prepareThreadContext.Value;
+ 
 -                Dispatcher.ForEach(viewFeature.RenderNodes, () => prepareThreadContext.Value, (renderNodeReference, batch) =>
 -                {
 -                    var threadContext = batch.Context;
@@ -1712,8 +1752,9 @@ index 3ad56be..961739a 100644
 +
 +            // Make sure descriptor set pool is large enough
 +            var expectedDescriptorSetPoolSize = RenderNodes.Count * effectDescriptorSetSlots.Count;
++            // KotH patch: grow by doubling, not to the exact size (every new render node grew it by a few)
 +            if (ResourceGroupPool.Length < expectedDescriptorSetPoolSize)
-+                Array.Resize(ref ResourceGroupPool, expectedDescriptorSetPoolSize);
++                Array.Resize(ref ResourceGroupPool, Math.Max(expectedDescriptorSetPoolSize, ResourceGroupPool.Length * 2));
 +
 +            // Allocate PerFrame, PerView and PerDraw resource groups and constant buffers
 +            var renderEffects = RenderData.GetData(RenderEffectKey);

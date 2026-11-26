@@ -15,7 +15,9 @@ assemblies they check the OS at run time (`-p:KotHStridePatchedOff=true` builds 
 - Dispatcher and sorting: no closures, delegates cached, `KotHSort` instead of `Comparison` sorts, pooled batch state.
 - Rendering: render effects, lighting and permutations without per-frame closures; light arrays and the clustered
   lights' dictionary only grow; shadow and output validator reuse; `RenderContext.GetShared` cached; struct keys
-  compared without boxing; no shader source watcher (`EffectSystem`).
+  compared without boxing; no shader source watcher (`EffectSystem`); render data arrays, the descriptor set pool and
+  sort keys grow by doubling.
 - Engine: `ProcessorManager` and animation without enumerators or LINQ; a clip's evaluator from its first frame.
-- Particles: a restart kills particles in place instead of freeing pool and vertex layout; the seed generator reseeds.
+- Particles: a restart kills particles in place instead of freeing pool and vertex layout; the seed generator reseeds;
+  a vertex buffer that only changes size keeps its layout.
 - UI render states pooled; Bepu `UnsortedO1List` reuses indexers; `BufferPool`, `BatchBase` without allocations.
