@@ -56,6 +56,7 @@ namespace KotH.Client.Steam
                 SetAppId();
                 byte* error = stackalloc byte[1024];
                 int init = SteamAPI_InitFlat(error);
+                AllowGamepads();
                 if (init != 0)
                 {
                     Failure = init switch { 2 => "Steam is not running", 3 => "Steam is out of date", _ => "No Steam: " + Text(error) };
@@ -102,8 +103,27 @@ namespace KotH.Client.Steam
                 SetEnv("SteamAppId", id, 1);
         }
 
+        // SteamAPI_Init sets SDL_GAMECONTROLLER_IGNORE_DEVICES for Steam Input (hiding real pads from SDL).
+        // KotH reads pads directly through SDL, so clear Steam's ignore list before Stride initialises SDL.
+        static void AllowGamepads()
+        {
+            UnsetEnv("SDL_GAMECONTROLLER_IGNORE_DEVICES");
+            UnsetEnv("SDL_GAMECONTROLLER_IGNORE_DEVICES_EXCEPT");
+        }
+
+        static void UnsetEnv(string name)
+        {
+            if (OperatingSystem.IsWindows())
+                Environment.SetEnvironmentVariable(name, null);
+            else
+                UnsetEnvNative(name);
+        }
+
         [DllImport("libc", EntryPoint = "setenv")]
         static extern int SetEnv(string name, string value, int overwrite);
+
+        [DllImport("libc", EntryPoint = "unsetenv")]
+        static extern int UnsetEnvNative(string name);
 
         /// <summary>Once per frame: Steam's work, then its callbacks and call results.</summary>
         public static void RunFrame()

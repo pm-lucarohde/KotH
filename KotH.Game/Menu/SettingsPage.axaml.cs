@@ -298,7 +298,7 @@ namespace KotH.Client.Menu
         {
             new SliderRow("Mouse sensitivity", PlayerSettings.MinSensitivity, PlayerSettings.MaxSensitivity, 0.1,
                           s => s.MouseSensitivity, (s, v) => s.MouseSensitivity = (float)Math.Round(v, 1), v => $"{v:0.0}"),
-            new HeadingRow("Keys", "the arrows walk too, left click attacks"),
+            new HeadingRow("Keys"),
             new KeyRow("Forward", Binding.Forward),
             new KeyRow("Back", Binding.Back),
             new KeyRow("Left", Binding.Left),

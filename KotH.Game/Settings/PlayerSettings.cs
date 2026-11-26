@@ -44,8 +44,8 @@ namespace KotH.Client.Settings
         public float MouseSensitivity = 2f;
         public Keys[] Keys = DefaultKeys();
 
-        // Gamepad: look speed (1 = the game's own), radial dead zone (5 % default), Y invert, rumble.
-        public float StickSensitivity = 1f, StickDeadZone = 0.05f;
+        // Gamepad: look speed (1 = the game's own), radial dead zone (20 % default), Y invert, rumble.
+        public float StickSensitivity = 1f, StickDeadZone = 0.2f;
         public bool InvertY, Vibration = true;
         public PadButton[] PadButtons = DefaultPad();
 

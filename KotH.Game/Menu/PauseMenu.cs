@@ -313,7 +313,7 @@ namespace KotH.Client.Menu
             if (LobbyHost is not { } client)
                 return;
             var rows = new List<RowList.Row>();
-            string chosen = client.NextMap ?? Maps.Default, chosenTitle = chosen;
+            string chosen = client.NextMap ?? Maps.Default;
             var maps = new List<(string Id, string Title, string Kind)>();
             foreach (string map in Maps.All)
                 maps.Add((map, Maps.Title(map), ""));
@@ -324,8 +324,6 @@ namespace KotH.Client.Menu
             foreach ((string id, string title, string kind) in maps)
             {
                 string pick = id;
-                if (id == chosen)
-                    chosenTitle = title;
                 // Locked maps open at their unlock level (the host's own level; --map <id> stays open).
                 int need = Levels.MapLevel(id);
                 if (need > 0 && id != chosen && PlayerProgress.Level < need)
@@ -341,7 +339,7 @@ namespace KotH.Client.Menu
                     resumeWanted = true;
                 }));
             }
-            view.ShowList(rows, "", $"The round starts on {chosenTitle} when the countdown ends.");
+            view.ShowList(rows, "", "");
         }
 
         // Round: the host's remembered choices become the lobby's (mode, bots, start) and the next round's values.

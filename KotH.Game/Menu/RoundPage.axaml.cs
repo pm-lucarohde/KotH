@@ -38,11 +38,11 @@ namespace KotH.Client.Menu
                      { Locked = s => s.HostBots ? null : "", MaxOf = s => Math.Max(1, s.MaxPlayersOf - 1) });
             rows.Add(new ToggleRow("Auto start", s => s.HostAutoStart, (s, v) => s.HostAutoStart = v, "when the lobby is full"));
             rows.Add(new SliderRow("Start damage", 0, PlayerSettings.MaxStartPercent, 5, s => s.StartPercentOf,
-                                   (s, v) => s.HostStartPercent = (float)Math.Round(v), v => Text(v, "0") + " %", "everyone, at the start"));
+                                   (s, v) => s.HostStartPercent = (float)Math.Round(v), v => Text(v, "0") + " %"));
             rows.Add(new SliderRow("Hit", 0, PlayerSettings.MaxHitPercent, 0.1, s => s.HostHit,
                                    (s, v) => s.HostHit = Tenths(v), Hit, "percent each hit adds"));
             rows.Add(new SliderRow("Knockback", PlayerSettings.MinKnock, PlayerSettings.MaxKnock, 0.05, s => s.HostKnock,
-                                   (s, v) => s.HostKnock = (float)Math.Round(v, 2), v => "×" + Text(v, "0.00"), "how far hits throw"));
+                                   (s, v) => s.HostKnock = (float)Math.Round(v, 2), v => "×" + Text(v, "0.00")));
             foreach (SettingRow row in rows)
             {
                 row.Edited = () => edited;

@@ -85,7 +85,6 @@
                                     <TextBlock Text="English" FontSize="26" />
                                 </StackPanel>
                             </Border>
-                            <TextBlock Classes="Hint" Text="More languages will follow." Margin="6,6,0,0" />
                         </StackPanel>
                     </Border>
 
