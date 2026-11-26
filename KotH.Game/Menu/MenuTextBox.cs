@@ -23,6 +23,7 @@ namespace KotH.Client.Menu
             FontSize = 22, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis,
         };
         string text = "";
+        string placeholder = "";
 
         /// <summary>The text changed by typing or pasting.</summary>
         public event Action<string> TextChanged;
@@ -32,7 +33,15 @@ namespace KotH.Client.Menu
 
         public int MaxLength { get; set; } = 32;
         public bool Password { get; set; }
-        public string Placeholder { get; set; } = "";
+        public string Placeholder
+        {
+            get => placeholder;
+            set
+            {
+                placeholder = value ?? "";
+                Redraw();
+            }
+        }
 
         public MenuTextBox()
         {

@@ -63,8 +63,8 @@
                 <Grid RowDefinitions="Auto,*,Auto" Margin="50,36,50,34">
                     <TextBlock Name="PageTitle" Classes="Title" Text="Page" />
 
-                    <!-- Find server -->
-                    <menu:FindPage Name="FindPage" Grid.Row="1" Margin="0,20,0,0" />
+                    <!-- Find server (spans Row 2 so its status sits beside Back) -->
+                    <menu:FindPage Name="FindPage" Grid.Row="1" Grid.RowSpan="2" Margin="0,20,0,0" />
 
                     <!-- Host server -->
                     <menu:HostPage Name="HostPage" Grid.Row="1" Margin="0,20,0,0" />

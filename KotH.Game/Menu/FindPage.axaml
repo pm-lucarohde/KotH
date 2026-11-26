@@ -11,7 +11,7 @@
             <Setter Property="ClipToBounds" Value="False" />
         </Style>
     </UserControl.Styles>
-    <Grid RowDefinitions="Auto,*,Auto,Auto">
+    <Grid RowDefinitions="Auto,*,Auto,Auto,Auto">
         <WrapPanel Name="Filters" ItemSpacing="10" LineSpacing="10" Margin="0,0,0,14" />
         <Border Grid.Row="1" Classes="Well" Padding="0,8">
             <Panel Name="Inside">
@@ -21,18 +21,16 @@
                 </StackPanel>
             </Panel>
         </Border>
-        <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto,Auto,Auto" Margin="0,20,0,0">
+        <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto,Auto" Margin="0,20,0,0">
             <TextBlock Name="SearchLabel" Classes="Label" Text="Search" Width="88" VerticalAlignment="Center" Margin="0,0,14,0" />
             <Panel Name="SearchField" Grid.Column="1" />
             <Button Name="ClearSearch" Grid.Column="2" Classes="Step" Content="×" Margin="10,0,0,0" IsVisible="False" />
-            <TextBlock Name="Status" Grid.Column="3" Classes="Hint" VerticalAlignment="Center" Margin="14,0,0,0"
-                       MaxWidth="260" TextTrimming="CharacterEllipsis" />
-            <Button Name="Refresh" Grid.Column="4" Classes="Menu Small" Content="Refresh" Width="190" Margin="18,0,0,0" />
+            <Button Name="Refresh" Grid.Column="3" Classes="Menu Small" Content="Refresh" Width="190" Margin="18,0,0,0" />
             <!-- A private round's password, asked for when its Join was chosen -->
-            <StackPanel Name="Ask" Grid.ColumnSpan="4" Orientation="Horizontal" Spacing="14" IsVisible="False" VerticalAlignment="Center">
+            <StackPanel Name="Ask" Grid.ColumnSpan="3" Orientation="Horizontal" Spacing="14" IsVisible="False" VerticalAlignment="Center">
                 <TextBlock Classes="Label" Text="Password" VerticalAlignment="Center" />
             </StackPanel>
-            <Button Name="JoinPrivate" Grid.Column="4" Classes="Menu Small" Content="Join" Width="190" Margin="18,0,0,0" IsVisible="False" />
+            <Button Name="JoinPrivate" Grid.Column="3" Classes="Menu Small" Content="Join" Width="190" Margin="18,0,0,0" IsVisible="False" />
         </Grid>
         <!-- Direct IP: a host's invite code (koth://join?ip=…&port=…&key=…), pasted with Ctrl+V -->
         <Grid Grid.Row="3" ColumnDefinitions="Auto,*,Auto" Margin="0,16,0,0">
@@ -40,7 +38,12 @@
             <Panel Name="InviteField" Grid.Column="1" />
             <Button Name="JoinInvite" Grid.Column="2" Classes="Menu Small" Content="Join" Width="190" Margin="18,0,0,0" />
         </Grid>
+        <!-- Status line right-aligned directly beside MainMenuView's Back button -->
+        <Grid Grid.Row="4" Height="54" Margin="0,18,250,0" IsHitTestVisible="False">
+            <TextBlock Name="Status" Classes="Hint" HorizontalAlignment="Right" VerticalAlignment="Center"
+                       Margin="0,0,0,4" TextTrimming="CharacterEllipsis" />
+        </Grid>
         <!-- An open drop-down's list, over everything below its filter -->
-        <Canvas Name="Drops" Grid.RowSpan="4" ZIndex="10" ClipToBounds="False" />
+        <Canvas Name="Drops" Grid.RowSpan="5" ZIndex="10" ClipToBounds="False" />
     </Grid>
 </UserControl>
