@@ -21,11 +21,13 @@ namespace KotH.Client.Menu
         /// <summary>Join was chosen on a direct-IP invite code (checked: it parses).</summary>
         public event Action<string> InviteRequested;
 
+        readonly MenuTextBox search = new MenuTextBox { MaxLength = 40, Placeholder = "Search server name…" };
         readonly MenuTextBox invite = new MenuTextBox { MaxLength = 160, Placeholder = "koth://join?… from the host, Ctrl+V pastes" };
 
         readonly RowList list = new RowList();
         readonly MenuDropdown access, region, language, modded, mode;
         readonly MenuTextBox password = new MenuTextBox { Password = true, MaxLength = 64, Width = 330, Placeholder = "Type it, Enter joins" };
+        List<LobbyListing> allRounds = new List<LobbyListing>();
         LobbyListing? asking;
         bool busy, saysWhy;
 
@@ -58,6 +60,13 @@ namespace KotH.Client.Menu
                     Drops.Children.Clear();
             }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
             Refresh.Click += (_, _) => RefreshRequested?.Invoke();
+            SearchField.Children.Add(search);
+            search.TextChanged += _ => ApplySearch(keepPlace: false);
+            ClearSearch.Click += (_, _) =>
+            {
+                search.Text = "";
+                ApplySearch(keepPlace: false);
+            };
             InviteField.Children.Add(invite);
             invite.Submitted += JoinInvited;
             JoinInvite.Click += (_, _) => JoinInvited();
@@ -68,6 +77,7 @@ namespace KotH.Client.Menu
         public void Unavailable(string why)
         {
             busy = true;
+            allRounds.Clear();
             list.Show(Array.Empty<RowList.Row>());
             EmptyTitle.Text = why;
             EmptyHint.Text = "Start Steam and KotH again, or join with a host's invite code below.";
@@ -83,14 +93,57 @@ namespace KotH.Client.Menu
             Refresh.IsEnabled = false;
         }
 
-        /// <summary>The rounds found (ranked by ping and players); again keeps the scroll and a word on joining.</summary>
+        /// <summary>Clears the server-name search when Find server is opened afresh.</summary>
+        public void ResetSearch()
+        {
+            search.Text = "";
+            ClearSearch.IsVisible = false;
+        }
+
+        /// <summary>The rounds found (ranked by ping, players and lobby state); again keeps the scroll.</summary>
         public void Found(List<LobbyListing> rounds, bool again = false)
         {
             if (busy && again)
                 return;
             busy = false;
-            var rows = new List<RowList.Row>();
-            foreach (LobbyListing round in rounds)
+            allRounds = rounds;
+            ApplySearch(keepPlace: again);
+            Refresh.IsEnabled = true;
+        }
+
+        const float SearchMatchWeight = 0.90f, SearchLobbyWeight = 0.10f;
+
+        void ApplySearch(bool keepPlace)
+        {
+            string query = search.Text.Trim();
+            ClearSearch.IsVisible = asking == null && search.Text.Length > 0;
+            List<LobbyListing> shown;
+            if (query.Length == 0)
+                shown = allRounds;
+            else
+            {
+                var hits = new List<(LobbyListing Round, float Match, float Total)>(allRounds.Count);
+                foreach (LobbyListing round in allRounds)
+                {
+                    float match = NameMatch.Score(query, round.Host);
+                    if (match > 0f)
+                        hits.Add((round, match, match * SearchMatchWeight + SteamLobby.RankScore(round) * SearchLobbyWeight));
+                }
+                hits.Sort((a, b) =>
+                {
+                    int byTotal = b.Total.CompareTo(a.Total);
+                    if (byTotal != 0)
+                        return byTotal;
+                    int byMatch = b.Match.CompareTo(a.Match);
+                    return byMatch != 0 ? byMatch : SteamLobby.RankScore(b.Round).CompareTo(SteamLobby.RankScore(a.Round));
+                });
+                shown = new List<LobbyListing>(hits.Count);
+                foreach ((LobbyListing round, _, _) in hits)
+                    shown.Add(round);
+            }
+
+            var rows = new List<RowList.Row>(shown.Count);
+            foreach (LobbyListing round in shown)
             {
                 LobbyListing chosen = round;
                 string where = round.Regions.Length == 0 ? "" : "  " + string.Join(", ", Array.ConvertAll(round.Regions, LobbyFlags.RegionName));
@@ -99,13 +152,14 @@ namespace KotH.Client.Menu
                 rows.Add(new RowList.Row(round.Host, $"{round.Map}  {round.Players}/{round.Capacity}{where}{marks}  {ping}", "Join",
                                          () => { if (!busy) Choose(chosen); }));
             }
-            list.Show(rows, keepPlace: again);
+            list.Show(rows, keepPlace: keepPlace);
             Empty.IsVisible = rows.Count == 0;
-            EmptyTitle.Text = "No servers found";
-            EmptyHint.Text = "Host one yourself, or ask a friend for an invite.";
-            if (!again || !saysWhy)
-                Status.Text = rows.Count == 0 ? "" : rows.Count == 1 ? "1 round" : $"{rows.Count} rounds";
-            Refresh.IsEnabled = true;
+            bool filteredOut = rows.Count == 0 && query.Length > 0 && allRounds.Count > 0;
+            EmptyTitle.Text = filteredOut ? "No matching servers" : "No servers found";
+            EmptyHint.Text = filteredOut ? "Try another name or clear the search." : "Host one yourself, or ask a friend for an invite.";
+            if (!keepPlace || !saysWhy)
+                Status.Text = query.Length > 0 && allRounds.Count > 0 ? $"{rows.Count} / {allRounds.Count}"
+                    : rows.Count == 0 ? "" : rows.Count == 1 ? "1 round" : $"{rows.Count} rounds";
         }
 
         void JoinInvited()
@@ -144,13 +198,16 @@ namespace KotH.Client.Menu
             JoinRequested?.Invoke(round, typed);
         }
 
-        // Shows the password prompt in place of the status and Refresh, or takes it away.
+        // Shows the password prompt in place of the search, status and Refresh, or takes it away.
         void AskFor(LobbyListing? round)
         {
             asking = round;
             bool on = round != null;
             Ask.IsVisible = JoinPrivate.IsVisible = on;
-            Status.IsVisible = Refresh.IsVisible = !on;
+            SearchLabel.IsVisible = SearchField.IsVisible = Status.IsVisible = Refresh.IsVisible = !on;
+            ClearSearch.IsVisible = !on && search.Text.Length > 0;
+            if (on && search.HasFocus)
+                MenuTextBox.Focus(null);
             if (!on && password.HasFocus)
                 MenuTextBox.Focus(null);
         }
@@ -258,6 +315,25 @@ namespace KotH.Client.Menu
                 drops[n].Drop.Open();
             }
             LayoutUpdated += Laid;
+        }
+
+        /// <summary>Test aid (KOTH_SHOT_FIND_SEARCH): fills the search box and optionally sample lobbies.</summary>
+        public void PretendSearch(string query, bool sample)
+        {
+            if (sample)
+            {
+                busy = false;
+                Refresh.IsEnabled = true;
+                allRounds = new List<LobbyListing>
+                {
+                    new(1, "Berlin Rush EU", "Mount Destiny", 10, 24, false, new[] { "eu" }, Array.Empty<string>(), false, MatchMode.Solo, 12, false),
+                    new(2, "Luca's Café Server", "Atrium", 8, 19, false, new[] { "eu" }, Array.Empty<string>(), false, MatchMode.Duo, 12, false),
+                    new(3, "King of the Hill #1", "Volcano", 14, 48, false, new[] { "eu" }, Array.Empty<string>(), false, MatchMode.Free, 16, true),
+                    new(4, "München Fun Lobby", "Pyramid", 5, 31, true, new[] { "eu" }, Array.Empty<string>(), false, MatchMode.Solo, 12, false),
+                };
+            }
+            search.Text = query ?? "";
+            ApplySearch(keepPlace: false);
         }
 
         /// <summary>A round is being entered; the list waits.</summary>

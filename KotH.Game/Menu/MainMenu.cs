@@ -114,7 +114,11 @@ namespace KotH.Client.Menu
                 hostWanted = true;
             };
             view.QuitRequested += () => quitWanted = true;
-            view.FindOpened += Search;
+            view.FindOpened += () =>
+            {
+                view.Finder.ResetSearch();
+                Search();
+            };
             view.Finder.RefreshRequested += Search;
             view.Finder.JoinRequested += (round, password) => Enter(round.Id, round.Host, password, 0);
             view.Finder.InviteRequested += code => StartInvite?.Invoke(code);
@@ -386,6 +390,8 @@ namespace KotH.Client.Menu
                 view.SocialView.Leaderboard.Sample();
             if (int.TryParse(Environment.GetEnvironmentVariable("KOTH_SHOT_FIND_DROP"), out int drop))
                 view.Finder.Pretend(drop);
+            if (Environment.GetEnvironmentVariable("KOTH_SHOT_FIND_SEARCH") is { } query)
+                view.Finder.PretendSearch(query, Environment.GetEnvironmentVariable("KOTH_SHOT_FIND_SAMPLE") == "1");
             if (Note != null)
             {
                 view.OpenFind();

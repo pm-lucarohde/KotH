@@ -21,18 +21,22 @@
                 </StackPanel>
             </Panel>
         </Border>
-        <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Margin="0,20,0,0">
-            <TextBlock Name="Status" Classes="Hint" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-            <Button Name="Refresh" Grid.Column="1" Classes="Menu Small" Content="Refresh" Width="190" Margin="18,0,0,0" />
+        <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto,Auto,Auto" Margin="0,20,0,0">
+            <TextBlock Name="SearchLabel" Classes="Label" Text="Search" Width="88" VerticalAlignment="Center" Margin="0,0,14,0" />
+            <Panel Name="SearchField" Grid.Column="1" />
+            <Button Name="ClearSearch" Grid.Column="2" Classes="Step" Content="×" Margin="10,0,0,0" IsVisible="False" />
+            <TextBlock Name="Status" Grid.Column="3" Classes="Hint" VerticalAlignment="Center" Margin="14,0,0,0"
+                       MaxWidth="260" TextTrimming="CharacterEllipsis" />
+            <Button Name="Refresh" Grid.Column="4" Classes="Menu Small" Content="Refresh" Width="190" Margin="18,0,0,0" />
             <!-- A private round's password, asked for when its Join was chosen -->
-            <StackPanel Name="Ask" Orientation="Horizontal" Spacing="14" IsVisible="False" VerticalAlignment="Center">
+            <StackPanel Name="Ask" Grid.ColumnSpan="4" Orientation="Horizontal" Spacing="14" IsVisible="False" VerticalAlignment="Center">
                 <TextBlock Classes="Label" Text="Password" VerticalAlignment="Center" />
             </StackPanel>
-            <Button Name="JoinPrivate" Grid.Column="1" Classes="Menu Small" Content="Join" Width="190" Margin="18,0,0,0" IsVisible="False" />
+            <Button Name="JoinPrivate" Grid.Column="4" Classes="Menu Small" Content="Join" Width="190" Margin="18,0,0,0" IsVisible="False" />
         </Grid>
         <!-- Direct IP: a host's invite code (koth://join?ip=…&port=…&key=…), pasted with Ctrl+V -->
         <Grid Grid.Row="3" ColumnDefinitions="Auto,*,Auto" Margin="0,16,0,0">
-            <TextBlock Classes="Label" Text="Invite" VerticalAlignment="Center" Margin="0,0,14,0" />
+            <TextBlock Classes="Label" Text="Invite" Width="88" VerticalAlignment="Center" Margin="0,0,14,0" />
             <Panel Name="InviteField" Grid.Column="1" />
             <Button Name="JoinInvite" Grid.Column="2" Classes="Menu Small" Content="Join" Width="190" Margin="18,0,0,0" />
         </Grid>
