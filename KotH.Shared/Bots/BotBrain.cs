@@ -284,13 +284,15 @@ namespace KotH.Shared.Bots
             if (climbing && me.Motor.Grounded && (hangUp > HangTicks || hangDown > HangTicks))
             {
                 running = Maneuver.Sprint;
-                return Remember(u, LetDown(u, me, Feet(hangUp > HangTicks ? mateAt : mateAt2)));
+                return Remember(u, LetDown(u, me, Feet(hangUp > HangTicks ? mateAt : mateAt2)), !airborne);
             }
             // On a ladder the climb goes on whatever the bot wants: anything else would slide it off.
             if (climbing || ladderRoute.Count > 0)
             {
                 running = Maneuver.Sprint;
-                return Remember(u, Passing(u, view, self, me, phase, Climb(u, me)));
+                MoveInput climbed = Passing(u, view, self, me, phase, Climb(u, me));
+                // Climbing, the pilot's own guess says whether the feet are down (the seen state is old).
+                return Remember(u, climbed, ladderRoute.Count == 0 && Predicted.Grounded && u - lastJump > 3 && flight == LinkKind.None);
             }
             flight = LinkKind.None;
             hopping = false;
@@ -307,7 +309,7 @@ namespace KotH.Shared.Bots
                 feet = new Vector3(now.X, now.Y, now.Z);
             }
 
-            return Remember(u, Steer(u, view, me, at, feet, m, slotStart, airborne));
+            return Remember(u, Steer(u, view, me, at, feet, m, slotStart, airborne), !airborne);
         }
 
         int Slot => Math.Max(1, settings.SlotTicks);
@@ -805,8 +807,9 @@ namespace KotH.Shared.Bots
         /// <summary>The keys of the last tick, for probes.</summary>
         public MoveInput LastInput { get; private set; }
 
-        MoveInput Remember(int u, MoveInput input)
+        MoveInput Remember(int u, MoveInput input, bool ground = false)
         {
+            input.Move = Thumb(u, input.Move, !ground || input.JumpPresses > 0);
             // A double tap planned for a jump that never left the ground (the body was falling already) would
             // fire the fall's double jump alone, too low for the jump's target: kept back.
             if (seenFell && input.JumpPresses >= 2)
@@ -1448,7 +1451,10 @@ namespace KotH.Shared.Bots
 
             Vector3 way = new Vector3(toward.X - feet.X, 0f, toward.Z - feet.Z);
             float distance = UMath.Magnitude(way);
-            bool arrived = distance < 0.4f && Flat(feet, goal) < 0.6f;
+            // Holding, a bot that stands on its spot stays until it has drifted a metre (it stepped back and forth).
+            bool settle = intent == BotIntent.Hold && settledAt == goal && !TightHold(at);
+            bool arrived = distance < (settle ? SettleSlack : 0.4f) && Flat(feet, goal) < (settle ? SettleSlack : 0.6f);
+            settledAt = arrived && intent == BotIntent.Hold ? goal : new Vector3(float.NaN);
             float moveYaw = distance > 1e-3f ? UMath.Atan2(-way.X, -way.Z) * (180f / MathF.PI) : yaw;
 
             // Facing: the target when it is close (with the blaster its lead), missed by the hand's own drift;

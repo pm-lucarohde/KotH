@@ -288,7 +288,7 @@ namespace KotH.Shared.Bots
         int Guarded(WorldSnapshot view, Vector3 at)
         {
             int best = -1;
-            float bestD = GuardRange;
+            float bestD = UMath.Min(GuardRange, settings.EngageRange);
             for (int i = 0; i < view.Count; i++)
             {
                 BodyState s = view.StateAt(i);
@@ -448,6 +448,29 @@ namespace KotH.Shared.Bots
 
         // Keys stay at least this long (a tap shorter reads as a bot), and never flip straight to the opposite.
         const int KeyHold = 4;
+
+        // Every path's keys on the ground, last: a state stays two ticks (a single 25 ms tap is no thumb's) and a key
+        // lets go before its opposite. In the air and on a jump's tick the pilot's keys pass as they are.
+        const int ThumbHold = 2;
+        const float SettleSlack = 1f;
+        Vector3 settledAt = new Vector3(float.NaN);
+        Vector2 thumbKeys;
+        int thumbSince;
+
+        Vector2 Thumb(int u, Vector2 want, bool free)
+        {
+            if (want == thumbKeys)
+                return want;
+            if (!free)
+            {
+                if (u - thumbSince < ThumbHold)
+                    return thumbKeys;
+                want = new Vector2(want.X * thumbKeys.X < 0f ? 0f : want.X, want.Y * thumbKeys.Y < 0f ? 0f : want.Y);
+            }
+            thumbKeys = want;
+            thumbSince = u;
+            return want;
+        }
 
         Vector2 HeldKeys(int u, Vector2 want)
         {

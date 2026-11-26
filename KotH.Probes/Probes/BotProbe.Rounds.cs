@@ -21,6 +21,11 @@ namespace KotH.Probes.Probes
 
         // Over all rounds, per bot tick out of the climb (after its first step into the zone): view and keys.
         readonly double[] zoneIntent = new double[8];
+        readonly Dictionary<string, int> reversalsBy = new Dictionary<string, int>(), tapsBy = new Dictionary<string, int>();
+        readonly int[] keySince = new int[64], wishTick = new int[64];
+        readonly Vector2[] lastWish = new Vector2[64];
+        readonly Dictionary<string, int> worldBy = new Dictionary<string, int>();
+        double taps, worldReversals;
         double natTicks, natGround, jerks, flicks, keyChanges, reversals, zoneTicks, zoneJumps, zoneStanding, turnSum;
         double maneuverChanges, maneuverTicks;
 
@@ -298,7 +303,10 @@ namespace KotH.Probes.Probes
             Log($"[rounds] view: {turnSum / Math.Max(1, natTicks):F2}°/tick, {jerks / min:F1} jerks/min (turn rate changed > 8°/tick), " +
                 $"{flicks / min:F1} flicks/min (> 5° and straight back)");
             Log($"[rounds] keys: {keyChanges / ground * 40:F2} changes/s, {reversals / ground * 2400:F1} reversals/min on the ground; " +
-                $"manoeuvre held {maneuverTicks / Math.Max(1, maneuverChanges) / 40:F2} s");
+                $"manoeuvre held {maneuverTicks / Math.Max(1, maneuverChanges) / 40:F2} s; {taps / ground * 2400:F1} one-tick keys/min");
+            Log($"[rounds] reversals by: {string.Join(", ", reversalsBy.OrderByDescending(k => k.Value).Take(6).Select(k => $"{k.Key} {k.Value * 2400.0 / ground:F1}"))}");
+            Log($"[rounds] way reversals (> 120° in 0.2 s) {worldReversals / ground * 2400:F1}/min: {string.Join(", ", worldBy.OrderByDescending(k => k.Value).Take(6).Select(k => $"{k.Key} {k.Value * 2400.0 / ground:F1}"))}");
+            Log($"[rounds] one-tick keys by: {string.Join(", ", tapsBy.OrderByDescending(k => k.Value).Take(6).Select(k => $"{k.Key} {k.Value * 2400.0 / ground:F1}"))}");
             Log($"[rounds] in the zone: {zoneJumps / Math.Max(1, zoneTicks) * 2400:F1} jumps/min, standing {zoneStanding / Math.Max(1, zoneTicks) * 100:F0} %; intents " +
                 string.Join(" ", Enum.GetNames<BotIntent>().Select((n, k) => $"{n} {zoneIntent[k] * 100 / Math.Max(1, zoneTicks):F0} %")));
             return 0;
@@ -337,15 +345,44 @@ namespace KotH.Probes.Probes
             {
                 natGround++;
                 var move = new Vector2(input.Move.X, input.Move.Y);
-                keyChanges += move.X != lastMove[i].X || move.Y != lastMove[i].Y ? 1 : 0;
+                if (move.X != lastMove[i].X || move.Y != lastMove[i].Y)
+                {
+                    keyChanges++;
+                    // A key state held a single tick (25 ms): a thumb is not that fast.
+                    if (t - keySince[i] == 1)
+                    {
+                        string why = mind.Hopping ? "hop" : mind.Climbing ? "climb" : $"{mind.Intent} {mind.Running}";
+                        tapsBy[why] = tapsBy.GetValueOrDefault(why) + 1;
+                        taps++;
+                    }
+                    keySince[i] = t;
+                }
                 lastMove[i] = move;
+                // The wished way in the world (keys turned by the view): a turn of more than 120° within 0.2 s.
+                if (move != Vector2.Zero)
+                {
+                    float r = input.Yaw * (MathF.PI / 180f), c = MathF.Cos(r), sn = MathF.Sin(r);
+                    var wish = Vector2.Normalize(new Vector2(move.X * c - move.Y * sn, -move.X * sn - move.Y * c));
+                    if (t - wishTick[i] <= 8 && Vector2.Dot(wish, lastWish[i]) < -0.5f)
+                    {
+                        worldReversals++;
+                        string why = mind.Hopping ? "hop" : mind.Climbing ? "climb" : $"{mind.Intent} {mind.Running}";
+                        worldBy[why] = worldBy.GetValueOrDefault(why) + 1;
+                    }
+                    lastWish[i] = wish;
+                    wishTick[i] = t;
+                }
                 for (int a = 0; a < 2; a++)
                 {
                     int sign = Math.Sign(a == 0 ? input.Move.X : input.Move.Y);
                     if (sign == 0)
                         continue;
                     if (axisSign[i, a] == -sign && t - axisTick[i, a] <= 8)
+                    {
                         reversals++;
+                        string why = mind.Hopping ? "hop" : mind.Climbing ? "climb" : $"{mind.Intent} {mind.Running}";
+                        reversalsBy[why] = reversalsBy.GetValueOrDefault(why) + 1;
+                    }
                     axisSign[i, a] = sign;
                     axisTick[i, a] = t;
                 }
