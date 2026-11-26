@@ -227,11 +227,11 @@ namespace KotH.Client.Steam
         }
 
         /// <summary>Weighted lobby score in [0, 1]: 75 % low ping (0..200 ms, unknown = 0),
-        /// 15 % player count and 10 % waiting in lobby (0 when a round is already running).</summary>
+        /// 15 % fill relative to the mode's max (12 normal, 16 Free) and 10 % waiting in lobby.</summary>
         public static float RankScore(in LobbyListing r)
         {
             float ping = r.PingMs < 0 ? 0f : 1f - Math.Clamp(r.PingMs, 0, MaxScoredPingMs) / MaxScoredPingMs;
-            float players = Math.Clamp(r.Players / (float)HillMatch.FreeMaxPlayers, 0f, 1f);
+            float players = Math.Clamp(r.Players / (float)HillMatch.MaxPlayers(r.Mode), 0f, 1f);
             float waiting = r.Running ? 0f : 1f;
             return ping * PingWeight + players * PlayerWeight + waiting * LobbyWeight;
         }
