@@ -15,7 +15,8 @@ namespace KotH.Client.Steam
         public const int ChatChannel = 1, VoiceChannel = 2;
         public const int MaxChatChars = 64;   // Luca
         const int MaxChatBytes = 4 * MaxChatChars, MaxVoiceBytes = 600;
-        const int Reliable = 9, Unreliable = 1;   // both NoNagle: out at once
+        const int AutoRestart = 32;   // k_nSteamNetworkingSend_AutoRestartBrokenSession
+        const int Reliable = 9 | AutoRestart, Unreliable = 1 | AutoRestart;   // NoNagle + auto-restart broken sessions
         const int ChatsPer10s = 5, VoicePerSecond = 60;
 
         readonly SteamLobby lobby;
