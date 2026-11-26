@@ -23,8 +23,8 @@ namespace KotH.Shared.Hosting
         /// <summary>Mount Destiny's rounder first version of 22.10.2026 (Tools/maps/Mountain.cs --map Volcano).</summary>
         public const string Volcano = "Volcano";
 
-        /// <summary>Every map a host may choose, in the menu's order; a new map is added here.</summary>
-        public static readonly string[] All = { Default, Volcano, Atrium, TheLadder, Pyramid, Test };
+        /// <summary>Every map a host may choose, in unlock order; a new map is added here.</summary>
+        public static readonly string[] All = { Default, Atrium, Volcano, Pyramid, TheLadder, Test };
 
         /// <summary>A built-in map's name for people (the id where it reads well).</summary>
         public static string Title(string map) => map switch

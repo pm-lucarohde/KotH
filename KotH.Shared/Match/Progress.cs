@@ -1,25 +1,42 @@
 using System;
+using KotH.Shared.Hosting;
 using KotH.Shared.Net;
 using KotH.Shared.Simulation;
 
 namespace KotH.Shared.Match
 {
     /// <summary>Player levels from XP (Luca, 11.11.2026): level 2 at 200, level 10 at 2500, at most 100;
-    /// each level costs about 19 XP more than the one before. Customize opens at level 10, the
-    /// champignon at 50, glow, sparkle trail and the Test map at 100 (Luca, 24.11.2026).</summary>
+    /// each level costs about 19 XP more than the one before. Customize opens at 10, Volcano at 15,
+    /// Pyramid at 35, Champignon at 50, The Ladder at 60, glow, sparkle trail and Test Map at 100.</summary>
     public static class Levels
     {
         public const int Max = 100;
         public const int CustomizeLevel = 10;
+        public const int VolcanoLevel = 15;
+        public const int PyramidLevel = 35;
         public const int ChampignonLevel = 50;
+        public const int TheLadderLevel = 60;
         public const int GlowLevel = 100;
         public const int TestMapLevel = 100;
+
+        /// <summary>The level required to choose a built-in map in the lobby (0 when open from the start).</summary>
+        public static int MapLevel(string map) => map switch
+        {
+            Maps.Volcano => VolcanoLevel,
+            Maps.Pyramid => PyramidLevel,
+            Maps.TheLadder => TheLadderLevel,
+            Maps.Test => TestMapLevel,
+            _ => 0,
+        };
 
         /// <summary>What reaching a level opens, for the round's XP card; null if nothing.</summary>
         public static string Unlocks(int level) => level switch
         {
             CustomizeLevel => "Customize unlocked: colour your mushroom",
+            VolcanoLevel => "Volcano unlocked: new map",
+            PyramidLevel => "Pyramid unlocked: new map",
             ChampignonLevel => "Champignon unlocked: a second mushroom",
+            TheLadderLevel => "The Ladder unlocked: new map",
             GlowLevel => "Glow, sparkle trail and the Test map unlocked",
             _ => null,
         };

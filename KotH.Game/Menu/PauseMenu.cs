@@ -326,10 +326,11 @@ namespace KotH.Client.Menu
                 string pick = id;
                 if (id == chosen)
                     chosenTitle = title;
-                // The Test map opens at level 100 (the host's own level; --map Test stays open).
-                if (id == Maps.Test && id != chosen && PlayerProgress.Level < Levels.TestMapLevel)
+                // Locked maps open at their unlock level (the host's own level; --map <id> stays open).
+                int need = Levels.MapLevel(id);
+                if (need > 0 && id != chosen && PlayerProgress.Level < need)
                 {
-                    rows.Add(new RowList.Row(title, "Level " + Levels.TestMapLevel, "Locked", null));
+                    rows.Add(new RowList.Row(title, "Level " + need, "Locked", null, BlurName: id == Maps.Test));
                     continue;
                 }
                 // Choosing closes the menu, as Resume does (out of Avalonia's dispatcher).

@@ -12,7 +12,7 @@ namespace KotH.Client.Menu
     public sealed class RowList : ScrollViewer
     {
         /// <summary>One row: its texts, the button's word and what it does (null: shown disabled).</summary>
-        public readonly record struct Row(string Name, string Detail, string Action, Action Click);
+        public readonly record struct Row(string Name, string Detail, string Action, Action Click, bool BlurName = false);
 
         // Room round the rows inside the well: the buttons' pictures reach 24 px past them.
         readonly StackPanel rows = new StackPanel
@@ -45,7 +45,21 @@ namespace KotH.Client.Menu
                 if (row.Click != null)
                     button.Click += (_, _) => row.Click();
                 var line = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto") };
-                line.Children.Add(new TextBlock { Classes = { "Label" }, Text = row.Name, TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis });
+                var name = new TextBlock
+                {
+                    Classes = { "Label" }, Text = row.Name,
+                    TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis,
+                };
+                if (row.BlurName)
+                    line.Children.Add(new Border
+                    {
+                        Padding = new Thickness(20, 14), Margin = new Thickness(-20, -14),
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Effect = new Avalonia.Media.BlurEffect { Radius = 13 },
+                        Child = name,
+                    });
+                else
+                    line.Children.Add(name);
                 var detail = new TextBlock { Classes = { "Hint" }, Text = row.Detail, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(16, 0, 18, 0) };
                 Grid.SetColumn(detail, 1);
                 Grid.SetColumn(button, 2);
