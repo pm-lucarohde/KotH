@@ -10,7 +10,11 @@ namespace KotH.Client.Steam
     /// <summary>A round open on Steam, as the lobby list shows it; PingMs -1 when unknown.</summary>
     public readonly record struct LobbyListing(ulong Id, string Host, string Map, int Players, int PingMs,
                                                bool Private, string[] Regions, string[] Languages, bool Modded, MatchMode Mode = MatchMode.Solo,
-                                               int Max = 0);
+                                               int Max = 0, bool Running = false)
+    {
+        public int Capacity => Max > 0 ? Max : HillMatch.MaxPlayers(Mode);
+        public bool Full => Players >= Capacity;
+    }
 
     /// <summary>A KotH round as a Steam lobby: the host opens one (Open) with its name, map, build, player
     /// count, flags and ping location as lobby data, others find it (Search) and enter it (Enter); the
@@ -93,6 +97,7 @@ namespace KotH.Client.Steam
                     lobby.Set("lang_" + language, "1");
                 lobby.Set("modded", flags.Modded ? "1" : "0");
                 lobby.Set("mode", HillMatch.ModeName(lobby.mode));
+                lobby.Set("running", lobby.running == true ? "1" : "0");
                 if (lobby.max > 0)
                     lobby.Set("max", lobby.max.ToString(CultureInfo.InvariantCulture));
                 lobby.Set("host", SteamClient.SteamId.ToString(CultureInfo.InvariantCulture));
@@ -178,8 +183,10 @@ namespace KotH.Client.Steam
             });
         }
 
-        /// <summary>The open KotH rounds of this build that pass the filter, on any map, nearest first
-        /// (by the ping Steam estimates to the host); unknown pings last, fullest first among them.</summary>
+        const float PingWeight = 0.75f, PlayerWeight = 0.15f, LobbyWeight = 0.10f, MaxScoredPingMs = 200f;
+
+        /// <summary>The open, non-full KotH rounds of this build that pass the filter, ranked by 75 %
+        /// ping (lower is better), 15 % player count (more is better) and 10 % waiting in lobby.</summary>
         public static void Search(LobbyFilter filter, Action<List<LobbyListing>> done)
         {
             Filter("game", Game);
@@ -206,19 +213,38 @@ namespace KotH.Client.Steam
                     ulong id = SteamAPI_ISteamMatchmaking_GetLobbyByIndex(SteamClient.Matchmaking, i);
                     int.TryParse(Data(id, "players"), NumberStyles.Integer, CultureInfo.InvariantCulture, out int n);
                     string[] regions = Marked(id, "region_", LobbyFlags.AllRegions), languages = Marked(id, "lang_", LobbyFlags.AllLanguages);
-                    list.Add(new LobbyListing(id, Data(id, "name") ?? "?", Data(id, "maptitle") ?? Data(id, "map"), n, SteamClient.EstimatePing(Data(id, "ping")),
-                                              Data(id, "access") == "private", regions, languages, Data(id, "modded") == "1",
-                                              HillMatch.ParseMode(Data(id, "mode")) ?? MatchMode.Solo,
-                                              int.TryParse(Data(id, "max"), NumberStyles.Integer, CultureInfo.InvariantCulture, out int most) ? most : 0));
+                    var listing = new LobbyListing(id, Data(id, "name") ?? "?", Data(id, "maptitle") ?? Data(id, "map"), n, SteamClient.EstimatePing(Data(id, "ping")),
+                                                   Data(id, "access") == "private", regions, languages, Data(id, "modded") == "1",
+                                                   HillMatch.ParseMode(Data(id, "mode")) ?? MatchMode.Solo,
+                                                   int.TryParse(Data(id, "max"), NumberStyles.Integer, CultureInfo.InvariantCulture, out int most) ? most : 0,
+                                                   Data(id, "running") == "1");
+                    if (!listing.Full)
+                        list.Add(listing);
                 }
-                list.Sort((a, b) => (a.PingMs < 0, b.PingMs < 0) switch
-                {
-                    (false, false) => a.PingMs.CompareTo(b.PingMs),
-                    (true, true) => b.Players.CompareTo(a.Players),
-                    (var x, _) => x ? 1 : -1,
-                });
+                list.Sort(CompareListings);
                 done(list);
             });
+        }
+
+        /// <summary>Weighted lobby score in [0, 1]: 75 % low ping (0..200 ms, unknown = 0),
+        /// 15 % player count and 10 % waiting in lobby (0 when a round is already running).</summary>
+        public static float RankScore(in LobbyListing r)
+        {
+            float ping = r.PingMs < 0 ? 0f : 1f - Math.Clamp(r.PingMs, 0, MaxScoredPingMs) / MaxScoredPingMs;
+            float players = Math.Clamp(r.Players / (float)HillMatch.FreeMaxPlayers, 0f, 1f);
+            float waiting = r.Running ? 0f : 1f;
+            return ping * PingWeight + players * PlayerWeight + waiting * LobbyWeight;
+        }
+
+        static int CompareListings(LobbyListing a, LobbyListing b)
+        {
+            int byScore = RankScore(b).CompareTo(RankScore(a));
+            if (byScore != 0)
+                return byScore;
+            if (a.PingMs < 0 != b.PingMs < 0)
+                return a.PingMs < 0 ? 1 : -1;
+            int byPing = a.PingMs.CompareTo(b.PingMs);
+            return byPing != 0 ? byPing : b.Players.CompareTo(a.Players);
         }
 
         // The codes a lobby marks with key prefix + code = "1".
@@ -376,6 +402,17 @@ namespace KotH.Client.Steam
         }
 
         string map;
+        bool? running;
+
+        /// <summary>The host: whether a round is currently running (not waiting in the lobby), for ranking.</summary>
+        public void SetRunning(bool value)
+        {
+            if (value == running)
+                return;
+            running = value;
+            if (Id != 0)
+                Set("running", value ? "1" : "0");
+        }
 
         /// <summary>The host: players in the round, bots included, for the list.</summary>
         public void SetPlayers(int count)

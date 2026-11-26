@@ -7,9 +7,9 @@ using KotH.Shared.Net;
 
 namespace KotH.Client.Menu
 {
-    /// <summary>The Find server page: the filters, what MainMenu found on Steam with them (nearest first),
-    /// a Join per round, and what is going on (searching, joining, why not). The menu does the searching
-    /// and joining; this only shows and keeps the filter.</summary>
+    /// <summary>The Find server page: the filters, what MainMenu found on Steam with them (weighted by
+    /// ping, player count and lobby state, full rounds hidden), a Join per round, and what is going on
+    /// (searching, joining, why not). The menu does the searching and joining; this only shows and keeps the filter.</summary>
     public partial class FindPage : UserControl
     {
         /// <summary>Refresh was chosen.</summary>
@@ -83,7 +83,7 @@ namespace KotH.Client.Menu
             Refresh.IsEnabled = false;
         }
 
-        /// <summary>The rounds found, fullest first; again (a search on its own) keeps the scroll and a word on joining.</summary>
+        /// <summary>The rounds found (ranked by ping and players); again keeps the scroll and a word on joining.</summary>
         public void Found(List<LobbyListing> rounds, bool again = false)
         {
             if (busy && again)
@@ -96,7 +96,7 @@ namespace KotH.Client.Menu
                 string where = round.Regions.Length == 0 ? "" : "  " + string.Join(", ", Array.ConvertAll(round.Regions, LobbyFlags.RegionName));
                 string ping = round.PingMs < 0 ? "? ms" : $"{round.PingMs} ms";
                 string marks = (round.Mode != MatchMode.Solo ? "  " + HillMatch.DisplayName(round.Mode) : "") + (round.Private ? "  private" : "") + (round.Modded ? "  modded" : "");
-                rows.Add(new RowList.Row(round.Host, $"{round.Map}  {round.Players}/{(round.Max > 0 ? round.Max : HillMatch.MaxPlayers(round.Mode))}{where}{marks}  {ping}", "Join",
+                rows.Add(new RowList.Row(round.Host, $"{round.Map}  {round.Players}/{round.Capacity}{where}{marks}  {ping}", "Join",
                                          () => { if (!busy) Choose(chosen); }));
             }
             list.Show(rows, keepPlace: again);

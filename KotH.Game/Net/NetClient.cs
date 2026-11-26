@@ -229,6 +229,7 @@ namespace KotH.Client.Net
                 int players = HillMatch.CountPlayers(Session.Simulation.Bodies);
                 Lobby.SetPlayers(players);
                 Lobby.SetMap(world.Map, TitleOf?.Invoke(world.Map));
+                Lobby.SetRunning(Host.Stage == MatchStage.Round);
                 Lobby.SetJoinable(players < Host.Capacity && !Host.Restarting);
             }
         }
