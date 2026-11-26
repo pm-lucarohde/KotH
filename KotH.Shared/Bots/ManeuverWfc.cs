@@ -21,6 +21,10 @@ namespace KotH.Shared.Bots
         // people keep doing what they do instead of switching every slot.
         const float Stick = 3f;
 
+        // Slots a maneuver begun holds at least (Luca's plan: no 0.2 s blips), in Maneuver order;
+        // strafes hold a side 0.6 s. Cut short only where a rule or the plan's end says so.
+        static readonly int[] MinRun = { 2, 2, 3, 3, 1, 1, 1, 1, 2, 1 };
+
         static readonly ushort[] Next = BuildNext();
 
         static ushort Bit(Maneuver m) => (ushort)(1 << (int)m);
@@ -51,6 +55,7 @@ namespace KotH.Shared.Bots
 
         readonly ushort[] domain;
         readonly Maneuver[] result;
+        Maneuver running;
 
         // Slots that must lie between two of the same: the swing's cooldown
         // and the slide's 0,5 s, in slots.
@@ -80,6 +85,7 @@ namespace KotH.Shared.Bots
                     domain[i] = (ushort)(a & Weighted(weights));
                 }
                 domain[0] &= Next[(int)after];
+                running = after;
                 if (Propagate() && Run(weights, ref rng))
                     return result;
             }
@@ -123,7 +129,9 @@ namespace KotH.Shared.Bots
                 }
                 if (pick < 0)
                     break;
-                domain[pick] = Bit(Choose(pick, weights, ref rng));
+                Maneuver chosen = Choose(pick, weights, ref rng);
+                domain[pick] = Bit(chosen);
+                Hold(pick, chosen);
             }
 
             for (int i = 0; i < domain.Length; i++)
@@ -155,6 +163,21 @@ namespace KotH.Shared.Bots
                     return (Maneuver)i;
             }
             return (Maneuver)(31 - System.Numerics.BitOperations.LeadingZeroCount((uint)options));
+        }
+
+        // A maneuver begun here (not going on from the slot before) fills the next slots that still allow it,
+        // up to its MinRun; Propagate then checks the rest against them.
+        void Hold(int at, Maneuver m)
+        {
+            bool goesOn = at == 0 ? running == m : domain[at - 1] == Bit(m);
+            if (goesOn)
+                return;
+            for (int d = 1; d < MinRun[(int)m] && at + d < domain.Length; d++)
+            {
+                if ((domain[at + d] & Bit(m)) == 0)
+                    break;
+                domain[at + d] = Bit(m);
+            }
         }
 
         // The rules that reach past a neighbour: no second swing or slide too

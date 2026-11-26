@@ -35,7 +35,7 @@ namespace KotH.Shared.Bots
                 BotRandom.Next(ref r);
             return new Personality(1f + BotRandom.Signed(ref r, 0.3f), 1f + BotRandom.Signed(ref r, 0.4f),
                                    1f + BotRandom.Signed(ref r, 0.4f), 1f + BotRandom.Signed(ref r, 0.2f),
-                                   1f + BotRandom.Signed(ref r, 0.3f), 16 + (int)(BotRandom.Unit(ref r) * 32f));
+                                   1f + BotRandom.Signed(ref r, 0.3f), 60 + (int)(BotRandom.Unit(ref r) * 80f));
         }
     }
 
@@ -50,6 +50,7 @@ namespace KotH.Shared.Bots
         int keysSince;
 
         public Personality Persona => persona;
+        public int FightStage => (int)fightPhase;   // probes: 0 approach, 1 duel, 2 backing off
 
         public Vector3 SwingEye, SwingCentre;   // probes: where the last swing thought itself and its target
         public int SwingFrom;
@@ -60,8 +61,9 @@ namespace KotH.Shared.Bots
         // Two already at a target are enough (unless it is in the zone); one already at it is a fight to join.
         const float Crowded = 0.5f, ThirdParty = 0.25f, LeaderBonus = 0.35f, Busy = 3f;
 
-        // A target newly preferred while the old one has not held attention for Focus ticks counts this much less.
-        const float Distracted = 0.7f;
+        // A target newly preferred while the old one has not held attention for Focus ticks (1.5 to 3.5 s) counts
+        // this much less, and less again while circling the old one: a fight is fought out (80 switches a minute before).
+        const float Distracted = 0.5f, Dueling = 0.75f;
 
         /// <summary>The worth of attacking one opponent, on top of the base score (ThinkHill): this bot's nature,
         /// its damage, how many already fight there, and who leads.</summary>
@@ -86,8 +88,8 @@ namespace KotH.Shared.Bots
                 score += LeaderBonus * s.ScoreTicks / (float)bestScore;
             score *= persona.Aggression * (1f - 0.4f * persona.Caution * UMath.Min(1f, ownDamage / 150f));
             int id = view.BodyAt(i).NetId;
-            if (intent == BotIntent.Attack && target != 0 && target != id && thinkTick - targetSince < persona.Focus)
-                score *= Distracted;
+            if (intent == BotIntent.Attack && target != 0 && target != id)
+                score *= (thinkTick - targetSince < persona.Focus ? Distracted : 1f) * (fightPhase == FightPhase.Duel ? Dueling : 1f);
             return score;
         }
 
@@ -143,6 +145,260 @@ namespace KotH.Shared.Bots
             JumpPilot.Body b = Predict(u, me.Motor);
             Vector3 up = UMath.Sub(me.Motor.EyePosition, me.Motor.Position);
             return new Vector3(b.X + up.X, b.Y + body.StandHeight * 0.5f + up.Y, b.Z + up.Z);
+        }
+
+        /// <summary>A fight in phases (Luca's plan): run in, circle and swing up close, back off to the zone's middle
+        /// after a heavy knock or when far more hurt than the target near an edge, then in again.</summary>
+        enum FightPhase : byte { Approach, Duel, Disengage }
+
+        FightPhase fightPhase;
+        int backOffUntil = -1, backOffAgain = -1, knockedAt = -1000;
+
+        // Maneuver weights per phase, in Maneuver order (as Weights): sprint in and slide; strafe round and swing;
+        // walk back, the view kept on the target.
+        static readonly float[][] FightWeights =
+        {
+            new[] { 0.5f, 4f, 0.3f, 0.3f, 0f, 0.6f, 1.5f, 2.5f, 0f, 1f },        // Approach
+            new[] { 1.5f, 0.4f, 2.5f, 2.5f, 0.5f, 0.6f, 0.6f, 0.2f, 0.1f, 2f },   // Duel
+            new[] { 2f, 1.5f, 0.6f, 0.6f, 0f, 0.2f, 0.2f, 0f, 0f, 0.3f },         // Disengage
+        };
+
+        // Close enough to circle; a knock this fast (m/s) is a heavy hit, backed off from within this many ticks.
+        // More hurt than this (by the bot's caution) and this much more than the target near an edge backs off too.
+        const float DuelRange = 4f, HeavyKnock = 5f, HighDamage = 90f, DamageLead = 30f;
+        const int HurtTicks = 40, BackOffTicks = 30, BackOffSpread = 40, BackOffRest = 160;
+
+        float[] PlanWeights => intent == BotIntent.Attack ? FightWeights[(int)fightPhase] : Weights[(int)intent];
+
+        /// <summary>The phase at a think; backing off sets the goal to the zone's middle.</summary>
+        FightPhase PhaseOf(int u, WorldSnapshot view, int self, Vector3 at)
+        {
+            int ti = intent == BotIntent.Attack ? IndexOf(view, target) : -1;
+            if (ti < 0)
+                return FightPhase.Approach;
+            if (u < backOffUntil)
+            {
+                goal = Middle(at);
+                return FightPhase.Disengage;
+            }
+            BodyState t = view.StateAt(ti), me = view.StateAt(self);
+            float d = Flat(at, Ahead(t.Motor.Position, t.Motor.Velocity, Reaction * Dt));
+            bool hill = match != null && view.Match.Mode != MatchMode.Free && NearHill(at);
+            // 1, 2, 3, Free: a runner shooting at the catcher in the zone keeps moving side to side.
+            if (match != null && view.Match.Mode == MatchMode.Free && (FreeRole)me.Role is FreeRole.Runner or FreeRole.Rescuing
+                && match.Contains(t.Motor.Position) && d >= DuelRange)
+                return FightPhase.Duel;
+            bool hurt = u - knockedAt < HurtTicks;
+            bool outmatched = me.DamagePercent * persona.Caution > HighDamage && me.DamagePercent - t.DamagePercent > DamageLead
+                              && nav.NearestEdge(Feet(at), 3f, out _, out _);
+            if (hill && d < 6f && u >= backOffAgain && (hurt || outmatched))
+            {
+                backOffUntil = u + BackOffTicks + (int)(BotRandom.Unit(ref rng) * BackOffSpread);
+                backOffAgain = backOffUntil + BackOffRest;
+                goal = Middle(at);
+                return FightPhase.Disengage;
+            }
+            return d < DuelRange ? FightPhase.Duel : FightPhase.Approach;
+        }
+
+        // A few metres towards the zone's middle (on a ring, its middle circle), on the grid.
+        Vector3 Middle(Vector3 at)
+        {
+            Vector3 c = match.Center, to = new Vector3(c.X - at.X, 0f, c.Z - at.Z);
+            float reach = UMath.Min(match.HalfSize.X, match.HalfSize.Z), d = UMath.Magnitude(to);
+            if (match.Hole > 0f && d > 1e-3f)
+                to = UMath.Mul(to, (d - (match.Hole + reach) * 0.5f) / d);
+            float step = UMath.Magnitude(to);
+            Vector3 p = step > 4f ? UMath.Add(Feet(at), UMath.Mul(to, 4f / step)) : UMath.Add(Feet(at), to);
+            return nav.Nearest(p, out Vector3 onMesh) ? onMesh : Feet(at);
+        }
+
+        // Holding: a new spot a few metres off every few seconds, as a player shifts on the hill; only where
+        // PickSpot would stand too (the zone's inner part) and 2 m from any edge, or it walks off in the end.
+        const int SpotTicks = 120, SpotSpread = 160;
+        const float SpotShift = 3f, SpotEdge = 2f;
+        int spotUntil = -1;
+
+        void ShiftSpot(int u)
+        {
+            if (hasSpot && u < spotUntil)
+                return;
+            spotUntil = u + SpotTicks + (int)(BotRandom.Unit(ref rng) * SpotSpread);
+            if (!hasSpot)
+            {
+                PickSpot();
+                return;
+            }
+            Vector3 old = spot;
+            for (int k = 0; k < 4; k++)
+            {
+                PickSpot();
+                if (Flat(spot, old) < SpotShift * 1.5f && !nav.NearestEdge(spot, SpotEdge, out _, out _))
+                    return;
+            }
+            spot = old;
+        }
+
+        // Holding with nobody near: the view goes round the zone's edges, outwards, a new way every 1.5 to 3 s.
+        float scanYaw;
+        int scanUntil = -1;
+
+        float Scan(int u, Vector3 at)
+        {
+            if (u >= scanUntil)
+            {
+                float outward = UMath.Atan2(-(at.X - match.Center.X), -(at.Z - match.Center.Z)) * (180f / MathF.PI);
+                scanYaw = outward + BotRandom.Signed(ref missRng, 80f);
+                scanUntil = u + 60 + (int)(BotRandom.Unit(ref missRng) * 60f);
+            }
+            return scanYaw;
+        }
+
+        /// <summary>Where a holder looks for one coming up: at them when close, else where they will come
+        /// over the zone's edge, so the view is there first.</summary>
+        Vector3 EdgeToward(Vector3 eye, Vector3 them)
+        {
+            Vector3 c = match.Center, off = new Vector3(them.X - c.X, 0f, them.Z - c.Z);
+            float d = UMath.Magnitude(off), reach = UMath.Min(match.HalfSize.X, match.HalfSize.Z);
+            if (d <= reach + 4f || Flat(eye, them) < 8f)
+                return them;
+            Vector3 rim = UMath.Add(new Vector3(c.X, 0f, c.Z), UMath.Mul(off, reach / d));
+            float ground = nav.GroundBelow(new Vector3(rim.X, eye.Y + 2f, rim.Z));
+            return new Vector3(rim.X, ground > float.MinValue ? ground + 1f : them.Y, rim.Z);
+        }
+
+        // Holding with shots left: one coming up near the zone, in sight, is shot at from the spot (Luca's plan);
+        // worth about as much as the hold itself, which it keeps.
+        const float Snipe = 1.4f, SnipeNear = 0.6f, SnipeRange = 25f, SnipeBelow = 12f;
+
+        bool Snipes(Vector3 at, Vector3 there, float d)
+            => shotsLeft > 0 && d > 4.5f && d < SnipeRange && there.Y > match.Center.Y - match.HalfSize.Y - SnipeBelow
+               && nav.InSight(UMath.Add(at, new Vector3(0f, 0.6f, 0f)), there);
+
+        const float RecoverTurn = 5f;
+
+        // 1, 2, 3, Free. A catcher hunting for its first catch goes for the weaker runner a little more.
+        const float Weakest = 0.4f;
+        // A fleeing runner jumps away (with a double jump) when the catcher comes this close, at most this often.
+        const float EscapeReach = 4f;
+        const int EscapeEvery = 60;
+        // A runner lurks this far out from the zone's middle while the catcher guards it.
+        const float LurkRange = 14f;
+        bool lurking;
+
+        /// <summary>Whether this runner's count in the zone ends before any catcher outside can come in
+        /// (the count as seen is Reaction ticks old; the catcher sprints straight).</summary>
+        bool Finishes(WorldSnapshot view, int self, Vector3 at)
+        {
+            BodyState me = view.StateAt(self);
+            int need = ((FreeRole)me.Role == FreeRole.Rescuing ? HillMatch.RescueTicks : HillMatch.FreeTicks) - me.RoleTicks - Reaction;
+            for (int i = 0; i < view.Count; i++)
+            {
+                BodyState s = view.StateAt(i);
+                if ((FreeRole)s.Role != FreeRole.Catcher)
+                    continue;
+                Vector3 there = Ahead(s.Motor.Position, s.Motor.Velocity, Reaction * Dt);
+                if (match.Contains(there))
+                    return false;
+                if (UMath.Max(0f, Flat(at, there) - 1f) / (body.SprintSpeed * tuning.Speed) / Dt < need)
+                    return false;
+            }
+            return true;
+        }
+
+        /// <summary>How much going in is worth for a runner while a catcher guards: a lot when every catcher
+        /// would come back later than this runner is in and counted, some when the one inside is busy close
+        /// with another; else nothing (it lurks).</summary>
+        float Opening(WorldSnapshot view, int self, Vector3 at)
+        {
+            float speed = body.SprintSpeed * tuning.Speed;
+            float mine = UMath.Max(0f, Flat(at, match.Center) - UMath.Min(match.HalfSize.X, match.HalfSize.Z)) * 1.5f / speed
+                         + HillMatch.FreeTicks * Dt;
+            float worth = 1.6f;
+            for (int i = 0; i < view.Count; i++)
+            {
+                BodyState c = view.StateAt(i);
+                if ((FreeRole)c.Role != FreeRole.Catcher)
+                    continue;
+                Vector3 there = Ahead(c.Motor.Position, c.Motor.Velocity, Reaction * Dt);
+                float back = match.Contains(there) ? 0f : Flat(there, match.Center) / speed;
+                if (back > mine)
+                    continue;
+                worth = UMath.Min(worth, Engaged(view, i, self) ? 1.2f : 0f);
+            }
+            return worth;
+        }
+
+        // A catcher with another runner than this one close by it.
+        const float EngagedRange = 6f;
+        static bool Engaged(WorldSnapshot view, int catcher, int self)
+        {
+            Vector3 at = view.StateAt(catcher).Motor.Position;
+            for (int k = 0; k < view.Count; k++)
+                if (k != self && k != catcher && (FreeRole)view.StateAt(k).Role is FreeRole.Runner or FreeRole.Rescuing
+                    && UMath.Magnitude(UMath.Sub(view.StateAt(k).Motor.Position, at)) < EngagedRange)
+                    return true;
+            return false;
+        }
+
+        // A lurking runner's place: on its own side of the zone, LurkRange out (8 m off a wide zone's edge), on the grid.
+        Vector3 Lurk(Vector3 at)
+        {
+            Vector3 c = match.Center, off = new Vector3(at.X - c.X, 0f, at.Z - c.Z);
+            float d = UMath.Magnitude(off), range = UMath.Max(LurkRange, UMath.Max(match.HalfSize.X, match.HalfSize.Z) + 8f);
+            if (d < 1e-3f || d < range + 3f && d > range - 3f)
+                return Feet(at);
+            Vector3 p = new Vector3(c.X + off.X * range / d, Feet(at).Y + (range - d) * 0.5f, c.Z + off.Z * range / d);
+            return nav.Nearest(p, out Vector3 onMesh) ? onMesh : Feet(at);
+        }
+
+        /// <summary>Where a runner flees: of eight ways 10 m out, the one furthest from the catcher, better out
+        /// of its sight (behind the hill), on the grid.</summary>
+        Vector3 Refuge(Vector3 at, Vector3 from)
+        {
+            Vector3 best = Feet(at);
+            float bestScore = float.MinValue;
+            Vector3 eye = UMath.Add(from, new Vector3(0f, 0.6f, 0f));
+            for (int k = 0; k < 8; k++)
+            {
+                float a = k * (MathF.PI / 4f);
+                Vector3 p = Feet(new Vector3(at.X + 10f * UMath.Cos(a), at.Y, at.Z + 10f * UMath.Sin(a)));
+                if (!nav.Nearest(p, out Vector3 onMesh))
+                    continue;
+                Vector3 centre = new Vector3(onMesh.X, onMesh.Y + body.StandHeight * 0.5f, onMesh.Z);
+                float score = Flat(centre, from) + (nav.InSight(eye, centre) ? 0f : 6f);
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    best = onMesh;
+                }
+            }
+            return best;
+        }
+
+        // Walking on and not getting anywhere (a body pressed under a ramp keeps its speed, so the speed cannot
+        // tell): the floor it walks for is made dearer and it steps aside for a while, one side then the other.
+        const int BlockedTicks = 40, DodgeTicks = 24;
+        const float BlockedCost = 4f;
+        Vector3 stillAt;
+        int stillSince, dodgeUntil = -1, dodgeSide = 1;
+
+        bool Blocked(int u, in BodyState me, bool walking)
+        {
+            if (!walking || Flat(me.Motor.Position, stillAt) > 0.3f)
+            {
+                stillAt = me.Motor.Position;
+                stillSince = u;
+            }
+            else if (u - stillSince >= BlockedTicks)
+            {
+                if (corners.Count >= 2)
+                    nav.Grid.Stuck(corners[1].Position, BlockedCost, memory);
+                dodgeSide = -dodgeSide;
+                dodgeUntil = u + DodgeTicks;
+                stillSince = u;
+            }
+            return u < dodgeUntil;
         }
 
         // How close a target draws a run at it, and how many ticks before the cane is ready the run starts.

@@ -216,6 +216,8 @@ namespace KotH.Shared.Bots
             Vector3 feet = new Vector3(at.X, at.Y - body.StandHeight * 0.5f, at.Z);
             // A hit's knock, not the brief soft control after a bump.
             bool knocked = UMath.Magnitude(me.Motor.Knock) > 0.5f;
+            if (UMath.Magnitude(me.Motor.Knock) > HeavyKnock)
+                knockedAt = u;
             bool airborne = !me.Motor.Grounded || u - lastJump < 20;
             MatchPhase phase = match != null ? view.Match.Phase : MatchPhase.Running;
 
@@ -249,6 +251,8 @@ namespace KotH.Shared.Bots
                 Think(view, self, at, phase, knocked);
                 if (target != wasTarget)
                     targetSince = u;
+                FightPhase wasPhase = fightPhase;
+                fightPhase = PhaseOf(u, view, self, at);
                 // Up the hill along the own route; inside the zone to the own spot. A target in the zone is
                 // climbed to the same way: straight at it the search ends on the floor nearest below it.
                 int ti = intent == BotIntent.Attack ? IndexOf(view, target) : -1;
@@ -269,7 +273,8 @@ namespace KotH.Shared.Bots
                     corners.Clear();
                 climbing = toZone;
                 farBelow = toZone && match.Center.Y - match.HalfSize.Y - feet.Y > ClimbBelow;
-                if (intent != was || target != wasTarget || u - planStart >= plan.Length * Slot || (knocked && intent != BotIntent.Recover))
+                if (intent != was || target != wasTarget || fightPhase != wasPhase || u - planStart >= plan.Length * Slot
+                    || (knocked && intent != BotIntent.Recover))
                     Replan(u, view, at, airborne);
             }
             if (u - planStart >= plan.Length * Slot)
@@ -452,14 +457,16 @@ namespace KotH.Shared.Bots
             void ThinkFree()
             {
                 FreeRole role = (FreeRole)view.StateAt(self).Role;
+                lurking = false;
                 bool runner = role is FreeRole.Runner or FreeRole.Rescuing, catcher = role == FreeRole.Catcher;
                 bool playing = live && view.Match.RoundTicks >= HillMatch.DrawTicks + HillMatch.HeadStartTicks;
-                bool guarded = false, marks = false, rescue = false, anyCaught = false, ownCatch = false;
+                bool guarded = false, marks = false, rescue = false, anyCaught = false, ownCatch = false, catcherIn = false;
                 for (int i = 0; i < view.Count; i++)
                 {
                     BodyState s = view.StateAt(i);
                     FreeRole r = (FreeRole)s.Role;
                     guarded |= i != self && r == FreeRole.Catcher && NearHill(s.Motor.Position);
+                    catcherIn |= r == FreeRole.Catcher && match.Contains(s.Motor.Position);
                     marks |= catcher && r == FreeRole.Runner && s.MarkedBy == netId;
                     rescue |= r == FreeRole.Rescuing;
                     anyCaught |= r == FreeRole.Caught;
@@ -477,12 +484,17 @@ namespace KotH.Shared.Bots
                 Offer(BotIntent.Idle, 0, live ? 0.1f : 1f);
                 if (!live || !runner && !catcher)
                     return;
+                // A runner counting in the zone stays while the count ends before a catcher can come in.
+                bool finishing = runner && inZone && Finishes(view, self, at);
                 if (runner)
                 {
-                    // Before the first catch a guarded zone is waited out; after it, gone for more slowly.
-                    Offer(BotIntent.Capture, 0, inZone ? 0f : !catcherUp || !guarded ? 1.2f : anyCaught ? 0.4f : 0.05f);
-                    Offer(BotIntent.Idle, 0, guarded && !inZone ? 0.4f : 0f);
-                    Offer(BotIntent.Hold, 0, inZone ? 1.3f : 0f);
+                    // A guarded zone is lurked at and gone for when the catcher is too far to come back in time
+                    // or busy with another (Luca's plan: runners get the catcher off the zone).
+                    float opening = guarded ? Opening(view, self, at) : 0f;
+                    Offer(BotIntent.Capture, 0, inZone ? 0f : !catcherUp || !guarded ? 1.2f : anyCaught ? UMath.Max(0.2f, opening) : UMath.Max(0.05f, opening));
+                    lurking = guarded && !inZone;
+                    Offer(BotIntent.Idle, 0, lurking ? 0.4f : 0f);
+                    Offer(BotIntent.Hold, 0, inZone ? finishing ? 2.6f : catcherIn ? 0.3f : 1.3f : 0f);
                 }
                 if (catcher)
                 {
@@ -501,9 +513,9 @@ namespace KotH.Shared.Bots
                     float d = UMath.Magnitude(UMath.Sub(there, at));
                     bool theyIn = match.Contains(there), shoot = shotsLeft > 0 && d < settings.BlasterRange;
                     int id = view.BodyAt(i).NetId;
-                    if (runner && !theyIn && d < (catcherUp ? FleeRange : RaceFlee) && !(inZone && role == FreeRole.Rescuing))
+                    if (runner && !theyIn && d < (catcherUp ? FleeRange : RaceFlee) && !(inZone && role == FreeRole.Rescuing) && !finishing)
                         Offer(BotIntent.Flee, id, 0.6f + 1.4f * (1f - d / FleeRange));
-                    else if (runner && theyIn && d < settings.EngageRange)
+                    else if (runner && theyIn && d < settings.EngageRange && (inZone || Engaged(view, i, self)))
                         Offer(BotIntent.Attack, id, 1.6f - d / settings.EngageRange);
                     else if (runner && theyIn && shoot && anyCaught)
                         Offer(BotIntent.Attack, id, 1.4f);
@@ -516,7 +528,7 @@ namespace KotH.Shared.Bots
                             Offer(BotIntent.Attack, id, 1.4f + 1.4f * (1f - d / settings.EngageRange));
                     }
                     else if (hunting && d < HuntRange)
-                        Offer(BotIntent.Attack, id, 0.8f + UMath.Max(0f, 1f - d / HuntRange));
+                        Offer(BotIntent.Attack, id, 0.8f + UMath.Max(0f, 1f - d / HuntRange) + Weakest * UMath.Min(1f, s.DamagePercent / 100f));
                     else if (catcher && !rescue && NearHill(there) && d < settings.EngageRange)
                         Offer(BotIntent.Attack, id, 1.3f);
                     else if (catcher && !rescue && shoot && inZone)
@@ -570,6 +582,8 @@ namespace KotH.Shared.Bots
                     // Holding, only who comes for the zone is fought.
                     if (weHold && !theyHold && !NearHill(there))
                         score *= 0.3f;
+                    if (inZone && !theyHold && Snipes(at, there, d))
+                        score = UMath.Max(score, Snipe + SnipeNear * (1f - d / SnipeRange));
                     Offer(BotIntent.Attack, other.NetId, FightWorth(view, i, score, there, holder == other || theyHold, ownDamage, bestScore));
                 }
             }
@@ -632,7 +646,12 @@ namespace KotH.Shared.Bots
                 case BotIntent.Capture:
                 case BotIntent.Hold:
                 case BotIntent.Recover:
-                    if (!hasSpot || intent == BotIntent.Hold && BotRandom.Unit(ref rng) < 0.15f)
+                    // 1, 2, 3, Free: a count is kept in the middle, where no step or knock takes it out.
+                    if (intent == BotIntent.Hold && view.Match.Mode == MatchMode.Free)
+                        return Middle(at);
+                    if (intent == BotIntent.Hold)
+                        ShiftSpot(thinkTick);
+                    else if (!hasSpot)
                         PickSpot();
                     return spot;
 
@@ -642,12 +661,13 @@ namespace KotH.Shared.Bots
                         return Feet(at);
                     BodyState s = view.StateAt(i);
                     Vector3 there = Feet(Ahead(s.Motor.Position, s.Motor.Velocity, Reaction * Dt + 0.2f));
-                    // 1, 2, 3, Free: shoot from where it stands when in sight, a catcher in the zone at a runner
-                    // outside, a runner at the catcher in the zone (walking up, it would be caught).
-                    if (Flat(at, there) > 4.5f && shotsLeft > 0 && match != null && view.Match.Mode == MatchMode.Free
-                        && IndexOf(view, netId) is var me and >= 0 && Stands((FreeRole)view.StateAt(me).Role, at, s)
+                    // Shot from the zone when in sight: a holder at one coming up, in 1, 2, 3, Free a catcher at a
+                    // runner outside; a runner shoots at the catcher in the zone from its lurking place.
+                    if (Flat(at, there) > 4.5f && shotsLeft > 0 && match != null
+                        && IndexOf(view, netId) is var me and >= 0
+                        && (view.Match.Mode == MatchMode.Free ? Stands((FreeRole)view.StateAt(me).Role, at, s) : match.Contains(at) && !match.Contains(there))
                         && nav.InSight(UMath.Add(at, new Vector3(0f, 0.6f, 0f)), Ahead(s.Motor.BodyCenter, s.Motor.Velocity, Reaction * Dt)))
-                        return Feet(at);
+                        return view.Match.Mode == MatchMode.Free && !match.Contains(at) ? Lurk(at) : Feet(at);
                     if (Flat(at, there) > 4.5f)
                         return there;
 
@@ -667,14 +687,10 @@ namespace KotH.Shared.Bots
                     int fi = IndexOf(view, target);
                     if (fi < 0)
                         return Feet(at);
-                    Vector3 from = view.StateAt(fi).Motor.Position, away = new Vector3(at.X - from.X, 0f, at.Z - from.Z);
-                    if (UMath.SqrMagnitude(away) < 1e-4f)
-                        away = new Vector3(1f, 0f, 0f);
-                    Vector3 to = Feet(UMath.Add(at, UMath.Mul(UMath.Normalized(away), 10f)));
-                    return nav.Nearest(to, out Vector3 safe) ? safe : to;
+                    return Refuge(at, view.StateAt(fi).Motor.Position);
 
                 default:
-                    return Feet(at);
+                    return lurking && intent == BotIntent.Idle ? Lurk(at) : Feet(at);
             }
         }
 
@@ -710,7 +726,7 @@ namespace KotH.Shared.Bots
             if (airborne)
                 allowed[0] = (ushort)(ManeuverWfc.All & ~(1 << (int)Maneuver.Jump));
 
-            int i = intent == BotIntent.Attack ? IndexOf(view, target) : -1;
+            int i = intent == BotIntent.Attack && fightPhase != FightPhase.Disengage ? IndexOf(view, target) : -1;
             if (i >= 0)
             {
                 float d = Flat(at, view.StateAt(i).Motor.Position);
@@ -718,16 +734,19 @@ namespace KotH.Shared.Bots
                 if (k < allowed.Length)
                     allowed[k] = (ushort)(1 << (int)Maneuver.Strike);
 
-                // Mostly slide in: the attacker's speed adds to the knock.
-                if (k >= 1 && k < allowed.Length && BotRandom.Unit(ref rng) < 0.6f)
+                // Mostly slide in: the attacker's speed adds to the knock; now and then jump in and swing in the air.
+                float way = k >= 1 && k < allowed.Length ? BotRandom.Unit(ref rng) : 1f;
+                if (way < 0.6f)
                 {
                     allowed[k - 1] = (ushort)(1 << (int)Maneuver.Slide);
                     if (k >= 2)
                         allowed[k - 2] = (ushort)(1 << (int)Maneuver.Sprint);
                 }
+                else if (way < 0.8f)
+                    allowed[k - 1] = (ushort)(1 << (int)Maneuver.Jump);
             }
 
-            plan = wfc.Collapse(allowed, running, Weights[(int)intent], ref rng);
+            plan = wfc.Collapse(allowed, running, PlanWeights, ref rng);
             planStart = u;
         }
 
@@ -1049,6 +1068,8 @@ namespace KotH.Shared.Bots
                 Jump(u, ref input, me.Motor.Sliding);
                 stuckTicks = 0;
             }
+            if (Blocked(u, me, distance > 0.3f))
+                walkKeys = JumpPilot.Keys(moveYaw + 90f * dodgeSide - yaw, true, walkKeys);
             if (u < jumpHeldUntil)
                 input.JumpHeld = true;
             input.Move = walkKeys;
@@ -1448,14 +1469,22 @@ namespace KotH.Shared.Bots
             else if (intent == BotIntent.Hold && watchId != 0 && IndexOf(view, watchId) is var wi and >= 0)
             {
                 // Holding: the view on the one coming up, where it will climb over the edge.
-                Vector3 eye = me.Motor.EyePosition, to = UMath.Sub(view.StateAt(wi).Motor.BodyCenter, eye);
+                Vector3 eye = me.Motor.EyePosition, to = UMath.Sub(EdgeToward(eye, view.StateAt(wi).Motor.BodyCenter), eye);
                 faceYaw = UMath.Atan2(-to.X, -to.Z) * (180f / MathF.PI);
                 wantPitch = UMath.Clamp(UMath.Atan2(to.Y, UMath.Sqrt(to.X * to.X + to.Z * to.Z)) * (180f / MathF.PI), -30f, 10f);
+            }
+            else if (intent == BotIntent.Hold && match != null && arrived)
+            {
+                faceYaw = Scan(u, at);
+                wantPitch = -12f;
             }
             else if (arrived && intent == BotIntent.Idle)
                 faceYaw = yaw;
 
-            Look(u, faceYaw, wantPitch, settings.TurnRate, aiming ? 0.25f : 1f);
+            // Knocked about, a player keeps the view and works the keys against the flight; the view only
+            // follows the way slowly (it spun round the spot with the sliding body).
+            float turnRate = intent == BotIntent.Recover && !aiming ? RecoverTurn : settings.TurnRate;
+            Look(u, faceYaw, wantPitch, turnRate, aiming ? 0.25f : 1f);
             input.Yaw = yaw;
             input.Pitch = pitch;
 
@@ -1517,13 +1546,20 @@ namespace KotH.Shared.Bots
             }
 
             // Ready to swing and close: run at the target as a player does, the own speed goes into the knock.
-            if (aiming && intent == BotIntent.Attack && !holdBlaster && targetDistance < ChargeRange &&
+            if (aiming && intent == BotIntent.Attack && fightPhase != FightPhase.Disengage && !holdBlaster && targetDistance < ChargeRange &&
                 u + ChargeLead >= lastStrike + fists.CooldownTicks && CaneReady(u))
             {
                 float rel = (bearYaw - yaw) * (MathF.PI / 180f);
                 local = new Vector2(-UMath.Sin(rel), UMath.Cos(rel));
                 input.Sprint = true;
                 arrived = false;
+            }
+
+            // Fleeing with the catcher at its heels: up and away with a double jump, out of the swing's reach.
+            if (intent == BotIntent.Flee && targetDistance < EscapeReach && !airborne && u - lastJump >= EscapeEvery)
+            {
+                Jump(u, ref input, me.Motor.Sliding);
+                doubleJumpAt = u + 13;
             }
 
             // The path comes first: a ledge to jump onto is jumped whatever the plan says.

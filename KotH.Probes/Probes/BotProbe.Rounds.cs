@@ -48,6 +48,8 @@ namespace KotH.Probes.Probes
             }
             Log($"[rounds] map {map}, mode {match.Mode}, {count} bots, seed {seed}");
 
+            int traceBot = int.Parse(Environment.GetEnvironmentVariable("KOTH_ROUNDS_TRACE") ?? "0") - 1, traced = 0;
+            int traceLimit = int.Parse(Environment.GetEnvironmentVariable("KOTH_ROUNDS_TRACE_TICKS") ?? "2400");
             var wins = new int[count];
             var up = new bool[count];
             var lastTurn = new float[count];
@@ -168,6 +170,20 @@ namespace KotH.Probes.Probes
                     {
                         leadChanges += leader >= 0 ? 1 : 0;
                         leader = best;
+                    }
+                    if (traceBot >= 0 && up[traceBot] && traced < traceLimit)
+                    {
+                        traced++;
+                        BotBrain tm = director.BrainOf(bots[traceBot].NetId);
+                        MoveInput ti = tm.LastInput;
+                        MotorState ts = bots[traceBot].Motor.CaptureState();
+                        int tj = bots.FindIndex(b => b.NetId == tm.Target);
+                        float td = tj >= 0 ? (bots[tj].Motor.Position - ts.Position).Length() : -1f;
+                        Log($"[trace] {t} in {(match.Contains(ts.Position) ? 1 : 0)} {tm.Intent} t{(tj >= 0 ? tj + 1 : 0)} d {td:F1} ph {tm.FightStage} " +
+                            $"{tm.Running} keys {ti.Move.X:F0},{ti.Move.Y:F0} s{(ti.Sprint ? 1 : 0)}c{(ti.Crouch ? 1 : 0)}j{ti.JumpPresses}a{ti.AttackPresses} " +
+                            $"yaw {ti.Yaw:F0} v {MathF.Sqrt(ts.Velocity.X * ts.Velocity.X + ts.Velocity.Z * ts.Velocity.Z):F1} dmg {bots[traceBot].Entity.Get<DamagePercent>().Percent:F0} " +
+                            $"at {ts.Position.X:F1} {ts.Position.Y:F1} {ts.Position.Z:F1} cl {(tm.Climbing ? 1 : 0)} goal {tm.Goal.X:F1} {tm.Goal.Y:F1} {tm.Goal.Z:F1} " +
+                            $"corners {string.Join(" ", tm.Corners.Take(4).Select(c => $"{c.Position.X:F1},{c.Position.Y:F1},{c.Position.Z:F1}/{c.Link}"))} hop {(tm.Hopping ? 1 : 0)} fl {tm.Flight}");
                     }
                     for (int i = 0; i < count; i++)
                         Natural(i, (int)t, director.BrainOf(bots[i].NetId), bots[i], match, up, lastTurn, lastYaw, lastMove,
