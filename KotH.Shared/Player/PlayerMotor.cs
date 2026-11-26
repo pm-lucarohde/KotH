@@ -1176,18 +1176,45 @@ namespace KotH.Shared.Player
                     ? (hasInput ? GroundAcceleration : GroundDeceleration)
                     : (hasInput ? AirAcceleration : 0f);
 
-            // The body's own running, without the knock riding on it. The
-            // knock sheds on its own, whatever is pressed. Untouched without
-            // one: adding a zero flips the sign of a -0 and the bits change.
+            // Steering against a knock spends the impulse directly instead of
+            // building opposing own speed, so letting go never resumes sliding.
+            // Untouched without one: adding a zero flips the sign of a -0.
             bool knocked = UMath.SqrMagnitude(knock) > 0f;
             Vector3 current = knocked
                 ? new Vector3(velocity.X - knock.X, 0f, velocity.Z - knock.Z)
                 : new Vector3(velocity.X, 0f, velocity.Z);
-            Vector3 next = UMath.MoveTowards(current, UMath.Mul(wish, speed), rate * dt);
-            if (knocked)
+            Vector3 target = UMath.Mul(wish, speed);
+            Vector3 next;
+            if (!knocked)
             {
-                knock = UMath.MoveTowards(knock, Vector3.Zero, AirAcceleration * dt);
-                next = new Vector3(next.X + knock.X, 0f, next.Z + knock.Z);
+                next = UMath.MoveTowards(current, target, rate * dt);
+            }
+            else
+            {
+                float kLen = UMath.Magnitude(knock);
+                Vector3 kDir = UMath.Div(knock, kLen);
+                float curAlong = UMath.Dot(current, kDir);
+                float tgtAlong = UMath.Dot(target, kDir);
+                Vector3 curSide = UMath.Sub(current, UMath.Mul(kDir, curAlong));
+                Vector3 tgtSide = UMath.Sub(target, UMath.Mul(kDir, tgtAlong));
+                Vector3 nextSide = UMath.MoveTowards(curSide, tgtSide, rate * dt);
+
+                kLen = UMath.Max(0f, kLen - AirAcceleration * dt);
+                float nextAlong;
+                if (tgtAlong < 0f && kLen > 0f)
+                {
+                    float cut = curAlong > 0f ? UMath.Min(curAlong, rate * dt) : 0f;
+                    nextAlong = curAlong - cut;
+                    float share = -tgtAlong / UMath.Max(0.001f, TunedWalk);
+                    bool onGround = (grounded || OnStep) && knockbackTime <= 0f;
+                    float brake = onGround ? 2f * AirAcceleration * share : AirAcceleration * UMath.Min(1f, share);
+                    kLen = UMath.Max(0f, kLen - brake * dt);
+                }
+                else
+                    nextAlong = UMath.MoveTowards(curAlong, tgtAlong, rate * dt);
+
+                knock = kLen > 0f ? UMath.Mul(kDir, kLen) : Vector3.Zero;
+                next = UMath.Add(nextSide, UMath.Mul(kDir, nextAlong + kLen));
             }
 
             velocity.X = next.X;

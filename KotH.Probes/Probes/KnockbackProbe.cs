@@ -92,25 +92,36 @@ namespace KotH.Probes.Probes
                     (ok ? "ok" : "ABWEICHUNG"));
             }
 
-            // Running against the knock takes the running speed off, with it
-            // adds it on. Each is compared to the flight plus the distance the
-            // body ran on its own over the same time, measured alone. Without
-            // the hop: in the air it could not speed up as fast as on the ground.
+            // Running with the knock adds the running speed on; running against it spends the knock
+            // impulse directly and stops much sooner. Without the hop: stays on the ground throughout.
             float height = attack.KnockbackHeight;
             attack.KnockbackHeight = 0f;
-            foreach (float run in new[] { -1f, 1f })
             {
-                Flight f = Hit(100f, run);
-                float own = Walk(run, f.Ticks);
+                Flight f = Hit(100f, 1f);
+                float own = Walk(1f, f.Ticks);
                 float want = shortFlight + own;
                 bool ok = MathF.Abs(f.Distance - want) <= 0.01f && !f.Off;
                 if (!ok)
                     failures++;
-                Log($"[knockback] == 100.0 % {(run < 0f ? "ran against the push" : "ran with the push")}: " +
+                Log($"[knockback] == 100.0 % ran with the push: " +
                     $"{f.Distance:F3} m in {f.Ticks} ticks (push {shortFlight:F3} + own running {own:F3} = {want:F3}) -> " +
                     (ok ? "ok" : "ABWEICHUNG"));
             }
+            {
+                Flight f = Hit(100f, -1f);
+                bool ok = f.Distance > 0f && f.Distance < shortFlight * 0.5f && !f.Off;
+                if (!ok)
+                    failures++;
+                Log($"[knockback] == 100.0 % ran against the push: " +
+                    $"{f.Distance:F3} m in {f.Ticks} ticks (below {shortFlight * 0.5f:F3}) -> " +
+                    (ok ? "ok" : "ABWEICHUNG"));
+            }
             attack.KnockbackHeight = height;
+
+            // Luca (26.11.2026): high-percent knock, land, counter-steer until stopped (or briefly),
+            // then release. The knock is an impulse, so releasing must never resume or accelerate sliding.
+            failures += ReleaseAfterCounterSteer(250f, fullStop: true);
+            failures += ReleaseAfterCounterSteer(250f, fullStop: false);
 
             // Both speeds along the line at the hit: their share is added to
             // the launch speed, the distance then follows from braking at the
@@ -188,6 +199,60 @@ namespace KotH.Probes.Probes
 
             Log(failures == 0 ? "[knockback] KNOCKBACK AS SPECIFIED" : $"[knockback] {failures} CASES DIFFER");
             return failures == 0 ? 0 : 1;
+        }
+
+        /// <summary>Knocks a body at percent, lets it land, counter-steers until stopped (or 8 ticks),
+        /// then releases input: speed along the knock must never rise after release, and a full stop stays still.</summary>
+        int ReleaseAfterCounterSteer(float percent, bool fullStop)
+        {
+            Place();
+            damage.Restore(percent);
+            attack.ResetCounters();
+            attackerInput.Input.AttackPresses = 1;
+            world.Simulation.Tick();
+            attackerInput.Input.AttackPresses = 0;
+            StepAside();
+
+            // Wait until the body has flown and landed back on the ground.
+            bool airborne = false;
+            for (int t = 0; t < 200; t++)
+            {
+                world.Simulation.Tick();
+                if (!victim.IsGrounded)
+                    airborne = true;
+                else if (airborne)
+                    break;
+            }
+
+            // Counter-steer against the knock (+x in Unity = +x in Stride here, yaw 90 faces +x).
+            victimInput.Input = new MoveInput { Yaw = Ref.Angle(90f), Move = new Vector2(0f, -1f) };
+            int limit = fullStop ? 200 : 8;
+            for (int t = 0; t < limit; t++)
+            {
+                world.Simulation.Tick();
+                if (fullStop && victim.Velocity.X <= 0f)
+                    break;
+            }
+
+            // Release input and observe for 40 ticks (1 s).
+            victimInput.Input = new MoveInput { Yaw = Ref.Angle(90f) };
+            float atReleaseX = victim.Position.X;
+            float speedAtRelease = victim.Velocity.X;
+            float maxDrift = 0f, maxSpeedAfter = 0f;
+            for (int t = 0; t < 40; t++)
+            {
+                world.Simulation.Tick();
+                maxDrift = MathF.Max(maxDrift, victim.Position.X - atReleaseX);
+                maxSpeedAfter = MathF.Max(maxSpeedAfter, victim.Velocity.X);
+            }
+
+            bool ok = fullStop
+                ? victim.KnockLeft == 0f && maxDrift <= 0.001f && maxSpeedAfter <= 0.001f
+                : maxSpeedAfter <= speedAtRelease + 1e-4f;
+            Log($"[knockback] == {percent,5:F1} % {(fullStop ? "stop then release" : "brake then release")}: " +
+                $"vRelease {speedAtRelease:F3} m/s, maxAfter {maxSpeedAfter:F3} m/s, drift {maxDrift:F3} m, " +
+                $"knockLeft {victim.KnockLeft:F3} -> {(ok ? "ok" : "ABWEICHUNG")}");
+            return ok ? 0 : 1;
         }
 
         /// <summary>How far a knock at percent carries with extra launch speed carry on
