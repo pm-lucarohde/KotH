@@ -417,16 +417,16 @@ namespace KotH.Client.Menu
             else if (what == "round")
             {
                 view.Pretend(6);
+                if (int.TryParse(Environment.GetEnvironmentVariable("KOTH_SHOT_BOTS"), out int bots))
+                {
+                    view.RoundView.PretendBots(bots);   // KOTH_SHOT_BOTS=n: the bots switched on (Luca's stall)
+                    ChangeRound(start: false);
+                }
                 // KOTH_SHOT_ROUND=free: that mode chosen, then Start round (use KOTH_SETTINGS: it is remembered).
                 if (HillMatch.ParseMode(Environment.GetEnvironmentVariable("KOTH_SHOT_ROUND")) is { } mode)
                 {
                     view.RoundView.Pretend(mode);
                     ChangeRound(start: true);
-                }
-                if (int.TryParse(Environment.GetEnvironmentVariable("KOTH_SHOT_BOTS"), out int bots))
-                {
-                    view.RoundView.PretendBots(bots);   // KOTH_SHOT_BOTS=n: the bots switched on (Luca's stall)
-                    ChangeRound(start: false);
                 }
             }
         }

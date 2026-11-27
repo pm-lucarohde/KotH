@@ -240,7 +240,15 @@ namespace KotH.Client
                 return;
             }
 
-            StartAlone(options.Bots);
+            // Spawn after the map's lightmap bake finishes, like a hosted round, so figures never block it.
+            Action start = null;
+            start = () =>
+            {
+                cover.Loaded -= start;
+                if (games == 0)
+                    StartAlone(options.Bots);
+            };
+            cover.Loaded += start;
         }
 
         /// <summary>A round alone on the loaded map (--offline): the player

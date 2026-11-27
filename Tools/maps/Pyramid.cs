@@ -170,12 +170,10 @@ var heights = new Dictionary<(int, int), double>();
         arena.Triangle(water, a, a + 3, a + 2, false);
     }
 }
-// Lamps let into the grass (the source's shroomlights) and the spawns' gold plates.
+// The spawns' gold plates (the grass lamps were removed per Luca).
 for (int z = -48; z <= 48; z++)
     for (int x = -48; x <= 50; x++)
-        if (Cell(x, z) == 'S')
-            arena.Lathe("Glow", [(0, 0.0), (0.3, 0.0), (0.28, 0.03), (0, 0.03)], false, x, z, chord: 0.1, least: 12);
-        else if (Cell(x, z) == 'G')
+        if (Cell(x, z) == 'G')
             arena.Lathe("Sandstone", [(0, 0.0), (0.47, 0.0), (0.45, 0.02), (0, 0.02)], false, x, z, chord: 0.1, least: 16);
 
 // ---- the four faces, each the same: f its outward direction (x, z); a point d out along it, a across it, y up ----

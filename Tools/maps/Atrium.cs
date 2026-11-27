@@ -414,14 +414,15 @@ void Platform(double top)
 Platform(ZoneTop);
 Platform(LowerTop);
 // The stepping stones: floating stone discs over a rock cone.
-void Stone(double r, double a, double radius, double top, int seed)
+void Stone(double r, double a, double radius, double top, int seed, double depth = 1.2)
 {
-    const double T = 0.4, Depth = 1.2;
+    const double T = 0.4;
     V3 c = Polar(r, a, 0);
-    arena.Lathe("Smooth", [(radius - 0.15, top - T), (radius, top - T + 0.12), (radius, top - 0.08), (radius - 0.08, top), (0, top)], true, c.X, c.Z,
-                chord: 0.3, least: 20);
-    arena.Rock([(0, top - T - Depth), (radius * 0.45, top - T - Depth * 0.6), (radius * 0.85, top - T - Depth * 0.2), (radius - 0.15, top - T)],
-               seed, 0.18 * radius, radius, true, c.X, c.Z, chord: 0.35, colour: (p, n) => RockPaint(p, top - T - Depth, top - T));
+    // Close the underside and tuck the rock rim slightly inside so polygon chords never leave a slit.
+    arena.Lathe("Smooth", [(0, top - T), (radius - 0.15, top - T), (radius, top - T + 0.12), (radius, top - 0.08), (radius - 0.08, top), (0, top)],
+                true, c.X, c.Z, chord: 0.3, least: 20);
+    arena.Rock([(0, top - T - depth), (radius * 0.45, top - T - depth * 0.6), (radius * 0.85, top - T - depth * 0.2), (radius - 0.16, top - T + 0.04)],
+               seed, 0.18 * radius, radius, true, c.X, c.Z, chord: 0.35, colour: (p, n) => RockPaint(p, top - T - depth, top - T));
 }
 // Nine stones: two per step, three to the zone (of the first sixteen, which wind round the shaft).
 foreach (int k in new[] { 0, 2 })
@@ -432,6 +433,9 @@ foreach (int k in new[] { 0, 2 })
 }
 foreach (int k in new[] { 0, 1, 3 })
     Stone(6.2, 45 + 90 * k, 1.2, 1.6, 22 + k);      // A: to the zone
+// Four outer stepping stones between the bridges (45, 135, 225, 315 deg): high enough to walk under, reachable from the pier to the roof.
+for (int k = 0; k < 4; k++)
+    Stone(28.0, 45 + 90 * k, 1.2, 3.25, 38 + k, depth: 0.9);
 
 
 // ---- trees in the garden, where the map's eight stood ----

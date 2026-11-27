@@ -138,8 +138,7 @@ namespace KotH.Client.Menu
             string why = RoundPage.Problem;
             ApplyRound.IsEnabled = dirty;
             StartRound.IsEnabled = !dirty && why == null;
-            Status.Text = dirty ? "Press Apply to confirm changes."
-                        : why ?? "The values count from the next round; bots and the start right away.";
+            Status.Text = dirty ? "Press Apply to confirm changes." : why ?? "";
         }
 
         /// <summary>Whether the Map page shows.</summary>
