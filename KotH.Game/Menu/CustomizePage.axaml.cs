@@ -61,12 +61,10 @@ namespace KotH.Client.Menu
             };
             ResetAll.Click += (_, _) =>
             {
-                // Every colour as painted; the figure, the glow's switch and the trail's shape stay.
+                // Every colour as painted, glow off and trail off; the chosen figure stays.
                 FigureLook painted = FigureLook.Default;
                 painted.Kind = look.Kind;
                 painted[FigureLook.Cap] = FigureLook.PaintedColor(look.Kind, FigureLook.Cap);
-                painted.Glows = look.Glows;
-                painted.TrailShape = look.TrailShape;
                 if (painted.Equals(look))
                     return;
                 look = painted;
