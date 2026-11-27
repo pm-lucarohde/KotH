@@ -31,6 +31,7 @@ namespace KotH.Client.Rendering
         static readonly ValueParameterKey<float> OffsetScale = ParameterKeys.NewValue<float>(default, "FigureShadowMask.OffsetScale");
         static readonly ValueParameterKey<float> SunTangent = ParameterKeys.NewValue<float>(default, "FigureShadowMask.SunTangent");
         static readonly ValueParameterKey<float> Throw = ParameterKeys.NewValue<float>(default, "FigureShadowMask.Throw");
+        static readonly ValueParameterKey<float> PixelScale = ParameterKeys.NewValue<float>(default, "FigureShadowMask.PixelScale");
         static readonly ValueParameterKey<Vector2> ShadowMapSize = ParameterKeys.NewValue<Vector2>(default, "FigureShadowMask.ShadowMapSize");
         static readonly ValueParameterKey<Vector2> ShadowMapTexelSize = ParameterKeys.NewValue<Vector2>(default, "FigureShadowMask.ShadowMapTexelSize");
         static readonly ValueParameterKey<Vector2> SheetAt = ParameterKeys.NewValue<Vector2>(default, "FigureShadowMask.SheetAt");
@@ -41,6 +42,11 @@ namespace KotH.Client.Rendering
         static readonly ValueParameterKey<Vector2> SourceAt = ParameterKeys.NewValue<Vector2>(default, "FigureShadowPyramid.SourceAt");
         static readonly ValueParameterKey<Vector2> TargetAt = ParameterKeys.NewValue<Vector2>(default, "FigureShadowPyramid.TargetAt");
         static readonly ValueParameterKey<float> First = ParameterKeys.NewValue<float>(default, "FigureShadowPyramid.First");
+        static readonly ValueParameterKey<Vector2> BlurDirection = ParameterKeys.NewValue<Vector2>(default, "FigureShadowBlur.Direction");
+        static readonly ValueParameterKey<Vector2> BlurNearFar = ParameterKeys.NewValue<Vector2>(default, "FigureShadowBlur.NearFar");
+        static readonly ObjectParameterKey<Texture> BlurDepthMap = ParameterKeys.NewObject<Texture>(null, "FigureShadowBlur.DepthMap");
+        static readonly Color4 Lit = new Color4(1f, 0f, 0f, 1f);
+        const int BlurPad = 4;
 
         /// <summary>The pyramid's levels: level n holds blocks of 2^(n+1) texels, the last a whole tile of 1024.</summary>
         public const int Levels = 10;
@@ -52,6 +58,7 @@ namespace KotH.Client.Rendering
         sealed class ViewMask
         {
             public Texture Texture;
+            public Texture Scratch;
             public Size2 Wanted;   // the depth's size the last draw found (zero: the view's size)
             public SunShadowTiles Tiles;
             public float SunTangent;
@@ -61,7 +68,7 @@ namespace KotH.Client.Rendering
         public override Type SupportedRenderObjectType => typeof(Nothing);
 
         RenderStage opaque, prepass;
-        ImageEffectShader shader, builder;
+        ImageEffectShader shader, builder, blur;
         // The pyramid in two textures, even and odd levels: a level is drawn from the one before it.
         Texture even, odd;
         readonly Dictionary<RenderView, ViewMask> views = new Dictionary<RenderView, ViewMask>();
@@ -99,17 +106,24 @@ namespace KotH.Client.Rendering
             shader.Initialize(Context);
             builder = new ImageEffectShader("FigureShadowPyramid");
             builder.Initialize(Context);
+            blur = new ImageEffectShader("FigureShadowBlur");
+            blur.RasterizerState = clipped;
+            blur.Initialize(Context);
         }
 
         public override void Unload()
         {
             shader?.Dispose();
             builder?.Dispose();
+            blur?.Dispose();
             even?.Dispose();
             odd?.Dispose();
-            (shader, builder, even, odd) = (null, null, null, null);
+            (shader, builder, blur, even, odd) = (null, null, null, null, null);
             foreach (ViewMask mask in views.Values)
+            {
                 mask.Texture?.Dispose();
+                mask.Scratch?.Dispose();
+            }
             views.Clear();
             base.Unload();
         }
@@ -133,7 +147,10 @@ namespace KotH.Client.Rendering
                 if (mask.Texture == null || mask.Texture.Width != size.Width || mask.Texture.Height != size.Height)
                 {
                     mask.Texture?.Dispose();
-                    mask.Texture = Texture.New2D(Context.GraphicsDevice, size.Width, size.Height, PixelFormat.R32_Float,
+                    mask.Scratch?.Dispose();
+                    mask.Texture = Texture.New2D(Context.GraphicsDevice, size.Width, size.Height, PixelFormat.R16G16_Float,
+                                                 TextureFlags.RenderTarget | TextureFlags.ShaderResource);
+                    mask.Scratch = Texture.New2D(Context.GraphicsDevice, size.Width, size.Height, PixelFormat.R16G16_Float,
                                                  TextureFlags.RenderTarget | TextureFlags.ShaderResource);
                 }
                 (mask.Tiles, mask.SunTangent, mask.Frame) = (tiles, sunTangent, frame);
@@ -173,23 +190,30 @@ namespace KotH.Client.Rendering
             {
                 // Sized from the view before the first draw: right from the next frame on, lit until then.
                 mask.Wanted = new Size2(depth.Width, depth.Height);
-                context.CommandList.Clear(mask.Texture, Color4.White);
+                context.CommandList.Clear(mask.Texture, Lit);
                 return;
             }
 
-            // Only pixels within a tile's screen are shaded; the rest is lit (as the shader returns there).
+            // Only pixels within a tile's screen (plus blur margin) are shaded; the rest is lit.
             Rectangle reached = Reached(tiles, depth.Width, depth.Height);
             if (reached.Width <= 0 || reached.Height <= 0)
             {
-                context.CommandList.Clear(mask.Texture, Color4.White);
+                context.CommandList.Clear(mask.Texture, Lit);
                 return;
             }
             if (reached.Width < depth.Width || reached.Height < depth.Height)
-                context.CommandList.Clear(mask.Texture, Color4.White);
+            {
+                context.CommandList.Clear(mask.Texture, Lit);
+                context.CommandList.Clear(mask.Scratch, Lit);
+            }
+
+            Vector2 nearFar = new Vector2(renderView.NearClipPlane, renderView.FarClipPlane);
+            float m22 = MathF.Abs(renderView.Projection.M22);
+            float pixelScale = m22 > 1e-6f ? 2f / (m22 * MathF.Max(depth.Height, 1f)) : 0f;
 
             var p = shader.Parameters;
             p.Set(ClipToRay, AtmosphereEffects.ClipToRayOf(renderView));
-            p.Set(NearFar, new Vector2(renderView.NearClipPlane, renderView.FarClipPlane));
+            p.Set(NearFar, nearFar);
             p.Set(Eye, Matrix.Invert(renderView.View).TranslationVector);
             p.Set(TileCount, (float)tiles.Count);
             p.Set(WorldToTile, SunShadowTiles.Most, ref tiles.WorldToUV[0]);
@@ -200,6 +224,7 @@ namespace KotH.Client.Rendering
             p.Set(OffsetScale, tiles.OffsetScale);
             p.Set(SunTangent, mask.SunTangent);
             p.Set(Throw, tiles.Throw);
+            p.Set(PixelScale, pixelScale);
             p.Set(ShadowMapSize, new Vector2(atlas.Width, atlas.Height));
             p.Set(ShadowMapTexelSize, new Vector2(1f / atlas.Width, 1f / atlas.Height));
             p.Set(SheetAt, new Vector2(tiles.Sheet.X, tiles.Sheet.Y));
@@ -214,10 +239,25 @@ namespace KotH.Client.Rendering
                 shader.SetOutput(mask.Texture);
                 shader.SetScissorRectangle(reached);
                 shader.Draw(context);
+
+                var bp = blur.Parameters;
+                bp.Set(BlurNearFar, nearFar);
+                bp.Set(BlurDepthMap, depth);
+                bp.Set(BlurDirection, Vector2.UnitX);
+                blur.SetInput(0, mask.Texture);
+                blur.SetOutput(mask.Scratch);
+                blur.SetScissorRectangle(reached);
+                blur.Draw(context);
+
+                bp.Set(BlurDirection, Vector2.UnitY);
+                blur.SetInput(0, mask.Scratch);
+                blur.SetOutput(mask.Texture);
+                blur.SetScissorRectangle(reached);
+                blur.Draw(context);
             }
         }
 
-        /// <summary>The pixels whose centre lies within some tile's screen (uv), a pixel more on each side.</summary>
+        /// <summary>The pixels within some tile's screen (uv), padded by BlurPad on each side.</summary>
         static Rectangle Reached(SunShadowTiles tiles, int width, int height)
         {
             Vector4 union = new Vector4(float.MaxValue, float.MaxValue, float.MinValue, float.MinValue);
@@ -226,10 +266,10 @@ namespace KotH.Client.Rendering
                 Vector4 s = tiles.Screens[t];
                 union = new Vector4(MathF.Min(union.X, s.X), MathF.Min(union.Y, s.Y), MathF.Max(union.Z, s.Z), MathF.Max(union.W, s.W));
             }
-            int left = Math.Clamp((int)MathF.Floor(union.X * width) - 1, 0, width);
-            int top = Math.Clamp((int)MathF.Floor(union.Y * height) - 1, 0, height);
-            int right = Math.Clamp((int)MathF.Ceiling(union.Z * width) + 1, 0, width);
-            int bottom = Math.Clamp((int)MathF.Ceiling(union.W * height) + 1, 0, height);
+            int left = Math.Clamp((int)MathF.Floor(union.X * width) - BlurPad, 0, width);
+            int top = Math.Clamp((int)MathF.Floor(union.Y * height) - BlurPad, 0, height);
+            int right = Math.Clamp((int)MathF.Ceiling(union.Z * width) + BlurPad, 0, width);
+            int bottom = Math.Clamp((int)MathF.Ceiling(union.W * height) + BlurPad, 0, height);
             return new Rectangle(left, top, right - left, bottom - top);
         }
 

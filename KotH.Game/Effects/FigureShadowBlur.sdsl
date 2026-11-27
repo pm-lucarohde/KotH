@@ -1,0 +1,96 @@
+/// <summary>Separable joint-bilateral blur over FigureShadowMask (Texture0: shadow in .r, blur radius in
+/// pixels in .g) guided by the prepass depth (DepthMap). Uses the local depth slope along the pass axis so
+/// grazing floors stay smooth while depth edges and first-person arms never bleed.</summary>
+shader FigureShadowBlur : ImageEffectShader
+{
+    float2 Direction;
+    float2 NearFar;
+    Texture2D DepthMap;
+
+    // Matches FigureShadowMask's FirstPersonDepth squeeze so arms and world never mix.
+    static const float ArmsSqueeze = 0.01;
+
+    float LinearDepth(int2 q, out bool isArms)
+    {
+        float z = DepthMap.Load(int3(q, 0)).r;
+        isArms = z < ArmsSqueeze;
+        if (isArms)
+            z /= ArmsSqueeze;
+        return NearFar.x * NearFar.y / (NearFar.y - z * (NearFar.y - NearFar.x));
+    }
+
+    stage override float4 Shading()
+    {
+        int2 pixel = int2(streams.ShadingPosition.xy);
+        float2 center = Texture0.Load(int3(pixel, 0)).rg;
+        if (center.g <= 0.05)
+            return float4(center, 0.0, 1.0);
+
+        int2 last = int2(round(1.0 / Texture0TexelSize)) - 1;
+        int2 dir = int2(round(Direction));
+        int2 qPrev = clamp(pixel - dir, int2(0, 0), last);
+        int2 qNext = clamp(pixel + dir, int2(0, 0), last);
+        bool centerArms, prevArms, nextArms;
+        float centerDepth = LinearDepth(pixel, centerArms);
+        float dPrev = LinearDepth(qPrev, prevArms);
+        float dNext = LinearDepth(qNext, nextArms);
+
+        // Pick the smoother neighbour's depth slope so a surface near a silhouette keeps its own plane.
+        float slopeL = prevArms == centerArms ? (centerDepth - dPrev) : 1e6;
+        float slopeR = nextArms == centerArms ? (dNext - centerDepth) : 1e6;
+        float slope = abs(slopeL) < abs(slopeR) ? slopeL : slopeR;
+        if (abs(slope) > 0.25 * centerDepth)
+            slope = 0.0;
+
+        float sigma = max(center.g * 0.5, 0.35);
+        float invTwoSigma2 = 0.5 / (sigma * sigma);
+        float sigmaZ = max(0.012 * centerDepth, 0.015);
+        float invSigmaZ2 = 1.0 / (sigmaZ * sigmaZ);
+        int reach = clamp(int(ceil(sigma * 2.0)), 1, 3);
+
+        float sum = center.r;
+        float weightSum = 1.0;
+
+        // Reuse the +/-1 depths already loaded for the plane slope.
+        if (prevArms == centerArms)
+        {
+            float diff = dPrev - (centerDepth - slope);
+            float w = exp(-invTwoSigma2 - diff * diff * invSigmaZ2);
+            sum += Texture0.Load(int3(qPrev, 0)).r * w;
+            weightSum += w;
+        }
+        if (nextArms == centerArms)
+        {
+            float diff = dNext - (centerDepth + slope);
+            float w = exp(-invTwoSigma2 - diff * diff * invSigmaZ2);
+            sum += Texture0.Load(int3(qNext, 0)).r * w;
+            weightSum += w;
+        }
+
+        for (int k = 2; k <= reach; k++)
+        {
+            float spatial = -float(k * k) * invTwoSigma2;
+            int2 qm = clamp(pixel - dir * k, int2(0, 0), last);
+            bool armsM;
+            float depthM = LinearDepth(qm, armsM);
+            if (armsM == centerArms)
+            {
+                float diff = depthM - (centerDepth - slope * float(k));
+                float w = exp(spatial - diff * diff * invSigmaZ2);
+                sum += Texture0.Load(int3(qm, 0)).r * w;
+                weightSum += w;
+            }
+            int2 qp = clamp(pixel + dir * k, int2(0, 0), last);
+            bool armsP;
+            float depthP = LinearDepth(qp, armsP);
+            if (armsP == centerArms)
+            {
+                float diff = depthP - (centerDepth + slope * float(k));
+                float w = exp(spatial - diff * diff * invSigmaZ2);
+                sum += Texture0.Load(int3(qp, 0)).r * w;
+                weightSum += w;
+            }
+        }
+        return float4(sum / weightSum, center.g, 0.0, 1.0);
+    }
+};

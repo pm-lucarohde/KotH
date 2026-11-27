@@ -116,6 +116,10 @@ EffectName: DlssSharpen
 UsedParameters: {}
 ---
 !EffectCompileRequest
+EffectName: FigureShadowBlur
+UsedParameters: {}
+---
+!EffectCompileRequest
 EffectName: FigureShadowMask
 UsedParameters: {}
 ---
