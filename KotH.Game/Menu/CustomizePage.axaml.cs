@@ -56,8 +56,19 @@ namespace KotH.Client.Menu
             Light.ValueChanged += (_, _) => Slid();
             Reset.Click += (_, _) =>
             {
-                if (!Locked)
-                    Set(FigureLook.PaintedColor(look.Kind, part));
+                if (Locked)
+                    return;
+                FigureLook next = look;
+                next[part] = FigureLook.PaintedColor(look.Kind, part);
+                if (part == FigureLook.Glow)
+                    next.Glows = false;
+                else if (part == FigureLook.Trail)
+                    next.TrailShape = FigureLook.NoTrail;
+                if (next.Equals(look))
+                    return;
+                look = next;
+                Choose(part);
+                LookChanged?.Invoke(look);
             };
             ResetAll.Click += (_, _) =>
             {
@@ -207,15 +218,6 @@ namespace KotH.Client.Menu
             look[part] = rgb;
             dots[part].Fill = new SolidColorBrush(ToColor(rgb));
             Show();
-            LookChanged?.Invoke(look);
-        }
-
-        void Set(uint rgb)
-        {
-            if (look[part] == rgb)
-                return;
-            look[part] = rgb;
-            Choose(part);
             LookChanged?.Invoke(look);
         }
 
