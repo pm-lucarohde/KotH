@@ -10,7 +10,7 @@ using KotH.Client.Steam;
 namespace KotH.Client.Menu
 {
     /// <summary>The Host server page: what the lobby list will say about the round (name, public or
-    /// private, up to 2 regions, up to 4 languages, modded) and the password a private one asks for. Host
+    /// private, up to 2 regions, up to 2 languages, modded) and the password a private one asks for. Host
     /// hands the flags and the password to the menu; the rest is remembered (ClientSettings.RememberHost).</summary>
     public partial class HostPage : UserControl
     {
@@ -87,6 +87,8 @@ namespace KotH.Client.Menu
                 edited.HostRegions = new[] { LobbyFlags.RegionOf(SteamClient.IpCountry, TimeZoneInfo.Local.BaseUtcOffset.TotalHours) };
             if (edited.HostLanguages.Length == 0)
                 edited.HostLanguages = new[] { SteamClient.Language };
+            else if (edited.HostLanguages.Length > LobbyFlags.MaxLanguages)
+                edited.HostLanguages = edited.HostLanguages[..LobbyFlags.MaxLanguages];
             name.Text = edited.HostName;
             name.Placeholder = fallbackName;
             password.Text = "";

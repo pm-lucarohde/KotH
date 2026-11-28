@@ -57,6 +57,7 @@ namespace KotH.Client.Menu
         bool padActive;
         bool resumeWanted, menuWanted, quitWanted, leaveWanted, confirming, toDesktop;
         float since;
+        int appliedLang = -1;
 
         // The lobby session the map choice opened by itself for: once per landing.
         PeerSession landed;
@@ -77,6 +78,7 @@ namespace KotH.Client.Menu
             view.PlayersOpened += ListPlayers;
             view.RoundOpened += () => view.RoundView.Open(LaunchOptions.Current.Mode);
             view.RoundChanged += ChangeRound;
+            view.Starting = () => LobbyHost?.Starting == true;
             view.RoundView.Count = () => LobbyHost?.Session.Simulation.Bodies is { } bodies
                                          ? (HillMatch.CountPeople(bodies), HillMatch.CountPlayers(bodies)) : (1, 1);
             view.Confirmed += leave =>
@@ -97,6 +99,29 @@ namespace KotH.Client.Menu
             hud.AddFront(board);
             hud.AddFront(page);
             hud.AddFront(confirm);
+            appliedLang = Loc.Version;
+            Loc.Changed += OnLanguageChanged;
+        }
+
+        public override void Cancel()
+        {
+            Loc.Changed -= OnLanguageChanged;
+        }
+
+        void OnLanguageChanged()
+        {
+            if (view == null)
+                return;
+            appliedLang = Loc.Version;
+            view.ApplyLanguage();
+            if (!Open)
+                return;
+            if (view.MapsShown)
+                ListMaps();
+            else if (view.PlayersShown)
+                ListPlayers();
+            else if (view.InviteShown)
+                ListFriends();
         }
 
         public override void Update()
@@ -245,7 +270,14 @@ namespace KotH.Client.Menu
             resumeWanted = menuWanted = leaveWanted = confirming = false;
             view.PageOpen = false;
             if (open)
+            {
+                if (appliedLang != Loc.Version)
+                {
+                    appliedLang = Loc.Version;
+                    view.ApplyLanguage();
+                }
                 Offer();
+            }
             since = 0f;
             if (!open)
             {
@@ -342,12 +374,28 @@ namespace KotH.Client.Menu
             view.ShowList(rows, "", "");
         }
 
-        // Round: the host's remembered choices become the lobby's (mode, bots, start) and the next round's values.
+        // Round: the host's remembered choices become the lobby's (mode, bots, start) and the next round's values;
+        // pressing Start round again during the countdown cancels it.
         void ChangeRound(bool start)
         {
             if (LobbyHost is not { } client)
                 return;
             LaunchOptions options = LaunchOptions.Current;
+            if (start && client.Starting)
+            {
+                // If a full lobby with Auto start is counting down, turn Auto start off so the cancel holds.
+                if (Settings.ClientSettings.Applied.HostAutoStart
+                    && HillMatch.CountPlayers(client.Session.Simulation.Bodies) >= options.StartAt)
+                {
+                    Settings.PlayerSettings updated = Settings.ClientSettings.Applied.Clone();
+                    updated.HostAutoStart = false;
+                    Settings.ClientSettings.RememberRound(updated);
+                    GameRoot.TakeHostRound(options, Settings.ClientSettings.Applied);
+                    view.RoundView.Open(options.Mode);
+                }
+                client.ApplyLobby(start: false, cancel: true);
+                return;
+            }
             options.Mode = Settings.ClientSettings.Applied.HostMode;
             GameRoot.TakeHostRound(options, Settings.ClientSettings.Applied);
             client.ApplyLobby(start);

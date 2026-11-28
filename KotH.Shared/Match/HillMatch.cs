@@ -85,7 +85,7 @@ namespace KotH.Shared.Match
     {
         public MatchMode Mode;
         public int MinPlayers;
-        public bool ManualStart, Start;
+        public bool ManualStart, Start, Cancel;
     }
 
     /// <summary>A round's values the host set in the lobby (Luca, 25.11.2026); Set false keeps the attacks'
@@ -312,13 +312,16 @@ namespace KotH.Shared.Match
             return state.Forced || !state.ManualStart && CountPlayers(bodies) >= state.MinPlayers;
         }
 
-        /// <summary>The host's lobby choices, from a confirmed tick (every peer alike); Start counts down at once.</summary>
+        /// <summary>The host's lobby choices, from a confirmed tick (every peer alike); Start counts down, Cancel stops it.</summary>
         public void Command(in LobbyCommand c)
         {
             state.Mode = c.Mode;
             state.MinPlayers = Math.Max(1, c.MinPlayers);
             state.ManualStart = c.ManualStart;
-            state.Forced |= c.Start;
+            if (c.Cancel)
+                state.Forced = false;
+            else if (c.Start)
+                state.Forced = true;
         }
 
         /// <summary>The damage a round starts with: the host's, else the mode's (30 % in 1, 2, 3, Free).</summary>

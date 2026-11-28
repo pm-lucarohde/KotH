@@ -141,21 +141,30 @@ namespace KotH.Client.Net
             Host.Bots = director;
             Session.KnownInputs = director;
             for (int i = 0; i < count; i++)
-                director.Add(Host.AddBot($"Bot {i + 1}"));
+                director.Add(Host.AddBot(Loc.F("common.bot_n", i + 1)));
         }
 
         public HostSession Host { get; private set; }
 
         /// <summary>The host's lobby settings as the round's command.</summary>
-        public static LobbyCommand LobbyOf(LaunchOptions o, bool start)
-            => new LobbyCommand { Mode = o.Mode, MinPlayers = o.StartAt, ManualStart = o.ManualStart, Start = start };
+        public static LobbyCommand LobbyOf(LaunchOptions o, bool start, bool cancel = false)
+            => new LobbyCommand { Mode = o.Mode, MinPlayers = o.StartAt, ManualStart = o.ManualStart, Start = start, Cancel = cancel };
+
+        /// <summary>Whether the lobby is currently counting down to start (or queued to start once bots are ready).</summary>
+        public bool Starting => lobbyWaits && waitingStart || Session.Simulation.Match is { State.Phase: MatchPhase.Countdown };
 
         /// <summary>The host changed its lobby (Esc, Round; LaunchOptions.Current): the mode, its room and the list's
-        /// word for it now, bots come or go, then every peer gets the settings in a confirmed tick; start counts down.</summary>
-        public void ApplyLobby(bool start)
+        /// word for it now, bots come or go, then every peer gets the settings in a confirmed tick; start counts down, cancel stops it.</summary>
+        public void ApplyLobby(bool start, bool cancel = false)
         {
             if (Host == null || Host.Stage != MatchStage.Lobby || Host.Restarting)
                 return;
+            if (cancel)
+            {
+                waitingStart = false;
+                Host.Command(LobbyOf(LaunchOptions.Current, start: false, cancel: true));
+                return;
+            }
             LaunchOptions o = LaunchOptions.Current;
             if (!o.BotsOff && o.Bots > 0 && Host.Bots == null && !BotsReady())
             {
@@ -180,7 +189,7 @@ namespace KotH.Client.Net
                 Session.KnownInputs = director;
             }
             for (int k = bots.Count; k < want && players < Host.Capacity && Host.Bots is BotDirector director; k++, players++)
-                director.Add(Host.AddBot($"Bot {k + 1}"));
+                director.Add(Host.AddBot(Loc.F("common.bot_n", k + 1)));
             Host.Command(LobbyOf(o, start));
         }
 
@@ -281,7 +290,7 @@ namespace KotH.Client.Net
             if (MakeBots == null)
                 return;
             for (int k = (size - count % size) % size; k > 0 && count < Host.Capacity; k--, count++)
-                Host.AddBot($"Bot {Host.BotIds.Count + 1}");
+                Host.AddBot(Loc.F("common.bot_n", Host.BotIds.Count + 1));
         }
 
         // A restart begins: the host's own peer starts the new timeline, its bots think anew.

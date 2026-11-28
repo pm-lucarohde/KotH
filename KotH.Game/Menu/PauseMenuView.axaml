@@ -55,7 +55,7 @@
                     </Border>
                     <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto,Auto" Margin="0,18,0,0">
                         <TextBlock Name="Status" Classes="Hint" VerticalAlignment="Center" TextWrapping="Wrap" />
-                        <Button Name="StartRound" Grid.Column="1" Classes="Menu Small" Content="Start round" Width="195"
+                        <Button Name="StartRound" Grid.Column="1" Classes="Menu Small" Content="Start round" Width="215"
                                 Margin="14,0,0,0" IsVisible="False" />
                         <Button Name="ApplyRound" Grid.Column="2" Classes="Menu Small" Content="Apply" Width="150"
                                 Margin="14,0,0,0" IsVisible="False" />

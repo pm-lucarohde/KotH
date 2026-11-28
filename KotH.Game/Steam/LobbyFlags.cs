@@ -5,7 +5,7 @@ using KotH.Shared.Match;
 namespace KotH.Client.Steam
 {
     /// <summary>What a host tells the lobby list about its round besides map and players: its name,
-    /// private (a password guards it) or public, up to 2 regions, up to 4 languages (ISO 639-1), whether
+    /// private (a password guards it) or public, up to 2 regions, up to 2 languages (ISO 639-1), whether
     /// it is modded (only a label for now), and solo or teams.</summary>
     public sealed record LobbyFlags(string Name, bool Private, string[] Regions, string[] Languages, bool Modded, MatchMode Mode = MatchMode.Solo,
                                     int Max = 0)
@@ -29,7 +29,7 @@ namespace KotH.Client.Steam
         };
 
         /// <summary>A host may name up to this many regions and languages.</summary>
-        public const int MaxRegions = 2, MaxLanguages = 4;
+        public const int MaxRegions = 2, MaxLanguages = 2;
 
         // ISO 3166-1 codes per region; North and Central America with the Caribbean ("na") go east or west
         // by the PC's standard time. Anything else (or unknown) is Europe.

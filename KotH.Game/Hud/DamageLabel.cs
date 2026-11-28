@@ -29,9 +29,9 @@ using Thickness = Stride.UI.Thickness;
 
 namespace KotH.Client.Hud
 {
-    /// <summary>Shows a body's damage percent and name in the world above its head using a cached
-    /// Avalonia/Skia texture (Accuratist + Noto Sans fallbacks) so all scripts and 32-character Steam
-    /// names render crisply with zero per-frame redraws while unchanged.</summary>
+    /// <summary>Shows a body's damage percent and name in the world above its head. Uses Stride's crisp SDF
+    /// TextBlock whenever all glyphs exist in Font, and falls back to a cached high-DPI Avalonia/Skia texture
+    /// (Accuratist + Noto Sans fallbacks) for non-Latin scripts such as CJK, Arabic, Cyrillic, Hindi or Thai.</summary>
     [DataContract("KotH.DamageLabel")]
     public sealed class DamageLabel : SyncScript
     {
@@ -65,21 +65,27 @@ namespace KotH.Client.Hud
         /// <summary>The camera the text turns towards.</summary>
         [DataMemberIgnore] public TransformComponent Camera { get; set; }
 
-        // World plane wide enough for a trimmed 32-char name, damage percent, and speaker icon.
-        static readonly Vector2 RectMeters = new Vector2(3.2f, 1f);
+        // World plane wide enough for a 32-char name, damage percent, and speaker icon.
+        static readonly Vector2 RectMeters = new Vector2(4f, 1f);
         const float PixelsPerMeter = 200f;
-        const int Supersample = 2;
-        const int MaxTexWidth = 1120;
-        const int MaxTexHeight = 160;
-        const double MaxNamePx = 640;
-        const int Pad = 10;
+        const int Supersample = 4;
+        const int MaxTexWidth = 2048;
+        const int MaxTexHeight = 256;
+        const double MaxNamePx = 1400;
+        const int Pad = 12;
 
         static readonly FontFamily LabelFont = new FontFamily(
             "avares://KotH.Game/Menu/Fonts#Accuratist, avares://KotH.Game/Menu/Fonts#Noto Sans Arabic, avares://KotH.Game/Menu/Fonts#Noto Sans Devanagari, avares://KotH.Game/Menu/Fonts#Noto Sans Thai, fonts:KotHCjk#Noto Sans CJK JP");
-        static readonly IBrush ShadowBrush = new SolidColorBrush(AvaloniaColor.FromArgb(0xB8, 0, 0, 0));
+        static readonly RenderOptions SmoothText = new RenderOptions
+        {
+            TextRenderingMode = TextRenderingMode.Antialias,
+            EdgeMode = EdgeMode.Antialias,
+            BitmapInterpolationMode = BitmapInterpolationMode.HighQuality,
+        };
         static readonly bool ShotTalk = Environment.GetEnvironmentVariable("KOTH_SHOT_TALK") == "1";
 
         SimulationBody body;
+        TextBlock sdfText;
         ImageElement labelImage, speaker;
         SpriteFromTexture labelSprite;
         const int Slots = 4;
@@ -102,8 +108,8 @@ namespace KotH.Client.Hud
         /// <summary>What the label shows right now.</summary>
         [DataMemberIgnore] public string Text => shownText;
 
-        // The label texture between a hidden spacer and the speaker (shown while the player is heard):
-        // the label stays centred whether the speaker shows or not.
+        // The label (SDF TextBlock or fallback ImageElement) sits between a hidden spacer and the speaker,
+        // so it stays centred whether the speaker shows or not.
         StackPanel Row()
         {
             float size = FontSize * PixelsPerMeter * 1.15f, gap = FontSize * PixelsPerMeter * 0.35f;
@@ -114,23 +120,34 @@ namespace KotH.Client.Hud
                 Visibility = Visibility.Hidden, CanBeHitByUser = false, VerticalAlignment = VerticalAlignment.Center,
             };
             var spacer = new ImageElement { Width = size, Height = size, Margin = new Thickness(0f, 0f, gap, 0f), Visibility = Visibility.Hidden };
+            sdfText = new TextBlock
+            {
+                Font = Font,
+                TextSize = FontSize * PixelsPerMeter,
+                TextColor = Color,
+                TextAlignment = Stride.Graphics.TextAlignment.Center,
+                WrapText = false,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                CanBeHitByUser = false,
+            };
             labelSprite = new SpriteFromTexture();
             labelImage = new ImageElement
             {
                 Source = labelSprite, Width = 1f, Height = 1f,
+                Visibility = Visibility.Collapsed,
                 HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
                 CanBeHitByUser = false,
             };
             return new StackPanel
             {
                 Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center, Children = { spacer, labelImage, speaker },
+                VerticalAlignment = VerticalAlignment.Center, Children = { spacer, sdfText, labelImage, speaker },
             };
         }
 
         public override void Start()
         {
-            MenuOverlay.Start<MenuApp>();
             Entity.Add(new UIComponent
             {
                 Page = new UIPage { RootElement = Row() },
@@ -141,8 +158,8 @@ namespace KotH.Client.Hud
                 ResolutionStretch = ResolutionStretch.FixedWidthFixedHeight,
             });
 
-            if (Target == null || Motor == null)
-                Log.Warning("DamageLabel without target stays empty.");
+            if (Target == null || Motor == null || Font == null)
+                Log.Warning("DamageLabel without target or font stays empty.");
         }
 
         public override void Cancel()
@@ -164,7 +181,7 @@ namespace KotH.Client.Hud
             while (retired.Count > 0 && frame - retired.Peek().Frame >= Slots + 1)
                 retired.Dequeue().Tex.Dispose();
 
-            if (Target == null || Motor == null || labelImage == null)
+            if (Target == null || Motor == null || sdfText == null)
                 return;
 
             // The same formula the visual system uses, rather than reading the drawn capsule.
@@ -196,22 +213,48 @@ namespace KotH.Client.Hud
                 shownTint = tint;
                 shownName = Name;
                 shownLang = Loc.Version;
-                RenderLabel(Name, Loc.Percent(value, "F1"), tint);
+                UpdateVisual(Name, value.ToString("F1", Loc.Numbers) + " %", tint);
             }
         }
 
-        void RenderLabel(string name, string percent, Color tint)
+        void UpdateVisual(string name, string percent, Color tint)
         {
-            shownText = !string.IsNullOrEmpty(name) ? name + "  " + percent : percent;
+            string full = !string.IsNullOrEmpty(name) ? name + "  " + percent : percent;
+            shownText = full;
+            if (Font != null && AllInFont(Font, full))
+            {
+                sdfText.Text = full;
+                sdfText.TextColor = tint;
+                sdfText.Visibility = Visibility.Visible;
+                labelImage.Visibility = Visibility.Collapsed;
+                return;
+            }
+            sdfText.Visibility = Visibility.Collapsed;
+            labelImage.Visibility = Visibility.Visible;
+            RenderBitmap(name, Loc.Ltr(percent), tint);
+        }
+
+        static bool AllInFont(SpriteFont font, string text)
+        {
+            for (int i = 0; i < text.Length; i++)
+            {
+                char c = text[i];
+                if (!char.IsWhiteSpace(c) && !font.IsCharPresent(c))
+                    return false;
+            }
+            return true;
+        }
+
+        void RenderBitmap(string name, string percent, Color tint)
+        {
+            MenuOverlay.Start<MenuApp>();
             double pxSize = FontSize * PixelsPerMeter * Supersample;
-            var typeface = new Typeface(LabelFont, FontStyle.Normal, FontWeight.SemiBold);
+            var typeface = new Typeface(LabelFont, FontStyle.Normal, FontWeight.Normal);
             var brush = new SolidColorBrush(AvaloniaColor.FromArgb(tint.A, tint.R, tint.G, tint.B));
             double gap = pxSize * 0.45;
 
-            using var pctLayout = MakeLayout(percent, typeface, pxSize, brush, 480);
-            using var pctShadow = MakeLayout(percent, typeface, pxSize, ShadowBrush, 480);
+            using var pctLayout = MakeLayout(percent, typeface, pxSize, brush, 640);
             using TextLayout nameLayout = !string.IsNullOrEmpty(name) ? MakeLayout(name, typeface, pxSize, brush, MaxNamePx) : null;
-            using TextLayout nameShadow = !string.IsNullOrEmpty(name) ? MakeLayout(name, typeface, pxSize, ShadowBrush, MaxNamePx) : null;
 
             double contentW = nameLayout != null ? nameLayout.WidthIncludingTrailingWhitespace + gap + pctLayout.WidthIncludingTrailingWhitespace
                                                  : pctLayout.WidthIncludingTrailingWhitespace;
@@ -221,18 +264,15 @@ namespace KotH.Client.Hud
 
             using var rtb = new RenderTargetBitmap(new PixelSize(texW, texH), new Vector(96, 96));
             using (DrawingContext dc = rtb.CreateDrawingContext())
+            using (dc.PushRenderOptions(SmoothText))
             {
                 double x = (texW - contentW) * 0.5;
                 if (nameLayout != null)
                 {
-                    double ny = (texH - nameLayout.Height) * 0.5;
-                    nameShadow.Draw(dc, new Avalonia.Point(x, ny + 2.5));
-                    nameLayout.Draw(dc, new Avalonia.Point(x, ny));
+                    nameLayout.Draw(dc, new Avalonia.Point(x, (texH - nameLayout.Height) * 0.5));
                     x += nameLayout.WidthIncludingTrailingWhitespace + gap;
                 }
-                double py = (texH - pctLayout.Height) * 0.5;
-                pctShadow.Draw(dc, new Avalonia.Point(x, py + 2.5));
-                pctLayout.Draw(dc, new Avalonia.Point(x, py));
+                pctLayout.Draw(dc, new Avalonia.Point(x, (texH - pctLayout.Height) * 0.5));
             }
 
             int stride = texW * 4, bytes = stride * texH;
@@ -293,9 +333,11 @@ namespace KotH.Client.Hud
         {
             if (string.IsNullOrEmpty(s))
                 return Vector2.Zero;
+            if (Font != null && AllInFont(Font, s))
+                return Font.MeasureString(s) * (FontSize / Font.Size);
             MenuOverlay.Start<MenuApp>();
             double pxSize = FontSize * PixelsPerMeter * Supersample;
-            var typeface = new Typeface(LabelFont, FontStyle.Normal, FontWeight.SemiBold);
+            var typeface = new Typeface(LabelFont, FontStyle.Normal, FontWeight.Normal);
             using var layout = MakeLayout(s, typeface, pxSize, Brushes.White, MaxNamePx);
             return new Vector2((float)(layout.WidthIncludingTrailingWhitespace / (PixelsPerMeter * Supersample)),
                                (float)(layout.Height / (PixelsPerMeter * Supersample)));

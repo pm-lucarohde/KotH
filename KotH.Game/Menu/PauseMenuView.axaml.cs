@@ -45,8 +45,13 @@ namespace KotH.Client.Menu
         /// <summary>The question before leaving a running round: Leave (true) or Stay.</summary>
         public event Action<bool> Confirmed;
 
+        /// <summary>Whether the lobby is currently counting down to start (toggles Start round to Cancel start).</summary>
+        public Func<bool> Starting { get; set; }
+
         readonly RowList rows = new RowList();
         SubPage currentPage;
+        string currentTitleKey;
+        bool lastPenalty, lastStarting;
 
         public PauseMenuView()
         {
@@ -101,11 +106,16 @@ namespace KotH.Client.Menu
             LeaveTitle.Text = Loc.T("pause.leave_title");
             Stay.Content = Loc.T("pause.stay");
             Leave.Content = Loc.T("pause.leave");
-            StartRound.Content = Loc.T("pause.start_round");
+            StartRound.Content = Loc.T(lastStarting ? "pause.cancel_start" : "pause.start_round");
             ApplyRound.Content = Loc.T("common.apply");
             Back.Content = Loc.T("common.back");
+            if (currentTitleKey != null)
+                PageTitle.Text = Loc.T(currentTitleKey);
+            Ask(lastPenalty);
             SettingsPage.ApplyLanguage();
             RoundPage.ApplyLanguage();
+            if (RoundShown)
+                ShowRound();
         }
 
         /// <summary>Whether a page shows instead of the buttons.</summary>
@@ -124,6 +134,7 @@ namespace KotH.Client.Menu
         /// <summary>The question's words: with a penalty, what leaving costs.</summary>
         public void Ask(bool penalty)
         {
+            lastPenalty = penalty;
             string text = penalty ? Loc.F("pause.leave_penalty", Loc.Number(XpCounter.LeaveXp))
                                   : Loc.T("pause.leave_why");
             if (Why.Text != text)
@@ -132,6 +143,9 @@ namespace KotH.Client.Menu
 
         /// <summary>Whether the Players page shows.</summary>
         public bool PlayersShown => PageOpen && currentPage == SubPage.Players;
+
+        /// <summary>Whether the Invite friends page shows.</summary>
+        public bool InviteShown => PageOpen && currentPage == SubPage.Invite;
 
         /// <summary>The Settings page, which takes keys while one of its rows waits for one.</summary>
         public SettingsPage SettingsView => SettingsPage;
@@ -149,21 +163,28 @@ namespace KotH.Client.Menu
         /// <summary>Whether the Round page shows.</summary>
         public bool RoundShown => PageOpen && currentPage == SubPage.Round;
 
-        /// <summary>Each frame while Round shows: the word and Start round follow who is in the lobby.</summary>
+        /// <summary>Each frame while Round shows: the word and Start round / Cancel start follow the lobby.</summary>
         public void FollowRound()
         {
-            if (RoundShown && (!RoundPage.HasChanges && !RoundPage.TooFew) != StartRound.IsEnabled)
+            if (!RoundShown)
+                return;
+            bool starting = Starting?.Invoke() ?? false;
+            bool canPress = starting || !RoundPage.HasChanges && !RoundPage.TooFew;
+            if (starting != lastStarting || canPress != StartRound.IsEnabled)
                 ShowRound();
         }
 
-        // The Round page's word underneath and whether Apply and Start round may be pressed.
+        // The Round page's word underneath and whether Apply and Start round / Cancel start may be pressed.
         void ShowRound()
         {
             bool dirty = RoundPage.HasChanges;
+            bool starting = Starting?.Invoke() ?? false;
+            lastStarting = starting;
             string why = RoundPage.Problem;
             ApplyRound.IsEnabled = dirty;
-            StartRound.IsEnabled = !dirty && why == null;
-            Status.Text = dirty ? Loc.T("pause.apply_hint") : why ?? "";
+            StartRound.Content = Loc.T(starting ? "pause.cancel_start" : "pause.start_round");
+            StartRound.IsEnabled = starting || !dirty && why == null;
+            Status.Text = dirty ? Loc.T("pause.apply_hint") : starting ? "" : why ?? "";
         }
 
         /// <summary>Whether the Map page shows.</summary>
@@ -179,6 +200,7 @@ namespace KotH.Client.Menu
         void ShowPage(SubPage kind, string titleKey, bool list, bool round = false)
         {
             currentPage = kind;
+            currentTitleKey = titleKey;
             PageOpen = true;
             PageTitle.Text = Loc.T(titleKey);
             SettingsPage.IsVisible = !list && !round;

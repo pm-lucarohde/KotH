@@ -181,31 +181,11 @@ namespace KotH.Client.Localization
             return sb.ToString();
         }
 
-        /// <summary>Localized title for a built-in map, or the custom title/id as given.</summary>
-        public static string MapTitle(string mapId, string customTitle = null)
-        {
-            string key = mapId switch
-            {
-                Maps.Default => "map.mount_destiny",
-                Maps.Atrium => "map.atrium",
-                Maps.Volcano => "map.volcano",
-                Maps.Pyramid => "map.pyramid",
-                Maps.TheLadder => "map.the_ladder",
-                Maps.Test => "map.test",
-                _ => null,
-            };
-            return key != null ? T(key) : customTitle ?? Maps.Title(mapId);
-        }
+        /// <summary>Canonical map title (map names stay untranslated).</summary>
+        public static string MapTitle(string mapId, string customTitle = null) => customTitle ?? Maps.Title(mapId);
 
-        public static string ModeName(MatchMode mode) => T(mode switch
-        {
-            MatchMode.Duo => "mode.duo",
-            MatchMode.Trio => "mode.trio",
-            MatchMode.Squad => "mode.squad",
-            MatchMode.Mighty => "mode.mighty",
-            MatchMode.Free => "mode.free",
-            _ => "mode.solo",
-        });
+        /// <summary>Canonical mode name (mode names stay untranslated).</summary>
+        public static string ModeName(MatchMode mode) => Ltr(HillMatch.DisplayName(mode));
 
         public static string ModeNote(MatchMode mode) => T(mode switch
         {

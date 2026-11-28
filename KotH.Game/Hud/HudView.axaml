@@ -9,10 +9,10 @@
     <Panel Name="Parts">
         <!-- The glass apart from what is written on it, here and in the best
              list: the words change every second, the glass's shadow is costly. -->
-        <Grid Name="TopPart" Width="560" Height="102">
+        <Grid Name="TopPart" Width="449" Height="102">
             <Border Classes="Glass" Margin="24" CornerRadius="13" />
         </Grid>
-        <Grid Name="PointsPart" Width="560" Height="102">
+        <Grid Name="PointsPart" Width="449" Height="102">
             <Grid ColumnDefinitions="*,Auto" Margin="49.5,24,48,28">
                 <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left"
                          VerticalAlignment="Center" Margin="0,0,16,0">
