@@ -31,10 +31,14 @@
     <PackageReference Include="Avalonia.BuildServices" Version="11.3.2" ExcludeAssets="all" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>
-    <!-- The main menu's painted pictures (Tools/menu/MenuArt.cs) and type (Accuratist, public domain). -->
-    <AvaloniaResource Include="Menu\Art\*.png;Menu\Fonts\*.otf" />
+    <!-- The main menu's painted pictures (Tools/menu/MenuArt.cs) and fonts (Accuratist + Noto Sans fallbacks). -->
+    <AvaloniaResource Include="Menu\Art\*.png;Menu\Fonts\*.otf;Menu\Fonts\*.ttf" />
+    <!-- Pan-CJK variable font copied beside the binary (avoids embedding 32 MB into the managed assembly). -->
+    <Content Include="Resources\Fonts\NotoSansCJK.ttc" Link="Fonts\NotoSansCJK.ttc" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
+    <!-- Localization string tables (17 languages, AOT-safe embedded UTF-8 key=value files). -->
+    <EmbeddedResource Include="Localization\Strings\*.txt" LogicalName="Localization/%(Filename)%(Extension)" />
     <!-- Per map the ground the grass stands on (Tools/maps/MapUV, Rendering/GrassField.cs). -->
     <!-- The window icon (Rendering/WindowIcon.cs); KotH.Windows/KotH.ico is the same picture for the exe. -->
     <EmbeddedResource Include="Resources/Icon.png" LogicalName="KotH.Icon.png" />

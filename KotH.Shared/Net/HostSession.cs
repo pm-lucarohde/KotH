@@ -712,11 +712,36 @@ namespace KotH.Shared.Net
             }
         }
 
+        /// <summary>Maximum Steam persona name length in Unicode scalar values.</summary>
+        public const int MaxPlayerNameRunes = 32;
+
+        /// <summary>Strips control and BiDi override characters and clamps safely to 32 Unicode scalars.</summary>
+        public static string CleanName(string raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw))
+                return "Player";
+            var sb = new System.Text.StringBuilder(Math.Min(raw.Length, MaxPlayerNameRunes * 2));
+            int runes = 0;
+            foreach (System.Text.Rune r in raw.EnumerateRunes())
+            {
+                int v = r.Value;
+                if (System.Text.Rune.IsControl(r) || v is (>= 0x202A and <= 0x202E) or (>= 0x2066 and <= 0x2069) or 0x200E or 0x200F)
+                    continue;
+                if (runes == 0 && System.Text.Rune.IsWhiteSpace(r))
+                    continue;
+                if (runes >= MaxPlayerNameRunes)
+                    break;
+                sb.Append(r);
+                runes++;
+            }
+            string cleaned = sb.ToString().TrimEnd();
+            return cleaned.Length > 0 ? cleaned : "Player";
+        }
+
         /// <summary>A name nobody in the game has, "Luca 2" for the second Luca.</summary>
         string UniqueName(string wanted)
         {
-            if (wanted.Length > 24)
-                wanted = wanted[..24];
+            wanted = CleanName(wanted);
             for (int n = 1; ; n++)
             {
                 string name = n == 1 ? wanted : $"{wanted} {n}";

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Avalonia.Controls;
 using Avalonia.Layout;
+using KotH.Client.Localization;
 using KotH.Shared.Match;
 using KotH.Client.Settings;
 using KotH.Client.Steam;
@@ -21,28 +22,31 @@ namespace KotH.Client.Menu
 
         readonly List<SettingRow> rows = new List<SettingRow>();
         readonly MenuTextBox name = new MenuTextBox { MaxLength = 32, Width = 380 };
-        readonly MenuTextBox password = new MenuTextBox { MaxLength = 64, Width = 380, Password = true, Placeholder = "At least 4 characters" };
+        readonly MenuTextBox password = new MenuTextBox { MaxLength = 64, Width = 380, Password = true };
+        readonly ChipsRow regionChips, languageChips;
         PlayerSettings edited = ClientSettings.Applied.Clone();
-        string fallbackName = "My round";
+        string fallbackName, lastPlayer;
 
         public HostPage()
         {
             InitializeComponent();
             name.TextChanged += value => edited.HostName = value.Trim();
             password.TextChanged += _ => Refresh();
-            rows.Add(new FieldRow("Name", name));
-            rows.Add(new ChoiceRow<MatchMode>("Mode", _ => new[] { MatchMode.Solo, MatchMode.Duo, MatchMode.Trio, MatchMode.Squad, MatchMode.Mighty, MatchMode.Free },
-                                              s => s.HostMode, (s, v) => s.HostMode = v, HillMatch.DisplayName)
-                     { NoteOf = HillMatch.ModeNote });
+            regionChips = new ChipsRow(LobbyFlags.AllRegions, LobbyFlags.MaxRegions, s => s.HostRegions, (s, v) => s.HostRegions = v, Loc.RegionName);
+            languageChips = new ChipsRow(LobbyFlags.AllLanguages, LobbyFlags.MaxLanguages, s => s.HostLanguages, (s, v) => s.HostLanguages = v, Loc.LobbyLanguageName);
+            rows.Add(new FieldRow("", name));
+            rows.Add(new ChoiceRow<MatchMode>("", _ => new[] { MatchMode.Solo, MatchMode.Duo, MatchMode.Trio, MatchMode.Squad, MatchMode.Mighty, MatchMode.Free },
+                                              s => s.HostMode, (s, v) => s.HostMode = v, Loc.ModeName)
+                     { NoteOf = Loc.ModeNote });
             rows.Add(MaxPlayersRow());
-            rows.Add(new ChoiceRow<bool>("Access", _ => new[] { false, true }, s => s.HostPrivate, (s, v) => s.HostPrivate = v,
-                                         v => v ? "Private" : "Public"));
-            rows.Add(new FieldRow("Password", password, "private only") { Locked = s => s.HostPrivate ? null : "" });
-            rows.Add(new ToggleRow("Modded", s => s.HostModded, (s, v) => s.HostModded = v));
-            rows.Add(new HeadingRow("Regions", $"where the players are, up to {LobbyFlags.MaxRegions}"));
-            rows.Add(new ChipsRow(LobbyFlags.AllRegions, LobbyFlags.MaxRegions, s => s.HostRegions, (s, v) => s.HostRegions = v));
-            rows.Add(new HeadingRow("Languages", $"spoken in the round, up to {LobbyFlags.MaxLanguages}"));
-            rows.Add(new ChipsRow(LobbyFlags.AllLanguages, LobbyFlags.MaxLanguages, s => s.HostLanguages, (s, v) => s.HostLanguages = v));
+            rows.Add(new ChoiceRow<bool>("", _ => new[] { false, true }, s => s.HostPrivate, (s, v) => s.HostPrivate = v,
+                                         v => Loc.T(v ? "host.access.private" : "host.access.public")));
+            rows.Add(new FieldRow("", password, "") { Locked = s => s.HostPrivate ? null : "" });
+            rows.Add(new ToggleRow("", s => s.HostModded, (s, v) => s.HostModded = v));
+            rows.Add(new HeadingRow("", ""));
+            rows.Add(regionChips);
+            rows.Add(new HeadingRow("", ""));
+            rows.Add(languageChips);
             foreach (SettingRow row in rows)
             {
                 row.Edited = () => edited;
@@ -50,13 +54,35 @@ namespace KotH.Client.Menu
                 Rows.Children.Add(row.View);
             }
             Start.Click += (_, _) => Host();
+            ApplyLanguage();
+        }
+
+        /// <summary>Updates all labels, placeholders and chips for the active language.</summary>
+        public void ApplyLanguage()
+        {
+            Start.Content = Loc.T("host.start");
+            password.Placeholder = Loc.T("host.password.placeholder");
+            fallbackName = lastPlayer != null ? Loc.F("menu.player_round", lastPlayer) : Loc.T("host.my_round");
+            name.Placeholder = fallbackName;
+            rows[0].Retext(Loc.T("host.name"));
+            rows[1].Retext(Loc.T("host.mode"));
+            rows[2].Retext(Loc.T("host.max_players"));
+            rows[3].Retext(Loc.T("host.access"));
+            rows[4].Retext(Loc.T("host.password"), Loc.T("host.password.note"));
+            rows[5].Retext(Loc.T("host.modded"));
+            rows[6].Retext(Loc.T("host.regions"), Loc.F("host.regions.note", LobbyFlags.MaxRegions));
+            rows[8].Retext(Loc.T("host.languages"), Loc.F("host.languages.note", LobbyFlags.MaxLanguages));
+            regionChips.RefreshLabels();
+            languageChips.RefreshLabels();
+            Refresh();
         }
 
         /// <summary>Shown again: the remembered choices, Steam's guesses where there are none, no password.</summary>
         public void Open(string playerName)
         {
             edited = ClientSettings.Applied.Clone();
-            fallbackName = $"{playerName}'s round";
+            lastPlayer = playerName;
+            fallbackName = Loc.F("menu.player_round", playerName);
             if (edited.HostRegions.Length == 0)
                 edited.HostRegions = new[] { LobbyFlags.RegionOf(SteamClient.IpCountry, TimeZoneInfo.Local.BaseUtcOffset.TotalHours) };
             if (edited.HostLanguages.Length == 0)
@@ -74,13 +100,13 @@ namespace KotH.Client.Menu
                 row.Show(edited);
             string why = Problem();
             Start.IsEnabled = why == null;
-            Status.Text = why ?? (edited.HostPrivate ? "Players need the password; friends you invite do not." : "");
+            Status.Text = why ?? (edited.HostPrivate ? Loc.T("host.private_hint") : "");
         }
 
         string Problem()
-            => edited.HostPrivate && password.Text.Length < MinPassword ? $"A private round needs a password of {MinPassword} characters or more."
-             : edited.HostRegions.Length == 0 ? "Choose at least one region."
-             : edited.HostLanguages.Length == 0 ? "Choose at least one language."
+            => edited.HostPrivate && password.Text.Length < MinPassword ? Loc.F("host.err.password", MinPassword)
+             : edited.HostRegions.Length == 0 ? Loc.T("host.err.region")
+             : edited.HostLanguages.Length == 0 ? Loc.T("host.err.language")
              : null;
 
         void Host()
@@ -108,9 +134,9 @@ namespace KotH.Client.Menu
 
         /// <summary>The most players on the server: up to 16 in 1, 2, 3, Free, else 12 (Luca); at least the mode's fewest.</summary>
         public static SliderRow MaxPlayersRow()
-            => new SliderRow("Max players", 2, HillMatch.FreeMaxPlayers, 1, s => s.MaxPlayersOf,
+            => new SliderRow(Loc.T("host.max_players"), 2, HillMatch.FreeMaxPlayers, 1, s => s.MaxPlayersOf,
                              (s, v) => s.ChooseMaxPlayers(Math.Max((int)Math.Round(v), HillMatch.FewestOf(s.HostMode))),
-                             v => ((int)Math.Round(v)).ToString(System.Globalization.CultureInfo.InvariantCulture))
+                             v => Loc.Number((int)Math.Round(v)))
                { MaxOf = s => HillMatch.MaxPlayers(s.HostMode) };
 
         /// <summary>A text field as a settings row.</summary>
@@ -125,15 +151,17 @@ namespace KotH.Client.Menu
         sealed class ChipsRow : SettingRow
         {
             readonly WrapPanel chips = new WrapPanel { Orientation = Orientation.Horizontal, Margin = new Avalonia.Thickness(0, 4, 0, 12) };
-            readonly Dictionary<string, Border> byCode = new Dictionary<string, Border>();
+            readonly Dictionary<string, (Border Chip, TextBlock Label)> byCode = new Dictionary<string, (Border, TextBlock)>();
             readonly Func<PlayerSettings, string[]> get;
+            readonly Func<string, string> labelOf;
             readonly int max;
 
-            public ChipsRow((string Code, string Name)[] values, int max, Func<PlayerSettings, string[]> get, Action<PlayerSettings, string[]> set)
+            public ChipsRow((string Code, string Name)[] values, int max, Func<PlayerSettings, string[]> get,
+                            Action<PlayerSettings, string[]> set, Func<string, string> labelOf)
                 : base("", null)
             {
-                (this.get, this.max) = (get, max);
-                foreach ((string code, string title) in values)
+                (this.get, this.max, this.labelOf) = (get, max, labelOf);
+                foreach ((string code, _) in values)
                 {
                     Action toggle = () => Change(s =>
                     {
@@ -142,13 +170,14 @@ namespace KotH.Client.Menu
                             chosen.Add(code);
                         set(s, chosen.ToArray());
                     });
+                    var text = new TextBlock { Text = labelOf(code) };
                     var chip = new Border
                     {
-                        Classes = { "Tab" }, Child = new TextBlock { Text = title }, Margin = new Avalonia.Thickness(0, 0, 10, 12),
+                        Classes = { "Tab" }, Child = text, Margin = new Avalonia.Thickness(0, 0, 10, 12),
                         Cursor = new Avalonia.Input.Cursor(Avalonia.Input.StandardCursorType.Hand), Tag = toggle,
                     };
                     chip.PointerPressed += (_, _) => toggle();
-                    byCode[code] = chip;
+                    byCode[code] = (chip, text);
                     chips.Children.Add(chip);
                 }
                 Line.Height = double.NaN;
@@ -157,10 +186,16 @@ namespace KotH.Client.Menu
                 Grid.SetColumnSpan(chips, 2);
             }
 
+            public void RefreshLabels()
+            {
+                foreach ((string code, (_, TextBlock label)) in byCode)
+                    label.Text = labelOf(code);
+            }
+
             protected override void Fill(PlayerSettings s, string reason)
             {
                 string[] chosen = get(s);
-                foreach ((string code, Border chip) in byCode)
+                foreach ((string code, (Border chip, _)) in byCode)
                 {
                     bool on = Array.IndexOf(chosen, code) >= 0;
                     chip.Classes.Set("Chosen", on);

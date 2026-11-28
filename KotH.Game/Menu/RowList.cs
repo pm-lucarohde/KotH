@@ -60,7 +60,12 @@ namespace KotH.Client.Menu
                     });
                 else
                     line.Children.Add(name);
-                var detail = new TextBlock { Classes = { "Hint" }, Text = row.Detail, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(16, 0, 18, 0) };
+                var detail = new TextBlock
+                {
+                    Classes = { "Hint" }, Text = row.Detail, VerticalAlignment = VerticalAlignment.Center,
+                    MaxWidth = 380, TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis,
+                    Margin = new Thickness(16, 0, 18, 0),
+                };
                 Grid.SetColumn(detail, 1);
                 Grid.SetColumn(button, 2);
                 line.Children.Add(detail);

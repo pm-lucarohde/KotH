@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using Avalonia.Controls;
 using Avalonia.Layout;
+using KotH.Client.Localization;
 using KotH.Client.Steam;
 
 namespace KotH.Client.Menu
@@ -25,7 +25,19 @@ namespace KotH.Client.Menu
             FriendsTab.Tag = (Action)(() => Choose(true));
             GlobalTab.PointerPressed += (_, _) => Choose(false);
             FriendsTab.PointerPressed += (_, _) => Choose(true);
+            ApplyLanguage();
             Choose(false, load: false);
+        }
+
+        public void ApplyLanguage()
+        {
+            GlobalTabText.Text = Loc.T("board.global");
+            FriendsTabText.Text = Loc.T("board.friends");
+            built = -1;
+            if (rows != null)
+                Refresh();
+            else if (!SteamClient.Ready)
+                Empty.Text = Loc.T("board.needs_steam");
         }
 
         /// <summary>Test aid (KOTH_SHOT_SOCIAL=sample): ten made-up rows and the own one at rank 132, no Steam.</summary>
@@ -51,11 +63,11 @@ namespace KotH.Client.Menu
             Status.Text = "";
             if (!SteamClient.Ready)
             {
-                Empty.Text = "The leaderboard needs Steam";
+                Empty.Text = Loc.T("board.needs_steam");
                 Empty.IsVisible = true;
                 return;
             }
-            Empty.Text = "Loading…";
+            Empty.Text = Loc.T("common.loading");
             Empty.IsVisible = true;
             int call = ++asked;
             SteamStats.Top(friends, Shown, (top, mine) =>
@@ -64,7 +76,7 @@ namespace KotH.Client.Menu
                     return;
                 if (top == null)
                 {
-                    Empty.Text = "Steam did not answer";
+                    Empty.Text = Loc.T("board.no_answer");
                     return;
                 }
                 rows = top;
@@ -82,26 +94,26 @@ namespace KotH.Client.Menu
             built = SteamStats.Version + SteamStats.NamesLearned;
             Rows.Children.Clear();
             Empty.IsVisible = rows.Count == 0;
-            Empty.Text = friends ? "None of your friends has won yet" : "No wins yet: be the first!";
+            Empty.Text = Loc.T(friends ? "board.friends_empty" : "board.global_empty");
             if (rows.Count > 0)
-                Rows.Children.Add(Line("#", "Player", "Wins", false, heading: true));
+                Rows.Children.Add(Line(Loc.T("board.col.rank"), Loc.T("board.col.player"), Loc.T("board.col.wins"), false, heading: true));
             bool listed = false;
             for (int i = 0; i < rows.Count; i++)
             {
                 SteamStats.Entry e = rows[i];
                 bool self = e.Id == SteamClient.SteamId;
                 listed |= self;
-                Rows.Children.Add(Line(Number(friends ? i + 1 : e.Rank), NameOf(e.Id), Number(e.Score), self));
+                Rows.Children.Add(Line(Loc.Number(friends ? i + 1 : e.Rank), NameOf(e.Id), Loc.Number(e.Score), self));
             }
             if (!listed && own is { } o && rows.Count > 0 && !friends)
             {
-                Border mine = Line(Number(o.Rank), NameOf(o.Id), Number(o.Score), true);
+                Border mine = Line(Loc.Number(o.Rank), NameOf(o.Id), Loc.Number(o.Score), true);
                 mine.Margin = new Avalonia.Thickness(0, 10, 0, 0);
                 Rows.Children.Add(mine);
             }
             Status.Text = own is { Score: > 0 } me
-                ? string.Format(CultureInfo.InvariantCulture, "You: rank {0} worldwide with {1} {2}", me.Rank, me.Score, me.Score == 1 ? "win" : "wins")
-                : "Win an online round to get on the board.";
+                ? Loc.PluralFormat("board.own_rank", me.Score, Loc.Number(me.Rank), Loc.Number(me.Score))
+                : Loc.T("board.win_hint");
         }
 
         void Choose(bool toFriends, bool load = true)
@@ -113,9 +125,7 @@ namespace KotH.Client.Menu
                 Open();
         }
 
-        string NameOf(ulong id) => !sample ? SteamClient.NameOf(id) : id == 0 ? "You" : "Player " + id;
-
-        static string Number(int n) => n.ToString("N0", CultureInfo.InvariantCulture);
+        string NameOf(ulong id) => !sample ? SteamClient.NameOf(id) : id == 0 ? Loc.T("common.you") : Loc.F("common.player_n", id);
 
         static Border Line(string rank, string name, string wins, bool self, bool heading = false)
         {

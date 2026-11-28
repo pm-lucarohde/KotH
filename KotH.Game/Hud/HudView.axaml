@@ -9,26 +9,31 @@
     <Panel Name="Parts">
         <!-- The glass apart from what is written on it, here and in the best
              list: the words change every second, the glass's shadow is costly. -->
-        <Grid Name="TopPart" Width="449" Height="102">
+        <Grid Name="TopPart" Width="560" Height="102">
             <Border Classes="Glass" Margin="24" CornerRadius="13" />
         </Grid>
-        <Grid Name="PointsPart" Width="449" Height="102">
-            <StackPanel Orientation="Horizontal" Spacing="12" Margin="49.5,25.5,0,29.5">
-                <TextBlock Name="Caption" Classes="Hud Soft" Text="Points" FontSize="22" />
-                <TextBlock Name="Points" Classes="Hud" Text="0 / 100" FontSize="32" />
-            </StackPanel>
-            <TextBlock Name="Time" Classes="Hud" Text="0:00" FontSize="38"
-                       HorizontalAlignment="Right" Margin="0,24,48,28" />
+        <Grid Name="PointsPart" Width="560" Height="102">
+            <Grid ColumnDefinitions="*,Auto" Margin="49.5,24,48,28">
+                <Viewbox Stretch="Uniform" StretchDirection="DownOnly" HorizontalAlignment="Left"
+                         VerticalAlignment="Center" Margin="0,0,16,0">
+                    <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                        <TextBlock Name="Caption" Classes="Hud Soft" Text="Points" FontSize="22" VerticalAlignment="Center" />
+                        <TextBlock Name="Points" Classes="Hud" Text="0 / 100" FontSize="32" VerticalAlignment="Center" FlowDirection="LeftToRight" />
+                    </StackPanel>
+                </Viewbox>
+                <TextBlock Name="Time" Grid.Column="1" Classes="Hud" Text="0:00" FontSize="38"
+                           VerticalAlignment="Center" FlowDirection="LeftToRight" />
+            </Grid>
         </Grid>
 
-        <!-- The zone and the own damage on chips of a fixed size (Luca): 270 x 44, just
-             room for "You are capturing", and 240 x 44 -->
-        <Grid Name="StatusPart" Width="318" Height="92">
-            <Border Name="StatusChip" Classes="Glass" Margin="24" CornerRadius="11" Padding="14,0">
+        <!-- The zone and the own damage on glass chips that grow cleanly for longer translations -->
+        <Grid Name="StatusPart" Width="440" Height="92">
+            <Border Name="StatusChip" Classes="Glass" Margin="24" CornerRadius="11" Padding="18,0"
+                    HorizontalAlignment="Center" MinWidth="270">
                 <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
                     <Ellipse Name="Dot" Width="10" Height="10" Fill="White" VerticalAlignment="Center" />
                     <TextBlock Name="Status" Classes="Hud" Text="Zone free" FontSize="24" Margin="0,0,0,3"
-                               MaxWidth="224" TextTrimming="CharacterEllipsis" />
+                               MaxWidth="344" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
             </Border>
         </Grid>
@@ -41,34 +46,36 @@
             <Border Name="Fill" CornerRadius="3" Background="White" />
         </Grid>
 
-        <Grid Name="BoardPart" Width="340" Height="208">
-            <Border Name="BoardGlass" Classes="Glass" Margin="24" CornerRadius="16" Height="163" VerticalAlignment="Top" />
+        <Grid Name="BoardPart" Width="380" Height="228">
+            <Border Name="BoardGlass" Classes="Glass" Margin="24" CornerRadius="16" Height="179" VerticalAlignment="Top" />
         </Grid>
-        <Grid Name="RanksPart" Width="340" Height="208">
+        <Grid Name="RanksPart" Width="380" Height="228">
             <StackPanel Name="RankList" Margin="33.5,33.5,33.5,0" VerticalAlignment="Top" />
         </Grid>
 
-        <Grid Name="DamagePart" Width="288" Height="92">
-            <Border Classes="Glass" Margin="24" CornerRadius="11" Padding="18,0">
+        <Grid Name="DamagePart" Width="360" Height="92">
+            <Border Classes="Glass" Margin="24" CornerRadius="11" Padding="18,0"
+                    HorizontalAlignment="Center" MinWidth="240">
                 <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
-                    <TextBlock Classes="Hud Soft" Text="Damage" FontSize="22" Margin="0,0,0,2" />
-                    <TextBlock Name="Damage" Classes="Hud" Text="0.0 %" FontSize="27" Margin="0,0,0,3" />
+                    <TextBlock Name="DamageLabel" Classes="Hud Soft" Text="Damage" FontSize="22" Margin="0,0,0,2" />
+                    <TextBlock Name="Damage" Classes="Hud" Text="0.0 %" FontSize="27" Margin="0,0,0,3" FlowDirection="LeftToRight" />
                 </StackPanel>
             </Border>
         </Grid>
 
         <!-- The blaster's shots, only with it up: a spore per shot, the bar fills with
              points in the zone towards the next -->
-        <Grid Name="AmmoPart" Width="262" Height="104">
+        <Grid Name="AmmoPart" Width="296" Height="104">
             <Border Classes="Glass" Margin="24" CornerRadius="11" Padding="18,0">
                 <StackPanel Spacing="5" VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
-                        <TextBlock Classes="Hud Soft" Text="Spores" FontSize="22" Margin="0,0,4,2" />
+                        <TextBlock Name="SporesLabel" Classes="Hud Soft" Text="Spores" FontSize="22" Margin="0,0,4,2"
+                                   MaxWidth="130" TextTrimming="CharacterEllipsis" />
                         <Ellipse Name="Shot1" Width="16" Height="16" StrokeThickness="2" VerticalAlignment="Center" />
                         <Ellipse Name="Shot2" Width="16" Height="16" StrokeThickness="2" VerticalAlignment="Center" />
                         <Ellipse Name="Shot3" Width="16" Height="16" StrokeThickness="2" VerticalAlignment="Center" />
                     </StackPanel>
-                    <Border Width="170" Height="4" CornerRadius="2" Background="#40FFFFFF">
+                    <Border Width="190" Height="4" CornerRadius="2" Background="#40FFFFFF" FlowDirection="LeftToRight">
                         <Border Name="Next" Width="0" CornerRadius="2" Background="#A8F060" HorizontalAlignment="Left" />
                     </Border>
                 </StackPanel>
@@ -76,80 +83,89 @@
         </Grid>
 
         <!-- The dash, always in a round: a dot while it is there, the bar fills towards it -->
-        <Grid Name="DashPart" Width="190" Height="104">
+        <Grid Name="DashPart" Width="236" Height="104">
             <Border Classes="Glass" Margin="24" CornerRadius="11" Padding="18,0">
                 <StackPanel Spacing="5" VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
-                        <TextBlock Classes="Hud Soft" Text="Dash" FontSize="22" Margin="0,0,4,2" />
+                        <TextBlock Name="DashLabel" Classes="Hud Soft" Text="Dash" FontSize="22" Margin="0,0,4,2"
+                                   MaxWidth="124" TextTrimming="CharacterEllipsis" />
                         <Ellipse Name="DashDot" Width="16" Height="16" StrokeThickness="2" VerticalAlignment="Center" />
                     </StackPanel>
-                    <Border Width="100" Height="4" CornerRadius="2" Background="#40FFFFFF">
+                    <Border Width="136" Height="4" CornerRadius="2" Background="#40FFFFFF" FlowDirection="LeftToRight">
                         <Border Name="DashNext" Width="0" CornerRadius="2" Background="#F0D060" HorizontalAlignment="Left" />
                     </Border>
                 </StackPanel>
             </Border>
         </Grid>
 
-        <Grid Name="BannerPart" Width="1100" Height="150">
+        <Grid Name="BannerPart" Width="1140" Height="150">
             <Border Classes="Glass" Margin="24" CornerRadius="24" HorizontalAlignment="Center" Padding="48,0">
-                <TextBlock Name="Banner" Classes="Hud" Text="Draw" FontSize="66" Margin="0,0,0,8" />
+                <Viewbox Stretch="Uniform" StretchDirection="DownOnly" MaxWidth="996" MaxHeight="94">
+                    <TextBlock Name="Banner" Classes="Hud" Text="Draw" FontSize="66" Margin="0,0,0,8"
+                               MaxWidth="1400" TextTrimming="CharacterEllipsis" />
+                </Viewbox>
             </Border>
         </Grid>
 
-        <Grid Name="CountdownPart" Width="600" Height="92">
+        <Grid Name="CountdownPart" Width="700" Height="92">
             <Border Classes="Glass" Margin="24" Height="44" CornerRadius="11"
                     HorizontalAlignment="Center" Padding="20,0">
-                <TextBlock Name="Countdown" Classes="Hud" Text="New round in 10" FontSize="25" Margin="0,0,0,3" />
+                <TextBlock Name="Countdown" Classes="Hud" Text="New round in 10" FontSize="25" Margin="0,0,0,3"
+                           MaxWidth="610" TextTrimming="CharacterEllipsis" />
             </Border>
         </Grid>
 
         <!-- 1, 2, 3, Free: the own role bottom left, the count for everyone in the middle (a big
              number, a name below), whom a caught or free one watches, and the draw's wheel with
              its pointer; the wheel is drawn once and turned as a picture (MenuOverlay.Angle). -->
-        <Grid Name="RolePart" Width="348" Height="92">
+        <Grid Name="RolePart" Width="460" Height="92">
             <Border Classes="Glass" Margin="24" CornerRadius="11" Padding="16,0" HorizontalAlignment="Left">
                 <StackPanel Orientation="Horizontal" Spacing="9" HorizontalAlignment="Center">
                     <Ellipse Name="RoleDot" Width="12" Height="12" Fill="White" VerticalAlignment="Center" />
                     <TextBlock Name="Role" Classes="Hud" Text="Chaser" FontSize="24" Margin="0,0,0,3"
-                               MaxWidth="260" TextTrimming="CharacterEllipsis" />
+                               MaxWidth="360" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
             </Border>
         </Grid>
 
-        <Grid Name="CallPart" Width="900" Height="230">
+        <Grid Name="CallPart" Width="1040" Height="230">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="2">
-                <TextBlock Name="Call" Classes="Hud" Text="Free!" FontSize="80" Margin="24,24,24,8"
-                           HorizontalAlignment="Center" />
+                <Viewbox Stretch="Uniform" StretchDirection="DownOnly" MaxWidth="940" MaxHeight="110">
+                    <TextBlock Name="Call" Classes="Hud" Text="Free!" FontSize="80" Margin="24,24,24,8"
+                               HorizontalAlignment="Center" />
+                </Viewbox>
                 <TextBlock Name="CallName" Classes="Hud" Text="Bot 3 is free!" FontSize="30" HorizontalAlignment="Center"
-                           MaxWidth="820" TextTrimming="CharacterEllipsis" Margin="0,0,0,20" />
+                           MaxWidth="960" TextTrimming="CharacterEllipsis" Margin="0,0,0,20" />
             </StackPanel>
         </Grid>
 
-        <Grid Name="WatchPart" Width="620" Height="92">
+        <Grid Name="WatchPart" Width="820" Height="92">
             <Border Classes="Glass" Margin="24" Height="44" CornerRadius="11" HorizontalAlignment="Center" Padding="20,0">
                 <TextBlock Name="Watch" Classes="Hud" Text="Watching Bot 3 · click for the next" FontSize="24" Margin="0,0,0,3"
-                           MaxWidth="540" TextTrimming="CharacterEllipsis" />
+                           MaxWidth="730" TextTrimming="CharacterEllipsis" />
             </Border>
         </Grid>
 
-        <Grid Name="WheelPart" Width="468" Height="468">
+        <Grid Name="WheelPart" Width="468" Height="468" FlowDirection="LeftToRight">
             <Ellipse Margin="18" Fill="#59101418" />
             <Canvas Name="Wheel" Width="420" Height="420" />
             <Ellipse Width="44" Height="44" Fill="#E6F4F4F4" />
         </Grid>
-        <Grid Name="PointerPart" Width="84" Height="78">
+        <Grid Name="PointerPart" Width="84" Height="78" FlowDirection="LeftToRight">
             <Path Data="M 18,14 L 66,14 L 42,62 Z" Fill="White" Stroke="#C0101418" StrokeThickness="3" />
         </Grid>
-        <Grid Name="WheelCaptionPart" Width="900" Height="104">
+        <Grid Name="WheelCaptionPart" Width="1040" Height="104">
             <Border Classes="Glass" Margin="24" Height="56" CornerRadius="13" HorizontalAlignment="Center" Padding="26,0">
-                <TextBlock Name="WheelCaption" Classes="Hud" Text="Drawing the chaser ..." FontSize="29" Margin="0,0,0,4" />
+                <TextBlock Name="WheelCaption" Classes="Hud" Text="Drawing the chaser ..." FontSize="29" Margin="0,0,0,4"
+                           MaxWidth="940" TextTrimming="CharacterEllipsis" />
             </Border>
         </Grid>
 
         <Grid Name="NoticePart" Width="1200" Height="104">
             <Border Classes="Glass" Margin="24" Height="56" CornerRadius="13"
                     HorizontalAlignment="Center" Padding="26,0">
-                <TextBlock Name="Notice" Classes="Hud" Text="Connecting ..." FontSize="29" Margin="0,0,0,4" />
+                <TextBlock Name="Notice" Classes="Hud" Text="Connecting ..." FontSize="29" Margin="0,0,0,4"
+                           MaxWidth="1100" TextTrimming="CharacterEllipsis" />
             </Border>
         </Grid>
     </Panel>

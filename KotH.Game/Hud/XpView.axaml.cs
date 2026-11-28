@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using KotH.Client.Localization;
 
 namespace KotH.Client.Hud
 {
@@ -16,6 +17,18 @@ namespace KotH.Client.Hud
             labels = new[] { Label0, Label1, Label2 };
             details = new[] { Detail0, Detail1, Detail2 };
             values = new[] { Value0, Value1, Value2 };
+            ApplyLanguage();
+        }
+
+        /// <summary>Updates static labels for the active language.</summary>
+        public void ApplyLanguage()
+        {
+            Set(TitleText, Loc.T("xp.title"));
+            Set(NoneTitle, Loc.T("xp.none"));
+            Set(Note, Loc.T("xp.none_hint"));
+            Set(EscText, Loc.T("common.esc"));
+            Set(CloseText, Loc.T("common.close"));
+            Set(LevelUp, Loc.T("xp.level_up"));
         }
 
         /// <summary>The parts, out of this control, each to be the content of an overlay.</summary>

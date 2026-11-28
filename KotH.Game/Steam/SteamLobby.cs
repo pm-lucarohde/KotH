@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using KotH.Client.Localization;
 using KotH.Shared.Match;
 using KotH.Shared.Net;
 using static KotH.Client.Steam.SteamApi;
@@ -140,7 +141,7 @@ namespace KotH.Client.Steam
                 }
                 if (result != 1 || id == 0)
                 {
-                    lobby.Failure = $"Steam made no lobby (result {result})";
+                    lobby.Failure = Loc.F("steam.no_lobby", result);
                     Console.WriteLine($"[steam] {lobby.Failure}");
                     return;
                 }
@@ -164,11 +165,11 @@ namespace KotH.Client.Steam
                         SteamAPI_ISteamMatchmaking_LeaveLobby(SteamClient.Matchmaking, id);
                     done(null, response switch
                     {
-                        2 => "The round is gone",
-                        3 => "The round is closed",
-                        4 => "The round is full",
-                        0 => "Steam did not answer",
-                        _ => $"Steam let us not in ({response})",
+                        2 => Loc.T("steam.round_gone"),
+                        3 => Loc.T("steam.round_closed"),
+                        4 => Loc.T("steam.round_full"),
+                        0 => Loc.T("board.no_answer"),
+                        _ => Loc.F("steam.enter_failed", response),
                     });
                     return;
                 }

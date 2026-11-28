@@ -4,7 +4,7 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Styles.Resources>
-        <FontFamily x:Key="Type">avares://KotH.Game/Menu/Fonts#Accuratist</FontFamily>
+        <FontFamily x:Key="Type">avares://KotH.Game/Menu/Fonts#Accuratist, avares://KotH.Game/Menu/Fonts#Noto Sans Arabic, avares://KotH.Game/Menu/Fonts#Noto Sans Devanagari, avares://KotH.Game/Menu/Fonts#Noto Sans Thai, fonts:KotHCjk#Noto Sans CJK JP</FontFamily>
         <Color x:Key="Red">#C4231F</Color>
         <Color x:Key="Cream">#F6ECDE</Color>
         <Color x:Key="Green">#3F8F35</Color>
@@ -72,8 +72,10 @@
                         </Image.Transitions>
                     </Image>
                     <Image Name="Down" Source="/Menu/Art/ButtonDown.png" Margin="-24" Stretch="Fill" IsVisible="False" IsHitTestVisible="False" />
-                    <ContentPresenter Name="Label" Content="{TemplateBinding Content}"
-                                      HorizontalAlignment="Left" VerticalAlignment="Center" Margin="34,0,0,10" />
+                    <Viewbox Name="Label" Stretch="Uniform" StretchDirection="DownOnly"
+                             HorizontalAlignment="Left" VerticalAlignment="Center" Margin="34,0,28,10">
+                        <ContentPresenter Content="{TemplateBinding Content}" />
+                    </Viewbox>
                 </Panel>
             </ControlTemplate>
         </Setter>
@@ -93,7 +95,7 @@
                      Button.Menu:pressed /template/ Image#Hot, Button.Menu.Active /template/ Image#Hot">
         <Setter Property="IsVisible" Value="False" />
     </Style>
-    <Style Selector="Button.Menu:pressed /template/ ContentPresenter#Label, Button.Menu.Active /template/ ContentPresenter#Label">
+    <Style Selector="Button.Menu:pressed /template/ Viewbox#Label, Button.Menu.Active /template/ Viewbox#Label">
         <Setter Property="RenderTransform" Value="translate(0px, 5px)" />
     </Style>
     <!-- Behind the load screen (MainMenuView.Light): every picture shown once, so Skia decodes them there. -->
@@ -115,11 +117,11 @@
     <Style Selector="Button.Menu.Small /template/ Image#Down">
         <Setter Property="Source" Value="/Menu/Art/SmallButtonDown.png" />
     </Style>
-    <Style Selector="Button.Menu.Small /template/ ContentPresenter#Label">
+    <Style Selector="Button.Menu.Small /template/ Viewbox#Label">
         <Setter Property="HorizontalAlignment" Value="Center" />
-        <Setter Property="Margin" Value="0,0,0,9" />
+        <Setter Property="Margin" Value="16,0,16,9" />
     </Style>
-    <Style Selector="Button.Menu.Small:pressed /template/ ContentPresenter#Label">
+    <Style Selector="Button.Menu.Small:pressed /template/ Viewbox#Label">
         <Setter Property="RenderTransform" Value="translate(0px, 4px)" />
     </Style>
     <!-- Not yet open to the player (Customize below level 10): dim, but still pointed at for its note -->
@@ -285,7 +287,7 @@
 
     <!-- Fluent's switch is drawn for desktop forms; ours is bigger -->
     <Style Selector="ToggleSwitch">
-        <Setter Property="RenderTransformOrigin" Value="0%,50%" />
+        <Setter Property="RenderTransformOrigin" Value="50%,50%" />
         <Setter Property="RenderTransform" Value="scale(1.5)" />
         <Setter Property="VerticalAlignment" Value="Center" />
     </Style>

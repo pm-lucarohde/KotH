@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Avalonia.Controls;
+using KotH.Client.Localization;
 using KotH.Shared.Match;
 using KotH.Client.Steam;
 using KotH.Shared.Net;
@@ -21,12 +22,12 @@ namespace KotH.Client.Menu
         /// <summary>Join was chosen on a direct-IP invite code (checked: it parses).</summary>
         public event Action<string> InviteRequested;
 
-        readonly MenuTextBox search = new MenuTextBox { MaxLength = 40, Placeholder = "Search server name…" };
-        readonly MenuTextBox invite = new MenuTextBox { MaxLength = 160, Placeholder = "koth://join?… from the host, Ctrl+V pastes" };
+        readonly MenuTextBox search = new MenuTextBox { MaxLength = 40 };
+        readonly MenuTextBox invite = new MenuTextBox { MaxLength = 160 };
 
         readonly RowList list = new RowList();
         readonly MenuDropdown access, region, language, modded, mode;
-        readonly MenuTextBox password = new MenuTextBox { Password = true, MaxLength = 64, Width = 330, Placeholder = "Type it, Enter joins" };
+        readonly MenuTextBox password = new MenuTextBox { Password = true, MaxLength = 64, Width = 330 };
         List<LobbyListing> allRounds = new List<LobbyListing>();
         LobbyListing? asking;
         bool busy, saysWhy;
@@ -44,15 +45,14 @@ namespace KotH.Client.Menu
             bool?[] either = { null, false, true };
             MatchMode?[] modes = { null, MatchMode.Solo, MatchMode.Duo, MatchMode.Trio, MatchMode.Squad, MatchMode.Mighty, MatchMode.Free };
             access = Drop(either, () => Filter.Private, v => Filter = Filter with { Private = v },
-                          v => v switch { null => "Any access", true => "Private", false => "Public" });
+                          v => v switch { null => Loc.T("find.filter.any_access"), true => Loc.T("find.filter.private"), false => Loc.T("find.filter.public") });
             region = Drop(Regions(), () => Filter.Region, v => Filter = Filter with { Region = v },
-                          v => v == null ? "Any region" : LobbyFlags.RegionName(v) + (v == OwnRegion ? " (you)" : ""));
+                          v => v == null ? Loc.T("find.filter.any_region") : v == OwnRegion ? Loc.F("find.filter.region_you", Loc.RegionName(v)) : Loc.RegionName(v));
             language = Drop(Languages(), () => Filter.Language, v => Filter = Filter with { Language = v },
-                            v => v == null ? "Any language" : LobbyFlags.LanguageName(v));
+                            v => v == null ? Loc.T("find.filter.any_language") : Loc.LobbyLanguageName(v));
             modded = Drop(either, () => Filter.Modded, v => Filter = Filter with { Modded = v },
-                          v => v switch { null => "Modded or not", true => "Modded", false => "Not modded" });
-            mode = Drop(modes, () => Filter.Mode, v => Filter = Filter with { Mode = v }, v => v is MatchMode m ? HillMatch.DisplayName(m) : "Any mode");
-            ShowFilter();
+                          v => v switch { null => Loc.T("find.filter.any_modded"), true => Loc.T("find.filter.modded"), false => Loc.T("find.filter.not_modded") });
+            mode = Drop(modes, () => Filter.Mode, v => Filter = Filter with { Mode = v }, v => v is MatchMode m ? Loc.ModeName(m) : Loc.T("find.filter.any_mode"));
             // A press anywhere but on a drop-down closes its list (before the press does its own thing).
             AddHandler(PointerPressedEvent, (_, e) =>
             {
@@ -70,7 +70,25 @@ namespace KotH.Client.Menu
             InviteField.Children.Add(invite);
             invite.Submitted += JoinInvited;
             JoinInvite.Click += (_, _) => JoinInvited();
+            ApplyLanguage();
             Found(new List<LobbyListing>());
+        }
+
+        /// <summary>Updates all static labels, placeholders, filter heads and rows for the active language.</summary>
+        public void ApplyLanguage()
+        {
+            SearchLabel.Text = Loc.T("find.search");
+            PasswordLabel.Text = Loc.T("find.password");
+            InviteLabel.Text = Loc.T("find.invite");
+            Refresh.Content = Loc.T("find.refresh");
+            JoinPrivate.Content = JoinInvite.Content = Loc.T("find.join");
+            search.Placeholder = Loc.T("find.search.placeholder");
+            invite.Placeholder = Loc.T("find.invite.placeholder");
+            password.Placeholder = Loc.T("find.password.placeholder");
+            Drops.Children.Clear();
+            ShowFilter();
+            if (!busy)
+                ApplySearch(keepPlace: true);
         }
 
         /// <summary>No Steam: nothing to find; direct IP stays on the command line.</summary>
@@ -80,7 +98,7 @@ namespace KotH.Client.Menu
             allRounds.Clear();
             list.Show(Array.Empty<RowList.Row>());
             EmptyTitle.Text = why;
-            EmptyHint.Text = "Start Steam and KotH again, or join with a host's invite code below.";
+            EmptyHint.Text = Loc.T("find.unavailable_hint");
             Empty.IsVisible = true;
             Status.Text = "";
             Refresh.IsEnabled = false;
@@ -89,7 +107,7 @@ namespace KotH.Client.Menu
         public void Searching()
         {
             saysWhy = false;
-            Status.Text = "Searching …";
+            Status.Text = Loc.T("find.searching");
             Refresh.IsEnabled = false;
         }
 
@@ -143,23 +161,27 @@ namespace KotH.Client.Menu
             }
 
             var rows = new List<RowList.Row>(shown.Count);
+            string joinLabel = Loc.T("find.join");
             foreach (LobbyListing round in shown)
             {
                 LobbyListing chosen = round;
-                string where = round.Regions.Length == 0 ? "" : "  " + string.Join(", ", Array.ConvertAll(round.Regions, LobbyFlags.RegionName));
-                string ping = round.PingMs < 0 ? "? ms" : $"{round.PingMs} ms";
-                string marks = (round.Mode != MatchMode.Solo ? "  " + HillMatch.DisplayName(round.Mode) : "") + (round.Private ? "  private" : "") + (round.Modded ? "  modded" : "");
-                rows.Add(new RowList.Row(round.Host, $"{round.Map}  {round.Players}/{round.Capacity}{where}{marks}  {ping}", "Join",
+                string where = round.Regions.Length == 0 ? "" : "  " + string.Join(Loc.T("list.sep"), Array.ConvertAll(round.Regions, Loc.RegionName));
+                string ping = round.PingMs < 0 ? Loc.T("common.unknown_ms") : Loc.F("common.ping_ms", Loc.Number(round.PingMs));
+                string marks = (round.Mode != MatchMode.Solo ? "  " + Loc.ModeName(round.Mode) : "")
+                             + (round.Private ? "  " + Loc.T("find.mark.private") : "")
+                             + (round.Modded ? "  " + Loc.T("find.mark.modded") : "");
+                string ratio = Loc.Ltr($"{round.Players}/{round.Capacity}");
+                rows.Add(new RowList.Row(round.Host, $"{Loc.MapTitle(round.Map, round.Map)}  {ratio}{where}{marks}  {ping}", joinLabel,
                                          () => { if (!busy) Choose(chosen); }));
             }
             list.Show(rows, keepPlace: keepPlace);
             Empty.IsVisible = rows.Count == 0;
             bool filteredOut = rows.Count == 0 && query.Length > 0 && allRounds.Count > 0;
-            EmptyTitle.Text = filteredOut ? "No matching servers" : "No servers found";
-            EmptyHint.Text = filteredOut ? "Try another name or clear the search." : "Host one yourself, or ask a friend for an invite.";
+            EmptyTitle.Text = Loc.T(filteredOut ? "find.no_matching" : "find.no_servers");
+            EmptyHint.Text = Loc.T(filteredOut ? "find.try_another" : "find.host_yourself");
             if (!keepPlace || !saysWhy)
-                Status.Text = query.Length > 0 && allRounds.Count > 0 ? $"{rows.Count} / {allRounds.Count}"
-                    : rows.Count == 0 ? "" : rows.Count == 1 ? "1 round" : $"{rows.Count} rounds";
+                Status.Text = query.Length > 0 && allRounds.Count > 0 ? Loc.F("find.count_ratio", Loc.Number(rows.Count), Loc.Number(allRounds.Count))
+                    : rows.Count == 0 ? "" : Loc.Plural("find.rounds", rows.Count);
         }
 
         void JoinInvited()
@@ -168,7 +190,7 @@ namespace KotH.Client.Menu
                 return;
             if (!Invites.TryParse(invite.Text, out _, out _, out _))
             {
-                Status.Text = "That is no invite code: koth://join?ip=…&port=…&key=…";
+                Status.Text = Loc.T("find.bad_invite");
                 saysWhy = true;
                 return;
             }
@@ -340,7 +362,7 @@ namespace KotH.Client.Menu
         public void Joining(string host)
         {
             busy = true;
-            Status.Text = $"Joining {host} …";
+            Status.Text = Loc.F("find.joining", host);
             Refresh.IsEnabled = false;
         }
 

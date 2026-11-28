@@ -10,16 +10,15 @@ namespace KotH.Client.Steam
     public sealed record LobbyFlags(string Name, bool Private, string[] Regions, string[] Languages, bool Modded, MatchMode Mode = MatchMode.Solo,
                                     int Max = 0)
     {
-        /// <summary>Languages a host can name, by code, with their English names (the menu's font
-        /// has no CJK or Cyrillic letters).</summary>
+        /// <summary>Languages a host can name, by code, with their English fallback names.</summary>
         public static readonly (string Code, string Name)[] AllLanguages =
         {
             ("en", "English"), ("de", "German"), ("fr", "French"), ("es", "Spanish"), ("it", "Italian"),
             ("pt", "Portuguese"), ("nl", "Dutch"), ("pl", "Polish"), ("cs", "Czech"), ("sv", "Swedish"),
             ("da", "Danish"), ("no", "Norwegian"), ("fi", "Finnish"), ("hu", "Hungarian"), ("ro", "Romanian"),
             ("tr", "Turkish"), ("el", "Greek"), ("uk", "Ukrainian"), ("ru", "Russian"), ("ar", "Arabic"),
-            ("hi", "Hindi"), ("id", "Indonesian"), ("vi", "Vietnamese"), ("th", "Thai"), ("ja", "Japanese"),
-            ("ko", "Korean"), ("zh", "Chinese"),
+            ("hi", "Hindi"), ("id", "Indonesian"), ("fil", "Filipino"), ("vi", "Vietnamese"), ("th", "Thai"),
+            ("ja", "Japanese"), ("ko", "Korean"), ("zh", "Chinese"), ("af", "Afrikaans"),
         };
 
         /// <summary>The regions a host can name (Luca, 11.11.2026), by code, with their names.</summary>
@@ -88,7 +87,8 @@ namespace KotH.Client.Steam
             "portuguese" or "brazilian" => "pt", "dutch" => "nl", "polish" => "pl", "czech" => "cs",
             "swedish" => "sv", "danish" => "da", "norwegian" => "no", "finnish" => "fi", "hungarian" => "hu",
             "romanian" => "ro", "turkish" => "tr", "greek" => "el", "ukrainian" => "uk", "russian" => "ru",
-            "arabic" => "ar", "indonesian" => "id", "vietnamese" => "vi", "thai" => "th", "japanese" => "ja",
+            "arabic" => "ar", "hindi" => "hi", "indonesian" => "id", "filipino" => "fil", "afrikaans" => "af",
+            "vietnamese" => "vi", "thai" => "th", "japanese" => "ja",
             "koreana" => "ko", "schinese" or "tchinese" => "zh",
             _ => "en",
         };

@@ -1,5 +1,6 @@
 using System;
 using KotH.Client.Audio;
+using KotH.Client.Localization;
 using KotH.Client.Menu;
 using KotH.Client.Net;
 using KotH.Client.Player;
@@ -32,6 +33,7 @@ namespace KotH.Client.Hud
         MenuOverlay overlay, talkOverlay;
         bool open, sent, shotTalk;   // shotTalk: test aid KOTH_SHOT_TALK=1, the voice's sign on
         long openedFrame;
+        int shownLang = -1;
         Comms local;   // no Steam: the chat's own notes (and the shot's sample)
 
         public ChatBox()
@@ -68,6 +70,11 @@ namespace KotH.Client.Hud
 
         public override void Update()
         {
+            if (shownLang != Loc.Version)
+            {
+                shownLang = Loc.Version;
+                view.ApplyLanguage();
+            }
             NetClient net = Services.GetService<NetClient>();
             double now = net?.Now ?? Environment.TickCount64;
             Comms comms = net?.Comms ?? local;
@@ -87,7 +94,7 @@ namespace KotH.Client.Hud
                     MenuTextBox.Focus(view.Typing);
                 }
                 else if (net != null)
-                    (local ??= new Comms(null, _ => null)).Note("The chat needs a Steam round.", now);
+                    (local ??= new Comms(null, _ => null)).Note(Loc.T("chat.needs_steam"), now);
                 comms ??= local;
             }
             // The T that opened it is no text: typing starts the frame after.
@@ -95,7 +102,7 @@ namespace KotH.Client.Hud
             {
                 MenuTextBox.Capture(Input);
                 if (sent)
-                    comms.Say(view.Typing.Text, net?.OwnName ?? "You", now);
+                    comms.Say(view.Typing.Text, net?.OwnName ?? Loc.T("common.you"), now);
                 if (sent || !view.Typing.HasFocus)
                     Close();
             }

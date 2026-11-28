@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using KotH.Client.Audio;
 using KotH.Client.Gamepad;
 using KotH.Client.Hud;
+using KotH.Client.Localization;
 using KotH.Client.Net;
 using KotH.Client.Player;
 using KotH.Client.Steam;
@@ -278,16 +279,16 @@ namespace KotH.Client.Menu
                 {
                     bool muted = talk.IsMuted(member);
                     int netId = talk.NetIdOf(member);
-                    string detail = muted ? "muted" : VoiceChat.IsSpeaking(netId) ? "speaking" : "";
+                    string detail = muted ? Loc.T("pause.player.muted") : VoiceChat.IsSpeaking(netId) ? Loc.T("pause.player.speaking") : "";
                     if (IsTeammate(netId))
-                        detail = detail.Length > 0 ? "team, " + detail : "team";
-                    rows.Add(new RowList.Row(talk.NameOf(member), detail, muted ? "Unmute" : "Mute", () =>
+                        detail = detail.Length > 0 ? Loc.F("pause.player.team_detail", detail) : Loc.T("pause.player.team");
+                    rows.Add(new RowList.Row(talk.NameOf(member), detail, Loc.T(muted ? "pause.player.unmute" : "pause.player.mute"), () =>
                     {
                         talk.SetMuted(member, !muted);
                         ListPlayers();
                     }));
                 }
-            view.ShowList(rows, "Nobody else here", "Muted players are not heard and their chat lines not shown.");
+            view.ShowList(rows, Loc.T("pause.player.empty"), Loc.T("pause.player.hint"));
         }
 
         double listedAt;
@@ -315,11 +316,11 @@ namespace KotH.Client.Menu
             string chosen = client.NextMap ?? Maps.Default;
             var maps = new List<(string Id, string Title, string Kind)>();
             foreach (string map in Maps.All)
-                maps.Add((map, Maps.Title(map), ""));
+                maps.Add((map, Loc.MapTitle(map), ""));
             // Custom maps: guests without one download it from the workshop (a local one only they lack).
             if (Library != null)
                 foreach (KotH.MapFormat.MapPackage p in Library.All())
-                    maps.Add((p.Id, p.Manifest.Title, p.WorkshopItem != 0 || p.Manifest.WorkshopId != 0 ? "workshop" : "local"));
+                    maps.Add((p.Id, p.Manifest.Title, Loc.T(p.WorkshopItem != 0 || p.Manifest.WorkshopId != 0 ? "pause.map.workshop" : "pause.map.local")));
             foreach ((string id, string title, string kind) in maps)
             {
                 string pick = id;
@@ -327,11 +328,11 @@ namespace KotH.Client.Menu
                 int need = Levels.MapLevel(id);
                 if (need > 0 && id != chosen && PlayerProgress.Level < need)
                 {
-                    rows.Add(new RowList.Row(title, "Level " + need, "Locked", null, BlurName: id == Maps.Test));
+                    rows.Add(new RowList.Row(title, Loc.F("common.level_n", Loc.Number(need)), Loc.T("pause.map.locked"), null, BlurName: id == Maps.Test));
                     continue;
                 }
                 // Choosing closes the menu, as Resume does (out of Avalonia's dispatcher).
-                rows.Add(new RowList.Row(title, id == chosen ? "chosen" : kind, "Choose", () =>
+                rows.Add(new RowList.Row(title, id == chosen ? Loc.T("pause.map.chosen") : kind, Loc.T("pause.map.choose"), () =>
                 {
                     client.Host.NextMap = pick;
                     ListMaps();
@@ -366,21 +367,22 @@ namespace KotH.Client.Menu
             var rows = new List<RowList.Row>();
             if (InviteCode is { } code)
             {
-                rows.Add(new RowList.Row(code, "", "Copy", () =>
+                rows.Add(new RowList.Row(code, "", Loc.T("pause.invite.copy"), () =>
                 {
                     MenuTextBox.Copy(code);
-                    view.Say("Copied: paste it into Join by invite (Find server). Over the internet use your public address.");
+                    view.Say(Loc.T("pause.invite.copied"));
                 }));
-                view.ShowList(rows, "", "Friends join with this code; it carries this host's key.");
+                view.ShowList(rows, "", Loc.T("pause.invite.code_hint"));
                 return;
             }
+            string inviteLabel = Loc.T("party.invite");
             foreach ((ulong id, string name) in SteamClient.OnlineFriends())
             {
                 string friend = name;
-                rows.Add(new RowList.Row(name, "", "Invite", () =>
-                    view.Say(Lobby?.Invite(id) == true ? $"Invited {friend}" : $"Could not invite {friend}")));
+                rows.Add(new RowList.Row(name, "", inviteLabel, () =>
+                    view.Say(Lobby?.Invite(id) == true ? Loc.F("pause.invite.sent", friend) : Loc.F("pause.invite.failed", friend))));
             }
-            view.ShowList(rows, "No friends online", rows.Count == 0 ? "" : "They get it in their Steam chat.");
+            view.ShowList(rows, Loc.T("party.no_friends"), rows.Count == 0 ? "" : Loc.T("pause.invite.chat_hint"));
         }
 
         /// <summary>The board grows in from a little smaller and fades in, as finished pictures.</summary>

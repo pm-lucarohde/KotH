@@ -10,30 +10,32 @@
     <Panel Name="Parts">
         <Grid Name="ColumnPart" Width="600" Height="1000">
             <!-- The player's name on a green band, the level beside it and the XP to the next under it -->
-            <Panel Name="NameTag" Width="400" Height="88" Margin="90,48,0,0"
-                   HorizontalAlignment="Left" VerticalAlignment="Top">
+            <Panel Name="NameTag" Width="430" Height="94" Margin="0,44,0,0"
+                   HorizontalAlignment="Center" VerticalAlignment="Top">
                 <Image Source="/Menu/Art/Ribbon.png" Margin="-24" Stretch="Fill" />
-                <Grid RowDefinitions="*,Auto" ColumnDefinitions="*,Auto" Margin="28,6,26,20">
+                <Grid RowDefinitions="*,Auto" ColumnDefinitions="*,Auto" Margin="28,10,26,18">
                     <TextBlock Name="PlayerName" Text="Player" Foreground="{StaticResource CreamBrush}"
-                               FontSize="27" FontWeight="SemiBold" VerticalAlignment="Center"
+                               FontSize="25" FontWeight="SemiBold" VerticalAlignment="Center"
                                TextTrimming="CharacterEllipsis" />
                     <TextBlock Name="LevelText" Grid.Column="1" Text="Level 1" Foreground="{StaticResource CreamBrush}"
-                               FontSize="22" FontWeight="Bold" VerticalAlignment="Center" Margin="14,0,0,0" />
-                    <Grid Grid.Row="1" Grid.ColumnSpan="2" ColumnDefinitions="Auto,*">
-                        <Border Width="210" Height="10" CornerRadius="5" Background="#4D1E3D18" VerticalAlignment="Center">
+                               FontSize="20" FontWeight="Bold" VerticalAlignment="Center" Margin="14,0,0,0" />
+                    <Grid Grid.Row="1" Grid.ColumnSpan="2" ColumnDefinitions="Auto,*" Margin="0,2,0,0">
+                        <Border Width="170" Height="10" CornerRadius="5" Background="#4D1E3D18" VerticalAlignment="Center"
+                                FlowDirection="LeftToRight">
                             <Border Name="XpFill" Width="0" CornerRadius="5" Background="#F2C25C"
                                     HorizontalAlignment="Left" />
                         </Border>
-                        <TextBlock Name="XpText" Grid.Column="1" Foreground="#E6F6ECDE" FontSize="17" FontWeight="SemiBold"
-                                   HorizontalAlignment="Right" VerticalAlignment="Center" />
+                        <TextBlock Name="XpText" Grid.Column="1" Foreground="#E6F6ECDE" FontSize="16" FontWeight="SemiBold"
+                                   HorizontalAlignment="Right" VerticalAlignment="Center" Margin="10,0,0,0"
+                                   TextTrimming="CharacterEllipsis" />
                     </Grid>
                 </Grid>
             </Panel>
 
             <!-- The buttons on their bamboo board, the note underneath -->
-            <StackPanel Name="Column" Margin="90,170,0,0" Width="460"
-                        HorizontalAlignment="Left" VerticalAlignment="Top">
-                <Panel Width="440" Height="614" HorizontalAlignment="Left">
+            <StackPanel Name="Column" Margin="0,164,0,0" Width="460"
+                        HorizontalAlignment="Center" VerticalAlignment="Top">
+                <Panel Width="440" Height="614" HorizontalAlignment="Center">
                     <Image Source="/Menu/Art/Panel.png" Margin="-24" Stretch="Fill" />
                     <StackPanel Name="Buttons" Spacing="12" HorizontalAlignment="Center" VerticalAlignment="Center"
                                 KeyboardNavigation.TabNavigation="Cycle">
@@ -46,19 +48,19 @@
                         <Button Name="Quit" Classes="Menu" Content="Quit game" />
                     </StackPanel>
                 </Panel>
-                <Panel Name="Note" Width="460" Height="112" Margin="-10,30,0,0" HorizontalAlignment="Left">
+                <Panel Name="Note" Width="460" Height="156" Margin="0,20,0,0" HorizontalAlignment="Center">
                     <Image Source="/Menu/Art/Note.png" Margin="-24" Stretch="Fill" />
-                    <TextBlock Name="Description" Foreground="{StaticResource CreamBrush}" FontSize="21"
-                               FontWeight="Medium" TextWrapping="Wrap" LineHeight="27" Margin="30,0,26,10"
+                    <TextBlock Name="Description" Foreground="{StaticResource CreamBrush}" FontSize="19"
+                               FontWeight="Medium" TextWrapping="Wrap" Margin="30,6,26,14"
                                VerticalAlignment="Center" />
                 </Panel>
             </StackPanel>
         </Grid>
 
-        <!-- The pages behind Host server, Find server, Social, Settings and Languages (the last only to look at for now) -->
+        <!-- The pages behind Host server, Find server, Social, Settings and Languages -->
         <Grid Name="PagePart" Width="1090" Height="770">
-            <Panel Name="Page" Width="1040" Height="720" Margin="24,24,0,0"
-                   HorizontalAlignment="Left" VerticalAlignment="Top">
+            <Panel Name="Page" Width="1040" Height="720"
+                   HorizontalAlignment="Center" VerticalAlignment="Center">
                 <Image Source="/Menu/Art/Wide.png" Margin="-24" Stretch="Fill" />
                 <Grid RowDefinitions="Auto,*,Auto" Margin="50,36,50,34">
                     <TextBlock Name="PageTitle" Classes="Title" Text="Page" />
@@ -76,17 +78,7 @@
                     <menu:SettingsPage Name="SettingsPage" Grid.RowSpan="3" />
 
                     <!-- Languages -->
-                    <Border Name="LanguagesPage" Grid.Row="1" Classes="Well" Margin="0,20,0,0">
-                        <StackPanel Spacing="14" VerticalAlignment="Top">
-                            <Border Classes="Tab Chosen" HorizontalAlignment="Left" Padding="24,10,30,10">
-                                <StackPanel Orientation="Horizontal" Spacing="14">
-                                    <Path Data="M 2,11 L 9,18 L 22,4" Stroke="{StaticResource CreamBrush}" StrokeThickness="4.5"
-                                          StrokeLineCap="Round" StrokeJoin="Round" VerticalAlignment="Center" />
-                                    <TextBlock Text="English" FontSize="26" />
-                                </StackPanel>
-                            </Border>
-                        </StackPanel>
-                    </Border>
+                    <menu:LanguagesPage Name="LanguagesPage" Grid.Row="1" Margin="0,20,0,0" />
 
                     <Button Name="Back" Grid.Row="2" Classes="Menu Small" Content="Back"
                             HorizontalAlignment="Right" Margin="0,18,0,0" />
@@ -95,18 +87,18 @@
         </Grid>
 
         <!-- Customize: a part of its own, narrower, the figure stays in sight -->
-        <Grid Name="CustomizePart" Width="560" Height="790">
+        <Grid Name="CustomizePart" Width="610" Height="790">
             <menu:CustomizePage Name="CustomizeView" />
         </Grid>
 
         <!-- The title over the sky; the picture is empty on its right, so it may
              reach past the part's edge (only clear pixels are cut there). -->
-        <Grid Name="LogoPart" Width="800" Height="420">
+        <Grid Name="LogoPart" Width="800" Height="420" FlowDirection="LeftToRight">
             <Image Name="Logo" Source="/Menu/Art/Logo.png" Width="728" Height="348" Margin="0,20,-90,0"
                    HorizontalAlignment="Right" VerticalAlignment="Top" IsHitTestVisible="False" />
         </Grid>
 
-        <Grid Name="CornerPart" Width="320" Height="70">
+        <Grid Name="CornerPart" Width="320" Height="70" FlowDirection="LeftToRight">
             <TextBlock Name="Version" Classes="Hint" Foreground="#E8F6ECDE" FontSize="17"
                        HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,36,26" />
         </Grid>

@@ -11,30 +11,41 @@
             <Setter Property="ClipToBounds" Value="False" />
         </Style>
     </UserControl.Styles>
-    <Grid RowDefinitions="Auto,*,Auto,Auto,Auto">
+    <Grid RowDefinitions="Auto,*,Auto,Auto,Auto" Grid.IsSharedSizeScope="True">
         <WrapPanel Name="Filters" ItemSpacing="10" LineSpacing="10" Margin="0,0,0,14" />
         <Border Grid.Row="1" Classes="Well" Padding="0,8">
             <Panel Name="Inside">
                 <StackPanel Name="Empty" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" Margin="26,0">
-                    <TextBlock Name="EmptyTitle" Classes="Label" Text="No servers found" HorizontalAlignment="Center" FontSize="28" />
+                    <TextBlock Name="EmptyTitle" Classes="Label" Text="No servers found" HorizontalAlignment="Center" FontSize="28" TextWrapping="Wrap" TextAlignment="Center" />
                     <TextBlock Name="EmptyHint" Classes="Hint" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
                 </StackPanel>
             </Panel>
         </Border>
-        <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto,Auto" Margin="0,20,0,0">
-            <TextBlock Name="SearchLabel" Classes="Label" Text="Search" Width="88" VerticalAlignment="Center" Margin="0,0,14,0" />
+        <Grid Grid.Row="2" Margin="0,20,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" SharedSizeGroup="FindLabel" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Name="SearchLabel" Classes="Label" Text="Search" VerticalAlignment="Center" Margin="0,0,14,0" />
             <Panel Name="SearchField" Grid.Column="1" />
             <Button Name="ClearSearch" Grid.Column="2" Classes="Step" Content="×" Margin="10,0,0,0" IsVisible="False" />
             <Button Name="Refresh" Grid.Column="3" Classes="Menu Small" Content="Refresh" Width="190" Margin="18,0,0,0" />
             <!-- A private round's password, asked for when its Join was chosen -->
             <StackPanel Name="Ask" Grid.ColumnSpan="3" Orientation="Horizontal" Spacing="14" IsVisible="False" VerticalAlignment="Center">
-                <TextBlock Classes="Label" Text="Password" VerticalAlignment="Center" />
+                <TextBlock Name="PasswordLabel" Classes="Label" Text="Password" VerticalAlignment="Center" />
             </StackPanel>
             <Button Name="JoinPrivate" Grid.Column="3" Classes="Menu Small" Content="Join" Width="190" Margin="18,0,0,0" IsVisible="False" />
         </Grid>
         <!-- Direct IP: a host's invite code (koth://join?ip=…&port=…&key=…), pasted with Ctrl+V -->
-        <Grid Grid.Row="3" ColumnDefinitions="Auto,*,Auto" Margin="0,16,0,0">
-            <TextBlock Classes="Label" Text="Invite" Width="88" VerticalAlignment="Center" Margin="0,0,14,0" />
+        <Grid Grid.Row="3" Margin="0,16,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" SharedSizeGroup="FindLabel" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Name="InviteLabel" Classes="Label" Text="Invite" VerticalAlignment="Center" Margin="0,0,14,0" />
             <Panel Name="InviteField" Grid.Column="1" />
             <Button Name="JoinInvite" Grid.Column="2" Classes="Menu Small" Content="Join" Width="190" Margin="18,0,0,0" />
         </Grid>

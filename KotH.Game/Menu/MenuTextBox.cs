@@ -104,7 +104,10 @@ namespace KotH.Client.Menu
             if (control && input.IsKeyPressed(Keys.V))
                 box.Insert(Clipboard.Text());
             if (input.IsKeyPressed(Keys.Back) && box.text.Length > 0)
-                box.Set(box.text[..^1]);
+            {
+                int cut = box.text.Length >= 2 && char.IsLowSurrogate(box.text[^1]) && char.IsHighSurrogate(box.text[^2]) ? 2 : 1;
+                box.Set(box.text[..^cut]);
+            }
             if (input.IsKeyPressed(Keys.Enter) || input.IsKeyPressed(Keys.NumPadEnter))
             {
                 Focus(null);
@@ -119,10 +122,18 @@ namespace KotH.Client.Menu
         {
             if (string.IsNullOrEmpty(typed))
                 return;
+            int count = 0;
+            foreach (System.Text.Rune _ in text.EnumerateRunes())
+                count++;
             var kept = new System.Text.StringBuilder(text);
-            foreach (char c in typed)
-                if (!char.IsControl(c) && kept.Length < MaxLength)
-                    kept.Append(c);
+            foreach (System.Text.Rune r in typed.EnumerateRunes())
+            {
+                if (!System.Text.Rune.IsControl(r) && count < MaxLength)
+                {
+                    kept.Append(r);
+                    count++;
+                }
+            }
             Set(kept.ToString());
         }
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using KotH.Client.Localization;
 using static KotH.Client.Steam.SteamApi;
 
 namespace KotH.Client.Steam
@@ -21,8 +22,11 @@ namespace KotH.Client.Steam
         /// <summary>Whether Steam is there: lobbies, P2P and the persona name work.</summary>
         public static bool Ready { get; private set; }
 
-        /// <summary>Why it is not Ready, for the menu.</summary>
-        public static string Failure { get; private set; } = "Steam is off";
+        /// <summary>Why it is not Ready, localized for the menu.</summary>
+        public static string Failure => failureKey != null
+            ? (failureArg != null ? Loc.F(failureKey, failureArg) : Loc.T(failureKey))
+            : null;
+        static string failureKey = "steam.off", failureArg;
 
         public static ulong SteamId { get; private set; }
 
@@ -59,7 +63,12 @@ namespace KotH.Client.Steam
                 AllowGamepads();
                 if (init != 0)
                 {
-                    Failure = init switch { 2 => "Steam is not running", 3 => "Steam is out of date", _ => "No Steam: " + Text(error) };
+                    (failureKey, failureArg) = init switch
+                    {
+                        2 => ("steam.not_running", (string)null),
+                        3 => ("steam.out_of_date", (string)null),
+                        _ => ("steam.no_steam", Text(error)),
+                    };
                     Console.WriteLine($"[steam] {Failure} ({Text(error)})");
                     return;
                 }
@@ -80,14 +89,14 @@ namespace KotH.Client.Steam
             }
             catch (Exception e) when (e is DllNotFoundException or EntryPointNotFoundException)
             {
-                Failure = "Steam library missing";
+                (failureKey, failureArg) = ("steam.lib_missing", null);
                 Console.WriteLine($"[steam] {Failure}: {e.Message}");
             }
             catch (Exception e)
             {
                 // Whatever Steam does, the game starts: direct IP only.
                 Ready = false;
-                Failure = "No Steam: " + e.Message;
+                (failureKey, failureArg) = ("steam.no_steam", e.Message);
                 Console.WriteLine($"[steam] {Failure}");
             }
         }

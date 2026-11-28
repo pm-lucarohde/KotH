@@ -1,5 +1,6 @@
 using System;
 using Avalonia.Controls;
+using KotH.Client.Localization;
 using KotH.Client.Menu;
 using KotH.Client.Net;
 using KotH.Shared.Match;
@@ -15,7 +16,7 @@ namespace KotH.Client.Hud
     sealed class XpCard
     {
         // The card's top in HUD units, under the crosshair; the parts' places in it as XpView lays them out.
-        const float Top = 596f, CardWidth = 688f, LinesTop = 96f, LineHeight = 38f;
+        const float Top = 596f, CardWidth = 688f, LinesTop = 94f, LineHeight = 40f;
         const float BarLeft = 204f, BarWidth = 436f, BarTop = 234f, BarHeight = 14f;
 
         // Seconds: after the banner, the entrance, a line's slide and the next line's, the bar after the
@@ -69,7 +70,7 @@ namespace KotH.Client.Hud
             for (int i = 0; i < lines.Length; i++)
                 lines[i] = At(rows[i], 24f, LinesTop + i * LineHeight, size);
             note = At(view.NotePart, 24f, LinesTop, size);
-            badge = At(view.BadgePart, 39f, BarTop + BarHeight * 0.5f - 32f, size);
+            badge = At(view.BadgePart, 36f, BarTop + BarHeight * 0.5f - 32f, size);
             gain = At(view.GainPart, BarLeft, BarTop, size);
             old = At(view.OldPart, BarLeft, BarTop, size);
             flash = At(view.FlashPart, BarLeft - 24f, BarTop - 24f, size);
@@ -77,8 +78,8 @@ namespace KotH.Client.Hud
             numbers = At(view.NumbersPart, BarLeft, BarTop + 24f, size);
             hint = At(view.HintPart, 48f, BarTop + 46f, size);   // clear under the badge (Luca: Esc sat on it)
             // The stamp over the card's top edge, right, clear of the sum.
-            levelUp = At(view.LevelUpPart, 490f, -54f, size);
-            unlock = At(view.UnlockPart, 24f, 326f, size);
+            levelUp = At(view.LevelUpPart, 430f, -54f, size);
+            unlock = At(view.UnlockPart, -76f, 326f, size);
             levelUp.Angle = -0.1f;
             // Drawn in this order: the gain under the old share, the flash and spark over both.
             Overlays = new[] { card, head, lines[0], lines[1], lines[2], note, badge, gain, old, flash, spark, numbers, hint, levelUp, unlock };
@@ -139,10 +140,11 @@ namespace KotH.Client.Hud
             if (!round.Counted)
                 before = PlayerProgress.Xp;
 
+            view.ApplyLanguage();
             lineCount = !round.Counted ? 0 : round.Won ? 3 : 2;
-            view.Line(0, "Time played", Clock(round.PlayedTicks), "+" + round.Played);
-            view.Line(1, "Zone held", Clock(round.ZoneTicks), "+" + round.Zone);
-            view.Line(2, "Victory", "", "+" + round.Win);
+            view.Line(0, Loc.T("xp.time_played"), Clock(round.PlayedTicks), Loc.Ltr(Loc.F("xp.plus", round.Played.ToString("N0", Loc.Numbers))));
+            view.Line(1, Loc.T("xp.zone_held"), Clock(round.ZoneTicks), Loc.Ltr(Loc.F("xp.plus", round.Zone.ToString("N0", Loc.Numbers))));
+            view.Line(2, Loc.T("xp.victory"), "", Loc.Ltr(Loc.F("xp.plus", round.Win.ToString("N0", Loc.Numbers))));
             (lineValue[0], lineValue[1], lineValue[2]) = (round.Played, round.Zone, round.Win);
 
             // The bar: from the XP before the round to after it, a stretch per level it runs through.
@@ -166,7 +168,7 @@ namespace KotH.Client.Hud
             shownLevel = shownInto = shownSpan = -1;
             shownSum = 0;
             begun = true;
-            view.Sum("+0 XP");
+            view.Sum(Loc.Ltr(Loc.F("xp.total", 0.ToString("N0", Loc.Numbers))));
             foreach (MenuOverlay overlay in Overlays)
                 overlay.Visible = true;
         }
@@ -200,7 +202,7 @@ namespace KotH.Client.Hud
             if (whole != shownSum)
             {
                 shownSum = whole;
-                view.Sum("+" + whole + " XP");
+                view.Sum(Loc.Ltr(Loc.F("xp.total", whole.ToString("N0", Loc.Numbers))));
             }
 
             // Under the round's bright share, what the level held before it, muted, while it is that level.
@@ -215,19 +217,19 @@ namespace KotH.Client.Hud
                 {
                     (flashAt, flashStrength, popAt, stampAt) = (t, 1f, t, t);
                     for (int l = shownLevel + 1; l <= level; l++)
-                        if (Levels.Unlocks(l) is { } what)
+                        if (Loc.UnlockMessage(l) is { } what)
                         {
                             view.Unlocked(what);
                             unlockAt = t + 0.3f;
                         }
                 }
                 shownLevel = level;
-                view.Level("Level " + level);
+                view.Level(Loc.F("common.level_n", Loc.Number(level)));
             }
             if (into != shownInto || span != shownSpan)
             {
                 (shownInto, shownSpan) = (into, span);
-                view.Progress(span == 0 ? "Max level" : Number(into) + " / " + Number(span) + " XP");
+                view.Progress(span == 0 ? Loc.T("common.max_level") : Loc.Ltr(Loc.F("common.xp_progress", into.ToString("N0", Loc.Numbers), span.ToString("N0", Loc.Numbers))));
             }
             // A last, softer flash where the bar stops.
             if (stretchCount > 0 && flashAt < barEnd && t >= barEnd && !stretches[stretchCount - 1].Fills)
@@ -296,12 +298,6 @@ namespace KotH.Client.Hud
             return 1f - v * v * v;
         }
 
-        static string Clock(int ticks)
-        {
-            int s = ticks / HillMatch.TicksPerPoint;
-            return string.Format(HudRenderer.Numbers, "{0}:{1:D2}", s / 60, s % 60);
-        }
-
-        static string Number(int n) => n.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
+        static string Clock(int ticks) => Loc.Clock(ticks / HillMatch.TicksPerPoint);
     }
 }

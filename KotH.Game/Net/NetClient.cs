@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using KotH.Client.Localization;
 using KotH.Client.Steam;
 using KotH.Shared.Bots;
 using KotH.Shared.Hosting;
@@ -62,7 +63,7 @@ namespace KotH.Client.Net
                     round.MinPlayers = options.StartAt;
                     round.Command(LobbyOf(options, start: false));
                 }
-                address = lobby != null ? "Steam" : $"Port {options.Port}";
+                address = lobby != null ? "Steam" : Loc.F("net.port", options.Port);
             }
             else
             {
@@ -71,7 +72,7 @@ namespace KotH.Client.Net
                 {
                     Password = options.Password,
                 };
-                address = lobby != null ? lobby.HostName ?? "the host" : $"{options.JoinAddress}:{options.Port}";
+                address = lobby != null ? lobby.HostName ?? Loc.T("net.the_host") : Loc.Ltr($"{options.JoinAddress}:{options.Port}");
             }
         }
 
@@ -304,19 +305,19 @@ namespace KotH.Client.Net
         public string Notice
             => Session.Rejected switch
             {
-                RejectReason.Version => "Rejected: different build than the host",
-                RejectReason.Full => "Rejected: the game is full",
-                RejectReason.Password => "Rejected: wrong password",
+                RejectReason.Version => Loc.T("net.rejected.version"),
+                RejectReason.Full => Loc.T("net.rejected.full"),
+                RejectReason.Password => Loc.T("net.rejected.password"),
                 _ => KeyRefused is { } why ? why
-                   : gaveUp || Session.HostLost && Lobby == null ? "The host is gone, the game is over"
-                   : Session.ResumeNetId != 0 && !Session.Joined ? "The host changed, reconnecting ..."
-                   : !Session.Joined ? $"Connecting to {address} ..."
+                   : gaveUp || Session.HostLost && Lobby == null ? Loc.T("net.host_gone")
+                   : Session.ResumeNetId != 0 && !Session.Joined ? Loc.T("net.host_changed")
+                   : !Session.Joined ? Loc.F("net.connecting", address)
                    : null,
             };
 
         /// <summary>Direct IP: why the host's handshake failed its check (key not the invite's, bad signature), else null.</summary>
         public string KeyRefused
-            => transport is LiteNetTransport { DisconnectReason: { } why } && why.StartsWith("The host's", StringComparison.Ordinal) ? why : null;
+            => transport is LiteNetTransport { KeyFailure: var fail } && fail != SecureLinkFailure.None ? Loc.SecureFailure(fail) : null;
 
         /// <summary>The F3 line: ping, lead, rollbacks, waits.</summary>
         public string Readout

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using KotH.Client.Localization;
 using KotH.Shared.Match;
 
 namespace KotH.Client.Menu
@@ -14,6 +15,8 @@ namespace KotH.Client.Menu
     {
         // The board's height with four buttons (seven as the main menu's); each further one adds a button and its gap.
         const double BoardHeight = 380, ButtonStep = 66 + 12;
+
+        enum SubPage { None, Settings, Invite, Players, Maps, Round }
 
         /// <summary>Resume was chosen.</summary>
         public event Action ResumeRequested;
@@ -43,6 +46,7 @@ namespace KotH.Client.Menu
         public event Action<bool> Confirmed;
 
         readonly RowList rows = new RowList();
+        SubPage currentPage;
 
         public PauseMenuView()
         {
@@ -51,22 +55,22 @@ namespace KotH.Client.Menu
             Resume.Click += (_, _) => ResumeRequested?.Invoke();
             ToMenu.Click += (_, _) => MenuRequested?.Invoke();
             Quit.Click += (_, _) => QuitRequested?.Invoke();
-            Settings.Click += (_, _) => ShowPage("Settings", list: false);
+            Settings.Click += (_, _) => ShowPage(SubPage.Settings, "pause.settings", list: false);
             SettingsPage.BackRequested += () => PageOpen = false;
             Invite.Click += (_, _) =>
             {
-                ShowPage("Invite friends", list: true);
+                ShowPage(SubPage.Invite, "pause.invite_friends", list: true);
                 InviteOpened?.Invoke();
             };
             Players.Click += (_, _) =>
             {
-                ShowPage("Players", list: true);
+                ShowPage(SubPage.Players, "pause.players", list: true);
                 PlayersOpened?.Invoke();
             };
             Maps.Click += (_, _) => OpenMaps();
             Round.Click += (_, _) =>
             {
-                ShowPage("Game mode", list: false, round: true);
+                ShowPage(SubPage.Round, "pause.game_mode", list: false, round: true);
                 RoundOpened?.Invoke();
                 ShowRound();
             };
@@ -81,6 +85,27 @@ namespace KotH.Client.Menu
             Stay.Click += (_, _) => Confirmed?.Invoke(false);
             Leave.Click += (_, _) => Confirmed?.Invoke(true);
             Back.Click += (_, _) => PageOpen = false;
+            ApplyLanguage();
+        }
+
+        public void ApplyLanguage()
+        {
+            Resume.Content = Loc.T("pause.resume");
+            Maps.Content = Loc.T("pause.map");
+            Round.Content = Loc.T("pause.game_mode");
+            Invite.Content = Loc.T("pause.invite_friends");
+            Players.Content = Loc.T("pause.players");
+            Settings.Content = Loc.T("pause.settings");
+            Quit.Content = Loc.T("pause.to_desktop");
+            ToMenu.Content = Loc.T("pause.main_menu");
+            LeaveTitle.Text = Loc.T("pause.leave_title");
+            Stay.Content = Loc.T("pause.stay");
+            Leave.Content = Loc.T("pause.leave");
+            StartRound.Content = Loc.T("pause.start_round");
+            ApplyRound.Content = Loc.T("common.apply");
+            Back.Content = Loc.T("common.back");
+            SettingsPage.ApplyLanguage();
+            RoundPage.ApplyLanguage();
         }
 
         /// <summary>Whether a page shows instead of the buttons.</summary>
@@ -99,14 +124,14 @@ namespace KotH.Client.Menu
         /// <summary>The question's words: with a penalty, what leaving costs.</summary>
         public void Ask(bool penalty)
         {
-            string text = penalty ? $"The round is still running. Leaving it now costs {XpCounter.LeaveXp} XP."
-                                  : "The round is still running; the others play on without you.";
+            string text = penalty ? Loc.F("pause.leave_penalty", Loc.Number(XpCounter.LeaveXp))
+                                  : Loc.T("pause.leave_why");
             if (Why.Text != text)
                 Why.Text = text;
         }
 
         /// <summary>Whether the Players page shows.</summary>
-        public bool PlayersShown => PageOpen && ListPage.IsVisible && PageTitle.Text == "Players";
+        public bool PlayersShown => PageOpen && currentPage == SubPage.Players;
 
         /// <summary>The Settings page, which takes keys while one of its rows waits for one.</summary>
         public SettingsPage SettingsView => SettingsPage;
@@ -122,7 +147,7 @@ namespace KotH.Client.Menu
         public RoundPage RoundView => RoundPage;
 
         /// <summary>Whether the Round page shows.</summary>
-        public bool RoundShown => PageOpen && RoundPage.IsVisible;
+        public bool RoundShown => PageOpen && currentPage == SubPage.Round;
 
         /// <summary>Each frame while Round shows: the word and Start round follow who is in the lobby.</summary>
         public void FollowRound()
@@ -138,23 +163,24 @@ namespace KotH.Client.Menu
             string why = RoundPage.Problem;
             ApplyRound.IsEnabled = dirty;
             StartRound.IsEnabled = !dirty && why == null;
-            Status.Text = dirty ? "Press Apply to confirm changes." : why ?? "";
+            Status.Text = dirty ? Loc.T("pause.apply_hint") : why ?? "";
         }
 
         /// <summary>Whether the Map page shows.</summary>
-        public bool MapsShown => PageOpen && ListPage.IsVisible && PageTitle.Text == "Map";
+        public bool MapsShown => PageOpen && currentPage == SubPage.Maps;
 
         /// <summary>The Map page, as if chosen (also when the host lands in the lobby).</summary>
         public void OpenMaps()
         {
-            ShowPage("Map", list: true);
+            ShowPage(SubPage.Maps, "pause.map", list: true);
             MapsOpened?.Invoke();
         }
 
-        void ShowPage(string title, bool list, bool round = false)
+        void ShowPage(SubPage kind, string titleKey, bool list, bool round = false)
         {
+            currentPage = kind;
             PageOpen = true;
-            PageTitle.Text = title;
+            PageTitle.Text = Loc.T(titleKey);
             SettingsPage.IsVisible = !list && !round;
             RoundPage.IsVisible = StartRound.IsVisible = ApplyRound.IsVisible = round;
             Back.Width = round ? 150 : double.NaN;

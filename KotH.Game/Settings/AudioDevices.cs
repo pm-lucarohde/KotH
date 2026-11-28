@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using KotH.Client.Localization;
 
 namespace KotH.Client.Settings
 {
@@ -24,7 +25,7 @@ namespace KotH.Client.Settings
         public static IReadOnlyList<string> Inputs() => inputs ??= List(CaptureDevices, CaptureDevices);
 
         /// <summary>A device as the page writes it; OpenAL Soft puts "OpenAL Soft on " before each name.</summary>
-        public static string Text(string name) => string.IsNullOrEmpty(name) ? "System default"
+        public static string Text(string name) => string.IsNullOrEmpty(name) ? Loc.T("settings.sound.system_default")
             : name.StartsWith("OpenAL Soft on ") ? name[15..] : name;
 
         // OpenAL's list: names one after another, each ended by a NUL, the list by a second.

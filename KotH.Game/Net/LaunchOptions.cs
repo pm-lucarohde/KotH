@@ -123,7 +123,7 @@ namespace KotH.Client.Net
             o.Fps = Number(args, "--fps");
             if ((Text(args, "--dlss") ?? Environment.GetEnvironmentVariable("KOTH_DLSS")) is { } dlss)
                 o.Dlss = KotH.Client.Rendering.Dlss.Dlss.ParseMode(dlss);
-            o.Name = Text(args, "--name") ?? SteamClient.PersonaName ?? Environment.UserName;
+            o.Name = HostSession.CleanName(Text(args, "--name") ?? SteamClient.PersonaName ?? Environment.UserName);
             if (ulong.TryParse(Text(args, "+connect_lobby"), NumberStyles.Integer, CultureInfo.InvariantCulture, out ulong lobby))
                 SteamClient.Invite(lobby);
             o.SavedLook = LookFile.Load();

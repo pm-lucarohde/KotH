@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Media;
+using KotH.Client.Localization;
 
 namespace KotH.Client.Hud
 {
@@ -14,7 +15,7 @@ namespace KotH.Client.Hud
     {
         /// <summary>Rows of the best list, and their height in units of a screen 1080 high.</summary>
         public const int Rows = 4;
-        public const double RowHeight = 36;
+        public const double RowHeight = 40;
 
         static readonly IBrush White = Brushes.White;
 
@@ -37,6 +38,15 @@ namespace KotH.Client.Hud
                 backs[i] = new Border { Height = RowHeight, CornerRadius = new(9), Padding = new(12, 0), Child = row };
                 RankList.Children.Add(backs[i]);
             }
+            ApplyLanguage();
+        }
+
+        /// <summary>Updates static HUD chip labels for the active language.</summary>
+        public void ApplyLanguage()
+        {
+            Set(DamageLabel, Loc.T("hud.damage"));
+            Set(SporesLabel, Loc.T("hud.spores"));
+            Set(DashLabel, Loc.T("hud.dash"));
         }
 
         /// <summary>The parts, out of this control, each to be the content of an overlay.</summary>
@@ -121,7 +131,7 @@ namespace KotH.Client.Hud
                 if (dots[i].Stroke != spore)
                     dots[i].Stroke = spore;
             }
-            double width = 170 * System.Math.Clamp(next, 0, 1);
+            double width = 190 * System.Math.Clamp(next, 0, 1);
             if (Next.Width != width)
                 Next.Width = width;
         }
@@ -136,7 +146,7 @@ namespace KotH.Client.Hud
                 DashDot.Fill = fill;
             if (DashDot.Stroke != DashColor)
                 DashDot.Stroke = DashColor;
-            double width = 100 * System.Math.Clamp(next, 0, 1);
+            double width = 136 * System.Math.Clamp(next, 0, 1);
             if (DashNext.Width != width)
                 DashNext.Width = width;
         }

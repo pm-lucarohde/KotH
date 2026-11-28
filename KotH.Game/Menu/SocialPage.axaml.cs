@@ -1,5 +1,6 @@
 using System;
 using Avalonia.Controls;
+using KotH.Client.Localization;
 
 namespace KotH.Client.Menu
 {
@@ -15,7 +16,17 @@ namespace KotH.Client.Menu
             BoardTab.Tag = (Action)(() => Choose(true));
             PartyTab.PointerPressed += (_, _) => Choose(false);
             BoardTab.PointerPressed += (_, _) => Choose(true);
+            ApplyLanguage();
             Choose(false);
+        }
+
+        public void ApplyLanguage()
+        {
+            TitleText.Text = Loc.T("social.title");
+            PartyTabText.Text = Loc.T("social.party");
+            BoardTabText.Text = Loc.T("social.leaderboard");
+            Party.ApplyLanguage();
+            Board.ApplyLanguage();
         }
 
         /// <summary>Gamepad LB/RB: switches between Party and Leaderboard.</summary>

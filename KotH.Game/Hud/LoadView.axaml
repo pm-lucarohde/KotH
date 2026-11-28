@@ -27,9 +27,9 @@
                 <Ellipse Canvas.Left="8.5" Canvas.Top="9" Width="4" Height="4" Fill="#F6ECDE" />
             </Canvas>
         </Grid>
-        <Grid Name="WordsPart" Width="900" Height="144">
+        <Grid Name="WordsPart" Width="900" Height="144" FlowDirection="LeftToRight">
             <TextBlock Name="Words" Classes="Hud" Text="Loading …" FontSize="36"
-                       HorizontalAlignment="Right" Margin="0,0,0,6" />
+                       HorizontalAlignment="Right" MaxWidth="880" TextTrimming="CharacterEllipsis" Margin="0,0,0,6" />
         </Grid>
     </Panel>
 </UserControl>

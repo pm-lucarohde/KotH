@@ -16,6 +16,16 @@ namespace KotH.Client.Settings
         /// <summary>After every Apply, with the new settings.</summary>
         public static event Action<PlayerSettings> Changed;
 
+        /// <summary>The chosen UI language: kept and saved immediately.</summary>
+        public static void RememberLanguage(string code)
+        {
+            PlayerSettings s = Applied;
+            if (s.Language == code)
+                return;
+            s.Language = code;
+            SettingsFile.Save(s);
+        }
+
         /// <summary>The Host page's choices: kept and saved, nothing to apply.</summary>
         public static void RememberHost(PlayerSettings from)
         {

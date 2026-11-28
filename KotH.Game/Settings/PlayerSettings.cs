@@ -23,6 +23,9 @@ namespace KotH.Client.Settings
     /// the page: 80 % is today's loudness, High today's look, FOV 85, no cap, no V-Sync, FXAA.</summary>
     public sealed class PlayerSettings
     {
+        // UI language code ("" = auto-detect from Steam, else "en", "de", ...).
+        public string Language = "";
+
         // Sound, 0 to 1 (0.8 today's loudness); devices by OpenAL's name, empty the system's.
         public float Overall = 0.8f, Effects = 0.8f, Music = 0.8f, Ambient = 0.8f, Voice = 0.8f;
         public string OutputDevice = "", InputDevice = "";

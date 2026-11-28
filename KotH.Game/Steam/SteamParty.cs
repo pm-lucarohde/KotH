@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using KotH.Client.Localization;
 
 namespace KotH.Client.Steam
 {
@@ -110,19 +111,19 @@ namespace KotH.Client.Steam
         public static string Status()
         {
             if (lobby == null)
-                return "No party: invite up to three friends to play together as one team.";
+                return Loc.T("party.none");
             if (lobby.Id == 0)
-                return lobby.Failure ?? "Making the party ...";
+                return lobby.Failure ?? Loc.T("party.making");
             lobby.Members(members);
             var others = new List<string>();
             foreach (ulong m in members)
                 if (m != SteamClient.SteamId)
                     others.Add(SteamClient.NameOf(m));
             if (others.Count == 0)
-                return "Your party: just you. Invite a friend.";
-            string names = others.Count == 1 ? others[0] : string.Join(", ", others.GetRange(0, others.Count - 1)) + " and " + others[^1];
-            return Leads ? $"Your party: you and {names}. They follow you into rounds."
-                         : $"Your party: you and {names}. You follow {SteamClient.NameOf(lobby.Owner)} into rounds.";
+                return Loc.T("party.just_you");
+            string names = Loc.JoinNames(others, words: true);
+            return Leads ? Loc.F("party.leading", names)
+                         : Loc.F("party.following", names, SteamClient.NameOf(lobby.Owner));
         }
     }
 }

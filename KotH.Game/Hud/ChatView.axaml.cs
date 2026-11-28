@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Media;
+using KotH.Client.Localization;
 using KotH.Client.Menu;
 using KotH.Client.Net;
 
@@ -19,7 +20,7 @@ namespace KotH.Client.Hud
 
         public readonly MenuTextBox Typing = new MenuTextBox
         {
-            MaxLength = Steam.SteamMesh.MaxChatChars, Placeholder = "Say something, Enter sends, Esc closes",
+            MaxLength = Steam.SteamMesh.MaxChatChars,
         };
 
         int shownVersion = -1, shownCount = -1;
@@ -29,9 +30,22 @@ namespace KotH.Client.Hud
         {
             InitializeComponent();
             Field.Children.Add(Typing);
+            ApplyLanguage();
         }
 
-        Audio.VoiceChat.Mic shownMic;
+        Audio.VoiceChat.Mic shownMic = (Audio.VoiceChat.Mic)(-1);
+
+        /// <summary>Updates placeholder and voice indicator text for the active language.</summary>
+        public void ApplyLanguage()
+        {
+            Typing.Placeholder = Loc.T("chat.placeholder");
+            if (shownMic != (Audio.VoiceChat.Mic)(-1))
+            {
+                Audio.VoiceChat.Mic current = shownMic;
+                shownMic = (Audio.VoiceChat.Mic)(-1);
+                ShowTalk(current);
+            }
+        }
 
         /// <summary>Where the chat ends in its part, as last laid out (the voice's sign goes right under it).</summary>
         public double ChatBottom => Back.Bounds.Bottom;
@@ -57,8 +71,8 @@ namespace KotH.Client.Hud
             TalkText.Text = mic switch
             {
                 Audio.VoiceChat.Mic.Talking => "",   // the speaker alone (Luca)
-                Audio.VoiceChat.Mic.Missing => "No microphone",
-                _ => "Voice needs a Steam round",
+                Audio.VoiceChat.Mic.Missing => Loc.T("chat.no_mic"),
+                _ => Loc.T("chat.voice_needs_steam"),
             };
         }
 
@@ -82,8 +96,8 @@ namespace KotH.Client.Hud
                 text.Inlines!.Add(new Run(line.Text) { Foreground = NoteBrush });
             else
             {
-                // No-break spaces: name and text stay on one line, a long word breaks at the line's end (Luca).
-                text.Inlines!.Add(new Run(line.Name.Replace(' ', '\u00A0') + ":\u00A0") { Foreground = line.Own ? OwnBrush : NameBrush });
+                // Isolate arbitrary BiDi names with FSI/PDI and keep name + colon together.
+                text.Inlines!.Add(new Run("\u2068" + line.Name.Replace(' ', '\u00A0') + "\u2069:\u00A0") { Foreground = line.Own ? OwnBrush : NameBrush });
                 text.Inlines.Add(new Run(line.Text));
             }
             if (!open)

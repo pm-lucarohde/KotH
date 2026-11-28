@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Avalonia.Controls;
+using KotH.Client.Localization;
 using KotH.Client.Steam;
 
 namespace KotH.Client.Menu
@@ -22,6 +23,13 @@ namespace KotH.Client.Menu
                 said = null;
                 Refresh();
             };
+            ApplyLanguage();
+        }
+
+        public void ApplyLanguage()
+        {
+            Leave.Content = Loc.T("party.leave");
+            Open();
         }
 
         /// <summary>Opened: the friends anew.</summary>
@@ -29,18 +37,19 @@ namespace KotH.Client.Menu
         {
             said = null;
             rows.Clear();
+            string inviteLabel = Loc.T("party.invite");
             if (SteamClient.Ready)
                 foreach ((ulong id, string name) in SteamClient.OnlineFriends())
                 {
                     string friend = name;
-                    rows.Add(new RowList.Row(name, "", "Invite", () =>
+                    rows.Add(new RowList.Row(name, "", inviteLabel, () =>
                     {
-                        said = SteamParty.Invite(id) ? $"Invited {friend}: they get it in their Steam chat." : $"Could not invite {friend}.";
+                        said = SteamParty.Invite(id) ? Loc.F("party.invited", friend) : Loc.F("party.invite_failed", friend);
                         Refresh();
                     }));
                 }
             list.Show(rows);
-            Empty.Text = SteamClient.Ready ? "No friends online" : SteamClient.Failure ?? "Steam is not running";
+            Empty.Text = SteamClient.Ready ? Loc.T("party.no_friends") : SteamClient.Failure ?? Loc.T("steam.not_running");
             Empty.IsVisible = rows.Count == 0;
             Refresh();
         }

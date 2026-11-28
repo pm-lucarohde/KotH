@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Avalonia;
 using Avalonia.Controls;
 using KotH.Client.Gamepad;
+using KotH.Client.Localization;
 using KotH.Client.Settings;
 using Stride.Core.Mathematics;
 using Stride.Input;
@@ -17,13 +18,15 @@ namespace KotH.Client.Menu
     /// Input shows the gamepad's rows instead of the keys' while the pad is in use (Luca).</summary>
     public partial class SettingsPage : UserControl
     {
-        static readonly string[] TabNames = { "Sound", "Graphics", "Input" };
+        static readonly string[] TabIds = { "Sound", "Graphics", "Input" };
+        static readonly string[] TabKeys = { "settings.tab.sound", "settings.tab.graphics", "settings.tab.input" };
 
         /// <summary>Back was chosen.</summary>
         public event Action BackRequested;
 
-        readonly Border[] tabs = new Border[TabNames.Length];
-        readonly List<SettingRow>[] rows;
+        readonly Border[] tabs = new Border[TabKeys.Length];
+        readonly TextBlock[] tabLabels = new TextBlock[TabKeys.Length];
+        List<SettingRow>[] rows;
         PlayerSettings edited = ClientSettings.Applied.Clone();
         KeyRow listening;
         PadRow listeningPad;
@@ -42,21 +45,12 @@ namespace KotH.Client.Menu
             {
                 int index = i;
                 Action pick = () => Choose(index);
-                tabs[i] = new Border { Classes = { "Tab", "PageTab" }, Child = new TextBlock { Text = TabNames[i] }, Tag = pick };
+                tabLabels[i] = new TextBlock { Text = Loc.T(TabKeys[i]) };
+                tabs[i] = new Border { Classes = { "Tab", "PageTab" }, Child = tabLabels[i], Tag = pick };
                 tabs[i].PointerPressed += (_, _) => pick();
                 Tabs.Children.Add(tabs[i]);
             }
-            rows = new[] { SoundRows(), GraphicsRows(), InputRows(), GamepadRows() };
-            foreach (List<SettingRow> list in rows)
-                foreach (SettingRow row in list)
-                {
-                    row.Edited = () => edited;
-                    row.Changed = Refresh;
-                    if (row is KeyRow key)
-                        key.Listen += Listen;
-                    if (row is PadRow pad)
-                        pad.Listen += Listen;
-                }
+            BuildRows();
             Reset.Click += (_, _) =>
             {
                 if (tab == 0) edited.ResetSound();
@@ -77,7 +71,37 @@ namespace KotH.Client.Menu
                 listeningPad = null;
                 BackRequested?.Invoke();
             };
+            ApplyLanguage();
             Choose(0);
+        }
+
+        void BuildRows()
+        {
+            rows = new[] { SoundRows(), GraphicsRows(), InputRows(), GamepadRows() };
+            foreach (List<SettingRow> list in rows)
+                foreach (SettingRow row in list)
+                {
+                    row.Edited = () => edited;
+                    row.Changed = Refresh;
+                    if (row is KeyRow key)
+                        key.Listen += Listen;
+                    if (row is PadRow pad)
+                        pad.Listen += Listen;
+                }
+        }
+
+        /// <summary>Rebuilds row labels and button text for the active language.</summary>
+        public void ApplyLanguage()
+        {
+            TitleText.Text = Loc.T("settings.title");
+            Reset.Content = Loc.T("common.reset");
+            Revert.Content = Loc.T("common.revert");
+            Apply.Content = Loc.T("common.apply");
+            Back.Content = Loc.T("common.back");
+            for (int i = 0; i < tabLabels.Length; i++)
+                tabLabels[i].Text = Loc.T(TabKeys[i]);
+            BuildRows();
+            Choose(tab);
         }
 
         /// <summary>Shown again: from the settings in force, changes not applied are gone.</summary>
@@ -92,7 +116,7 @@ namespace KotH.Client.Menu
         /// <summary>Test aid (KOTH_SHOT_SETTINGS): the tab by name.</summary>
         public void Choose(string name)
         {
-            int i = Array.FindIndex(TabNames, t => string.Equals(t, name, StringComparison.OrdinalIgnoreCase));
+            int i = Array.FindIndex(TabIds, t => string.Equals(t, name, StringComparison.OrdinalIgnoreCase));
             if (i >= 0)
                 Choose(i);
         }
@@ -193,33 +217,33 @@ namespace KotH.Client.Menu
         static bool Bindable(Keys key) => key is not (Keys.Escape or Keys.F3 or Keys.F11 or Keys.Up or Keys.Down
                                                       or Keys.Left or Keys.Right or Keys.None);
 
-        static string Percent(double v) => $"{v:0} %";
+        static string Percent(double v) => Loc.Percent(v, "0");
 
-        static SliderRow Volume(string name, Func<PlayerSettings, float> get, Action<PlayerSettings, float> set)
-            => new SliderRow(name, 0, 100, 1, s => get(s) * 100.0, (s, v) => set(s, (float)(v / 100.0)), Percent);
+        static SliderRow Volume(string key, Func<PlayerSettings, float> get, Action<PlayerSettings, float> set)
+            => new SliderRow(Loc.T(key), 0, 100, 1, s => get(s) * 100.0, (s, v) => set(s, (float)(v / 100.0)), Percent);
 
-        static readonly string[] QualityNames = { "Low", "Medium", "High", "Ultra" };
+        static readonly string[] QualityKeys = { "settings.quality.low", "settings.quality.medium", "settings.quality.high", "settings.quality.ultra" };
         static readonly Quality[] Qualities = { Quality.Low, Quality.Medium, Quality.High, Quality.Ultra };
 
-        static ChoiceRow<Quality> Level(string name, Func<PlayerSettings, Quality> get, Action<PlayerSettings, Quality> set)
-            => new ChoiceRow<Quality>(name, _ => Qualities, get, set, q => QualityNames[(int)q]);
+        static ChoiceRow<Quality> Level(string key, Func<PlayerSettings, Quality> get, Action<PlayerSettings, Quality> set)
+            => new ChoiceRow<Quality>(Loc.T(key), _ => Qualities, get, set, q => Loc.T(QualityKeys[(int)q]));
 
         static List<SettingRow> SoundRows() => new List<SettingRow>
         {
-            Volume("Overall volume", s => s.Overall, (s, v) => s.Overall = v),
-            Volume("Sound effects", s => s.Effects, (s, v) => s.Effects = v),
-            Volume("Music", s => s.Music, (s, v) => s.Music = v),
-            Volume("Ambience", s => s.Ambient, (s, v) => s.Ambient = v),
-            Volume("Voices", s => s.Voice, (s, v) => s.Voice = v),
-            new HeadingRow("Devices"),
-            new ChoiceRow<string>("Output", _ => AudioDevices.Outputs(), s => s.OutputDevice, (s, v) => s.OutputDevice = v,
-                                  AudioDevices.Text, "after a restart"),
-            new ChoiceRow<string>("Input", _ => AudioDevices.Inputs(), s => s.InputDevice, (s, v) => s.InputDevice = v,
-                                  AudioDevices.Text, "voice chat"),
+            Volume("settings.sound.overall", s => s.Overall, (s, v) => s.Overall = v),
+            Volume("settings.sound.effects", s => s.Effects, (s, v) => s.Effects = v),
+            Volume("settings.sound.music", s => s.Music, (s, v) => s.Music = v),
+            Volume("settings.sound.ambience", s => s.Ambient, (s, v) => s.Ambient = v),
+            Volume("settings.sound.voices", s => s.Voice, (s, v) => s.Voice = v),
+            new HeadingRow(Loc.T("settings.sound.devices")),
+            new ChoiceRow<string>(Loc.T("settings.sound.output"), _ => AudioDevices.Outputs(), s => s.OutputDevice, (s, v) => s.OutputDevice = v,
+                                  AudioDevices.Text, Loc.T("settings.sound.output.note")),
+            new ChoiceRow<string>(Loc.T("settings.sound.input"), _ => AudioDevices.Inputs(), s => s.InputDevice, (s, v) => s.InputDevice = v,
+                                  AudioDevices.Text, Loc.T("settings.sound.input.note")),
         };
 
         static readonly WindowMode[] Windows = { WindowMode.Borderless, WindowMode.Windowed, WindowMode.Exclusive };
-        static readonly string[] WindowNames = { "Borderless", "Windowed", "Fullscreen" };
+        static readonly string[] WindowKeys = { "settings.window.borderless", "settings.window.windowed", "settings.window.fullscreen" };
         static readonly DlssMode[] Modes = { DlssMode.Dlaa, DlssMode.Quality, DlssMode.Balanced, DlssMode.Performance, DlssMode.UltraPerformance };
         static readonly bool[] Both = { false, true };
 
@@ -246,90 +270,92 @@ namespace KotH.Client.Menu
         static string Resolution(Int2 size)
         {
             if (size != Int2.Zero)
-                return $"{size.X} × {size.Y}";
+                return Loc.Ltr($"{size.X} × {size.Y}");
             Int2 native = DisplayModes.Native();
-            return native == Int2.Zero ? "Native" : $"{native.X} × {native.Y}";
+            return native == Int2.Zero ? Loc.T("settings.gfx.native") : Loc.Ltr($"{native.X} × {native.Y}");
         }
 
-        static string DlssName(DlssMode m) => m switch
+        static string DlssName(DlssMode m) => Loc.T(m switch
         {
-            DlssMode.Dlaa => "DLAA",
-            DlssMode.UltraPerformance => "Ultra Performance",
-            _ => m.ToString(),
-        };
+            DlssMode.Dlaa => "settings.gfx.dlss.dlaa",
+            DlssMode.Quality => "settings.gfx.dlss.quality",
+            DlssMode.Balanced => "settings.gfx.dlss.balanced",
+            DlssMode.Performance => "settings.gfx.dlss.performance",
+            DlssMode.UltraPerformance => "settings.gfx.dlss.ultra_performance",
+            _ => "settings.gfx.dlss.quality",
+        });
 
         static List<SettingRow> GraphicsRows() => new List<SettingRow>
         {
-            new ChoiceRow<WindowMode>("Window", _ => Windows, s => s.Window, (s, v) => s.Window = v, w => WindowNames[(int)w]),
-            new ChoiceRow<Int2>("Resolution", Resolutions, s => new Int2(s.Width, s.Height), (s, v) => (s.Width, s.Height) = (v.X, v.Y), Resolution),
-            new ChoiceRow<int>("Frame rate limit", _ => PlayerSettings.FpsLimits, s => s.FpsLimit, (s, v) => s.FpsLimit = v,
-                               n => n == 0 ? "Off" : $"{n} fps"),
-            new ToggleRow("V-Sync", s => s.VSync, (s, v) => s.VSync = v),
-            new SliderRow("Field of view", PlayerSettings.MinFov, PlayerSettings.MaxFov, 1, s => s.Fov, (s, v) => s.Fov = (float)v, v => $"{v:0}°"),
-            new HeadingRow("Upscaling"),
-            new ChoiceRow<bool>("NVIDIA DLSS", _ => Both, s => s.Dlss, (s, v) => s.Dlss = v, on => on ? "On" : "Off")
+            new ChoiceRow<WindowMode>(Loc.T("settings.gfx.window"), _ => Windows, s => s.Window, (s, v) => s.Window = v, w => Loc.T(WindowKeys[(int)w])),
+            new ChoiceRow<Int2>(Loc.T("settings.gfx.resolution"), Resolutions, s => new Int2(s.Width, s.Height), (s, v) => (s.Width, s.Height) = (v.X, v.Y), Resolution),
+            new ChoiceRow<int>(Loc.T("settings.gfx.fps_limit"), _ => PlayerSettings.FpsLimits, s => s.FpsLimit, (s, v) => s.FpsLimit = v,
+                               n => n == 0 ? Loc.T("common.off") : Loc.F("common.fps_n", Loc.Number(n))),
+            new ToggleRow(Loc.T("settings.gfx.vsync"), s => s.VSync, (s, v) => s.VSync = v),
+            new SliderRow(Loc.T("settings.gfx.fov"), PlayerSettings.MinFov, PlayerSettings.MaxFov, 1, s => s.Fov, (s, v) => s.Fov = (float)v,
+                          v => Loc.F("common.degrees", Loc.Decimal(v, "0"))),
+            new HeadingRow(Loc.T("settings.gfx.upscaling")),
+            new ChoiceRow<bool>(Loc.T("settings.gfx.dlss"), _ => Both, s => s.Dlss, (s, v) => s.Dlss = v, on => Loc.T(on ? "common.on" : "common.off"))
             {
-                Locked = _ => DlssApi.Possible ? null : "Not available",
+                Locked = _ => DlssApi.Possible ? null : Loc.T("settings.gfx.not_available"),
             },
-            new ChoiceRow<DlssMode>("DLSS mode", _ => Modes, s => s.DlssMode, (s, v) => s.DlssMode = v, DlssName)
+            new ChoiceRow<DlssMode>(Loc.T("settings.gfx.dlss_mode"), _ => Modes, s => s.DlssMode, (s, v) => s.DlssMode = v, DlssName)
             {
-                Locked = s => Upscaled(s) ? null : "DLSS off",
+                Locked = s => Upscaled(s) ? null : Loc.T("settings.gfx.dlss_off"),
             },
-            new SliderRow("DLSS sharpness", 0, 100, 1, s => s.DlssSharpness * 100.0, (s, v) => s.DlssSharpness = (float)(v / 100.0), Percent)
+            new SliderRow(Loc.T("settings.gfx.dlss_sharpness"), 0, 100, 1, s => s.DlssSharpness * 100.0, (s, v) => s.DlssSharpness = (float)(v / 100.0), Percent)
             {
-                Locked = s => Upscaled(s) ? null : "DLSS off",
+                Locked = s => Upscaled(s) ? null : Loc.T("settings.gfx.dlss_off"),
             },
-            new ChoiceRow<bool>("Anti-aliasing", _ => Both, s => s.Fxaa, (s, v) => s.Fxaa = v, on => on ? "FXAA" : "Off")
+            new ChoiceRow<bool>(Loc.T("settings.gfx.aa"), _ => Both, s => s.Fxaa, (s, v) => s.Fxaa = v, on => Loc.T(on ? "settings.gfx.fxaa" : "common.off"))
             {
-                Locked = s => Upscaled(s) ? "By DLSS" : null,
+                Locked = s => Upscaled(s) ? Loc.T("settings.gfx.by_dlss") : null,
             },
-            new HeadingRow("Quality"),
-            Level("Shadows", s => s.Shadows, (s, v) => s.Shadows = v),
-            Level("Textures", s => s.Textures, (s, v) => s.Textures = v),
-            Level("Global illumination", s => s.Lighting, (s, v) => s.Lighting = v),
-            Level("Effects", s => s.EffectsQuality, (s, v) => s.EffectsQuality = v),
-            Level("Volumetric effects", s => s.Volumetrics, (s, v) => s.Volumetrics = v),
+            new HeadingRow(Loc.T("settings.gfx.quality")),
+            Level("settings.gfx.shadows", s => s.Shadows, (s, v) => s.Shadows = v),
+            Level("settings.gfx.textures", s => s.Textures, (s, v) => s.Textures = v),
+            Level("settings.gfx.gi", s => s.Lighting, (s, v) => s.Lighting = v),
+            Level("settings.gfx.effects", s => s.EffectsQuality, (s, v) => s.EffectsQuality = v),
+            Level("settings.gfx.volumetrics", s => s.Volumetrics, (s, v) => s.Volumetrics = v),
         };
 
         static List<SettingRow> InputRows() => new List<SettingRow>
         {
-            new SliderRow("Mouse sensitivity", PlayerSettings.MinSensitivity, PlayerSettings.MaxSensitivity, 0.1,
-                          s => s.MouseSensitivity, (s, v) => s.MouseSensitivity = (float)Math.Round(v, 1), v => $"{v:0.0}"),
-            new HeadingRow("Keys"),
-            new KeyRow("Forward", Binding.Forward),
-            new KeyRow("Back", Binding.Back),
-            new KeyRow("Left", Binding.Left),
-            new KeyRow("Right", Binding.Right),
-            new KeyRow("Jump", Binding.Jump),
-            new KeyRow("Sprint", Binding.Sprint),
-            new KeyRow("Crouch", Binding.Crouch, "slide, dash"),
-            new KeyRow("Cane", Binding.Cane),
-            new KeyRow("Blaster", Binding.Blaster),
-            new KeyRow("Chat", Binding.Chat, "Steam rounds"),
-            new KeyRow("Push to talk", Binding.PushToTalk, "voice chat"),
+            new SliderRow(Loc.T("settings.input.mouse_sens"), PlayerSettings.MinSensitivity, PlayerSettings.MaxSensitivity, 0.1,
+                          s => s.MouseSensitivity, (s, v) => s.MouseSensitivity = (float)Math.Round(v, 1), v => Loc.Decimal(v, "0.0")),
+            new HeadingRow(Loc.T("settings.input.keys")),
+            new KeyRow(Loc.T("settings.input.forward"), Binding.Forward),
+            new KeyRow(Loc.T("settings.input.back"), Binding.Back),
+            new KeyRow(Loc.T("settings.input.left"), Binding.Left),
+            new KeyRow(Loc.T("settings.input.right"), Binding.Right),
+            new KeyRow(Loc.T("settings.input.jump"), Binding.Jump),
+            new KeyRow(Loc.T("settings.input.sprint"), Binding.Sprint),
+            new KeyRow(Loc.T("settings.input.crouch"), Binding.Crouch, Loc.T("settings.input.crouch.note")),
+            new KeyRow(Loc.T("settings.input.cane"), Binding.Cane),
+            new KeyRow(Loc.T("settings.input.blaster"), Binding.Blaster),
+            new KeyRow(Loc.T("settings.input.chat"), Binding.Chat, Loc.T("settings.input.chat.note")),
+            new KeyRow(Loc.T("settings.input.ptt"), Binding.PushToTalk, Loc.T("settings.input.ptt.note")),
         };
 
         static List<SettingRow> GamepadRows() => new List<SettingRow>
         {
-            new SliderRow("Look sensitivity", PlayerSettings.MinStickSensitivity, PlayerSettings.MaxStickSensitivity, 0.1,
-                          s => s.StickSensitivity, (s, v) => s.StickSensitivity = (float)Math.Round(v, 1), v => $"{v:0.0}"),
-            new SliderRow("Stick dead zone", 0, 40, 1, s => s.StickDeadZone * 100.0,
+            new SliderRow(Loc.T("settings.pad.look_sens"), PlayerSettings.MinStickSensitivity, PlayerSettings.MaxStickSensitivity, 0.1,
+                          s => s.StickSensitivity, (s, v) => s.StickSensitivity = (float)Math.Round(v, 1), v => Loc.Decimal(v, "0.0")),
+            new SliderRow(Loc.T("settings.pad.dead_zone"), 0, 40, 1, s => s.StickDeadZone * 100.0,
                           (s, v) => s.StickDeadZone = (float)Math.Round(v / 100.0, 2), Percent) { PadStep = 1 },
-            new ToggleRow("Invert look", s => s.InvertY, (s, v) => s.InvertY = v, "up and down"),
-            new ToggleRow("Vibration", s => s.Vibration, (s, v) => s.Vibration = v),
-            new HeadingRow("Buttons", "")
+            new ToggleRow(Loc.T("settings.pad.invert"), s => s.InvertY, (s, v) => s.InvertY = v, Loc.T("settings.pad.invert.note")),
+            new ToggleRow(Loc.T("settings.pad.vibration"), s => s.Vibration, (s, v) => s.Vibration = v),
+            new HeadingRow(Loc.T("settings.pad.buttons"), "")
             {
-                DynamicNote = () => Pad.Style == PadStyle.PlayStation
-                    ? "left stick walks, right stick looks, Options pauses"
-                    : "left stick walks, right stick looks, Menu pauses",
+                DynamicNote = () => Loc.T(Pad.Style == PadStyle.PlayStation ? "settings.pad.buttons.ps" : "settings.pad.buttons.xbox"),
             },
-            new PadRow("Jump", PadAction.Jump),
-            new PadRow("Sprint", PadAction.Sprint),
-            new PadRow("Crouch", PadAction.Crouch, "slide, dash"),
-            new PadRow("Attack", PadAction.Attack),
-            new PadRow("Cane / blaster", PadAction.Weapon),
-            new PadRow("Camera", PadAction.View, "first or third person"),
-            new PadRow("Push to talk", PadAction.PushToTalk, "voice chat"),
+            new PadRow(Loc.T("settings.input.jump"), PadAction.Jump),
+            new PadRow(Loc.T("settings.input.sprint"), PadAction.Sprint),
+            new PadRow(Loc.T("settings.input.crouch"), PadAction.Crouch, Loc.T("settings.input.crouch.note")),
+            new PadRow(Loc.T("settings.pad.attack"), PadAction.Attack),
+            new PadRow(Loc.T("settings.pad.weapon"), PadAction.Weapon),
+            new PadRow(Loc.T("settings.pad.camera"), PadAction.View, Loc.T("settings.pad.camera.note")),
+            new PadRow(Loc.T("settings.input.ptt"), PadAction.PushToTalk, Loc.T("settings.input.ptt.note")),
         };
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using KotH.Client.Localization;
 using KotH.Client.Menu;
 using Stride.Core.Mathematics;
 using Stride.Graphics;
@@ -133,7 +134,7 @@ namespace KotH.Client.Hud
             CoveredFrames++;
 
             turned += seconds;
-            view.Say((begun && !loaded ? null : Text?.Invoke()) ?? "Loading …");
+            view.Say((begun && !loaded ? null : Text?.Invoke()) ?? Loc.T("common.loading"));
             Vector2 screen = Rendering.ResolutionScaler.ScreenSize(commandList.GraphicsDevice.Presenter.BackBuffer);
             foreach (MenuOverlay overlay in overlays)
                 overlay.Place(screen);

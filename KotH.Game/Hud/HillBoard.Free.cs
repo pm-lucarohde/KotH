@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using KotH.Client.Localization;
 using KotH.Client.Player;
 using KotH.Shared.Match;
 using KotH.Shared.Net;
@@ -83,14 +84,14 @@ namespace KotH.Client.Hud
             for (int i = 0; i < bodies.Count; i++)
                 all += bodies[i].Role is FreeRole.Caught or FreeRole.Free ? 1 : 0;
             int ticksLeft = Math.Max(0, Match.RoundLimitTicks - Math.Max(m.RoundTicks, HillMatch.DrawTicks));   // stands during the draw
-            view.Bar("Runners", countText.Of(CountFormat, left, all), Clock((ticksLeft + HillMatch.TicksPerPoint - 1) / HillMatch.TicksPerPoint));
+            view.Bar(Loc.T("hud.free.runners"), countText.Of(CountFormat, left, all, ltr: true), Clock((ticksLeft + HillMatch.TicksPerPoint - 1) / HillMatch.TicksPerPoint));
 
             statusText = !Match.Playing || m.Over ? "" : look switch
             {
-                ZoneLook.Enemy => "Chaser in the zone",
-                ZoneLook.Own => Self.Role == FreeRole.Rescuing ? "Freeing everyone" : "You are counting",
-                ZoneLook.EnemyTaking or ZoneLook.Contested => "Runners in the zone",
-                _ => "Zone free",
+                ZoneLook.Enemy => Loc.T("hud.free.chaser_in_zone"),
+                ZoneLook.Own => Loc.T(Self.Role == FreeRole.Rescuing ? "hud.free.freeing_all" : "hud.free.you_counting"),
+                ZoneLook.EnemyTaking or ZoneLook.Contested => Loc.T("hud.free.runners_in_zone"),
+                _ => Loc.T("hud.zone_free"),
             };
             view.Zone(statusText, ToAvalonia(ColorOf(look)));
             warmup = Self == null || !Match.Playing || m.Over ? 0f : Self.Role switch
@@ -111,9 +112,9 @@ namespace KotH.Client.Hud
             if (final.Over && Self != null)
             {
                 bool won = HillMatch.Won(Self, bodies);
-                bannerText = Self.Role is FreeRole.Waiting or FreeRole.None ? "Round over" : won ? "You win!" : "You lose";
+                bannerText = Loc.T(Self.Role is FreeRole.Waiting or FreeRole.None ? "hud.round_over" : won ? "hud.you_win" : "hud.you_lose");
                 int seconds = (final.PhaseTicks + HillMatch.TicksPerPoint - 1) / HillMatch.TicksPerPoint;
-                view.Win(bannerText, won, winText.Of(Match.Stage == MatchStage.Round ? "Lobby in {0}" : "New round in {0}", seconds));
+                view.Win(bannerText, won, winText.Of(Loc.T(Match.Stage == MatchStage.Round ? "hud.lobby_in" : "hud.new_round_in"), seconds));
             }
             else
                 bannerText = "";
@@ -130,16 +131,16 @@ namespace KotH.Client.Hud
                 (ranking[ranked - 1], ranking[own]) = (ranking[own], ranking[ranked - 1]);
             view.Ranked(ranked);
             for (int i = 0; i < ranked; i++)
-                view.Rank(i, rankText[i].Of("{0}", i + 1), NameOf(ranking[i]), StatusOf(ranking[i]), ranking[i] == Self);
+                view.Rank(i, rankText[i].Of("{0}", i + 1, ltr: true), NameOf(ranking[i]), StatusOf(ranking[i]), ranking[i] == Self);
         }
 
         string StatusOf(SimulationBody b) => Shown(b) switch
         {
-            FreeRole.Catcher => "Chaser",
-            FreeRole.Runner => b.MarkedBy != 0 ? "Marked" : "Runner",
-            FreeRole.Rescuing or FreeRole.Free => "Free",
-            FreeRole.Caught => "Caught",
-            FreeRole.Waiting => "Spectator",
+            FreeRole.Catcher => Loc.T("hud.free.role.chaser"),
+            FreeRole.Runner => Loc.T(b.MarkedBy != 0 ? "hud.free.role.marked" : "hud.free.role.runner"),
+            FreeRole.Rescuing or FreeRole.Free => Loc.T("hud.free.role.free"),
+            FreeRole.Caught => Loc.T("hud.free.role.caught"),
+            FreeRole.Waiting => Loc.T("hud.free.role.spectator"),
             _ => "",
         };
 
@@ -183,16 +184,16 @@ namespace KotH.Client.Hud
                 if (was == FreeRole.Caught && now == FreeRole.Free)
                     rescued = true;
                 else if (was == FreeRole.Runner && now is FreeRole.Free or FreeRole.Rescuing)
-                    Flash("Free!", b == Self ? now == FreeRole.Rescuing ? "You are free! Stay to free everyone" : "You are free!"
-                                             : NameOf(b) + " is free!", Green, b == Self, tick);
+                    Flash(Loc.T("hud.free.flash.free"), b == Self ? Loc.T(now == FreeRole.Rescuing ? "hud.free.flash.you_free_stay" : "hud.free.flash.you_free")
+                                                                  : Loc.F("hud.free.flash.other_free", NameOf(b)), Green, b == Self, tick);
                 else if (b == Self && now == FreeRole.Caught)
-                    Flash("Caught!", "You were caught", EnemyColor, true, tick);
+                    Flash(Loc.T("hud.free.flash.caught"), Loc.T("hud.free.flash.you_caught"), EnemyColor, true, tick);
             }
             if (rescued)
-                Flash("Free!", "Everyone is free!", Green, true, tick);
+                Flash(Loc.T("hud.free.flash.free"), Loc.T("hud.free.flash.all_free"), Green, true, tick);
             int marked = Self?.Role == FreeRole.Runner ? Self.MarkedBy : 0;
             if (marked != 0 && marked != lastMarked)
-                Flash("Marked!", "3 s of the chaser in the zone catch you", EnemyTakingColor, true, tick);
+                Flash(Loc.T("hud.free.flash.marked"), Loc.T("hud.free.flash.marked_hint"), EnemyTakingColor, true, tick);
             lastMarked = marked;
         }
 
@@ -203,19 +204,17 @@ namespace KotH.Client.Hud
             (flashText, flashName, flashColor, flashOwn, flashUntil) = (text, name, color, own, tick + FlashTicks);
         }
 
-        const string Spectator = "Spectator";
-
         void ShowOwnRole(IReadOnlyList<SimulationBody> bodies)
         {
             FreeRole r = Self != null ? Shown(Self) : FreeRole.None;
             (string text, Color color) = r switch
             {
-                FreeRole.Catcher => ("Chaser", EnemyColor),
-                FreeRole.Runner => Self.MarkedBy != 0 ? ("Runner, marked", EnemyTakingColor) : ("Runner", OwnColor),
-                FreeRole.Rescuing => ("Free: stay to free all", Green),
-                FreeRole.Free => ("Free", Green),
-                FreeRole.Caught => ("Caught", Grey),
-                FreeRole.Waiting => (Spectator, Grey),
+                FreeRole.Catcher => (Loc.T("hud.free.role.chaser"), EnemyColor),
+                FreeRole.Runner => Self.MarkedBy != 0 ? (Loc.T("hud.free.role.runner_marked"), EnemyTakingColor) : (Loc.T("hud.free.role.runner"), OwnColor),
+                FreeRole.Rescuing => (Loc.T("hud.free.role.stay_free_all"), Green),
+                FreeRole.Free => (Loc.T("hud.free.role.free"), Green),
+                FreeRole.Caught => (Loc.T("hud.free.role.caught"), Grey),
+                FreeRole.Waiting => (Loc.T("hud.free.role.spectator"), Grey),
                 _ => ("", Color.White),
             };
             roleText = text;
@@ -236,7 +235,7 @@ namespace KotH.Client.Hud
             {
                 int seconds = (Match.HeadStartLeft + HillMatch.TicksPerPoint - 1) / HillMatch.TicksPerPoint;
                 text = Digits[Math.Min(seconds, Digits.Length - 1)];
-                name = Self?.Role == FreeRole.Catcher ? "Head start: go!" : "The chaser's head start";
+                name = Loc.T(Self?.Role == FreeRole.Catcher ? "hud.free.head_start_go" : "hud.free.head_start_wait");
             }
             else if (Match.Playing)
             {
@@ -251,8 +250,8 @@ namespace KotH.Client.Hud
                 if (best != null)
                 {
                     text = Digits[Math.Min(best.RoleTicks / HillMatch.TicksPerPoint + 1, 6)];
-                    name = best.Role == FreeRole.Catcher ? NameOf(best) + (best == Self ? " cash in the marked" : " cashes in the marked")
-                         : best.Role == FreeRole.Rescuing ? NameOf(best) + (best == Self ? " free everyone" : " frees everyone")
+                    name = best.Role == FreeRole.Catcher ? (best == Self ? Loc.T("hud.free.you_cash_in") : callFmt.Of("hud.free.other_cash_in", NameOf(best)))
+                         : best.Role == FreeRole.Rescuing ? (best == Self ? Loc.T("hud.free.you_free_all") : callFmt.Of("hud.free.other_free_all", NameOf(best)))
                          : NameOf(best);
                     color = best.Role == FreeRole.Catcher ? EnemyColor : best == Self ? OwnColor : Color.White;
                 }
@@ -270,8 +269,9 @@ namespace KotH.Client.Hud
             bool spinning = playing && m.Phase == MatchPhase.Running && Wheel(m);
             // Any other mode: a late joiner watches, its badge says so (Luca).
             bool watching = !free && visible && Match != null && Self?.Role == FreeRole.Waiting && Match.State.Phase == MatchPhase.Running;
-            if (watching && roleText != Spectator)
-                view.ShowRole(roleText = Spectator, ToAvalonia(Grey));
+            string spectator = Loc.T("hud.free.role.spectator");
+            if (watching && roleText != spectator)
+                view.ShowRole(roleText = spectator, ToAvalonia(Grey));
             role.Visible = playing && roleText.Length > 0 || watching;
             wheel.Visible = pointer.Visible = wheelCaption.Visible = spinning;
             call.Visible = playing && !spinning && callText.Length > 0 && bannerText.Length == 0;
@@ -280,7 +280,7 @@ namespace KotH.Client.Hud
             SimulationBody watched = visible ? camera?.Watched : null;
             watch.Visible = watched != null && bannerText.Length == 0;
             if (watched != null && watched != watchShown)
-                view.ShowWatch("Watching " + NameOf(watched) + " · click for the next");
+                view.ShowWatch(Loc.F("hud.free.watching", NameOf(watched)));
             watchShown = watched;
         }
 
@@ -326,9 +326,12 @@ namespace KotH.Client.Hud
             if (caption != captionShown)
             {
                 captionShown = caption;
-                string who = spin.Chosen == Self ? "You are" : NameOf(spin.Chosen) + " is";
-                view.ShowWheelCaption(x < 1f ? wheelDrawnAt > 0 ? "A chaser left: drawing anew ..." : spinCount > 1 ? "Drawing the chasers ..." : "Drawing the chaser ..."
-                                             : spinCount > 1 ? who + " a chaser!" : who + " the chaser!");
+                string line = x < 1f
+                    ? Loc.T(wheelDrawnAt > 0 ? "hud.free.draw_anew" : spinCount > 1 ? "hud.free.drawing_many" : "hud.free.drawing_one")
+                    : spin.Chosen == Self
+                        ? Loc.T(spinCount > 1 ? "hud.free.you_are_a_chaser" : "hud.free.you_are_the_chaser")
+                        : Loc.F(spinCount > 1 ? "hud.free.other_is_a_chaser" : "hud.free.other_is_the_chaser", NameOf(spin.Chosen));
+                view.ShowWheelCaption(line);
             }
             return true;
         }

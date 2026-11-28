@@ -13,10 +13,10 @@
     </UserControl.Styles>
     <Grid RowDefinitions="Auto,*">
         <Grid ColumnDefinitions="*,Auto">
-            <TextBlock Classes="Title" Text="Social" />
+            <TextBlock Name="TitleText" Classes="Title" Text="Social" />
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-                <Border Name="PartyTab" Classes="Tab"><TextBlock Text="Party" /></Border>
-                <Border Name="BoardTab" Classes="Tab"><TextBlock Text="Leaderboard" /></Border>
+                <Border Name="PartyTab" Classes="Tab"><TextBlock Name="PartyTabText" Text="Party" /></Border>
+                <Border Name="BoardTab" Classes="Tab"><TextBlock Name="BoardTabText" Text="Leaderboard" /></Border>
             </StackPanel>
         </Grid>
         <menu:PartyPage Name="Party" Grid.Row="1" Margin="0,20,0,0" />

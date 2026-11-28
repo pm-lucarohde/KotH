@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Layout;
 using Avalonia.Media;
+using KotH.Client.Localization;
 using KotH.Shared.Match;
 using KotH.Shared.Net;
 
@@ -14,10 +15,14 @@ namespace KotH.Client.Menu
     /// (<see cref="LookChanged"/>); the menu saves the look when the page closes.</summary>
     public partial class CustomizePage : UserControl
     {
-        static readonly string[] Names = { "Cap", "Skin", "Leaves", "Gloves", "Spores", "Glow", "Trail" };
-        static readonly string[] GlowChoices = { "Off", "On" };
-        static readonly string[] TrailChoices = { "Off", "Sparks", "Stars", "Spores" };
-        static readonly string[] Kinds = { "Fly agaric", "Champignon" };
+        static readonly string[] NameKeys =
+        {
+            "customize.part.cap", "customize.part.skin", "customize.part.leaves", "customize.part.gloves",
+            "customize.part.spores", "customize.part.glow", "customize.part.trail",
+        };
+        static readonly string[] GlowKeys = { "common.off", "common.on" };
+        static readonly string[] TrailKeys = { "customize.trail.off", "customize.trail.sparks", "customize.trail.stars", "customize.trail.spores" };
+        static readonly string[] KindKeys = { "customize.kind.fly_agaric", "customize.kind.champignon" };
 
         /// <summary>The look after a change by the player.</summary>
         public event Action<FigureLook> LookChanged;
@@ -26,6 +31,7 @@ namespace KotH.Client.Menu
         public event Action BackRequested;
 
         readonly Border[] tabs = new Border[FigureLook.Colors];
+        readonly TextBlock[] tabLabels = new TextBlock[FigureLook.Colors];
         readonly Ellipse[] dots = new Ellipse[FigureLook.Colors];
         FigureLook look = FigureLook.Default;
         int part;
@@ -39,6 +45,7 @@ namespace KotH.Client.Menu
                 int index = i;
                 Action pick = () => Choose(index);
                 dots[i] = new Ellipse { Width = 18, Height = 18, Stroke = new SolidColorBrush(Color.FromArgb(90, 0, 0, 0)), StrokeThickness = 1.5 };
+                tabLabels[i] = new TextBlock { Text = Loc.T(NameKeys[i]), VerticalAlignment = VerticalAlignment.Center };
                 tabs[i] = new Border
                 {
                     // Narrow enough for two rows of four and three, so the wheel keeps its room.
@@ -46,7 +53,7 @@ namespace KotH.Client.Menu
                     Child = new StackPanel
                     {
                         Orientation = Orientation.Horizontal, Spacing = 7,
-                        Children = { dots[i], new TextBlock { Text = Names[i], VerticalAlignment = VerticalAlignment.Center } },
+                        Children = { dots[i], tabLabels[i] },
                     },
                 };
                 tabs[i].PointerPressed += (_, _) => pick();
@@ -83,8 +90,20 @@ namespace KotH.Client.Menu
                 LookChanged?.Invoke(look);
             };
             Back.Click += (_, _) => BackRequested?.Invoke();
+            ApplyLanguage();
             // Test aid for shots: KOTH_SHOT_MENU_PART=n opens tab n (5 glow, 6 trail).
             Choose(int.TryParse(Environment.GetEnvironmentVariable("KOTH_SHOT_MENU_PART"), out int shown) ? Math.Clamp(shown, 0, FigureLook.Colors - 1) : 0);
+        }
+
+        public void ApplyLanguage()
+        {
+            TitleText.Text = Loc.T("customize.title");
+            Reset.Content = Loc.T("common.reset");
+            ResetAll.Content = Loc.T("common.reset_all");
+            Back.Content = Loc.T("common.back");
+            for (int i = 0; i < tabLabels.Length; i++)
+                tabLabels[i].Text = Loc.T(NameKeys[i]);
+            Choose(part);
         }
 
         /// <summary>The look to show and change; sends no LookChanged.</summary>
@@ -102,14 +121,15 @@ namespace KotH.Client.Menu
         void ShowFigures()
         {
             Figures.Children.Clear();
-            for (int k = 0; k < Kinds.Length; k++)
+            for (int k = 0; k < KindKeys.Length; k++)
             {
                 byte kind = (byte)k;
                 bool locked = kind == FigureLook.Champignon && PlayerProgress.Level < Levels.ChampignonLevel;
+                string label = Loc.T(KindKeys[k]);
                 var chip = new Border
                 {
                     Classes = { "Tab" }, Padding = new Avalonia.Thickness(18, 7),
-                    Child = new TextBlock { Text = locked ? Kinds[k] + " · Level " + Levels.ChampignonLevel : Kinds[k] },
+                    Child = new TextBlock { Text = locked ? Loc.F("customize.kind_locked", label, Loc.Number(Levels.ChampignonLevel)) : label },
                 };
                 chip.Classes.Set("Chosen", look.Kind == kind);
                 chip.Classes.Set("Off", locked);
@@ -165,17 +185,17 @@ namespace KotH.Client.Menu
         void ShowOptions(bool locked)
         {
             Options.Children.Clear();
-            string[] choices = part == FigureLook.Glow ? GlowChoices : part == FigureLook.Trail ? TrailChoices : null;
-            if (choices == null)
+            string[] choiceKeys = part == FigureLook.Glow ? GlowKeys : part == FigureLook.Trail ? TrailKeys : null;
+            if (choiceKeys == null)
                 return;
             int current = part == FigureLook.Glow ? (look.Glows ? 1 : 0) : look.TrailShape;
-            for (int i = 0; i < choices.Length; i++)
+            for (int i = 0; i < choiceKeys.Length; i++)
             {
                 int choice = i;
                 var chip = new Border
                 {
                     Classes = { "Tab" }, Padding = new Avalonia.Thickness(16, 6),
-                    Child = new TextBlock { Text = choices[i], FontSize = 20 },
+                    Child = new TextBlock { Text = Loc.T(choiceKeys[i]), FontSize = 20 },
                 };
                 chip.Classes.Set("Chosen", i == current);
                 chip.Classes.Set("Off", locked);
@@ -190,7 +210,7 @@ namespace KotH.Client.Menu
             if (locked)
                 Options.Children.Add(new TextBlock
                 {
-                    Classes = { "Hint" }, Text = "Opens at level " + Levels.GlowLevel, VerticalAlignment = VerticalAlignment.Center,
+                    Classes = { "Hint" }, Text = Loc.F("customize.opens_at", Loc.Number(Levels.GlowLevel)), VerticalAlignment = VerticalAlignment.Center,
                 });
         }
 

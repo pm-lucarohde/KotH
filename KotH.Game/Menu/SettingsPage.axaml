@@ -13,7 +13,7 @@
     </UserControl.Styles>
     <Grid RowDefinitions="Auto,*,Auto">
         <Grid ColumnDefinitions="*,Auto">
-            <TextBlock Classes="Title" Text="Settings" />
+            <TextBlock Name="TitleText" Classes="Title" Text="Settings" />
             <StackPanel Name="Tabs" Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center" />
         </Grid>
         <Border Grid.Row="1" Classes="Well" Margin="0,20,0,0" Padding="0,8">

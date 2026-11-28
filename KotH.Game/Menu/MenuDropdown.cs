@@ -23,6 +23,7 @@ namespace KotH.Client.Menu
         readonly StackPanel lines = new StackPanel { Spacing = 2 };
         readonly ScrollViewer scroll;
         readonly Border sheet;
+        double openX;
 
         /// <summary>The pill to place among the page's filters.</summary>
         public Border Head { get; }
@@ -54,6 +55,7 @@ namespace KotH.Client.Menu
                 VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto, AllowAutoHide = false,
             };
             sheet = new Border { Classes = { "Drop" }, Child = scroll };
+            sheet.SizeChanged += (_, e) => ClampLeft(e.NewSize.Width);
         }
 
         public bool IsOpen => sheet.Parent != null;
@@ -98,11 +100,21 @@ namespace KotH.Client.Menu
                 lines.Children.Add(line);
             }
             Point at = Head.TranslatePoint(new Point(0, Head.Bounds.Height + 10), layer) ?? default;
-            Canvas.SetLeft(sheet, at.X);
+            double width = Math.Max(Head.Bounds.Width, 240);
+            openX = at.X;
+            sheet.MinWidth = width;
             Canvas.SetTop(sheet, at.Y);
-            sheet.MinWidth = Math.Max(Head.Bounds.Width, 240);
             scroll.Offset = default;
             layer.Children.Add(sheet);
+            ClampLeft(sheet.Bounds.Width > 0 ? sheet.Bounds.Width : width);
+        }
+
+        void ClampLeft(double sheetWidth)
+        {
+            if (!IsOpen)
+                return;
+            double maxLeft = layer.Bounds.Width > 0 ? Math.Max(0, layer.Bounds.Width - sheetWidth) : openX;
+            Canvas.SetLeft(sheet, Math.Clamp(openX, 0, maxLeft));
         }
 
         public void Close() => layer.Children.Remove(sheet);

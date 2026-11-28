@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
+using KotH.Client.Localization;
 
 namespace KotH.Client.Hud
 {
@@ -16,6 +17,9 @@ namespace KotH.Client.Hud
 
         public void Say(string text)
         {
+            FlowDirection dir = Loc.IsRtl ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
+            if (Words.FlowDirection != dir)
+                Words.FlowDirection = dir;
             if (Words.Text != text)
                 Words.Text = text;
         }

@@ -2,6 +2,7 @@ using System;
 using System.Runtime;
 using KotH.Client.Gamepad;
 using KotH.Client.Hud;
+using KotH.Client.Localization;
 using KotH.Client.Net;
 using KotH.Client.Player;
 using KotH.Client.Rendering;
@@ -102,12 +103,14 @@ namespace KotH.Client.Menu
         public override void Start()
         {
             MenuOverlay.Start<MenuApp>();
+            Loc.EnsureInitialized();
             hud = HudRenderer.Of(this);
             throttle = Services.GetService<SceneThrottle>();
 
             view = new MainMenuView();
-            view.Label(PlayerName ?? Environment.UserName, $"Build {NetProtocol.BuildText[..8]}");
-            view.HostOpened += () => view.Hoster.Open(PlayerName ?? Environment.UserName);
+            view.Label(HostSession.CleanName(PlayerName ?? Environment.UserName), Loc.F("common.build", Loc.Ltr(NetProtocol.BuildText[..8])));
+            Loc.Changed += OnLanguageChanged;
+            view.HostOpened += () => view.Hoster.Open(HostSession.CleanName(PlayerName ?? Environment.UserName));
             view.Hoster.HostRequested += (flags, password) =>
             {
                 (hostFlags, hostPassword) = (flags, password);
@@ -275,7 +278,7 @@ namespace KotH.Client.Menu
             else if (SteamParty.FollowTo(out ulong round, out ulong leader))
             {
                 view.OpenFind();
-                Enter(round, $"{SteamClient.NameOf(leader)}'s round", null, leader);
+                Enter(round, Loc.F("menu.player_round", SteamClient.NameOf(leader)), null, leader);
             }
             partyShown += seconds;
             if (view.SocialOpen && partyShown >= 1f)
@@ -295,7 +298,7 @@ namespace KotH.Client.Menu
                 return;
             entering = true;
             enteredPassword = password;
-            view.Finder.Joining(host ?? "the round");
+            view.Finder.Joining(host ?? Loc.T("menu.the_round"));
             SteamLobby.Enter(id, (lobby, why) =>
             {
                 entering = false;
@@ -309,7 +312,7 @@ namespace KotH.Client.Menu
                 if (lobby.Build != NetProtocol.BuildText)
                 {
                     lobby.Dispose();
-                    view.Finder.Failed(lobby.IsParty ? "Different build than your friend" : "Different build than the host");
+                    view.Finder.Failed(lobby.IsParty ? Loc.T("menu.diff_build_friend") : Loc.T("menu.diff_build_host"));
                 }
                 else if (lobby.IsParty)
                 {
@@ -450,8 +453,17 @@ namespace KotH.Client.Menu
 
         void OnLoaded() => loaded = true;
 
+        void OnLanguageChanged()
+        {
+            if (view == null)
+                return;
+            view.Label(HostSession.CleanName(PlayerName ?? Environment.UserName), Loc.F("common.build", Loc.Ltr(NetProtocol.BuildText[..8])));
+            view.ApplyLanguage();
+        }
+
         public override void Cancel()
         {
+            Loc.Changed -= OnLanguageChanged;
             if (Cover != null)
                 Cover.Loaded -= OnLoaded;
             Save();

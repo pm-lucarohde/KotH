@@ -6,11 +6,11 @@
              xmlns:menu="using:KotH.Client.Menu"
              x:Class="KotH.Client.Menu.CustomizePage"
              x:CompileBindings="True">
-    <Grid Width="560" Height="790">
-        <Panel Width="510" Height="740" Margin="24,24,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
+    <Grid Width="610" Height="790">
+        <Panel Width="560" Height="740" Margin="24,24,0,0" HorizontalAlignment="Left" VerticalAlignment="Top">
             <Image Source="/Menu/Art/Panel.png" Margin="-24" Stretch="Fill" />
             <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="44,34,44,34">
-                <TextBlock Classes="Title" Text="Customize" />
+                <TextBlock Name="TitleText" Classes="Title" Text="Customize" />
 
                 <!-- The figure: fly agaric, or the champignon from level 50 -->
                 <WrapPanel Name="Figures" Grid.Row="1" Margin="0,14,0,0" ItemSpacing="10" LineSpacing="10" />

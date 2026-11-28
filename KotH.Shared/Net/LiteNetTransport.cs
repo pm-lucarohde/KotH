@@ -91,6 +91,9 @@ namespace KotH.Shared.Net
         /// <summary>Why the last connection ended: a failed key check, else LiteNetLib's words.</summary>
         public string DisconnectReason { get; private set; }
 
+        /// <summary>Structured handshake failure for client localization, None otherwise.</summary>
+        public SecureLinkFailure KeyFailure { get; private set; }
+
         /// <summary>The host's fingerprint once the handshake checked out (a peer), else null.</summary>
         public string HostFingerprint => !hosting && links.TryGetValue(0, out SecureLink l) ? l.HostFingerprint : null;
 
@@ -152,6 +155,7 @@ namespace KotH.Shared.Net
             {
                 Console.WriteLine($"[net] {why}: connection ended");
                 DisconnectReason = why;
+                KeyFailure = link.Failure;
                 host?.Disconnect();
                 if (!closed)
                     events.Enqueue(new TransportEvent { Kind = TransportEventKind.Disconnected, Peer = 0 });

@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 using KotH.Client.Gamepad;
+using KotH.Client.Localization;
 using KotH.Client.Settings;
 using Stride.Input;
 
@@ -32,7 +33,11 @@ namespace KotH.Client.Menu
 
         protected SettingRow(string name, string note)
         {
-            Name = new TextBlock { Classes = { "Label" }, Text = name, VerticalAlignment = VerticalAlignment.Center };
+            Name = new TextBlock
+            {
+                Classes = { "Label" }, Text = name, VerticalAlignment = VerticalAlignment.Center,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+            };
             Note = new TextBlock
             {
                 Classes = { "Hint" }, Text = note, IsVisible = note != null, VerticalAlignment = VerticalAlignment.Center,
@@ -45,6 +50,17 @@ namespace KotH.Client.Menu
             Line = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Height = 60 };
             Line.Children.Add(left);
             View = new Border { Classes = { "SettingLine" }, Child = Line };
+        }
+
+        /// <summary>Updates the row's label and optional hint (used when switching language live).</summary>
+        public void Retext(string name, string note = null)
+        {
+            Name.Text = name;
+            if (note != null)
+            {
+                Note.Text = note;
+                Note.IsVisible = true;
+            }
         }
 
         protected void Place(Control control)
@@ -80,7 +96,7 @@ namespace KotH.Client.Menu
         {
             Name.Classes.Set("Label", false);
             Name.Classes.Add("Heading");
-            Line.Height = 44;
+            Line.Height = 50;
         }
 
         protected override void Fill(PlayerSettings s, string reason)
@@ -252,31 +268,14 @@ namespace KotH.Client.Menu
         public Binding Binding => binding;
 
         /// <summary>Shows that it waits for a key.</summary>
-        public void Waiting() => button.Content = "Press a key";
+        public void Waiting() => button.Content = Loc.T("settings.press_key");
 
         public void Bind(Keys key) => Change(s => s.Bind(binding, key));
 
         protected override void Fill(PlayerSettings s, string reason) => button.Content = KeyText(s.Key(binding));
 
-        /// <summary>A key as the page writes it: "Left Shift", "1", "Num 1", "—" for none.</summary>
-        public static string KeyText(Keys key)
-        {
-            if (key == Keys.None)
-                return "—";
-            string name = key.ToString();
-            if (name.Length == 2 && name[0] == 'D' && char.IsDigit(name[1]))
-                return name[1..];
-            if (name.StartsWith("NumPad"))
-                return "Num " + name[6..];
-            var spaced = new System.Text.StringBuilder();
-            for (int i = 0; i < name.Length; i++)
-            {
-                if (i > 0 && char.IsUpper(name[i]) && !char.IsUpper(name[i - 1]))
-                    spaced.Append(' ');
-                spaced.Append(name[i]);
-            }
-            return spaced.ToString();
-        }
+        /// <summary>A key as the page writes it: localized name, "1", "Num 1", "—" for none.</summary>
+        public static string KeyText(Keys key) => Loc.KeyName(key);
     }
 
     /// <summary>A gamepad button to set: clicked, it waits for the next button (PadText names them,
@@ -307,7 +306,7 @@ namespace KotH.Client.Menu
         }
 
         /// <summary>Shows that it waits for a button.</summary>
-        public void Waiting() => button.Content = "Press a button";
+        public void Waiting() => button.Content = Loc.T("settings.press_button");
 
         public void Bind(PadButton b) => Change(s => s.Bind(action, b));
 
@@ -333,32 +332,6 @@ namespace KotH.Client.Menu
         };
 
         /// <summary>A button by its Xbox or PlayStation name, matching the connected gamepad.</summary>
-        public static string PadText(PadButton b, PadStyle style = PadStyle.Xbox) => (style, b) switch
-        {
-            (_, PadButton.None) => "—",
-            (PadStyle.PlayStation, PadButton.A) => "Cross",
-            (PadStyle.PlayStation, PadButton.B) => "Circle",
-            (PadStyle.PlayStation, PadButton.X) => "Square",
-            (PadStyle.PlayStation, PadButton.Y) => "Triangle",
-            (PadStyle.PlayStation, PadButton.Back) => "Share",
-            (PadStyle.PlayStation, PadButton.Start) => "Options",
-            (PadStyle.PlayStation, PadButton.LeftShoulder) => "L1",
-            (PadStyle.PlayStation, PadButton.RightShoulder) => "R1",
-            (PadStyle.PlayStation, PadButton.LeftTrigger) => "L2",
-            (PadStyle.PlayStation, PadButton.RightTrigger) => "R2",
-            (_, PadButton.Back) => "View",
-            (_, PadButton.Start) => "Menu",
-            (_, PadButton.LeftStick) => "L3 (left stick)",
-            (_, PadButton.RightStick) => "R3 (right stick)",
-            (_, PadButton.LeftShoulder) => "LB",
-            (_, PadButton.RightShoulder) => "RB",
-            (_, PadButton.LeftTrigger) => "LT",
-            (_, PadButton.RightTrigger) => "RT",
-            (_, PadButton.DPadUp) => "D-pad up",
-            (_, PadButton.DPadDown) => "D-pad down",
-            (_, PadButton.DPadLeft) => "D-pad left",
-            (_, PadButton.DPadRight) => "D-pad right",
-            _ => b.ToString(),
-        };
+        public static string PadText(PadButton b, PadStyle style = PadStyle.Xbox) => Loc.PadName(b, style);
     }
 }

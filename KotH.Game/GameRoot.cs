@@ -4,6 +4,7 @@ using System.IO;
 using KotH.Client.Audio;
 using KotH.Client.CustomMaps;
 using KotH.Client.Hud;
+using KotH.Client.Localization;
 using KotH.Client.Match;
 using KotH.Client.Menu;
 using KotH.Client.Net;
@@ -154,6 +155,7 @@ namespace KotH.Client
         public override void Start()
         {
             StartLog.Mark("game root starts");
+            Loc.EnsureInitialized();
             Stride.Rendering.Voxels.VoxelStorageSparse.Report = StartLog.Mark;
             ClientSettings.Changed += ApplyTextures;
             FigureShadowMasks.Install(SceneSystem);
@@ -257,7 +259,7 @@ namespace KotH.Client
         {
             LaunchOptions options = LaunchOptions.Current;
             var reader = new PlayerInputReader { NetId = NetWorld.FirstPlayerId };
-            Entity player = Spawn(builder, WorldBuilder.PlayerBodyUrl, "PlayerSpawn", "Player", reader, new DamagePercent());
+            Entity player = Spawn(builder, WorldBuilder.PlayerBodyUrl, "PlayerSpawn", Loc.T("common.player"), reader, new DamagePercent());
 
             // The bots on the player slots, numbered on from the player like
             // joiners, so they think exactly as they would on a host.
@@ -270,6 +272,7 @@ namespace KotH.Client
             var states = new LocalFinalStates(simulation);
             BotDirector director = botCount > 0 ? BotDirector.Create(builder, simulation, states, options.BotSeed) : null;
             WorkAhead(director);
+            string[] shotNames = Environment.GetEnvironmentVariable("KOTH_SHOT_BOT_NAMES")?.Split('|');
             var bots = new List<Entity>();
             for (int i = 0; i < botCount; i++)
             {
@@ -277,7 +280,8 @@ namespace KotH.Client
                 Entity marker = NetWorld.SlotMarker(builder, NetWorld.BotSlots[i]);
                 Entity e = builder.SpawnBody(WorldBuilder.PlayerBodyUrl, marker.Transform.Position, marker.Transform.Rotation,
                                              bot, new DamagePercent());
-                e.Name = $"Bot {i + 1}";
+                string overrideName = shotNames != null && i < shotNames.Length && shotNames[i].Length > 0 ? HostSession.CleanName(shotNames[i]) : "";
+                e.Name = overrideName.Length > 0 ? overrideName : Loc.F("common.bot_n", i + 1);
                 bots.Add(e);
             }
 
@@ -393,7 +397,7 @@ namespace KotH.Client
             if (builder.Map != map && !builder.HasMap(map))
             {
                 // A custom map this guest does not have (and could not fetch): out, with the reason.
-                leaveNote = $"Map not installed: {MapTitle(map)}";
+                leaveNote = Loc.F("net.map_missing", MapTitle(map));
                 Log.Warning($"Network: restart on {map}, which is not here; back to the menu");
                 ReturnToMenu();
                 return;
@@ -472,7 +476,7 @@ namespace KotH.Client
                 return;
             DropCoverWait();
             // A private round's door stayed shut: Find server says why.
-            menuNote = leaveNote ?? (net?.Session.Rejected == RejectReason.Password ? "Wrong password" : net?.KeyRefused);
+            menuNote = leaveNote ?? (net?.Session.Rejected == RejectReason.Password ? Loc.T("net.wrong_password") : net?.KeyRefused);
             leaveNote = null;
             SimulationJob.Drop();
             games++;
@@ -600,7 +604,7 @@ namespace KotH.Client
                 MapUnavailable = map =>
                 {
                     // Not inside the client's own update: the next frame takes the game down.
-                    leaveNote = $"Map not installed: {MapTitle(map)}";
+                    leaveNote = Loc.F("net.map_missing", MapTitle(map));
                     Log.Warning($"Network: the host's map {map} is not here; back to the menu");
                     Script.AddTask(async () =>
                     {
@@ -1162,15 +1166,15 @@ namespace KotH.Client
         {
             ulong item = MapPackage.WorkshopOf(map);
             SteamUgc.Fetched state = SteamUgc.Fetch(item, StartLog.Now / 1000.0, out float progress);
-            fetchNote = state == SteamUgc.Fetched.Downloading ? $"Downloading {MapTitle(map)}  {progress * 100f:F0} %" : null;
+            fetchNote = state == SteamUgc.Fetched.Downloading ? Loc.F("net.downloading", MapTitle(map), Loc.Decimal(progress * 100f, "F0")) : null;
             if (state == SteamUgc.Fetched.Installed && !builder.HasMap(map))
                 Log.Warning($"Network: workshop item {item} is installed, but not as {map} (another version)");
             return state == SteamUgc.Fetched.Downloading || state == SteamUgc.Fetched.Installed && builder.HasMap(map);
         }
 
-        /// <summary>A map's name for people: a package's title, else the built-in title (Maps.Title).</summary>
+        /// <summary>A map's name for people: a package's title, else the localized built-in title.</summary>
         string MapTitle(string map)
-            => builder.Library.Find(map)?.Manifest.Title ?? (MapPackage.IsId(map) ? map.Substring(0, map.IndexOf('@')) : Maps.Title(map));
+            => builder.Library.Find(map)?.Manifest.Title ?? (MapPackage.IsId(map) ? map.Substring(0, map.IndexOf('@')) : Loc.MapTitle(map));
         PlayerInputReader localReader;
         Entity arms;
         readonly Dictionary<SimulationBody, (Entity Visual, Entity Label)> shown =

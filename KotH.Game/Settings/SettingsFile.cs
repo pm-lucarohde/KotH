@@ -60,6 +60,8 @@ namespace KotH.Client.Settings
         public static string Write(PlayerSettings s)
         {
             var t = new StringBuilder("# KotH settings; the game rewrites this file on Apply\n");
+            t.Append("\n[general]\n");
+            Text(t, "language", s.Language ?? "");
             t.Append("\n[sound]\n");
             Number(t, "overall", s.Overall); Number(t, "effects", s.Effects); Number(t, "music", s.Music); Number(t, "ambient", s.Ambient);
             Number(t, "voice", s.Voice);
@@ -146,6 +148,7 @@ namespace KotH.Client.Settings
         {
             switch (table, key)
             {
+                case ("general", "language"): s.Language = v.Trim().ToLowerInvariant(); break;
                 case ("sound", "overall"): s.Overall = Unit(v, s.Overall); break;
                 case ("sound", "effects"): s.Effects = Unit(v, s.Effects); break;
                 case ("sound", "music"): s.Music = Unit(v, s.Music); break;

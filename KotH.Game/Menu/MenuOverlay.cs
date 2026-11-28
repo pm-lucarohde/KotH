@@ -14,6 +14,7 @@ using Avalonia.Platform;
 using Avalonia.Platform.Surfaces;
 using Avalonia.Threading;
 using KotH.Client.Hud;
+using KotH.Client.Localization;
 using Stride.Core.Mathematics;
 using Stride.Graphics;
 using AvaloniaPixelFormat = Avalonia.Platform.PixelFormat;
@@ -37,6 +38,7 @@ namespace KotH.Client.Menu
 
         static bool started;
         static long tickedFrame = -1;
+        static readonly List<MenuOverlay> Active = new List<MenuOverlay>();
 
         readonly Surface surface = new Surface();
         readonly EmbeddableControlRoot root;
@@ -94,6 +96,20 @@ namespace KotH.Client.Menu
             };
             // Grey antialiasing: coloured subpixel fringes assume an opaque background.
             TextOptions.SetTextRenderingMode(root, TextRenderingMode.Antialias);
+            root.FlowDirection = Loc.IsRtl ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
+            Active.Add(this);
+        }
+
+        /// <summary>Updates FlowDirection on every live overlay after a language switch.</summary>
+        public static void RefreshDirection()
+        {
+            FlowDirection dir = Loc.IsRtl ? FlowDirection.RightToLeft : FlowDirection.LeftToRight;
+            for (int i = 0; i < Active.Count; i++)
+            {
+                Active[i].root.FlowDirection = dir;
+                Active[i].root.InvalidateMeasure();
+                Active[i].root.InvalidateVisual();
+            }
         }
 
         /// <summary>Starts Avalonia headless with Skia, once per process.</summary>
@@ -102,9 +118,21 @@ namespace KotH.Client.Menu
             if (started)
                 return;
             started = true;
+            var cjkKey = new Uri("fonts:KotHCjk", UriKind.Absolute);
             AppBuilder.Configure<TApp>()
                 .UseSkia()
                 .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
+                .ConfigureFonts(fm => fm.AddFontCollection(new DiskFontCollection(cjkKey, System.IO.Path.Combine("Fonts", "NotoSansCJK.ttc"))))
+                .With(new FontManagerOptions
+                {
+                    FontFallbacks =
+                    [
+                        new FontFallback { FontFamily = new FontFamily("avares://KotH.Game/Menu/Fonts#Noto Sans Arabic") },
+                        new FontFallback { FontFamily = new FontFamily("avares://KotH.Game/Menu/Fonts#Noto Sans Devanagari") },
+                        new FontFallback { FontFamily = new FontFamily("avares://KotH.Game/Menu/Fonts#Noto Sans Thai") },
+                        new FontFallback { FontFamily = new FontFamily("fonts:KotHCjk#Noto Sans CJK JP") },
+                    ],
+                })
                 // Dirty rectangles kept apart: two buttons far apart redraw two spots, not all between.
                 .With(new Avalonia.Rendering.Composition.CompositionOptions { UseRegionDirtyRectClipping = true })
                 .SetupWithoutStarting();
@@ -262,6 +290,7 @@ namespace KotH.Client.Menu
 
         public void Dispose()
         {
+            Active.Remove(this);
             root.StopRendering();
             root.Dispose();
             texture?.Dispose();

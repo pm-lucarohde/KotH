@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using Avalonia.Controls;
+using KotH.Client.Localization;
 using KotH.Client.Settings;
 using KotH.Shared.Match;
 
@@ -27,23 +27,23 @@ namespace KotH.Client.Menu
         public RoundPage()
         {
             InitializeComponent();
-            rows.Add(new ChoiceRow<MatchMode>("Mode", _ => Fitting(), s => s.HostMode, (s, v) =>
+            rows.Add(new ChoiceRow<MatchMode>("", _ => Fitting(), s => s.HostMode, (s, v) =>
             {
                 s.HostMode = v;
                 s.HostStartPercent = -1f;   // the new mode's own start damage, changeable again
-            }, HillMatch.DisplayName) { NoteOf = HillMatch.ModeNote });
+            }, Loc.ModeName) { NoteOf = Loc.ModeNote });
             rows.Add(HostPage.MaxPlayersRow());
-            rows.Add(new ToggleRow("Bots", s => s.HostBots, (s, v) => s.HostBots = v));
-            rows.Add(new SliderRow("Bot count", 1, HillMatch.FreeMaxPlayers - 1, 1, s => s.BotCountOf,
-                                   (s, v) => s.HostBotCount = (int)Math.Round(v), v => Text(v, "0"))
+            rows.Add(new ToggleRow("", s => s.HostBots, (s, v) => s.HostBots = v));
+            rows.Add(new SliderRow("", 1, HillMatch.FreeMaxPlayers - 1, 1, s => s.BotCountOf,
+                                   (s, v) => s.HostBotCount = (int)Math.Round(v), v => Loc.Number((int)Math.Round(v)))
                      { Locked = s => s.HostBots ? null : "", MaxOf = s => Math.Max(1, s.MaxPlayersOf - 1) });
-            rows.Add(new ToggleRow("Auto start", s => s.HostAutoStart, (s, v) => s.HostAutoStart = v, "when the lobby is full"));
-            rows.Add(new SliderRow("Start damage", 0, PlayerSettings.MaxStartPercent, 5, s => s.StartPercentOf,
-                                   (s, v) => s.HostStartPercent = (float)Math.Round(v), v => Text(v, "0") + " %"));
-            rows.Add(new SliderRow("Hit", 0, PlayerSettings.MaxHitPercent, 0.1, s => s.HostHit,
-                                   (s, v) => s.HostHit = Tenths(v), Hit, "percent each hit adds"));
-            rows.Add(new SliderRow("Knockback", PlayerSettings.MinKnock, PlayerSettings.MaxKnock, 0.05, s => s.HostKnock,
-                                   (s, v) => s.HostKnock = (float)Math.Round(v, 2), v => "×" + Text(v, "0.00")));
+            rows.Add(new ToggleRow("", s => s.HostAutoStart, (s, v) => s.HostAutoStart = v, ""));
+            rows.Add(new SliderRow("", 0, PlayerSettings.MaxStartPercent, 5, s => s.StartPercentOf,
+                                   (s, v) => s.HostStartPercent = (float)Math.Round(v), v => Loc.Percent(v, "0")));
+            rows.Add(new SliderRow("", 0, PlayerSettings.MaxHitPercent, 0.1, s => s.HostHit,
+                                   (s, v) => s.HostHit = Tenths(v), Hit, ""));
+            rows.Add(new SliderRow("", PlayerSettings.MinKnock, PlayerSettings.MaxKnock, 0.05, s => s.HostKnock,
+                                   (s, v) => s.HostKnock = (float)Math.Round(v, 2), v => Loc.F("common.knockback_x", Loc.Decimal(v, "0.00"))));
             foreach (SettingRow row in rows)
             {
                 row.Edited = () => edited;
@@ -54,6 +54,20 @@ namespace KotH.Client.Menu
                 };
                 Rows.Children.Add(row.View);
             }
+            ApplyLanguage();
+        }
+
+        public void ApplyLanguage()
+        {
+            rows[0].Retext(Loc.T("host.mode"));
+            rows[1].Retext(Loc.T("host.max_players"));
+            rows[2].Retext(Loc.T("round.bots"));
+            rows[3].Retext(Loc.T("round.bot_count"));
+            rows[4].Retext(Loc.T("round.auto_start"), Loc.T("round.auto_start.note"));
+            rows[5].Retext(Loc.T("round.start_damage"));
+            rows[6].Retext(Loc.T("round.hit"), Loc.T("round.hit.note"));
+            rows[7].Retext(Loc.T("round.knockback"));
+            Refresh();
         }
 
         /// <summary>Shown again: from the settings in force, with the mode the lobby has now; unapplied edits are dropped.</summary>
@@ -88,7 +102,7 @@ namespace KotH.Client.Menu
         /// <summary>Why the round cannot start now, else null: fewer than the mode's fewest (5 in 1, 2, 3, Free, else 2),
         /// people and the applied bots (counted as applied: the lobby's bodies follow a few ticks later).</summary>
         public string Problem
-            => TooFew ? $"{HillMatch.DisplayName(applied.HostMode)} needs {HillMatch.FewestOf(applied.HostMode)} players: add bots or wait for more people."
+            => TooFew ? Loc.F("round.too_few", Loc.ModeName(applied.HostMode), Loc.Number(HillMatch.FewestOf(applied.HostMode)))
                       : null;
 
         /// <summary>Whether too few would be in the round: checked every frame, people come and go.</summary>
@@ -130,8 +144,6 @@ namespace KotH.Client.Menu
 
         static float Tenths(double v) => (float)Math.Round(v, 1);
 
-        static string Hit(double v) => "+" + Text(v, "0.0") + " %";
-
-        static string Text(double v, string format) => v.ToString(format, CultureInfo.InvariantCulture);
+        static string Hit(double v) => Loc.F("common.hit_plus", Loc.Decimal(v, "0.0"));
     }
 }

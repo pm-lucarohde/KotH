@@ -1,12 +1,13 @@
 using System;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using KotH.Client.Localization;
 
 namespace KotH.Client.Menu
 {
     /// <summary>The main menu's controls: name, level bar, buttons, the note on the one under the pointer, the pages
-    /// behind five of them (Host server, Find server, Social, Settings; Languages only to look at), Customize, title and
-    /// small print. Five parts of a screen 1080 high that MainMenu takes out (<see cref="TakeParts"/>), shows and slides in.</summary>
+    /// behind five of them (Host server, Find server, Social, Settings, Languages), Customize, title and small print.
+    /// Five parts of a screen 1080 high that MainMenu takes out (<see cref="TakeParts"/>), shows and slides in.</summary>
     public partial class MainMenuView : UserControl
     {
         /// <summary>Host server's page was opened: time to fill it.</summary>
@@ -21,7 +22,10 @@ namespace KotH.Client.Menu
         /// <summary>The height the parts are laid out for, in their units.</summary>
         public const double DesignHeight = MenuOverlay.DesignHeight;
 
-        Button open;
+        Button open, described;
+        string openTitleKey;
+        int progLevel = 1, progInto, progSpan = 200;
+        bool progOffline;
 
         /// <summary>The Customize page, whose part MainMenu shows when <see cref="CustomizeOpen"/>.</summary>
         public CustomizePage Customizer => CustomizeView;
@@ -38,13 +42,16 @@ namespace KotH.Client.Menu
         /// <summary>The Social page (Party and Leaderboard).</summary>
         public SocialPage SocialView => SocialPage;
 
+        /// <summary>The Languages page.</summary>
+        public LanguagesPage LanguagesView => LanguagesPage;
+
         bool locked;
 
 
         public MainMenuView()
         {
             InitializeComponent();
-            Describe(Host);
+            described = Host;
             foreach (Button button in new[] { Host, Find, SocialButton, Customize, Settings, Languages, Quit })
                 button.PointerEntered += (_, _) => Describe(button);
             // A second click on the open page's button closes it again, as Escape does.
@@ -52,7 +59,7 @@ namespace KotH.Client.Menu
             {
                 if (Closed(Host))
                     return;
-                OpenPage(Host, "Host server", HostPage);
+                OpenPage(Host, "menu.host", HostPage);
                 HostOpened?.Invoke();
             };
             Quit.Click += (_, _) => QuitRequested?.Invoke();
@@ -79,15 +86,42 @@ namespace KotH.Client.Menu
             Settings.Click += (_, _) =>
             {
                 if (!Closed(Settings))
-                    OpenPage(Settings, "Settings", SettingsPage);
+                    OpenPage(Settings, "menu.settings", SettingsPage);
             };
             Languages.Click += (_, _) =>
             {
                 if (!Closed(Languages))
-                    OpenPage(Languages, "Languages", LanguagesPage);
+                {
+                    LanguagesPage.Refresh();
+                    OpenPage(Languages, "menu.languages", LanguagesPage);
+                }
             };
             SettingsPage.BackRequested += () => GoBack();
             Back.Click += (_, _) => GoBack();
+            ApplyLanguage();
+        }
+
+        /// <summary>Refreshes every visible label across the main menu and its subpages for the active language.</summary>
+        public void ApplyLanguage()
+        {
+            Host.Content = Loc.T("menu.host");
+            Find.Content = Loc.T("menu.find");
+            SocialButton.Content = Loc.T("menu.social");
+            Customize.Content = Loc.T("menu.customize");
+            Settings.Content = Loc.T("menu.settings");
+            Languages.Content = Loc.T("menu.languages");
+            Quit.Content = Loc.T("menu.quit");
+            Back.Content = Loc.T("common.back");
+            if (openTitleKey != null)
+                PageTitle.Text = Loc.T(openTitleKey);
+            Describe(described ?? Host);
+            ShowProgress();
+            LanguagesPage.Refresh();
+            HostPage.ApplyLanguage();
+            FindPage.ApplyLanguage();
+            SocialPage.ApplyLanguage();
+            SettingsPage.ApplyLanguage();
+            CustomizeView.ApplyLanguage();
         }
 
         Button[] Lit => new[] { Host, Find, SocialButton, Customize, Settings, Languages, Quit, Back };
@@ -135,12 +169,12 @@ namespace KotH.Client.Menu
         }
 
         /// <summary>Opens Find server (also for an accepted invite, to show how joining goes).</summary>
-        public void OpenFind() => OpenPage(Find, "Find server", FindPage);
+        public void OpenFind() => OpenPage(Find, "menu.find", FindPage);
 
         /// <summary>Opens Social: on its Party tab for an accepted party invite, else on the tab chosen last.</summary>
         public void OpenSocial(bool party)
         {
-            OpenPage(SocialButton, "Social", SocialPage);
+            OpenPage(SocialButton, "menu.social", SocialPage);
             SocialPage.Open(party);
         }
 
@@ -148,16 +182,21 @@ namespace KotH.Client.Menu
         /// when the values are the file's, not Steam's. Below level 10 Customize is locked.</summary>
         public void Progress(int level, int into, int span, bool offline, bool customizeLocked)
         {
-            LevelText.Text = "Level " + level.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            XpText.Text = (span == 0 ? "Max level" : $"{Number(into)} / {Number(span)} XP") + (offline ? " (offline)" : "");
-            XpFill.Width = 210.0 * (span == 0 ? 1.0 : Math.Clamp((double)into / span, 0.0, 1.0));
-            locked = customizeLocked;
+            (progLevel, progInto, progSpan, progOffline, locked) = (level, into, span, offline, customizeLocked);
+            ShowProgress();
             Customize.Classes.Set("Locked", locked);
             if (locked && open == Customize)
                 GoBack();
         }
 
-        static string Number(int n) => n.ToString("N0", System.Globalization.CultureInfo.InvariantCulture);
+        void ShowProgress()
+        {
+            LevelText.Text = Loc.F("common.level_n", Loc.Number(progLevel));
+            string core = progSpan == 0 ? Loc.T("common.max_level")
+                : Loc.Ltr(Loc.F("common.xp_progress", "\u200E" + progInto.ToString("N0", Loc.Numbers) + "\u200E", "\u200E" + progSpan.ToString("N0", Loc.Numbers) + "\u200E"));
+            XpText.Text = progOffline ? Loc.F("common.xp_offline", core) : core;
+            XpFill.Width = 170.0 * (progSpan == 0 ? 1.0 : Math.Clamp((double)progInto / progSpan, 0.0, 1.0));
+        }
 
         /// <summary>Gamepad LB/RB: switches tabs in the open submenu (Settings, Social or Customize).</summary>
         public void StepTab(int delta)
@@ -203,14 +242,15 @@ namespace KotH.Client.Menu
                 buttons[button].Classes.Add("Active");
         }
 
-        void OpenPage(Button button, string title, Control content)
+        void OpenPage(Button button, string titleKey, Control content)
         {
             open?.Classes.Remove("Active");
             open = button;
+            openTitleKey = titleKey;
             button.Classes.Add("Active");
             if (content == null)
                 return;
-            PageTitle.Text = title;
+            PageTitle.Text = titleKey != null ? Loc.T(titleKey) : "";
             FindPage.IsVisible = content == FindPage;
             HostPage.IsVisible = content == HostPage;
             SocialPage.IsVisible = content == SocialPage;
@@ -224,14 +264,15 @@ namespace KotH.Client.Menu
 
         void Describe(Button button)
         {
-            Description.Text = button == Host ? "Open a lobby on Mount Destiny, public or private with a password, and choose the round's map. Bots fill the free slots."
-                             : button == Find ? "Find other players' rounds on Steam and join them."
-                             : button == SocialButton ? "Invite a friend into your party, and see who has won the most rounds."
-                             : button == Customize && locked ? "Reach level 10 to colour your mushroom. Online rounds give XP."
-                             : button == Customize ? "Colour your mushroom; from level 100 a glow and a sparkle trail."
-                             : button == Settings ? "Graphics, sound and controls to your taste."
-                             : button == Languages ? "Choose the game's language."
-                             : "Back to the desktop. See you on the summit!";
+            described = button;
+            Description.Text = button == Host ? Loc.T("menu.desc.host")
+                             : button == Find ? Loc.T("menu.desc.find")
+                             : button == SocialButton ? Loc.T("menu.desc.social")
+                             : button == Customize && locked ? Loc.T("menu.desc.customize_locked")
+                             : button == Customize ? Loc.T("menu.desc.customize")
+                             : button == Settings ? Loc.T("menu.desc.settings")
+                             : button == Languages ? Loc.T("menu.desc.languages")
+                             : Loc.T("menu.desc.quit");
         }
     }
 }

@@ -1,0 +1,3 @@
+Noto Sans (Arabic, Devanagari, Thai, CJK) by Google.
+Licence: SIL Open Font License 1.1 (OFL-1.1), free for commercial and non-commercial use.
+Source: https://fonts.google.com/noto

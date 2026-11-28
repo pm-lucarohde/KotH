@@ -4,6 +4,9 @@ using System.Security.Cryptography;
 
 namespace KotH.Shared.Net
 {
+    /// <summary>Structured handshake failure reason so clients can localize without parsing English text.</summary>
+    public enum SecureLinkFailure { None, HandshakeBroken, KeyMismatch, BadSignature }
+
     /// <summary>One direct-IP connection's encryption. The peer sends an ephemeral ECDH P-256 key (Hello),
     /// the host its lasting public key, an ephemeral one and its signature over both (Reply); the peer checks
     /// the signature and, from an invite, the fingerprint. HKDF-SHA256 gives a key per direction; each packet
@@ -36,6 +39,9 @@ namespace KotH.Shared.Net
 
         /// <summary>The peer side: the host's fingerprint once its reply checked out.</summary>
         public string HostFingerprint { get; private set; }
+
+        /// <summary>Structured reason for the last handshake failure, None on success.</summary>
+        public SecureLinkFailure Failure { get; private set; }
 
         /// <summary>A peer starts: the link and its Hello to send (reliably).</summary>
         public static SecureLink Peer(out byte[] hello)
@@ -78,6 +84,7 @@ namespace KotH.Shared.Net
         public bool TakeReply(ReadOnlySpan<byte> reply, string pinned, out string why)
         {
             var r = new Reader(reply);
+            Failure = SecureLinkFailure.HandshakeBroken;
             why = "The host's handshake was broken";
             if (hosting || Ready || r.Byte() != ReplyKind)
                 return false;
@@ -89,6 +96,7 @@ namespace KotH.Shared.Net
             string fingerprint = HostKey.FingerprintOf(hostKey);
             if (pinned != null && !string.Equals(pinned, fingerprint, StringComparison.OrdinalIgnoreCase))
             {
+                Failure = SecureLinkFailure.KeyMismatch;
                 why = "The host's key does not match the invite";
                 return false;
             }
@@ -98,6 +106,7 @@ namespace KotH.Shared.Net
                 verifier.ImportSubjectPublicKeyInfo(hostKey, out _);
                 if (!verifier.VerifyData(Signed(myPoint, hostPoint), signature, HashAlgorithmName.SHA256))
                 {
+                    Failure = SecureLinkFailure.BadSignature;
                     why = "The host's signature is wrong";
                     return false;
                 }
@@ -109,6 +118,7 @@ namespace KotH.Shared.Net
             if (!Agree(hostPoint, peerPoint: myPoint, hostPoint: hostPoint))
                 return false;
             HostFingerprint = fingerprint;
+            Failure = SecureLinkFailure.None;
             why = null;
             return true;
         }

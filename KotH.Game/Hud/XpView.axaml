@@ -12,8 +12,9 @@
         </Style>
     </UserControl.Styles>
     <Panel Name="Parts">
-        <!-- The glass, the line under the title and the bar's empty track: drawn once -->
-        <Grid Name="CardPart" Width="688" Height="364">
+        <!-- The glass, the line under the title and the bar's empty track: drawn once.
+             Kept LTR so the track stays pixel-aligned with the separate bar/spark overlays in RTL. -->
+        <Grid Name="CardPart" Width="688" Height="364" FlowDirection="LeftToRight">
             <!-- Denser than the HUD's glass: more to read, often over bright grass -->
             <Border Classes="Glass" Margin="24" CornerRadius="18">
                 <Border.Background>
@@ -30,55 +31,65 @@
 
         <!-- The title and the round's sum, counting up as the lines come in -->
         <Grid Name="HeadPart" Width="640" Height="62">
-            <TextBlock Classes="Hud Soft" Text="Round XP" FontSize="25" Margin="24,0,0,4" />
+            <TextBlock Name="TitleText" Classes="Hud Soft" Text="Round XP" FontSize="25" Margin="24,0,0,4"
+                       MaxWidth="360" TextTrimming="CharacterEllipsis" />
             <TextBlock Name="Total" Classes="Hud Gold" Text="+0 XP" FontSize="38" FontWeight="Bold"
-                       HorizontalAlignment="Right" Margin="0,0,24,6" />
+                       HorizontalAlignment="Right" Margin="0,0,24,6" FlowDirection="LeftToRight" />
         </Grid>
 
         <!-- One line per source: what, how long, how much -->
-        <Grid Name="Line0Part" Width="640" Height="38" ColumnDefinitions="*,Auto,110">
-            <TextBlock Name="Label0" Classes="Hud" Text="Time played" FontSize="24" Margin="24,0,0,3" />
-            <TextBlock Name="Detail0" Grid.Column="1" Classes="Hud Soft" Text="4:12" FontSize="22" Margin="0,0,0,3" />
+        <Grid Name="Line0Part" Width="640" Height="42" ColumnDefinitions="*,Auto,110">
+            <TextBlock Name="Label0" Classes="Hud" Text="Time played" FontSize="24" Margin="24,0,12,3"
+                       TextTrimming="CharacterEllipsis" />
+            <TextBlock Name="Detail0" Grid.Column="1" Classes="Hud Soft" Text="4:12" FontSize="22" Margin="0,0,0,3"
+                       FlowDirection="LeftToRight" />
             <TextBlock Name="Value0" Grid.Column="2" Classes="Hud" Text="+25" FontSize="25"
-                       HorizontalAlignment="Right" Margin="0,0,24,3" />
+                       HorizontalAlignment="Right" Margin="0,0,24,3" FlowDirection="LeftToRight" />
         </Grid>
-        <Grid Name="Line1Part" Width="640" Height="38" ColumnDefinitions="*,Auto,110">
-            <TextBlock Name="Label1" Classes="Hud" Text="Zone held" FontSize="24" Margin="24,0,0,3" />
-            <TextBlock Name="Detail1" Grid.Column="1" Classes="Hud Soft" Text="1:31" FontSize="22" Margin="0,0,0,3" />
+        <Grid Name="Line1Part" Width="640" Height="42" ColumnDefinitions="*,Auto,110">
+            <TextBlock Name="Label1" Classes="Hud" Text="Zone held" FontSize="24" Margin="24,0,12,3"
+                       TextTrimming="CharacterEllipsis" />
+            <TextBlock Name="Detail1" Grid.Column="1" Classes="Hud Soft" Text="1:31" FontSize="22" Margin="0,0,0,3"
+                       FlowDirection="LeftToRight" />
             <TextBlock Name="Value1" Grid.Column="2" Classes="Hud" Text="+91" FontSize="25"
-                       HorizontalAlignment="Right" Margin="0,0,24,3" />
+                       HorizontalAlignment="Right" Margin="0,0,24,3" FlowDirection="LeftToRight" />
         </Grid>
-        <Grid Name="Line2Part" Width="640" Height="38" ColumnDefinitions="*,Auto,110">
-            <TextBlock Name="Label2" Classes="Hud Gold" Text="Victory" FontSize="24" Margin="24,0,0,3" />
-            <TextBlock Name="Detail2" Grid.Column="1" Classes="Hud Soft" Text="" FontSize="22" Margin="0,0,0,3" />
+        <Grid Name="Line2Part" Width="640" Height="42" ColumnDefinitions="*,Auto,110">
+            <TextBlock Name="Label2" Classes="Hud Gold" Text="Victory" FontSize="24" Margin="24,0,12,3"
+                       TextTrimming="CharacterEllipsis" />
+            <TextBlock Name="Detail2" Grid.Column="1" Classes="Hud Soft" Text="" FontSize="22" Margin="0,0,0,3"
+                       FlowDirection="LeftToRight" />
             <TextBlock Name="Value2" Grid.Column="2" Classes="Hud Gold" Text="+100" FontSize="25"
-                       HorizontalAlignment="Right" Margin="0,0,24,3" />
+                       HorizontalAlignment="Right" Margin="0,0,24,3" FlowDirection="LeftToRight" />
         </Grid>
 
         <!-- Instead of the lines when the round gave nothing -->
         <Grid Name="NotePart" Width="640" Height="114">
             <StackPanel Spacing="6" VerticalAlignment="Center" Margin="24,0">
-                <TextBlock Classes="Hud" Text="No XP from this round" FontSize="25" />
+                <TextBlock Name="NoneTitle" Classes="Hud" Text="No XP from this round" FontSize="25"
+                           TextTrimming="CharacterEllipsis" />
                 <TextBlock Name="Note" Classes="Hud Soft" Text="Steam rounds with another person give XP"
                            FontSize="21" TextWrapping="Wrap" />
             </StackPanel>
         </Grid>
 
         <!-- The level on a gold pill: it pops when the bar runs over -->
-        <Grid Name="BadgePart" Width="150" Height="64">
-            <Border Width="132" Height="40" CornerRadius="20" Background="#F2C25C"
-                    BorderBrush="#FFF4D9" BorderThickness="1.5">
-                <TextBlock Name="Badge" Text="Level 1" FontSize="22" FontWeight="Bold" Foreground="#2A2112"
-                           HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,2" />
+        <Grid Name="BadgePart" Width="156" Height="64">
+            <Border Width="140" Height="40" CornerRadius="20" Background="#F2C25C"
+                    BorderBrush="#FFF4D9" BorderThickness="1.5" Padding="10,0">
+                <Viewbox Stretch="Uniform" StretchDirection="DownOnly">
+                    <TextBlock Name="Badge" Text="Level 1" FontSize="22" FontWeight="Bold" Foreground="#2A2112"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,2" />
+                </Viewbox>
             </Border>
         </Grid>
 
         <!-- The bar: what was there before (muted), what the round adds (bright), revealed
              from the left; the flash over it when a level fills, the spark at its tip -->
-        <Grid Name="OldPart" Width="436" Height="14">
+        <Grid Name="OldPart" Width="436" Height="14" FlowDirection="LeftToRight">
             <Border CornerRadius="7" Background="#B39A7740" />
         </Grid>
-        <Grid Name="GainPart" Width="436" Height="14">
+        <Grid Name="GainPart" Width="436" Height="14" FlowDirection="LeftToRight">
             <Border CornerRadius="7">
                 <Border.Background>
                     <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
@@ -88,11 +99,11 @@
                 </Border.Background>
             </Border>
         </Grid>
-        <Grid Name="FlashPart" Width="484" Height="62">
+        <Grid Name="FlashPart" Width="484" Height="62" FlowDirection="LeftToRight">
             <Border Width="436" Height="14" CornerRadius="7" Background="#FFFDF2"
                     BoxShadow="0 0 18 4 #CCF2C25C" />
         </Grid>
-        <Grid Name="SparkPart" Width="48" Height="48">
+        <Grid Name="SparkPart" Width="48" Height="48" FlowDirection="LeftToRight">
             <Ellipse>
                 <Ellipse.Fill>
                     <RadialGradientBrush>
@@ -105,33 +116,38 @@
             </Ellipse>
         </Grid>
         <!-- How to close it, under the badge: Escape on a key cap -->
-        <Grid Name="HintPart" Width="200" Height="30">
+        <Grid Name="HintPart" Width="260" Height="36">
             <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                 <Border MinWidth="26" Height="24" CornerRadius="6" Padding="7,0" BorderBrush="#66FFFFFF"
                         BorderThickness="1.5" Background="#1AFFFFFF">
-                    <TextBlock Classes="Hud" Text="Esc" FontSize="16" HorizontalAlignment="Center" Margin="0,0,0,2" />
+                    <TextBlock Name="EscText" Classes="Hud" Text="Esc" FontSize="16" HorizontalAlignment="Center" Margin="0,0,0,2" />
                 </Border>
-                <TextBlock Classes="Hud Soft" Text="Close" FontSize="19" Margin="0,0,0,2" />
+                <TextBlock Name="CloseText" Classes="Hud Soft" Text="Close" FontSize="19" Margin="0,0,0,2"
+                           MaxWidth="180" TextTrimming="CharacterEllipsis" />
             </StackPanel>
         </Grid>
-        <Grid Name="NumbersPart" Width="436" Height="30">
+        <Grid Name="NumbersPart" Width="436" Height="30" FlowDirection="LeftToRight">
             <TextBlock Name="Numbers" Classes="Hud Soft" Text="0 / 200 XP" FontSize="19"
                        HorizontalAlignment="Right" Margin="0,0,0,2" />
         </Grid>
 
         <!-- A stamp on the card's corner the first time a level fills -->
-        <Grid Name="LevelUpPart" Width="260" Height="92">
+        <Grid Name="LevelUpPart" Width="340" Height="92">
             <Border Margin="24" CornerRadius="11" Background="#F2C25C" BorderBrush="#FFF4D9" BorderThickness="2"
-                    BoxShadow="0 4 16 0 #80000000" Padding="18,0">
-                <TextBlock Name="LevelUp" Text="Level up!" FontSize="27" FontWeight="Bold" Foreground="#2A2112"
-                           HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,3" />
+                    BoxShadow="0 4 16 0 #80000000" Padding="18,0" HorizontalAlignment="Center" MinWidth="212">
+                <Viewbox Stretch="Uniform" StretchDirection="DownOnly" MaxWidth="256">
+                    <TextBlock Name="LevelUp" Text="Level up!" FontSize="27" FontWeight="Bold" Foreground="#2A2112"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,3" />
+                </Viewbox>
             </Border>
         </Grid>
 
         <!-- Under the card once a level opens something (Levels.Unlocks) -->
-        <Grid Name="UnlockPart" Width="640" Height="92">
+        <Grid Name="UnlockPart" Width="840" Height="92">
             <Border Classes="Glass" Margin="24" Height="44" CornerRadius="11" HorizontalAlignment="Center" Padding="20,0">
-                <TextBlock Name="Unlock" Classes="Hud Gold" Text="Customize unlocked: colour your mushroom" FontSize="23" Margin="0,0,0,3" />
+                <Viewbox Stretch="Uniform" StretchDirection="DownOnly" MaxWidth="752">
+                    <TextBlock Name="Unlock" Classes="Hud Gold" Text="Customize unlocked: colour your mushroom" FontSize="23" Margin="0,0,0,3" />
+                </Viewbox>
             </Border>
         </Grid>
     </Panel>
